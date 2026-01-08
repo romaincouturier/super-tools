@@ -138,25 +138,59 @@ async function generatePdfWithPdfMonkey(
   return { pdfUrl, documentId };
 }
 
+// Google Service Account configuration
+const GOOGLE_SERVICE_ACCOUNT = {
+  type: "service_account",
+  project_id: "platinum-analog-480215-m0",
+  private_key_id: "1878b07f2ec23d8f84d2493ee58f87d6c78ddf5c",
+  private_key: `-----BEGIN PRIVATE KEY-----
+MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDIJ/5aNH2qcDRf
+3z8uypOsVKoXKD5oSWPl5Nyhbo5gKwfidL/MQmzyfnP3F5PnZepWu0Og+ojMvVQU
+GBfRas+8iwUVFrkA6rTpiGvN25E309cxQo8Xavy7U2fvnN/URHTUVUo7P2Y2Sjp/
+pvqTsujJLkD7jq4rB2LJ+eJFyH/feZkIwGB1bdAm7RgoOT2dzxttpqIqYVSRU6JV
+bPPWaAH+hLAUplZ69erHbk2OYGq2tsbd/FtgmL23uHKmuruv0u6xhZD5lDDpMBUO
+/UgI+ZMZxHNrTE5XF/ZY7rsmkpT15v+4sqPGPl7M6W2ml8RdY1bXOzx+JW8QdzMl
+wDOoUTIRAgMBAAECggEAAiHvdBIQU/NeuOLTxtjJxjp12e0jFGJySzJZjn1QH+d1
+EO+mbr7XL6XJlsr2wUtkIE0RDa83q4p5nngKGNOLX7M7PR5lK/5KlvzXebQbZeAj
+k2efZzJoqF09a6RhyK6IFsfrGt3sWQG1O61f6N76G33uO2Ppq574NlLSBOulRaOY
+G28tTvYoBequcFgkHYWYxS/qwTzEP4LIddeiwx2V6nFf5YlqQ3mTUjNvyH+Iuvd0
+D+flpveN+AsWzsdLMvBQQkXFM5x3NU/dnzNdmKr9IyeUTvr7rxVWCfYR1BQTwD70
+qwoWoHZ6T2m+/DEbTSwQqg7aHG3HUKMIN/Jdke0gIQKBgQD/5wd6hUf3Pl4XfZ1O
+GVKlsFqvZFvpr+ZD8XAHHjQynJLNbH8JDHkdMfFWYDTH4ABRW8g+obw8QvSU/bqY
+9HVVWnFvh9i2qC2sTksIzaNJslQjcqOmjKr2OMsq1piiUoVtIu6AxRorgL6Df2zM
+mKxSO6R5TxyZGif307ipKroEYQKBgQDIO4ZQ3RnStDsBxnT/IFtNODd62V7+ZUIs
+L5JA8kbH0wPsLP2vlvncLf3pw0w2xXgSanTpAU88nAONfcZlYacUnjv6epf+tIYh
+JR6H1FW2QwWxd4cSbTDCstmDlQOl4tiPWMVv2AlcEJ74YenKAfsebY/7aHOhkgnw
+EJaZzgQLsQKBgQC8b+BG7UwgGTHqNFqYfvcoASPWEZ3JB/kUwP4Qj8I6HqfPUvx8
+qk2pHPSs+S0EncM+Jcrfq/NToK4/5FL6fNDF6FKtoSgI4PC49/Iy6lI6W3GvpKQz
+aVQe+ZVJ1zoQFZog0l80PW/W5vfjFvsD8cy6xSaJGaNibitOR/6ru0W9IQKBgCUZ
+ml57SSCYUmKW0fC/nwskwmrZwdcjDeq/+bpc6a52s8Bb6blSIQOh5e0dSY7Qcdn/
+rZ/KpVLWmXXq+wqn2FxioTxc4LLJ4hxcE1cZibQWoQRr4DQS1TkOCG1v+9gNuxB8
+Y0DA56MOVVYyVi4exdeydz4e8WXbeEnp2O2wlWFRAoGBAIaSRWOmgsGVGxJnH8et
+X/8N1cimfEu656wdS5sYLuFIpF/XQ2iNxY552EmBFWCjYH1tp7k2XVfpxx7l99E7
+3VO9FUUEwBpwOmGiOEol8lfAQR1acComZujBmUwCbgJlgCC7f6jL7FdsqybzfL8N
+kN0N5lq4QKpaW6oXv33cvpeD
+-----END PRIVATE KEY-----`,
+  client_email: "lovable-drive-uploader@platinum-analog-480215-m0.iam.gserviceaccount.com",
+  client_id: "108844887639142954309",
+  auth_uri: "https://accounts.google.com/o/oauth2/auth",
+  token_uri: "https://oauth2.googleapis.com/token",
+  auth_provider_x509_cert_url: "https://www.googleapis.com/oauth2/v1/certs",
+  client_x509_cert_url: "https://www.googleapis.com/robot/v1/metadata/x509/lovable-drive-uploader%40platinum-analog-480215-m0.iam.gserviceaccount.com",
+  universe_domain: "googleapis.com"
+};
+
 // Upload to Google Drive
 async function uploadToGoogleDrive(
   pdfUrl: string,
   fileName: string
 ): Promise<string> {
-  const serviceAccountJson = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_JSON");
-  
-  if (!serviceAccountJson) {
-    console.warn("GOOGLE_SERVICE_ACCOUNT_JSON is not set, skipping Drive upload");
-    return "";
-  }
-
   try {
-    const serviceAccount = JSON.parse(serviceAccountJson);
-    console.log("Service account parsed, client_email:", serviceAccount.client_email);
+    console.log("Using embedded service account, client_email:", GOOGLE_SERVICE_ACCOUNT.client_email);
     
-    const tokenResponse = await getGoogleAccessToken(serviceAccount);
+    const tokenResponse = await getGoogleAccessToken(GOOGLE_SERVICE_ACCOUNT);
+    console.log("Google OAuth token obtained successfully");
     
-    // Download PDF
     const pdfResponse = await fetch(pdfUrl);
     const pdfBlob = await pdfResponse.blob();
     
@@ -185,14 +219,18 @@ async function uploadToGoogleDrive(
       }
     );
 
+    const uploadResponseStatus = uploadResponse.status;
+    const uploadResponseText = await uploadResponse.text();
+    console.log(`Drive upload response status: ${uploadResponseStatus}`);
+    console.log(`Drive upload response body: ${uploadResponseText}`);
+
     if (!uploadResponse.ok) {
-      const errorText = await uploadResponse.text();
-      console.error("Drive upload error:", errorText);
-      throw new Error("Failed to upload to Google Drive");
+      console.error("Drive upload error:", uploadResponseText);
+      throw new Error(`Failed to upload to Google Drive: ${uploadResponseStatus} - ${uploadResponseText}`);
     }
 
-    const uploadData = await uploadResponse.json();
-    console.log(`File uploaded to Drive: ${uploadData.id}`);
+    const uploadData = JSON.parse(uploadResponseText);
+    console.log(`File uploaded to Drive successfully: ${uploadData.id}`);
     return uploadData.id;
   } catch (error) {
     console.error("Google Drive upload error:", error);
@@ -253,7 +291,15 @@ async function getGoogleAccessToken(serviceAccount: any): Promise<string> {
     body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${jwt}`,
   });
 
+  const tokenStatus = tokenResponse.status;
   const tokenData = await tokenResponse.json();
+  console.log(`OAuth token response status: ${tokenStatus}`);
+  console.log(`OAuth token response:`, JSON.stringify(tokenData));
+  
+  if (!tokenData.access_token) {
+    throw new Error(`Failed to get access token: ${JSON.stringify(tokenData)}`);
+  }
+  
   return tokenData.access_token;
 }
 
