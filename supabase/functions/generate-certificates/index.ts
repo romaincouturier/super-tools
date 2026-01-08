@@ -301,7 +301,7 @@ async function sendEmailWithResend(
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      from: "Certificats <onboarding@resend.dev>",
+      from: "Romain Couturier <romain@supertilt.fr>",
       to: [participantEmail],
       subject: `Votre certificat de formation - ${formationName}`,
       html: `
@@ -334,7 +334,7 @@ async function sendEmailWithResend(
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "Certificats <onboarding@resend.dev>",
+        from: "Romain Couturier <romain@supertilt.fr>",
         to: [emailDestinataire],
         subject: `[Copie] Certificat envoyé à ${participantName} - ${formationName}`,
         html: `

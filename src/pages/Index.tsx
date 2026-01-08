@@ -11,6 +11,13 @@ import { Award, Loader2, Send } from "lucide-react";
 import { User } from "@supabase/supabase-js";
 import supertiltLogo from "@/assets/supertilt-logo.jpg";
 import UserMenu from "@/components/UserMenu";
+import ProcessingLog, { LogEntry } from "@/components/ProcessingLog";
+
+interface ParsedParticipant {
+  prenom: string;
+  nom: string;
+  email: string;
+}
 
 const Index = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -26,6 +33,12 @@ const Index = () => {
   const [dateDebut, setDateDebut] = useState("");
   const [dateFin, setDateFin] = useState("");
   const [participants, setParticipants] = useState("");
+
+  // Processing log state
+  const [showLog, setShowLog] = useState(false);
+  const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [completedCount, setCompletedCount] = useState(0);
+  const [totalParticipants, setTotalParticipants] = useState(0);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -56,42 +69,72 @@ const Index = () => {
 
   const handleDateDebutChange = (value: string) => {
     setDateDebut(value);
-    // Auto-set dateFin to dateDebut when changed
     setDateFin(value);
+  };
+
+  const addLog = (participant: string, step: LogEntry["step"], message: string, status: LogEntry["status"]) => {
+    const newLog: LogEntry = {
+      id: `${Date.now()}-${Math.random()}`,
+      participant,
+      step,
+      message,
+      status,
+      timestamp: new Date(),
+    };
+    setLogs((prev) => [...prev, newLog]);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Parse participants
+    const lines = participants.trim().split("\n").filter(line => line.trim());
+    const parsedParticipants: ParsedParticipant[] = lines.map(line => {
+      const parts = line.split(",").map(p => p.trim());
+      return {
+        prenom: parts[0] || "",
+        nom: parts[1] || "",
+        email: parts[2] || "",
+      };
+    });
+
+    // Validate participants
+    const invalidParticipants = parsedParticipants.filter(
+      p => !p.prenom || !p.nom || !p.email || !p.email.includes("@")
+    );
+
+    if (invalidParticipants.length > 0) {
+      toast({
+        title: "Erreur de format",
+        description: "Vérifiez le format des participants : Prénom, Nom, email@exemple.com",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Reset and show log
+    setLogs([]);
+    setCompletedCount(0);
+    setTotalParticipants(parsedParticipants.length);
+    setShowLog(true);
     setSubmitting(true);
 
+    // Add initial logs for all participants
+    parsedParticipants.forEach((p) => {
+      addLog(`${p.prenom} ${p.nom}`, "pdf", "En attente de traitement...", "pending");
+    });
+
     try {
-      // Parse participants
-      const lines = participants.trim().split("\n").filter(line => line.trim());
-      const parsedParticipants = lines.map(line => {
-        const parts = line.split(",").map(p => p.trim());
-        return {
-          prenom: parts[0] || "",
-          nom: parts[1] || "",
-          email: parts[2] || "",
-        };
-      });
-
-      // Validate participants
-      const invalidParticipants = parsedParticipants.filter(
-        p => !p.prenom || !p.nom || !p.email || !p.email.includes("@")
-      );
-
-      if (invalidParticipants.length > 0) {
-        toast({
-          title: "Erreur de format",
-          description: "Vérifiez le format des participants : Prénom, Nom, email@exemple.com",
-          variant: "destructive",
-        });
-        setSubmitting(false);
-        return;
+      // Update logs to show processing started
+      setLogs([]);
+      for (const participant of parsedParticipants) {
+        const participantName = `${participant.prenom} ${participant.nom}`;
+        
+        // Log PDF generation start
+        addLog(participantName, "pdf", "Génération du PDF en cours...", "pending");
       }
 
-      // Call edge function with hardcoded BCC email
+      // Call edge function
       const { data, error } = await supabase.functions.invoke("generate-certificates", {
         body: {
           formationName,
@@ -106,20 +149,43 @@ const Index = () => {
 
       if (error) throw error;
 
-      toast({
-        title: "Certificats générés !",
-        description: `${parsedParticipants.length} certificat(s) ont été envoyés avec succès.`,
-      });
+      // Process results and update logs
+      setLogs([]);
+      
+      if (data?.results) {
+        let successCount = 0;
+        for (const result of data.results) {
+          if (result.success) {
+            addLog(result.participant, "pdf", "PDF généré avec succès", "success");
+            addLog(result.participant, "drive", "Uploadé sur Google Drive", "success");
+            addLog(result.participant, "email", "Email envoyé", "success");
+            addLog(result.participant, "done", "✓ Certificat traité avec succès", "success");
+            successCount++;
+          } else {
+            addLog(result.participant, "error", result.error || "Erreur lors du traitement", "error");
+          }
+          setCompletedCount((prev) => prev + 1);
+        }
 
-      // Reset form
-      setFormationName("");
-      setEntreprise("");
-      setDuree("");
-      setDateDebut("");
-      setDateFin("");
-      setParticipants("");
+        toast({
+          title: "Traitement terminé",
+          description: `${successCount}/${parsedParticipants.length} certificat(s) traité(s) avec succès.`,
+          variant: successCount === parsedParticipants.length ? "default" : "destructive",
+        });
+      }
+
+      // Reset form on success
+      if (data?.results?.every((r: any) => r.success)) {
+        setFormationName("");
+        setEntreprise("");
+        setDuree("");
+        setDateDebut("");
+        setDateFin("");
+        setParticipants("");
+      }
     } catch (error: any) {
       console.error("Error:", error);
+      addLog("Système", "error", error.message || "Une erreur est survenue", "error");
       toast({
         title: "Erreur",
         description: error.message || "Une erreur est survenue lors de la génération",
@@ -272,6 +338,16 @@ Marie, Martin, marie.martin@email.com"
           </CardContent>
         </Card>
       </main>
+
+      {/* Processing Log Modal */}
+      <ProcessingLog
+        isOpen={showLog}
+        onClose={() => setShowLog(false)}
+        logs={logs}
+        isProcessing={submitting}
+        totalParticipants={totalParticipants}
+        completedCount={completedCount}
+      />
     </div>
   );
 };
