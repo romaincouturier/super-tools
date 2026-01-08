@@ -302,9 +302,7 @@ const Index = () => {
                 <Label htmlFor="participants">Liste des participants</Label>
                 <Textarea
                   id="participants"
-                  placeholder="Prénom, Nom, email@exemple.com
-Jean, Dupont, jean.dupont@email.com
-Marie, Martin, marie.martin@email.com"
+                  placeholder="Prénom, Nom, email@exemple.com"
                   value={participants}
                   onChange={(e) => setParticipants(e.target.value)}
                   required
