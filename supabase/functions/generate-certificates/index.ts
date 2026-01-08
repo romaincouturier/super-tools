@@ -287,11 +287,29 @@ async function uploadToGoogleDrive(
 }
 
 
+// Escape single quotes for Google Drive API queries
+function escapeForDriveQuery(str: string): string {
+  return str.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+}
+
+// Escape HTML special characters for email content
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 async function findOrCreateFolder(accessToken: string, folderName: string, parentId: string): Promise<string> {
+  // Escape folder name for query
+  const escapedFolderName = escapeForDriveQuery(folderName);
+  
   // Search for existing folder
   const query = parentId === "root"
-    ? `name='${folderName}' and mimeType='application/vnd.google-apps.folder' and 'root' in parents and trashed=false`
-    : `name='${folderName}' and mimeType='application/vnd.google-apps.folder' and '${parentId}' in parents and trashed=false`;
+    ? `name='${escapedFolderName}' and mimeType='application/vnd.google-apps.folder' and 'root' in parents and trashed=false`
+    : `name='${escapedFolderName}' and mimeType='application/vnd.google-apps.folder' and '${parentId}' in parents and trashed=false`;
 
   const searchResponse = await fetch(
     `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}`,
@@ -348,6 +366,10 @@ async function sendEmailWithResend(
 
   console.log(`Sending email to ${participantEmail}...`);
 
+  // HTML-escape user-provided data
+  const safeParticipantName = escapeHtml(participantName);
+  const safeFormationName = escapeHtml(formationName);
+
   // Send to participant
   const participantEmailResponse = await fetch("https://api.resend.com/emails", {
     method: "POST",
@@ -360,8 +382,8 @@ async function sendEmailWithResend(
       to: [participantEmail],
       subject: `Ton certificat de réalisation pour la formation ${formationName}`,
       html: `
-        <p>Bonjour ${participantName},</p>
-        <p>Tu trouveras en pièce jointe ton certificat de réalisation pour la formation ${formationName}.</p>
+        <p>Bonjour ${safeParticipantName},</p>
+        <p>Tu trouveras en pièce jointe ton certificat de réalisation pour la formation ${safeFormationName}.</p>
         <p>Je te souhaite de bien exploiter tout ce que tu as vu pendant la formation !</p>
         <p>Si tu souhaites aller plus loin, je t'invite à te rendre régulièrement sur <a href="https://www.supertilt.fr">www.supertilt.fr</a> et à consulter ma <a href="https://www.youtube.com/@supertilt">chaîne YouTube</a>.</p>
         <p>Bonne continuation et à bientôt !</p>
@@ -388,6 +410,8 @@ async function sendEmailWithResend(
 
   // Send copy to admin
   if (emailDestinataire && emailDestinataire !== participantEmail) {
+    const safeParticipantEmail = escapeHtml(participantEmail);
+    
     const adminEmailResponse = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
@@ -400,8 +424,8 @@ async function sendEmailWithResend(
         subject: `[Copie] Certificat envoyé à ${participantName} - ${formationName}`,
         html: `
           <h1>Certificat envoyé</h1>
-          <p>Le certificat de formation a été envoyé à <strong>${participantName}</strong> (${participantEmail}).</p>
-          <p><strong>Formation :</strong> ${formationName}</p>
+          <p>Le certificat de formation a été envoyé à <strong>${safeParticipantName}</strong> (${safeParticipantEmail}).</p>
+          <p><strong>Formation :</strong> ${safeFormationName}</p>
           <p>Une copie du certificat est jointe à cet email.</p>
         `,
         attachments: [

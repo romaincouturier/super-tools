@@ -83,8 +83,10 @@ serve(async (req: Request): Promise<Response> => {
 
       if (error) {
         console.error("OAuth error:", error);
+        // Safely encode error for JavaScript context
+        const safeError = JSON.stringify(error);
         return new Response(
-          `<html><body><script>window.opener.postMessage({type:'google-drive-auth',success:false,error:'${error}'},'*');window.close();</script></body></html>`,
+          `<html><body><script>window.opener.postMessage({type:'google-drive-auth',success:false,error:${safeError}},'*');window.close();</script></body></html>`,
           { headers: { "Content-Type": "text/html" } }
         );
       }
