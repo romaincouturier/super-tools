@@ -151,14 +151,6 @@ async function uploadToGoogleDrive(
   }
 
   try {
-    console.log("Parsing Google Service Account JSON...");
-    console.log("JSON length:", serviceAccountJson.length);
-    console.log("First 50 chars:", serviceAccountJson.substring(0, 50));
-    
-    const serviceAccount = JSON.parse(serviceAccountJson);
-    console.log("Service account parsed successfully, client_email:", serviceAccount.client_email);
-    
-    // Get access token
     const tokenResponse = await getGoogleAccessToken(serviceAccount);
     
     // Download PDF
