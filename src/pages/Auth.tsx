@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
-import supertiltLogo from "@/assets/supertilt-logo-anthracite.jpg";
+import SupertiltLogo from "@/components/SupertiltLogo";
 
 const ALLOWED_EMAIL = "romain@supertilt.fr";
 
@@ -102,11 +102,7 @@ const Auth = () => {
       <Card className="w-full max-w-md border-2 shadow-xl">
         <CardHeader className="text-center space-y-4">
           <div className="mx-auto">
-            <img 
-              src={supertiltLogo} 
-              alt="SuperTilt" 
-              className="h-12 mx-auto"
-            />
+            <SupertiltLogo className="h-12 mx-auto" />
           </div>
           <CardTitle className="text-2xl font-bold">
             Générateur de Certificats

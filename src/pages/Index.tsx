@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { Award, Loader2, Send } from "lucide-react";
 import { User } from "@supabase/supabase-js";
-import supertiltLogo from "@/assets/supertilt-logo-anthracite.jpg";
+import SupertiltLogo from "@/components/SupertiltLogo";
 import UserMenu from "@/components/UserMenu";
 import ProcessingLog, { LogEntry } from "@/components/ProcessingLog";
 
@@ -210,11 +210,7 @@ const Index = () => {
       <header className="bg-foreground text-background py-4 px-6 shadow-lg">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <img 
-              src={supertiltLogo} 
-              alt="SuperTilt" 
-              className="h-10 w-auto brightness-0 invert"
-            />
+            <SupertiltLogo className="h-10" invert />
           </div>
           {user && <UserMenu user={user} onLogout={handleLogout} />}
         </div>
