@@ -97,4 +97,19 @@ All colors MUST be HSL.
   body {
     @apply bg-background text-foreground;
   }
+
+  /* iOS/iPadOS: normalize native date input sizing to match our h-10 inputs */
+  input.ui-input[type="date"] {
+    -webkit-appearance: none !important;
+    appearance: none !important;
+    height: 2.5rem !important; /* h-10 */
+    line-height: 1.25rem !important;
+    padding-top: 0.5rem !important;
+    padding-bottom: 0.5rem !important;
+  }
+
+  input.ui-input[type="date"]::-webkit-date-and-time-value {
+    line-height: 1.25rem;
+  }
 }
+
