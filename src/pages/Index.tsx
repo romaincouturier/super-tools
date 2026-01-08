@@ -258,8 +258,8 @@ const Index = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+                <div className="space-y-2 col-span-1">
                   <Label htmlFor="duree">Durée (heures)</Label>
                   <div className="relative">
                     <Input
@@ -277,7 +277,7 @@ const Index = () => {
                     </span>
                   </div>
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-2 col-span-1 sm:col-span-2">
                   <Label htmlFor="dateDebut">Date de début</Label>
                   <Input
                     id="dateDebut"
@@ -287,7 +287,7 @@ const Index = () => {
                     required
                   />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-2 col-span-1 sm:col-span-2">
                   <Label htmlFor="dateFin">Date de fin</Label>
                   <Input
                     id="dateFin"
