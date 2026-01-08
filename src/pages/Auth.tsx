@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
-import supertiltLogo from "@/assets/supertilt-logo.jpg";
+import supertiltLogo from "@/assets/supertilt-logo-anthracite.jpg";
 
 const ALLOWED_EMAIL = "romain@supertilt.fr";
 
