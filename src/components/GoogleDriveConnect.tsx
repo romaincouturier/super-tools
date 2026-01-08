@@ -46,6 +46,13 @@ const GoogleDriveConnect = ({ onStatusChange }: GoogleDriveConnectProps) => {
 
     // Listen for OAuth popup messages
     const handleMessage = (event: MessageEvent) => {
+      // Validate origin to prevent malicious postMessage attacks
+      const expectedOrigin = import.meta.env.VITE_SUPABASE_URL;
+      if (expectedOrigin && event.origin !== expectedOrigin) {
+        console.warn("Ignored postMessage from untrusted origin:", event.origin);
+        return;
+      }
+
       if (event.data?.type === "google-drive-auth") {
         setIsConnecting(false);
         if (event.data.success) {
