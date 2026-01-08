@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { Award, LogOut, Loader2, Send } from "lucide-react";
 import { User } from "@supabase/supabase-js";
+import supertiltLogo from "@/assets/supertilt-logo.jpg";
 
 const Index = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -23,7 +24,6 @@ const Index = () => {
   const [duree, setDuree] = useState("");
   const [dateDebut, setDateDebut] = useState("");
   const [dateFin, setDateFin] = useState("");
-  const [emailDestinataire, setEmailDestinataire] = useState("");
   const [participants, setParticipants] = useState("");
 
   useEffect(() => {
@@ -51,6 +51,12 @@ const Index = () => {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate("/auth");
+  };
+
+  const handleDateDebutChange = (value: string) => {
+    setDateDebut(value);
+    // Auto-set dateFin to dateDebut when changed
+    setDateFin(value);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -84,7 +90,7 @@ const Index = () => {
         return;
       }
 
-      // Call edge function
+      // Call edge function with hardcoded BCC email
       const { data, error } = await supabase.functions.invoke("generate-certificates", {
         body: {
           formationName,
@@ -92,7 +98,7 @@ const Index = () => {
           duree: `${duree}h`,
           dateDebut,
           dateFin,
-          emailDestinataire,
+          emailDestinataire: "romain@supertilt.fr",
           participants: parsedParticipants,
         },
       });
@@ -110,7 +116,6 @@ const Index = () => {
       setDuree("");
       setDateDebut("");
       setDateFin("");
-      setEmailDestinataire("");
       setParticipants("");
     } catch (error: any) {
       console.error("Error:", error);
@@ -138,10 +143,11 @@ const Index = () => {
       <header className="bg-foreground text-background py-4 px-6 shadow-lg">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center">
-              <Award className="w-5 h-5 text-primary-foreground" />
-            </div>
-            <h1 className="text-xl font-bold">Générateur de Certificats</h1>
+            <img 
+              src={supertiltLogo} 
+              alt="SuperTilt" 
+              className="h-10 brightness-0 invert"
+            />
           </div>
           <Button
             variant="ghost"
@@ -175,7 +181,7 @@ const Index = () => {
                   <Label htmlFor="formationName">Nom de la formation</Label>
                   <Input
                     id="formationName"
-                    placeholder="Ex: Formation React Avancé"
+                    placeholder="Ex: Facilitation graphique, communiquer avec le visuel"
                     value={formationName}
                     onChange={(e) => setFormationName(e.target.value)}
                     required
@@ -214,40 +220,24 @@ const Index = () => {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="dateDebut">Date de début</Label>
-                  <div className="relative">
-                    <Input
-                      id="dateDebut"
-                      type="date"
-                      value={dateDebut}
-                      onChange={(e) => setDateDebut(e.target.value)}
-                      required
-                    />
-                  </div>
+                  <Input
+                    id="dateDebut"
+                    type="date"
+                    value={dateDebut}
+                    onChange={(e) => handleDateDebutChange(e.target.value)}
+                    required
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="dateFin">Date de fin</Label>
-                  <div className="relative">
-                    <Input
-                      id="dateFin"
-                      type="date"
-                      value={dateFin}
-                      onChange={(e) => setDateFin(e.target.value)}
-                      required
-                    />
-                  </div>
+                  <Input
+                    id="dateFin"
+                    type="date"
+                    value={dateFin}
+                    onChange={(e) => setDateFin(e.target.value)}
+                    required
+                  />
                 </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="emailDestinataire">Email du destinataire (copie)</Label>
-                <Input
-                  id="emailDestinataire"
-                  type="email"
-                  placeholder="admin@entreprise.com"
-                  value={emailDestinataire}
-                  onChange={(e) => setEmailDestinataire(e.target.value)}
-                  required
-                />
               </div>
 
               {/* Participants */}
