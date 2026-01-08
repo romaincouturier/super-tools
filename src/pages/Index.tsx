@@ -7,9 +7,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Award, LogOut, Loader2, Send } from "lucide-react";
+import { Award, Loader2, Send } from "lucide-react";
 import { User } from "@supabase/supabase-js";
 import supertiltLogo from "@/assets/supertilt-logo.jpg";
+import UserMenu from "@/components/UserMenu";
 
 const Index = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -149,15 +150,7 @@ const Index = () => {
               className="h-10 brightness-0 invert"
             />
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleLogout}
-            className="text-background hover:bg-background/10"
-          >
-            <LogOut className="w-4 h-4 mr-2" />
-            Déconnexion
-          </Button>
+          {user && <UserMenu user={user} onLogout={handleLogout} />}
         </div>
       </header>
 
