@@ -541,110 +541,248 @@ serve(async (req: Request): Promise<Response> => {
       console.log(`User ID provided for OAuth: ${userId}`);
     }
 
-    console.log(`Processing ${participants.length} participants for formation: ${formationName}`);
     if (emailCommanditaire) {
       console.log(`Will send ZIP to commanditaire: ${emailCommanditaire}`);
     }
 
-    const results: { participant: string; success: boolean; error?: string }[] = [];
-    const pdfDataList: PdfData[] = [];
+    // Create a streaming response
+    const stream = new ReadableStream({
+      async start(controller) {
+        const encoder = new TextEncoder();
+        const pdfDataList: PdfData[] = [];
+        let successCount = 0;
 
-    for (const participant of participants) {
-      let pdfUrl = "";
-      let pdfGenerated = false;
-      let driveUploaded = false;
-      let emailSent = false;
-      const errors: string[] = [];
+        // Helper to send a streaming event
+        const sendEvent = (event: { type: string; data: any }) => {
+          controller.enqueue(encoder.encode(JSON.stringify(event) + "\n"));
+        };
 
-      try {
-        // Generate PDF
-        const result = await generatePdfWithPdfMonkey(
-          participant,
-          formationName,
-          entreprise,
-          duree,
-          dateDebut,
-          dateFin
-        );
-        pdfUrl = result.pdfUrl;
-        pdfGenerated = true;
-      } catch (error: any) {
-        console.error(`PDF error for ${participant.prenom} ${participant.nom}:`, error);
-        errors.push(`PDF: ${error.message}`);
-      }
+        // Send initial event
+        sendEvent({ type: "start", data: { total: participants.length } });
 
-      if (pdfGenerated && pdfUrl) {
-        // Download PDF for ZIP if commanditaire email is set
-        if (emailCommanditaire) {
+        for (let i = 0; i < participants.length; i++) {
+          const participant = participants[i];
+          const participantName = `${participant.prenom} ${participant.nom}`;
+          let pdfUrl = "";
+          let pdfGenerated = false;
+          const errors: string[] = [];
+
+          // Notify PDF generation started
+          sendEvent({ 
+            type: "step", 
+            data: { 
+              participant: participantName, 
+              step: "pdf", 
+              status: "pending",
+              message: "Génération du PDF en cours..." 
+            } 
+          });
+
           try {
-            const pdfResponse = await fetch(pdfUrl);
-            const pdfBuffer = new Uint8Array(await pdfResponse.arrayBuffer());
-            const fileName = `Certificat_${participant.prenom}_${participant.nom}.pdf`;
-            pdfDataList.push({ fileName, pdfBuffer });
+            // Generate PDF
+            const result = await generatePdfWithPdfMonkey(
+              participant,
+              formationName,
+              entreprise,
+              duree,
+              dateDebut,
+              dateFin
+            );
+            pdfUrl = result.pdfUrl;
+            pdfGenerated = true;
+
+            sendEvent({ 
+              type: "step", 
+              data: { 
+                participant: participantName, 
+                step: "pdf", 
+                status: "success",
+                message: "PDF généré avec succès" 
+              } 
+            });
           } catch (error: any) {
-            console.warn(`Failed to download PDF for ZIP: ${error.message}`);
+            console.error(`PDF error for ${participantName}:`, error);
+            errors.push(`PDF: ${error.message}`);
+            sendEvent({ 
+              type: "step", 
+              data: { 
+                participant: participantName, 
+                step: "pdf", 
+                status: "error",
+                message: `Erreur: ${error.message}` 
+              } 
+            });
+          }
+
+          if (pdfGenerated && pdfUrl) {
+            // Download PDF for ZIP if commanditaire email is set
+            if (emailCommanditaire) {
+              try {
+                const pdfResponse = await fetch(pdfUrl);
+                const pdfBuffer = new Uint8Array(await pdfResponse.arrayBuffer());
+                const fileName = `Certificat_${participant.prenom}_${participant.nom}.pdf`;
+                pdfDataList.push({ fileName, pdfBuffer });
+              } catch (error: any) {
+                console.warn(`Failed to download PDF for ZIP: ${error.message}`);
+              }
+            }
+
+            // Upload to Google Drive
+            sendEvent({ 
+              type: "step", 
+              data: { 
+                participant: participantName, 
+                step: "drive", 
+                status: "pending",
+                message: "Upload sur Google Drive..." 
+              } 
+            });
+
+            try {
+              await uploadToGoogleDrive(pdfUrl, participant.nom, participant.prenom, userId);
+              sendEvent({ 
+                type: "step", 
+                data: { 
+                  participant: participantName, 
+                  step: "drive", 
+                  status: "success",
+                  message: "Uploadé sur Google Drive" 
+                } 
+              });
+            } catch (error: any) {
+              console.warn(`Drive upload failed for ${participantName}:`, error.message);
+              sendEvent({ 
+                type: "step", 
+                data: { 
+                  participant: participantName, 
+                  step: "drive", 
+                  status: "error",
+                  message: "Échec upload Drive (non bloquant)" 
+                } 
+              });
+            }
+
+            // Send email
+            sendEvent({ 
+              type: "step", 
+              data: { 
+                participant: participantName, 
+                step: "email", 
+                status: "pending",
+                message: "Envoi de l'email..." 
+              } 
+            });
+
+            try {
+              await sendEmailWithResend(
+                participant.email,
+                participantName,
+                formationName,
+                pdfUrl,
+                emailDestinataire
+              );
+              sendEvent({ 
+                type: "step", 
+                data: { 
+                  participant: participantName, 
+                  step: "email", 
+                  status: "success",
+                  message: "Email envoyé" 
+                } 
+              });
+            } catch (error: any) {
+              console.warn(`Email failed for ${participantName}:`, error.message);
+              errors.push(`Email: ${error.message}`);
+              sendEvent({ 
+                type: "step", 
+                data: { 
+                  participant: participantName, 
+                  step: "email", 
+                  status: "error",
+                  message: `Erreur email: ${error.message}` 
+                } 
+              });
+            }
+          }
+
+          // Send participant completion
+          const success = pdfGenerated;
+          if (success) successCount++;
+          
+          sendEvent({ 
+            type: "participant_done", 
+            data: { 
+              participant: participantName, 
+              success,
+              index: i + 1,
+              total: participants.length,
+              error: errors.length > 0 ? errors.join("; ") : undefined
+            } 
+          });
+        }
+
+        // Send ZIP to commanditaire if email is set and we have PDFs
+        if (emailCommanditaire && pdfDataList.length > 0) {
+          sendEvent({ 
+            type: "step", 
+            data: { 
+              participant: "Commanditaire", 
+              step: "email", 
+              status: "pending",
+              message: `Envoi du ZIP à ${emailCommanditaire}...` 
+            } 
+          });
+
+          try {
+            // Wait 1 second to respect Resend rate limit
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+            await sendZipToCommanditaire(emailCommanditaire, formationName, pdfDataList);
+            
+            sendEvent({ 
+              type: "step", 
+              data: { 
+                participant: "Commanditaire", 
+                step: "email", 
+                status: "success",
+                message: `ZIP envoyé à ${emailCommanditaire}` 
+              } 
+            });
+          } catch (error: any) {
+            console.error(`Failed to send ZIP to commanditaire: ${error.message}`);
+            sendEvent({ 
+              type: "step", 
+              data: { 
+                participant: "Commanditaire", 
+                step: "email", 
+                status: "error",
+                message: `Échec envoi ZIP: ${error.message}` 
+              } 
+            });
           }
         }
 
-        // Upload to Google Drive (non-blocking)
-        try {
-          await uploadToGoogleDrive(pdfUrl, participant.nom, participant.prenom, userId);
-          driveUploaded = true;
-        } catch (error: any) {
-          console.warn(`Drive upload failed for ${participant.prenom} ${participant.nom}:`, error.message);
-          // Don't add to errors - Drive is optional
-        }
+        // Send final completion event
+        sendEvent({ 
+          type: "complete", 
+          data: { 
+            successCount,
+            totalCount: participants.length,
+            message: `${successCount} certificat(s) généré(s) avec succès`
+          } 
+        });
 
-        // Send email (non-blocking for success)
-        try {
-          await sendEmailWithResend(
-            participant.email,
-            `${participant.prenom} ${participant.nom}`,
-            formationName,
-            pdfUrl,
-            emailDestinataire
-          );
-          emailSent = true;
-        } catch (error: any) {
-          console.warn(`Email failed for ${participant.prenom} ${participant.nom}:`, error.message);
-          errors.push(`Email: ${error.message}`);
-        }
-      }
+        console.log(`Completed: ${successCount}/${participants.length} certificates generated successfully`);
+        controller.close();
+      },
+    });
 
-      results.push({
-        participant: `${participant.prenom} ${participant.nom}`,
-        success: pdfGenerated,
-        error: errors.length > 0 ? errors.join("; ") : undefined,
-      });
-    }
-
-    // Send ZIP to commanditaire if email is set and we have PDFs
-    if (emailCommanditaire && pdfDataList.length > 0) {
-      try {
-        // Wait 1 second to respect Resend rate limit (2 requests/second)
-        console.log("Waiting 1 second before sending ZIP to respect Resend rate limit...");
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        
-        await sendZipToCommanditaire(emailCommanditaire, formationName, pdfDataList);
-        console.log(`ZIP sent to commanditaire: ${emailCommanditaire}`);
-      } catch (error: any) {
-        console.error(`Failed to send ZIP to commanditaire: ${error.message}`);
-      }
-    }
-
-    const successCount = results.filter((r) => r.success).length;
-    console.log(`Completed: ${successCount}/${participants.length} certificates generated successfully`);
-
-    return new Response(
-      JSON.stringify({
-        message: `${successCount} certificat(s) généré(s) avec succès`,
-        results,
-      }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
-    );
+    return new Response(stream, {
+      headers: {
+        ...corsHeaders,
+        "Content-Type": "text/plain; charset=utf-8",
+        "Transfer-Encoding": "chunked",
+      },
+    });
   } catch (error: any) {
     console.error("Error in generate-certificates function:", error);
     return new Response(
