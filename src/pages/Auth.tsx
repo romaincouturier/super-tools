@@ -6,7 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Award, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import supertiltLogo from "@/assets/supertilt-logo.jpg";
+
+const ALLOWED_EMAIL = "romain@supertilt.fr";
 
 const Auth = () => {
   const [email, setEmail] = useState("");
@@ -50,6 +53,17 @@ const Auth = () => {
           description: "Bienvenue !",
         });
       } else {
+        // Check if email is allowed for signup
+        if (email.toLowerCase() !== ALLOWED_EMAIL.toLowerCase()) {
+          toast({
+            title: "Inscription non autorisée",
+            description: "Seul l'email romain@supertilt.fr est autorisé à créer un compte.",
+            variant: "destructive",
+          });
+          setIsLoading(false);
+          return;
+        }
+
         const { error } = await supabase.auth.signUp({
           email,
           password,
@@ -87,8 +101,12 @@ const Auth = () => {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md border-2 shadow-xl">
         <CardHeader className="text-center space-y-4">
-          <div className="mx-auto w-16 h-16 bg-primary rounded-full flex items-center justify-center">
-            <Award className="w-8 h-8 text-primary-foreground" />
+          <div className="mx-auto">
+            <img 
+              src={supertiltLogo} 
+              alt="SuperTilt" 
+              className="h-12 mx-auto"
+            />
           </div>
           <CardTitle className="text-2xl font-bold">
             Générateur de Certificats
