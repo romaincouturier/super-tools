@@ -58,8 +58,8 @@ async function generatePdfWithPdfMonkey(
     return `${day}/${month}/${year}`;
   };
 
-  // Build date range string - always use "du ... au ..." format
-  const dateFormation = `du ${formatDateFr(dateDebut)} au ${formatDateFr(dateFin)}`;
+  // Build date range string - format: "date début au date fin"
+  const dateFormation = `${formatDateFr(dateDebut)} au ${formatDateFr(dateFin)}`;
 
   const payload = {
     STAGIAIRE: `${participant.prenom} ${participant.nom}`,
@@ -151,7 +151,12 @@ async function uploadToGoogleDrive(
   }
 
   try {
+    console.log("Parsing Google Service Account JSON...");
+    console.log("JSON length:", serviceAccountJson.length);
+    console.log("First 50 chars:", serviceAccountJson.substring(0, 50));
+    
     const serviceAccount = JSON.parse(serviceAccountJson);
+    console.log("Service account parsed successfully, client_email:", serviceAccount.client_email);
     
     // Get access token
     const tokenResponse = await getGoogleAccessToken(serviceAccount);
@@ -328,12 +333,18 @@ async function sendEmailWithResend(
     body: JSON.stringify({
       from: "Romain Couturier <romain@supertilt.fr>",
       to: [participantEmail],
-      subject: `Votre certificat de formation - ${formationName}`,
+      subject: `Ton certificat de réalisation pour la formation ${formationName}`,
       html: `
-        <h1>Félicitations ${participantName} !</h1>
-        <p>Vous trouverez ci-joint votre certificat de formation pour :</p>
-        <p><strong>${formationName}</strong></p>
-        <p>Cordialement,<br>L'équipe Formation</p>
+        <p>Bonjour ${participantName},</p>
+        <p>Tu trouveras en pièce jointe ton certificat de réalisation pour la formation ${formationName}.</p>
+        <p>Je te souhaite de bien exploiter tout ce que tu as vu pendant la formation !</p>
+        <p>Si tu souhaites aller plus loin, je t'invite à te rendre régulièrement sur <a href="https://www.supertilt.fr">www.supertilt.fr</a> et à consulter ma <a href="https://www.youtube.com/@supertilt">chaîne YouTube</a>.</p>
+        <p>Bonne continuation et à bientôt !</p>
+        <p>--</p>
+        <p><strong>Romain Couturier</strong><br>
+        Expert en agilité et gestion du temps, facilitateur graphique et facilitateur d'intelligence collective<br>
+        06 66 98 76 35<br>
+        <a href="https://www.supertilt.fr">www.supertilt.fr</a></p>
       `,
       attachments: [
         {
