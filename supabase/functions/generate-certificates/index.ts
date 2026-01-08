@@ -58,10 +58,8 @@ async function generatePdfWithPdfMonkey(
     return `${day}/${month}/${year}`;
   };
 
-  // Build date range string
-  const dateFormation = dateDebut === dateFin 
-    ? `le ${formatDateFr(dateDebut)}`
-    : `du ${formatDateFr(dateDebut)} au ${formatDateFr(dateFin)}`;
+  // Build date range string - always use "du ... au ..." format
+  const dateFormation = `du ${formatDateFr(dateDebut)} au ${formatDateFr(dateFin)}`;
 
   const payload = {
     STAGIAIRE: `${participant.prenom} ${participant.nom}`,
