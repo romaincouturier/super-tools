@@ -40,6 +40,41 @@ async function generatePdfWithPdfMonkey(
 
   console.log(`Generating PDF for ${participant.prenom} ${participant.nom}...`);
 
+  // Format dates for PDF
+  const formatDateFr = (dateStr: string): string => {
+    const date = new Date(dateStr);
+    const day = date.getDate();
+    const months = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
+    const month = months[date.getMonth()];
+    const year = date.getFullYear();
+    return `${day} ${month} ${year}`;
+  };
+
+  const formatCurrentDate = (): string => {
+    const now = new Date();
+    const day = String(now.getDate()).padStart(2, "0");
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const year = now.getFullYear();
+    return `${day}/${month}/${year}`;
+  };
+
+  // Build date range string
+  const dateFormation = dateDebut === dateFin 
+    ? `le ${formatDateFr(dateDebut)}`
+    : `du ${formatDateFr(dateDebut)} au ${formatDateFr(dateFin)}`;
+
+  const payload = {
+    STAGIAIRE: `${participant.prenom} ${participant.nom}`,
+    ENTREPRISE: entreprise,
+    TITRE_FORMATION: formationName,
+    DATE_FORMATION: dateFormation,
+    DUREE: duree,
+    _date: formatCurrentDate(),
+    lineItems: [{}],
+  };
+
+  console.log(`PDF Monkey payload:`, JSON.stringify(payload));
+
   // Create document
   const createResponse = await fetch("https://api.pdfmonkey.io/api/v1/documents", {
     method: "POST",
@@ -50,15 +85,7 @@ async function generatePdfWithPdfMonkey(
     body: JSON.stringify({
       document: {
         document_template_id: PDFMONKEY_TEMPLATE_ID,
-        payload: {
-          prenom: participant.prenom,
-          nom: participant.nom,
-          formation: formationName,
-          entreprise: entreprise,
-          duree: duree,
-          date_debut: dateDebut,
-          date_fin: dateFin,
-        },
+        payload: payload,
         status: "pending",
       },
     }),
