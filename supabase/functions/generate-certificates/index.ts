@@ -219,10 +219,20 @@ async function getOAuthAccessToken(userId: string): Promise<string | null> {
   return refreshData.access_token;
 }
 
+// Format date as YYYY-MM-DD
+function formatDateForFileName(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 // Upload to Google Drive using OAuth
 async function uploadToGoogleDrive(
   pdfUrl: string,
-  fileName: string,
+  participantNom: string,
+  participantPrenom: string,
   userId?: string
 ): Promise<string> {
   try {
@@ -245,6 +255,10 @@ async function uploadToGoogleDrive(
     // Find or create folder structure
     const formationsFolderId = await findOrCreateFolder(accessToken, "Formations", "root");
     const certificatsFolderId = await findOrCreateFolder(accessToken, "Certificats", formationsFolderId);
+    
+    // Build file name: YYYY-MM-DD_Certificat_Nom_Prénom.pdf
+    const datePrefix = formatDateForFileName();
+    const fileName = `${datePrefix}_Certificat_${participantNom}_${participantPrenom}.pdf`;
     
     // Upload file
     const metadata = {
@@ -574,8 +588,7 @@ serve(async (req: Request): Promise<Response> => {
 
         // Upload to Google Drive (non-blocking)
         try {
-          const fileName = `Certificat_${formationName.replace(/\s+/g, "_")}_${participant.prenom}_${participant.nom}.pdf`;
-          await uploadToGoogleDrive(pdfUrl, fileName, userId);
+          await uploadToGoogleDrive(pdfUrl, participant.nom, participant.prenom, userId);
           driveUploaded = true;
         } catch (error: any) {
           console.warn(`Drive upload failed for ${participant.prenom} ${participant.nom}:`, error.message);
