@@ -285,6 +285,7 @@ const Index = () => {
                     value={dateDebut}
                     onChange={(e) => handleDateDebutChange(e.target.value)}
                     required
+                    className="h-10"
                   />
                 </div>
                 <div className="space-y-2 col-span-1 sm:col-span-2">
@@ -295,6 +296,7 @@ const Index = () => {
                     value={dateFin}
                     onChange={(e) => setDateFin(e.target.value)}
                     required
+                    className="h-10"
                   />
                 </div>
               </div>
