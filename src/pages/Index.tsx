@@ -121,65 +121,90 @@ const Index = () => {
     setShowLog(true);
     setSubmitting(true);
 
-    // Add initial logs for all participants
-    parsedParticipants.forEach((p) => {
-      addLog(`${p.prenom} ${p.nom}`, "pdf", "En attente de traitement...", "pending");
-    });
-
     try {
-      // Update logs to show processing started
-      setLogs([]);
-      for (const participant of parsedParticipants) {
-        const participantName = `${participant.prenom} ${participant.nom}`;
-        
-        // Log PDF generation start
-        addLog(participantName, "pdf", "Génération du PDF en cours...", "pending");
+      const session = await supabase.auth.getSession();
+      const accessToken = session.data.session?.access_token;
+
+      // Use fetch directly for streaming support
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-certificates`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${accessToken}`,
+            "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({
+            formationName,
+            entreprise,
+            duree: `${duree}h`,
+            dateDebut,
+            dateFin,
+            emailDestinataire: "romain@supertilt.fr",
+            emailCommanditaire: emailCommanditaire.trim() || undefined,
+            participants: parsedParticipants,
+            userId: user?.id,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Erreur serveur: ${response.status}`);
       }
 
-      // Call edge function with user ID for OAuth
-      const { data, error } = await supabase.functions.invoke("generate-certificates", {
-        body: {
-          formationName,
-          entreprise,
-          duree: `${duree}h`,
-          dateDebut,
-          dateFin,
-          emailDestinataire: "romain@supertilt.fr",
-          emailCommanditaire: emailCommanditaire.trim() || undefined,
-          participants: parsedParticipants,
-          userId: user?.id, // Pass user ID for OAuth token lookup
-        },
-      });
+      // Read the stream
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error("Pas de stream disponible");
 
-      if (error) throw error;
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let allSuccess = true;
+      let finalSuccessCount = 0;
 
-      // Process results and update logs
-      setLogs([]);
-      
-      if (data?.results) {
-        let successCount = 0;
-        for (const result of data.results) {
-          if (result.success) {
-            addLog(result.participant, "pdf", "PDF généré avec succès", "success");
-            addLog(result.participant, "drive", "Uploadé sur Google Drive", "success");
-            addLog(result.participant, "email", "Email envoyé", "success");
-            addLog(result.participant, "done", "✓ Certificat traité avec succès", "success");
-            successCount++;
-          } else {
-            addLog(result.participant, "error", result.error || "Erreur lors du traitement", "error");
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || ""; // Keep incomplete line in buffer
+
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          
+          try {
+            const event = JSON.parse(line);
+            
+            if (event.type === "step") {
+              const { participant, step, status, message } = event.data;
+              addLog(participant, step, message, status);
+            } else if (event.type === "participant_done") {
+              const { participant, success, index, error } = event.data;
+              setCompletedCount(index);
+              
+              if (success) {
+                addLog(participant, "done", "✓ Certificat traité avec succès", "success");
+              } else {
+                allSuccess = false;
+                addLog(participant, "error", error || "Erreur lors du traitement", "error");
+              }
+            } else if (event.type === "complete") {
+              finalSuccessCount = event.data.successCount;
+              toast({
+                title: "Traitement terminé",
+                description: `${finalSuccessCount}/${parsedParticipants.length} certificat(s) traité(s) avec succès.`,
+                variant: allSuccess ? "default" : "destructive",
+              });
+            }
+          } catch (parseError) {
+            console.warn("Failed to parse event:", line, parseError);
           }
-          setCompletedCount((prev) => prev + 1);
         }
-
-        toast({
-          title: "Traitement terminé",
-          description: `${successCount}/${parsedParticipants.length} certificat(s) traité(s) avec succès.`,
-          variant: successCount === parsedParticipants.length ? "default" : "destructive",
-        });
       }
 
       // Reset form on success
-      if (data?.results?.every((r: any) => r.success)) {
+      if (allSuccess) {
         setFormationName("");
         setEntreprise("");
         setDuree("");
