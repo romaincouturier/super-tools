@@ -12,6 +12,7 @@ import { User } from "@supabase/supabase-js";
 import SupertiltLogo from "@/components/SupertiltLogo";
 import UserMenu from "@/components/UserMenu";
 import ProcessingLog, { LogEntry } from "@/components/ProcessingLog";
+import GoogleDriveConnect from "@/components/GoogleDriveConnect";
 
 interface ParsedParticipant {
   prenom: string;
@@ -135,7 +136,7 @@ const Index = () => {
         addLog(participantName, "pdf", "Génération du PDF en cours...", "pending");
       }
 
-      // Call edge function
+      // Call edge function with user ID for OAuth
       const { data, error } = await supabase.functions.invoke("generate-certificates", {
         body: {
           formationName,
@@ -146,6 +147,7 @@ const Index = () => {
           emailDestinataire: "romain@supertilt.fr",
           emailCommanditaire: emailCommanditaire.trim() || undefined,
           participants: parsedParticipants,
+          userId: user?.id, // Pass user ID for OAuth token lookup
         },
       });
 
@@ -223,13 +225,18 @@ const Index = () => {
       <main className="max-w-4xl mx-auto p-6">
         <Card className="border-2 shadow-xl">
           <CardHeader>
-            <CardTitle className="text-2xl flex items-center gap-2">
-              <Award className="w-6 h-6 text-primary" />
-              Nouvelle génération de certificats
-            </CardTitle>
-            <CardDescription>
-              Remplissez les informations de la formation et la liste des participants
-            </CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-2xl flex items-center gap-2">
+                  <Award className="w-6 h-6 text-primary" />
+                  Nouvelle génération de certificats
+                </CardTitle>
+                <CardDescription>
+                  Remplissez les informations de la formation et la liste des participants
+                </CardDescription>
+              </div>
+              <GoogleDriveConnect />
+            </div>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">

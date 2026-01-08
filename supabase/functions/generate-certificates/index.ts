@@ -1,5 +1,11 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { zipSync } from "https://esm.sh/fflate@0.8.2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const GOOGLE_OAUTH_CLIENT_ID = Deno.env.get("GOOGLE_OAUTH_CLIENT_ID");
+const GOOGLE_OAUTH_CLIENT_SECRET = Deno.env.get("GOOGLE_OAUTH_CLIENT_SECRET");
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -16,6 +22,7 @@ interface RequestBody {
   formationName: string;
   entreprise: string;
   duree: string;
+  userId?: string; // For OAuth token lookup
   dateDebut: string;
   dateFin: string;
   emailDestinataire: string;
@@ -145,65 +152,99 @@ async function generatePdfWithPdfMonkey(
   return { pdfUrl, documentId };
 }
 
-// Google Service Account configuration
-const GOOGLE_SERVICE_ACCOUNT = {
-  type: "service_account",
-  project_id: "platinum-analog-480215-m0",
-  private_key_id: "1878b07f2ec23d8f84d2493ee58f87d6c78ddf5c",
-  private_key: `-----BEGIN PRIVATE KEY-----
-MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDIJ/5aNH2qcDRf
-3z8uypOsVKoXKD5oSWPl5Nyhbo5gKwfidL/MQmzyfnP3F5PnZepWu0Og+ojMvVQU
-GBfRas+8iwUVFrkA6rTpiGvN25E309cxQo8Xavy7U2fvnN/URHTUVUo7P2Y2Sjp/
-pvqTsujJLkD7jq4rB2LJ+eJFyH/feZkIwGB1bdAm7RgoOT2dzxttpqIqYVSRU6JV
-bPPWaAH+hLAUplZ69erHbk2OYGq2tsbd/FtgmL23uHKmuruv0u6xhZD5lDDpMBUO
-/UgI+ZMZxHNrTE5XF/ZY7rsmkpT15v+4sqPGPl7M6W2ml8RdY1bXOzx+JW8QdzMl
-wDOoUTIRAgMBAAECggEAAiHvdBIQU/NeuOLTxtjJxjp12e0jFGJySzJZjn1QH+d1
-EO+mbr7XL6XJlsr2wUtkIE0RDa83q4p5nngKGNOLX7M7PR5lK/5KlvzXebQbZeAj
-k2efZzJoqF09a6RhyK6IFsfrGt3sWQG1O61f6N76G33uO2Ppq574NlLSBOulRaOY
-G28tTvYoBequcFgkHYWYxS/qwTzEP4LIddeiwx2V6nFf5YlqQ3mTUjNvyH+Iuvd0
-D+flpveN+AsWzsdLMvBQQkXFM5x3NU/dnzNdmKr9IyeUTvr7rxVWCfYR1BQTwD70
-qwoWoHZ6T2m+/DEbTSwQqg7aHG3HUKMIN/Jdke0gIQKBgQD/5wd6hUf3Pl4XfZ1O
-GVKlsFqvZFvpr+ZD8XAHHjQynJLNbH8JDHkdMfFWYDTH4ABRW8g+obw8QvSU/bqY
-9HVVWnFvh9i2qC2sTksIzaNJslQjcqOmjKr2OMsq1piiUoVtIu6AxRorgL6Df2zM
-mKxSO6R5TxyZGif307ipKroEYQKBgQDIO4ZQ3RnStDsBxnT/IFtNODd62V7+ZUIs
-L5JA8kbH0wPsLP2vlvncLf3pw0w2xXgSanTpAU88nAONfcZlYacUnjv6epf+tIYh
-JR6H1FW2QwWxd4cSbTDCstmDlQOl4tiPWMVv2AlcEJ74YenKAfsebY/7aHOhkgnw
-EJaZzgQLsQKBgQC8b+BG7UwgGTHqNFqYfvcoASPWEZ3JB/kUwP4Qj8I6HqfPUvx8
-qk2pHPSs+S0EncM+Jcrfq/NToK4/5FL6fNDF6FKtoSgI4PC49/Iy6lI6W3GvpKQz
-aVQe+ZVJ1zoQFZog0l80PW/W5vfjFvsD8cy6xSaJGaNibitOR/6ru0W9IQKBgCUZ
-ml57SSCYUmKW0fC/nwskwmrZwdcjDeq/+bpc6a52s8Bb6blSIQOh5e0dSY7Qcdn/
-rZ/KpVLWmXXq+wqn2FxioTxc4LLJ4hxcE1cZibQWoQRr4DQS1TkOCG1v+9gNuxB8
-Y0DA56MOVVYyVi4exdeydz4e8WXbeEnp2O2wlWFRAoGBAIaSRWOmgsGVGxJnH8et
-X/8N1cimfEu656wdS5sYLuFIpF/XQ2iNxY552EmBFWCjYH1tp7k2XVfpxx7l99E7
-3VO9FUUEwBpwOmGiOEol8lfAQR1acComZujBmUwCbgJlgCC7f6jL7FdsqybzfL8N
-kN0N5lq4QKpaW6oXv33cvpeD
------END PRIVATE KEY-----`,
-  client_email: "lovable-drive-uploader@platinum-analog-480215-m0.iam.gserviceaccount.com",
-  client_id: "108844887639142954309",
-  auth_uri: "https://accounts.google.com/o/oauth2/auth",
-  token_uri: "https://oauth2.googleapis.com/token",
-  auth_provider_x509_cert_url: "https://www.googleapis.com/oauth2/v1/certs",
-  client_x509_cert_url: "https://www.googleapis.com/robot/v1/metadata/x509/lovable-drive-uploader%40platinum-analog-480215-m0.iam.gserviceaccount.com",
-  universe_domain: "googleapis.com"
-};
+// Get OAuth access token from stored refresh token
+async function getOAuthAccessToken(userId: string): Promise<string | null> {
+  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-// Upload to Google Drive
+  // Get stored tokens
+  const { data: tokenData, error } = await supabase
+    .from("google_drive_tokens")
+    .select("access_token, refresh_token, token_expires_at")
+    .eq("user_id", userId)
+    .single();
+
+  if (error || !tokenData) {
+    console.log("No OAuth tokens found for user:", userId);
+    return null;
+  }
+
+  // Check if token is expired (with 5 minute buffer)
+  const expiresAt = new Date(tokenData.token_expires_at);
+  const now = new Date();
+  const bufferMs = 5 * 60 * 1000; // 5 minutes
+
+  if (expiresAt.getTime() - bufferMs > now.getTime()) {
+    console.log("Using existing access token");
+    return tokenData.access_token;
+  }
+
+  // Token expired, refresh it
+  console.log("Access token expired, refreshing...");
+
+  if (!GOOGLE_OAUTH_CLIENT_ID || !GOOGLE_OAUTH_CLIENT_SECRET) {
+    console.error("OAuth credentials not configured");
+    return null;
+  }
+
+  const refreshResponse = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      client_id: GOOGLE_OAUTH_CLIENT_ID,
+      client_secret: GOOGLE_OAUTH_CLIENT_SECRET,
+      refresh_token: tokenData.refresh_token,
+      grant_type: "refresh_token",
+    }),
+  });
+
+  const refreshData = await refreshResponse.json();
+
+  if (!refreshResponse.ok || !refreshData.access_token) {
+    console.error("Token refresh failed:", refreshData);
+    return null;
+  }
+
+  // Update stored token
+  const newExpiresAt = new Date(Date.now() + (refreshData.expires_in * 1000)).toISOString();
+
+  await supabase
+    .from("google_drive_tokens")
+    .update({
+      access_token: refreshData.access_token,
+      token_expires_at: newExpiresAt,
+    })
+    .eq("user_id", userId);
+
+  console.log("Access token refreshed successfully");
+  return refreshData.access_token;
+}
+
+// Upload to Google Drive using OAuth
 async function uploadToGoogleDrive(
   pdfUrl: string,
-  fileName: string
+  fileName: string,
+  userId?: string
 ): Promise<string> {
   try {
-    console.log("Using embedded service account, client_email:", GOOGLE_SERVICE_ACCOUNT.client_email);
-    
-    const tokenResponse = await getGoogleAccessToken(GOOGLE_SERVICE_ACCOUNT);
-    console.log("Google OAuth token obtained successfully");
+    if (!userId) {
+      console.log("No userId provided, skipping Google Drive upload");
+      return "";
+    }
+
+    const accessToken = await getOAuthAccessToken(userId);
+    if (!accessToken) {
+      console.log("No valid OAuth token, skipping Google Drive upload");
+      return "";
+    }
+
+    console.log("Using OAuth token for Google Drive upload");
     
     const pdfResponse = await fetch(pdfUrl);
     const pdfBlob = await pdfResponse.blob();
     
     // Find or create folder structure
-    const formationsFolderId = await findOrCreateFolder(tokenResponse, "Formations", "root");
-    const certificatsFolderId = await findOrCreateFolder(tokenResponse, "Certificats", formationsFolderId);
+    const formationsFolderId = await findOrCreateFolder(accessToken, "Formations", "root");
+    const certificatsFolderId = await findOrCreateFolder(accessToken, "Certificats", formationsFolderId);
     
     // Upload file
     const metadata = {
@@ -220,7 +261,7 @@ async function uploadToGoogleDrive(
       {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${tokenResponse}`,
+          Authorization: `Bearer ${accessToken}`,
         },
         body: formData,
       }
@@ -245,70 +286,6 @@ async function uploadToGoogleDrive(
   }
 }
 
-async function getGoogleAccessToken(serviceAccount: any): Promise<string> {
-  const now = Math.floor(Date.now() / 1000);
-  const expiry = now + 3600;
-
-  const header = { alg: "RS256", typ: "JWT" };
-  const payload = {
-    iss: serviceAccount.client_email,
-    scope: "https://www.googleapis.com/auth/drive.file",
-    aud: "https://oauth2.googleapis.com/token",
-    iat: now,
-    exp: expiry,
-  };
-
-  const encoder = new TextEncoder();
-  const headerB64 = btoa(JSON.stringify(header)).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
-  const payloadB64 = btoa(JSON.stringify(payload)).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
-  const signatureInput = `${headerB64}.${payloadB64}`;
-
-  // Import private key
-  const pemContents = serviceAccount.private_key
-    .replace("-----BEGIN PRIVATE KEY-----", "")
-    .replace("-----END PRIVATE KEY-----", "")
-    .replace(/\s/g, "");
-  
-  const binaryKey = Uint8Array.from(atob(pemContents), (c) => c.charCodeAt(0));
-  
-  const cryptoKey = await crypto.subtle.importKey(
-    "pkcs8",
-    binaryKey,
-    { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
-    false,
-    ["sign"]
-  );
-
-  const signature = await crypto.subtle.sign(
-    "RSASSA-PKCS1-v1_5",
-    cryptoKey,
-    encoder.encode(signatureInput)
-  );
-
-  const signatureB64 = btoa(String.fromCharCode(...new Uint8Array(signature)))
-    .replace(/=/g, "")
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_");
-
-  const jwt = `${signatureInput}.${signatureB64}`;
-
-  const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${jwt}`,
-  });
-
-  const tokenStatus = tokenResponse.status;
-  const tokenData = await tokenResponse.json();
-  console.log(`OAuth token response status: ${tokenStatus}`);
-  console.log(`OAuth token response:`, JSON.stringify(tokenData));
-  
-  if (!tokenData.access_token) {
-    throw new Error(`Failed to get access token: ${JSON.stringify(tokenData)}`);
-  }
-  
-  return tokenData.access_token;
-}
 
 async function findOrCreateFolder(accessToken: string, folderName: string, parentId: string): Promise<string> {
   // Search for existing folder
@@ -519,7 +496,12 @@ serve(async (req: Request): Promise<Response> => {
 
   try {
     const body: RequestBody = await req.json();
-    const { formationName, entreprise, duree, dateDebut, dateFin, emailDestinataire, emailCommanditaire, participants } = body;
+    const { formationName, entreprise, duree, dateDebut, dateFin, emailDestinataire, emailCommanditaire, participants, userId } = body;
+
+    console.log(`Processing ${participants.length} participants for formation: ${formationName}`);
+    if (userId) {
+      console.log(`User ID provided for OAuth: ${userId}`);
+    }
 
     console.log(`Processing ${participants.length} participants for formation: ${formationName}`);
     if (emailCommanditaire) {
@@ -569,7 +551,7 @@ serve(async (req: Request): Promise<Response> => {
         // Upload to Google Drive (non-blocking)
         try {
           const fileName = `Certificat_${formationName.replace(/\s+/g, "_")}_${participant.prenom}_${participant.nom}.pdf`;
-          await uploadToGoogleDrive(pdfUrl, fileName);
+          await uploadToGoogleDrive(pdfUrl, fileName, userId);
           driveUploaded = true;
         } catch (error: any) {
           console.warn(`Drive upload failed for ${participant.prenom} ${participant.nom}:`, error.message);
