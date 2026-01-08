@@ -602,6 +602,10 @@ serve(async (req: Request): Promise<Response> => {
     // Send ZIP to commanditaire if email is set and we have PDFs
     if (emailCommanditaire && pdfDataList.length > 0) {
       try {
+        // Wait 1 second to respect Resend rate limit (2 requests/second)
+        console.log("Waiting 1 second before sending ZIP to respect Resend rate limit...");
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        
         await sendZipToCommanditaire(emailCommanditaire, formationName, pdfDataList);
         console.log(`ZIP sent to commanditaire: ${emailCommanditaire}`);
       } catch (error: any) {
