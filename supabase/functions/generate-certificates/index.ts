@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { zipSync } from "https://esm.sh/fflate@0.8.2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -18,7 +19,13 @@ interface RequestBody {
   dateDebut: string;
   dateFin: string;
   emailDestinataire: string;
+  emailCommanditaire?: string;
   participants: Participant[];
+}
+
+interface PdfData {
+  fileName: string;
+  pdfBuffer: Uint8Array;
 }
 
 const PDFMONKEY_TEMPLATE_ID = "6593BDA5-6890-45E8-804F-77488D64BEDF";
@@ -437,6 +444,73 @@ async function sendEmailWithResend(
   console.log(`Email sent successfully to ${participantEmail}`);
 }
 
+// Send ZIP archive to commanditaire
+async function sendZipToCommanditaire(
+  emailCommanditaire: string,
+  formationName: string,
+  pdfDataList: PdfData[]
+): Promise<void> {
+  const resendApiKey = Deno.env.get("RESEND_API_KEY");
+  
+  if (!resendApiKey) {
+    throw new Error("RESEND_API_KEY is not set");
+  }
+
+  console.log(`Creating ZIP with ${pdfDataList.length} certificates for commanditaire...`);
+
+  // Create ZIP file
+  const zipFiles: { [key: string]: Uint8Array } = {};
+  for (const pdfData of pdfDataList) {
+    zipFiles[pdfData.fileName] = pdfData.pdfBuffer;
+  }
+  
+  const zipBuffer = zipSync(zipFiles);
+  const zipBase64 = btoa(String.fromCharCode(...zipBuffer));
+  
+  const zipFileName = `Certificats_${formationName.replace(/\s+/g, "_")}.zip`;
+
+  console.log(`Sending ZIP to commanditaire: ${emailCommanditaire} (BCC: romain@supertilt.fr)`);
+
+  const emailResponse = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${resendApiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      from: "Romain Couturier <romain@supertilt.fr>",
+      to: [emailCommanditaire],
+      bcc: ["romain@supertilt.fr"],
+      subject: `Certificats de réalisation - Formation ${formationName}`,
+      html: `
+        <p>Bonjour,</p>
+        <p>Veuillez trouver ci-joint l'ensemble des certificats de réalisation pour la formation <strong>${formationName}</strong>.</p>
+        <p>Cette archive contient ${pdfDataList.length} certificat(s).</p>
+        <p>Cordialement,</p>
+        <p>--</p>
+        <p><strong>Romain Couturier</strong><br>
+        Expert en agilité et gestion du temps, facilitateur graphique et facilitateur d'intelligence collective<br>
+        06 66 98 76 35<br>
+        <a href="https://www.supertilt.fr">www.supertilt.fr</a></p>
+      `,
+      attachments: [
+        {
+          filename: zipFileName,
+          content: zipBase64,
+        },
+      ],
+    }),
+  });
+
+  if (!emailResponse.ok) {
+    const errorText = await emailResponse.text();
+    console.error("Failed to send ZIP to commanditaire:", errorText);
+    throw new Error(`Failed to send ZIP: ${errorText}`);
+  }
+
+  console.log(`ZIP sent successfully to ${emailCommanditaire}`);
+}
+
 serve(async (req: Request): Promise<Response> => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
@@ -445,11 +519,15 @@ serve(async (req: Request): Promise<Response> => {
 
   try {
     const body: RequestBody = await req.json();
-    const { formationName, entreprise, duree, dateDebut, dateFin, emailDestinataire, participants } = body;
+    const { formationName, entreprise, duree, dateDebut, dateFin, emailDestinataire, emailCommanditaire, participants } = body;
 
     console.log(`Processing ${participants.length} participants for formation: ${formationName}`);
+    if (emailCommanditaire) {
+      console.log(`Will send ZIP to commanditaire: ${emailCommanditaire}`);
+    }
 
     const results: { participant: string; success: boolean; error?: string }[] = [];
+    const pdfDataList: PdfData[] = [];
 
     for (const participant of participants) {
       let pdfUrl = "";
@@ -476,6 +554,18 @@ serve(async (req: Request): Promise<Response> => {
       }
 
       if (pdfGenerated && pdfUrl) {
+        // Download PDF for ZIP if commanditaire email is set
+        if (emailCommanditaire) {
+          try {
+            const pdfResponse = await fetch(pdfUrl);
+            const pdfBuffer = new Uint8Array(await pdfResponse.arrayBuffer());
+            const fileName = `Certificat_${participant.prenom}_${participant.nom}.pdf`;
+            pdfDataList.push({ fileName, pdfBuffer });
+          } catch (error: any) {
+            console.warn(`Failed to download PDF for ZIP: ${error.message}`);
+          }
+        }
+
         // Upload to Google Drive (non-blocking)
         try {
           const fileName = `Certificat_${formationName.replace(/\s+/g, "_")}_${participant.prenom}_${participant.nom}.pdf`;
@@ -507,6 +597,16 @@ serve(async (req: Request): Promise<Response> => {
         success: pdfGenerated,
         error: errors.length > 0 ? errors.join("; ") : undefined,
       });
+    }
+
+    // Send ZIP to commanditaire if email is set and we have PDFs
+    if (emailCommanditaire && pdfDataList.length > 0) {
+      try {
+        await sendZipToCommanditaire(emailCommanditaire, formationName, pdfDataList);
+        console.log(`ZIP sent to commanditaire: ${emailCommanditaire}`);
+      } catch (error: any) {
+        console.error(`Failed to send ZIP to commanditaire: ${error.message}`);
+      }
     }
 
     const successCount = results.filter((r) => r.success).length;

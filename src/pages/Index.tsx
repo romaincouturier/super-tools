@@ -33,6 +33,7 @@ const Index = () => {
   const [dateDebut, setDateDebut] = useState("");
   const [dateFin, setDateFin] = useState("");
   const [participants, setParticipants] = useState("");
+  const [emailCommanditaire, setEmailCommanditaire] = useState("");
 
   // Processing log state
   const [showLog, setShowLog] = useState(false);
@@ -143,6 +144,7 @@ const Index = () => {
           dateDebut,
           dateFin,
           emailDestinataire: "romain@supertilt.fr",
+          emailCommanditaire: emailCommanditaire.trim() || undefined,
           participants: parsedParticipants,
         },
       });
@@ -182,6 +184,7 @@ const Index = () => {
         setDateDebut("");
         setDateFin("");
         setParticipants("");
+        setEmailCommanditaire("");
       }
     } catch (error: any) {
       console.error("Error:", error);
@@ -297,7 +300,20 @@ const Index = () => {
                 </div>
               </div>
 
-              {/* Participants */}
+              {/* Email commanditaire (optional) */}
+              <div className="space-y-2">
+                <Label htmlFor="emailCommanditaire">
+                  Email du commanditaire <span className="text-muted-foreground font-normal">(facultatif)</span>
+                </Label>
+                <Input
+                  id="emailCommanditaire"
+                  type="email"
+                  placeholder="Si renseigné, un ZIP avec tous les certificats sera envoyé à cette adresse"
+                  value={emailCommanditaire}
+                  onChange={(e) => setEmailCommanditaire(e.target.value)}
+                />
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="participants">Liste des participants</Label>
                 <Textarea
