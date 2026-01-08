@@ -375,9 +375,15 @@ serve(async (req: Request): Promise<Response> => {
     const results: { participant: string; success: boolean; error?: string }[] = [];
 
     for (const participant of participants) {
+      let pdfUrl = "";
+      let pdfGenerated = false;
+      let driveUploaded = false;
+      let emailSent = false;
+      const errors: string[] = [];
+
       try {
         // Generate PDF
-        const { pdfUrl } = await generatePdfWithPdfMonkey(
+        const result = await generatePdfWithPdfMonkey(
           participant,
           formationName,
           entreprise,
@@ -385,32 +391,45 @@ serve(async (req: Request): Promise<Response> => {
           dateDebut,
           dateFin
         );
-
-        // Upload to Google Drive
-        const fileName = `Certificat_${formationName.replace(/\s+/g, "_")}_${participant.prenom}_${participant.nom}.pdf`;
-        await uploadToGoogleDrive(pdfUrl, fileName);
-
-        // Send email
-        await sendEmailWithResend(
-          participant.email,
-          `${participant.prenom} ${participant.nom}`,
-          formationName,
-          pdfUrl,
-          emailDestinataire
-        );
-
-        results.push({
-          participant: `${participant.prenom} ${participant.nom}`,
-          success: true,
-        });
+        pdfUrl = result.pdfUrl;
+        pdfGenerated = true;
       } catch (error: any) {
-        console.error(`Error processing ${participant.prenom} ${participant.nom}:`, error);
-        results.push({
-          participant: `${participant.prenom} ${participant.nom}`,
-          success: false,
-          error: error.message,
-        });
+        console.error(`PDF error for ${participant.prenom} ${participant.nom}:`, error);
+        errors.push(`PDF: ${error.message}`);
       }
+
+      if (pdfGenerated && pdfUrl) {
+        // Upload to Google Drive (non-blocking)
+        try {
+          const fileName = `Certificat_${formationName.replace(/\s+/g, "_")}_${participant.prenom}_${participant.nom}.pdf`;
+          await uploadToGoogleDrive(pdfUrl, fileName);
+          driveUploaded = true;
+        } catch (error: any) {
+          console.warn(`Drive upload failed for ${participant.prenom} ${participant.nom}:`, error.message);
+          // Don't add to errors - Drive is optional
+        }
+
+        // Send email (non-blocking for success)
+        try {
+          await sendEmailWithResend(
+            participant.email,
+            `${participant.prenom} ${participant.nom}`,
+            formationName,
+            pdfUrl,
+            emailDestinataire
+          );
+          emailSent = true;
+        } catch (error: any) {
+          console.warn(`Email failed for ${participant.prenom} ${participant.nom}:`, error.message);
+          errors.push(`Email: ${error.message}`);
+        }
+      }
+
+      results.push({
+        participant: `${participant.prenom} ${participant.nom}`,
+        success: pdfGenerated,
+        error: errors.length > 0 ? errors.join("; ") : undefined,
+      });
     }
 
     const successCount = results.filter((r) => r.success).length;
