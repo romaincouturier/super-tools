@@ -1410,7 +1410,7 @@ const MicroDevis = () => {
 
                   {/* Summary */}
                   {formationDemandee && (
-                    <div className="mt-4 p-3 bg-background rounded border">
+                    <div className="mt-4 p-3 bg-background rounded border" key={`summary-${formationDemandee}-${participants}-${fraisDossier}`}>
                       <h4 className="font-medium text-sm mb-2">Résumé du devis</h4>
                       {(() => {
                         const config = getSelectedFormationConfig();
@@ -1419,7 +1419,8 @@ const MicroDevis = () => {
                         const prixFormation = config.prix * nbParticipants;
                         const frais = fraisDossier === "oui" ? 150 : 0;
                         const totalHT = prixFormation + frais;
-                        const tva = isAdministration === "oui" ? 0 : totalHT * 0.2;
+                        // TVA à 0% pour les formations
+                        const tva = 0;
                         const totalTTC = totalHT + tva;
 
                         return (
@@ -1427,7 +1428,7 @@ const MicroDevis = () => {
                             <p>Formation : {config.prix}€ × {nbParticipants} = <strong>{prixFormation}€</strong></p>
                             {frais > 0 && <p>Frais de dossier : {frais}€</p>}
                             <p>Total HT : <strong>{totalHT}€</strong></p>
-                            <p>TVA (20%) : {isAdministration === "oui" ? "Exonéré" : `${tva.toFixed(2)}€`}</p>
+                            <p>TVA (0%) : Exonéré</p>
                             <p className="text-base">Total TTC : <strong>{totalTTC.toFixed(2)}€</strong></p>
                           </div>
                         );
