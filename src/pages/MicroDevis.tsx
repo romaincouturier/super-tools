@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
-import { Loader2, FileText, ArrowLeft, Send, Settings, Save, X, Plus, Trash2, Star, Eye, Search } from "lucide-react";
+import { Loader2, FileText, ArrowLeft, Send, Settings, Save, X, Plus, Trash2, Star, Eye, Search, ChevronUp, ChevronDown } from "lucide-react";
 import SupertiltLogo from "@/components/SupertiltLogo";
 import UserMenu from "@/components/UserMenu";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -36,6 +36,7 @@ interface FormationConfig {
   duree_heures: number;
   programme_url: string | null;
   is_default: boolean;
+  display_order: number;
 }
 
 interface FormationDate {
@@ -130,7 +131,7 @@ const MicroDevis = () => {
         const { data, error } = await supabase
           .from("formation_configs")
           .select("*")
-          .order("formation_name");
+          .order("display_order");
 
         if (error) throw error;
 
@@ -472,6 +473,41 @@ const MicroDevis = () => {
       toast({
         title: "Erreur",
         description: "Impossible de définir la formation par défaut",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleMoveFormation = async (index: number, direction: "up" | "down") => {
+    const newIndex = direction === "up" ? index - 1 : index + 1;
+    if (newIndex < 0 || newIndex >= formationConfigs.length) return;
+
+    const newConfigs = [...formationConfigs];
+    const temp = newConfigs[index];
+    newConfigs[index] = newConfigs[newIndex];
+    newConfigs[newIndex] = temp;
+
+    // Update display_order for both items
+    const updates = [
+      { id: newConfigs[index].id, display_order: index },
+      { id: newConfigs[newIndex].id, display_order: newIndex },
+    ];
+
+    setFormationConfigs(newConfigs);
+
+    try {
+      for (const update of updates) {
+        const { error } = await supabase
+          .from("formation_configs")
+          .update({ display_order: update.display_order })
+          .eq("id", update.id);
+        if (error) throw error;
+      }
+    } catch (error) {
+      console.error("Error reordering formations:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de réorganiser les formations",
         variant: "destructive",
       });
     }
@@ -948,10 +984,33 @@ const MicroDevis = () => {
                                 <Loader2 className="w-6 h-6 animate-spin" />
                               </div>
                             ) : (
-                              formationConfigs.map((config) => (
+                              formationConfigs.map((config, index) => (
                                 <div key={config.id} className="border rounded-lg p-4 space-y-3">
                                   <div className="flex items-start justify-between">
                                     <div className="flex items-center gap-2">
+                                      {/* Reorder buttons */}
+                                      <div className="flex flex-col">
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          className="h-5 w-5 p-0"
+                                          onClick={() => handleMoveFormation(index, "up")}
+                                          disabled={index === 0}
+                                          title="Monter"
+                                        >
+                                          <ChevronUp className="w-3 h-3" />
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          className="h-5 w-5 p-0"
+                                          onClick={() => handleMoveFormation(index, "down")}
+                                          disabled={index === formationConfigs.length - 1}
+                                          title="Descendre"
+                                        >
+                                          <ChevronDown className="w-3 h-3" />
+                                        </Button>
+                                      </div>
                                       {config.is_default && (
                                         <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
                                       )}
