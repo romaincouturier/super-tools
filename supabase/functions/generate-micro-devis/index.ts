@@ -203,10 +203,13 @@ async function sendEmailWithResend(
     </div>
   `;
 
+  // Remove duplicate "formation" from subject if present
+  const formationName = formationDemandee.replace(/^formation\s+/i, "");
+  
   const emailResponse = await resend.emails.send({
-    from: "Supertilt <contact@supertilt.fr>",
+    from: "Supertilt <romain@supertilt.fr>",
     to: [emailCommanditaire],
-    subject: `Votre devis pour la formation "${formationDemandee}"`,
+    subject: `Votre devis pour la formation "${formationName}"`,
     html: htmlContent,
     attachments: [
       {
