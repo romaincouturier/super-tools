@@ -167,6 +167,35 @@ async function sendEmailWithResend(
 
   console.log(`Sending email to ${emailCommanditaire}...`);
 
+  // Fetch Signitic signature for romain@supertilt.fr
+  const signiticApiKey = Deno.env.get("SIGNITIC_API_KEY");
+  let emailSignature = "";
+  
+  if (signiticApiKey) {
+    try {
+      const signatureResponse = await fetch(
+        "https://api.signitic.app/signatures/romain@supertilt.fr/html",
+        {
+          headers: {
+            "x-api-key": signiticApiKey,
+          },
+        }
+      );
+      
+      if (signatureResponse.ok) {
+        const signatureData = await signatureResponse.json();
+        if (signatureData.success && signatureData.html) {
+          emailSignature = signatureData.html;
+          console.log("Signitic signature fetched successfully");
+        }
+      } else {
+        console.warn("Could not fetch Signitic signature:", signatureResponse.status);
+      }
+    } catch (error) {
+      console.warn("Error fetching Signitic signature:", error);
+    }
+  }
+
   // Download PDFs
   const [pdfSansSubrogation, pdfAvecSubrogation] = await Promise.all([
     fetch(pdfUrlSansSubrogation).then(r => r.arrayBuffer()),
@@ -193,6 +222,14 @@ async function sendEmailWithResend(
     ? `<p>Le programme de la formation est disponible en <a href="${programmeUrl}" style="color: #2563eb; text-decoration: underline;">consultation et téléchargement ici</a>.</p>`
     : '';
 
+  // Fallback signature if Signitic fails
+  const fallbackSignature = `
+    <p style="margin-top: 20px;">
+      <strong>Romain</strong><br>
+      <span style="color: #666;">Supertilt - Formation & Innovation Pédagogique</span>
+    </p>
+  `;
+
   const htmlContent = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
       <p>Bonjour ${adresseCommanditaire},</p>
@@ -217,10 +254,7 @@ async function sendEmailWithResend(
       
       <p style="margin-top: 30px;"><em>À très bientôt,</em></p>
       
-      <p style="margin-top: 20px;">
-        <strong>L'équipe Supertilt</strong><br>
-        <span style="color: #666;">Formation & Innovation Pédagogique</span>
-      </p>
+      ${emailSignature || fallbackSignature}
     </div>
   `;
 
