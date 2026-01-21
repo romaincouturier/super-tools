@@ -459,8 +459,8 @@ async function sendEmailWithResend(
   console.log(`Email sent successfully to ${participantEmail}`);
 }
 
-// Send ZIP archive to commanditaire
-async function sendZipToCommanditaire(
+// Send certificates to commanditaire (ZIP if multiple, direct PDF if single)
+async function sendCertificatesToCommanditaire(
   emailCommanditaire: string,
   formationName: string,
   pdfDataList: PdfData[]
@@ -471,9 +471,56 @@ async function sendZipToCommanditaire(
     throw new Error("RESEND_API_KEY is not set");
   }
 
+  // If only one PDF, send it directly without ZIP
+  if (pdfDataList.length === 1) {
+    const pdfData = pdfDataList[0];
+    const pdfBase64 = btoa(String.fromCharCode(...pdfData.pdfBuffer));
+
+    console.log(`Sending single certificate to commanditaire: ${emailCommanditaire} (BCC: romain@supertilt.fr)`);
+
+    const emailResponse = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${resendApiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: "Romain Couturier <romain@supertilt.fr>",
+        to: [emailCommanditaire],
+        bcc: ["romain@supertilt.fr"],
+        subject: `Certificat de réalisation - Formation ${formationName}`,
+        html: `
+          <p>Bonjour,</p>
+          <p>Veuillez trouver ci-joint le certificat de réalisation pour la formation <strong>${escapeHtml(formationName)}</strong>.</p>
+          <p>Cordialement,</p>
+          <p>--</p>
+          <p><strong>Romain Couturier</strong><br>
+          Expert en agilité et gestion du temps, facilitateur graphique et facilitateur d'intelligence collective<br>
+          06 66 98 76 35<br>
+          <a href="https://www.supertilt.fr">www.supertilt.fr</a></p>
+        `,
+        attachments: [
+          {
+            filename: pdfData.fileName,
+            content: pdfBase64,
+          },
+        ],
+      }),
+    });
+
+    if (!emailResponse.ok) {
+      const errorText = await emailResponse.text();
+      console.error("Failed to send certificate to commanditaire:", errorText);
+      throw new Error(`Failed to send certificate: ${errorText}`);
+    }
+
+    console.log(`Certificate sent successfully to ${emailCommanditaire}`);
+    return;
+  }
+
+  // Multiple PDFs: create ZIP
   console.log(`Creating ZIP with ${pdfDataList.length} certificates for commanditaire...`);
 
-  // Create ZIP file
   const zipFiles: { [key: string]: Uint8Array } = {};
   for (const pdfData of pdfDataList) {
     zipFiles[pdfData.fileName] = pdfData.pdfBuffer;
@@ -499,7 +546,7 @@ async function sendZipToCommanditaire(
       subject: `Certificats de réalisation - Formation ${formationName}`,
       html: `
         <p>Bonjour,</p>
-        <p>Veuillez trouver ci-joint l'ensemble des certificats de réalisation pour la formation <strong>${formationName}</strong>.</p>
+        <p>Veuillez trouver ci-joint l'ensemble des certificats de réalisation pour la formation <strong>${escapeHtml(formationName)}</strong>.</p>
         <p>Cette archive contient ${pdfDataList.length} certificat(s).</p>
         <p>Cordialement,</p>
         <p>--</p>
@@ -736,26 +783,28 @@ serve(async (req: Request): Promise<Response> => {
           try {
             // Wait 1 second to respect Resend rate limit
             await new Promise((resolve) => setTimeout(resolve, 1000));
-            await sendZipToCommanditaire(emailCommanditaire, formationName, pdfDataList);
+            await sendCertificatesToCommanditaire(emailCommanditaire, formationName, pdfDataList);
             
+            const messageType = pdfDataList.length === 1 ? "Certificat envoyé" : "ZIP envoyé";
             sendEvent({ 
               type: "step", 
               data: { 
                 participant: "Commanditaire", 
                 step: "email", 
                 status: "success",
-                message: `ZIP envoyé à ${emailCommanditaire}` 
+                message: `${messageType} à ${emailCommanditaire}` 
               } 
             });
           } catch (error: any) {
-            console.error(`Failed to send ZIP to commanditaire: ${error.message}`);
+            console.error(`Failed to send to commanditaire: ${error.message}`);
+            const messageType = pdfDataList.length === 1 ? "certificat" : "ZIP";
             sendEvent({ 
               type: "step", 
               data: { 
                 participant: "Commanditaire", 
                 step: "email", 
                 status: "error",
-                message: `Échec envoi ZIP: ${error.message}` 
+                message: `Échec envoi ${messageType}: ${error.message}` 
               } 
             });
           }
