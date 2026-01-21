@@ -649,41 +649,15 @@ const MicroDevis = () => {
                   </Button>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="nomClient">Nom du client *</Label>
-                    <Input
-                      id="nomClient"
-                      placeholder="Nom de l'entreprise ou du client"
-                      value={nomClient}
-                      onChange={(e) => setNomClient(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="emailCommanditaire">Email du commanditaire *</Label>
-                    <Input
-                      id="emailCommanditaire"
-                      type="email"
-                      placeholder="email@exemple.com"
-                      value={emailCommanditaire}
-                      onChange={(e) => setEmailCommanditaire(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="adresseCommanditaire">
-                      Comment s'adresser au commanditaire *
-                      <span className="text-muted-foreground font-normal text-sm ml-1">(Ex : Mme Poilvert)</span>
-                    </Label>
-                    <Input
-                      id="adresseCommanditaire"
-                      placeholder="Mme Dupont"
-                      value={adresseCommanditaire}
-                      onChange={(e) => setAdresseCommanditaire(e.target.value)}
-                      required
-                    />
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="nomClient">Nom du client *</Label>
+                  <Input
+                    id="nomClient"
+                    placeholder="Nom de l'entreprise ou du client"
+                    value={nomClient}
+                    onChange={(e) => setNomClient(e.target.value)}
+                    required
+                  />
                 </div>
 
                 <div className="space-y-2">
@@ -740,6 +714,33 @@ const MicroDevis = () => {
                         />
                       </div>
                     </RadioGroup>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="emailCommanditaire">Email du commanditaire *</Label>
+                    <Input
+                      id="emailCommanditaire"
+                      type="email"
+                      placeholder="email@exemple.com"
+                      value={emailCommanditaire}
+                      onChange={(e) => setEmailCommanditaire(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="adresseCommanditaire">
+                      Comment s'adresser au commanditaire *
+                      <span className="text-muted-foreground font-normal text-sm ml-1">(Ex : Mme Poilvert)</span>
+                    </Label>
+                    <Input
+                      id="adresseCommanditaire"
+                      placeholder="Mme Dupont"
+                      value={adresseCommanditaire}
+                      onChange={(e) => setAdresseCommanditaire(e.target.value)}
+                      required
+                    />
                   </div>
                 </div>
               </div>
