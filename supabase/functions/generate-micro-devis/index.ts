@@ -167,11 +167,27 @@ async function sendEmailWithResend(
 
   console.log(`Sending email to ${emailCommanditaire}...`);
 
-  // Download both PDFs
+  // Download PDFs
   const [pdfSansSubrogation, pdfAvecSubrogation] = await Promise.all([
     fetch(pdfUrlSansSubrogation).then(r => r.arrayBuffer()),
     fetch(pdfUrlAvecSubrogation).then(r => r.arrayBuffer()),
   ]);
+
+  // Fetch Qualiopi certificate from public URL
+  const qualiopiPublicUrl = "https://id-preview--189bb4e6-abb7-4be6-96a9-7ff350879011.lovable.app/documents/Certificat_QUALIOPI.pdf";
+  
+  let qualiopiCertificate: ArrayBuffer | null = null;
+  try {
+    const qualiopiResponse = await fetch(qualiopiPublicUrl);
+    if (qualiopiResponse.ok) {
+      qualiopiCertificate = await qualiopiResponse.arrayBuffer();
+      console.log("Qualiopi certificate fetched successfully");
+    } else {
+      console.warn("Could not fetch Qualiopi certificate:", qualiopiResponse.status);
+    }
+  } catch (error) {
+    console.warn("Error fetching Qualiopi certificate:", error);
+  }
 
   const programmeLink = programmeUrl 
     ? `<p>Le programme de la formation est disponible en <a href="${programmeUrl}" style="color: #2563eb; text-decoration: underline;">consultation et téléchargement ici</a>.</p>`
@@ -183,11 +199,16 @@ async function sendEmailWithResend(
       
       <p>Merci pour votre demande concernant la formation <strong>"${formationDemandee}"</strong>.</p>
       
-      <p>Nous avons bien pris en compte votre besoin et vous trouverez en pièces jointes deux versions de notre devis :</p>
+      <p>Vous trouverez en pièces jointes :</p>
       
       <ul style="margin: 15px 0; padding-left: 20px;">
-        <li><strong>Devis sans subrogation de paiement</strong> : vous réglez directement la formation</li>
-        <li><strong>Devis avec subrogation de paiement</strong> : votre OPCO règle directement la formation</li>
+        <li><strong>Deux versions de notre devis</strong> :
+          <ul style="margin: 5px 0; padding-left: 20px;">
+            <li>Sans subrogation de paiement : vous réglez directement la formation</li>
+            <li>Avec subrogation de paiement : votre OPCO règle directement la formation</li>
+          </ul>
+        </li>
+        <li><strong>Notre certificat Qualiopi</strong>, attestant de la qualité de nos formations</li>
       </ul>
       
       ${programmeLink}
@@ -206,21 +227,32 @@ async function sendEmailWithResend(
   // Remove duplicate "formation" from subject if present
   const formationName = formationDemandee.replace(/^formation\s+/i, "");
   
+  // Build attachments array
+  const attachments = [
+    {
+      filename: `Devis_${formationDemandee.replace(/[^a-zA-Z0-9]/g, '_')}_sans_subrogation.pdf`,
+      content: base64Encode(pdfSansSubrogation),
+    },
+    {
+      filename: `Devis_${formationDemandee.replace(/[^a-zA-Z0-9]/g, '_')}_avec_subrogation.pdf`,
+      content: base64Encode(pdfAvecSubrogation),
+    },
+  ];
+  
+  // Add Qualiopi certificate if available
+  if (qualiopiCertificate) {
+    attachments.push({
+      filename: "Certificat_Qualiopi_Supertilt.pdf",
+      content: base64Encode(qualiopiCertificate),
+    });
+  }
+  
   const emailResponse = await resend.emails.send({
     from: "Supertilt <romain@supertilt.fr>",
     to: [emailCommanditaire],
     subject: `Votre devis pour la formation "${formationName}"`,
     html: htmlContent,
-    attachments: [
-      {
-        filename: `Devis_${formationDemandee.replace(/[^a-zA-Z0-9]/g, '_')}_sans_subrogation.pdf`,
-        content: base64Encode(pdfSansSubrogation),
-      },
-      {
-        filename: `Devis_${formationDemandee.replace(/[^a-zA-Z0-9]/g, '_')}_avec_subrogation.pdf`,
-        content: base64Encode(pdfAvecSubrogation),
-      },
-    ],
+    attachments,
   });
 
   console.log("Email sent successfully:", emailResponse);
