@@ -808,8 +808,17 @@ const MicroDevis = () => {
                 <div className="space-y-4 p-4 bg-secondary/50 rounded-lg border border-secondary">
                   <h3 className="text-lg font-semibold">Jeu</h3>
                   <p className="text-muted-foreground">
-                    Les options pour les devis de jeu seront bientôt disponibles.
+                    Pour créer un devis pour un jeu, veuillez utiliser notre formulaire dédié :
                   </p>
+                  <Button asChild variant="outline" className="w-full">
+                    <a 
+                      href="https://docs.google.com/forms/d/e/1FAIpQLScoZ3qkcJDxbEQYysE2YSkTEV-bfmF6mkAumwQ20Hoqflp7_g/viewform" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                    >
+                      Accéder au formulaire de devis Jeu
+                    </a>
+                  </Button>
                 </div>
               )}
 
