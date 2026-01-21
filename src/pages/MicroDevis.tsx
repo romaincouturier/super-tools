@@ -467,228 +467,14 @@ const MicroDevis = () => {
 
         <Card className="border-2 shadow-xl">
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-2xl flex items-center gap-2">
-                  <FileText className="w-6 h-6 text-primary" />
-                  Micro-devis
-                </CardTitle>
-                <CardDescription>
-                  Créez des devis rapides et simplifiés
-                </CardDescription>
-              </div>
-              <Dialog open={configDialogOpen} onOpenChange={setConfigDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button variant="outline" size="sm">
-                    <Settings className="w-4 h-4 mr-2" />
-                    Configurer formations
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
-                  <DialogHeader>
-                    <DialogTitle>Configuration des formations</DialogTitle>
-                    <DialogDescription>
-                      Gérez les formations, leurs prix, durées et URLs des programmes
-                    </DialogDescription>
-                  </DialogHeader>
-                  
-                  {/* Add new formation */}
-                  <div className="border-b pb-4 mb-4">
-                    {newFormation ? (
-                      <div className="space-y-3 p-4 border rounded-lg bg-primary/5">
-                        <h4 className="font-medium">Nouvelle formation</h4>
-                        <div className="space-y-2">
-                          <Label className="text-xs">Nom de la formation *</Label>
-                          <Input
-                            placeholder="Nom de la formation"
-                            value={newFormation.formation_name || ""}
-                            onChange={(e) => setNewFormation({
-                              ...newFormation,
-                              formation_name: e.target.value
-                            })}
-                          />
-                        </div>
-                        <div className="grid grid-cols-2 gap-3">
-                          <div className="space-y-1">
-                            <Label className="text-xs">Prix (€)</Label>
-                            <Input
-                              type="number"
-                              placeholder="0"
-                              value={newFormation.prix || ""}
-                              onChange={(e) => setNewFormation({
-                                ...newFormation,
-                                prix: parseFloat(e.target.value) || 0
-                              })}
-                            />
-                          </div>
-                          <div className="space-y-1">
-                            <Label className="text-xs">Durée (heures)</Label>
-                            <Input
-                              type="number"
-                              step="0.5"
-                              placeholder="0"
-                              value={newFormation.duree_heures || ""}
-                              onChange={(e) => setNewFormation({
-                                ...newFormation,
-                                duree_heures: parseFloat(e.target.value) || 0
-                              })}
-                            />
-                          </div>
-                        </div>
-                        <div className="space-y-1">
-                          <Label className="text-xs">URL du programme</Label>
-                          <Input
-                            type="url"
-                            placeholder="https://..."
-                            value={newFormation.programme_url || ""}
-                            onChange={(e) => setNewFormation({
-                              ...newFormation,
-                              programme_url: e.target.value || null
-                            })}
-                          />
-                        </div>
-                        <div className="flex gap-2">
-                          <Button size="sm" onClick={handleAddFormation} disabled={!newFormation.formation_name}>
-                            <Save className="w-3 h-3 mr-1" />
-                            Ajouter
-                          </Button>
-                          <Button size="sm" variant="outline" onClick={() => setNewFormation(null)}>
-                            <X className="w-3 h-3 mr-1" />
-                            Annuler
-                          </Button>
-                        </div>
-                      </div>
-                    ) : (
-                      <Button 
-                        variant="outline" 
-                        className="w-full" 
-                        onClick={() => setNewFormation({ prix: 1490, duree_heures: 14 })}
-                      >
-                        <Plus className="w-4 h-4 mr-2" />
-                        Ajouter une formation
-                      </Button>
-                    )}
-                  </div>
-
-                  {/* Existing formations */}
-                  <div className="space-y-3">
-                    {loadingConfigs ? (
-                      <div className="flex justify-center py-8">
-                        <Loader2 className="w-6 h-6 animate-spin" />
-                      </div>
-                    ) : (
-                      formationConfigs.map((config) => (
-                        <div key={config.id} className="border rounded-lg p-4 space-y-3">
-                          <div className="flex items-start justify-between">
-                            <div className="flex items-center gap-2">
-                              {config.is_default && (
-                                <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-                              )}
-                              <h4 className="font-medium text-sm">{config.formation_name}</h4>
-                            </div>
-                            <div className="flex gap-1">
-                              {!config.is_default && (
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => handleSetDefault(config.id)}
-                                  title="Définir par défaut"
-                                >
-                                  <Star className="w-3 h-3" />
-                                </Button>
-                              )}
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="text-destructive hover:text-destructive"
-                                onClick={() => handleDeleteFormation(config.id, config.formation_name)}
-                              >
-                                <Trash2 className="w-3 h-3" />
-                              </Button>
-                            </div>
-                          </div>
-                          
-                          {editingFormation?.id === config.id ? (
-                            <div className="space-y-3">
-                              <div className="space-y-2">
-                                <Label className="text-xs">Nom de la formation</Label>
-                                <Input
-                                  value={editingFormation.formation_name}
-                                  onChange={(e) => setEditingFormation({
-                                    ...editingFormation,
-                                    formation_name: e.target.value
-                                  })}
-                                />
-                              </div>
-                              <div className="grid grid-cols-2 gap-3">
-                                <div className="space-y-1">
-                                  <Label className="text-xs">Prix (€)</Label>
-                                  <Input
-                                    type="number"
-                                    value={editingFormation.prix}
-                                    onChange={(e) => setEditingFormation({
-                                      ...editingFormation,
-                                      prix: parseFloat(e.target.value) || 0
-                                    })}
-                                  />
-                                </div>
-                                <div className="space-y-1">
-                                  <Label className="text-xs">Durée (heures)</Label>
-                                  <Input
-                                    type="number"
-                                    step="0.5"
-                                    value={editingFormation.duree_heures}
-                                    onChange={(e) => setEditingFormation({
-                                      ...editingFormation,
-                                      duree_heures: parseFloat(e.target.value) || 0
-                                    })}
-                                  />
-                                </div>
-                              </div>
-                              <div className="space-y-1">
-                                <Label className="text-xs">URL du programme</Label>
-                                <Input
-                                  type="url"
-                                  placeholder="https://..."
-                                  value={editingFormation.programme_url || ""}
-                                  onChange={(e) => setEditingFormation({
-                                    ...editingFormation,
-                                    programme_url: e.target.value || null
-                                  })}
-                                />
-                              </div>
-                              <div className="flex gap-2">
-                                <Button size="sm" onClick={handleSaveFormationConfig}>
-                                  <Save className="w-3 h-3 mr-1" />
-                                  Sauvegarder
-                                </Button>
-                                <Button size="sm" variant="outline" onClick={() => setEditingFormation(null)}>
-                                  <X className="w-3 h-3 mr-1" />
-                                  Annuler
-                                </Button>
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="flex items-center justify-between">
-                              <div className="text-sm text-muted-foreground">
-                                {config.prix}€ • {config.duree_heures}h
-                                {config.programme_url && " • Programme ✓"}
-                              </div>
-                              <Button 
-                                size="sm" 
-                                variant="ghost"
-                                onClick={() => setEditingFormation(config)}
-                              >
-                                Modifier
-                              </Button>
-                            </div>
-                          )}
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </DialogContent>
-              </Dialog>
+            <div>
+              <CardTitle className="text-2xl flex items-center gap-2">
+                <FileText className="w-6 h-6 text-primary" />
+                Micro-devis
+              </CardTitle>
+              <CardDescription>
+                Créez des devis rapides et simplifiés
+              </CardDescription>
             </div>
           </CardHeader>
           <CardContent>
@@ -867,7 +653,221 @@ const MicroDevis = () => {
                   </div>
 
                   <div className="space-y-3">
-                    <Label>Formation demandée *</Label>
+                    <div className="flex items-center justify-between">
+                      <Label>Formation demandée *</Label>
+                      <Dialog open={configDialogOpen} onOpenChange={setConfigDialogOpen}>
+                        <DialogTrigger asChild>
+                          <Button variant="ghost" size="sm" className="h-6 px-2">
+                            <Settings className="w-3 h-3 mr-1" />
+                            Gérer
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+                          <DialogHeader>
+                            <DialogTitle>Configuration des formations</DialogTitle>
+                            <DialogDescription>
+                              Gérez les formations, leurs prix, durées et URLs des programmes
+                            </DialogDescription>
+                          </DialogHeader>
+                          
+                          {/* Add new formation */}
+                          <div className="border-b pb-4 mb-4">
+                            {newFormation ? (
+                              <div className="space-y-3 p-4 border rounded-lg bg-primary/5">
+                                <h4 className="font-medium">Nouvelle formation</h4>
+                                <div className="space-y-2">
+                                  <Label className="text-xs">Nom de la formation *</Label>
+                                  <Input
+                                    placeholder="Nom de la formation"
+                                    value={newFormation.formation_name || ""}
+                                    onChange={(e) => setNewFormation({
+                                      ...newFormation,
+                                      formation_name: e.target.value
+                                    })}
+                                  />
+                                </div>
+                                <div className="grid grid-cols-2 gap-3">
+                                  <div className="space-y-1">
+                                    <Label className="text-xs">Prix (€)</Label>
+                                    <Input
+                                      type="number"
+                                      placeholder="0"
+                                      value={newFormation.prix || ""}
+                                      onChange={(e) => setNewFormation({
+                                        ...newFormation,
+                                        prix: parseFloat(e.target.value) || 0
+                                      })}
+                                    />
+                                  </div>
+                                  <div className="space-y-1">
+                                    <Label className="text-xs">Durée (heures)</Label>
+                                    <Input
+                                      type="number"
+                                      step="0.5"
+                                      placeholder="0"
+                                      value={newFormation.duree_heures || ""}
+                                      onChange={(e) => setNewFormation({
+                                        ...newFormation,
+                                        duree_heures: parseFloat(e.target.value) || 0
+                                      })}
+                                    />
+                                  </div>
+                                </div>
+                                <div className="space-y-1">
+                                  <Label className="text-xs">URL du programme</Label>
+                                  <Input
+                                    type="url"
+                                    placeholder="https://..."
+                                    value={newFormation.programme_url || ""}
+                                    onChange={(e) => setNewFormation({
+                                      ...newFormation,
+                                      programme_url: e.target.value || null
+                                    })}
+                                  />
+                                </div>
+                                <div className="flex gap-2">
+                                  <Button size="sm" onClick={handleAddFormation} disabled={!newFormation.formation_name}>
+                                    <Save className="w-3 h-3 mr-1" />
+                                    Ajouter
+                                  </Button>
+                                  <Button size="sm" variant="outline" onClick={() => setNewFormation(null)}>
+                                    <X className="w-3 h-3 mr-1" />
+                                    Annuler
+                                  </Button>
+                                </div>
+                              </div>
+                            ) : (
+                              <Button 
+                                variant="outline" 
+                                className="w-full" 
+                                onClick={() => setNewFormation({ prix: 1490, duree_heures: 14 })}
+                              >
+                                <Plus className="w-4 h-4 mr-2" />
+                                Ajouter une formation
+                              </Button>
+                            )}
+                          </div>
+
+                          {/* Existing formations */}
+                          <div className="space-y-3">
+                            {loadingConfigs ? (
+                              <div className="flex justify-center py-8">
+                                <Loader2 className="w-6 h-6 animate-spin" />
+                              </div>
+                            ) : (
+                              formationConfigs.map((config) => (
+                                <div key={config.id} className="border rounded-lg p-4 space-y-3">
+                                  <div className="flex items-start justify-between">
+                                    <div className="flex items-center gap-2">
+                                      {config.is_default && (
+                                        <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+                                      )}
+                                      <h4 className="font-medium text-sm">{config.formation_name}</h4>
+                                    </div>
+                                    <div className="flex gap-1">
+                                      {!config.is_default && (
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          onClick={() => handleSetDefault(config.id)}
+                                          title="Définir par défaut"
+                                        >
+                                          <Star className="w-3 h-3" />
+                                        </Button>
+                                      )}
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="text-destructive hover:text-destructive"
+                                        onClick={() => handleDeleteFormation(config.id, config.formation_name)}
+                                      >
+                                        <Trash2 className="w-3 h-3" />
+                                      </Button>
+                                    </div>
+                                  </div>
+                                  
+                                  {editingFormation?.id === config.id ? (
+                                    <div className="space-y-3">
+                                      <div className="space-y-2">
+                                        <Label className="text-xs">Nom de la formation</Label>
+                                        <Input
+                                          value={editingFormation.formation_name}
+                                          onChange={(e) => setEditingFormation({
+                                            ...editingFormation,
+                                            formation_name: e.target.value
+                                          })}
+                                        />
+                                      </div>
+                                      <div className="grid grid-cols-2 gap-3">
+                                        <div className="space-y-1">
+                                          <Label className="text-xs">Prix (€)</Label>
+                                          <Input
+                                            type="number"
+                                            value={editingFormation.prix}
+                                            onChange={(e) => setEditingFormation({
+                                              ...editingFormation,
+                                              prix: parseFloat(e.target.value) || 0
+                                            })}
+                                          />
+                                        </div>
+                                        <div className="space-y-1">
+                                          <Label className="text-xs">Durée (heures)</Label>
+                                          <Input
+                                            type="number"
+                                            step="0.5"
+                                            value={editingFormation.duree_heures}
+                                            onChange={(e) => setEditingFormation({
+                                              ...editingFormation,
+                                              duree_heures: parseFloat(e.target.value) || 0
+                                            })}
+                                          />
+                                        </div>
+                                      </div>
+                                      <div className="space-y-1">
+                                        <Label className="text-xs">URL du programme</Label>
+                                        <Input
+                                          type="url"
+                                          placeholder="https://..."
+                                          value={editingFormation.programme_url || ""}
+                                          onChange={(e) => setEditingFormation({
+                                            ...editingFormation,
+                                            programme_url: e.target.value || null
+                                          })}
+                                        />
+                                      </div>
+                                      <div className="flex gap-2">
+                                        <Button size="sm" onClick={handleSaveFormationConfig}>
+                                          <Save className="w-3 h-3 mr-1" />
+                                          Sauvegarder
+                                        </Button>
+                                        <Button size="sm" variant="outline" onClick={() => setEditingFormation(null)}>
+                                          <X className="w-3 h-3 mr-1" />
+                                          Annuler
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <div className="flex items-center justify-between">
+                                      <div className="text-sm text-muted-foreground">
+                                        {config.prix}€ • {config.duree_heures}h
+                                        {config.programme_url && " • Programme ✓"}
+                                      </div>
+                                      <Button 
+                                        size="sm" 
+                                        variant="ghost"
+                                        onClick={() => setEditingFormation(config)}
+                                      >
+                                        Modifier
+                                      </Button>
+                                    </div>
+                                  )}
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        </DialogContent>
+                      </Dialog>
+                    </div>
                     <Select value={formationDemandee} onValueChange={setFormationDemandee}>
                       <SelectTrigger className="w-full bg-background">
                         <SelectValue placeholder="Sélectionner une formation" />
