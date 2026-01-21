@@ -57,9 +57,9 @@ serve(async (req: Request): Promise<Response> => {
 
     console.log(`Searching SIREN: ${siren}`);
 
-    // Fetch company info with establishments
+    // Fetch company info - the API returns data in a nested structure
     const response = await fetch(
-      `https://api.insee.fr/api-sirene/3.11/siren/${siren}?champs=siren,denominationUniteLegale,nomUniteLegale,prenomUsuelUniteLegale`,
+      `https://api.insee.fr/api-sirene/3.11/siren/${siren}`,
       {
         headers: {
           "X-INSEE-Api-Key-Integration": apiKey,
@@ -80,18 +80,25 @@ serve(async (req: Request): Promise<Response> => {
       throw new Error(`INSEE API error: ${response.status}`);
     }
 
-    const data: SirenResponse = await response.json();
-    const uniteLegale = data.uniteLegale;
+    const data = await response.json();
+    console.log("INSEE SIREN response:", JSON.stringify(data, null, 2));
 
-    // Get company name
-    let nomClient = uniteLegale.denominationUniteLegale || "";
-    if (!nomClient && uniteLegale.nomUniteLegale) {
-      nomClient = `${uniteLegale.prenomUsuelUniteLegale || ""} ${uniteLegale.nomUniteLegale}`.trim();
+    // The uniteLegale contains periodesUniteLegale array with the current data
+    const uniteLegale = data.uniteLegale;
+    const periodes = uniteLegale?.periodesUniteLegale;
+    const currentPeriode = periodes?.[0]; // Most recent period
+
+    // Get company name from the current period
+    let nomClient = currentPeriode?.denominationUniteLegale || "";
+    if (!nomClient && currentPeriode?.nomUniteLegale) {
+      nomClient = `${currentPeriode?.prenomUsuelUniteLegale || ""} ${currentPeriode.nomUniteLegale}`.trim();
     }
+
+    console.log(`Company name from SIREN: ${nomClient}`);
 
     // Now fetch the headquarters (siege) to get the address
     const siegeResponse = await fetch(
-      `https://api.insee.fr/api-sirene/3.11/siret?q=siren:${siren} AND etablissementSiege:true&champs=siret,adresseEtablissement`,
+      `https://api.insee.fr/api-sirene/3.11/siret?q=siren:${siren} AND etablissementSiege:true`,
       {
         headers: {
           "X-INSEE-Api-Key-Integration": apiKey,
@@ -107,6 +114,8 @@ serve(async (req: Request): Promise<Response> => {
 
     if (siegeResponse.ok) {
       const siegeData = await siegeResponse.json();
+      console.log("INSEE SIRET response:", JSON.stringify(siegeData, null, 2));
+      
       const etablissement = siegeData.etablissements?.[0];
       
       if (etablissement?.adresseEtablissement) {
@@ -132,6 +141,9 @@ serve(async (req: Request): Promise<Response> => {
           pays = addr.libellePaysEtrangerEtablissement;
         }
       }
+    } else {
+      const errorText = await siegeResponse.text();
+      console.error("SIRET API error:", siegeResponse.status, errorText);
     }
 
     console.log(`Found: ${nomClient}, ${adresse}, ${codePostal} ${ville}`);
