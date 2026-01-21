@@ -278,19 +278,17 @@ const MicroDevis = () => {
     const finalLieu = lieu === "autre" ? lieuAutre : lieu;
     const finalPays = pays === "autre" ? paysAutre : "France";
     const nbParticipants = countParticipants();
-    const prixFormation = selectedConfig.prix * nbParticipants;
-    const frais = fraisDossier === "oui" ? 150 : 0;
-    const totalHT = prixFormation + frais;
-    const tva = isAdministration === "oui" ? 0 : totalHT * 0.2;
-    const totalTTC = totalHT + tva;
 
-    const formatCurrentDate = (): string => {
-      const now = new Date();
-      const day = String(now.getDate()).padStart(2, "0");
-      const month = String(now.getMonth() + 1).padStart(2, "0");
-      const year = now.getFullYear();
-      return `${day}/${month}/${year}`;
-    };
+    // Parse participants list
+    const participantsList = participants
+      .split(/[,;\n]/)
+      .map(p => p.trim())
+      .filter(p => p.length > 0);
+
+    // Build cadeau text if included
+    const cadeauText = includeCadeau 
+      ? "Chaque participant(e) aura : 1 kit de facilitation graphique ainsi qu'un accès illimité et à vie au e-learning de 25h pour continuer sa formation en facilitation graphique"
+      : "";
 
     return {
       // Données envoyées à la fonction
@@ -313,31 +311,34 @@ const MicroDevis = () => {
         dureeHeures: selectedConfig.duree_heures,
         programmeUrl: selectedConfig.programme_url,
         nbParticipants,
+        participants,
       },
-      // Payload PDF Monkey (reconstruit côté client pour prévisualisation)
+      // Payload PDF Monkey (structure attendue par le template)
       pdfMonkeyPayload: {
-        nom_client: nomClient,
-        adresse_client: adresseClient,
-        code_postal_client: codePostalClient,
-        ville_client: villeClient,
-        pays: finalPays,
-        adresse_commanditaire: adresseCommanditaire,
-        formation_demandee: formationDemandee,
-        date_formation: dateFormation,
-        lieu: finalLieu,
-        duree_heures: selectedConfig.duree_heures,
-        nb_participants: nbParticipants,
-        prix_unitaire: selectedConfig.prix,
-        prix_formation: prixFormation,
-        frais_dossier: frais,
-        total_ht: totalHT,
-        tva: tva,
-        total_ttc: totalTTC,
+        client: {
+          name: nomClient,
+          address: adresseClient,
+          zip: codePostalClient,
+          city: villeClient,
+          country: finalPays,
+        },
+        note: noteDevis || "",
+        affiche_frais: fraisDossier === "oui" ? "Oui" : "Non",
+        subrogation: "Oui / Non (2 versions)",
+        cadeau: cadeauText,
+        items: [
+          {
+            name: formationDemandee,
+            participant_name: participantsList.length > 0 ? participantsList : [`${adresseCommanditaire} ${emailCommanditaire}`],
+            date: dateFormation,
+            place: finalLieu,
+            duration: `${selectedConfig.duree_heures}h`,
+            quantity: nbParticipants,
+            unit_price: selectedConfig.prix,
+          },
+        ],
+        admin_fee: fraisDossier === "oui" ? 150 : 0,
         is_administration: isAdministration === "oui",
-        subrogation_paiement: "Oui / Non (2 versions)",
-        note_devis: noteDevis,
-        include_cadeau: includeCadeau,
-        date_devis: formatCurrentDate(),
       },
     };
   };
@@ -523,6 +524,7 @@ const MicroDevis = () => {
           dureeHeures: selectedConfig.duree_heures,
           programmeUrl: selectedConfig.programme_url,
           nbParticipants: countParticipants(),
+          participants,
         },
       });
 

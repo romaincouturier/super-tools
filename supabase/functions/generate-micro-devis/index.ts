@@ -26,6 +26,7 @@ interface RequestBody {
   dureeHeures: number;
   programmeUrl: string | null;
   nbParticipants: number;
+  participants: string; // Liste des participants (texte brut)
 }
 
 const PDFMONKEY_TEMPLATE_ID = "C3BC00C9-232F-4ADD-9D1F-9FD176573E93";
@@ -42,44 +43,43 @@ async function generatePdfWithPdfMonkey(
 
   console.log(`Generating PDF with subrogation=${subrogation}...`);
 
-  const formatCurrentDate = (): string => {
-    const now = new Date();
-    const day = String(now.getDate()).padStart(2, "0");
-    const month = String(now.getMonth() + 1).padStart(2, "0");
-    const year = now.getFullYear();
-    return `${day}/${month}/${year}`;
-  };
+  // Parse participants list
+  const participantsList = data.participants
+    .split(/[,;\n]/)
+    .map(p => p.trim())
+    .filter(p => p.length > 0);
 
-  // Calculate totals
-  const prixFormation = data.prix * data.nbParticipants;
-  const fraisDossier = data.fraisDossier ? 150 : 0;
-  const totalHT = prixFormation + fraisDossier;
-  const tva = data.isAdministration ? 0 : totalHT * 0.2;
-  const totalTTC = totalHT + tva;
+  // Build cadeau text if included
+  const cadeauText = data.includeCadeau 
+    ? "Chaque participant(e) aura : 1 kit de facilitation graphique ainsi qu'un accès illimité et à vie au e-learning de 25h pour continuer sa formation en facilitation graphique"
+    : "";
 
+  // Build the payload in the expected structure
   const payload = {
-    nom_client: data.nomClient,
-    adresse_client: data.adresseClient,
-    code_postal_client: data.codePostalClient,
-    ville_client: data.villeClient,
-    pays: data.pays,
-    adresse_commanditaire: data.adresseCommanditaire,
-    formation_demandee: data.formationDemandee,
-    date_formation: data.dateFormation,
-    lieu: data.lieu,
-    duree_heures: data.dureeHeures,
-    nb_participants: data.nbParticipants,
-    prix_unitaire: data.prix,
-    prix_formation: prixFormation,
-    frais_dossier: fraisDossier,
-    total_ht: totalHT,
-    tva: tva,
-    total_ttc: totalTTC,
+    client: {
+      name: data.nomClient,
+      address: data.adresseClient,
+      zip: data.codePostalClient,
+      city: data.villeClient,
+      country: data.pays,
+    },
+    note: data.noteDevis || "",
+    affiche_frais: data.fraisDossier ? "Oui" : "Non",
+    subrogation: subrogation ? "Oui" : "Non",
+    cadeau: cadeauText,
+    items: [
+      {
+        name: data.formationDemandee,
+        participant_name: participantsList.length > 0 ? participantsList : [`${data.adresseCommanditaire} ${data.emailCommanditaire}`],
+        date: data.dateFormation,
+        place: data.lieu,
+        duration: `${data.dureeHeures}h`,
+        quantity: data.nbParticipants,
+        unit_price: data.prix,
+      },
+    ],
+    admin_fee: data.fraisDossier ? 150 : 0,
     is_administration: data.isAdministration,
-    subrogation_paiement: subrogation ? "Oui" : "Non",
-    note_devis: data.noteDevis,
-    include_cadeau: data.includeCadeau,
-    date_devis: formatCurrentDate(),
   };
 
   console.log(`PDF Monkey payload:`, JSON.stringify(payload));
