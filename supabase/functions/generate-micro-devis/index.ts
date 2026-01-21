@@ -183,9 +183,10 @@ async function sendEmailWithResend(
       );
       
       if (signatureResponse.ok) {
-        const signatureData = await signatureResponse.json();
-        if (signatureData.success && signatureData.html) {
-          emailSignature = signatureData.html;
+        // The /html endpoint returns raw HTML, not JSON
+        const htmlContent = await signatureResponse.text();
+        if (htmlContent && !htmlContent.includes("error")) {
+          emailSignature = htmlContent;
           console.log("Signitic signature fetched successfully");
         }
       } else {
