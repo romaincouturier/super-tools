@@ -20,6 +20,7 @@ export type Database = {
           duree_heures: number
           formation_name: string
           id: string
+          is_default: boolean
           prix: number
           programme_url: string | null
           updated_at: string
@@ -29,6 +30,7 @@ export type Database = {
           duree_heures?: number
           formation_name: string
           id?: string
+          is_default?: boolean
           prix?: number
           programme_url?: string | null
           updated_at?: string
@@ -38,6 +40,7 @@ export type Database = {
           duree_heures?: number
           formation_name?: string
           id?: string
+          is_default?: boolean
           prix?: number
           programme_url?: string | null
           updated_at?: string

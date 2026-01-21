@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
-import { Loader2, FileText, ArrowLeft, Send, Settings, Save, X } from "lucide-react";
+import { Loader2, FileText, ArrowLeft, Send, Settings, Save, X, Plus, Trash2, Star } from "lucide-react";
 import SupertiltLogo from "@/components/SupertiltLogo";
 import UserMenu from "@/components/UserMenu";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,6 +21,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface FormationConfig {
   id: string;
@@ -28,24 +35,8 @@ interface FormationConfig {
   prix: number;
   duree_heures: number;
   programme_url: string | null;
+  is_default: boolean;
 }
-
-const DEFAULT_FORMATIONS = [
-  "Développement et déploiement de formations tutorées",
-  "Création de formations digitales avec Genially",
-  "Créer des jeux pédagogiques avec Genially",
-  "Gamifier l'apprentissage avec Genially",
-  "Créer des parcours pédagogiques interactifs",
-  "Créer des formations interactives avancées avec Genially",
-];
-
-const DATES_FORMATION = [
-  "A la demande du participant",
-  "26 et 27 janvier 2026",
-  "30 et 31 mars 2026",
-  "4 au 8 avril 2026",
-  "4 et 5 mai 2026",
-];
 
 const LIEUX = [
   "En ligne en accédant à son compte sur supertilt.fr",
@@ -66,6 +57,7 @@ const MicroDevis = () => {
   const [loadingConfigs, setLoadingConfigs] = useState(true);
   const [editingFormation, setEditingFormation] = useState<FormationConfig | null>(null);
   const [configDialogOpen, setConfigDialogOpen] = useState(false);
+  const [newFormation, setNewFormation] = useState<Partial<FormationConfig> | null>(null);
 
   // Form state - Client info
   const [nomClient, setNomClient] = useState("");
@@ -86,16 +78,10 @@ const MicroDevis = () => {
   const [participants, setParticipants] = useState("");
   const [formationDemandee, setFormationDemandee] = useState("");
   const [dateFormation, setDateFormation] = useState("");
-  const [dateFormationAutre, setDateFormationAutre] = useState("");
   const [lieu, setLieu] = useState("");
   const [lieuAutre, setLieuAutre] = useState("");
   const [includeCadeau, setIncludeCadeau] = useState(false);
   const [fraisDossier, setFraisDossier] = useState<"oui" | "non" | "">("");
-
-  // Editable dates
-  const [customDates, setCustomDates] = useState<string[]>(DATES_FORMATION);
-  const [editingDateIndex, setEditingDateIndex] = useState<number | null>(null);
-  const [editingDateValue, setEditingDateValue] = useState("");
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -131,26 +117,15 @@ const MicroDevis = () => {
         if (error) throw error;
 
         if (data && data.length > 0) {
-          setFormationConfigs(data);
-        } else {
-          // If no configs in DB, create default ones
-          const defaultConfigs = DEFAULT_FORMATIONS.map(name => ({
-            formation_name: name,
-            prix: 1490,
-            duree_heures: 14,
-            programme_url: null,
-          }));
-
-          for (const config of defaultConfigs) {
-            await supabase.from("formation_configs").insert(config);
-          }
-
-          const { data: newData } = await supabase
-            .from("formation_configs")
-            .select("*")
-            .order("formation_name");
+          // Cast to include is_default
+          const configs = data as FormationConfig[];
+          setFormationConfigs(configs);
           
-          if (newData) setFormationConfigs(newData);
+          // Set default formation
+          const defaultFormation = configs.find(f => f.is_default);
+          if (defaultFormation) {
+            setFormationDemandee(defaultFormation.formation_name);
+          }
         }
       } catch (error) {
         console.error("Error loading formation configs:", error);
@@ -180,7 +155,6 @@ const MicroDevis = () => {
 
   const countParticipants = (): number => {
     if (!participants.trim()) return 1;
-    // Count lines or comma-separated entries
     const lines = participants.split(/[,;\n]/).filter(l => l.trim());
     return Math.max(1, lines.length);
   };
@@ -192,6 +166,7 @@ const MicroDevis = () => {
       const { error } = await supabase
         .from("formation_configs")
         .update({
+          formation_name: editingFormation.formation_name,
           prix: editingFormation.prix,
           duree_heures: editingFormation.duree_heures,
           programme_url: editingFormation.programme_url,
@@ -215,6 +190,104 @@ const MicroDevis = () => {
       toast({
         title: "Erreur",
         description: "Impossible de sauvegarder la configuration",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleAddFormation = async () => {
+    if (!newFormation?.formation_name) return;
+
+    try {
+      const { data, error } = await supabase
+        .from("formation_configs")
+        .insert({
+          formation_name: newFormation.formation_name,
+          prix: newFormation.prix || 0,
+          duree_heures: newFormation.duree_heures || 0,
+          programme_url: newFormation.programme_url || null,
+          is_default: false,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setFormationConfigs(prev => [...prev, data as FormationConfig].sort((a, b) => 
+        a.formation_name.localeCompare(b.formation_name)
+      ));
+
+      toast({
+        title: "Formation ajoutée",
+        description: `"${newFormation.formation_name}" a été ajoutée.`,
+      });
+
+      setNewFormation(null);
+    } catch (error) {
+      console.error("Error adding formation:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible d'ajouter la formation",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteFormation = async (id: string, name: string) => {
+    try {
+      const { error } = await supabase
+        .from("formation_configs")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+
+      setFormationConfigs(prev => prev.filter(f => f.id !== id));
+
+      toast({
+        title: "Formation supprimée",
+        description: `"${name}" a été supprimée.`,
+      });
+    } catch (error) {
+      console.error("Error deleting formation:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de supprimer la formation",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleSetDefault = async (id: string) => {
+    try {
+      // Remove default from all
+      await supabase
+        .from("formation_configs")
+        .update({ is_default: false })
+        .neq("id", "");
+
+      // Set new default
+      const { error } = await supabase
+        .from("formation_configs")
+        .update({ is_default: true })
+        .eq("id", id);
+
+      if (error) throw error;
+
+      setFormationConfigs(prev => 
+        prev.map(f => ({ ...f, is_default: f.id === id }))
+      );
+
+      const formation = formationConfigs.find(f => f.id === id);
+      toast({
+        title: "Formation par défaut",
+        description: `"${formation?.formation_name}" est maintenant la formation par défaut.`,
+      });
+    } catch (error) {
+      console.error("Error setting default:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de définir la formation par défaut",
         variant: "destructive",
       });
     }
@@ -244,7 +317,6 @@ const MicroDevis = () => {
     setSubmitting(true);
 
     try {
-      const finalDateFormation = dateFormation === "autre" ? dateFormationAutre : dateFormation;
       const finalLieu = lieu === "autre" ? lieuAutre : lieu;
       const finalPays = pays === "autre" ? paysAutre : "France";
 
@@ -260,7 +332,7 @@ const MicroDevis = () => {
           isAdministration: isAdministration === "oui",
           noteDevis,
           formationDemandee,
-          dateFormation: finalDateFormation,
+          dateFormation,
           lieu: finalLieu,
           includeCadeau,
           fraisDossier: fraisDossier === "oui",
@@ -293,42 +365,25 @@ const MicroDevis = () => {
       setIsAdministration("");
       setNoteDevis("");
       setParticipants("");
-      setFormationDemandee("");
+      const defaultFormation = formationConfigs.find(f => f.is_default);
+      setFormationDemandee(defaultFormation?.formation_name || "");
       setDateFormation("");
-      setDateFormationAutre("");
       setLieu("");
       setLieuAutre("");
       setIncludeCadeau(false);
       setFraisDossier("");
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error generating micro-devis:", error);
+      const errorMessage = error instanceof Error ? error.message : "Une erreur est survenue";
       toast({
         title: "Erreur",
-        description: error.message || "Une erreur est survenue lors de la génération des devis",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
       setSubmitting(false);
     }
-  };
-
-  const handleEditDate = (index: number) => {
-    setEditingDateIndex(index);
-    setEditingDateValue(customDates[index]);
-  };
-
-  const handleSaveDate = () => {
-    if (editingDateIndex !== null && editingDateValue.trim()) {
-      const newDates = [...customDates];
-      newDates[editingDateIndex] = editingDateValue.trim();
-      setCustomDates(newDates);
-      if (dateFormation === customDates[editingDateIndex]) {
-        setDateFormation(editingDateValue.trim());
-      }
-    }
-    setEditingDateIndex(null);
-    setEditingDateValue("");
   };
 
   if (loading) {
@@ -382,14 +437,93 @@ const MicroDevis = () => {
                     Configurer formations
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>Configuration des formations</DialogTitle>
                     <DialogDescription>
-                      Modifiez les prix, durées et URLs des programmes de formation
+                      Gérez les formations, leurs prix, durées et URLs des programmes
                     </DialogDescription>
                   </DialogHeader>
-                  <div className="space-y-4 mt-4">
+                  
+                  {/* Add new formation */}
+                  <div className="border-b pb-4 mb-4">
+                    {newFormation ? (
+                      <div className="space-y-3 p-4 border rounded-lg bg-primary/5">
+                        <h4 className="font-medium">Nouvelle formation</h4>
+                        <div className="space-y-2">
+                          <Label className="text-xs">Nom de la formation *</Label>
+                          <Input
+                            placeholder="Nom de la formation"
+                            value={newFormation.formation_name || ""}
+                            onChange={(e) => setNewFormation({
+                              ...newFormation,
+                              formation_name: e.target.value
+                            })}
+                          />
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <Label className="text-xs">Prix (€)</Label>
+                            <Input
+                              type="number"
+                              placeholder="0"
+                              value={newFormation.prix || ""}
+                              onChange={(e) => setNewFormation({
+                                ...newFormation,
+                                prix: parseFloat(e.target.value) || 0
+                              })}
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Durée (heures)</Label>
+                            <Input
+                              type="number"
+                              placeholder="0"
+                              value={newFormation.duree_heures || ""}
+                              onChange={(e) => setNewFormation({
+                                ...newFormation,
+                                duree_heures: parseInt(e.target.value) || 0
+                              })}
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">URL du programme</Label>
+                          <Input
+                            type="url"
+                            placeholder="https://..."
+                            value={newFormation.programme_url || ""}
+                            onChange={(e) => setNewFormation({
+                              ...newFormation,
+                              programme_url: e.target.value || null
+                            })}
+                          />
+                        </div>
+                        <div className="flex gap-2">
+                          <Button size="sm" onClick={handleAddFormation} disabled={!newFormation.formation_name}>
+                            <Save className="w-3 h-3 mr-1" />
+                            Ajouter
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={() => setNewFormation(null)}>
+                            <X className="w-3 h-3 mr-1" />
+                            Annuler
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <Button 
+                        variant="outline" 
+                        className="w-full" 
+                        onClick={() => setNewFormation({ prix: 1490, duree_heures: 14 })}
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Ajouter une formation
+                      </Button>
+                    )}
+                  </div>
+
+                  {/* Existing formations */}
+                  <div className="space-y-3">
                     {loadingConfigs ? (
                       <div className="flex justify-center py-8">
                         <Loader2 className="w-6 h-6 animate-spin" />
@@ -397,9 +531,47 @@ const MicroDevis = () => {
                     ) : (
                       formationConfigs.map((config) => (
                         <div key={config.id} className="border rounded-lg p-4 space-y-3">
-                          <h4 className="font-medium text-sm">{config.formation_name}</h4>
+                          <div className="flex items-start justify-between">
+                            <div className="flex items-center gap-2">
+                              {config.is_default && (
+                                <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+                              )}
+                              <h4 className="font-medium text-sm">{config.formation_name}</h4>
+                            </div>
+                            <div className="flex gap-1">
+                              {!config.is_default && (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => handleSetDefault(config.id)}
+                                  title="Définir par défaut"
+                                >
+                                  <Star className="w-3 h-3" />
+                                </Button>
+                              )}
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="text-destructive hover:text-destructive"
+                                onClick={() => handleDeleteFormation(config.id, config.formation_name)}
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          </div>
+                          
                           {editingFormation?.id === config.id ? (
                             <div className="space-y-3">
+                              <div className="space-y-2">
+                                <Label className="text-xs">Nom de la formation</Label>
+                                <Input
+                                  value={editingFormation.formation_name}
+                                  onChange={(e) => setEditingFormation({
+                                    ...editingFormation,
+                                    formation_name: e.target.value
+                                  })}
+                                />
+                              </div>
                               <div className="grid grid-cols-2 gap-3">
                                 <div className="space-y-1">
                                   <Label className="text-xs">Prix (€)</Label>
@@ -647,75 +819,38 @@ const MicroDevis = () => {
 
                   <div className="space-y-3">
                     <Label>Formation demandée *</Label>
-                    <RadioGroup value={formationDemandee} onValueChange={setFormationDemandee} className="space-y-2">
-                      {formationConfigs.map((config) => (
-                        <div key={config.id} className="flex items-center space-x-2">
-                          <RadioGroupItem value={config.formation_name} id={`formation-${config.id}`} />
-                          <Label htmlFor={`formation-${config.id}`} className="font-normal cursor-pointer text-sm flex-1">
-                            {config.formation_name}
-                            <span className="text-muted-foreground ml-2">
-                              ({config.prix}€ • {config.duree_heures}h)
-                            </span>
-                          </Label>
-                        </div>
-                      ))}
-                    </RadioGroup>
+                    <Select value={formationDemandee} onValueChange={setFormationDemandee}>
+                      <SelectTrigger className="w-full bg-background">
+                        <SelectValue placeholder="Sélectionner une formation" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-background border shadow-lg z-50">
+                        {formationConfigs.map((config) => (
+                          <SelectItem key={config.id} value={config.formation_name}>
+                            <div className="flex items-center gap-2">
+                              {config.is_default && <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />}
+                              <span>{config.formation_name}</span>
+                              <span className="text-muted-foreground text-xs">
+                                ({config.prix}€ • {config.duree_heures}h)
+                              </span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   <div className="space-y-3">
-                    <Label>Dates de la formation *</Label>
-                    <RadioGroup value={dateFormation} onValueChange={setDateFormation} className="space-y-2">
-                      {customDates.map((date, index) => (
-                        <div key={index} className="flex items-center space-x-2 group">
-                          <RadioGroupItem value={date} id={`date-${index}`} />
-                          {editingDateIndex === index ? (
-                            <div className="flex items-center gap-2 flex-1">
-                              <Input
-                                value={editingDateValue}
-                                onChange={(e) => setEditingDateValue(e.target.value)}
-                                className="flex-1"
-                                autoFocus
-                              />
-                              <Button type="button" size="sm" onClick={handleSaveDate}>
-                                <Save className="w-3 h-3" />
-                              </Button>
-                              <Button type="button" size="sm" variant="ghost" onClick={() => setEditingDateIndex(null)}>
-                                <X className="w-3 h-3" />
-                              </Button>
-                            </div>
-                          ) : (
-                            <>
-                              <Label htmlFor={`date-${index}`} className="font-normal cursor-pointer text-sm flex-1">
-                                {date}
-                              </Label>
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="ghost"
-                                className="opacity-0 group-hover:opacity-100 transition-opacity"
-                                onClick={() => handleEditDate(index)}
-                              >
-                                Modifier
-                              </Button>
-                            </>
-                          )}
-                        </div>
-                      ))}
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="autre" id="date-autre" />
-                        <Label htmlFor="date-autre" className="font-normal cursor-pointer text-sm">Autre :</Label>
-                        <Input
-                          placeholder="Dates personnalisées"
-                          value={dateFormationAutre}
-                          onChange={(e) => {
-                            setDateFormationAutre(e.target.value);
-                            if (e.target.value) setDateFormation("autre");
-                          }}
-                          className="flex-1 max-w-xs"
-                          disabled={dateFormation !== "autre"}
-                        />
-                      </div>
-                    </RadioGroup>
+                    <Label htmlFor="dateFormation">Dates de la formation *</Label>
+                    <Input
+                      id="dateFormation"
+                      placeholder="Ex: 15 et 16 janvier 2026, ou Du 10 au 14 mars 2026"
+                      value={dateFormation}
+                      onChange={(e) => setDateFormation(e.target.value)}
+                      required
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Saisissez les dates au format souhaité (ex: "26 et 27 janvier 2026" ou "Du 4 au 8 avril 2026")
+                    </p>
                   </div>
 
                   <div className="space-y-3">
