@@ -197,6 +197,13 @@ const MicroDevis = () => {
     }
   }, [user, toast]);
 
+  // Auto-set lieu when formation contains "en ligne"
+  useEffect(() => {
+    if (formationDemandee.toLowerCase().includes("en ligne")) {
+      setLieu("En ligne en accédant à son compte sur supertilt.fr");
+    }
+  }, [formationDemandee]);
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate("/auth");
