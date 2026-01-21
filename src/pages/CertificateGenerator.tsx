@@ -24,6 +24,7 @@ import {
 interface FormationConfig {
   id: string;
   formation_name: string;
+  duree_heures: number;
 }
 
 interface ParsedParticipant {
@@ -87,7 +88,7 @@ const Index = () => {
       try {
         const { data, error } = await supabase
           .from("formation_configs")
-          .select("id, formation_name")
+          .select("id, formation_name, duree_heures")
           .order("display_order");
 
         if (error) throw error;
@@ -106,6 +107,16 @@ const Index = () => {
       loadFormationConfigs();
     }
   }, [user]);
+
+  // Auto-update duration when formation changes
+  useEffect(() => {
+    if (formationName && formationName !== "__custom__") {
+      const selectedConfig = formationConfigs.find(f => f.formation_name === formationName);
+      if (selectedConfig) {
+        setDuree(selectedConfig.duree_heures.toString());
+      }
+    }
+  }, [formationName, formationConfigs]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
