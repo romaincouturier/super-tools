@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
-import { Loader2, FileText, ArrowLeft, Send, Settings, Save, X, Plus, Trash2, Star } from "lucide-react";
+import { Loader2, FileText, ArrowLeft, Send, Settings, Save, X, Plus, Trash2, Star, Eye } from "lucide-react";
 import SupertiltLogo from "@/components/SupertiltLogo";
 import UserMenu from "@/components/UserMenu";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -71,6 +71,7 @@ const MicroDevis = () => {
   const [editingDate, setEditingDate] = useState<FormationDate | null>(null);
   const [datesDialogOpen, setDatesDialogOpen] = useState(false);
   const [newDate, setNewDate] = useState<Partial<FormationDate> | null>(null);
+  const [jsonPreviewOpen, setJsonPreviewOpen] = useState(false);
 
   // Form state - Client info
   const [nomClient, setNomClient] = useState("");
@@ -204,6 +205,77 @@ const MicroDevis = () => {
     if (!participants.trim()) return 1;
     const lines = participants.split(/[,;\n]/).filter(l => l.trim());
     return Math.max(1, lines.length);
+  };
+
+  const buildPayload = () => {
+    const selectedConfig = getSelectedFormationConfig();
+    if (!selectedConfig) return null;
+    
+    const finalLieu = lieu === "autre" ? lieuAutre : lieu;
+    const finalPays = pays === "autre" ? paysAutre : "France";
+    const nbParticipants = countParticipants();
+    const prixFormation = selectedConfig.prix * nbParticipants;
+    const frais = fraisDossier === "oui" ? 150 : 0;
+    const totalHT = prixFormation + frais;
+    const tva = isAdministration === "oui" ? 0 : totalHT * 0.2;
+    const totalTTC = totalHT + tva;
+
+    const formatCurrentDate = (): string => {
+      const now = new Date();
+      const day = String(now.getDate()).padStart(2, "0");
+      const month = String(now.getMonth() + 1).padStart(2, "0");
+      const year = now.getFullYear();
+      return `${day}/${month}/${year}`;
+    };
+
+    return {
+      // Données envoyées à la fonction
+      requestPayload: {
+        nomClient,
+        adresseClient,
+        codePostalClient,
+        villeClient,
+        pays: finalPays,
+        emailCommanditaire,
+        adresseCommanditaire,
+        isAdministration: isAdministration === "oui",
+        noteDevis,
+        formationDemandee,
+        dateFormation,
+        lieu: finalLieu,
+        includeCadeau,
+        fraisDossier: fraisDossier === "oui",
+        prix: selectedConfig.prix,
+        dureeHeures: selectedConfig.duree_heures,
+        programmeUrl: selectedConfig.programme_url,
+        nbParticipants,
+      },
+      // Payload PDF Monkey (reconstruit côté client pour prévisualisation)
+      pdfMonkeyPayload: {
+        nom_client: nomClient,
+        adresse_client: adresseClient,
+        code_postal_client: codePostalClient,
+        ville_client: villeClient,
+        pays: finalPays,
+        adresse_commanditaire: adresseCommanditaire,
+        formation_demandee: formationDemandee,
+        date_formation: dateFormation,
+        lieu: finalLieu,
+        duree_heures: selectedConfig.duree_heures,
+        nb_participants: nbParticipants,
+        prix_unitaire: selectedConfig.prix,
+        prix_formation: prixFormation,
+        frais_dossier: frais,
+        total_ht: totalHT,
+        tva: tva,
+        total_ttc: totalTTC,
+        is_administration: isAdministration === "oui",
+        subrogation_paiement: "Oui / Non (2 versions)",
+        note_devis: noteDevis,
+        include_cadeau: includeCadeau,
+        date_devis: formatCurrentDate(),
+      },
+    };
   };
 
   const handleSaveFormationConfig = async () => {
@@ -1264,23 +1336,52 @@ const MicroDevis = () => {
                 </div>
               )}
 
-              <Button
-                type="submit"
-                className="w-full font-semibold text-lg py-6"
-                disabled={submitting || !typeDevis}
-              >
-                {submitting ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                    Génération en cours...
-                  </>
-                ) : (
-                  <>
-                    <Send className="w-5 h-5 mr-2" />
-                    Générer le micro-devis
-                  </>
-                )}
-              </Button>
+              <div className="flex gap-3">
+                <Dialog open={jsonPreviewOpen} onOpenChange={setJsonPreviewOpen}>
+                  <DialogTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="font-semibold py-6"
+                      disabled={!typeDevis || typeDevis !== "formation" || !formationDemandee}
+                    >
+                      <Eye className="w-5 h-5 mr-2" />
+                      Prévisualiser JSON
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle>Prévisualisation du JSON PDF Monkey</DialogTitle>
+                      <DialogDescription>
+                        Payload qui sera envoyé à PDF Monkey pour générer le devis
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="mt-4">
+                      <pre className="bg-muted p-4 rounded-lg text-sm overflow-x-auto whitespace-pre-wrap">
+                        {JSON.stringify(buildPayload(), null, 2)}
+                      </pre>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+
+                <Button
+                  type="submit"
+                  className="flex-1 font-semibold text-lg py-6"
+                  disabled={submitting || !typeDevis}
+                >
+                  {submitting ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                      Génération en cours...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-5 h-5 mr-2" />
+                      Générer le micro-devis
+                    </>
+                  )}
+                </Button>
+              </div>
             </form>
           </CardContent>
         </Card>
