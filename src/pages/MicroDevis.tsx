@@ -1478,7 +1478,7 @@ const MicroDevis = () => {
                     </DialogHeader>
                     <div className="mt-4">
                       <pre className="bg-muted p-4 rounded-lg text-sm overflow-x-auto whitespace-pre-wrap">
-                        {JSON.stringify(buildPayload(), null, 2)}
+                        {JSON.stringify(buildPayload()?.pdfMonkeyPayload, null, 2)}
                       </pre>
                     </div>
                   </DialogContent>
