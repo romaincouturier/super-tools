@@ -13,6 +13,18 @@ import SupertiltLogo from "@/components/SupertiltLogo";
 import UserMenu from "@/components/UserMenu";
 import ProcessingLog, { LogEntry } from "@/components/ProcessingLog";
 import GoogleDriveConnect from "@/components/GoogleDriveConnect";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+interface FormationConfig {
+  id: string;
+  formation_name: string;
+}
 
 interface ParsedParticipant {
   prenom: string;
@@ -27,8 +39,13 @@ const Index = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  // Formation configs from DB
+  const [formationConfigs, setFormationConfigs] = useState<FormationConfig[]>([]);
+  const [loadingConfigs, setLoadingConfigs] = useState(true);
+
   // Form state
   const [formationName, setFormationName] = useState("");
+  const [customFormationName, setCustomFormationName] = useState("");
   const [entreprise, setEntreprise] = useState("");
   const [duree, setDuree] = useState("");
   const [dateDebut, setDateDebut] = useState("");
@@ -64,6 +81,32 @@ const Index = () => {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
+  // Load formation configs from DB
+  useEffect(() => {
+    const loadFormationConfigs = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("formation_configs")
+          .select("id, formation_name")
+          .order("display_order");
+
+        if (error) throw error;
+
+        if (data && data.length > 0) {
+          setFormationConfigs(data as FormationConfig[]);
+        }
+      } catch (error) {
+        console.error("Error loading formation configs:", error);
+      } finally {
+        setLoadingConfigs(false);
+      }
+    };
+
+    if (user) {
+      loadFormationConfigs();
+    }
+  }, [user]);
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate("/auth");
@@ -88,6 +131,19 @@ const Index = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Get actual formation name
+    const actualFormationName = formationName === "__custom__" ? customFormationName : formationName;
+
+    // Validate formation name
+    if (!actualFormationName.trim()) {
+      toast({
+        title: "Erreur",
+        description: "Veuillez saisir un nom de formation",
+        variant: "destructive",
+      });
+      return;
+    }
     
     // Parse participants
     const lines = participants.trim().split("\n").filter(line => line.trim());
@@ -136,7 +192,7 @@ const Index = () => {
             "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
           body: JSON.stringify({
-            formationName,
+            formationName: actualFormationName,
             entreprise,
             duree: `${duree}h`,
             dateDebut,
@@ -206,6 +262,7 @@ const Index = () => {
       // Reset form on success
       if (allSuccess) {
         setFormationName("");
+        setCustomFormationName("");
         setEntreprise("");
         setDuree("");
         setDateDebut("");
@@ -278,13 +335,37 @@ const Index = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="formationName">Nom de la formation</Label>
-                  <Input
-                    id="formationName"
-                    placeholder="Ex: Facilitation graphique, communiquer avec le visuel"
+                  <Select
                     value={formationName}
-                    onChange={(e) => setFormationName(e.target.value)}
-                    required
-                  />
+                    onValueChange={(value) => {
+                      setFormationName(value);
+                      if (value !== "__custom__") {
+                        setCustomFormationName("");
+                      }
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={loadingConfigs ? "Chargement..." : "Sélectionner une formation"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {formationConfigs.map((config) => (
+                        <SelectItem key={config.id} value={config.formation_name}>
+                          {config.formation_name}
+                        </SelectItem>
+                      ))}
+                      <SelectItem value="__custom__">Autre (saisie libre)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {formationName === "__custom__" && (
+                    <Input
+                      id="customFormationName"
+                      placeholder="Ex: Facilitation graphique, communiquer avec le visuel"
+                      value={customFormationName}
+                      onChange={(e) => setCustomFormationName(e.target.value)}
+                      className="mt-2"
+                      required
+                    />
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="entreprise">Entreprise</Label>
