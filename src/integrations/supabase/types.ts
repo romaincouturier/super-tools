@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      formation_configs: {
+        Row: {
+          created_at: string
+          duree_heures: number
+          formation_name: string
+          id: string
+          prix: number
+          programme_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          duree_heures?: number
+          formation_name: string
+          id?: string
+          prix?: number
+          programme_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          duree_heures?: number
+          formation_name?: string
+          id?: string
+          prix?: number
+          programme_url?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       google_drive_tokens: {
         Row: {
           access_token: string
