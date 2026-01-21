@@ -263,7 +263,7 @@ const Index = () => {
               <div>
                 <CardTitle className="text-2xl flex items-center gap-2">
                   <Award className="w-6 h-6 text-primary" />
-                  Nouvelle génération de certificats
+                  Génération de certificats de formation
                 </CardTitle>
                 <CardDescription>
                   Remplissez les informations de la formation et la liste des participants
