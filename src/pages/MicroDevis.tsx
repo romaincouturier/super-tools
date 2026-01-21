@@ -243,7 +243,7 @@ const MicroDevis = () => {
   };
 
   const handleAddFormation = async () => {
-    if (!newFormation?.formation_name) return;
+    if (!newFormation?.formation_name || !newFormation?.programme_url) return;
 
     try {
       const { data, error } = await supabase
@@ -714,7 +714,7 @@ const MicroDevis = () => {
                                   </div>
                                 </div>
                                 <div className="space-y-1">
-                                  <Label className="text-xs">URL du programme</Label>
+                                  <Label className="text-xs">URL du programme *</Label>
                                   <Input
                                     type="url"
                                     placeholder="https://..."
@@ -723,10 +723,11 @@ const MicroDevis = () => {
                                       ...newFormation,
                                       programme_url: e.target.value || null
                                     })}
+                                    required
                                   />
                                 </div>
                                 <div className="flex gap-2">
-                                  <Button size="sm" onClick={handleAddFormation} disabled={!newFormation.formation_name}>
+                                  <Button size="sm" onClick={handleAddFormation} disabled={!newFormation.formation_name || !newFormation.programme_url}>
                                     <Save className="w-3 h-3 mr-1" />
                                     Ajouter
                                   </Button>
