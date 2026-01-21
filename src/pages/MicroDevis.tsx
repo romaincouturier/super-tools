@@ -800,10 +800,34 @@ const MicroDevis = () => {
                   <h3 className="text-lg font-semibold text-primary">Formation</h3>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="participants">
-                      Liste des participants
-                      <span className="text-muted-foreground font-normal text-sm ml-1">(Prénom Nom e-mail ;,)</span>
-                    </Label>
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="participants">
+                        Liste des participants
+                        <span className="text-muted-foreground font-normal text-sm ml-1">(Prénom Nom e-mail ;,)</span>
+                      </Label>
+                      {adresseCommanditaire && emailCommanditaire && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 px-2 text-xs"
+                          onClick={() => {
+                            const commanditaireEntry = `${adresseCommanditaire} ${emailCommanditaire}`;
+                            if (participants.trim()) {
+                              // Add to existing list if not already present
+                              if (!participants.includes(emailCommanditaire)) {
+                                setParticipants(participants + "\n" + commanditaireEntry);
+                              }
+                            } else {
+                              setParticipants(commanditaireEntry);
+                            }
+                          }}
+                        >
+                          <Plus className="w-3 h-3 mr-1" />
+                          Ajouter le commanditaire
+                        </Button>
+                      )}
+                    </div>
                     <Textarea
                       id="participants"
                       placeholder="Jean Dupont jean@exemple.com, Marie Martin marie@exemple.com"
