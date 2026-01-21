@@ -671,6 +671,19 @@ const MicroDevis = () => {
                       required
                     />
                   </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="adresseCommanditaire">
+                      Comment s'adresser au commanditaire *
+                      <span className="text-muted-foreground font-normal text-sm ml-1">(Ex : Mme Poilvert)</span>
+                    </Label>
+                    <Input
+                      id="adresseCommanditaire"
+                      placeholder="Mme Dupont"
+                      value={adresseCommanditaire}
+                      onChange={(e) => setAdresseCommanditaire(e.target.value)}
+                      required
+                    />
+                  </div>
                 </div>
 
                 <div className="space-y-2">
@@ -728,20 +741,6 @@ const MicroDevis = () => {
                       </div>
                     </RadioGroup>
                   </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="adresseCommanditaire">
-                    Comment s'adresser au commanditaire * 
-                    <span className="text-muted-foreground font-normal text-sm ml-1">(pas de virgule, pas de bonjour. Ex : Mme Poilvert)</span>
-                  </Label>
-                  <Input
-                    id="adresseCommanditaire"
-                    placeholder="Mme Dupont"
-                    value={adresseCommanditaire}
-                    onChange={(e) => setAdresseCommanditaire(e.target.value)}
-                    required
-                  />
                 </div>
               </div>
 
