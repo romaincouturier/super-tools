@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
-import { Loader2, FileText, ArrowLeft, Send } from "lucide-react";
+import { Loader2, FileText, ArrowLeft, Send, Settings, Save, X } from "lucide-react";
 import SupertiltLogo from "@/components/SupertiltLogo";
 import UserMenu from "@/components/UserMenu";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,19 +13,30 @@ import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
-const FORMATIONS = [
-  "Formation facilitation graphique, communiquer avec le visuel",
-  "Formation facilitation graphique, communiquer avec le visuel (individuel)",
-  "Formation facilitation graphique, communiquer avec le visuel (indépendant)",
-  "Formation faciliter l'intelligence collective",
-  "Formation en ligne Facilitation graphique (Offre facilitateur graphique)",
-  "Formation en ligne Facilitation graphique (Offre facilitateur graphique coaché)",
-  "Formation en ligne Facilitation graphique (Offre Solo)",
-  "Produire des vidéos dessinées",
-  "Produire des vidéos dessinées (coaché)",
-  "Sketchnoter sur tablette avec ProCreate et Concepts",
-  "Sketchnoter sur tablette avec ProCreate et Concepts (pack coaché)",
+interface FormationConfig {
+  id: string;
+  formation_name: string;
+  prix: number;
+  duree_heures: number;
+  programme_url: string | null;
+}
+
+const DEFAULT_FORMATIONS = [
+  "Développement et déploiement de formations tutorées",
+  "Création de formations digitales avec Genially",
+  "Créer des jeux pédagogiques avec Genially",
+  "Gamifier l'apprentissage avec Genially",
+  "Créer des parcours pédagogiques interactifs",
+  "Créer des formations interactives avancées avec Genially",
 ];
 
 const DATES_FORMATION = [
@@ -49,6 +60,12 @@ const MicroDevis = () => {
   const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  // Formation configs from DB
+  const [formationConfigs, setFormationConfigs] = useState<FormationConfig[]>([]);
+  const [loadingConfigs, setLoadingConfigs] = useState(true);
+  const [editingFormation, setEditingFormation] = useState<FormationConfig | null>(null);
+  const [configDialogOpen, setConfigDialogOpen] = useState(false);
 
   // Form state - Client info
   const [nomClient, setNomClient] = useState("");
@@ -75,6 +92,11 @@ const MicroDevis = () => {
   const [includeCadeau, setIncludeCadeau] = useState(false);
   const [fraisDossier, setFraisDossier] = useState<"oui" | "non" | "">("");
 
+  // Editable dates
+  const [customDates, setCustomDates] = useState<string[]>(DATES_FORMATION);
+  const [editingDateIndex, setEditingDateIndex] = useState<number | null>(null);
+  const [editingDateValue, setEditingDateValue] = useState("");
+
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
@@ -97,22 +119,216 @@ const MicroDevis = () => {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
+  // Load formation configs from DB
+  useEffect(() => {
+    const loadFormationConfigs = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("formation_configs")
+          .select("*")
+          .order("formation_name");
+
+        if (error) throw error;
+
+        if (data && data.length > 0) {
+          setFormationConfigs(data);
+        } else {
+          // If no configs in DB, create default ones
+          const defaultConfigs = DEFAULT_FORMATIONS.map(name => ({
+            formation_name: name,
+            prix: 1490,
+            duree_heures: 14,
+            programme_url: null,
+          }));
+
+          for (const config of defaultConfigs) {
+            await supabase.from("formation_configs").insert(config);
+          }
+
+          const { data: newData } = await supabase
+            .from("formation_configs")
+            .select("*")
+            .order("formation_name");
+          
+          if (newData) setFormationConfigs(newData);
+        }
+      } catch (error) {
+        console.error("Error loading formation configs:", error);
+        toast({
+          title: "Erreur",
+          description: "Impossible de charger les configurations de formations",
+          variant: "destructive",
+        });
+      } finally {
+        setLoadingConfigs(false);
+      }
+    };
+
+    if (user) {
+      loadFormationConfigs();
+    }
+  }, [user, toast]);
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate("/auth");
   };
 
+  const getSelectedFormationConfig = (): FormationConfig | undefined => {
+    return formationConfigs.find(f => f.formation_name === formationDemandee);
+  };
+
+  const countParticipants = (): number => {
+    if (!participants.trim()) return 1;
+    // Count lines or comma-separated entries
+    const lines = participants.split(/[,;\n]/).filter(l => l.trim());
+    return Math.max(1, lines.length);
+  };
+
+  const handleSaveFormationConfig = async () => {
+    if (!editingFormation) return;
+
+    try {
+      const { error } = await supabase
+        .from("formation_configs")
+        .update({
+          prix: editingFormation.prix,
+          duree_heures: editingFormation.duree_heures,
+          programme_url: editingFormation.programme_url,
+        })
+        .eq("id", editingFormation.id);
+
+      if (error) throw error;
+
+      setFormationConfigs(prev => 
+        prev.map(f => f.id === editingFormation.id ? editingFormation : f)
+      );
+
+      toast({
+        title: "Configuration sauvegardée",
+        description: `Les paramètres de "${editingFormation.formation_name}" ont été mis à jour.`,
+      });
+
+      setEditingFormation(null);
+    } catch (error) {
+      console.error("Error saving formation config:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de sauvegarder la configuration",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (typeDevis !== "formation") {
+      toast({
+        title: "Fonctionnalité en développement",
+        description: "La génération de devis pour les jeux sera bientôt disponible.",
+      });
+      return;
+    }
+
+    const selectedConfig = getSelectedFormationConfig();
+    if (!selectedConfig) {
+      toast({
+        title: "Erreur",
+        description: "Veuillez sélectionner une formation",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setSubmitting(true);
 
-    // TODO: Implement micro-devis generation
-    toast({
-      title: "Fonctionnalité en développement",
-      description: "La génération de micro-devis sera bientôt disponible.",
-    });
+    try {
+      const finalDateFormation = dateFormation === "autre" ? dateFormationAutre : dateFormation;
+      const finalLieu = lieu === "autre" ? lieuAutre : lieu;
+      const finalPays = pays === "autre" ? paysAutre : "France";
 
-    setSubmitting(false);
+      const response = await supabase.functions.invoke("generate-micro-devis", {
+        body: {
+          nomClient,
+          adresseClient,
+          codePostalClient,
+          villeClient,
+          pays: finalPays,
+          emailCommanditaire,
+          adresseCommanditaire,
+          isAdministration: isAdministration === "oui",
+          noteDevis,
+          formationDemandee,
+          dateFormation: finalDateFormation,
+          lieu: finalLieu,
+          includeCadeau,
+          fraisDossier: fraisDossier === "oui",
+          prix: selectedConfig.prix,
+          dureeHeures: selectedConfig.duree_heures,
+          programmeUrl: selectedConfig.programme_url,
+          nbParticipants: countParticipants(),
+        },
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message);
+      }
+
+      toast({
+        title: "Devis envoyés !",
+        description: `Les 2 devis ont été générés et envoyés à ${emailCommanditaire}`,
+      });
+
+      // Reset form
+      setNomClient("");
+      setAdresseClient("");
+      setCodePostalClient("");
+      setVilleClient("");
+      setPays("france");
+      setPaysAutre("");
+      setEmailCommanditaire("");
+      setAdresseCommanditaire("");
+      setTypeDevis("");
+      setIsAdministration("");
+      setNoteDevis("");
+      setParticipants("");
+      setFormationDemandee("");
+      setDateFormation("");
+      setDateFormationAutre("");
+      setLieu("");
+      setLieuAutre("");
+      setIncludeCadeau(false);
+      setFraisDossier("");
+
+    } catch (error: any) {
+      console.error("Error generating micro-devis:", error);
+      toast({
+        title: "Erreur",
+        description: error.message || "Une erreur est survenue lors de la génération des devis",
+        variant: "destructive",
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleEditDate = (index: number) => {
+    setEditingDateIndex(index);
+    setEditingDateValue(customDates[index]);
+  };
+
+  const handleSaveDate = () => {
+    if (editingDateIndex !== null && editingDateValue.trim()) {
+      const newDates = [...customDates];
+      newDates[editingDateIndex] = editingDateValue.trim();
+      setCustomDates(newDates);
+      if (dateFormation === customDates[editingDateIndex]) {
+        setDateFormation(editingDateValue.trim());
+      }
+    }
+    setEditingDateIndex(null);
+    setEditingDateValue("");
   };
 
   if (loading) {
@@ -149,13 +365,110 @@ const MicroDevis = () => {
 
         <Card className="border-2 shadow-xl">
           <CardHeader>
-            <CardTitle className="text-2xl flex items-center gap-2">
-              <FileText className="w-6 h-6 text-primary" />
-              Micro-devis
-            </CardTitle>
-            <CardDescription>
-              Créez des devis rapides et simplifiés
-            </CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-2xl flex items-center gap-2">
+                  <FileText className="w-6 h-6 text-primary" />
+                  Micro-devis
+                </CardTitle>
+                <CardDescription>
+                  Créez des devis rapides et simplifiés
+                </CardDescription>
+              </div>
+              <Dialog open={configDialogOpen} onOpenChange={setConfigDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <Settings className="w-4 h-4 mr-2" />
+                    Configurer formations
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>Configuration des formations</DialogTitle>
+                    <DialogDescription>
+                      Modifiez les prix, durées et URLs des programmes de formation
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 mt-4">
+                    {loadingConfigs ? (
+                      <div className="flex justify-center py-8">
+                        <Loader2 className="w-6 h-6 animate-spin" />
+                      </div>
+                    ) : (
+                      formationConfigs.map((config) => (
+                        <div key={config.id} className="border rounded-lg p-4 space-y-3">
+                          <h4 className="font-medium text-sm">{config.formation_name}</h4>
+                          {editingFormation?.id === config.id ? (
+                            <div className="space-y-3">
+                              <div className="grid grid-cols-2 gap-3">
+                                <div className="space-y-1">
+                                  <Label className="text-xs">Prix (€)</Label>
+                                  <Input
+                                    type="number"
+                                    value={editingFormation.prix}
+                                    onChange={(e) => setEditingFormation({
+                                      ...editingFormation,
+                                      prix: parseFloat(e.target.value) || 0
+                                    })}
+                                  />
+                                </div>
+                                <div className="space-y-1">
+                                  <Label className="text-xs">Durée (heures)</Label>
+                                  <Input
+                                    type="number"
+                                    value={editingFormation.duree_heures}
+                                    onChange={(e) => setEditingFormation({
+                                      ...editingFormation,
+                                      duree_heures: parseInt(e.target.value) || 0
+                                    })}
+                                  />
+                                </div>
+                              </div>
+                              <div className="space-y-1">
+                                <Label className="text-xs">URL du programme</Label>
+                                <Input
+                                  type="url"
+                                  placeholder="https://..."
+                                  value={editingFormation.programme_url || ""}
+                                  onChange={(e) => setEditingFormation({
+                                    ...editingFormation,
+                                    programme_url: e.target.value || null
+                                  })}
+                                />
+                              </div>
+                              <div className="flex gap-2">
+                                <Button size="sm" onClick={handleSaveFormationConfig}>
+                                  <Save className="w-3 h-3 mr-1" />
+                                  Sauvegarder
+                                </Button>
+                                <Button size="sm" variant="outline" onClick={() => setEditingFormation(null)}>
+                                  <X className="w-3 h-3 mr-1" />
+                                  Annuler
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex items-center justify-between">
+                              <div className="text-sm text-muted-foreground">
+                                {config.prix}€ • {config.duree_heures}h
+                                {config.programme_url && " • Programme ✓"}
+                              </div>
+                              <Button 
+                                size="sm" 
+                                variant="ghost"
+                                onClick={() => setEditingFormation(config)}
+                              >
+                                Modifier
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-8">
@@ -325,16 +638,24 @@ const MicroDevis = () => {
                       onChange={(e) => setParticipants(e.target.value)}
                       className="min-h-[100px] font-mono text-sm"
                     />
+                    {participants && (
+                      <p className="text-sm text-muted-foreground">
+                        {countParticipants()} participant(s) détecté(s)
+                      </p>
+                    )}
                   </div>
 
                   <div className="space-y-3">
                     <Label>Formation demandée *</Label>
                     <RadioGroup value={formationDemandee} onValueChange={setFormationDemandee} className="space-y-2">
-                      {FORMATIONS.map((formation) => (
-                        <div key={formation} className="flex items-center space-x-2">
-                          <RadioGroupItem value={formation} id={`formation-${formation}`} />
-                          <Label htmlFor={`formation-${formation}`} className="font-normal cursor-pointer text-sm">
-                            {formation}
+                      {formationConfigs.map((config) => (
+                        <div key={config.id} className="flex items-center space-x-2">
+                          <RadioGroupItem value={config.formation_name} id={`formation-${config.id}`} />
+                          <Label htmlFor={`formation-${config.id}`} className="font-normal cursor-pointer text-sm flex-1">
+                            {config.formation_name}
+                            <span className="text-muted-foreground ml-2">
+                              ({config.prix}€ • {config.duree_heures}h)
+                            </span>
                           </Label>
                         </div>
                       ))}
@@ -344,12 +665,40 @@ const MicroDevis = () => {
                   <div className="space-y-3">
                     <Label>Dates de la formation *</Label>
                     <RadioGroup value={dateFormation} onValueChange={setDateFormation} className="space-y-2">
-                      {DATES_FORMATION.map((date) => (
-                        <div key={date} className="flex items-center space-x-2">
-                          <RadioGroupItem value={date} id={`date-${date}`} />
-                          <Label htmlFor={`date-${date}`} className="font-normal cursor-pointer text-sm">
-                            {date}
-                          </Label>
+                      {customDates.map((date, index) => (
+                        <div key={index} className="flex items-center space-x-2 group">
+                          <RadioGroupItem value={date} id={`date-${index}`} />
+                          {editingDateIndex === index ? (
+                            <div className="flex items-center gap-2 flex-1">
+                              <Input
+                                value={editingDateValue}
+                                onChange={(e) => setEditingDateValue(e.target.value)}
+                                className="flex-1"
+                                autoFocus
+                              />
+                              <Button type="button" size="sm" onClick={handleSaveDate}>
+                                <Save className="w-3 h-3" />
+                              </Button>
+                              <Button type="button" size="sm" variant="ghost" onClick={() => setEditingDateIndex(null)}>
+                                <X className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          ) : (
+                            <>
+                              <Label htmlFor={`date-${index}`} className="font-normal cursor-pointer text-sm flex-1">
+                                {date}
+                              </Label>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="ghost"
+                                className="opacity-0 group-hover:opacity-100 transition-opacity"
+                                onClick={() => handleEditDate(index)}
+                              >
+                                Modifier
+                              </Button>
+                            </>
+                          )}
                         </div>
                       ))}
                       <div className="flex items-center space-x-2">
@@ -424,6 +773,33 @@ const MicroDevis = () => {
                       </div>
                     </RadioGroup>
                   </div>
+
+                  {/* Summary */}
+                  {formationDemandee && (
+                    <div className="mt-4 p-3 bg-background rounded border">
+                      <h4 className="font-medium text-sm mb-2">Résumé du devis</h4>
+                      {(() => {
+                        const config = getSelectedFormationConfig();
+                        if (!config) return null;
+                        const nbParticipants = countParticipants();
+                        const prixFormation = config.prix * nbParticipants;
+                        const frais = fraisDossier === "oui" ? 150 : 0;
+                        const totalHT = prixFormation + frais;
+                        const tva = isAdministration === "oui" ? 0 : totalHT * 0.2;
+                        const totalTTC = totalHT + tva;
+
+                        return (
+                          <div className="text-sm space-y-1">
+                            <p>Formation : {config.prix}€ × {nbParticipants} = <strong>{prixFormation}€</strong></p>
+                            {frais > 0 && <p>Frais de dossier : {frais}€</p>}
+                            <p>Total HT : <strong>{totalHT}€</strong></p>
+                            <p>TVA (20%) : {isAdministration === "oui" ? "Exonéré" : `${tva.toFixed(2)}€`}</p>
+                            <p className="text-base">Total TTC : <strong>{totalTTC.toFixed(2)}€</strong></p>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  )}
                 </div>
               )}
 

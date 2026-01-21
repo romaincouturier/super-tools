@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.google-drive-auth]
 verify_jwt = false
+
+[functions.generate-micro-devis]
+verify_jwt = false
