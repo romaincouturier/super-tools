@@ -272,11 +272,25 @@ const MicroDevis = () => {
     return Math.max(1, lines.length);
   };
 
+  // Build the client address string for "Chez le client"
+  const buildClientAddress = () => {
+    const parts = [adresseClient];
+    if (codePostalClient || villeClient) {
+      parts.push(`${codePostalClient} ${villeClient}`.trim());
+    }
+    return parts.filter(p => p).join(", ");
+  };
+
   const buildPayload = () => {
     const selectedConfig = getSelectedFormationConfig();
     if (!selectedConfig) return null;
     
-    const finalLieu = lieu === "autre" ? lieuAutre : lieu;
+    // When "Chez le client" is selected, use client's address
+    const finalLieu = lieu === "autre" 
+      ? lieuAutre 
+      : lieu === "Chez le client" 
+        ? buildClientAddress() 
+        : lieu;
     const finalPays = pays === "autre" ? paysAutre : "France";
     const nbParticipants = countParticipants();
 
