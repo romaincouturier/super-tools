@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Award, Loader2, Send } from "lucide-react";
+import { Award, Loader2, Send, ArrowLeft } from "lucide-react";
 import { User } from "@supabase/supabase-js";
 import SupertiltLogo from "@/components/SupertiltLogo";
 import UserMenu from "@/components/UserMenu";
@@ -241,6 +241,7 @@ const Index = () => {
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <SupertiltLogo className="h-10" invert />
+            <span className="text-xl font-bold">SuperTools</span>
           </div>
           {user && <UserMenu user={user} onLogout={handleLogout} />}
         </div>
@@ -248,6 +249,14 @@ const Index = () => {
 
       {/* Main content */}
       <main className="max-w-4xl mx-auto p-6">
+        <Button
+          variant="ghost"
+          onClick={() => navigate("/")}
+          className="mb-4"
+        >
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Retour aux outils
+        </Button>
         <Card className="border-2 shadow-xl">
           <CardHeader>
             <div className="flex items-center justify-between">

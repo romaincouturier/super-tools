@@ -105,7 +105,7 @@ const Auth = () => {
             <SupertiltLogo className="h-12 mx-auto" />
           </div>
           <CardTitle className="text-2xl font-bold">
-            Générateur de Certificats
+            SuperTools
           </CardTitle>
           <CardDescription>
             {isLogin
