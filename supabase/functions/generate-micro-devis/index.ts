@@ -203,8 +203,8 @@ async function sendEmailWithResend(
     fetch(pdfUrlAvecSubrogation).then(r => r.arrayBuffer()),
   ]);
 
-  // Fetch Qualiopi certificate - use the stable project URL
-  const qualiopiPublicUrl = "https://189bb4e6-abb7-4be6-96a9-7ff350879011.lovableproject.com/documents/Certificat_QUALIOPI.pdf";
+  // Fetch Qualiopi certificate from Supabase Storage bucket
+  const qualiopiPublicUrl = "https://yewffntzgrdgztrwtava.supabase.co/storage/v1/object/public/certificat-qualiopi/Certificat%20QUALIOPI%20v3.pdf";
   
   let qualiopiCertificate: ArrayBuffer | null = null;
   try {
