@@ -47,6 +47,30 @@ export type Database = {
         }
         Relationships: []
       }
+      formation_dates: {
+        Row: {
+          created_at: string
+          date_label: string
+          id: string
+          is_default: boolean
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          date_label: string
+          id?: string
+          is_default?: boolean
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          date_label?: string
+          id?: string
+          is_default?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       google_drive_tokens: {
         Row: {
           access_token: string

@@ -38,6 +38,12 @@ interface FormationConfig {
   is_default: boolean;
 }
 
+interface FormationDate {
+  id: string;
+  date_label: string;
+  is_default: boolean;
+}
+
 const LIEUX = [
   "En ligne en accédant à son compte sur supertilt.fr",
   "Espace Gailleton, 2 Pl. Gailleton, 69002 Lyon",
@@ -58,6 +64,13 @@ const MicroDevis = () => {
   const [editingFormation, setEditingFormation] = useState<FormationConfig | null>(null);
   const [configDialogOpen, setConfigDialogOpen] = useState(false);
   const [newFormation, setNewFormation] = useState<Partial<FormationConfig> | null>(null);
+
+  // Formation dates from DB
+  const [formationDates, setFormationDates] = useState<FormationDate[]>([]);
+  const [loadingDates, setLoadingDates] = useState(true);
+  const [editingDate, setEditingDate] = useState<FormationDate | null>(null);
+  const [datesDialogOpen, setDatesDialogOpen] = useState(false);
+  const [newDate, setNewDate] = useState<Partial<FormationDate> | null>(null);
 
   // Form state - Client info
   const [nomClient, setNomClient] = useState("");
@@ -117,11 +130,9 @@ const MicroDevis = () => {
         if (error) throw error;
 
         if (data && data.length > 0) {
-          // Cast to include is_default
           const configs = data as FormationConfig[];
           setFormationConfigs(configs);
           
-          // Set default formation
           const defaultFormation = configs.find(f => f.is_default);
           if (defaultFormation) {
             setFormationDemandee(defaultFormation.formation_name);
@@ -141,6 +152,42 @@ const MicroDevis = () => {
 
     if (user) {
       loadFormationConfigs();
+    }
+  }, [user, toast]);
+
+  // Load formation dates from DB
+  useEffect(() => {
+    const loadFormationDates = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("formation_dates")
+          .select("*")
+          .order("date_label");
+
+        if (error) throw error;
+
+        if (data && data.length > 0) {
+          setFormationDates(data as FormationDate[]);
+          
+          const defaultDate = data.find((d: FormationDate) => d.is_default);
+          if (defaultDate) {
+            setDateFormation(defaultDate.date_label);
+          }
+        }
+      } catch (error) {
+        console.error("Error loading formation dates:", error);
+        toast({
+          title: "Erreur",
+          description: "Impossible de charger les dates de formations",
+          variant: "destructive",
+        });
+      } finally {
+        setLoadingDates(false);
+      }
+    };
+
+    if (user) {
+      loadFormationDates();
     }
   }, [user, toast]);
 
@@ -478,11 +525,12 @@ const MicroDevis = () => {
                             <Label className="text-xs">Durée (heures)</Label>
                             <Input
                               type="number"
+                              step="0.5"
                               placeholder="0"
                               value={newFormation.duree_heures || ""}
                               onChange={(e) => setNewFormation({
                                 ...newFormation,
-                                duree_heures: parseInt(e.target.value) || 0
+                                duree_heures: parseFloat(e.target.value) || 0
                               })}
                             />
                           </div>
@@ -588,10 +636,11 @@ const MicroDevis = () => {
                                   <Label className="text-xs">Durée (heures)</Label>
                                   <Input
                                     type="number"
+                                    step="0.5"
                                     value={editingFormation.duree_heures}
                                     onChange={(e) => setEditingFormation({
                                       ...editingFormation,
-                                      duree_heures: parseInt(e.target.value) || 0
+                                      duree_heures: parseFloat(e.target.value) || 0
                                     })}
                                   />
                                 </div>
@@ -840,16 +889,273 @@ const MicroDevis = () => {
                   </div>
 
                   <div className="space-y-3">
-                    <Label htmlFor="dateFormation">Dates de la formation *</Label>
-                    <Input
-                      id="dateFormation"
-                      placeholder="Ex: 15 et 16 janvier 2026, ou Du 10 au 14 mars 2026"
-                      value={dateFormation}
-                      onChange={(e) => setDateFormation(e.target.value)}
-                      required
-                    />
+                    <div className="flex items-center justify-between">
+                      <Label>Dates de la formation *</Label>
+                      <Dialog open={datesDialogOpen} onOpenChange={setDatesDialogOpen}>
+                        <DialogTrigger asChild>
+                          <Button variant="ghost" size="sm" className="h-6 px-2">
+                            <Settings className="w-3 h-3 mr-1" />
+                            Gérer
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+                          <DialogHeader>
+                            <DialogTitle>Configuration des dates de formation</DialogTitle>
+                            <DialogDescription>
+                              Gérez les dates de formation prédéfinies
+                            </DialogDescription>
+                          </DialogHeader>
+                          
+                          {/* Add new date */}
+                          <div className="border-b pb-4 mb-4">
+                            {newDate ? (
+                              <div className="space-y-3 p-4 border rounded-lg bg-primary/5">
+                                <h4 className="font-medium">Nouvelle date</h4>
+                                <div className="space-y-2">
+                                  <Label className="text-xs">Libellé de la date *</Label>
+                                  <Input
+                                    placeholder="Ex: 15 et 16 janvier 2026"
+                                    value={newDate.date_label || ""}
+                                    onChange={(e) => setNewDate({
+                                      ...newDate,
+                                      date_label: e.target.value
+                                    })}
+                                  />
+                                </div>
+                                <div className="flex gap-2">
+                                  <Button size="sm" onClick={async () => {
+                                    if (!newDate.date_label) return;
+                                    try {
+                                      const { data, error } = await supabase
+                                        .from("formation_dates")
+                                        .insert({
+                                          date_label: newDate.date_label,
+                                          is_default: false,
+                                        })
+                                        .select()
+                                        .single();
+                                      if (error) throw error;
+                                      setFormationDates(prev => [...prev, data as FormationDate].sort((a, b) => 
+                                        a.date_label.localeCompare(b.date_label)
+                                      ));
+                                      toast({
+                                        title: "Date ajoutée",
+                                        description: `"${newDate.date_label}" a été ajoutée.`,
+                                      });
+                                      setNewDate(null);
+                                    } catch (error) {
+                                      console.error("Error adding date:", error);
+                                      toast({
+                                        title: "Erreur",
+                                        description: "Impossible d'ajouter la date",
+                                        variant: "destructive",
+                                      });
+                                    }
+                                  }} disabled={!newDate.date_label}>
+                                    <Save className="w-3 h-3 mr-1" />
+                                    Ajouter
+                                  </Button>
+                                  <Button size="sm" variant="outline" onClick={() => setNewDate(null)}>
+                                    <X className="w-3 h-3 mr-1" />
+                                    Annuler
+                                  </Button>
+                                </div>
+                              </div>
+                            ) : (
+                              <Button 
+                                variant="outline" 
+                                className="w-full" 
+                                onClick={() => setNewDate({})}
+                              >
+                                <Plus className="w-4 h-4 mr-2" />
+                                Ajouter une date
+                              </Button>
+                            )}
+                          </div>
+
+                          {/* Existing dates */}
+                          <div className="space-y-3">
+                            {loadingDates ? (
+                              <div className="flex justify-center py-8">
+                                <Loader2 className="w-6 h-6 animate-spin" />
+                              </div>
+                            ) : formationDates.length === 0 ? (
+                              <p className="text-center text-muted-foreground py-4">
+                                Aucune date configurée. Ajoutez-en une ou saisissez directement dans le champ.
+                              </p>
+                            ) : (
+                              formationDates.map((dateConfig) => (
+                                <div key={dateConfig.id} className="border rounded-lg p-4 space-y-3">
+                                  <div className="flex items-start justify-between">
+                                    <div className="flex items-center gap-2">
+                                      {dateConfig.is_default && (
+                                        <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+                                      )}
+                                      <h4 className="font-medium text-sm">{dateConfig.date_label}</h4>
+                                    </div>
+                                    <div className="flex gap-1">
+                                      {!dateConfig.is_default && (
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          onClick={async () => {
+                                            try {
+                                              await supabase
+                                                .from("formation_dates")
+                                                .update({ is_default: false })
+                                                .neq("id", "");
+                                              const { error } = await supabase
+                                                .from("formation_dates")
+                                                .update({ is_default: true })
+                                                .eq("id", dateConfig.id);
+                                              if (error) throw error;
+                                              setFormationDates(prev => 
+                                                prev.map(d => ({ ...d, is_default: d.id === dateConfig.id }))
+                                              );
+                                              toast({
+                                                title: "Date par défaut",
+                                                description: `"${dateConfig.date_label}" est maintenant la date par défaut.`,
+                                              });
+                                            } catch (error) {
+                                              console.error("Error setting default:", error);
+                                              toast({
+                                                title: "Erreur",
+                                                description: "Impossible de définir la date par défaut",
+                                                variant: "destructive",
+                                              });
+                                            }
+                                          }}
+                                          title="Définir par défaut"
+                                        >
+                                          <Star className="w-3 h-3" />
+                                        </Button>
+                                      )}
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="text-destructive hover:text-destructive"
+                                        onClick={async () => {
+                                          try {
+                                            const { error } = await supabase
+                                              .from("formation_dates")
+                                              .delete()
+                                              .eq("id", dateConfig.id);
+                                            if (error) throw error;
+                                            setFormationDates(prev => prev.filter(d => d.id !== dateConfig.id));
+                                            toast({
+                                              title: "Date supprimée",
+                                              description: `"${dateConfig.date_label}" a été supprimée.`,
+                                            });
+                                          } catch (error) {
+                                            console.error("Error deleting date:", error);
+                                            toast({
+                                              title: "Erreur",
+                                              description: "Impossible de supprimer la date",
+                                              variant: "destructive",
+                                            });
+                                          }
+                                        }}
+                                      >
+                                        <Trash2 className="w-3 h-3" />
+                                      </Button>
+                                    </div>
+                                  </div>
+                                  
+                                  {editingDate?.id === dateConfig.id ? (
+                                    <div className="space-y-3">
+                                      <div className="space-y-2">
+                                        <Label className="text-xs">Libellé de la date</Label>
+                                        <Input
+                                          value={editingDate.date_label}
+                                          onChange={(e) => setEditingDate({
+                                            ...editingDate,
+                                            date_label: e.target.value
+                                          })}
+                                        />
+                                      </div>
+                                      <div className="flex gap-2">
+                                        <Button size="sm" onClick={async () => {
+                                          if (!editingDate) return;
+                                          try {
+                                            const { error } = await supabase
+                                              .from("formation_dates")
+                                              .update({ date_label: editingDate.date_label })
+                                              .eq("id", editingDate.id);
+                                            if (error) throw error;
+                                            setFormationDates(prev => 
+                                              prev.map(d => d.id === editingDate.id ? editingDate : d)
+                                            );
+                                            toast({
+                                              title: "Date sauvegardée",
+                                              description: `Les modifications ont été enregistrées.`,
+                                            });
+                                            setEditingDate(null);
+                                          } catch (error) {
+                                            console.error("Error saving date:", error);
+                                            toast({
+                                              title: "Erreur",
+                                              description: "Impossible de sauvegarder la date",
+                                              variant: "destructive",
+                                            });
+                                          }
+                                        }}>
+                                          <Save className="w-3 h-3 mr-1" />
+                                          Sauvegarder
+                                        </Button>
+                                        <Button size="sm" variant="outline" onClick={() => setEditingDate(null)}>
+                                          <X className="w-3 h-3 mr-1" />
+                                          Annuler
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <div className="flex items-center justify-end">
+                                      <Button 
+                                        size="sm" 
+                                        variant="ghost"
+                                        onClick={() => setEditingDate(dateConfig)}
+                                      >
+                                        Modifier
+                                      </Button>
+                                    </div>
+                                  )}
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        </DialogContent>
+                      </Dialog>
+                    </div>
+                    {formationDates.length > 0 ? (
+                      <Select value={dateFormation} onValueChange={setDateFormation}>
+                        <SelectTrigger className="w-full bg-background">
+                          <SelectValue placeholder="Sélectionner une date" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-background border shadow-lg z-50">
+                          {formationDates.map((dateConfig) => (
+                            <SelectItem key={dateConfig.id} value={dateConfig.date_label}>
+                              <div className="flex items-center gap-2">
+                                {dateConfig.is_default && <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />}
+                                <span>{dateConfig.date_label}</span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Input
+                        id="dateFormation"
+                        placeholder="Ex: 15 et 16 janvier 2026, ou Du 10 au 14 mars 2026"
+                        value={dateFormation}
+                        onChange={(e) => setDateFormation(e.target.value)}
+                        required
+                      />
+                    )}
                     <p className="text-xs text-muted-foreground">
-                      Saisissez les dates au format souhaité (ex: "26 et 27 janvier 2026" ou "Du 4 au 8 avril 2026")
+                      {formationDates.length > 0 
+                        ? "Sélectionnez une date ou gérez les dates disponibles" 
+                        : "Saisissez les dates au format souhaité (ex: \"26 et 27 janvier 2026\")"
+                      }
                     </p>
                   </div>
 
