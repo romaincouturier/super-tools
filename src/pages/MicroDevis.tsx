@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
-import { Loader2, FileText, ArrowLeft, Send, Settings, Save, X, Plus, Trash2, Star, Eye } from "lucide-react";
+import { Loader2, FileText, ArrowLeft, Send, Settings, Save, X, Plus, Trash2, Star, Eye, Search } from "lucide-react";
 import SupertiltLogo from "@/components/SupertiltLogo";
 import UserMenu from "@/components/UserMenu";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -72,6 +72,10 @@ const MicroDevis = () => {
   const [datesDialogOpen, setDatesDialogOpen] = useState(false);
   const [newDate, setNewDate] = useState<Partial<FormationDate> | null>(null);
   const [jsonPreviewOpen, setJsonPreviewOpen] = useState(false);
+
+  // SIREN search
+  const [siren, setSiren] = useState("");
+  const [searchingSiren, setSearchingSiren] = useState(false);
 
   // Form state - Client info
   const [nomClient, setNomClient] = useState("");
@@ -195,6 +199,66 @@ const MicroDevis = () => {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate("/auth");
+  };
+
+  const handleSearchSiren = async () => {
+    if (!siren || !/^\d{9}$/.test(siren)) {
+      toast({
+        title: "SIREN invalide",
+        description: "Le SIREN doit contenir exactement 9 chiffres",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSearchingSiren(true);
+    try {
+      const response = await supabase.functions.invoke("search-siren", {
+        body: { siren },
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message);
+      }
+
+      const data = response.data;
+      
+      if (data.error) {
+        toast({
+          title: "Erreur",
+          description: data.error,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Auto-fill fields
+      if (data.nomClient) setNomClient(data.nomClient);
+      if (data.adresse) setAdresseClient(data.adresse);
+      if (data.codePostal) setCodePostalClient(data.codePostal);
+      if (data.ville) setVilleClient(data.ville);
+      if (data.pays && data.pays !== "France") {
+        setPays("autre");
+        setPaysAutre(data.pays);
+      } else {
+        setPays("france");
+      }
+
+      toast({
+        title: "Entreprise trouvée",
+        description: `${data.nomClient} - ${data.ville}`,
+      });
+    } catch (error: unknown) {
+      console.error("SIREN search error:", error);
+      const errorMessage = error instanceof Error ? error.message : "Erreur lors de la recherche";
+      toast({
+        title: "Erreur",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setSearchingSiren(false);
+    }
   };
 
   const getSelectedFormationConfig = (): FormationConfig | undefined => {
@@ -555,6 +619,36 @@ const MicroDevis = () => {
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold border-b pb-2">Informations client</h3>
                 
+                {/* SIREN search */}
+                <div className="flex gap-2 items-end p-3 bg-muted/50 rounded-lg border">
+                  <div className="flex-1 space-y-2">
+                    <Label htmlFor="siren" className="text-sm">
+                      Rechercher par SIREN
+                      <span className="text-muted-foreground font-normal ml-1">(9 chiffres)</span>
+                    </Label>
+                    <Input
+                      id="siren"
+                      placeholder="123456789"
+                      value={siren}
+                      onChange={(e) => setSiren(e.target.value.replace(/\D/g, "").slice(0, 9))}
+                      className="font-mono"
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={handleSearchSiren}
+                    disabled={searchingSiren || siren.length !== 9}
+                  >
+                    {searchingSiren ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Search className="w-4 h-4" />
+                    )}
+                    <span className="ml-2">Rechercher</span>
+                  </Button>
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="nomClient">Nom du client *</Label>
