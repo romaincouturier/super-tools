@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Dashboard from "./pages/Dashboard";
 import CertificateGenerator from "./pages/CertificateGenerator";
 import MicroDevis from "./pages/MicroDevis";
+import Historique from "./pages/Historique";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -21,6 +22,7 @@ const App = () => (
           <Route path="/" element={<Dashboard />} />
           <Route path="/certificates" element={<CertificateGenerator />} />
           <Route path="/micro-devis" element={<MicroDevis />} />
+          <Route path="/historique" element={<Historique />} />
           <Route path="/auth" element={<Auth />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
