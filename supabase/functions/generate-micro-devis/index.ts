@@ -1,6 +1,10 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { encode as base64Encode } from "https://deno.land/std@0.190.0/encoding/base64.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -377,6 +381,23 @@ serve(async (req: Request): Promise<Response> => {
       pdfAvecSubrogation?.pdfUrl || null,
       typeSubrogation
     );
+
+    // Log activity
+    try {
+      const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+      await supabase.from("activity_logs").insert({
+        action_type: "micro_devis_sent",
+        recipient_email: body.emailCommanditaire,
+        details: {
+          formation_name: body.formationDemandee,
+          client_name: body.nomClient,
+          type_subrogation: typeSubrogation,
+          nb_participants: body.nbParticipants,
+        },
+      });
+    } catch (logError) {
+      console.warn("Failed to log activity:", logError);
+    }
 
     const message = typeSubrogation === "les2" 
       ? "Devis générés et envoyés avec succès"

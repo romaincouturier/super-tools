@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
-import { Loader2, Award, FileText } from "lucide-react";
+import { Loader2, Award, FileText, History } from "lucide-react";
 import SupertiltLogo from "@/components/SupertiltLogo";
 import UserMenu from "@/components/UserMenu";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
@@ -29,6 +29,13 @@ const tools: Tool[] = [
     description: "Créer des devis rapides et simplifiés",
     icon: <FileText className="w-12 h-12" />,
     path: "/micro-devis",
+  },
+  {
+    id: "historique",
+    name: "Historique",
+    description: "Consulter l'historique des activités",
+    icon: <History className="w-12 h-12" />,
+    path: "/historique",
   },
 ];
 

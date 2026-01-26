@@ -737,6 +737,23 @@ serve(async (req: Request): Promise<Response> => {
                   message: "Email envoyé" 
                 } 
               });
+
+              // Log activity
+              try {
+                const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+                await supabase.from("activity_logs").insert({
+                  action_type: "certificate_sent",
+                  recipient_email: participant.email,
+                  details: {
+                    formation_name: formationName,
+                    participant_name: participantName,
+                    entreprise: entreprise,
+                  },
+                  user_id: userId || null,
+                });
+              } catch (logError) {
+                console.warn("Failed to log activity:", logError);
+              }
             } catch (error: any) {
               console.warn(`Email failed for ${participantName}:`, error.message);
               errors.push(`Email: ${error.message}`);
