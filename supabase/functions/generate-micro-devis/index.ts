@@ -27,6 +27,7 @@ interface RequestBody {
   programmeUrl: string | null;
   nbParticipants: number;
   participants: string; // Liste des participants (texte brut)
+  typeSubrogation?: "sans" | "avec" | "les2"; // Optional for backward compatibility
 }
 
 const PDFMONKEY_TEMPLATE_ID = "C3BC00C9-232F-4ADD-9D1F-9FD176573E93";
@@ -154,8 +155,9 @@ async function sendEmailWithResend(
   adresseCommanditaire: string,
   formationDemandee: string,
   programmeUrl: string | null,
-  pdfUrlSansSubrogation: string,
-  pdfUrlAvecSubrogation: string
+  pdfUrlSansSubrogation: string | null,
+  pdfUrlAvecSubrogation: string | null,
+  typeSubrogation: "sans" | "avec" | "les2"
 ): Promise<void> {
   const resendApiKey = Deno.env.get("RESEND_API_KEY");
   
@@ -197,11 +199,20 @@ async function sendEmailWithResend(
     }
   }
 
-  // Download PDFs
-  const [pdfSansSubrogation, pdfAvecSubrogation] = await Promise.all([
-    fetch(pdfUrlSansSubrogation).then(r => r.arrayBuffer()),
-    fetch(pdfUrlAvecSubrogation).then(r => r.arrayBuffer()),
-  ]);
+  // Download PDFs based on type
+  let pdfSansSubrogation: ArrayBuffer | null = null;
+  let pdfAvecSubrogation: ArrayBuffer | null = null;
+
+  if (typeSubrogation === "sans" || typeSubrogation === "les2") {
+    if (pdfUrlSansSubrogation) {
+      pdfSansSubrogation = await fetch(pdfUrlSansSubrogation).then(r => r.arrayBuffer());
+    }
+  }
+  if (typeSubrogation === "avec" || typeSubrogation === "les2") {
+    if (pdfUrlAvecSubrogation) {
+      pdfAvecSubrogation = await fetch(pdfUrlAvecSubrogation).then(r => r.arrayBuffer());
+    }
+  }
 
   // Fetch Qualiopi certificate from Supabase Storage bucket
   const qualiopiPublicUrl = "https://yewffntzgrdgztrwtava.supabase.co/storage/v1/object/public/certificat-qualiopi/Certificat%20QUALIOPI%20v3.pdf";
@@ -231,14 +242,10 @@ async function sendEmailWithResend(
     </p>
   `;
 
-  const htmlContent = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-      <p>Bonjour ${adresseCommanditaire},</p>
-      
-      <p>Merci pour votre demande concernant la formation <strong>"${formationDemandee}"</strong>.</p>
-      
-      <p>Vous trouverez en pièces jointes :</p>
-      
+  // Build email content based on type of subrogation
+  let devisDescription = "";
+  if (typeSubrogation === "les2") {
+    devisDescription = `
       <ul style="margin: 15px 0; padding-left: 20px;">
         <li><strong>Deux versions de notre devis</strong> :
           <ul style="margin: 5px 0; padding-left: 20px;">
@@ -248,6 +255,32 @@ async function sendEmailWithResend(
         </li>
         <li><strong>Notre certificat Qualiopi</strong>, attestant de la qualité de nos formations</li>
       </ul>
+    `;
+  } else if (typeSubrogation === "sans") {
+    devisDescription = `
+      <ul style="margin: 15px 0; padding-left: 20px;">
+        <li><strong>Notre devis sans subrogation de paiement</strong> : vous réglez directement la formation</li>
+        <li><strong>Notre certificat Qualiopi</strong>, attestant de la qualité de nos formations</li>
+      </ul>
+    `;
+  } else {
+    devisDescription = `
+      <ul style="margin: 15px 0; padding-left: 20px;">
+        <li><strong>Notre devis avec subrogation de paiement</strong> : votre OPCO règle directement la formation</li>
+        <li><strong>Notre certificat Qualiopi</strong>, attestant de la qualité de nos formations</li>
+      </ul>
+    `;
+  }
+
+  const htmlContent = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <p>Bonjour ${adresseCommanditaire},</p>
+      
+      <p>Merci pour votre demande concernant la formation <strong>"${formationDemandee}"</strong>.</p>
+      
+      <p>Vous trouverez en pièces jointes :</p>
+      
+      ${devisDescription}
       
       ${programmeLink}
       
@@ -263,16 +296,21 @@ async function sendEmailWithResend(
   const formationName = formationDemandee.replace(/^formation\s+/i, "");
   
   // Build attachments array
-  const attachments = [
-    {
+  const attachments: { filename: string; content: string }[] = [];
+  
+  if (pdfSansSubrogation) {
+    attachments.push({
       filename: `Devis_${formationDemandee.replace(/[^a-zA-Z0-9]/g, '_')}_sans_subrogation.pdf`,
       content: base64Encode(pdfSansSubrogation),
-    },
-    {
+    });
+  }
+  
+  if (pdfAvecSubrogation) {
+    attachments.push({
       filename: `Devis_${formationDemandee.replace(/[^a-zA-Z0-9]/g, '_')}_avec_subrogation.pdf`,
       content: base64Encode(pdfAvecSubrogation),
-    },
-  ];
+    });
+  }
   
   // Add Qualiopi certificate if available
   if (qualiopiCertificate) {
@@ -311,31 +349,45 @@ serve(async (req: Request): Promise<Response> => {
       );
     }
 
-    // Generate PDF without subrogation
-    console.log("Generating PDF without subrogation...");
-    const pdfSansSubrogation = await generatePdfWithPdfMonkey(body, false);
+    // Default to "les2" for backward compatibility
+    const typeSubrogation = body.typeSubrogation || "les2";
+    
+    let pdfSansSubrogation: { pdfUrl: string; documentId: string } | null = null;
+    let pdfAvecSubrogation: { pdfUrl: string; documentId: string } | null = null;
 
-    // Generate PDF with subrogation
-    console.log("Generating PDF with subrogation...");
-    const pdfAvecSubrogation = await generatePdfWithPdfMonkey(body, true);
+    // Generate PDFs based on type
+    if (typeSubrogation === "sans" || typeSubrogation === "les2") {
+      console.log("Generating PDF without subrogation...");
+      pdfSansSubrogation = await generatePdfWithPdfMonkey(body, false);
+    }
 
-    // Send email with both PDFs
-    console.log("Sending email with both PDFs...");
+    if (typeSubrogation === "avec" || typeSubrogation === "les2") {
+      console.log("Generating PDF with subrogation...");
+      pdfAvecSubrogation = await generatePdfWithPdfMonkey(body, true);
+    }
+
+    // Send email with PDFs
+    console.log("Sending email with PDF(s)...");
     await sendEmailWithResend(
       body.emailCommanditaire,
       body.adresseCommanditaire,
       body.formationDemandee,
       body.programmeUrl,
-      pdfSansSubrogation.pdfUrl,
-      pdfAvecSubrogation.pdfUrl
+      pdfSansSubrogation?.pdfUrl || null,
+      pdfAvecSubrogation?.pdfUrl || null,
+      typeSubrogation
     );
+
+    const message = typeSubrogation === "les2" 
+      ? "Devis générés et envoyés avec succès"
+      : "Devis généré et envoyé avec succès";
 
     return new Response(
       JSON.stringify({
         success: true,
-        message: "Devis générés et envoyés avec succès",
-        pdfSansSubrogation: pdfSansSubrogation.pdfUrl,
-        pdfAvecSubrogation: pdfAvecSubrogation.pdfUrl,
+        message,
+        pdfSansSubrogation: pdfSansSubrogation?.pdfUrl || null,
+        pdfAvecSubrogation: pdfAvecSubrogation?.pdfUrl || null,
       }),
       { 
         status: 200, 

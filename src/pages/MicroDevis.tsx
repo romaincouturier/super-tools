@@ -101,6 +101,7 @@ const MicroDevis = () => {
   const [lieuAutre, setLieuAutre] = useState("");
   const [includeCadeau, setIncludeCadeau] = useState(false);
   const [fraisDossier, setFraisDossier] = useState<"oui" | "non" | "">("");
+  const [typeSubrogation, setTypeSubrogation] = useState<"sans" | "avec" | "les2">("les2");
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -582,6 +583,7 @@ const MicroDevis = () => {
           programmeUrl: selectedConfig.programme_url,
           nbParticipants: countParticipants(),
           participants,
+          typeSubrogation,
         },
       });
 
@@ -589,9 +591,13 @@ const MicroDevis = () => {
         throw new Error(response.error.message);
       }
 
+      const successMessage = typeSubrogation === "les2"
+        ? `Les 2 devis ont été générés et envoyés à ${emailCommanditaire}`
+        : `Le devis a été généré et envoyé à ${emailCommanditaire}`;
+
       toast({
-        title: "Devis envoyés !",
-        description: `Les 2 devis ont été générés et envoyés à ${emailCommanditaire}`,
+        title: typeSubrogation === "les2" ? "Devis envoyés !" : "Devis envoyé !",
+        description: successMessage,
       });
 
       // Reset form
@@ -1484,6 +1490,24 @@ const MicroDevis = () => {
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="non" id="frais-non" />
                         <Label htmlFor="frais-non" className="font-normal cursor-pointer">Non</Label>
+                      </div>
+                    </RadioGroup>
+                  </div>
+
+                  <div className="space-y-3">
+                    <Label>Type de devis à générer *</Label>
+                    <RadioGroup value={typeSubrogation} onValueChange={(v) => setTypeSubrogation(v as "sans" | "avec" | "les2")} className="space-y-2">
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="sans" id="subrogation-sans" />
+                        <Label htmlFor="subrogation-sans" className="font-normal cursor-pointer">Devis sans subrogation de paiement</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="avec" id="subrogation-avec" />
+                        <Label htmlFor="subrogation-avec" className="font-normal cursor-pointer">Devis avec subrogation de paiement (prise en charge OPCO)</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="les2" id="subrogation-les2" />
+                        <Label htmlFor="subrogation-les2" className="font-normal cursor-pointer">Les 2</Label>
                       </div>
                     </RadioGroup>
                   </div>
