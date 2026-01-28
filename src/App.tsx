@@ -8,6 +8,8 @@ import CertificateGenerator from "./pages/CertificateGenerator";
 import MicroDevis from "./pages/MicroDevis";
 import Historique from "./pages/Historique";
 import Auth from "./pages/Auth";
+import ResetPassword from "./pages/ResetPassword";
+import ForcePasswordChange from "./pages/ForcePasswordChange";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -24,6 +26,8 @@ const App = () => (
           <Route path="/micro-devis" element={<MicroDevis />} />
           <Route path="/historique" element={<Historique />} />
           <Route path="/auth" element={<Auth />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/force-password-change" element={<ForcePasswordChange />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

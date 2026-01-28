@@ -1,12 +1,14 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
-import { Loader2, ArrowLeft, History, Award, FileText, RefreshCw } from "lucide-react";
+import { Loader2, ArrowLeft, History, Award, FileText, RefreshCw, Search, X } from "lucide-react";
 import SupertiltLogo from "@/components/SupertiltLogo";
 import UserMenu from "@/components/UserMenu";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Table,
   TableBody,
@@ -49,12 +51,22 @@ const formatDateTime = (dateString: string): string => {
   }).format(date);
 };
 
+const formatDateForInput = (date: Date): string => {
+  return date.toISOString().split("T")[0];
+};
+
 const Historique = () => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [logs, setLogs] = useState<ActivityLog[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(true);
   const navigate = useNavigate();
+
+  // Search filters
+  const [searchRecipient, setSearchRecipient] = useState("");
+  const [searchDetails, setSearchDetails] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -85,7 +97,7 @@ const Historique = () => {
         .from("activity_logs")
         .select("*")
         .order("created_at", { ascending: false })
-        .limit(100);
+        .limit(500);
 
       if (error) throw error;
       setLogs((data as ActivityLog[]) || []);
@@ -139,6 +151,54 @@ const Historique = () => {
     return parts.length > 0 ? parts.join(" • ") : "-";
   };
 
+  const clearFilters = () => {
+    setSearchRecipient("");
+    setSearchDetails("");
+    setDateFrom("");
+    setDateTo("");
+  };
+
+  const hasActiveFilters = searchRecipient || searchDetails || dateFrom || dateTo;
+
+  // Filter logs based on search criteria
+  const filteredLogs = useMemo(() => {
+    return logs.filter((log) => {
+      // Filter by recipient email
+      if (searchRecipient && !log.recipient_email.toLowerCase().includes(searchRecipient.toLowerCase())) {
+        return false;
+      }
+
+      // Filter by details
+      if (searchDetails) {
+        const detailsStr = getDetailsDisplay(log).toLowerCase();
+        if (!detailsStr.includes(searchDetails.toLowerCase())) {
+          return false;
+        }
+      }
+
+      // Filter by date range
+      if (dateFrom) {
+        const logDate = new Date(log.created_at);
+        const fromDate = new Date(dateFrom);
+        fromDate.setHours(0, 0, 0, 0);
+        if (logDate < fromDate) {
+          return false;
+        }
+      }
+
+      if (dateTo) {
+        const logDate = new Date(log.created_at);
+        const toDate = new Date(dateTo);
+        toDate.setHours(23, 59, 59, 999);
+        if (logDate > toDate) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [logs, searchRecipient, searchDetails, dateFrom, dateTo]);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -189,18 +249,85 @@ const Historique = () => {
           </div>
         </div>
 
+        {/* Search Filters */}
+        <Card className="mb-6">
+          <CardHeader className="pb-4">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Search className="w-5 h-5" />
+                Recherche
+              </CardTitle>
+              {hasActiveFilters && (
+                <Button variant="ghost" size="sm" onClick={clearFilters}>
+                  <X className="w-4 h-4 mr-1" />
+                  Effacer les filtres
+                </Button>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="searchRecipient">Destinataire</Label>
+                <Input
+                  id="searchRecipient"
+                  type="text"
+                  placeholder="Email..."
+                  value={searchRecipient}
+                  onChange={(e) => setSearchRecipient(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="searchDetails">Détails</Label>
+                <Input
+                  id="searchDetails"
+                  type="text"
+                  placeholder="Formation, participant..."
+                  value={searchDetails}
+                  onChange={(e) => setSearchDetails(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="dateFrom">Date de début</Label>
+                <Input
+                  id="dateFrom"
+                  type="date"
+                  value={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="dateTo">Date de fin</Label>
+                <Input
+                  id="dateTo"
+                  type="date"
+                  value={dateTo}
+                  onChange={(e) => setDateTo(e.target.value)}
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Dernières activités</CardTitle>
+            <CardTitle className="text-lg">
+              Dernières activités
+              {hasActiveFilters && (
+                <span className="ml-2 text-sm font-normal text-muted-foreground">
+                  ({filteredLogs.length} résultat{filteredLogs.length !== 1 ? "s" : ""})
+                </span>
+              )}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             {loadingLogs ? (
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
               </div>
-            ) : logs.length === 0 ? (
+            ) : filteredLogs.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
-                Aucune activité enregistrée
+                {hasActiveFilters ? "Aucun résultat pour ces critères" : "Aucune activité enregistrée"}
               </div>
             ) : (
               <Table>
@@ -213,7 +340,7 @@ const Historique = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {logs.map((log) => {
+                  {filteredLogs.map((log) => {
                     const actionInfo = getActionInfo(log.action_type);
                     return (
                       <TableRow key={log.id}>

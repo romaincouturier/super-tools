@@ -22,6 +22,8 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { User as UserIcon, LogOut, Settings, Loader2 } from "lucide-react";
+import PasswordStrengthIndicator from "@/components/PasswordStrengthIndicator";
+import { validatePassword } from "@/lib/passwordValidation";
 
 interface UserMenuProps {
   user: User;
@@ -47,10 +49,11 @@ const UserMenu = ({ user, onLogout }: UserMenuProps) => {
       return;
     }
 
-    if (newPassword.length < 6) {
+    const validation = validatePassword(newPassword);
+    if (!validation.isValid) {
       toast({
-        title: "Erreur",
-        description: "Le mot de passe doit contenir au moins 6 caractères",
+        title: "Mot de passe non conforme",
+        description: "Le mot de passe ne respecte pas tous les critères de sécurité",
         variant: "destructive",
       });
       return;
@@ -138,8 +141,8 @@ const UserMenu = ({ user, onLogout }: UserMenuProps) => {
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   required
-                  minLength={6}
                 />
+                <PasswordStrengthIndicator password={newPassword} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="confirmPassword">Confirmer le mot de passe</Label>
@@ -150,7 +153,6 @@ const UserMenu = ({ user, onLogout }: UserMenuProps) => {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   required
-                  minLength={6}
                 />
               </div>
             </div>
@@ -162,7 +164,7 @@ const UserMenu = ({ user, onLogout }: UserMenuProps) => {
               >
                 Annuler
               </Button>
-              <Button type="submit" disabled={isUpdating}>
+              <Button type="submit" disabled={isUpdating || !validatePassword(newPassword).isValid}>
                 {isUpdating ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
