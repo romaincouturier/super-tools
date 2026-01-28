@@ -8,6 +8,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import SupertiltLogo from "@/components/SupertiltLogo";
+import ForgotPasswordDialog from "@/components/ForgotPasswordDialog";
+import PasswordStrengthIndicator from "@/components/PasswordStrengthIndicator";
+import { validatePassword } from "@/lib/passwordValidation";
 
 const ALLOWED_EMAIL = "romain@supertilt.fr";
 
@@ -21,16 +24,38 @@ const Auth = () => {
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
         if (session) {
-          navigate("/");
+          // Check if user must change password
+          const { data: metadata } = await supabase
+            .from("user_security_metadata")
+            .select("must_change_password")
+            .eq("user_id", session.user.id)
+            .maybeSingle();
+
+          if (metadata?.must_change_password) {
+            navigate("/force-password-change");
+          } else {
+            navigate("/");
+          }
         }
       }
     );
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session) {
-        navigate("/");
+        // Check if user must change password
+        const { data: metadata } = await supabase
+          .from("user_security_metadata")
+          .select("must_change_password")
+          .eq("user_id", session.user.id)
+          .maybeSingle();
+
+        if (metadata?.must_change_password) {
+          navigate("/force-password-change");
+        } else {
+          navigate("/");
+        }
       }
     });
 
@@ -43,11 +68,26 @@ const Auth = () => {
 
     try {
       if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({
+        const { data, error } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
         if (error) throw error;
+        
+        // Check if user must change password
+        if (data.user) {
+          const { data: metadata } = await supabase
+            .from("user_security_metadata")
+            .select("must_change_password")
+            .eq("user_id", data.user.id)
+            .maybeSingle();
+
+          if (metadata?.must_change_password) {
+            navigate("/force-password-change");
+            return;
+          }
+        }
+
         toast({
           title: "Connexion réussie",
           description: "Bienvenue !",
@@ -58,6 +98,18 @@ const Auth = () => {
           toast({
             title: "Inscription non autorisée",
             description: "Seul l'email romain@supertilt.fr est autorisé à créer un compte.",
+            variant: "destructive",
+          });
+          setIsLoading(false);
+          return;
+        }
+
+        // Validate password strength
+        const validation = validatePassword(password);
+        if (!validation.isValid) {
+          toast({
+            title: "Mot de passe non conforme",
+            description: "Le mot de passe ne respecte pas tous les critères de sécurité.",
             variant: "destructive",
           });
           setIsLoading(false);
@@ -137,6 +189,7 @@ const Auth = () => {
                 required
                 minLength={6}
               />
+              {!isLogin && <PasswordStrengthIndicator password={password} />}
             </div>
             <Button
               type="submit"
@@ -152,16 +205,23 @@ const Auth = () => {
               )}
             </Button>
           </form>
-          <div className="mt-4 text-center">
-            <button
-              type="button"
-              onClick={() => setIsLogin(!isLogin)}
-              className="text-sm text-muted-foreground hover:text-primary transition-colors"
-            >
-              {isLogin
-                ? "Pas encore de compte ? S'inscrire"
-                : "Déjà un compte ? Se connecter"}
-            </button>
+          <div className="mt-4 text-center space-y-2">
+            {isLogin && (
+              <div>
+                <ForgotPasswordDialog />
+              </div>
+            )}
+            <div>
+              <button
+                type="button"
+                onClick={() => setIsLogin(!isLogin)}
+                className="text-sm text-muted-foreground hover:text-primary transition-colors"
+              >
+                {isLogin
+                  ? "Pas encore de compte ? S'inscrire"
+                  : "Déjà un compte ? Se connecter"}
+              </button>
+            </div>
           </div>
         </CardContent>
       </Card>

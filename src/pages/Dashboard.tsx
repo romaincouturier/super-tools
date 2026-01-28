@@ -5,6 +5,7 @@ import { User } from "@supabase/supabase-js";
 import { Loader2, Award, FileText, History } from "lucide-react";
 import SupertiltLogo from "@/components/SupertiltLogo";
 import UserMenu from "@/components/UserMenu";
+import OnboardCollaboratorDialog from "@/components/OnboardCollaboratorDialog";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 
 interface Tool {
@@ -46,20 +47,42 @@ const Dashboard = () => {
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
         setUser(session?.user ?? null);
         setLoading(false);
         if (!session?.user) {
           navigate("/auth");
+        } else {
+          // Check if user must change password
+          const { data: metadata } = await supabase
+            .from("user_security_metadata")
+            .select("must_change_password")
+            .eq("user_id", session.user.id)
+            .maybeSingle();
+
+          if (metadata?.must_change_password) {
+            navigate("/force-password-change");
+          }
         }
       }
     );
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setUser(session?.user ?? null);
       setLoading(false);
       if (!session?.user) {
         navigate("/auth");
+      } else {
+        // Check if user must change password
+        const { data: metadata } = await supabase
+          .from("user_security_metadata")
+          .select("must_change_password")
+          .eq("user_id", session.user.id)
+          .maybeSingle();
+
+        if (metadata?.must_change_password) {
+          navigate("/force-password-change");
+        }
       }
     });
 
@@ -88,7 +111,10 @@ const Dashboard = () => {
             <SupertiltLogo className="h-10" invert />
             <span className="text-xl font-bold">SuperTools</span>
           </div>
-          {user && <UserMenu user={user} onLogout={handleLogout} />}
+          <div className="flex items-center gap-3">
+            <OnboardCollaboratorDialog userEmail={user?.email} />
+            {user && <UserMenu user={user} onLogout={handleLogout} />}
+          </div>
         </div>
       </header>
 
