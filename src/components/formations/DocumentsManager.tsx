@@ -788,7 +788,9 @@ const DocumentsManager = ({
             <Button
               onClick={() => {
                 if (pendingDocumentType && customRecipientEmail) {
-                  handleSendDocuments(pendingDocumentType, customRecipientEmail, ccEmail || undefined);
+                  // If sending to sponsor, pass undefined for recipientEmail so sponsorName is used
+                  const emailToPass = sendToSponsorWithOptions ? undefined : customRecipientEmail;
+                  handleSendDocuments(pendingDocumentType, emailToPass, ccEmail || undefined);
                 }
               }}
               disabled={!customRecipientEmail || sendingDocuments}
