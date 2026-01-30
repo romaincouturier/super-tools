@@ -174,32 +174,36 @@ const ViewQuestionnaireDialog = ({ participantId, participantName, trainingId }:
     }
   };
 
-  const formatModalites = (modalites: unknown) => {
-    // Handle null/undefined
-    if (!modalites) return null;
+  const formatPrerequisValidations = (validations: unknown): React.ReactNode => {
+    if (!validations) return null;
     
-    // Convert to array if it's not already
-    let modalitesArray: string[];
-    if (Array.isArray(modalites)) {
-      modalitesArray = modalites;
-    } else if (typeof modalites === 'object') {
-      // If it's an object (like from JSON), try to get values or keys
-      modalitesArray = Object.values(modalites as Record<string, string>).filter(v => typeof v === 'string');
-    } else {
-      return null;
+    // Handle object format (prerequis name -> validation status)
+    if (typeof validations === 'object' && !Array.isArray(validations)) {
+      const entries = Object.entries(validations as Record<string, string>);
+      if (entries.length === 0) return null;
+      
+      const getValidationLabel = (val: string) => {
+        switch (val) {
+          case "oui": return "✓ Validé";
+          case "partiellement": return "⚠️ Partiellement";
+          case "non": return "✗ Non validé";
+          default: return val;
+        }
+      };
+      
+      return (
+        <div className="space-y-1">
+          {entries.map(([prereq, status]) => (
+            <div key={prereq} className="text-sm flex justify-between gap-2">
+              <span className="text-muted-foreground">{prereq}</span>
+              <span className="font-medium">{getValidationLabel(status)}</span>
+            </div>
+          ))}
+        </div>
+      );
     }
     
-    if (modalitesArray.length === 0) return null;
-    
-    const labels: Record<string, string> = {
-      exercices_pratiques: "Exercices pratiques",
-      etudes_de_cas: "Études de cas",
-      mises_en_situation: "Mises en situation",
-      echanges_groupe: "Échanges en groupe",
-      apports_theoriques: "Apports théoriques",
-      travail_individuel: "Travail individuel",
-    };
-    return modalitesArray.map(m => labels[m] || m).join(", ");
+    return null;
   };
 
   return (
@@ -255,8 +259,16 @@ const ViewQuestionnaireDialog = ({ participantId, participantName, trainingId }:
                 <Field label="Expérience sur le sujet" value={getExperienceLabel(questionnaire.experience_sujet)} />
                 <Field label="Détails de l'expérience" value={questionnaire.experience_details} />
                 <Field label="Lecture du programme" value={getLectureProgrammeLabel(questionnaire.lecture_programme)} />
-                <Field label="Validation des prérequis" value={getPrerequisLabel(questionnaire.prerequis_validation)} />
-              {questionnaire.prerequis_details && (
+                
+                {/* Display individual prerequisite validations */}
+                {questionnaire.modalites_preferences && Object.keys(questionnaire.modalites_preferences as object).length > 0 && (
+                  <div className="space-y-2">
+                    <span className="text-sm text-muted-foreground">Validation des prérequis :</span>
+                    {formatPrerequisValidations(questionnaire.modalites_preferences)}
+                  </div>
+                )}
+                
+                {questionnaire.prerequis_details && (
                   <div className="text-sm p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-md">
                     <span className="text-amber-800 dark:text-amber-200 font-medium">⚠️ Précisions sur les prérequis :</span>
                     <p className="mt-1 text-amber-700 dark:text-amber-300">{questionnaire.prerequis_details}</p>
@@ -277,11 +289,12 @@ const ViewQuestionnaireDialog = ({ participantId, participantName, trainingId }:
 
               <Separator />
 
-              {/* Section 4: Learning preferences */}
-              <Section icon={BookOpen} title="Préférences d'apprentissage">
-                <Field label="Modalités préférées" value={formatModalites(questionnaire.modalites_preferences as string[] | null)} />
-                <Field label="Contraintes organisationnelles" value={questionnaire.contraintes_orga} />
-              </Section>
+              {/* Section 4: Organizational constraints */}
+              {questionnaire.contraintes_orga && (
+                <Section icon={BookOpen} title="Contraintes organisationnelles">
+                  <p className="text-sm">{questionnaire.contraintes_orga}</p>
+                </Section>
+              )}
 
               {/* Section 5: Accessibility - only if relevant */}
               {(questionnaire.necessite_amenagement || questionnaire.besoins_accessibilite) && (
