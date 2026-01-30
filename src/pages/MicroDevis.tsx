@@ -221,6 +221,7 @@ const MicroDevis = () => {
     }
 
     setSearchingSiren(true);
+    
     try {
       const response = await supabase.functions.invoke("search-siren", {
         body: { siren },
@@ -244,26 +245,28 @@ const MicroDevis = () => {
             variant: "default",
           });
         }
+        setSearchingSiren(false);
         return;
       }
 
       const data = response.data;
       
-      if (data.error) {
+      if (data?.error) {
         toast({
           title: "Recherche SIREN",
           description: data.error,
           variant: "default",
         });
+        setSearchingSiren(false);
         return;
       }
 
       // Auto-fill fields
-      if (data.nomClient) setNomClient(data.nomClient);
-      if (data.adresse) setAdresseClient(data.adresse);
-      if (data.codePostal) setCodePostalClient(data.codePostal);
-      if (data.ville) setVilleClient(data.ville);
-      if (data.pays && data.pays !== "France") {
+      if (data?.nomClient) setNomClient(data.nomClient);
+      if (data?.adresse) setAdresseClient(data.adresse);
+      if (data?.codePostal) setCodePostalClient(data.codePostal);
+      if (data?.ville) setVilleClient(data.ville);
+      if (data?.pays && data.pays !== "France") {
         setPays("autre");
         setPaysAutre(data.pays);
       } else {
@@ -272,7 +275,7 @@ const MicroDevis = () => {
 
       toast({
         title: "Entreprise trouvée",
-        description: `${data.nomClient} - ${data.ville}`,
+        description: `${data?.nomClient || "Entreprise"} - ${data?.ville || ""}`,
       });
     } catch (error: unknown) {
       console.error("SIREN search error:", error);
@@ -282,9 +285,9 @@ const MicroDevis = () => {
         description: "Le service de recherche est temporairement indisponible. Vous pouvez saisir les informations manuellement.",
         variant: "default",
       });
-    } finally {
-      setSearchingSiren(false);
     }
+    
+    setSearchingSiren(false);
   };
 
   const getSelectedFormationConfig = (): FormationConfig | undefined => {
