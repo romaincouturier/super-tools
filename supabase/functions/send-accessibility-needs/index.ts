@@ -129,7 +129,7 @@ serve(async (req) => {
         from: "Romain Couturier <romain@supertilt.fr>",
         to: [participantEmail],
         bcc: ["romain@supertilt.fr", "supertilt@bcc.nocrm.io"],
-        subject: `Tes besoins spécifiques pour la formation ${finalTrainingName}`,
+        subject: `Tes besoins spécifiques pour la formation "${finalTrainingName}"`,
         html: htmlContent,
         reply_to: "romain@supertilt.fr",
       }),
