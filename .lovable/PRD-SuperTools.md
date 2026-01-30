@@ -426,7 +426,13 @@ Grille de modules avec icônes et descriptions.
 | 🟠 Moyenne | **Créer une formation à venir** | Ajout de nouvelles formations au catalogue (ex: URSSAF) |
 | 🟠 Moyenne | **Ajout de formations en ligne** | Support complet des formations 100% distancielles avec spécificités (accès plateforme, etc.) |
 
-### 12.5 Nouvelles fonctionnalités - Logistique
+### 12.5 Nouvelles fonctionnalités - Évaluations
+
+| Priorité | Évolution | Description |
+|----------|-----------|-------------|
+| 🟠 Moyenne | **Évaluations embarquées formations en ligne** | Support des évaluations intégrées directement dans les formations e-learning, anonymes par défaut |
+
+### 12.6 Nouvelles fonctionnalités - Logistique
 
 | Priorité | Évolution | Description |
 |----------|-----------|-------------|
