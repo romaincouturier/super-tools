@@ -237,7 +237,7 @@ serve(async (req) => {
     const htmlContent = `
       <p>Bonjour ${firstName},</p>
       
-      <p>Merci d'avoir rempli le formulaire de recueil des besoins pour la formation. C'est tout bon !</p>
+      <p>Merci d'avoir rempli le formulaire de recueil des besoins pour la formation.</p>
       
       ${formatSpecificContent}
       
