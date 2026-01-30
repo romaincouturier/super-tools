@@ -14,7 +14,7 @@ serve(async (req) => {
   }
 
   try {
-    const { pdfUrl } = await req.json();
+    const { pdfUrl, extractType = "objectives" } = await req.json();
 
     if (!pdfUrl) {
       return new Response(
@@ -24,6 +24,7 @@ serve(async (req) => {
     }
 
     console.log("Fetching PDF from:", pdfUrl);
+    console.log("Extract type:", extractType);
 
     // Fetch the PDF file
     const pdfResponse = await fetch(pdfUrl);
@@ -51,7 +52,37 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY not configured");
     }
 
-    console.log("Calling AI Gateway to extract objectives...");
+    // Different prompts based on extract type
+    const systemPrompt = extractType === "prerequisites" 
+      ? `Tu es un expert en analyse de programmes de formation. 
+
+Ton rôle est d'extraire les prérequis d'un programme de formation PDF.
+
+Instructions:
+- Extrait uniquement les prérequis (ce que l'apprenant doit savoir ou maîtriser avant la formation)
+- Formule chaque prérequis de manière concise (une phrase)
+- Retourne les prérequis sous forme de tableau JSON simple: ["prérequis 1", "prérequis 2", ...]
+- Si tu ne trouves pas de prérequis clairement identifiés, déduis-les du contenu du programme
+- Limite à 10 prérequis maximum, priorise les plus importants
+- Retourne UNIQUEMENT le tableau JSON, sans texte additionnel ni markdown`
+      : `Tu es un expert en analyse de programmes de formation. 
+            
+Ton rôle est d'extraire les objectifs pédagogiques d'un programme de formation PDF.
+
+Instructions:
+- Extrait uniquement les objectifs pédagogiques (ce que l'apprenant saura faire à l'issue de la formation)
+- Formule chaque objectif de manière concise (une phrase)
+- Commence chaque objectif par un verbe d'action à l'infinitif (Comprendre, Maîtriser, Appliquer, Créer, Analyser, etc.)
+- Retourne les objectifs sous forme de tableau JSON simple: ["objectif 1", "objectif 2", ...]
+- Si tu ne trouves pas d'objectifs clairement identifiés, déduis-les du contenu du programme
+- Limite à 10 objectifs maximum, priorise les plus importants
+- Retourne UNIQUEMENT le tableau JSON, sans texte additionnel ni markdown`;
+
+    const userPrompt = extractType === "prerequisites"
+      ? "Extrait les prérequis de ce programme de formation PDF."
+      : "Extrait les objectifs pédagogiques de ce programme de formation PDF.";
+
+    console.log("Calling AI Gateway to extract", extractType, "...");
 
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -64,25 +95,14 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `Tu es un expert en analyse de programmes de formation. 
-            
-Ton rôle est d'extraire les objectifs pédagogiques d'un programme de formation PDF.
-
-Instructions:
-- Extrait uniquement les objectifs pédagogiques (ce que l'apprenant saura faire à l'issue de la formation)
-- Formule chaque objectif de manière concise (une phrase)
-- Commence chaque objectif par un verbe d'action à l'infinitif (Comprendre, Maîtriser, Appliquer, Créer, Analyser, etc.)
-- Retourne les objectifs sous forme de tableau JSON simple: ["objectif 1", "objectif 2", ...]
-- Si tu ne trouves pas d'objectifs clairement identifiés, déduis-les du contenu du programme
-- Limite à 10 objectifs maximum, priorise les plus importants
-- Retourne UNIQUEMENT le tableau JSON, sans texte additionnel ni markdown`
+            content: systemPrompt
           },
           {
             role: "user",
             content: [
               {
                 type: "text",
-                text: "Extrait les objectifs pédagogiques de ce programme de formation PDF."
+                text: userPrompt
               },
               {
                 type: "image_url",
@@ -115,37 +135,42 @@ Instructions:
     console.log("Raw AI response:", content);
 
     // Parse the JSON array from the response
-    let objectives: string[];
+    let items: string[];
     try {
       // Remove potential markdown code blocks
       const cleanContent = content.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
-      objectives = JSON.parse(cleanContent);
+      items = JSON.parse(cleanContent);
       
-      if (!Array.isArray(objectives)) {
+      if (!Array.isArray(items)) {
         throw new Error("Response is not an array");
       }
       
       // Ensure all items are strings
-      objectives = objectives.filter(item => typeof item === "string" && item.trim().length > 0);
+      items = items.filter(item => typeof item === "string" && item.trim().length > 0);
     } catch (parseError) {
-      console.error("Failed to parse objectives:", parseError);
-      // Fallback: try to extract lines that look like objectives
-      objectives = content
+      console.error("Failed to parse items:", parseError);
+      // Fallback: try to extract lines that look like items
+      items = content
         .split("\n")
         .filter((line: string) => line.trim().length > 10)
         .map((line: string) => line.replace(/^[-•*]\s*/, "").trim())
         .slice(0, 10);
     }
 
-    console.log("Extracted objectives:", objectives);
+    console.log("Extracted", extractType, ":", items);
+
+    // Return with appropriate key based on extract type
+    const responseData = extractType === "prerequisites" 
+      ? { prerequisites: items }
+      : { objectives: items };
 
     return new Response(
-      JSON.stringify({ objectives }),
+      JSON.stringify(responseData),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error: unknown) {
-    console.error("Error extracting objectives:", error);
-    const errorMessage = error instanceof Error ? error.message : "Failed to extract objectives";
+    console.error("Error extracting content:", error);
+    const errorMessage = error instanceof Error ? error.message : "Failed to extract content";
     return new Response(
       JSON.stringify({ error: errorMessage }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

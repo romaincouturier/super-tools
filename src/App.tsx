@@ -9,6 +9,7 @@ import MicroDevis from "./pages/MicroDevis";
 import Historique from "./pages/Historique";
 import Formations from "./pages/Formations";
 import FormationCreate from "./pages/FormationCreate";
+import FormationEdit from "./pages/FormationEdit";
 import FormationDetail from "./pages/FormationDetail";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
@@ -31,6 +32,7 @@ const App = () => (
           <Route path="/formations" element={<Formations />} />
           <Route path="/formations/new" element={<FormationCreate />} />
           <Route path="/formations/:id" element={<FormationDetail />} />
+          <Route path="/formations/:id/edit" element={<FormationEdit />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/force-password-change" element={<ForcePasswordChange />} />
