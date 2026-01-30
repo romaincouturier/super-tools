@@ -159,7 +159,7 @@ serve(async (req) => {
         from: "Romain Arnoux <romain@supertilt.fr>",
         to: toList,
         cc: ccList.length > 0 ? ccList : undefined,
-        bcc: ["supertilt@bcc.nocrm.io"],
+        bcc: ["romain@supertilt.fr", "supertilt@bcc.nocrm.io"],
         subject,
         html: htmlContent,
         attachments,
