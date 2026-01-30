@@ -137,13 +137,21 @@ const FormationDetail = () => {
     navigate("/auth");
   };
 
-  const formatDateRange = (startDate: string, endDate: string | null) => {
+  const formatDateWithSchedule = (startDate: string, endDate: string | null, schedulesList: Schedule[]) => {
     const start = parseISO(startDate);
+    
+    // Get unique time range (assuming consistent times across days)
+    let timeRange = "";
+    if (schedulesList.length > 0) {
+      const firstSchedule = schedulesList[0];
+      timeRange = ` • ${firstSchedule.start_time.slice(0, 5)} - ${firstSchedule.end_time.slice(0, 5)}`;
+    }
+    
     if (!endDate) {
-      return format(start, "EEEE d MMMM yyyy", { locale: fr });
+      return format(start, "EEEE d MMMM yyyy", { locale: fr }) + timeRange;
     }
     const end = parseISO(endDate);
-    return `Du ${format(start, "EEEE d MMMM", { locale: fr })} au ${format(end, "EEEE d MMMM yyyy", { locale: fr })}`;
+    return `Du ${format(start, "EEEE d MMMM", { locale: fr })} au ${format(end, "EEEE d MMMM yyyy", { locale: fr })}${timeRange}`;
   };
 
   const getFormatLabel = (format: string | null) => {
@@ -199,7 +207,7 @@ const FormationDetail = () => {
             <div>
               <h1 className="text-2xl font-bold">{training.training_name}</h1>
               <p className="text-muted-foreground">
-                {formatDateRange(training.start_date, training.end_date)}
+                {formatDateWithSchedule(training.start_date, training.end_date, schedules)}
               </p>
             </div>
           </div>
@@ -333,31 +341,6 @@ const FormationDetail = () => {
               </Card>
             )}
 
-            {/* Schedules card */}
-            {schedules.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Horaires</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    {schedules.map((schedule) => (
-                      <div
-                        key={schedule.id}
-                        className="flex justify-between items-center py-2 border-b last:border-0"
-                      >
-                        <span className="text-sm">
-                          {format(parseISO(schedule.day_date), "EEEE d MMM", { locale: fr })}
-                        </span>
-                        <Badge variant="outline">
-                          {schedule.start_time.slice(0, 5)} - {schedule.end_time.slice(0, 5)}
-                        </Badge>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
 
             {/* Prerequisites card */}
             {training.prerequisites && training.prerequisites.length > 0 && (
