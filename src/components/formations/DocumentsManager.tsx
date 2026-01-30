@@ -413,10 +413,12 @@ const DocumentsManager = ({
     setSendToSponsorWithOptions(toSponsor);
     if (toSponsor && sponsorEmail) {
       setCustomRecipientEmail(sponsorEmail);
+      setCcEmail("");
     } else {
       setCustomRecipientEmail("");
+      // Pre-fill CC with sponsor email when sending to another recipient
+      setCcEmail(sponsorEmail || "");
     }
-    setCcEmail("");
     setShowCustomRecipientDialog(true);
   };
 

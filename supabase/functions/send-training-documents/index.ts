@@ -154,7 +154,10 @@ serve(async (req) => {
     } else if (documentType === "all") {
       const sheetsCount = attendanceSheetsUrls?.length || 0;
       
-      subject = "Documents de formation - Supertilt";
+      // If invoice is included, mention "facture" in subject
+      subject = invoiceUrl 
+        ? "Facture et documents de formation - Supertilt"
+        : "Documents de formation - Supertilt";
       const findText = formalAddress
         ? "Veuillez trouver ci-joint les documents relatifs à notre formation :"
         : "Tu trouveras ci-joint les documents relatifs à notre formation :";
