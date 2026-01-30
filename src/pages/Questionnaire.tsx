@@ -291,6 +291,16 @@ const Questionnaire = () => {
 
       if (upErr) throw upErr;
 
+      // Also update participant status to 'complete'
+      const { error: participantErr } = await supabase
+        .from("training_participants")
+        .update({ needs_survey_status: "complete" })
+        .eq("id", questionnaire.participant_id);
+
+      if (participantErr) {
+        console.warn("Failed to update participant status", participantErr);
+      }
+
       await insertEvent(questionnaire.id, "submitted", { source: "public_link" });
 
       // Send confirmation email
