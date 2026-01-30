@@ -18,6 +18,7 @@ import BulkAddParticipantsDialog from "@/components/formations/BulkAddParticipan
 import DocumentsManager from "@/components/formations/DocumentsManager";
 import ScheduledEmailsSummary from "@/components/formations/ScheduledEmailsSummary";
 import NeedsSurveySummaryDialog from "@/components/formations/NeedsSurveySummaryDialog";
+import AttendanceSheetGenerator from "@/components/formations/AttendanceSheetGenerator";
 
 interface Training {
   id: string;
@@ -270,6 +271,15 @@ const FormationDetail = () => {
                 Hôtel
               </a>
             </Button>
+            <AttendanceSheetGenerator
+              trainingName={training.training_name}
+              trainerName={training.trainer_name}
+              location={training.location}
+              startDate={training.start_date}
+              endDate={training.end_date}
+              schedules={schedules}
+              participants={participants}
+            />
             <Button
               variant="outline"
               onClick={() => navigate(`/formations/${id}/edit`)}
