@@ -226,13 +226,19 @@ const handler = async (req: Request): Promise<Response> => {
       .eq("training_id", training.id)
       .order("day_date", { ascending: true });
 
-    // Calculate duration
+    // Calculate duration: 3.5h per half-day, 7h per full day
     let totalHours = 0;
     if (schedules && schedules.length > 0) {
       for (const s of schedules) {
         const [startH, startM] = s.start_time.split(":").map(Number);
         const [endH, endM] = s.end_time.split(":").map(Number);
-        totalHours += (endH * 60 + endM - (startH * 60 + startM)) / 60;
+        const sessionMinutes = (endH * 60 + endM) - (startH * 60 + startM);
+        // Half-day (<=4h) = 3.5h, Full day (>4h) = 7h
+        if (sessionMinutes <= 240) {
+          totalHours += 3.5;
+        } else {
+          totalHours += 7;
+        }
       }
     }
 
