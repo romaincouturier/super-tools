@@ -1,18 +1,23 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2 } from "lucide-react";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Slider } from "@/components/ui/slider";
+import { Loader2, ExternalLink, Calendar, Clock, CheckCircle2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
 
 type QuestionnaireRecord = {
   id: string;
   training_id: string;
+  participant_id: string;
   token: string;
   etat: string;
   email: string | null;
@@ -28,8 +33,12 @@ type QuestionnaireRecord = {
   competences_actuelles: string | null;
   competences_visees: string | null;
   lien_mission: string | null;
+  niveau_actuel: number | null;
+  niveau_motivation: number | null;
+  modalites_preferences: Record<string, string> | null;
   contraintes_orga: string | null;
   besoins_accessibilite: string | null;
+  necessite_amenagement: boolean | null;
   commentaires_libres: string | null;
   consentement_rgpd: boolean;
   date_premiere_ouverture: string | null;
@@ -42,6 +51,15 @@ type TrainingRecord = {
   training_name: string;
   start_date: string;
   end_date: string | null;
+  prerequisites: string[] | null;
+  program_file_url: string | null;
+  format_formation: string | null;
+};
+
+type ScheduleRecord = {
+  day_date: string;
+  start_time: string;
+  end_time: string;
 };
 
 const Questionnaire = () => {
@@ -54,6 +72,8 @@ const Questionnaire = () => {
   const [error, setError] = useState<string | null>(null);
   const [questionnaire, setQuestionnaire] = useState<QuestionnaireRecord | null>(null);
   const [training, setTraining] = useState<TrainingRecord | null>(null);
+  const [schedules, setSchedules] = useState<ScheduleRecord[]>([]);
+  const [prerequisValidations, setPrerequisValidations] = useState<Record<string, string>>({});
 
   const dirtyRef = useRef(false);
   const autosaveTimerRef = useRef<number | null>(null);
@@ -63,6 +83,8 @@ const Questionnaire = () => {
     const parts = [questionnaire.prenom, questionnaire.nom].filter(Boolean);
     return parts.join(" ").trim();
   }, [questionnaire]);
+
+  const isInterEntreprises = training?.format_formation === "inter";
 
   const markDirty = () => {
     dirtyRef.current = true;
@@ -78,7 +100,6 @@ const Questionnaire = () => {
         },
       ]);
     } catch (e) {
-      // non-blocking
       console.warn("Failed to insert questionnaire event", e);
     }
   };
@@ -107,14 +128,40 @@ const Questionnaire = () => {
       const qTyped = q as unknown as QuestionnaireRecord;
       setQuestionnaire(qTyped);
 
+      // Parse existing prerequis validations
+      if (qTyped.modalites_preferences) {
+        setPrerequisValidations(qTyped.modalites_preferences as Record<string, string>);
+      }
+
       const { data: t, error: tErr } = await supabase
         .from("trainings")
-        .select("training_name,start_date,end_date")
+        .select("training_name,start_date,end_date,prerequisites,program_file_url,format_formation")
         .eq("id", qTyped.training_id)
         .single();
 
       if (!tErr && t) {
         setTraining(t as unknown as TrainingRecord);
+        
+        // Initialize prerequis validations for all prerequisites
+        if (t.prerequisites && Array.isArray(t.prerequisites)) {
+          const existingValidations = qTyped.modalites_preferences as Record<string, string> || {};
+          const newValidations: Record<string, string> = {};
+          t.prerequisites.forEach((prereq: string) => {
+            newValidations[prereq] = existingValidations[prereq] || "";
+          });
+          setPrerequisValidations(newValidations);
+        }
+      }
+
+      // Fetch schedules
+      const { data: sched, error: schedErr } = await supabase
+        .from("training_schedules")
+        .select("day_date, start_time, end_time")
+        .eq("training_id", qTyped.training_id)
+        .order("day_date", { ascending: true });
+
+      if (!schedErr && sched) {
+        setSchedules(sched as ScheduleRecord[]);
       }
 
       // First open tracking
@@ -159,8 +206,12 @@ const Questionnaire = () => {
         competences_actuelles: questionnaire.competences_actuelles,
         competences_visees: questionnaire.competences_visees,
         lien_mission: questionnaire.lien_mission,
+        niveau_actuel: questionnaire.niveau_actuel,
+        niveau_motivation: questionnaire.niveau_motivation,
+        modalites_preferences: prerequisValidations as any,
         contraintes_orga: questionnaire.contraintes_orga,
         besoins_accessibilite: questionnaire.besoins_accessibilite,
+        necessite_amenagement: questionnaire.necessite_amenagement,
         commentaires_libres: questionnaire.commentaires_libres,
         consentement_rgpd: questionnaire.consentement_rgpd,
         date_consentement_rgpd: questionnaire.consentement_rgpd
@@ -199,6 +250,14 @@ const Questionnaire = () => {
     }
   };
 
+  const hasUnvalidatedPrerequisites = () => {
+    if (!training?.prerequisites || training.prerequisites.length === 0) return false;
+    return training.prerequisites.some(prereq => {
+      const validation = prerequisValidations[prereq];
+      return validation === "non" || validation === "partiellement";
+    });
+  };
+
   const submit = async () => {
     if (!questionnaire) return;
     if (!questionnaire.consentement_rgpd) {
@@ -216,18 +275,39 @@ const Questionnaire = () => {
       await saveDraft({ silent: true });
 
       const nowIso = new Date().toISOString();
+      const needsPrerequisEmail = hasUnvalidatedPrerequisites();
+
       const { error: upErr } = await supabase
         .from("questionnaire_besoins")
         .update({
           etat: "complete",
           date_soumission: nowIso,
           date_consentement_rgpd: questionnaire.date_consentement_rgpd || nowIso,
+          necessite_validation_formateur: needsPrerequisEmail,
         })
         .eq("id", questionnaire.id);
 
       if (upErr) throw upErr;
 
       await insertEvent(questionnaire.id, "submitted", { source: "public_link" });
+
+      // Send prerequisite warning email if needed
+      if (needsPrerequisEmail) {
+        try {
+          await supabase.functions.invoke("send-prerequis-warning", {
+            body: {
+              questionnaireId: questionnaire.id,
+              participantEmail: questionnaire.email,
+              participantName: displayName || questionnaire.prenom || "Participant",
+              trainingName: training?.training_name || "Formation",
+              prerequisValidations,
+            },
+          });
+        } catch (emailErr) {
+          console.warn("Failed to send prerequisite warning email", emailErr);
+        }
+      }
+
       dirtyRef.current = false;
       toast({
         title: "Merci !",
@@ -273,6 +353,18 @@ const Questionnaire = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [saving, submitting, questionnaire?.id]);
 
+  const formatScheduleDate = (dateStr: string) => {
+    try {
+      return format(new Date(dateStr), "EEEE d MMMM yyyy", { locale: fr });
+    } catch {
+      return dateStr;
+    }
+  };
+
+  const formatTime = (timeStr: string) => {
+    return timeStr.slice(0, 5);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -299,29 +391,61 @@ const Questionnaire = () => {
     );
   }
 
+  // Already submitted
+  if (questionnaire.etat === "complete") {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-6">
+        <Card className="w-full max-w-lg">
+          <CardHeader className="text-center">
+            <CheckCircle2 className="w-16 h-16 text-green-500 mx-auto mb-4" />
+            <CardTitle>Questionnaire envoyé !</CardTitle>
+            <CardDescription>
+              Merci d'avoir complété le questionnaire de recueil des besoins pour la formation "{training?.training_name}".
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="text-center text-muted-foreground">
+            <p>Vos réponses ont bien été enregistrées et seront utilisées pour adapter la formation à vos attentes.</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-background p-6">
+    <div className="min-h-screen bg-background p-4 md:p-6">
       <div className="mx-auto w-full max-w-3xl space-y-6">
+        {/* Header with training info */}
         <Card>
           <CardHeader>
-            <CardTitle>Questionnaire de recueil des besoins</CardTitle>
-            {(training || displayName) && (
-              <p className="text-sm text-muted-foreground">
-                {training ? (
-                  <>
-                    Formation : <span className="font-medium">{training.training_name}</span>
-                  </>
-                ) : null}
-                {training && displayName ? " • " : null}
-                {displayName ? (
-                  <>
-                    Participant : <span className="font-medium">{displayName}</span>
-                  </>
-                ) : null}
-              </p>
+            <CardTitle className="text-xl md:text-2xl">Questionnaire de recueil des besoins</CardTitle>
+            {training && (
+              <CardDescription className="space-y-3 pt-2">
+                <p className="text-base font-medium text-foreground">
+                  {training.training_name}
+                </p>
+                {schedules.length > 0 && (
+                  <div className="space-y-1">
+                    {schedules.map((sched, idx) => (
+                      <div key={idx} className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Calendar className="w-4 h-4" />
+                        <span className="capitalize">{formatScheduleDate(sched.day_date)}</span>
+                        <Clock className="w-4 h-4 ml-2" />
+                        <span>{formatTime(sched.start_time)} - {formatTime(sched.end_time)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardDescription>
             )}
           </CardHeader>
-          <CardContent className="space-y-6">
+        </Card>
+
+        {/* Identity section */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Vos coordonnées</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="prenom">Prénom</Label>
@@ -369,40 +493,238 @@ const Questionnaire = () => {
               </div>
               <div className="space-y-2 md:col-span-2">
                 <Label htmlFor="email">Email</Label>
-                <Input id="email" value={questionnaire.email || ""} readOnly />
+                <Input id="email" value={questionnaire.email || ""} readOnly className="bg-muted" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* 1. Experience */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">1. Votre expérience sur le sujet</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-3">
+              <Label>Avez-vous déjà suivi une formation ou pratiqué ce sujet professionnellement ?</Label>
+              <RadioGroup
+                value={questionnaire.experience_sujet || ""}
+                onValueChange={(value) => {
+                  markDirty();
+                  setQuestionnaire((p) => (p ? { ...p, experience_sujet: value } : p));
+                }}
+                className="flex flex-col space-y-2"
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="oui" id="exp-oui" />
+                  <Label htmlFor="exp-oui" className="font-normal cursor-pointer">Oui</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="non" id="exp-non" />
+                  <Label htmlFor="exp-non" className="font-normal cursor-pointer">Non</Label>
+                </div>
+              </RadioGroup>
+            </div>
+            {questionnaire.experience_sujet === "oui" && (
+              <div className="space-y-2">
+                <Label htmlFor="experience_details">Précisez votre expérience</Label>
+                <Textarea
+                  id="experience_details"
+                  value={questionnaire.experience_details || ""}
+                  onChange={(e) => {
+                    markDirty();
+                    setQuestionnaire((p) => (p ? { ...p, experience_details: e.target.value } : p));
+                  }}
+                  rows={3}
+                  placeholder="Décrivez votre contexte, vos enjeux..."
+                />
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* 2. Programme et prérequis */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">2. Programme et prérequis</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-3">
+              <Label>Avez-vous consulté le programme de formation ?</Label>
+              <div className="flex items-center gap-4">
+                <RadioGroup
+                  value={questionnaire.lecture_programme || ""}
+                  onValueChange={(value) => {
+                    markDirty();
+                    setQuestionnaire((p) => (p ? { ...p, lecture_programme: value } : p));
+                  }}
+                  className="flex space-x-4"
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="oui" id="prog-oui" />
+                    <Label htmlFor="prog-oui" className="font-normal cursor-pointer">Oui</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="non" id="prog-non" />
+                    <Label htmlFor="prog-non" className="font-normal cursor-pointer">Non</Label>
+                  </div>
+                </RadioGroup>
+                {training?.program_file_url && (
+                  <Button variant="outline" size="sm" asChild>
+                    <a href={training.program_file_url} target="_blank" rel="noopener noreferrer">
+                      <ExternalLink className="w-4 h-4 mr-2" />
+                      Consulter le programme
+                    </a>
+                  </Button>
+                )}
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="experience">Votre expérience sur le sujet</Label>
-              <Textarea
-                id="experience"
-                value={questionnaire.experience_details || ""}
-                onChange={(e) => {
-                  markDirty();
-                  setQuestionnaire((p) => (p ? { ...p, experience_details: e.target.value } : p));
-                }}
-                rows={4}
-                placeholder="Décrivez votre contexte, vos enjeux, votre niveau actuel..."
-              />
-            </div>
+            {training?.prerequisites && training.prerequisites.length > 0 && (
+              <div className="space-y-4">
+                <Label className="text-base font-medium">Validez-vous les prérequis suivants ?</Label>
+                <div className="space-y-4 border rounded-lg p-4 bg-muted/50">
+                  {training.prerequisites.map((prereq, idx) => (
+                    <div key={idx} className="space-y-2">
+                      <p className="text-sm font-medium">{prereq}</p>
+                      <RadioGroup
+                        value={prerequisValidations[prereq] || ""}
+                        onValueChange={(value) => {
+                          markDirty();
+                          setPrerequisValidations((prev) => ({ ...prev, [prereq]: value }));
+                        }}
+                        className="flex flex-wrap gap-4"
+                      >
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="oui" id={`prereq-${idx}-oui`} />
+                          <Label htmlFor={`prereq-${idx}-oui`} className="font-normal cursor-pointer text-sm">
+                            Oui, je valide
+                          </Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="partiellement" id={`prereq-${idx}-part`} />
+                          <Label htmlFor={`prereq-${idx}-part`} className="font-normal cursor-pointer text-sm">
+                            Partiellement
+                          </Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="non" id={`prereq-${idx}-non`} />
+                          <Label htmlFor={`prereq-${idx}-non`} className="font-normal cursor-pointer text-sm">
+                            Non
+                          </Label>
+                        </div>
+                      </RadioGroup>
+                    </div>
+                  ))}
+                </div>
+                
+                {hasUnvalidatedPrerequisites() && (
+                  <div className="space-y-2">
+                    <Label htmlFor="prerequis_details">Lesquels vous manquent-ils ?</Label>
+                    <Textarea
+                      id="prerequis_details"
+                      value={questionnaire.prerequis_details || ""}
+                      onChange={(e) => {
+                        markDirty();
+                        setQuestionnaire((p) => (p ? { ...p, prerequis_details: e.target.value } : p));
+                      }}
+                      rows={3}
+                      placeholder="Précisez ce qui vous manque..."
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
-            <div className="space-y-2">
-              <Label htmlFor="objectifs">Compétences visées / objectifs</Label>
-              <Textarea
-                id="objectifs"
-                value={questionnaire.competences_visees || ""}
-                onChange={(e) => {
+        {/* 3. Auto-évaluation */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">3. Auto-évaluation</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Label>Évaluez votre niveau actuel sur ce sujet (0 = débutant, 5 = expert)</Label>
+            <div className="space-y-4">
+              <Slider
+                value={[questionnaire.niveau_actuel ?? 0]}
+                onValueChange={([value]) => {
                   markDirty();
-                  setQuestionnaire((p) => (p ? { ...p, competences_visees: e.target.value } : p));
+                  setQuestionnaire((p) => (p ? { ...p, niveau_actuel: value } : p));
                 }}
-                rows={3}
-                placeholder="Qu'aimeriez-vous apprendre ou améliorer ?"
+                max={5}
+                step={1}
+                className="w-full"
               />
+              <div className="flex justify-between text-sm text-muted-foreground">
+                <span>0 - Débutant</span>
+                <span className="font-medium text-foreground text-lg">{questionnaire.niveau_actuel ?? 0}</span>
+                <span>5 - Expert</span>
+              </div>
             </div>
+          </CardContent>
+        </Card>
 
-            <div className="space-y-2">
-              <Label htmlFor="contraintes">Contraintes d'organisation</Label>
+        {/* 4. Compétences visées */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">4. Compétences visées et objectifs</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <Label htmlFor="competences_visees">
+              Quelles compétences concrètes souhaitez-vous acquérir et comment s'inscrivent-elles dans votre mission ?
+            </Label>
+            <Textarea
+              id="competences_visees"
+              value={questionnaire.competences_visees || ""}
+              onChange={(e) => {
+                markDirty();
+                setQuestionnaire((p) => (p ? { ...p, competences_visees: e.target.value } : p));
+              }}
+              rows={4}
+              placeholder="Décrivez les compétences que vous souhaitez développer et leur lien avec votre activité..."
+            />
+          </CardContent>
+        </Card>
+
+        {/* 5. Niveau de motivation */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">5. Niveau de motivation</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Label>Quel est votre niveau de motivation à venir à cette formation ? (1 à 5)</Label>
+            <div className="space-y-4">
+              <Slider
+                value={[questionnaire.niveau_motivation ?? 3]}
+                onValueChange={([value]) => {
+                  markDirty();
+                  setQuestionnaire((p) => (p ? { ...p, niveau_motivation: value } : p));
+                }}
+                min={1}
+                max={5}
+                step={1}
+                className="w-full"
+              />
+              <div className="flex justify-between text-sm text-muted-foreground">
+                <span>1</span>
+                <span className="font-medium text-foreground text-lg">{questionnaire.niveau_motivation ?? 3}</span>
+                <span>5</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* 6. Contraintes d'organisation (inter only) */}
+        {isInterEntreprises && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">6. Contraintes d'organisation</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <Label htmlFor="contraintes">
+                Avez-vous des contraintes horaires ou organisationnelles à signaler ?
+              </Label>
               <Textarea
                 id="contraintes"
                 value={questionnaire.contraintes_orga || ""}
@@ -411,12 +733,23 @@ const Questionnaire = () => {
                   setQuestionnaire((p) => (p ? { ...p, contraintes_orga: e.target.value } : p));
                 }}
                 rows={3}
-                placeholder="Horaires, matériel, prérequis techniques, etc."
+                placeholder="Horaires, déplacements, matériel..."
               />
-            </div>
+            </CardContent>
+          </Card>
+        )}
 
+        {/* 7. Accessibilité */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">{isInterEntreprises ? "7" : "6"}. Accessibilité et aménagements</CardTitle>
+            <CardDescription>Optionnel</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="accessibilite">Besoins d'accessibilité (optionnel)</Label>
+              <Label htmlFor="accessibilite">
+                Avez-vous besoin d'aménagements spécifiques (liés à une situation de handicap moteur, visuel ou auditif, trouble dys, autisme, difficulté d'attention, autre) ?
+              </Label>
               <Textarea
                 id="accessibilite"
                 value={questionnaire.besoins_accessibilite || ""}
@@ -425,24 +758,47 @@ const Questionnaire = () => {
                   setQuestionnaire((p) => (p ? { ...p, besoins_accessibilite: e.target.value } : p));
                 }}
                 rows={3}
-                placeholder="Avez-vous besoin d'aménagements particuliers ?"
+                placeholder="Décrivez vos besoins..."
               />
             </div>
+            <p className="text-sm text-muted-foreground border-l-2 border-primary pl-3">
+              Notre référent handicap : <strong>Romain Couturier</strong> -{" "}
+              <a href="mailto:romain@supertilt.fr" className="text-primary hover:underline">
+                romain@supertilt.fr
+              </a>
+            </p>
+          </CardContent>
+        </Card>
 
-            <div className="space-y-2">
-              <Label htmlFor="commentaires">Commentaires libres (optionnel)</Label>
-              <Textarea
-                id="commentaires"
-                value={questionnaire.commentaires_libres || ""}
-                onChange={(e) => {
-                  markDirty();
-                  setQuestionnaire((p) => (p ? { ...p, commentaires_libres: e.target.value } : p));
-                }}
-                rows={3}
-              />
-            </div>
+        {/* 8. Commentaires libres */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">{isInterEntreprises ? "8" : "7"}. Commentaires libres</CardTitle>
+            <CardDescription>Optionnel</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <Label htmlFor="commentaires">
+              Autres éléments à partager pour optimiser votre expérience ?
+            </Label>
+            <Textarea
+              id="commentaires"
+              value={questionnaire.commentaires_libres || ""}
+              onChange={(e) => {
+                markDirty();
+                setQuestionnaire((p) => (p ? { ...p, commentaires_libres: e.target.value } : p));
+              }}
+              rows={3}
+            />
+          </CardContent>
+        </Card>
 
-            <div className="flex items-start gap-3 rounded-md border p-4">
+        {/* 9. RGPD */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">{isInterEntreprises ? "9" : "8"}. Consentement RGPD</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-start gap-3 rounded-md border p-4 bg-muted/30">
               <Checkbox
                 id="rgpd"
                 checked={questionnaire.consentement_rgpd}
@@ -453,43 +809,54 @@ const Questionnaire = () => {
                   );
                 }}
               />
-              <div className="space-y-1">
-                <Label htmlFor="rgpd">Consentement RGPD</Label>
+              <div className="space-y-2">
+                <Label htmlFor="rgpd" className="cursor-pointer">
+                  J'autorise SuperTilt à utiliser mes réponses pour adapter cette formation.
+                </Label>
                 <p className="text-sm text-muted-foreground">
-                  J'accepte que mes réponses soient utilisées pour préparer et adapter la formation.
+                  Mes données sont conservées 3 ans (exigence Qualiopi) et ne sont jamais communiquées à des tiers.
                 </p>
+                <Link
+                  to="/politique-confidentialite"
+                  target="_blank"
+                  className="text-sm text-primary hover:underline inline-flex items-center gap-1"
+                >
+                  Politique de confidentialité
+                  <ExternalLink className="w-3 h-3" />
+                </Link>
               </div>
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-3 justify-end">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => saveDraft()}
-                disabled={saving || submitting}
-              >
-                {saving ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Sauvegarde...
-                  </>
-                ) : (
-                  "Sauvegarder"
-                )}
-              </Button>
-              <Button type="button" onClick={submit} disabled={saving || submitting}>
-                {submitting ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Envoi...
-                  </>
-                ) : (
-                  "Envoyer le questionnaire"
-                )}
-              </Button>
             </div>
           </CardContent>
         </Card>
+
+        {/* Actions */}
+        <div className="flex flex-col sm:flex-row gap-3 justify-end pb-6">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => saveDraft()}
+            disabled={saving || submitting}
+          >
+            {saving ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Sauvegarde...
+              </>
+            ) : (
+              "Sauvegarder"
+            )}
+          </Button>
+          <Button type="button" onClick={submit} disabled={saving || submitting}>
+            {submitting ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Envoi...
+              </>
+            ) : (
+              "Envoyer le questionnaire"
+            )}
+          </Button>
+        </div>
       </div>
     </div>
   );
