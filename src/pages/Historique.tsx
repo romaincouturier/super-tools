@@ -64,44 +64,49 @@ const ACTION_LABELS: Record<string, { label: string; icon: React.ReactNode; vari
     variant: "outline" 
   },
   needs_survey_sent: { 
-    label: "Questionnaire envoyé", 
+    label: "Recueil des besoins envoyé", 
     icon: <Send className="w-4 h-4" />,
     variant: "secondary" 
   },
   training_documents_sent: { 
-    label: "Documents envoyés", 
+    label: "Documents de formation envoyés", 
     icon: <Mail className="w-4 h-4" />,
     variant: "default" 
   },
   thank_you_email_sent: { 
-    label: "Remerciement envoyé", 
+    label: "Email de remerciement envoyé", 
     icon: <Heart className="w-4 h-4" />,
     variant: "secondary" 
   },
   accessibility_needs_email_sent: { 
-    label: "Accessibilité", 
+    label: "Besoins d'accessibilité envoyé", 
     icon: <Heart className="w-4 h-4" />,
     variant: "outline" 
   },
   attendance_signature_request_sent: { 
-    label: "Émargement envoyé", 
+    label: "Demande d'émargement envoyée", 
     icon: <Send className="w-4 h-4" />,
     variant: "default" 
   },
   needs_survey_reminder_sent: { 
-    label: "Rappel questionnaire", 
+    label: "Rappel de questionnaire envoyé", 
     icon: <RefreshCw className="w-4 h-4" />,
     variant: "outline" 
   },
   questionnaire_confirmation_sent: { 
-    label: "Confirmation questionnaire", 
+    label: "Confirmation de questionnaire envoyée", 
     icon: <Mail className="w-4 h-4" />,
     variant: "secondary" 
   },
   scheduled_email_force_sent: { 
-    label: "Email forcé", 
+    label: "Email programmé envoyé manuellement", 
     icon: <Send className="w-4 h-4" />,
     variant: "outline" 
+  },
+  evaluation_processed: { 
+    label: "Évaluation traitée", 
+    icon: <Award className="w-4 h-4" />,
+    variant: "default" 
   },
 };
 
