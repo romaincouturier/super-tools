@@ -477,6 +477,7 @@ const FormationDetail = () => {
             sponsorFirstName={training.sponsor_first_name}
             sponsorFormalAddress={training.sponsor_formal_address}
             supportsUrl={training.supports_url}
+            evaluationLink={training.evaluation_link}
             onUpdate={fetchTrainingData}
           />
 
