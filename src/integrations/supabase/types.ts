@@ -459,6 +459,7 @@ export type Database = {
           format_formation: string | null
           id: string
           location: string
+          objectives: string[] | null
           prerequisites: string[] | null
           program_file_url: string | null
           start_date: string
@@ -474,6 +475,7 @@ export type Database = {
           format_formation?: string | null
           id?: string
           location: string
+          objectives?: string[] | null
           prerequisites?: string[] | null
           program_file_url?: string | null
           start_date: string
@@ -489,6 +491,7 @@ export type Database = {
           format_formation?: string | null
           id?: string
           location?: string
+          objectives?: string[] | null
           prerequisites?: string[] | null
           program_file_url?: string | null
           start_date?: string

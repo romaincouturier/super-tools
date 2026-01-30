@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 import ScheduleEditor from "@/components/formations/ScheduleEditor";
 import PrerequisitesEditor from "@/components/formations/PrerequisitesEditor";
 import ProgramSelector from "@/components/formations/ProgramSelector";
+import ObjectivesEditor from "@/components/formations/ObjectivesEditor";
 
 interface Schedule {
   day_date: string;
@@ -44,6 +45,7 @@ const FormationCreate = () => {
   const [evaluationLink, setEvaluationLink] = useState("");
   const [formatFormation, setFormatFormation] = useState<string>("");
   const [prerequisites, setPrerequisites] = useState<string[]>([]);
+  const [objectives, setObjectives] = useState<string[]>([]);
   const [programFileUrl, setProgramFileUrl] = useState<string>("");
   const [schedules, setSchedules] = useState<Schedule[]>([]);
 
@@ -143,6 +145,7 @@ const FormationCreate = () => {
           evaluation_link: evaluationLink,
           format_formation: formatFormation || null,
           prerequisites,
+          objectives,
           program_file_url: programFileUrl || null,
           created_by: user.id,
         })
@@ -388,6 +391,12 @@ const FormationCreate = () => {
           <PrerequisitesEditor
             prerequisites={prerequisites}
             onPrerequisitesChange={setPrerequisites}
+          />
+
+          {/* Objectives */}
+          <ObjectivesEditor
+            objectives={objectives}
+            onObjectivesChange={setObjectives}
           />
 
           {/* Program */}
