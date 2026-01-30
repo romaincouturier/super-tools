@@ -14,3 +14,6 @@ verify_jwt = false
 
 [functions.process-evaluation-submission]
 verify_jwt = false
+
+[functions.analyze-evaluations]
+verify_jwt = false
