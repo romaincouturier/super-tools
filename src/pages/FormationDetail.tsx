@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
-import { Loader2, ArrowLeft, Calendar, Users, FileText, ExternalLink, Edit2, User as UserIcon, Mail, MapPin, Building } from "lucide-react";
+import { Loader2, ArrowLeft, Calendar, Users, FileText, ExternalLink, Edit2, User as UserIcon, Mail, MapPin, Building, Map, Train, Hotel } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -226,13 +226,39 @@ const FormationDetail = () => {
               </p>
             </div>
           </div>
-          <Button
-            variant="outline"
-            onClick={() => navigate(`/formations/${id}/edit`)}
-          >
-            <Edit2 className="h-4 w-4 mr-2" />
-            Modifier
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(training.location)}`, "_blank")}
+            >
+              <Map className="h-4 w-4 mr-2" />
+              Carte
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => window.open(`https://www.thetrainline.com/fr/search/${encodeURIComponent(training.location)}`, "_blank")}
+            >
+              <Train className="h-4 w-4 mr-2" />
+              Train
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => window.open(`https://www.booking.com/searchresults.html?ss=${encodeURIComponent(training.location)}`, "_blank")}
+            >
+              <Hotel className="h-4 w-4 mr-2" />
+              Hôtel
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => navigate(`/formations/${id}/edit`)}
+            >
+              <Edit2 className="h-4 w-4 mr-2" />
+              Modifier
+            </Button>
+          </div>
         </div>
 
         {/* Row 1: Informations + Participants */}
