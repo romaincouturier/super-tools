@@ -362,29 +362,22 @@ const FormationDetail = () => {
               )}
 
               {/* Links */}
-              <Separator />
-              <div className="flex flex-wrap gap-3">
-                <a
-                  href={training.evaluation_link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-1.5 text-sm text-primary hover:underline"
-                >
-                  <ExternalLink className="h-4 w-4" />
-                  Lien d'évaluation
-                </a>
-                {training.program_file_url && (
-                  <a
-                    href={training.program_file_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 text-sm text-primary hover:underline"
-                  >
-                    <FileText className="h-4 w-4" />
-                    Programme
-                  </a>
-                )}
-              </div>
+              {training.program_file_url && (
+                <>
+                  <Separator />
+                  <div className="flex flex-wrap gap-3">
+                    <a
+                      href={training.program_file_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1.5 text-sm text-primary hover:underline"
+                    >
+                      <FileText className="h-4 w-4" />
+                      Programme
+                    </a>
+                  </div>
+                </>
+              )}
 
               {/* Prerequisites */}
               {training.prerequisites && training.prerequisites.length > 0 && (
