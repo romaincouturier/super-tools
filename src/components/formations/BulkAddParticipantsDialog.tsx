@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Users, Loader2, AlertCircle, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { differenceInDays, parseISO } from "date-fns";
@@ -34,7 +34,7 @@ const BulkAddParticipantsDialog = ({ trainingId, trainingStartDate, onParticipan
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [bulkText, setBulkText] = useState("");
-  const [parseErrors, setParseErrors] = useState<string[]>([]);
+  
   const [isManualMode, setIsManualMode] = useState(false);
   const { toast } = useToast();
 
@@ -74,7 +74,7 @@ const BulkAddParticipantsDialog = ({ trainingId, trainingStartDate, onParticipan
     }
   }, [trainingStartDate]);
 
-  const parseParticipants = (text: string): ParsedParticipant[] => {
+  const parseParticipants = (text: string): { participants: ParsedParticipant[]; errors: string[] } => {
     const lines = text.split("\n").filter((line) => line.trim());
     const participants: ParsedParticipant[] = [];
     const errors: string[] = [];
@@ -116,16 +116,21 @@ const BulkAddParticipantsDialog = ({ trainingId, trainingStartDate, onParticipan
       participants.push({ email, firstName, lastName, company });
     });
 
-    setParseErrors(errors);
-    return participants;
+    return { participants, errors };
   };
+
+  const { parsedParticipants, parseErrors } = useMemo(() => {
+    if (!bulkText) {
+      return { parsedParticipants: [], parseErrors: [] };
+    }
+    const result = parseParticipants(bulkText);
+    return { parsedParticipants: result.participants, parseErrors: result.errors };
+  }, [bulkText]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const participants = parseParticipants(bulkText);
-
-    if (participants.length === 0) {
+    if (parsedParticipants.length === 0) {
       toast({
         title: "Aucun participant",
         description: "Veuillez entrer au moins une adresse email valide.",
@@ -140,7 +145,7 @@ const BulkAddParticipantsDialog = ({ trainingId, trainingStartDate, onParticipan
       // Determine initial status based on training proximity
       const { status, sendWelcomeNow } = getEmailMode();
 
-      const toInsert = participants.map((p) => ({
+      const toInsert = parsedParticipants.map((p) => ({
         training_id: trainingId,
         email: p.email,
         first_name: p.firstName || null,
@@ -219,7 +224,6 @@ const BulkAddParticipantsDialog = ({ trainingId, trainingStartDate, onParticipan
       });
 
       setBulkText("");
-      setParseErrors([]);
       setOpen(false);
       onParticipantsAdded();
     } catch (error: any) {
@@ -234,7 +238,7 @@ const BulkAddParticipantsDialog = ({ trainingId, trainingStartDate, onParticipan
     }
   };
 
-  const parsedParticipants = bulkText ? parseParticipants(bulkText) : [];
+  
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
