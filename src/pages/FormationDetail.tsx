@@ -230,26 +230,44 @@ const FormationDetail = () => {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(training.location)}`, "_blank")}
+              asChild
             >
-              <Map className="h-4 w-4 mr-2" />
-              Carte
+              <a 
+                href={`https://maps.google.com/?q=${encodeURIComponent(training.location)}`} 
+                target="_blank" 
+                rel="noopener noreferrer"
+              >
+                <Map className="h-4 w-4 mr-2" />
+                Carte
+              </a>
             </Button>
             <Button
               variant="outline"
               size="sm"
-              onClick={() => window.open(`https://www.thetrainline.com/fr/search/${encodeURIComponent(training.location)}`, "_blank")}
+              asChild
             >
-              <Train className="h-4 w-4 mr-2" />
-              Train
+              <a 
+                href={`https://www.trainline.fr/search/${encodeURIComponent(training.location)}`} 
+                target="_blank" 
+                rel="noopener noreferrer"
+              >
+                <Train className="h-4 w-4 mr-2" />
+                Train
+              </a>
             </Button>
             <Button
               variant="outline"
               size="sm"
-              onClick={() => window.open(`https://www.booking.com/searchresults.html?ss=${encodeURIComponent(training.location)}`, "_blank")}
+              asChild
             >
-              <Hotel className="h-4 w-4 mr-2" />
-              Hôtel
+              <a 
+                href={`https://www.booking.com/searchresults.fr.html?ss=${encodeURIComponent(training.location)}`} 
+                target="_blank" 
+                rel="noopener noreferrer"
+              >
+                <Hotel className="h-4 w-4 mr-2" />
+                Hôtel
+              </a>
             </Button>
             <Button
               variant="outline"
