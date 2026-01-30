@@ -29,6 +29,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import ViewQuestionnaireDialog from "./ViewQuestionnaireDialog";
 
 interface Participant {
   id: string;
@@ -267,6 +268,15 @@ const ParticipantList = ({ participants, trainingId, trainingStartDate, onPartic
               </TableCell>
               <TableCell>
                 <div className="flex items-center gap-1">
+                  {/* View questionnaire button - only for completed status */}
+                  {(participant.needs_survey_status === "complete" || participant.needs_survey_status === "valide_formateur") && (
+                    <ViewQuestionnaireDialog
+                      participantId={participant.id}
+                      participantName={displayName}
+                      trainingId={trainingId}
+                    />
+                  )}
+                  
                   {canSendSurveyFor(participant) && (
                     <Tooltip>
                       <TooltipTrigger asChild>
