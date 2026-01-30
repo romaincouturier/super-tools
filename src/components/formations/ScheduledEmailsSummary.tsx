@@ -21,7 +21,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Mail, Clock, CheckCircle, AlertCircle, Loader2, Trash2, Eye } from "lucide-react";
+import { Mail, Clock, CheckCircle, AlertCircle, Loader2, Trash2, Eye, Send } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
@@ -72,6 +72,7 @@ const ScheduledEmailsSummary = ({ trainingId, participants }: ScheduledEmailsSum
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [emailToDelete, setEmailToDelete] = useState<ScheduledEmail | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [forceSending, setForceSending] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -315,6 +316,34 @@ romain@supertilt.fr`;
     }
   };
 
+  const handleForceSend = async (email: ScheduledEmail) => {
+    setForceSending(email.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("force-send-scheduled-email", {
+        body: { scheduledEmailId: email.id },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Email envoyé",
+        description: "L'email a été envoyé avec succès.",
+      });
+
+      await refreshEmails();
+      setSelectedEmail(null);
+    } catch (error: any) {
+      console.error("Error force sending email:", error);
+      toast({
+        title: "Erreur",
+        description: error.message || "Impossible d'envoyer l'email.",
+        variant: "destructive",
+      });
+    } finally {
+      setForceSending(null);
+    }
+  };
+
   const getStatusBadge = (email: ScheduledEmail) => {
     if (email.status === "sent" || email.sent_at) {
       return (
@@ -436,6 +465,25 @@ romain@supertilt.fr`;
                     </div>
                     <div className="flex items-center gap-2">
                       {getStatusBadge(email)}
+                      {email.status !== "sent" && !email.sent_at && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-primary hover:text-primary/80"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleForceSend(email);
+                          }}
+                          disabled={forceSending === email.id}
+                          title="Forcer l'envoi"
+                        >
+                          {forceSending === email.id ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <Send className="h-3.5 w-3.5" />
+                          )}
+                        </Button>
+                      )}
                       <Button
                         variant="ghost"
                         size="icon"
@@ -518,16 +566,30 @@ romain@supertilt.fr`;
 
           <DialogFooter>
             {selectedEmail && selectedEmail.status !== "sent" && !selectedEmail.sent_at && (
-              <Button
-                variant="destructive"
-                onClick={() => {
-                  setSelectedEmail(null);
-                  setEmailToDelete(selectedEmail);
-                }}
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Supprimer cet email
-              </Button>
+              <>
+                <Button
+                  variant="default"
+                  onClick={() => handleForceSend(selectedEmail)}
+                  disabled={forceSending === selectedEmail.id}
+                >
+                  {forceSending === selectedEmail.id ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Send className="h-4 w-4 mr-2" />
+                  )}
+                  Envoyer maintenant
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={() => {
+                    setSelectedEmail(null);
+                    setEmailToDelete(selectedEmail);
+                  }}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Supprimer
+                </Button>
+              </>
             )}
             <Button variant="outline" onClick={() => setSelectedEmail(null)}>
               Fermer
