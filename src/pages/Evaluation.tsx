@@ -219,7 +219,7 @@ const Evaluation = () => {
           message_recommandation: messageRecommandation || null,
           consent_publication: consentPublication,
           remarques_libres: remarquesLibres || null,
-          etat: "complete",
+          etat: "soumis",
           date_soumission: nowIso,
         })
         .eq("id", evaluation.id);
@@ -242,7 +242,7 @@ const Evaluation = () => {
       });
 
       setEvaluation((prev) =>
-        prev ? { ...prev, etat: "complete", date_soumission: nowIso } : prev
+        prev ? { ...prev, etat: "soumis", date_soumission: nowIso } : prev
       );
     } catch (e: any) {
       console.error("Submit failed", e);
@@ -295,7 +295,7 @@ const Evaluation = () => {
   if (!evaluation || !training) return null;
 
   // Already submitted view
-  if (evaluation.etat === "complete" && evaluation.date_soumission) {
+  if (evaluation.etat === "soumis" && evaluation.date_soumission) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
         <Card className="max-w-md w-full">

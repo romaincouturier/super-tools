@@ -40,7 +40,7 @@ serve(async (req) => {
         *,
         trainings!inner(id, training_name, objectives)
       `)
-      .eq("etat", "complete");
+      .eq("etat", "soumis");
 
     if (trainingId) {
       query = query.eq("training_id", trainingId);

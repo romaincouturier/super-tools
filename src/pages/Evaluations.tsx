@@ -133,7 +133,7 @@ const Evaluations = () => {
         date_soumission,
         trainings!inner(training_name)
       `)
-      .eq("etat", "complete")
+      .eq("etat", "soumis")
       .order("date_soumission", { ascending: false });
 
     if (trainingId && trainingId !== "all") {
