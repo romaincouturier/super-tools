@@ -76,11 +76,14 @@ serve(async (req: Request): Promise<Response> => {
       const textResponse = await response.text();
       console.error("INSEE API returned non-JSON response:", textResponse.substring(0, 500));
       
-      // Check for maintenance page
+      // Check for maintenance page - return 200 with error to avoid Lovable error toast
       if (textResponse.includes("Maintenance - INSEE") || textResponse.includes("maintenance")) {
         return new Response(
-          JSON.stringify({ error: "L'API INSEE est actuellement en maintenance. Veuillez réessayer plus tard." }),
-          { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          JSON.stringify({ 
+            error: "L'API INSEE est actuellement en maintenance. Veuillez réessayer plus tard.",
+            maintenance: true 
+          }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
       
