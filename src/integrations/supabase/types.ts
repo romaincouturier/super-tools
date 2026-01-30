@@ -462,6 +462,9 @@ export type Database = {
           objectives: string[] | null
           prerequisites: string[] | null
           program_file_url: string | null
+          sponsor_email: string | null
+          sponsor_first_name: string | null
+          sponsor_last_name: string | null
           start_date: string
           training_name: string
           updated_at: string
@@ -478,6 +481,9 @@ export type Database = {
           objectives?: string[] | null
           prerequisites?: string[] | null
           program_file_url?: string | null
+          sponsor_email?: string | null
+          sponsor_first_name?: string | null
+          sponsor_last_name?: string | null
           start_date: string
           training_name: string
           updated_at?: string
@@ -494,6 +500,9 @@ export type Database = {
           objectives?: string[] | null
           prerequisites?: string[] | null
           program_file_url?: string | null
+          sponsor_email?: string | null
+          sponsor_first_name?: string | null
+          sponsor_last_name?: string | null
           start_date?: string
           training_name?: string
           updated_at?: string

@@ -48,6 +48,11 @@ const FormationCreate = () => {
   const [objectives, setObjectives] = useState<string[]>([]);
   const [programFileUrl, setProgramFileUrl] = useState<string>("");
   const [schedules, setSchedules] = useState<Schedule[]>([]);
+  
+  // Sponsor/Commanditaire
+  const [sponsorFirstName, setSponsorFirstName] = useState("");
+  const [sponsorLastName, setSponsorLastName] = useState("");
+  const [sponsorEmail, setSponsorEmail] = useState("");
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -147,6 +152,9 @@ const FormationCreate = () => {
           prerequisites,
           objectives,
           program_file_url: programFileUrl || null,
+          sponsor_first_name: sponsorFirstName || null,
+          sponsor_last_name: sponsorLastName || null,
+          sponsor_email: sponsorEmail || null,
           created_by: user.id,
         })
         .select()
@@ -375,6 +383,45 @@ const FormationCreate = () => {
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Sponsor/Commanditaire */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Commanditaire</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="sponsorFirstName">Prénom</Label>
+                  <Input
+                    id="sponsorFirstName"
+                    value={sponsorFirstName}
+                    onChange={(e) => setSponsorFirstName(e.target.value)}
+                    placeholder="Ex: Jean"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="sponsorLastName">Nom</Label>
+                  <Input
+                    id="sponsorLastName"
+                    value={sponsorLastName}
+                    onChange={(e) => setSponsorLastName(e.target.value)}
+                    placeholder="Ex: Dupont"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="sponsorEmail">Email</Label>
+                <Input
+                  id="sponsorEmail"
+                  type="email"
+                  value={sponsorEmail}
+                  onChange={(e) => setSponsorEmail(e.target.value)}
+                  placeholder="jean.dupont@entreprise.fr"
+                />
               </div>
             </CardContent>
           </Card>
