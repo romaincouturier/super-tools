@@ -60,6 +60,7 @@ const FormationEdit = () => {
   // Documents
   const [invoiceFileUrl, setInvoiceFileUrl] = useState<string | null>(null);
   const [attendanceSheetsUrls, setAttendanceSheetsUrls] = useState<string[]>([]);
+  const [supportsUrl, setSupportsUrl] = useState<string>("");
 
   // Track if data has been loaded (to prevent schedule regeneration)
   const [dataLoaded, setDataLoaded] = useState(false);
@@ -117,6 +118,7 @@ const FormationEdit = () => {
       setSponsorEmail(training.sponsor_email || "");
       setInvoiceFileUrl(training.invoice_file_url || null);
       setAttendanceSheetsUrls(training.attendance_sheets_urls || []);
+      setSupportsUrl(training.supports_url || "");
       
       const start = parseISO(training.start_date);
       setStartDate(start);
@@ -226,6 +228,7 @@ const FormationEdit = () => {
           sponsor_email: sponsorEmail || null,
           invoice_file_url: invoiceFileUrl,
           attendance_sheets_urls: attendanceSheetsUrls,
+          supports_url: supportsUrl || null,
         })
         .eq("id", id);
 
@@ -282,7 +285,7 @@ const FormationEdit = () => {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="bg-foreground text-background py-4 px-6 shadow-lg">
-        <div className="max-w-4xl mx-auto flex items-center justify-between">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <SupertiltLogo className="h-10" invert />
             <span className="text-xl font-bold">SuperTools</span>
@@ -292,7 +295,7 @@ const FormationEdit = () => {
       </header>
 
       {/* Main content */}
-      <main className="max-w-4xl mx-auto p-6">
+      <main className="max-w-7xl mx-auto p-6">
         {/* Back button and title */}
         <div className="flex items-center gap-4 mb-6">
           <Button
@@ -311,248 +314,259 @@ const FormationEdit = () => {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Basic info */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Informations générales</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Training name */}
-              <div className="space-y-2">
-                <Label htmlFor="trainingName">Nom de la formation *</Label>
-                <TrainingNameCombobox
-                  value={trainingName}
-                  onChange={setTrainingName}
-                  onFormationSelect={(formation) => {
-                    if (formation?.programme_url) {
-                      setProgramFileUrl(formation.programme_url);
-                    }
-                  }}
-                />
-              </div>
+          {/* Two column layout */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Left Column */}
+            <div className="space-y-6">
+              {/* Basic info */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Informations générales</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Training name */}
+                  <div className="space-y-2">
+                    <Label htmlFor="trainingName">Nom de la formation *</Label>
+                    <TrainingNameCombobox
+                      value={trainingName}
+                      onChange={setTrainingName}
+                      onFormationSelect={(formation) => {
+                        if (formation?.programme_url) {
+                          setProgramFileUrl(formation.programme_url);
+                        }
+                      }}
+                    />
+                  </div>
 
-              {/* Dates */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Date de début *</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full justify-start text-left font-normal",
-                          !startDate && "text-muted-foreground"
-                        )}
-                      >
-                        <Calendar className="mr-2 h-4 w-4" />
-                        {startDate
-                          ? format(startDate, "d MMMM yyyy", { locale: fr })
-                          : "Sélectionner une date"}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <CalendarComponent
-                        mode="single"
-                        selected={startDate}
-                        onSelect={setStartDate}
-                        initialFocus
-                        className="pointer-events-auto"
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
+                  {/* Dates */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Date de début *</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full justify-start text-left font-normal",
+                              !startDate && "text-muted-foreground"
+                            )}
+                          >
+                            <Calendar className="mr-2 h-4 w-4" />
+                            {startDate
+                              ? format(startDate, "d MMMM yyyy", { locale: fr })
+                              : "Sélectionner une date"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <CalendarComponent
+                            mode="single"
+                            selected={startDate}
+                            onSelect={setStartDate}
+                            initialFocus
+                            className="pointer-events-auto"
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
 
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label>Date de fin</Label>
-                    <div className="flex items-center gap-2">
-                      <Switch
-                        id="multiDay"
-                        checked={isMultiDay}
-                        onCheckedChange={setIsMultiDay}
-                      />
-                      <Label htmlFor="multiDay" className="text-sm text-muted-foreground">
-                        Multi-jours
-                      </Label>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label>Date de fin</Label>
+                        <div className="flex items-center gap-2">
+                          <Switch
+                            id="multiDay"
+                            checked={isMultiDay}
+                            onCheckedChange={setIsMultiDay}
+                          />
+                          <Label htmlFor="multiDay" className="text-sm text-muted-foreground">
+                            Multi-jours
+                          </Label>
+                        </div>
+                      </div>
+                      {isMultiDay && (
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className={cn(
+                                "w-full justify-start text-left font-normal",
+                                !endDate && "text-muted-foreground"
+                              )}
+                            >
+                              <Calendar className="mr-2 h-4 w-4" />
+                              {endDate
+                                ? format(endDate, "d MMMM yyyy", { locale: fr })
+                                : "Sélectionner une date"}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <CalendarComponent
+                              mode="single"
+                              selected={endDate}
+                              onSelect={setEndDate}
+                              disabled={(date) => startDate ? date < startDate : false}
+                              initialFocus
+                              className="pointer-events-auto"
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      )}
                     </div>
                   </div>
-                  {isMultiDay && (
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full justify-start text-left font-normal",
-                            !endDate && "text-muted-foreground"
-                          )}
-                        >
-                          <Calendar className="mr-2 h-4 w-4" />
-                          {endDate
-                            ? format(endDate, "d MMMM yyyy", { locale: fr })
-                            : "Sélectionner une date"}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <CalendarComponent
-                          mode="single"
-                          selected={endDate}
-                          onSelect={setEndDate}
-                          disabled={(date) => startDate ? date < startDate : false}
-                          initialFocus
-                          className="pointer-events-auto"
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  )}
-                </div>
-              </div>
 
-              {/* Location and client */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="location">Lieu *</Label>
-                  <Input
-                    id="location"
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                    placeholder="Ex: Paris, Visio, Chez le client"
-                    required
-                  />
-                </div>
+                  {/* Location and client */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="location">Lieu *</Label>
+                      <Input
+                        id="location"
+                        value={location}
+                        onChange={(e) => setLocation(e.target.value)}
+                        placeholder="Ex: Paris, Visio, Chez le client"
+                        required
+                      />
+                    </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="clientName">Client *</Label>
-                  <Input
-                    id="clientName"
-                    value={clientName}
-                    onChange={(e) => setClientName(e.target.value)}
-                    placeholder="Ex: ACME Corp"
-                    required
-                  />
-                </div>
-              </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="clientName">Client *</Label>
+                      <Input
+                        id="clientName"
+                        value={clientName}
+                        onChange={(e) => setClientName(e.target.value)}
+                        placeholder="Ex: ACME Corp"
+                        required
+                      />
+                    </div>
+                  </div>
 
-              {/* Evaluation link and format */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="evaluationLink">Lien vers l'évaluation *</Label>
-                  <Input
-                    id="evaluationLink"
-                    type="url"
-                    value={evaluationLink}
-                    onChange={(e) => setEvaluationLink(e.target.value)}
-                    placeholder="https://..."
-                    required
-                  />
-                </div>
+                  {/* Evaluation link and format */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="evaluationLink">Lien vers l'évaluation *</Label>
+                      <Input
+                        id="evaluationLink"
+                        type="url"
+                        value={evaluationLink}
+                        onChange={(e) => setEvaluationLink(e.target.value)}
+                        placeholder="https://..."
+                        required
+                      />
+                    </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="format">Format de formation</Label>
-                  <Select value={formatFormation} onValueChange={setFormatFormation}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sélectionner un format" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="intra">Intra-entreprise</SelectItem>
-                      <SelectItem value="inter-entreprises">Inter-entreprises</SelectItem>
-                      <SelectItem value="classe_virtuelle">Classe virtuelle</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+                    <div className="space-y-2">
+                      <Label htmlFor="format">Format de formation</Label>
+                      <Select value={formatFormation} onValueChange={setFormatFormation}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Sélectionner un format" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="intra">Intra-entreprise</SelectItem>
+                          <SelectItem value="inter-entreprises">Inter-entreprises</SelectItem>
+                          <SelectItem value="classe_virtuelle">Classe virtuelle</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
 
-          {/* Sponsor/Commanditaire */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Commanditaire</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="sponsorFirstName">Prénom</Label>
-                  <Input
-                    id="sponsorFirstName"
-                    value={sponsorFirstName}
-                    onChange={(e) => setSponsorFirstName(e.target.value)}
-                    placeholder="Ex: Jean"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="sponsorLastName">Nom</Label>
-                  <Input
-                    id="sponsorLastName"
-                    value={sponsorLastName}
-                    onChange={(e) => setSponsorLastName(e.target.value)}
-                    placeholder="Ex: Dupont"
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="sponsorEmail">Email</Label>
-                <Input
-                  id="sponsorEmail"
-                  type="email"
-                  value={sponsorEmail}
-                  onChange={(e) => setSponsorEmail(e.target.value)}
-                  placeholder="jean.dupont@entreprise.fr"
+              {/* Sponsor/Commanditaire */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Commanditaire</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="sponsorFirstName">Prénom</Label>
+                      <Input
+                        id="sponsorFirstName"
+                        value={sponsorFirstName}
+                        onChange={(e) => setSponsorFirstName(e.target.value)}
+                        placeholder="Ex: Jean"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="sponsorLastName">Nom</Label>
+                      <Input
+                        id="sponsorLastName"
+                        value={sponsorLastName}
+                        onChange={(e) => setSponsorLastName(e.target.value)}
+                        placeholder="Ex: Dupont"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="sponsorEmail">Email</Label>
+                    <Input
+                      id="sponsorEmail"
+                      type="email"
+                      value={sponsorEmail}
+                      onChange={(e) => setSponsorEmail(e.target.value)}
+                      placeholder="jean.dupont@entreprise.fr"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Schedules */}
+              {startDate && schedules.length > 0 && (
+                <ScheduleEditor
+                  schedules={schedules}
+                  onSchedulesChange={setSchedules}
                 />
-              </div>
-            </CardContent>
-          </Card>
+              )}
 
-          {/* Schedules */}
-          {startDate && schedules.length > 0 && (
-            <ScheduleEditor
-              schedules={schedules}
-              onSchedulesChange={setSchedules}
-            />
-          )}
+              {/* Prerequisites */}
+              <PrerequisitesEditor
+                prerequisites={prerequisites}
+                onPrerequisitesChange={setPrerequisites}
+              />
+            </div>
 
-          {/* Prerequisites */}
-          <PrerequisitesEditor
-            prerequisites={prerequisites}
-            onPrerequisitesChange={setPrerequisites}
-          />
+            {/* Right Column */}
+            <div className="space-y-6">
+              {/* Program */}
+              <ProgramSelector
+                programFileUrl={programFileUrl}
+                onProgramChange={setProgramFileUrl}
+                onObjectivesExtracted={(extracted) => {
+                  setObjectives((prev) => {
+                    const combined = [...prev, ...extracted];
+                    return [...new Set(combined)];
+                  });
+                }}
+                onPrerequisitesExtracted={(extracted) => {
+                  setPrerequisites((prev) => {
+                    const combined = [...prev, ...extracted];
+                    return [...new Set(combined)];
+                  });
+                }}
+                userId={user?.id || ""}
+              />
 
-          {/* Program */}
-          <ProgramSelector
-            programFileUrl={programFileUrl}
-            onProgramChange={setProgramFileUrl}
-            onObjectivesExtracted={(extracted) => {
-              setObjectives((prev) => {
-                const combined = [...prev, ...extracted];
-                return [...new Set(combined)];
-              });
-            }}
-            onPrerequisitesExtracted={(extracted) => {
-              setPrerequisites((prev) => {
-                const combined = [...prev, ...extracted];
-                return [...new Set(combined)];
-              });
-            }}
-            userId={user?.id || ""}
-          />
+              {/* Objectives */}
+              <ObjectivesEditor
+                objectives={objectives}
+                onObjectivesChange={setObjectives}
+              />
 
-          {/* Documents */}
-          <DocumentsManager
-            trainingId={id || ""}
-            invoiceFileUrl={invoiceFileUrl}
-            attendanceSheetsUrls={attendanceSheetsUrls}
-            sponsorEmail={sponsorEmail || null}
-            sponsorName={sponsorFirstName && sponsorLastName ? `${sponsorFirstName} ${sponsorLastName}` : null}
-            onDocumentsChange={(invoice, sheets) => {
-              setInvoiceFileUrl(invoice);
-              setAttendanceSheetsUrls(sheets);
-            }}
-          />
-
-          {/* Objectives */}
-          <ObjectivesEditor
-            objectives={objectives}
-            onObjectivesChange={setObjectives}
-          />
+              {/* Documents */}
+              <DocumentsManager
+                trainingId={id || ""}
+                invoiceFileUrl={invoiceFileUrl}
+                attendanceSheetsUrls={attendanceSheetsUrls}
+                sponsorEmail={sponsorEmail || null}
+                sponsorName={sponsorFirstName && sponsorLastName ? `${sponsorFirstName} ${sponsorLastName}` : null}
+                supportsUrl={supportsUrl || null}
+                onDocumentsChange={(invoice, sheets) => {
+                  setInvoiceFileUrl(invoice);
+                  setAttendanceSheetsUrls(sheets);
+                }}
+                onSupportsUrlChange={setSupportsUrl}
+              />
+            </div>
+          </div>
 
           {/* Submit */}
           <div className="flex justify-end gap-4">
