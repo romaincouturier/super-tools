@@ -153,9 +153,8 @@ serve(async (req) => {
         .eq("id", questionnaire.data.id);
     }
 
-    // Build questionnaire URL
-    const baseUrl = Deno.env.get("SUPABASE_URL")?.replace(".supabase.co", ".lovableproject.com") 
-      || "https://189bb4e6-abb7-4be6-96a9-7ff350879011.lovableproject.com";
+    // Build questionnaire URL - use published domain
+    const baseUrl = "https://super-tools.lovable.app";
     const questionnaireUrl = `${baseUrl}/questionnaire/${token}`;
 
     // Get signature
