@@ -22,7 +22,6 @@ import PrerequisitesEditor from "@/components/formations/PrerequisitesEditor";
 import ProgramSelector from "@/components/formations/ProgramSelector";
 import ObjectivesEditor from "@/components/formations/ObjectivesEditor";
 import TrainingNameCombobox from "@/components/formations/TrainingNameCombobox";
-import DocumentsManager from "@/components/formations/DocumentsManager";
 
 interface Schedule {
   day_date: string;
@@ -56,11 +55,6 @@ const FormationEdit = () => {
   const [sponsorFirstName, setSponsorFirstName] = useState("");
   const [sponsorLastName, setSponsorLastName] = useState("");
   const [sponsorEmail, setSponsorEmail] = useState("");
-
-  // Documents
-  const [invoiceFileUrl, setInvoiceFileUrl] = useState<string | null>(null);
-  const [attendanceSheetsUrls, setAttendanceSheetsUrls] = useState<string[]>([]);
-  const [supportsUrl, setSupportsUrl] = useState<string>("");
 
   // Track if data has been loaded (to prevent schedule regeneration)
   const [dataLoaded, setDataLoaded] = useState(false);
@@ -116,9 +110,6 @@ const FormationEdit = () => {
       setSponsorFirstName(training.sponsor_first_name || "");
       setSponsorLastName(training.sponsor_last_name || "");
       setSponsorEmail(training.sponsor_email || "");
-      setInvoiceFileUrl(training.invoice_file_url || null);
-      setAttendanceSheetsUrls(training.attendance_sheets_urls || []);
-      setSupportsUrl(training.supports_url || "");
       
       const start = parseISO(training.start_date);
       setStartDate(start);
@@ -226,9 +217,6 @@ const FormationEdit = () => {
           sponsor_first_name: sponsorFirstName || null,
           sponsor_last_name: sponsorLastName || null,
           sponsor_email: sponsorEmail || null,
-          invoice_file_url: invoiceFileUrl,
-          attendance_sheets_urls: attendanceSheetsUrls,
-          supports_url: supportsUrl || null,
         })
         .eq("id", id);
 
@@ -549,21 +537,6 @@ const FormationEdit = () => {
               <ObjectivesEditor
                 objectives={objectives}
                 onObjectivesChange={setObjectives}
-              />
-
-              {/* Documents */}
-              <DocumentsManager
-                trainingId={id || ""}
-                invoiceFileUrl={invoiceFileUrl}
-                attendanceSheetsUrls={attendanceSheetsUrls}
-                sponsorEmail={sponsorEmail || null}
-                sponsorName={sponsorFirstName && sponsorLastName ? `${sponsorFirstName} ${sponsorLastName}` : null}
-                supportsUrl={supportsUrl || null}
-                onDocumentsChange={(invoice, sheets) => {
-                  setInvoiceFileUrl(invoice);
-                  setAttendanceSheetsUrls(sheets);
-                }}
-                onSupportsUrlChange={setSupportsUrl}
               />
             </div>
           </div>

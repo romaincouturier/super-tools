@@ -40,24 +40,27 @@ interface DocumentsManagerProps {
   sponsorEmail: string | null;
   sponsorName: string | null;
   supportsUrl: string | null;
-  onDocumentsChange: (invoice: string | null, sheets: string[]) => void;
-  onSupportsUrlChange: (url: string) => void;
+  onUpdate?: () => void;
 }
 
 const DocumentsManager = ({
   trainingId,
-  invoiceFileUrl,
-  attendanceSheetsUrls,
+  invoiceFileUrl: initialInvoiceUrl,
+  attendanceSheetsUrls: initialSheetsUrls,
   sponsorEmail,
   sponsorName,
-  supportsUrl,
-  onDocumentsChange,
-  onSupportsUrlChange,
+  supportsUrl: initialSupportsUrl,
+  onUpdate,
 }: DocumentsManagerProps) => {
+  const [invoiceFileUrl, setInvoiceFileUrl] = useState<string | null>(initialInvoiceUrl);
+  const [attendanceSheetsUrls, setAttendanceSheetsUrls] = useState<string[]>(initialSheetsUrls);
+  const [supportsUrl, setSupportsUrl] = useState<string>(initialSupportsUrl || "");
+  
   const [uploadingInvoice, setUploadingInvoice] = useState(false);
   const [uploadingSheet, setUploadingSheet] = useState(false);
   const [sendingDocuments, setSendingDocuments] = useState(false);
   const [sendingThankYou, setSendingThankYou] = useState(false);
+  const [savingSupportsUrl, setSavingSupportsUrl] = useState(false);
   const [customRecipientEmail, setCustomRecipientEmail] = useState("");
   const [showCustomRecipientDialog, setShowCustomRecipientDialog] = useState(false);
   const [pendingDocumentType, setPendingDocumentType] = useState<"invoice" | "sheets" | "all" | null>(null);
@@ -103,7 +106,16 @@ const DocumentsManager = ({
         .from("training-documents")
         .getPublicUrl(fileName);
 
-      onDocumentsChange(publicUrl, attendanceSheetsUrls);
+      // Save directly to database
+      const { error: updateError } = await supabase
+        .from("trainings")
+        .update({ invoice_file_url: publicUrl })
+        .eq("id", trainingId);
+
+      if (updateError) throw updateError;
+
+      setInvoiceFileUrl(publicUrl);
+      onUpdate?.();
 
       toast({
         title: "Facture uploadée",
@@ -152,7 +164,18 @@ const DocumentsManager = ({
         .from("training-documents")
         .getPublicUrl(fileName);
 
-      onDocumentsChange(invoiceFileUrl, [...attendanceSheetsUrls, publicUrl]);
+      const newSheetsUrls = [...attendanceSheetsUrls, publicUrl];
+
+      // Save directly to database
+      const { error: updateError } = await supabase
+        .from("trainings")
+        .update({ attendance_sheets_urls: newSheetsUrls })
+        .eq("id", trainingId);
+
+      if (updateError) throw updateError;
+
+      setAttendanceSheetsUrls(newSheetsUrls);
+      onUpdate?.();
 
       toast({
         title: "Feuille d'émargement uploadée",
@@ -181,7 +204,16 @@ const DocumentsManager = ({
           .remove([urlParts[1]]);
       }
 
-      onDocumentsChange(null, attendanceSheetsUrls);
+      // Save directly to database
+      const { error: updateError } = await supabase
+        .from("trainings")
+        .update({ invoice_file_url: null })
+        .eq("id", trainingId);
+
+      if (updateError) throw updateError;
+
+      setInvoiceFileUrl(null);
+      onUpdate?.();
 
       toast({
         title: "Facture supprimée",
@@ -206,10 +238,18 @@ const DocumentsManager = ({
           .remove([urlParts[1]]);
       }
 
-      onDocumentsChange(
-        invoiceFileUrl,
-        attendanceSheetsUrls.filter((url) => url !== sheetUrl)
-      );
+      const newSheetsUrls = attendanceSheetsUrls.filter((url) => url !== sheetUrl);
+
+      // Save directly to database
+      const { error: updateError } = await supabase
+        .from("trainings")
+        .update({ attendance_sheets_urls: newSheetsUrls })
+        .eq("id", trainingId);
+
+      if (updateError) throw updateError;
+
+      setAttendanceSheetsUrls(newSheetsUrls);
+      onUpdate?.();
 
       toast({
         title: "Feuille supprimée",
@@ -222,6 +262,36 @@ const DocumentsManager = ({
         description: "Impossible de supprimer le document.",
         variant: "destructive",
       });
+    }
+  };
+
+  const handleSupportsUrlBlur = async () => {
+    if (supportsUrl === (initialSupportsUrl || "")) return;
+    
+    setSavingSupportsUrl(true);
+    try {
+      const { error } = await supabase
+        .from("trainings")
+        .update({ supports_url: supportsUrl || null })
+        .eq("id", trainingId);
+
+      if (error) throw error;
+      
+      onUpdate?.();
+      
+      toast({
+        title: "Lien enregistré",
+        description: "Le lien vers les supports a été mis à jour.",
+      });
+    } catch (error: any) {
+      console.error("Save error:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible d'enregistrer le lien.",
+        variant: "destructive",
+      });
+    } finally {
+      setSavingSupportsUrl(false);
     }
   };
 
@@ -350,12 +420,17 @@ const DocumentsManager = ({
               <Link className="h-4 w-4" />
               Lien vers les supports de formation
             </Label>
-            <Input
-              type="url"
-              value={supportsUrl || ""}
-              onChange={(e) => onSupportsUrlChange(e.target.value)}
-              placeholder="https://drive.google.com/..."
-            />
+            <div className="flex items-center gap-2">
+              <Input
+                type="url"
+                value={supportsUrl}
+                onChange={(e) => setSupportsUrl(e.target.value)}
+                onBlur={handleSupportsUrlBlur}
+                placeholder="https://drive.google.com/..."
+                disabled={savingSupportsUrl}
+              />
+              {savingSupportsUrl && <Loader2 className="h-4 w-4 animate-spin" />}
+            </div>
           </div>
 
           {/* Invoice Section */}

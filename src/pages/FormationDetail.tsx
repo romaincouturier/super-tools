@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
-import { Loader2, ArrowLeft, Calendar, Users, FileText, ExternalLink, Edit2, User as UserIcon, Mail, Receipt, ClipboardList } from "lucide-react";
+import { Loader2, ArrowLeft, Calendar, Users, FileText, ExternalLink, Edit2, User as UserIcon, Mail } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import SupertiltLogo from "@/components/SupertiltLogo";
@@ -14,6 +14,7 @@ import { Separator } from "@/components/ui/separator";
 import ParticipantList from "@/components/formations/ParticipantList";
 import AddParticipantDialog from "@/components/formations/AddParticipantDialog";
 import BulkAddParticipantsDialog from "@/components/formations/BulkAddParticipantsDialog";
+import DocumentsManager from "@/components/formations/DocumentsManager";
 import ScheduledEmailsSummary from "@/components/formations/ScheduledEmailsSummary";
 
 interface Training {
@@ -34,6 +35,7 @@ interface Training {
   sponsor_email: string | null;
   invoice_file_url: string | null;
   attendance_sheets_urls: string[];
+  supports_url: string | null;
 }
 
 interface Schedule {
@@ -155,8 +157,8 @@ const FormationDetail = () => {
     return `Du ${format(start, "EEEE d MMMM", { locale: fr })} au ${format(end, "EEEE d MMMM yyyy", { locale: fr })}${timeRange}`;
   };
 
-  const getFormatLabel = (format: string | null) => {
-    switch (format) {
+  const getFormatLabel = (formatValue: string | null) => {
+    switch (formatValue) {
       case "intra":
         return "Intra-entreprise";
       case "inter-entreprises":
@@ -166,6 +168,15 @@ const FormationDetail = () => {
       default:
         return null;
     }
+  };
+
+  const getSponsorName = () => {
+    if (training?.sponsor_first_name && training?.sponsor_last_name) {
+      return `${training.sponsor_first_name} ${training.sponsor_last_name}`;
+    }
+    if (training?.sponsor_first_name) return training.sponsor_first_name;
+    if (training?.sponsor_last_name) return training.sponsor_last_name;
+    return null;
   };
 
   if (loading) {
@@ -184,7 +195,7 @@ const FormationDetail = () => {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="bg-foreground text-background py-4 px-6 shadow-lg">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <SupertiltLogo className="h-10" invert />
             <span className="text-xl font-bold">SuperTools</span>
@@ -194,7 +205,7 @@ const FormationDetail = () => {
       </header>
 
       {/* Main content */}
-      <main className="max-w-6xl mx-auto p-6">
+      <main className="max-w-7xl mx-auto p-6">
         {/* Back button and title */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-4">
@@ -305,8 +316,6 @@ const FormationDetail = () => {
               </Card>
             )}
 
-
-
             {/* Prerequisites card */}
             {training.prerequisites && training.prerequisites.length > 0 && (
               <Card>
@@ -338,9 +347,11 @@ const FormationDetail = () => {
                 </CardContent>
               </Card>
             )}
-
           </div>
-          <div className="lg:col-span-2">
+
+          {/* Right column - Participants, Documents, Emails */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Participants */}
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -374,6 +385,23 @@ const FormationDetail = () => {
                 />
               </CardContent>
             </Card>
+
+            {/* Documents and Communication */}
+            <DocumentsManager
+              trainingId={training.id}
+              invoiceFileUrl={training.invoice_file_url}
+              attendanceSheetsUrls={training.attendance_sheets_urls || []}
+              sponsorEmail={training.sponsor_email}
+              sponsorName={getSponsorName()}
+              supportsUrl={training.supports_url}
+              onUpdate={fetchTrainingData}
+            />
+
+            {/* Scheduled Emails */}
+            <ScheduledEmailsSummary
+              trainingId={training.id}
+              participants={participants}
+            />
           </div>
         </div>
       </main>
