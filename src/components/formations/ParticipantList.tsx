@@ -1,7 +1,8 @@
-import { HelpCircle, Mail, MailCheck, Clock, CheckCircle, AlertTriangle, Trash2, Loader2 } from "lucide-react";
+import { HelpCircle, Mail, MailCheck, Clock, CheckCircle, AlertTriangle, Trash2, Loader2, Send } from "lucide-react";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { differenceInDays, parseISO } from "date-fns";
 import {
   Table,
   TableBody,
@@ -42,6 +43,8 @@ interface Participant {
 
 interface ParticipantListProps {
   participants: Participant[];
+  trainingId: string;
+  trainingStartDate: string;
   onParticipantUpdated: () => void;
 }
 
@@ -120,9 +123,14 @@ const getStatusConfig = (status: string) => {
   }
 };
 
-const ParticipantList = ({ participants, onParticipantUpdated }: ParticipantListProps) => {
+const ParticipantList = ({ participants, trainingId, trainingStartDate, onParticipantUpdated }: ParticipantListProps) => {
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [sendingId, setSendingId] = useState<string | null>(null);
   const { toast } = useToast();
+
+  // Check if we're at J-2 or later
+  const daysUntilTraining = differenceInDays(parseISO(trainingStartDate), new Date());
+  const canSendManually = daysUntilTraining <= 2;
 
   const handleDelete = async (participant: Participant) => {
     setDeletingId(participant.id);
@@ -159,6 +167,40 @@ const ParticipantList = ({ participants, onParticipantUpdated }: ParticipantList
     }
   };
 
+  const handleSendSurvey = async (participant: Participant) => {
+    setSendingId(participant.id);
+    try {
+      const { error } = await supabase.functions.invoke("send-needs-survey", {
+        body: { participantId: participant.id, trainingId },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Questionnaire envoyé",
+        description: `Le questionnaire a été envoyé à ${participant.email}.`,
+      });
+
+      onParticipantUpdated();
+    } catch (error: any) {
+      console.error("Error sending survey:", error);
+      toast({
+        title: "Erreur",
+        description: error.message || "Impossible d'envoyer le questionnaire.",
+        variant: "destructive",
+      });
+    } finally {
+      setSendingId(null);
+    }
+  };
+
+  // Check if survey can be sent for a participant
+  const canSendSurveyFor = (participant: Participant) => {
+    const status = participant.needs_survey_status;
+    // Can send if manual mode, not sent, or needs to be resent
+    return canSendManually && (status === "manuel" || status === "non_envoye" || status === "programme");
+  };
+
   if (participants.length === 0) {
     return (
       <div className="text-center py-12 text-muted-foreground">
@@ -177,7 +219,7 @@ const ParticipantList = ({ participants, onParticipantUpdated }: ParticipantList
           <TableHead>Email</TableHead>
           <TableHead>Société</TableHead>
           <TableHead>Recueil des besoins</TableHead>
-          <TableHead className="w-12"></TableHead>
+          <TableHead className="w-24"></TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -214,40 +256,64 @@ const ParticipantList = ({ participants, onParticipantUpdated }: ParticipantList
                 </Tooltip>
               </TableCell>
               <TableCell>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                      disabled={deletingId === participant.id}
-                    >
-                      {deletingId === participant.id ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Trash2 className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Supprimer ce participant ?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        {displayName} sera définitivement retiré de cette formation.
-                        Ses réponses au questionnaire seront également supprimées.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Annuler</AlertDialogCancel>
-                      <AlertDialogAction
-                        onClick={() => handleDelete(participant)}
-                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                <div className="flex items-center gap-1">
+                  {canSendSurveyFor(participant) && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-primary"
+                          onClick={() => handleSendSurvey(participant)}
+                          disabled={sendingId === participant.id}
+                        >
+                          {sendingId === participant.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Send className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Envoyer le questionnaire</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                        disabled={deletingId === participant.id}
                       >
-                        Supprimer
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
+                        {deletingId === participant.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Supprimer ce participant ?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          {displayName} sera définitivement retiré de cette formation.
+                          Ses réponses au questionnaire seront également supprimées.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Annuler</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => handleDelete(participant)}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          Supprimer
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
               </TableCell>
             </TableRow>
           );
