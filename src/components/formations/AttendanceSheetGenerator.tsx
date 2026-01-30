@@ -258,16 +258,32 @@ export default function AttendanceSheetGenerator({
       // Add signature image
       doc.addImage(signatureBase64, "JPEG", margin, yPos + 2, 40, 20);
 
-      // Open print dialog
+      // Download and open print dialog using iframe instead of window.open (avoids popup blockers)
       const pdfBlob = doc.output("blob");
       const pdfUrl = URL.createObjectURL(pdfBlob);
-      const printWindow = window.open(pdfUrl, "_blank");
-
-      if (printWindow) {
-        printWindow.addEventListener("load", () => {
-          printWindow.print();
-        });
-      }
+      
+      // Create hidden iframe for printing
+      const iframe = document.createElement("iframe");
+      iframe.style.position = "fixed";
+      iframe.style.right = "0";
+      iframe.style.bottom = "0";
+      iframe.style.width = "0";
+      iframe.style.height = "0";
+      iframe.style.border = "none";
+      iframe.src = pdfUrl;
+      
+      document.body.appendChild(iframe);
+      
+      iframe.onload = () => {
+        setTimeout(() => {
+          iframe.contentWindow?.print();
+          // Clean up after a delay
+          setTimeout(() => {
+            document.body.removeChild(iframe);
+            URL.revokeObjectURL(pdfUrl);
+          }, 1000);
+        }, 500);
+      };
     } catch (error) {
       console.error("Error generating PDF:", error);
     } finally {
@@ -275,8 +291,15 @@ export default function AttendanceSheetGenerator({
     }
   };
 
+  const isDisabled = generating || participants.length === 0;
+
   return (
-    <Button variant="outline" onClick={generatePDF} disabled={generating}>
+    <Button 
+      variant="outline" 
+      onClick={generatePDF} 
+      disabled={isDisabled}
+      title={participants.length === 0 ? "Ajoutez des participants pour générer la feuille" : undefined}
+    >
       {generating ? (
         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
       ) : (
