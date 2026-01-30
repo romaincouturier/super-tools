@@ -1,11 +1,20 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { randomBytes, createHash } from "https://deno.land/std@0.168.0/node/crypto.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
 };
+
+// Generate a secure token for evaluation access
+function generateEvaluationToken(): string {
+  const uuid = crypto.randomUUID();
+  const randomPart = randomBytes(8).toString("hex");
+  const hash = createHash("sha256").update(uuid + randomPart).digest("hex").slice(0, 16);
+  return `${uuid}-${hash}`;
+}
 
 // Fetch Signitic signature for romain@supertilt.fr
 async function getSigniticSignature(): Promise<string> {
@@ -98,69 +107,111 @@ serve(async (req) => {
     // Get Signitic signature
     const signature = await getSigniticSignature();
 
-    // Build email content
     const trainingName = training.training_name;
-    const evaluationLink = training.evaluation_link;
     const supportsUrl = training.supports_url || "";
+    
+    // Base URL for evaluation links
+    const baseUrl = "https://super-tools.lovable.app";
 
-    const supportsSection = supportsUrl 
-      ? `<p>Vous trouverez également tous les supports de la formation ici, pour continuer à pratiquer et intégrer ces techniques dans vos présentations :</p>
-         <p><a href="${supportsUrl}" style="color: #0066cc; text-decoration: underline;">Accéder aux supports de formation</a></p>`
-      : "";
+    // Create evaluations and send individual emails to each participant
+    const emailPromises = participants.map(async (participant: any) => {
+      // Check if evaluation already exists
+      const { data: existingEval } = await supabase
+        .from("training_evaluations")
+        .select("id, token")
+        .eq("participant_id", participant.id)
+        .eq("training_id", trainingId)
+        .single();
 
-    const htmlContent = `
-      <p>Bonjour à toutes et à tous,</p>
-      
-      <p>Quelle belle journée de découverte visuelle nous avons partagé ! Merci pour votre énergie et votre participation pendant notre formation <strong>${trainingName}</strong>.</p>
-      
-      <p>Pour finaliser cette formation, j'ai besoin que vous preniez quelques minutes pour compléter le questionnaire d'évaluation.</p>
-      
-      <p><a href="${evaluationLink}" style="color: #0066cc; text-decoration: underline; font-weight: bold;">Accéder au questionnaire d'évaluation</a></p>
-      
-      ${supportsSection}
-      
-      <p>Je suis curieux de voir comment vous allez utiliser tout ce que nous avons vu ! N'hésitez pas à me contacter si vous avez des questions ou des besoins de compléments d'informations.</p>
-      
-      <p>Je vous souhaite une bonne journée</p>
-      
-      ${signature}
-    `;
+      let evaluationToken: string;
 
-    const subject = `Merci pour votre participation à la formation ${trainingName}`;
-    const recipientEmails = participants.map(p => p.email);
+      if (existingEval) {
+        evaluationToken = existingEval.token;
+      } else {
+        // Create a new evaluation record
+        evaluationToken = generateEvaluationToken();
+        
+        const { error: evalError } = await supabase
+          .from("training_evaluations")
+          .insert({
+            training_id: trainingId,
+            participant_id: participant.id,
+            token: evaluationToken,
+            email: participant.email,
+            first_name: participant.first_name,
+            last_name: participant.last_name,
+            company: participant.company,
+            etat: "envoye",
+            date_envoi: new Date().toISOString(),
+          });
 
-    console.log("Sending thank you email to:", recipientEmails.length, "participants");
-    console.log("Subject:", subject);
+        if (evalError) {
+          console.error("Failed to create evaluation for", participant.email, evalError);
+          throw evalError;
+        }
+      }
 
-    const emailResponse = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${RESEND_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from: "Romain Couturier <romain@supertilt.fr>",
-        to: recipientEmails,
-        bcc: ["romain@supertilt.fr", "supertilt@bcc.nocrm.io"],
-        subject,
-        html: htmlContent,
-      }),
+      const evaluationLink = `${baseUrl}/evaluation/${evaluationToken}`;
+      
+      const supportsSection = supportsUrl 
+        ? `<p>Vous trouverez également tous les supports de la formation ici, pour continuer à pratiquer et intégrer ces techniques dans vos présentations :</p>
+           <p><a href="${supportsUrl}" style="color: #0066cc; text-decoration: underline;">Accéder aux supports de formation</a></p>`
+        : "";
+
+      const htmlContent = `
+        <p>Bonjour${participant.first_name ? ` ${participant.first_name}` : ""},</p>
+        
+        <p>Quelle belle journée de découverte visuelle nous avons partagé ! Merci pour votre énergie et votre participation pendant notre formation <strong>${trainingName}</strong>.</p>
+        
+        <p>Pour finaliser cette formation, j'ai besoin que vous preniez quelques minutes pour compléter le questionnaire d'évaluation.</p>
+        
+        <p><a href="${evaluationLink}" style="color: #0066cc; text-decoration: underline; font-weight: bold;">Accéder au questionnaire d'évaluation</a></p>
+        
+        ${supportsSection}
+        
+        <p>Je suis curieux de voir comment vous allez utiliser tout ce que nous avons vu ! N'hésitez pas à me contacter si vous avez des questions ou des besoins de compléments d'informations.</p>
+        
+        <p>Je vous souhaite une bonne journée</p>
+        
+        ${signature}
+      `;
+
+      const subject = `Merci pour votre participation à la formation ${trainingName}`;
+
+      console.log("Sending thank you email to:", participant.email);
+
+      const emailResponse = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${RESEND_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          from: "Romain Couturier <romain@supertilt.fr>",
+          to: [participant.email],
+          bcc: ["romain@supertilt.fr", "supertilt@bcc.nocrm.io"],
+          subject,
+          html: htmlContent,
+        }),
+      });
+
+      if (!emailResponse.ok) {
+        const errorText = await emailResponse.text();
+        console.error("Resend error for", participant.email, ":", errorText);
+        throw new Error(`Failed to send email to ${participant.email}: ${emailResponse.status}`);
+      }
+
+      return { email: participant.email, success: true };
     });
 
-    if (!emailResponse.ok) {
-      const errorText = await emailResponse.text();
-      console.error("Resend error:", errorText);
-      throw new Error(`Failed to send email: ${emailResponse.status}`);
-    }
-
-    const result = await emailResponse.json();
-    console.log("Thank you email sent successfully:", result);
+    const results = await Promise.all(emailPromises);
+    console.log("Thank you emails sent successfully:", results.length);
 
     // Log activity for each recipient
     try {
-      const logInserts = recipientEmails.map((email: string) => ({
+      const logInserts = participants.map((p: any) => ({
         action_type: "thank_you_email_sent",
-        recipient_email: email,
+        recipient_email: p.email,
         details: {
           training_id: trainingId,
           training_name: trainingName,
@@ -174,8 +225,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: true, 
-        messageId: result.id,
-        recipientCount: recipientEmails.length 
+        recipientCount: participants.length 
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

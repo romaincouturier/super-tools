@@ -400,6 +400,120 @@ export type Database = {
           },
         ]
       }
+      training_evaluations: {
+        Row: {
+          amelioration_suggeree: string | null
+          appreciation_generale: number | null
+          appreciations_prises_en_compte: string | null
+          company: string | null
+          conditions_info_satisfaisantes: boolean | null
+          consent_publication: boolean | null
+          created_at: string
+          date_envoi: string | null
+          date_premiere_ouverture: string | null
+          date_soumission: string | null
+          delai_application: string | null
+          email: string | null
+          equilibre_theorie_pratique: string | null
+          etat: string
+          first_name: string | null
+          formation_adaptee_public: boolean | null
+          freins_application: string | null
+          id: string
+          last_name: string | null
+          message_recommandation: string | null
+          objectif_prioritaire: string | null
+          objectifs_evaluation: Json | null
+          participant_id: string
+          qualification_intervenant_adequate: boolean | null
+          recommandation: string | null
+          remarques_libres: string | null
+          rythme: string | null
+          token: string
+          training_id: string
+          updated_at: string
+        }
+        Insert: {
+          amelioration_suggeree?: string | null
+          appreciation_generale?: number | null
+          appreciations_prises_en_compte?: string | null
+          company?: string | null
+          conditions_info_satisfaisantes?: boolean | null
+          consent_publication?: boolean | null
+          created_at?: string
+          date_envoi?: string | null
+          date_premiere_ouverture?: string | null
+          date_soumission?: string | null
+          delai_application?: string | null
+          email?: string | null
+          equilibre_theorie_pratique?: string | null
+          etat?: string
+          first_name?: string | null
+          formation_adaptee_public?: boolean | null
+          freins_application?: string | null
+          id?: string
+          last_name?: string | null
+          message_recommandation?: string | null
+          objectif_prioritaire?: string | null
+          objectifs_evaluation?: Json | null
+          participant_id: string
+          qualification_intervenant_adequate?: boolean | null
+          recommandation?: string | null
+          remarques_libres?: string | null
+          rythme?: string | null
+          token: string
+          training_id: string
+          updated_at?: string
+        }
+        Update: {
+          amelioration_suggeree?: string | null
+          appreciation_generale?: number | null
+          appreciations_prises_en_compte?: string | null
+          company?: string | null
+          conditions_info_satisfaisantes?: boolean | null
+          consent_publication?: boolean | null
+          created_at?: string
+          date_envoi?: string | null
+          date_premiere_ouverture?: string | null
+          date_soumission?: string | null
+          delai_application?: string | null
+          email?: string | null
+          equilibre_theorie_pratique?: string | null
+          etat?: string
+          first_name?: string | null
+          formation_adaptee_public?: boolean | null
+          freins_application?: string | null
+          id?: string
+          last_name?: string | null
+          message_recommandation?: string | null
+          objectif_prioritaire?: string | null
+          objectifs_evaluation?: Json | null
+          participant_id?: string
+          qualification_intervenant_adequate?: boolean | null
+          recommandation?: string | null
+          remarques_libres?: string | null
+          rythme?: string | null
+          token?: string
+          training_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_evaluations_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "training_participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_evaluations_training_id_fkey"
+            columns: ["training_id"]
+            isOneToOne: false
+            referencedRelation: "trainings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       training_participants: {
         Row: {
           added_at: string
