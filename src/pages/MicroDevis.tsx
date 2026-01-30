@@ -226,17 +226,34 @@ const MicroDevis = () => {
         body: { siren },
       });
 
+      // Handle edge function errors (including 503 maintenance)
       if (response.error) {
-        throw new Error(response.error.message);
+        // Check if there's error data in the response body
+        const errorData = response.data;
+        if (errorData?.error) {
+          // Show warning toast for maintenance/temporary errors
+          toast({
+            title: "Service temporairement indisponible",
+            description: `${errorData.error} Vous pouvez saisir les informations manuellement.`,
+            variant: "default",
+          });
+        } else {
+          toast({
+            title: "Erreur de recherche",
+            description: "Impossible de contacter le service INSEE. Veuillez saisir les informations manuellement.",
+            variant: "default",
+          });
+        }
+        return;
       }
 
       const data = response.data;
       
       if (data.error) {
         toast({
-          title: "Erreur",
+          title: "Recherche SIREN",
           description: data.error,
-          variant: "destructive",
+          variant: "default",
         });
         return;
       }
@@ -259,11 +276,11 @@ const MicroDevis = () => {
       });
     } catch (error: unknown) {
       console.error("SIREN search error:", error);
-      const errorMessage = error instanceof Error ? error.message : "Erreur lors de la recherche";
+      // Non-blocking error - show warning and allow manual entry
       toast({
-        title: "Erreur",
-        description: errorMessage,
-        variant: "destructive",
+        title: "Recherche SIREN indisponible",
+        description: "Le service de recherche est temporairement indisponible. Vous pouvez saisir les informations manuellement.",
+        variant: "default",
       });
     } finally {
       setSearchingSiren(false);
