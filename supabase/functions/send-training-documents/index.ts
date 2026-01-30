@@ -6,6 +6,42 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+// Fetch Signitic signature
+async function getSigniticSignature(): Promise<string> {
+  try {
+    const SIGNITIC_API_KEY = Deno.env.get("SIGNITIC_API_KEY");
+    if (!SIGNITIC_API_KEY) {
+      console.warn("SIGNITIC_API_KEY not configured, using default signature");
+      return `<p style="margin-top: 20px; color: #666; font-size: 14px;">
+        <strong>Romain Arnoux</strong><br/>
+        Supertilt - Formation professionnelle<br/>
+        <a href="mailto:romain@supertilt.fr">romain@supertilt.fr</a>
+      </p>`;
+    }
+
+    const response = await fetch("https://api.signitic.com/v1/signature", {
+      headers: {
+        "Authorization": `Bearer ${SIGNITIC_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Signitic API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data.html || "";
+  } catch (error) {
+    console.error("Error fetching Signitic signature:", error);
+    return `<p style="margin-top: 20px; color: #666; font-size: 14px;">
+      <strong>Romain Arnoux</strong><br/>
+      Supertilt - Formation professionnelle<br/>
+      <a href="mailto:romain@supertilt.fr">romain@supertilt.fr</a>
+    </p>`;
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -33,6 +69,9 @@ serve(async (req) => {
       throw new Error("RESEND_API_KEY not configured");
     }
 
+    // Get Signitic signature
+    const signature = await getSigniticSignature();
+
     // Build email content based on document type
     let subject = "";
     let htmlContent = "";
@@ -46,7 +85,7 @@ serve(async (req) => {
         <p>${greeting}</p>
         <p>Veuillez trouver ci-joint la facture relative à votre formation.</p>
         <p>N'hésitez pas à nous contacter si vous avez des questions.</p>
-        <p>Cordialement,<br/>L'équipe Supertilt</p>
+        ${signature}
       `;
       attachments.push({
         filename: "Facture.pdf",
@@ -58,7 +97,7 @@ serve(async (req) => {
         <p>${greeting}</p>
         <p>Veuillez trouver ci-joint ${attendanceSheetsUrls.length > 1 ? "les feuilles d'émargement" : "la feuille d'émargement"} relative${attendanceSheetsUrls.length > 1 ? "s" : ""} à votre formation.</p>
         <p>N'hésitez pas à nous contacter si vous avez des questions.</p>
-        <p>Cordialement,<br/>L'équipe Supertilt</p>
+        ${signature}
       `;
       attendanceSheetsUrls.forEach((url: string, index: number) => {
         attachments.push({
@@ -76,7 +115,7 @@ serve(async (req) => {
           ${attendanceSheetsUrls?.length > 0 ? `<li>${attendanceSheetsUrls.length} feuille(s) d'émargement</li>` : ""}
         </ul>
         <p>N'hésitez pas à nous contacter si vous avez des questions.</p>
-        <p>Cordialement,<br/>L'équipe Supertilt</p>
+        ${signature}
       `;
       if (invoiceUrl) {
         attachments.push({
@@ -108,9 +147,9 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "Supertilt Formation <noreply@supertilt.fr>",
+        from: "Romain Arnoux <romain@supertilt.fr>",
         to: [recipientEmail],
-        bcc: ["romain@supertilt.fr"],
+        bcc: ["supertilt@bcc.nocrm.io"],
         subject,
         html: htmlContent,
         attachments,

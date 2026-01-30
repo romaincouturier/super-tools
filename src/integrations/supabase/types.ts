@@ -41,6 +41,39 @@ export type Database = {
         }
         Relationships: []
       }
+      email_templates: {
+        Row: {
+          created_at: string
+          html_content: string
+          id: string
+          is_default: boolean
+          subject: string
+          template_name: string
+          template_type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          html_content: string
+          id?: string
+          is_default?: boolean
+          subject: string
+          template_name: string
+          template_type: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          html_content?: string
+          id?: string
+          is_default?: boolean
+          subject?: string
+          template_name?: string
+          template_type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       formation_configs: {
         Row: {
           created_at: string
