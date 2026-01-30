@@ -305,42 +305,6 @@ const FormationDetail = () => {
               </Card>
             )}
 
-            {/* Documents card */}
-            {(training.invoice_file_url || training.attendance_sheets_urls?.length > 0) && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <FileText className="h-5 w-5" />
-                    Documents
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {training.invoice_file_url && (
-                    <a
-                      href={training.invoice_file_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 text-sm text-primary hover:underline"
-                    >
-                      <Receipt className="h-4 w-4" />
-                      Facture
-                    </a>
-                  )}
-                  {training.attendance_sheets_urls?.map((url, index) => (
-                    <a
-                      key={index}
-                      href={url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 text-sm text-primary hover:underline"
-                    >
-                      <ClipboardList className="h-4 w-4" />
-                      Feuille d'émargement {index + 1}
-                    </a>
-                  ))}
-                </CardContent>
-              </Card>
-            )}
 
 
             {/* Prerequisites card */}
