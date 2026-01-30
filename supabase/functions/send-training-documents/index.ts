@@ -87,7 +87,8 @@ serve(async (req) => {
     const attachments: Array<{ filename: string; path: string }> = [];
 
     const firstName = recipientName ? recipientName.split(" ")[0] : null;
-    const greeting = firstName ? `Bonjour ${firstName},` : "Bonjour,";
+    // Tutoiement: "Bonjour Prénom," / Vouvoiement: "Bonjour,"
+    const greeting = formalAddress ? "Bonjour," : (firstName ? `Bonjour ${firstName},` : "Bonjour,");
     
     // Generate phrases based on formal/informal address
     const hopePhrase = formalAddress 
