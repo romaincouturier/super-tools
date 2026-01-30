@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
-import { Loader2, Award, FileText, Calendar, ClipboardCheck, TrendingUp, Star } from "lucide-react";
+import { Loader2, Award, FileText, Calendar, ClipboardCheck, TrendingUp, Star, History } from "lucide-react";
 import SupertiltLogo from "@/components/SupertiltLogo";
 import UserMenu from "@/components/UserMenu";
 import OnboardCollaboratorDialog from "@/components/OnboardCollaboratorDialog";
@@ -55,6 +55,13 @@ const tools: Tool[] = [
     description: "Suivre les axes d'amélioration identifiés",
     icon: <TrendingUp className="w-10 h-10" />,
     path: "/ameliorations",
+  },
+  {
+    id: "historique",
+    name: "Historique",
+    description: "Consulter l'historique des actions",
+    icon: <History className="w-10 h-10" />,
+    path: "/historique",
   },
 ];
 
