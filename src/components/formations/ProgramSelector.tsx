@@ -112,9 +112,20 @@ const ProgramSelector = ({ programFileUrl, onProgramChange, onObjectivesExtracte
     setUploading(true);
 
     try {
-      // Upload to storage
+      // Sanitize filename: remove accents, special chars, replace spaces
+      const sanitizeFileName = (name: string): string => {
+        return name
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "") // Remove accents
+          .replace(/[()[\]{}]/g, "") // Remove brackets/parentheses
+          .replace(/\s+/g, "_") // Replace spaces with underscores
+          .replace(/[^a-zA-Z0-9_.-]/g, ""); // Keep only safe characters
+      };
+
       const fileExt = file.name.split(".").pop();
-      const fileName = `${Date.now()}_${file.name}`;
+      const baseName = file.name.replace(`.${fileExt}`, "");
+      const sanitizedName = sanitizeFileName(baseName);
+      const fileName = `${Date.now()}_${sanitizedName}.${fileExt}`;
       const filePath = `programs/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
