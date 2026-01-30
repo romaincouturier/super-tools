@@ -385,9 +385,9 @@ const Evaluation = () => {
                 Quelle est votre appréciation générale de cette formation ?
                 <span className="text-destructive ml-1">*</span>
               </Label>
-              <p className="text-xs text-muted-foreground">1 : insatisfait, 5 : très satisfait</p>
+              <p className="text-xs text-muted-foreground">5 : très satisfait, 1 : insatisfait</p>
               <div className="flex gap-2 flex-wrap">
-                {[1, 2, 3, 4, 5].map((n) => (
+                {[5, 4, 3, 2, 1].map((n) => (
                   <button
                     key={n}
                     type="button"
@@ -443,7 +443,7 @@ const Evaluation = () => {
                 <div key={index} className="space-y-2 pb-4 border-b last:border-0">
                   <Label className="text-sm">{obj.objectif}</Label>
                   <div className="flex gap-2">
-                    {[1, 2, 3, 4, 5].map((n) => (
+                    {[5, 4, 3, 2, 1].map((n) => (
                       <button
                         key={n}
                         type="button"
