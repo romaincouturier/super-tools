@@ -97,21 +97,21 @@ serve(async (req) => {
     const htmlContent = `
       <p>${greeting}</p>
       
-      <p>Je vous remercie d'avoir pris le temps de remplir le formulaire de recueil des besoins pour notre formation à venir. Nous sommes soucieux de proposer un environnement d'apprentissage adapté à chacun de nos participants.</p>
+      <p>Merci d'avoir pris le temps de remplir le formulaire de recueil des besoins pour notre formation à venir. Je suis soucieux de proposer un environnement d'apprentissage adapté à chacun de mes participants.</p>
 
-      <p>J'ai bien pris en compte votre besoin spécifique :</p>
+      <p>J'ai bien pris en compte ton besoin spécifique :</p>
       
       <blockquote style="background-color: #f9f9f9; padding: 15px; border-left: 4px solid #eab308; margin: 20px 0; font-style: italic;">
         ${accessibilityNeeds}
       </blockquote>
 
-      <p>Nous souhaitons vous offrir la meilleure expérience possible lors de cette formation et nous adapter au mieux à vos besoins.</p>
+      <p>Je souhaite t'offrir la meilleure expérience possible lors de cette formation et m'adapter au mieux à tes besoins.</p>
 
-      <p>À cet effet, pourriez-vous m'indiquer les adaptations nécessaires que nous pourrions mettre en place pour vous permettre de suivre la formation dans les meilleures conditions ? Par exemple, auriez-vous besoin d'un matériel particulier, d'aménagements horaires, d'un accompagnement spécifique, etc. ?</p>
+      <p>À cet effet, pourrais-tu m'indiquer les adaptations nécessaires que je pourrais mettre en place pour te permettre de suivre la formation dans les meilleures conditions ? Par exemple, aurais-tu besoin d'un matériel particulier, d'aménagements horaires, d'un accompagnement spécifique, etc. ?</p>
 
-      <p>Vos suggestions et recommandations nous seront précieuses pour préparer au mieux cette formation et vous garantir un apprentissage optimal.</p>
+      <p>Tes suggestions et recommandations me seront précieuses pour préparer au mieux cette formation et te garantir un apprentissage optimal.</p>
 
-      <p>Dans l'attente de votre retour, je reste à votre disposition pour toute question ou information complémentaire.</p>
+      <p>Dans l'attente de ton retour, je reste à ta disposition pour toute question ou information complémentaire.</p>
 
       <p>Bonne journée,</p>
       
