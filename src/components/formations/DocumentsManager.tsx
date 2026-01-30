@@ -508,7 +508,7 @@ const DocumentsManager = ({
 Quelle belle journée de découverte visuelle nous avons partagé ! Merci pour votre énergie et votre participation pendant notre formation "${trainingName}".
 
 Pour finaliser cette formation, j'ai besoin que vous preniez quelques minutes pour compléter le questionnaire d'évaluation :
-${evaluationLink}
+[Lien d'évaluation personnalisé]
 ${supportsSection}
 Je suis curieux de voir comment vous allez utiliser tout ce que nous avons vu ! N'hésitez pas à me contacter si vous avez des questions ou des besoins de compléments d'informations.
 
