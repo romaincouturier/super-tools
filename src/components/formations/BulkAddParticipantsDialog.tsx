@@ -138,7 +138,7 @@ const BulkAddParticipantsDialog = ({ trainingId, trainingStartDate, onParticipan
 
     try {
       // Determine initial status based on training proximity
-      const { status } = getEmailMode();
+      const { status, sendWelcomeNow } = getEmailMode();
 
       const toInsert = participants.map((p) => ({
         training_id: trainingId,
@@ -167,14 +167,33 @@ const BulkAddParticipantsDialog = ({ trainingId, trainingStartDate, onParticipan
         }
       }
 
+      // If we need to send welcome emails now (J-7 to J-2 window), trigger for each participant
+      if (sendWelcomeNow && data && data.length > 0) {
+        // Send welcome emails with a small delay between each to respect rate limits
+        for (const participant of data) {
+          try {
+            await supabase.functions.invoke("send-welcome-email", {
+              body: {
+                participantId: participant.id,
+                trainingId,
+              },
+            });
+            // Small delay between emails (500ms)
+            await new Promise(resolve => setTimeout(resolve, 500));
+          } catch (emailError) {
+            console.error("Failed to send welcome email to:", participant.email, emailError);
+          }
+        }
+      }
+
       const insertedCount = data?.length || 0;
       let statusMessage = "";
       if (status === "non_envoye") {
         statusMessage = "Formation passée - pas d'envoi programmé.";
       } else if (status === "manuel") {
         statusMessage = "Mode manuel activé (formation proche).";
-      } else if (status === "accueil_envoye") {
-        statusMessage = "Mail d'accueil envoyé.";
+      } else if (status === "accueil_envoye" || sendWelcomeNow) {
+        statusMessage = "Mails d'accueil envoyés.";
       } else {
         statusMessage = "Recueil des besoins programmé.";
       }
