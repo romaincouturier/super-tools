@@ -501,6 +501,7 @@ export type Database = {
           sponsor_first_name: string | null
           sponsor_last_name: string | null
           start_date: string
+          supports_url: string | null
           training_name: string
           updated_at: string
         }
@@ -522,6 +523,7 @@ export type Database = {
           sponsor_first_name?: string | null
           sponsor_last_name?: string | null
           start_date: string
+          supports_url?: string | null
           training_name: string
           updated_at?: string
         }
@@ -543,6 +545,7 @@ export type Database = {
           sponsor_first_name?: string | null
           sponsor_last_name?: string | null
           start_date?: string
+          supports_url?: string | null
           training_name?: string
           updated_at?: string
         }
