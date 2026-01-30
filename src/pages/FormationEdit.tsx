@@ -246,6 +246,18 @@ const FormationEdit = () => {
         if (schedulesError) throw schedulesError;
       }
 
+      // Log activity
+      await supabase.from("activity_logs").insert({
+        action_type: "training_updated",
+        recipient_email: user.email || "unknown",
+        user_id: user.id,
+        details: {
+          training_id: id,
+          training_name: trainingName,
+          client_name: clientName,
+        },
+      });
+
       toast({
         title: "Formation modifiée",
         description: "Les modifications ont été enregistrées.",

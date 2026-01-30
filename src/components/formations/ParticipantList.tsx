@@ -149,6 +149,16 @@ const ParticipantList = ({ participants, trainingId, trainingStartDate, onPartic
 
       if (error) throw error;
 
+      // Log activity
+      await supabase.from("activity_logs").insert({
+        action_type: "participant_removed",
+        recipient_email: participant.email,
+        details: {
+          training_id: trainingId,
+          participant_name: `${participant.first_name || ""} ${participant.last_name || ""}`.trim() || null,
+        },
+      });
+
       toast({
         title: "Participant supprimé",
         description: `${participant.email} a été retiré de la formation.`,

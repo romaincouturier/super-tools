@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
-import { Loader2, ArrowLeft, History, Award, FileText, RefreshCw, Search, X } from "lucide-react";
+import { Loader2, ArrowLeft, History, Award, FileText, RefreshCw, Search, X, Calendar, UserPlus, UserMinus, Send, Mail, Edit, Heart } from "lucide-react";
 import SupertiltLogo from "@/components/SupertiltLogo";
 import UserMenu from "@/components/UserMenu";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -36,6 +36,41 @@ const ACTION_LABELS: Record<string, { label: string; icon: React.ReactNode; vari
   micro_devis_sent: { 
     label: "Micro-devis envoyé", 
     icon: <FileText className="w-4 h-4" />,
+    variant: "secondary" 
+  },
+  training_created: { 
+    label: "Formation créée", 
+    icon: <Calendar className="w-4 h-4" />,
+    variant: "default" 
+  },
+  training_updated: { 
+    label: "Formation modifiée", 
+    icon: <Edit className="w-4 h-4" />,
+    variant: "outline" 
+  },
+  participant_added: { 
+    label: "Participant ajouté", 
+    icon: <UserPlus className="w-4 h-4" />,
+    variant: "secondary" 
+  },
+  participant_removed: { 
+    label: "Participant supprimé", 
+    icon: <UserMinus className="w-4 h-4" />,
+    variant: "outline" 
+  },
+  needs_survey_sent: { 
+    label: "Questionnaire envoyé", 
+    icon: <Send className="w-4 h-4" />,
+    variant: "secondary" 
+  },
+  training_documents_sent: { 
+    label: "Documents envoyés", 
+    icon: <Mail className="w-4 h-4" />,
+    variant: "default" 
+  },
+  thank_you_email_sent: { 
+    label: "Remerciement envoyé", 
+    icon: <Heart className="w-4 h-4" />,
     variant: "secondary" 
   },
 };
@@ -133,11 +168,25 @@ const Historique = () => {
     
     const parts: string[] = [];
     
+    if (details.training_name) {
+      parts.push(String(details.training_name));
+    }
     if (details.formation_name) {
       parts.push(String(details.formation_name));
     }
-    if (details.participant_name) {
+    if (details.participant_name && String(details.participant_name).trim()) {
       parts.push(String(details.participant_name));
+    }
+    if (details.client_name) {
+      parts.push(String(details.client_name));
+    }
+    if (details.document_type) {
+      const docTypes: Record<string, string> = {
+        invoice: "Facture",
+        sheets: "Feuilles d'émargement",
+        all: "Tous les documents",
+      };
+      parts.push(docTypes[String(details.document_type)] || String(details.document_type));
     }
     if (details.type_subrogation) {
       const subrogationLabels: Record<string, string> = {
