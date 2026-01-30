@@ -496,6 +496,7 @@ const FormationDetail = () => {
             trainingName={training.training_name}
             schedules={schedules}
             participantsCount={participants.length}
+            participants={participants}
           />
         </div>
       </main>

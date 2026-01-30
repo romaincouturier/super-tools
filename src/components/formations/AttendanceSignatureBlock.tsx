@@ -1,12 +1,20 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { format, parseISO, isToday, isBefore, isAfter, startOfDay, addDays } from "date-fns";
+import { format, parseISO, isBefore, isAfter, startOfDay, addDays } from "date-fns";
 import { fr } from "date-fns/locale";
-import { PenLine, Send, RefreshCw, Check, Loader2 } from "lucide-react";
+import { PenLine, Send, RefreshCw, Check, Loader2, Download, FileDown, ChevronDown } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface AttendanceSignatureBlockProps {
   trainingId: string;
@@ -18,6 +26,12 @@ interface AttendanceSignatureBlockProps {
     end_time: string;
   }>;
   participantsCount: number;
+  participants: Array<{
+    id: string;
+    first_name: string | null;
+    last_name: string | null;
+    email: string;
+  }>;
 }
 
 interface SignatureStatus {
@@ -33,10 +47,12 @@ const AttendanceSignatureBlock = ({
   trainingName,
   schedules,
   participantsCount,
+  participants,
 }: AttendanceSignatureBlockProps) => {
   const [signatureStatuses, setSignatureStatuses] = useState<SignatureStatus[]>([]);
   const [loading, setLoading] = useState(true);
   const [sendingSlot, setSendingSlot] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
   const { toast } = useToast();
 
   // Check if we should show this block (training is today or in the past week)
@@ -148,6 +164,49 @@ const AttendanceSignatureBlock = ({
     }
   };
 
+  const handleExportPdf = async (participantId?: string) => {
+    setExporting(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-attendance-pdf", {
+        body: {
+          trainingId,
+          participantId,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.html) {
+        // Open HTML in new window for printing
+        const printWindow = window.open("", "_blank");
+        if (printWindow) {
+          printWindow.document.write(data.html);
+          printWindow.document.close();
+          
+          // Auto-trigger print dialog after a short delay
+          setTimeout(() => {
+            printWindow.print();
+          }, 500);
+        }
+
+        toast({
+          title: "Export prêt",
+          description: "La feuille d'émargement s'ouvre dans un nouvel onglet.",
+        });
+      }
+    } catch (err) {
+      console.error("Error exporting attendance PDF:", err);
+      toast({
+        title: "Erreur",
+        description: "Une erreur est survenue lors de l'export.",
+        variant: "destructive",
+      });
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const formatSlotDate = (dateStr: string) => {
     const date = parseISO(dateStr);
     return format(date, "dd/MM", { locale: fr });
@@ -156,6 +215,15 @@ const AttendanceSignatureBlock = ({
   const getPeriodLabel = (period: "AM" | "PM") => {
     return period === "AM" ? "Matin" : "Après-midi";
   };
+
+  const getParticipantName = (p: { first_name: string | null; last_name: string | null; email: string }) => {
+    const name = `${p.first_name || ""} ${p.last_name || ""}`.trim();
+    return name || p.email;
+  };
+
+  // Calculate total signatures stats
+  const totalExpected = signatureStatuses.length * participantsCount;
+  const totalSigned = signatureStatuses.reduce((sum, s) => sum + s.totalSigned, 0);
 
   if (!shouldShowBlock() || loading) {
     if (loading) {
@@ -177,13 +245,52 @@ const AttendanceSignatureBlock = ({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <PenLine className="h-5 w-5" />
-          Émargement électronique
-        </CardTitle>
-        <CardDescription>
-          Envoyez les demandes de signature pour chaque demi-journée
-        </CardDescription>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <PenLine className="h-5 w-5" />
+              Émargement électronique
+            </CardTitle>
+            <CardDescription>
+              Envoyez les demandes de signature pour chaque demi-journée
+            </CardDescription>
+          </div>
+
+          {/* Export dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" disabled={exporting}>
+                {exporting ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Download className="h-4 w-4 mr-2" />
+                )}
+                Exporter PDF
+                <ChevronDown className="h-4 w-4 ml-1" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-64">
+              <DropdownMenuLabel>Exporter les émargements</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => handleExportPdf()}>
+                <FileDown className="h-4 w-4 mr-2" />
+                Toute la session ({totalSigned}/{totalExpected} signatures)
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel className="text-xs text-muted-foreground">
+                Par participant
+              </DropdownMenuLabel>
+              {participants.map((p) => (
+                <DropdownMenuItem
+                  key={p.id}
+                  onClick={() => handleExportPdf(p.id)}
+                >
+                  {getParticipantName(p)}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
