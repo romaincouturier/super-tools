@@ -368,6 +368,7 @@ const Questionnaire = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
+  // Auto-save timer (every 30 seconds)
   useEffect(() => {
     if (autosaveTimerRef.current) {
       window.clearInterval(autosaveTimerRef.current);
@@ -386,6 +387,164 @@ const Questionnaire = () => {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [saving, submitting, questionnaire?.id]);
+
+  // Save on visibility change (when user switches tabs or minimizes)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden" && dirtyRef.current && questionnaire && !saving && !submitting) {
+        // Use sendBeacon for reliable save when tab is being hidden
+        const nowIso = new Date().toISOString();
+        const payload = {
+          prenom: questionnaire.prenom,
+          nom: questionnaire.nom,
+          societe: questionnaire.societe,
+          fonction: questionnaire.fonction,
+          experience_sujet: questionnaire.experience_sujet,
+          experience_details: questionnaire.experience_details,
+          lecture_programme: questionnaire.lecture_programme,
+          prerequis_validation: questionnaire.prerequis_validation,
+          prerequis_details: questionnaire.prerequis_details,
+          competences_actuelles: questionnaire.competences_actuelles,
+          competences_visees: questionnaire.competences_visees,
+          lien_mission: questionnaire.lien_mission,
+          niveau_actuel: questionnaire.niveau_actuel,
+          niveau_motivation: questionnaire.niveau_motivation,
+          modalites_preferences: prerequisValidations,
+          contraintes_orga: questionnaire.contraintes_orga,
+          besoins_accessibilite: questionnaire.besoins_accessibilite,
+          necessite_amenagement: questionnaire.necessite_amenagement,
+          commentaires_libres: questionnaire.commentaires_libres,
+          consentement_rgpd: questionnaire.consentement_rgpd,
+          date_consentement_rgpd: questionnaire.consentement_rgpd
+            ? questionnaire.date_consentement_rgpd || nowIso
+            : null,
+          date_derniere_sauvegarde: nowIso,
+        };
+        
+        // Fallback: trigger async save (may not complete if tab closes immediately)
+        void saveDraft({ silent: true });
+        
+        // Also save to localStorage as backup
+        try {
+          localStorage.setItem(`questionnaire_draft_${questionnaire.id}`, JSON.stringify({
+            ...payload,
+            _savedAt: nowIso,
+          }));
+        } catch (e) {
+          console.warn("Failed to save to localStorage", e);
+        }
+      }
+    };
+
+    // Save before page unload
+    const handleBeforeUnload = () => {
+      if (dirtyRef.current && questionnaire) {
+        const nowIso = new Date().toISOString();
+        try {
+          localStorage.setItem(`questionnaire_draft_${questionnaire.id}`, JSON.stringify({
+            prenom: questionnaire.prenom,
+            nom: questionnaire.nom,
+            societe: questionnaire.societe,
+            fonction: questionnaire.fonction,
+            experience_sujet: questionnaire.experience_sujet,
+            experience_details: questionnaire.experience_details,
+            lecture_programme: questionnaire.lecture_programme,
+            prerequis_validation: questionnaire.prerequis_validation,
+            prerequis_details: questionnaire.prerequis_details,
+            competences_actuelles: questionnaire.competences_actuelles,
+            competences_visees: questionnaire.competences_visees,
+            lien_mission: questionnaire.lien_mission,
+            niveau_actuel: questionnaire.niveau_actuel,
+            niveau_motivation: questionnaire.niveau_motivation,
+            modalites_preferences: prerequisValidations,
+            contraintes_orga: questionnaire.contraintes_orga,
+            besoins_accessibilite: questionnaire.besoins_accessibilite,
+            necessite_amenagement: questionnaire.necessite_amenagement,
+            commentaires_libres: questionnaire.commentaires_libres,
+            consentement_rgpd: questionnaire.consentement_rgpd,
+            date_consentement_rgpd: questionnaire.consentement_rgpd
+              ? questionnaire.date_consentement_rgpd || nowIso
+              : null,
+            _savedAt: nowIso,
+          }));
+        } catch (e) {
+          console.warn("Failed to save to localStorage on unload", e);
+        }
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [questionnaire, saving, submitting, prerequisValidations]);
+
+  // Restore from localStorage if local draft is newer than DB
+  useEffect(() => {
+    if (!questionnaire) return;
+    
+    try {
+      const savedDraft = localStorage.getItem(`questionnaire_draft_${questionnaire.id}`);
+      if (savedDraft) {
+        const draft = JSON.parse(savedDraft);
+        const draftTime = new Date(draft._savedAt).getTime();
+        const dbTime = questionnaire.date_derniere_sauvegarde 
+          ? new Date(questionnaire.date_derniere_sauvegarde).getTime() 
+          : 0;
+        
+        // If local draft is newer than DB, restore it
+        if (draftTime > dbTime) {
+          setQuestionnaire((prev) => prev ? {
+            ...prev,
+            prenom: draft.prenom ?? prev.prenom,
+            nom: draft.nom ?? prev.nom,
+            societe: draft.societe ?? prev.societe,
+            fonction: draft.fonction ?? prev.fonction,
+            experience_sujet: draft.experience_sujet ?? prev.experience_sujet,
+            experience_details: draft.experience_details ?? prev.experience_details,
+            lecture_programme: draft.lecture_programme ?? prev.lecture_programme,
+            prerequis_validation: draft.prerequis_validation ?? prev.prerequis_validation,
+            prerequis_details: draft.prerequis_details ?? prev.prerequis_details,
+            competences_actuelles: draft.competences_actuelles ?? prev.competences_actuelles,
+            competences_visees: draft.competences_visees ?? prev.competences_visees,
+            lien_mission: draft.lien_mission ?? prev.lien_mission,
+            niveau_actuel: draft.niveau_actuel ?? prev.niveau_actuel,
+            niveau_motivation: draft.niveau_motivation ?? prev.niveau_motivation,
+            contraintes_orga: draft.contraintes_orga ?? prev.contraintes_orga,
+            besoins_accessibilite: draft.besoins_accessibilite ?? prev.besoins_accessibilite,
+            necessite_amenagement: draft.necessite_amenagement ?? prev.necessite_amenagement,
+            commentaires_libres: draft.commentaires_libres ?? prev.commentaires_libres,
+            consentement_rgpd: draft.consentement_rgpd ?? prev.consentement_rgpd,
+          } : prev);
+          
+          if (draft.modalites_preferences) {
+            setPrerequisValidations(draft.modalites_preferences);
+          }
+          
+          // Mark as dirty so it gets synced to DB
+          dirtyRef.current = true;
+          
+          // Clean up localStorage after restoring
+          localStorage.removeItem(`questionnaire_draft_${questionnaire.id}`);
+          
+          toast({
+            title: "Brouillon restauré",
+            description: "Vos réponses non sauvegardées ont été récupérées.",
+          });
+        } else {
+          // DB is newer, remove stale localStorage
+          localStorage.removeItem(`questionnaire_draft_${questionnaire.id}`);
+        }
+      }
+    } catch (e) {
+      console.warn("Failed to restore from localStorage", e);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [questionnaire?.id]);
 
   const formatScheduleDate = (dateStr: string) => {
     try {
