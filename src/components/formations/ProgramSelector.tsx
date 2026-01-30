@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Upload, FileText, Check, Loader2 } from "lucide-react";
+import { Upload, FileText, Check, Loader2, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,14 +20,52 @@ interface ProgramFile {
 interface ProgramSelectorProps {
   programFileUrl: string;
   onProgramChange: (url: string) => void;
+  onObjectivesExtracted?: (objectives: string[]) => void;
   userId: string;
 }
 
-const ProgramSelector = ({ programFileUrl, onProgramChange, userId }: ProgramSelectorProps) => {
+const ProgramSelector = ({ programFileUrl, onProgramChange, onObjectivesExtracted, userId }: ProgramSelectorProps) => {
   const [programFiles, setProgramFiles] = useState<ProgramFile[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [extractingObjectives, setExtractingObjectives] = useState(false);
   const [loadingFiles, setLoadingFiles] = useState(true);
   const { toast } = useToast();
+
+  const extractObjectivesFromPdf = async (pdfUrl: string) => {
+    if (!onObjectivesExtracted) return;
+    
+    setExtractingObjectives(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("extract-objectives-from-pdf", {
+        body: { pdfUrl },
+      });
+
+      if (error) throw error;
+
+      if (data?.objectives && Array.isArray(data.objectives) && data.objectives.length > 0) {
+        onObjectivesExtracted(data.objectives);
+        toast({
+          title: "Objectifs extraits",
+          description: `${data.objectives.length} objectif(s) extrait(s) du programme. Vous pouvez les modifier.`,
+        });
+      } else {
+        toast({
+          title: "Aucun objectif trouvé",
+          description: "L'IA n'a pas pu extraire d'objectifs du PDF. Ajoutez-les manuellement.",
+          variant: "default",
+        });
+      }
+    } catch (error: unknown) {
+      console.error("Error extracting objectives:", error);
+      toast({
+        title: "Extraction impossible",
+        description: "Impossible d'extraire les objectifs automatiquement. Ajoutez-les manuellement.",
+        variant: "default",
+      });
+    } finally {
+      setExtractingObjectives(false);
+    }
+  };
 
   useEffect(() => {
     fetchProgramFiles();
@@ -178,17 +216,41 @@ const ProgramSelector = ({ programFileUrl, onProgramChange, userId }: ProgramSel
               </div>
 
               {programFileUrl && (
-                <div className="flex items-center gap-2 p-3 bg-primary/10 rounded-lg">
-                  <Check className="h-4 w-4 text-primary" />
-                  <span className="text-sm flex-1 truncate">Programme sélectionné</span>
-                  <a
-                    href={programFileUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm text-primary hover:underline"
-                  >
-                    Voir
-                  </a>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 p-3 bg-primary/10 rounded-lg">
+                    <Check className="h-4 w-4 text-primary" />
+                    <span className="text-sm flex-1 truncate">Programme sélectionné</span>
+                    <a
+                      href={programFileUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-primary hover:underline"
+                    >
+                      Voir
+                    </a>
+                  </div>
+                  
+                  {onObjectivesExtracted && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => extractObjectivesFromPdf(programFileUrl)}
+                      disabled={extractingObjectives}
+                    >
+                      {extractingObjectives ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Extraction des objectifs...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="h-4 w-4 mr-2" />
+                          Extraire les objectifs avec l'IA
+                        </>
+                      )}
+                    </Button>
+                  )}
                 </div>
               )}
             </div>
