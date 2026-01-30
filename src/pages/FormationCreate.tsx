@@ -47,6 +47,7 @@ const FormationCreate = () => {
   const [prerequisites, setPrerequisites] = useState<string[]>([]);
   const [objectives, setObjectives] = useState<string[]>([]);
   const [programFileUrl, setProgramFileUrl] = useState<string>("");
+  const [supertiltLink, setSupertiltLink] = useState<string>("");
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   
   // Sponsor/Commanditaire
@@ -153,6 +154,7 @@ const FormationCreate = () => {
           prerequisites,
           objectives,
           program_file_url: programFileUrl || null,
+          supertilt_link: supertiltLink || null,
           sponsor_first_name: sponsorFirstName || null,
           sponsor_last_name: sponsorLastName || null,
           sponsor_email: sponsorEmail || null,
@@ -386,6 +388,18 @@ const FormationCreate = () => {
                     <SelectItem value="classe_virtuelle">Classe virtuelle</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+
+              {/* SuperTilt Link */}
+              <div className="space-y-2">
+                <Label htmlFor="supertiltLink">Lien SuperTilt de la formation</Label>
+                <Input
+                  id="supertiltLink"
+                  type="url"
+                  value={supertiltLink}
+                  onChange={(e) => setSupertiltLink(e.target.value)}
+                  placeholder="https://supertilt.fr/formations/..."
+                />
               </div>
             </CardContent>
           </Card>
