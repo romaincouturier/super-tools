@@ -75,6 +75,7 @@ const Questionnaire = () => {
   const [training, setTraining] = useState<TrainingRecord | null>(null);
   const [schedules, setSchedules] = useState<ScheduleRecord[]>([]);
   const [prerequisValidations, setPrerequisValidations] = useState<Record<string, string>>({});
+  const [editingAfterSubmit, setEditingAfterSubmit] = useState(false);
 
   const dirtyRef = useRef(false);
   const autosaveTimerRef = useRef<number | null>(null);
@@ -584,20 +585,28 @@ const Questionnaire = () => {
     );
   }
 
-  // Already submitted
-  if (questionnaire.etat === "complete") {
+  // Already submitted - show confirmation with option to edit
+  if (questionnaire.etat === "complete" && !editingAfterSubmit) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-6">
         <Card className="w-full max-w-lg">
           <CardHeader className="text-center">
-            <CheckCircle2 className="w-16 h-16 text-green-500 mx-auto mb-4" />
+            <CheckCircle2 className="w-16 h-16 text-primary mx-auto mb-4" />
             <CardTitle>Questionnaire envoyé !</CardTitle>
             <CardDescription>
               Merci d'avoir complété le questionnaire de recueil des besoins pour la formation "{training?.training_name}".
             </CardDescription>
           </CardHeader>
-          <CardContent className="text-center text-muted-foreground">
-            <p>Vos réponses ont bien été enregistrées et seront utilisées pour adapter la formation à vos attentes.</p>
+          <CardContent className="space-y-4 text-center">
+            <p className="text-muted-foreground">
+              Vos réponses ont bien été enregistrées et seront utilisées pour adapter la formation à vos attentes.
+            </p>
+            <Button
+              variant="outline"
+              onClick={() => setEditingAfterSubmit(true)}
+            >
+              Modifier mes réponses
+            </Button>
           </CardContent>
         </Card>
       </div>
