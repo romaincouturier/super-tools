@@ -393,17 +393,24 @@ const FormationCreate = () => {
             onPrerequisitesChange={setPrerequisites}
           />
 
+          {/* Program - placed before objectives so extraction can populate them */}
+          <ProgramSelector
+            programFileUrl={programFileUrl}
+            onProgramChange={setProgramFileUrl}
+            onObjectivesExtracted={(extracted) => {
+              // Merge with existing objectives, avoiding duplicates
+              setObjectives((prev) => {
+                const combined = [...prev, ...extracted];
+                return [...new Set(combined)];
+              });
+            }}
+            userId={user?.id || ""}
+          />
+
           {/* Objectives */}
           <ObjectivesEditor
             objectives={objectives}
             onObjectivesChange={setObjectives}
-          />
-
-          {/* Program */}
-          <ProgramSelector
-            programFileUrl={programFileUrl}
-            onProgramChange={setProgramFileUrl}
-            userId={user?.id || ""}
           />
 
           {/* Submit */}
