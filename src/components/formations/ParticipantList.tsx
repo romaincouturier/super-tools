@@ -1,4 +1,7 @@
-import { HelpCircle, Mail, MailCheck, Clock, CheckCircle, AlertTriangle } from "lucide-react";
+import { HelpCircle, Mail, MailCheck, Clock, CheckCircle, AlertTriangle, Trash2, Loader2 } from "lucide-react";
+import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import {
   Table,
   TableBody,
@@ -8,11 +11,23 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface Participant {
   id: string;
@@ -85,6 +100,44 @@ const getStatusConfig = (status: string) => {
 };
 
 const ParticipantList = ({ participants, onParticipantUpdated }: ParticipantListProps) => {
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const { toast } = useToast();
+
+  const handleDelete = async (participant: Participant) => {
+    setDeletingId(participant.id);
+    try {
+      // Delete related questionnaire_besoins first (if any)
+      await supabase
+        .from("questionnaire_besoins")
+        .delete()
+        .eq("participant_id", participant.id);
+
+      // Delete the participant
+      const { error } = await supabase
+        .from("training_participants")
+        .delete()
+        .eq("id", participant.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Participant supprimé",
+        description: `${participant.email} a été retiré de la formation.`,
+      });
+
+      onParticipantUpdated();
+    } catch (error: any) {
+      console.error("Error deleting participant:", error);
+      toast({
+        title: "Erreur",
+        description: error.message || "Impossible de supprimer le participant.",
+        variant: "destructive",
+      });
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   if (participants.length === 0) {
     return (
       <div className="text-center py-12 text-muted-foreground">
@@ -103,12 +156,16 @@ const ParticipantList = ({ participants, onParticipantUpdated }: ParticipantList
           <TableHead>Email</TableHead>
           <TableHead>Société</TableHead>
           <TableHead>Recueil des besoins</TableHead>
+          <TableHead className="w-12"></TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         {participants.map((participant) => {
           const statusConfig = getStatusConfig(participant.needs_survey_status);
           const StatusIcon = statusConfig.icon;
+          const displayName = participant.first_name || participant.last_name
+            ? `${participant.first_name || ""} ${participant.last_name || ""}`.trim()
+            : participant.email;
 
           return (
             <TableRow key={participant.id}>
@@ -134,6 +191,42 @@ const ParticipantList = ({ participants, onParticipantUpdated }: ParticipantList
                     <p>{statusConfig.tooltip}</p>
                   </TooltipContent>
                 </Tooltip>
+              </TableCell>
+              <TableCell>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                      disabled={deletingId === participant.id}
+                    >
+                      {deletingId === participant.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Supprimer ce participant ?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        {displayName} sera définitivement retiré de cette formation.
+                        Ses réponses au questionnaire seront également supprimées.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Annuler</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => handleDelete(participant)}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        Supprimer
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </TableCell>
             </TableRow>
           );
