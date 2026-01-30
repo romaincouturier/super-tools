@@ -1,115 +1,259 @@
 
-# Réorganisation des blocs Documents et Emails programmés
+# Plan : Émargement électronique
 
-## Objectif
-Déplacer les blocs "Documents et communication" et "Emails programmés" de la page d'édition vers la page de visualisation d'une formation.
+## Contexte
 
-## Changements prévus
+L'objectif est de créer un système d'émargement électronique permettant aux participants de signer leur présence numériquement pour chaque demi-journée de formation, avec une signature reconnue légalement en France (conformément au règlement eIDAS).
 
-### 1. Page de visualisation (`FormationDetail.tsx`)
-
-**Ajouter les éléments suivants dans la colonne de droite (après les participants) :**
-
-- **Bloc "Documents et communication"** : Upload facture, feuilles d'émargement, lien supports, envoi de documents au commanditaire ou autre destinataire, envoi du mail de remerciement aux participants
-- **Bloc "Emails programmés"** : Synthèse des emails automatisés (bienvenue, questionnaire besoins, rappels, etc.)
-
-**Données à récupérer depuis la base :**
-- `supports_url` (déjà dans le training mais pas dans l'interface Training)
-- Les documents sont déjà chargés (`invoice_file_url`, `attendance_sheets_urls`)
-
-### 2. Page d'édition (`FormationEdit.tsx`)
-
-**Retirer les éléments suivants :**
-- Le composant `DocumentsManager`
-- Les states associés (`invoiceFileUrl`, `attendanceSheetsUrls`, `supportsUrl`)
-- Les champs dans le formulaire de soumission liés aux documents (garder juste les données de base de la formation)
-
-### 3. Adaptation du composant `DocumentsManager`
-
-Le composant doit pouvoir :
-- Mettre à jour directement en base (pas via un formulaire parent)
-- Appeler `supabase.from("trainings").update(...)` après chaque upload/suppression
-- Rafraîchir les données après modification
-
-### 4. Nouvelle disposition de la page de visualisation
+## Vue d'ensemble de la fonctionnalité
 
 ```text
-+------------------+------------------------------------+
-|   Informations   |     Participants                   |
-+------------------+------------------------------------+
-|  Commanditaire   |     Documents et communication     |
-+------------------+------------------------------------+
-|    Prérequis     |     Emails programmés              |
-+------------------+------------------------------------+
-|    Objectifs     |                                    |
-+------------------+------------------------------------+
++----------------------------+       +---------------------------+
+|   Page FormationDetail     |       |   Email automatique       |
+|   (Jour J)                 | ----> |   par demi-journée        |
+|   Bloc "Émargement"        |       |   "Signez votre présence" |
++----------------------------+       +---------------------------+
+                                              |
+                                              v
+                              +-----------------------------------+
+                              |   Page publique /emargement/:token|
+                              |   - Titre formation               |
+                              |   - Nom Prénom                    |
+                              |   - Lieu, Date, Horaire           |
+                              |   - Canvas de signature           |
+                              |   - Bouton "Signer"               |
+                              +-----------------------------------+
+                                              |
+                                              v
+                              +-----------------------------------+
+                              |   Stockage signature + horodatage |
+                              |   dans la base de données         |
+                              +-----------------------------------+
 ```
 
-## Fichiers modifiés
+---
+
+## 1. Schéma de base de données
+
+### Nouvelle table : `attendance_signatures`
+
+| Colonne | Type | Description |
+|---------|------|-------------|
+| `id` | uuid | Clé primaire |
+| `training_id` | uuid | Référence à la formation |
+| `participant_id` | uuid | Référence au participant |
+| `schedule_date` | date | Date de la demi-journée |
+| `period` | text | "AM" (matin) ou "PM" (après-midi) |
+| `token` | varchar | Token unique pour accéder à la page de signature |
+| `signature_data` | text | Image de signature encodée en base64 (data URL) |
+| `signed_at` | timestamptz | Horodatage de la signature (preuve légale) |
+| `ip_address` | text | Adresse IP du signataire |
+| `user_agent` | text | Navigateur/appareil utilisé |
+| `email_sent_at` | timestamptz | Date d'envoi de l'email d'invitation |
+| `email_opened_at` | timestamptz | Date de première ouverture |
+| `created_at` | timestamptz | Date de création |
+
+**Politiques RLS :**
+- Les utilisateurs authentifiés peuvent voir et gérer les signatures
+- Le public peut mettre à jour sa propre signature via token
+
+---
+
+## 2. Edge Function : `send-attendance-signature-request`
+
+Cette fonction sera invoquée pour envoyer les emails de demande de signature.
+
+**Paramètres :**
+- `trainingId` : ID de la formation
+- `scheduleDate` : Date ciblée
+- `period` : "AM" ou "PM"
+
+**Comportement :**
+1. Récupère tous les participants de la formation
+2. Génère un token unique pour chaque participant/demi-journée
+3. Crée les enregistrements dans `attendance_signatures`
+4. Envoie un email personnalisé à chaque participant avec le lien de signature
+
+**Email envoyé :**
+```
+Objet : ✍️ Émargement – NOM_FORMATION – Date Matin/Après-midi
+
+Bonjour Prénom,
+
+Merci de bien vouloir signer ta présence pour la formation "NOM_FORMATION".
+
+📍 Lieu : LIEU
+📅 Date : DATE
+🕐 Horaire : HORAIRE
+
+👉 Clique ici pour signer : [Lien]
+
+Cette signature électronique a valeur légale conformément au règlement eIDAS.
+
+À tout de suite !
+```
+
+---
+
+## 3. Page publique : `/emargement/:token`
+
+### Composant : `src/pages/Emargement.tsx`
+
+**Éléments affichés :**
+- Logo SuperTilt en en-tête
+- Titre : "Émargement électronique"
+- Informations de la formation :
+  - Nom de la formation
+  - Nom et prénom du participant
+  - Lieu
+  - Date
+  - Horaire de demi-journée (ex: "9h00 - 12h30")
+- Zone de signature (canvas)
+- Bouton "Signer ma présence"
+- Mention légale sur la valeur juridique
+
+**Librairie de signature :**
+- Utilisation de `signature_pad` (npm) - 170k téléchargements/semaine
+- Génère une image en base64 de la signature manuscrite
+- Compatible mobile (tactile) et desktop (souris)
+
+**Validation juridique (eIDAS) :**
+- La signature simple est légalement reconnue en France
+- L'horodatage + IP + User-Agent constituent une preuve
+- Mention explicite : "En signant, j'atteste de ma présence à cette demi-journée de formation."
+
+---
+
+## 4. Bloc "Émargement électronique" dans FormationDetail
+
+### Affichage le jour J uniquement
+
+Le bloc apparaît dans la page de détail de formation lorsque :
+- La date du jour correspond à une date de la formation
+
+### Contenu du bloc
+
+```text
++----------------------------------------+
+| ✍️ Émargement électronique             |
++----------------------------------------+
+| 15/02 Matin     [12/15 signés] [Envoyer] |
+| 15/02 Après-midi [8/15 signés] [Envoyer] |
+| 16/02 Matin     [0/15 signés] [Envoyer] |
+| 16/02 Après-midi [0/15 signés] [Envoyer] |
++----------------------------------------+
+```
+
+**Bouton "Envoyer" :**
+- Déclenche l'envoi des emails de signature pour cette demi-journée
+- Devient "Renvoyer" si déjà envoyé
+- Affiche le nombre de signatures reçues / total participants
+
+---
+
+## 5. Intégration dans les emails programmés
+
+### Nouveau type d'email : `attendance_signature`
+
+Le système existant `scheduled_emails` sera enrichi pour afficher les emails d'émargement :
+- Label : "Émargement"
+- Prévisualisation du contenu
+- Possibilité de forcer l'envoi
+
+---
+
+## 6. Fichiers à créer/modifier
 
 | Fichier | Action |
 |---------|--------|
-| `src/pages/FormationDetail.tsx` | Ajouter DocumentsManager et ScheduledEmailsSummary, récupérer `supports_url` |
-| `src/pages/FormationEdit.tsx` | Retirer DocumentsManager et les states associés |
-| `src/components/formations/DocumentsManager.tsx` | Adapter pour sauvegarder directement en base au lieu de passer par un callback parent |
+| `supabase/migrations/xxx.sql` | Créer la table `attendance_signatures` |
+| `src/pages/Emargement.tsx` | Nouvelle page publique de signature |
+| `src/App.tsx` | Ajouter la route `/emargement/:token` |
+| `supabase/functions/send-attendance-signature-request/index.ts` | Edge function d'envoi des emails |
+| `src/components/formations/AttendanceSignatureBlock.tsx` | Nouveau composant bloc émargement |
+| `src/pages/FormationDetail.tsx` | Intégrer le bloc émargement |
+| `src/components/formations/ScheduledEmailsSummary.tsx` | Ajouter le type `attendance_signature` |
+| `supabase/functions/force-send-scheduled-email/index.ts` | Supporter le nouveau type d'email |
+| `package.json` | Ajouter la dépendance `signature_pad` |
+
+---
 
 ## Détails techniques
 
-### DocumentsManager - Mode autonome
+### Installation de signature_pad
 
-Actuellement, `DocumentsManager` utilise des callbacks (`onDocumentsChange`, `onSupportsUrlChange`) pour remonter les changements au parent. Pour la page de visualisation, il devra :
+```bash
+npm install signature_pad
+```
 
-1. Recevoir les valeurs initiales en props
-2. Après chaque upload/suppression, faire un `UPDATE` direct sur la table `trainings`
-3. Appeler un callback `onUpdate()` optionnel pour rafraîchir les données dans le parent
+### Exemple d'utilisation dans le composant
 
 ```typescript
-// Nouveau comportement après upload
-const handleInvoiceUpload = async (...) => {
-  // ... upload vers storage ...
+import SignaturePad from "signature_pad";
+
+// Dans le composant
+const canvasRef = useRef<HTMLCanvasElement>(null);
+const [signaturePad, setSignaturePad] = useState<SignaturePad | null>(null);
+
+useEffect(() => {
+  if (canvasRef.current) {
+    const pad = new SignaturePad(canvasRef.current, {
+      backgroundColor: "rgb(255, 255, 255)",
+      penColor: "rgb(0, 0, 0)",
+    });
+    setSignaturePad(pad);
+  }
+}, []);
+
+const handleSign = async () => {
+  if (!signaturePad || signaturePad.isEmpty()) {
+    toast({ title: "Erreur", description: "Veuillez signer avant de valider" });
+    return;
+  }
   
-  // Sauvegarde directe en base
+  const signatureData = signaturePad.toDataURL("image/png");
+  
+  // Envoyer à Supabase
   await supabase
-    .from("trainings")
-    .update({ invoice_file_url: publicUrl })
-    .eq("id", trainingId);
-  
-  // Rafraîchir le parent
-  onUpdate?.();
+    .from("attendance_signatures")
+    .update({
+      signature_data: signatureData,
+      signed_at: new Date().toISOString(),
+      ip_address: // récupéré via edge function
+      user_agent: navigator.userAgent,
+    })
+    .eq("token", token);
 };
 ```
 
-### FormationDetail - Intégration
+### Structure de l'email d'émargement
 
-```typescript
-// Ajouter supports_url dans l'interface Training
-interface Training {
-  // ... existant ...
-  supports_url: string | null;
-}
-
-// Dans le JSX, après le bloc Participants
-<DocumentsManager
-  trainingId={training.id}
-  invoiceFileUrl={training.invoice_file_url}
-  attendanceSheetsUrls={training.attendance_sheets_urls || []}
-  sponsorEmail={training.sponsor_email}
-  sponsorName={...}
-  supportsUrl={training.supports_url}
-  onUpdate={fetchTrainingData}
-/>
-
-<ScheduledEmailsSummary 
-  trainingId={training.id}
-  participants={participants}
-/>
+```html
+<p>Bonjour {{prénom}},</p>
+<p>Merci de bien vouloir signer ta présence pour la formation <strong>{{nom_formation}}</strong>.</p>
+<ul>
+  <li>📍 Lieu : {{lieu}}</li>
+  <li>📅 Date : {{date}}</li>
+  <li>🕐 Horaire : {{horaire}}</li>
+</ul>
+<p><a href="{{lien}}" style="...">✍️ Signer ma présence</a></p>
+<p><small>Cette signature électronique a valeur légale conformément au règlement européen eIDAS.</small></p>
 ```
 
-### FormationEdit - Simplification
+---
 
-Retirer :
-- Les states `invoiceFileUrl`, `attendanceSheetsUrls`, `supportsUrl`
-- Le composant `<DocumentsManager />` du JSX
-- Les champs correspondants dans `handleSubmit`
+## Conformité légale
 
-La page d'édition se concentrera uniquement sur les informations de la formation (nom, dates, lieu, client, prérequis, objectifs, etc.).
+### Signature électronique simple (eIDAS)
+
+La signature électronique simple est reconnue en France et dans l'UE. Pour garantir sa valeur probante :
+
+1. **Horodatage précis** : Date et heure de signature enregistrées
+2. **Identification** : Email du signataire + nom/prénom
+3. **Intégrité** : Signature stockée en base de données immuable
+4. **Traçabilité** : IP, User-Agent, date d'envoi de l'email
+5. **Intention** : Mention explicite "J'atteste de ma présence"
+
+### Mentions légales sur la page
+
+> "En signant, j'atteste de ma présence à cette demi-journée de formation et accepte que cette signature électronique ait valeur légale conformément au règlement européen eIDAS (UE n° 910/2014)."
