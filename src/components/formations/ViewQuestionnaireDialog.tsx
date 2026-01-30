@@ -174,8 +174,23 @@ const ViewQuestionnaireDialog = ({ participantId, participantName, trainingId }:
     }
   };
 
-  const formatModalites = (modalites: string[] | null) => {
-    if (!modalites || modalites.length === 0) return null;
+  const formatModalites = (modalites: unknown) => {
+    // Handle null/undefined
+    if (!modalites) return null;
+    
+    // Convert to array if it's not already
+    let modalitesArray: string[];
+    if (Array.isArray(modalites)) {
+      modalitesArray = modalites;
+    } else if (typeof modalites === 'object') {
+      // If it's an object (like from JSON), try to get values or keys
+      modalitesArray = Object.values(modalites as Record<string, string>).filter(v => typeof v === 'string');
+    } else {
+      return null;
+    }
+    
+    if (modalitesArray.length === 0) return null;
+    
     const labels: Record<string, string> = {
       exercices_pratiques: "Exercices pratiques",
       etudes_de_cas: "Études de cas",
@@ -184,7 +199,7 @@ const ViewQuestionnaireDialog = ({ participantId, participantName, trainingId }:
       apports_theoriques: "Apports théoriques",
       travail_individuel: "Travail individuel",
     };
-    return modalites.map(m => labels[m] || m).join(", ");
+    return modalitesArray.map(m => labels[m] || m).join(", ");
   };
 
   return (
