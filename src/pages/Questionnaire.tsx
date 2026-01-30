@@ -241,12 +241,24 @@ const Questionnaire = () => {
         date_derniere_sauvegarde: nowIso,
       };
 
-      const { error: upErr } = await supabase
+      const { data: updateData, error: upErr } = await supabase
         .from("questionnaire_besoins")
         .update(payload)
-        .eq("id", currentQuestionnaire.id);
+        .eq("id", currentQuestionnaire.id)
+        .select();
+
+      console.log("Questionnaire save result:", { 
+        questionnaire_id: currentQuestionnaire.id, 
+        rows_affected: updateData?.length || 0,
+        error: upErr,
+        payload_keys: Object.keys(payload)
+      });
 
       if (upErr) throw upErr;
+      
+      if (!updateData || updateData.length === 0) {
+        console.warn("No rows were updated - possible RLS policy issue");
+      }
 
       dirtyRef.current = false;
       setQuestionnaire((prev) => (prev ? { ...prev, ...payload } : prev));
