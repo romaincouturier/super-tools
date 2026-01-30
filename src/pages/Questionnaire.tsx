@@ -79,6 +79,10 @@ const Questionnaire = () => {
 
   const dirtyRef = useRef(false);
   const autosaveTimerRef = useRef<number | null>(null);
+  const initialLoadCompleteRef = useRef(false);
+  const localStorageRestoredRef = useRef(false);
+  const questionnaireRef = useRef<QuestionnaireRecord | null>(null);
+  const prerequisValidationsRef = useRef<Record<string, string>>({});
 
   const displayName = useMemo(() => {
     if (!questionnaire) return "";
@@ -87,6 +91,15 @@ const Questionnaire = () => {
   }, [questionnaire]);
 
   const isInterEntreprises = training?.format_formation === "inter";
+
+  // Keep refs in sync with state for use in callbacks
+  useEffect(() => {
+    questionnaireRef.current = questionnaire;
+  }, [questionnaire]);
+
+  useEffect(() => {
+    prerequisValidationsRef.current = prerequisValidations;
+  }, [prerequisValidations]);
 
   const markDirty = () => {
     dirtyRef.current = true;
@@ -185,11 +198,16 @@ const Questionnaire = () => {
       );
     } finally {
       setLoading(false);
+      initialLoadCompleteRef.current = true;
     }
   };
 
   const saveDraft = async (opts?: { silent?: boolean; force?: boolean }) => {
-    if (!questionnaire) return;
+    // Use ref to get current state - avoids stale closures in timers
+    const currentQuestionnaire = questionnaireRef.current;
+    const currentPrerequisValidations = prerequisValidationsRef.current;
+    
+    if (!currentQuestionnaire) return;
     // Skip if not dirty, unless force is true (used during submission)
     if (!dirtyRef.current && !opts?.force) return;
 
@@ -197,28 +215,28 @@ const Questionnaire = () => {
     setSaving(true);
     try {
       const payload = {
-        prenom: questionnaire.prenom,
-        nom: questionnaire.nom,
-        societe: questionnaire.societe,
-        fonction: questionnaire.fonction,
-        experience_sujet: questionnaire.experience_sujet,
-        experience_details: questionnaire.experience_details,
-        lecture_programme: questionnaire.lecture_programme,
-        prerequis_validation: questionnaire.prerequis_validation,
-        prerequis_details: questionnaire.prerequis_details,
-        competences_actuelles: questionnaire.competences_actuelles,
-        competences_visees: questionnaire.competences_visees,
-        lien_mission: questionnaire.lien_mission,
-        niveau_actuel: questionnaire.niveau_actuel,
-        niveau_motivation: questionnaire.niveau_motivation,
-        modalites_preferences: prerequisValidations as any,
-        contraintes_orga: questionnaire.contraintes_orga,
-        besoins_accessibilite: questionnaire.besoins_accessibilite,
-        necessite_amenagement: questionnaire.necessite_amenagement,
-        commentaires_libres: questionnaire.commentaires_libres,
-        consentement_rgpd: questionnaire.consentement_rgpd,
-        date_consentement_rgpd: questionnaire.consentement_rgpd
-          ? questionnaire.date_consentement_rgpd || nowIso
+        prenom: currentQuestionnaire.prenom,
+        nom: currentQuestionnaire.nom,
+        societe: currentQuestionnaire.societe,
+        fonction: currentQuestionnaire.fonction,
+        experience_sujet: currentQuestionnaire.experience_sujet,
+        experience_details: currentQuestionnaire.experience_details,
+        lecture_programme: currentQuestionnaire.lecture_programme,
+        prerequis_validation: currentQuestionnaire.prerequis_validation,
+        prerequis_details: currentQuestionnaire.prerequis_details,
+        competences_actuelles: currentQuestionnaire.competences_actuelles,
+        competences_visees: currentQuestionnaire.competences_visees,
+        lien_mission: currentQuestionnaire.lien_mission,
+        niveau_actuel: currentQuestionnaire.niveau_actuel,
+        niveau_motivation: currentQuestionnaire.niveau_motivation,
+        modalites_preferences: currentPrerequisValidations as any,
+        contraintes_orga: currentQuestionnaire.contraintes_orga,
+        besoins_accessibilite: currentQuestionnaire.besoins_accessibilite,
+        necessite_amenagement: currentQuestionnaire.necessite_amenagement,
+        commentaires_libres: currentQuestionnaire.commentaires_libres,
+        consentement_rgpd: currentQuestionnaire.consentement_rgpd,
+        date_consentement_rgpd: currentQuestionnaire.consentement_rgpd
+          ? currentQuestionnaire.date_consentement_rgpd || nowIso
           : null,
         date_derniere_sauvegarde: nowIso,
       };
@@ -226,7 +244,7 @@ const Questionnaire = () => {
       const { error: upErr } = await supabase
         .from("questionnaire_besoins")
         .update(payload)
-        .eq("id", questionnaire.id);
+        .eq("id", currentQuestionnaire.id);
 
       if (upErr) throw upErr;
 
@@ -244,7 +262,7 @@ const Questionnaire = () => {
       if (!opts?.silent) {
         toast({
           title: "Erreur",
-          description: "Impossible de sauvegarder. Réessayez.",
+          description: "Impossible de sauvegarger. Réessayez.",
           variant: "destructive",
         });
       }
@@ -380,66 +398,62 @@ const Questionnaire = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
-  // Auto-save timer (every 30 seconds)
+  // Auto-save timer (every 30 seconds) - stable interval that doesn't recreate on state changes
   useEffect(() => {
-    if (autosaveTimerRef.current) {
-      window.clearInterval(autosaveTimerRef.current);
-    }
-
-    autosaveTimerRef.current = window.setInterval(() => {
-      if (dirtyRef.current && !saving && !submitting) {
+    if (!questionnaire?.id) return;
+    
+    const intervalId = window.setInterval(() => {
+      // Check refs and current state inside the callback to avoid stale closures
+      if (dirtyRef.current && initialLoadCompleteRef.current) {
         void saveDraft({ silent: true });
       }
     }, 30_000);
 
     return () => {
-      if (autosaveTimerRef.current) {
-        window.clearInterval(autosaveTimerRef.current);
-      }
+      window.clearInterval(intervalId);
     };
+    // Only depend on questionnaire ID - saveDraft uses refs for current state
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [saving, submitting, questionnaire?.id]);
+  }, [questionnaire?.id]);
 
   // Save on visibility change (when user switches tabs or minimizes)
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (document.visibilityState === "hidden" && dirtyRef.current && questionnaire && !saving && !submitting) {
-        // Use sendBeacon for reliable save when tab is being hidden
+      const currentQuestionnaire = questionnaireRef.current;
+      const currentPrerequisValidations = prerequisValidationsRef.current;
+      
+      if (document.visibilityState === "hidden" && dirtyRef.current && currentQuestionnaire) {
         const nowIso = new Date().toISOString();
-        const payload = {
-          prenom: questionnaire.prenom,
-          nom: questionnaire.nom,
-          societe: questionnaire.societe,
-          fonction: questionnaire.fonction,
-          experience_sujet: questionnaire.experience_sujet,
-          experience_details: questionnaire.experience_details,
-          lecture_programme: questionnaire.lecture_programme,
-          prerequis_validation: questionnaire.prerequis_validation,
-          prerequis_details: questionnaire.prerequis_details,
-          competences_actuelles: questionnaire.competences_actuelles,
-          competences_visees: questionnaire.competences_visees,
-          lien_mission: questionnaire.lien_mission,
-          niveau_actuel: questionnaire.niveau_actuel,
-          niveau_motivation: questionnaire.niveau_motivation,
-          modalites_preferences: prerequisValidations,
-          contraintes_orga: questionnaire.contraintes_orga,
-          besoins_accessibilite: questionnaire.besoins_accessibilite,
-          necessite_amenagement: questionnaire.necessite_amenagement,
-          commentaires_libres: questionnaire.commentaires_libres,
-          consentement_rgpd: questionnaire.consentement_rgpd,
-          date_consentement_rgpd: questionnaire.consentement_rgpd
-            ? questionnaire.date_consentement_rgpd || nowIso
-            : null,
-          date_derniere_sauvegarde: nowIso,
-        };
         
-        // Fallback: trigger async save (may not complete if tab closes immediately)
+        // Trigger async save using refs (won't have stale data)
         void saveDraft({ silent: true });
         
         // Also save to localStorage as backup
         try {
-          localStorage.setItem(`questionnaire_draft_${questionnaire.id}`, JSON.stringify({
-            ...payload,
+          localStorage.setItem(`questionnaire_draft_${currentQuestionnaire.id}`, JSON.stringify({
+            prenom: currentQuestionnaire.prenom,
+            nom: currentQuestionnaire.nom,
+            societe: currentQuestionnaire.societe,
+            fonction: currentQuestionnaire.fonction,
+            experience_sujet: currentQuestionnaire.experience_sujet,
+            experience_details: currentQuestionnaire.experience_details,
+            lecture_programme: currentQuestionnaire.lecture_programme,
+            prerequis_validation: currentQuestionnaire.prerequis_validation,
+            prerequis_details: currentQuestionnaire.prerequis_details,
+            competences_actuelles: currentQuestionnaire.competences_actuelles,
+            competences_visees: currentQuestionnaire.competences_visees,
+            lien_mission: currentQuestionnaire.lien_mission,
+            niveau_actuel: currentQuestionnaire.niveau_actuel,
+            niveau_motivation: currentQuestionnaire.niveau_motivation,
+            modalites_preferences: currentPrerequisValidations,
+            contraintes_orga: currentQuestionnaire.contraintes_orga,
+            besoins_accessibilite: currentQuestionnaire.besoins_accessibilite,
+            necessite_amenagement: currentQuestionnaire.necessite_amenagement,
+            commentaires_libres: currentQuestionnaire.commentaires_libres,
+            consentement_rgpd: currentQuestionnaire.consentement_rgpd,
+            date_consentement_rgpd: currentQuestionnaire.consentement_rgpd
+              ? currentQuestionnaire.date_consentement_rgpd || nowIso
+              : null,
             _savedAt: nowIso,
           }));
         } catch (e) {
@@ -450,32 +464,35 @@ const Questionnaire = () => {
 
     // Save before page unload
     const handleBeforeUnload = () => {
-      if (dirtyRef.current && questionnaire) {
+      const currentQuestionnaire = questionnaireRef.current;
+      const currentPrerequisValidations = prerequisValidationsRef.current;
+      
+      if (dirtyRef.current && currentQuestionnaire) {
         const nowIso = new Date().toISOString();
         try {
-          localStorage.setItem(`questionnaire_draft_${questionnaire.id}`, JSON.stringify({
-            prenom: questionnaire.prenom,
-            nom: questionnaire.nom,
-            societe: questionnaire.societe,
-            fonction: questionnaire.fonction,
-            experience_sujet: questionnaire.experience_sujet,
-            experience_details: questionnaire.experience_details,
-            lecture_programme: questionnaire.lecture_programme,
-            prerequis_validation: questionnaire.prerequis_validation,
-            prerequis_details: questionnaire.prerequis_details,
-            competences_actuelles: questionnaire.competences_actuelles,
-            competences_visees: questionnaire.competences_visees,
-            lien_mission: questionnaire.lien_mission,
-            niveau_actuel: questionnaire.niveau_actuel,
-            niveau_motivation: questionnaire.niveau_motivation,
-            modalites_preferences: prerequisValidations,
-            contraintes_orga: questionnaire.contraintes_orga,
-            besoins_accessibilite: questionnaire.besoins_accessibilite,
-            necessite_amenagement: questionnaire.necessite_amenagement,
-            commentaires_libres: questionnaire.commentaires_libres,
-            consentement_rgpd: questionnaire.consentement_rgpd,
-            date_consentement_rgpd: questionnaire.consentement_rgpd
-              ? questionnaire.date_consentement_rgpd || nowIso
+          localStorage.setItem(`questionnaire_draft_${currentQuestionnaire.id}`, JSON.stringify({
+            prenom: currentQuestionnaire.prenom,
+            nom: currentQuestionnaire.nom,
+            societe: currentQuestionnaire.societe,
+            fonction: currentQuestionnaire.fonction,
+            experience_sujet: currentQuestionnaire.experience_sujet,
+            experience_details: currentQuestionnaire.experience_details,
+            lecture_programme: currentQuestionnaire.lecture_programme,
+            prerequis_validation: currentQuestionnaire.prerequis_validation,
+            prerequis_details: currentQuestionnaire.prerequis_details,
+            competences_actuelles: currentQuestionnaire.competences_actuelles,
+            competences_visees: currentQuestionnaire.competences_visees,
+            lien_mission: currentQuestionnaire.lien_mission,
+            niveau_actuel: currentQuestionnaire.niveau_actuel,
+            niveau_motivation: currentQuestionnaire.niveau_motivation,
+            modalites_preferences: currentPrerequisValidations,
+            contraintes_orga: currentQuestionnaire.contraintes_orga,
+            besoins_accessibilite: currentQuestionnaire.besoins_accessibilite,
+            necessite_amenagement: currentQuestionnaire.necessite_amenagement,
+            commentaires_libres: currentQuestionnaire.commentaires_libres,
+            consentement_rgpd: currentQuestionnaire.consentement_rgpd,
+            date_consentement_rgpd: currentQuestionnaire.consentement_rgpd
+              ? currentQuestionnaire.date_consentement_rgpd || nowIso
               : null,
             _savedAt: nowIso,
           }));
@@ -492,12 +509,17 @@ const Questionnaire = () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       window.removeEventListener("beforeunload", handleBeforeUnload);
     };
+    // No dependencies needed - handlers use refs for current state
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [questionnaire, saving, submitting, prerequisValidations]);
+  }, []);
 
-  // Restore from localStorage if local draft is newer than DB
+  // Restore from localStorage if local draft is newer than DB - ONLY ONCE on initial load
   useEffect(() => {
-    if (!questionnaire) return;
+    // Only run once after initial load, and only if not already restored
+    if (!questionnaire || !initialLoadCompleteRef.current || localStorageRestoredRef.current) return;
+    
+    // Mark as restored immediately to prevent re-runs
+    localStorageRestoredRef.current = true;
     
     try {
       const savedDraft = localStorage.getItem(`questionnaire_draft_${questionnaire.id}`);
@@ -540,23 +562,20 @@ const Questionnaire = () => {
           // Mark as dirty so it gets synced to DB
           dirtyRef.current = true;
           
-          // Clean up localStorage after restoring
-          localStorage.removeItem(`questionnaire_draft_${questionnaire.id}`);
-          
           toast({
             title: "Brouillon restauré",
             description: "Vos réponses non sauvegardées ont été récupérées.",
           });
-        } else {
-          // DB is newer, remove stale localStorage
-          localStorage.removeItem(`questionnaire_draft_${questionnaire.id}`);
         }
+        
+        // Always clean up localStorage after checking
+        localStorage.removeItem(`questionnaire_draft_${questionnaire.id}`);
       }
     } catch (e) {
       console.warn("Failed to restore from localStorage", e);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [questionnaire?.id]);
+  }, [questionnaire?.id, loading]);
 
   const formatScheduleDate = (dateStr: string) => {
     try {
