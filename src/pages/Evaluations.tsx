@@ -15,6 +15,7 @@ import {
   AlertCircle,
   TrendingUp,
   Lightbulb,
+  Trash2,
 } from "lucide-react";
 import SupertiltLogo from "@/components/SupertiltLogo";
 import UserMenu from "@/components/UserMenu";
@@ -230,6 +231,34 @@ const Evaluations = () => {
     }
   };
 
+  const handleDeleteEvaluation = async (evaluationId: string) => {
+    if (!confirm("Êtes-vous sûr de vouloir supprimer cette évaluation ?")) return;
+
+    try {
+      const { error } = await supabase
+        .from("training_evaluations")
+        .delete()
+        .eq("id", evaluationId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Évaluation supprimée",
+        description: "L'évaluation a été supprimée avec succès",
+      });
+
+      // Refresh list
+      fetchEvaluations(selectedTraining);
+    } catch (error: any) {
+      console.error("Error deleting evaluation:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de supprimer l'évaluation",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate("/auth");
@@ -408,7 +437,17 @@ const Evaluations = () => {
                         )}
                       </div>
                       <div className="flex flex-col items-end gap-2">
-                        <div className="flex">{getStars(evaluation.appreciation_generale)}</div>
+                        <div className="flex items-center gap-2">
+                          <div className="flex">{getStars(evaluation.appreciation_generale)}</div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                            onClick={() => handleDeleteEvaluation(evaluation.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                         {getRecommandationBadge(evaluation.recommandation)}
                         {evaluation.date_soumission && (
                           <span className="text-xs text-muted-foreground">
