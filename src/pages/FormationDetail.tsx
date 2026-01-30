@@ -17,6 +17,7 @@ import AddParticipantDialog from "@/components/formations/AddParticipantDialog";
 import BulkAddParticipantsDialog from "@/components/formations/BulkAddParticipantsDialog";
 import DocumentsManager from "@/components/formations/DocumentsManager";
 import ScheduledEmailsSummary from "@/components/formations/ScheduledEmailsSummary";
+import NeedsSurveySummaryDialog from "@/components/formations/NeedsSurveySummaryDialog";
 
 interface Training {
   id: string;
@@ -384,12 +385,19 @@ const FormationDetail = () => {
                 </div>
               </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
               <ParticipantList
                 participants={participants}
                 trainingId={training.id}
                 trainingStartDate={training.start_date}
                 onParticipantUpdated={fetchParticipants}
+              />
+              
+              {/* AI Summary Button */}
+              <NeedsSurveySummaryDialog
+                trainingId={training.id}
+                trainingName={training.training_name}
+                completedCount={participants.filter(p => p.needs_survey_status === "complete").length}
               />
             </CardContent>
           </Card>
