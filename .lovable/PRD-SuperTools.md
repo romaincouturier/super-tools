@@ -431,6 +431,13 @@ Grille de modules avec icônes et descriptions.
 | Priorité | Évolution | Description |
 |----------|-----------|-------------|
 | 🟠 Moyenne | **Évaluations embarquées formations en ligne** | Support des évaluations intégrées directement dans les formations e-learning, anonymes par défaut |
+| 🟠 Moyenne | **Relance automatique des évaluations** | Emails de relance automatiques à J+2 et J+4 pour les participants n'ayant pas encore soumis leur évaluation |
+
+### 12.6 Nouvelles fonctionnalités - Logistique
+
+| Priorité | Évolution | Description |
+|----------|-----------|-------------|
+| 🟡 Basse | **Bouton réservation salle Paris/Lyon** | Intégration d'un bouton pour déclencher une demande de réservation de salle |
 
 ### 12.6 Nouvelles fonctionnalités - Logistique
 
