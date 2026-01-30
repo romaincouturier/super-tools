@@ -11,6 +11,7 @@ import {
   XCircle,
   Filter,
   MoreVertical,
+  Plus,
 } from "lucide-react";
 import SupertiltLogo from "@/components/SupertiltLogo";
 import UserMenu from "@/components/UserMenu";
@@ -30,6 +31,17 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 
 interface Training {
@@ -39,7 +51,7 @@ interface Training {
 
 interface Improvement {
   id: string;
-  training_id: string | null;
+  training_id: string;
   title: string;
   description: string;
   category: string;
@@ -82,6 +94,14 @@ const Ameliorations = () => {
   const [improvements, setImprovements] = useState<Improvement[]>([]);
   const [selectedTraining, setSelectedTraining] = useState<string>("all");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [newImprovement, setNewImprovement] = useState({
+    training_id: "",
+    title: "",
+    description: "",
+    category: "recommendation",
+  });
+  const [saving, setSaving] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -116,7 +136,7 @@ const Ameliorations = () => {
       .from("improvements")
       .select(`
         *,
-        trainings(training_name)
+        trainings!inner(training_name)
       `)
       .order("created_at", { ascending: false });
 
@@ -197,6 +217,72 @@ const Ameliorations = () => {
     }
   };
 
+  const handleAddImprovement = async () => {
+    if (!newImprovement.training_id) {
+      toast({
+        title: "Erreur",
+        description: "Veuillez sélectionner une formation",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!newImprovement.title.trim()) {
+      toast({
+        title: "Erreur",
+        description: "Veuillez saisir un titre",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!newImprovement.description.trim()) {
+      toast({
+        title: "Erreur",
+        description: "Veuillez saisir une description",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const { error } = await supabase.from("improvements").insert({
+        training_id: newImprovement.training_id,
+        title: newImprovement.title.trim(),
+        description: newImprovement.description.trim(),
+        category: newImprovement.category,
+        status: "pending",
+        created_by: user?.id,
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Amélioration ajoutée",
+        description: "L'amélioration a été créée avec succès",
+      });
+
+      setShowAddDialog(false);
+      setNewImprovement({
+        training_id: "",
+        title: "",
+        description: "",
+        category: "recommendation",
+      });
+      fetchImprovements(selectedTraining, selectedStatus);
+    } catch (error: any) {
+      console.error("Error adding improvement:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible d'ajouter l'amélioration",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate("/auth");
@@ -208,6 +294,7 @@ const Ameliorations = () => {
         weakness: { label: "Point faible", variant: "secondary" },
         recommendation: { label: "Recommandation", variant: "default" },
         strength: { label: "Point fort", variant: "outline" },
+        manual: { label: "Manuel", variant: "outline" },
       };
     const cat = config[category] || { label: category, variant: "outline" };
     return <Badge variant={cat.variant}>{cat.label}</Badge>;
@@ -244,11 +331,17 @@ const Ameliorations = () => {
 
       {/* Main content */}
       <main className="max-w-6xl mx-auto p-6">
-        <div className="flex items-center gap-4 mb-6">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/")}>
-            <ArrowLeft className="h-5 w-5" />
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="icon" onClick={() => navigate("/")}>
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <h1 className="text-2xl font-bold">Améliorations</h1>
+          </div>
+          <Button onClick={() => setShowAddDialog(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Ajouter une amélioration
           </Button>
-          <h1 className="text-2xl font-bold">Améliorations</h1>
         </div>
 
         {/* Filters */}
@@ -329,10 +422,15 @@ const Ameliorations = () => {
           </CardHeader>
           <CardContent>
             {improvements.length === 0 ? (
-              <p className="text-muted-foreground text-center py-8">
-                Aucune amélioration enregistrée. Utilisez l'analyse IA dans la section Évaluations
-                pour générer des recommandations.
-              </p>
+              <div className="text-center py-8">
+                <p className="text-muted-foreground mb-4">
+                  Aucune amélioration enregistrée.
+                </p>
+                <Button onClick={() => setShowAddDialog(true)} variant="outline">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Ajouter une amélioration
+                </Button>
+              </div>
             ) : (
               <div className="space-y-4">
                 {improvements.map((improvement) => (
@@ -421,6 +519,97 @@ const Ameliorations = () => {
           </CardContent>
         </Card>
       </main>
+
+      {/* Add Improvement Dialog */}
+      <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Ajouter une amélioration</DialogTitle>
+            <DialogDescription>
+              Créez une nouvelle amélioration pour une formation spécifique.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="training">Formation *</Label>
+              <Select
+                value={newImprovement.training_id}
+                onValueChange={(v) =>
+                  setNewImprovement({ ...newImprovement, training_id: v })
+                }
+              >
+                <SelectTrigger id="training">
+                  <SelectValue placeholder="Sélectionner une formation" />
+                </SelectTrigger>
+                <SelectContent>
+                  {trainings.map((training) => (
+                    <SelectItem key={training.id} value={training.id}>
+                      {training.training_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="category">Catégorie</Label>
+              <Select
+                value={newImprovement.category}
+                onValueChange={(v) =>
+                  setNewImprovement({ ...newImprovement, category: v })
+                }
+              >
+                <SelectTrigger id="category">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="recommendation">Recommandation</SelectItem>
+                  <SelectItem value="weakness">Point faible</SelectItem>
+                  <SelectItem value="manual">Manuel</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="title">Titre *</Label>
+              <Input
+                id="title"
+                value={newImprovement.title}
+                onChange={(e) =>
+                  setNewImprovement({ ...newImprovement, title: e.target.value })
+                }
+                placeholder="Ex: Améliorer les supports visuels"
+                maxLength={200}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="description">Description *</Label>
+              <Textarea
+                id="description"
+                value={newImprovement.description}
+                onChange={(e) =>
+                  setNewImprovement({ ...newImprovement, description: e.target.value })
+                }
+                placeholder="Décrivez l'amélioration à apporter..."
+                rows={4}
+                maxLength={1000}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAddDialog(false)}>
+              Annuler
+            </Button>
+            <Button onClick={handleAddImprovement} disabled={saving}>
+              {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Ajouter
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
