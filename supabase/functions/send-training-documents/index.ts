@@ -60,6 +60,7 @@ serve(async (req) => {
       trainingId, 
       recipientEmail, 
       recipientName, 
+      recipientFirstName,
       documentType,
       invoiceUrl,
       attendanceSheetsUrls,
@@ -87,7 +88,8 @@ serve(async (req) => {
     let htmlContent = "";
     const attachments: Array<{ filename: string; path: string }> = [];
 
-    const firstName = recipientName ? recipientName.split(" ")[0] : null;
+    // Use recipientFirstName if provided, otherwise extract from recipientName
+    const firstName = recipientFirstName || (recipientName ? recipientName.split(" ")[0] : null);
     // Tutoiement: "Bonjour Prénom," / Vouvoiement: "Bonjour,"
     const greeting = formalAddress ? "Bonjour," : (firstName ? `Bonjour ${firstName},` : "Bonjour,");
     
