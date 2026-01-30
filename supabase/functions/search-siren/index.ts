@@ -68,6 +68,32 @@ serve(async (req: Request): Promise<Response> => {
       }
     );
 
+    // Check content-type before parsing
+    const contentType = response.headers.get("content-type");
+    console.log(`INSEE API response - Status: ${response.status}, Content-Type: ${contentType}`);
+
+    if (!contentType?.includes("application/json")) {
+      const textResponse = await response.text();
+      console.error("INSEE API returned non-JSON response:", textResponse.substring(0, 500));
+      
+      // Check for maintenance page
+      if (textResponse.includes("Maintenance - INSEE") || textResponse.includes("maintenance")) {
+        return new Response(
+          JSON.stringify({ error: "L'API INSEE est actuellement en maintenance. Veuillez réessayer plus tard." }),
+          { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
+      if (textResponse.includes("<!DOCTYPE") || textResponse.includes("<html")) {
+        throw new Error(
+          `L'API INSEE a retourné une page HTML au lieu de JSON. ` +
+          `Cela indique généralement un problème d'authentification avec la clé API. ` +
+          `Status: ${response.status}`
+        );
+      }
+      throw new Error(`Format de réponse inattendu: ${contentType}`);
+    }
+
     if (!response.ok) {
       if (response.status === 404) {
         return new Response(
@@ -75,9 +101,9 @@ serve(async (req: Request): Promise<Response> => {
           { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-      const errorText = await response.text();
-      console.error("INSEE API error:", response.status, errorText);
-      throw new Error(`INSEE API error: ${response.status}`);
+      const errorData = await response.json();
+      console.error("INSEE API error:", response.status, JSON.stringify(errorData));
+      throw new Error(`Erreur API INSEE: ${response.status}`);
     }
 
     const data = await response.json();
@@ -112,7 +138,10 @@ serve(async (req: Request): Promise<Response> => {
     let ville = "";
     let pays = "France";
 
-    if (siegeResponse.ok) {
+    const siegeContentType = siegeResponse.headers.get("content-type");
+    console.log(`INSEE SIRET response - Status: ${siegeResponse.status}, Content-Type: ${siegeContentType}`);
+
+    if (siegeResponse.ok && siegeContentType?.includes("application/json")) {
       const siegeData = await siegeResponse.json();
       console.log("INSEE SIRET response:", JSON.stringify(siegeData, null, 2));
       
@@ -141,9 +170,11 @@ serve(async (req: Request): Promise<Response> => {
           pays = addr.libellePaysEtrangerEtablissement;
         }
       }
-    } else {
+    } else if (!siegeResponse.ok) {
       const errorText = await siegeResponse.text();
-      console.error("SIRET API error:", siegeResponse.status, errorText);
+      console.error("SIRET API error:", siegeResponse.status, errorText.substring(0, 200));
+    } else {
+      console.warn("SIRET API returned non-JSON content-type:", siegeContentType);
     }
 
     console.log(`Found: ${nomClient}, ${adresse}, ${codePostal} ${ville}`);
