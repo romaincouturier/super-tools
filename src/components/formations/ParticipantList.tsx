@@ -54,6 +54,20 @@ const getStatusConfig = (status: string) => {
         variant: "secondary" as const,
         tooltip: "Le questionnaire n'a pas encore été envoyé",
       };
+    case "programme":
+      return {
+        label: "Programmé",
+        icon: Clock,
+        variant: "outline" as const,
+        tooltip: "L'envoi du questionnaire est programmé automatiquement",
+      };
+    case "manuel":
+      return {
+        label: "Mode manuel",
+        icon: AlertTriangle,
+        variant: "secondary" as const,
+        tooltip: "Formation trop proche, envoi manuel requis",
+      };
     case "envoye":
       return {
         label: "Envoyé",

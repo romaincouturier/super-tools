@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
-import { Loader2, ArrowLeft, Calendar, Users, FileText, ExternalLink, Edit2 } from "lucide-react";
+import { Loader2, ArrowLeft, Calendar, Users, FileText, ExternalLink, Edit2, User as UserIcon, Mail, Receipt, ClipboardList } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import SupertiltLogo from "@/components/SupertiltLogo";
@@ -25,8 +25,14 @@ interface Training {
   evaluation_link: string;
   program_file_url: string | null;
   prerequisites: string[];
+  objectives: string[];
   format_formation: string | null;
   created_at: string;
+  sponsor_first_name: string | null;
+  sponsor_last_name: string | null;
+  sponsor_email: string | null;
+  invoice_file_url: string | null;
+  attendance_sheets_urls: string[];
 }
 
 interface Schedule {
@@ -262,6 +268,71 @@ const FormationDetail = () => {
               </CardContent>
             </Card>
 
+            {/* Sponsor card */}
+            {(training.sponsor_first_name || training.sponsor_last_name || training.sponsor_email) && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <UserIcon className="h-5 w-5" />
+                    Commanditaire
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {(training.sponsor_first_name || training.sponsor_last_name) && (
+                    <p className="font-medium">
+                      {training.sponsor_first_name} {training.sponsor_last_name}
+                    </p>
+                  )}
+                  {training.sponsor_email && (
+                    <a
+                      href={`mailto:${training.sponsor_email}`}
+                      className="flex items-center gap-2 text-sm text-primary hover:underline"
+                    >
+                      <Mail className="h-4 w-4" />
+                      {training.sponsor_email}
+                    </a>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Documents card */}
+            {(training.invoice_file_url || training.attendance_sheets_urls?.length > 0) && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    Documents
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {training.invoice_file_url && (
+                    <a
+                      href={training.invoice_file_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 text-sm text-primary hover:underline"
+                    >
+                      <Receipt className="h-4 w-4" />
+                      Facture
+                    </a>
+                  )}
+                  {training.attendance_sheets_urls?.map((url, index) => (
+                    <a
+                      key={index}
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 text-sm text-primary hover:underline"
+                    >
+                      <ClipboardList className="h-4 w-4" />
+                      Feuille d'émargement {index + 1}
+                    </a>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
+
             {/* Schedules card */}
             {schedules.length > 0 && (
               <Card>
@@ -303,6 +374,22 @@ const FormationDetail = () => {
                 </CardContent>
               </Card>
             )}
+
+            {/* Objectives card */}
+            {training.objectives && training.objectives.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Objectifs pédagogiques</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ul className="list-disc list-inside space-y-1 text-sm">
+                    {training.objectives.map((obj, index) => (
+                      <li key={index}>{obj}</li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </Card>
+            )}
           </div>
 
           {/* Right column - Participants */}
@@ -322,10 +409,12 @@ const FormationDetail = () => {
                   <div className="flex gap-2">
                     <BulkAddParticipantsDialog
                       trainingId={training.id}
+                      trainingStartDate={training.start_date}
                       onParticipantsAdded={fetchParticipants}
                     />
                     <AddParticipantDialog
                       trainingId={training.id}
+                      trainingStartDate={training.start_date}
                       onParticipantAdded={fetchParticipants}
                     />
                   </div>
