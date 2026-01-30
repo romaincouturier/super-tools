@@ -757,7 +757,7 @@ const Questionnaire = () => {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-3">
-              <Label>Avez-vous déjà suivi une formation ou pratiqué ce sujet professionnellement ?</Label>
+              <Label>Avez-vous déjà une expérience sur ce sujet ?</Label>
               <RadioGroup
                 value={questionnaire.experience_sujet || ""}
                 onValueChange={(value) => {
@@ -767,16 +767,24 @@ const Questionnaire = () => {
                 className="flex flex-col space-y-2"
               >
                 <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="oui" id="exp-oui" />
-                  <Label htmlFor="exp-oui" className="font-normal cursor-pointer">Oui</Label>
+                  <RadioGroupItem value="aucune" id="exp-aucune" />
+                  <Label htmlFor="exp-aucune" className="font-normal cursor-pointer">Aucune expérience</Label>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="non" id="exp-non" />
-                  <Label htmlFor="exp-non" className="font-normal cursor-pointer">Non</Label>
+                  <RadioGroupItem value="courte" id="exp-courte" />
+                  <Label htmlFor="exp-courte" className="font-normal cursor-pointer">Expérience courte (moins de 6 mois)</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="longue" id="exp-longue" />
+                  <Label htmlFor="exp-longue" className="font-normal cursor-pointer">Expérience longue (plus de 6 mois)</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="certification" id="exp-certification" />
+                  <Label htmlFor="exp-certification" className="font-normal cursor-pointer">Expérience avec certification</Label>
                 </div>
               </RadioGroup>
             </div>
-            {questionnaire.experience_sujet === "oui" && (
+            {questionnaire.experience_sujet && questionnaire.experience_sujet !== "aucune" && (
               <div className="space-y-2">
                 <Label htmlFor="experience_details">Précisez votre expérience</Label>
                 <Textarea
@@ -812,8 +820,12 @@ const Questionnaire = () => {
                   className="flex space-x-4"
                 >
                   <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="oui" id="prog-oui" />
-                    <Label htmlFor="prog-oui" className="font-normal cursor-pointer">Oui</Label>
+                    <RadioGroupItem value="complete" id="prog-complete" />
+                    <Label htmlFor="prog-complete" className="font-normal cursor-pointer">Oui, en entier</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="partielle" id="prog-partielle" />
+                    <Label htmlFor="prog-partielle" className="font-normal cursor-pointer">Partiellement</Label>
                   </div>
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="non" id="prog-non" />

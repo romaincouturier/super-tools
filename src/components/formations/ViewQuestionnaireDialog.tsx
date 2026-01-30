@@ -148,18 +148,18 @@ const ViewQuestionnaireDialog = ({ participantId, participantName, trainingId }:
 
   const getExperienceLabel = (value: string | null) => {
     switch (value) {
-      case "oui_expert": return "Oui, expert";
-      case "oui_intermediaire": return "Oui, intermédiaire";
-      case "oui_debutant": return "Oui, débutant";
-      case "non": return "Non";
+      case "aucune": return "Aucune expérience";
+      case "courte": return "Expérience courte (moins de 6 mois)";
+      case "longue": return "Expérience longue (plus de 6 mois)";
+      case "certification": return "Expérience avec certification";
       default: return value;
     }
   };
 
   const getLectureProgrammeLabel = (value: string | null) => {
     switch (value) {
-      case "oui_complet": return "Oui, en détail";
-      case "oui_partiel": return "Oui, partiellement";
+      case "complete": return "Oui, en entier";
+      case "partielle": return "Partiellement";
       case "non": return "Non";
       default: return value;
     }
