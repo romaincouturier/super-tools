@@ -327,6 +327,7 @@ async function sendEmailWithResend(
   const emailResponse = await resend.emails.send({
     from: "Supertilt <romain@supertilt.fr>",
     to: [emailCommanditaire],
+    bcc: ["supertilt@bcc.nocrm.io"],
     subject: `Votre devis pour la formation "${formationName}"`,
     html: htmlContent,
     attachments,
