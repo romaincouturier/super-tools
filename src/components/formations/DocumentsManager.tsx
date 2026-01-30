@@ -39,6 +39,7 @@ interface DocumentsManagerProps {
   attendanceSheetsUrls: string[];
   sponsorEmail: string | null;
   sponsorName: string | null;
+  sponsorFormalAddress: boolean;
   supportsUrl: string | null;
   onUpdate?: () => void;
 }
@@ -49,6 +50,7 @@ const DocumentsManager = ({
   attendanceSheetsUrls: initialSheetsUrls,
   sponsorEmail,
   sponsorName,
+  sponsorFormalAddress,
   supportsUrl: initialSupportsUrl,
   onUpdate,
 }: DocumentsManagerProps) => {
@@ -343,6 +345,7 @@ const DocumentsManager = ({
           invoiceUrl: type === "sheets" ? null : invoiceFileUrl,
           attendanceSheetsUrls: type === "invoice" ? [] : attendanceSheetsUrls,
           ccEmail: cc || null,
+          formalAddress: sponsorFormalAddress,
         },
       });
 

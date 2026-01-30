@@ -55,6 +55,7 @@ const FormationEdit = () => {
   const [sponsorFirstName, setSponsorFirstName] = useState("");
   const [sponsorLastName, setSponsorLastName] = useState("");
   const [sponsorEmail, setSponsorEmail] = useState("");
+  const [sponsorFormalAddress, setSponsorFormalAddress] = useState(true); // true = vouvoiement (default)
 
   // Track if data has been loaded (to prevent schedule regeneration)
   const [dataLoaded, setDataLoaded] = useState(false);
@@ -110,6 +111,7 @@ const FormationEdit = () => {
       setSponsorFirstName(training.sponsor_first_name || "");
       setSponsorLastName(training.sponsor_last_name || "");
       setSponsorEmail(training.sponsor_email || "");
+      setSponsorFormalAddress(training.sponsor_formal_address ?? true);
       
       const start = parseISO(training.start_date);
       setStartDate(start);
@@ -217,6 +219,7 @@ const FormationEdit = () => {
           sponsor_first_name: sponsorFirstName || null,
           sponsor_last_name: sponsorLastName || null,
           sponsor_email: sponsorEmail || null,
+          sponsor_formal_address: sponsorFormalAddress,
         })
         .eq("id", id);
 
@@ -461,7 +464,22 @@ const FormationEdit = () => {
               {/* Sponsor/Commanditaire */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Commanditaire</CardTitle>
+                  <div className="flex items-center justify-between">
+                    <CardTitle>Commanditaire</CardTitle>
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="formalAddress" className="text-sm text-muted-foreground">
+                        Tutoiement
+                      </Label>
+                      <Switch
+                        id="formalAddress"
+                        checked={sponsorFormalAddress}
+                        onCheckedChange={setSponsorFormalAddress}
+                      />
+                      <Label htmlFor="formalAddress" className="text-sm text-muted-foreground">
+                        Vouvoiement
+                      </Label>
+                    </div>
+                  </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
