@@ -136,7 +136,7 @@ const Ameliorations = () => {
       .from("improvements")
       .select(`
         *,
-        trainings!inner(training_name)
+        trainings(training_name)
       `)
       .order("created_at", { ascending: false });
 
