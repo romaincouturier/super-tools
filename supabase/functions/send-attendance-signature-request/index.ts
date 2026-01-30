@@ -245,6 +245,9 @@ serve(async (req) => {
         successCount++;
 
         // Log activity
+        const emailSubject = `✍️ Émargement – ${training.training_name} – ${formattedDate} ${periodLabel}`;
+        const emailContentText = `${greeting}\n\nMerci de bien vouloir signer ta présence pour la formation "${training.training_name}".\n\n📍 Lieu : ${training.location}\n📅 Date : ${formattedDate}\n🕐 Horaire : ${periodLabel} (${timeRange})\n\nCette signature électronique a valeur légale conformément au règlement européen eIDAS.`;
+        
         try {
           await supabase.from("activity_logs").insert({
             action_type: "attendance_signature_request_sent",
@@ -255,6 +258,8 @@ serve(async (req) => {
               schedule_date: scheduleDate,
               period,
               participant_name: `${participant.first_name || ""} ${participant.last_name || ""}`.trim() || null,
+              email_subject: emailSubject,
+              email_content: emailContentText,
             },
           });
         } catch (logError) {

@@ -145,6 +145,9 @@ serve(async (req) => {
     console.log("Accessibility needs email sent to:", participantEmail, result);
 
     // Log activity
+    const emailSubject = `Tes besoins spécifiques pour la formation "${finalTrainingName}"`;
+    const emailContentText = `${greeting}\n\nMerci d'avoir pris le temps de remplir le formulaire de recueil des besoins pour notre formation à venir. Je suis soucieux de proposer un environnement d'apprentissage adapté à chacun de mes participants.\n\nJ'ai bien pris en compte ton besoin spécifique :\n"${accessibilityNeeds}"\n\nJe souhaite t'offrir la meilleure expérience possible lors de cette formation et m'adapter au mieux à tes besoins.\n\nPourrais-tu m'indiquer les adaptations nécessaires que je pourrais mettre en place pour te permettre de suivre la formation dans les meilleures conditions ?\n\nDans l'attente de ton retour, je reste à ta disposition pour toute question ou information complémentaire.`;
+    
     try {
       await supabase.from("activity_logs").insert({
         action_type: "accessibility_needs_email_sent",
@@ -154,6 +157,8 @@ serve(async (req) => {
           training_name: finalTrainingName,
           questionnaire_id: questionnaireId,
           accessibility_needs: accessibilityNeeds,
+          email_subject: emailSubject,
+          email_content: emailContentText,
         },
       });
     } catch (logError) {

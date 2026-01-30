@@ -213,6 +213,7 @@ serve(async (req) => {
     console.log("Needs survey email sent to:", participant.email, result);
 
     // Log activity
+    const emailSubject = `Questionnaire de recueil des besoins - ${training.training_name}`;
     try {
       await supabase.from("activity_logs").insert({
         action_type: "needs_survey_sent",
@@ -221,6 +222,8 @@ serve(async (req) => {
           training_id: trainingId,
           training_name: training.training_name,
           participant_name: `${participant.first_name || ""} ${participant.last_name || ""}`.trim() || null,
+          email_subject: emailSubject,
+          email_content: `${greeting}\n\nVous êtes inscrit(e) à la formation "${training.training_name}" qui aura lieu le ${formattedDate}.\n\nAfin de personnaliser cette formation à vos attentes, je vous invite à remplir un court questionnaire de recueil des besoins.\n\nCe questionnaire vous prendra environ 5 minutes et me permettra d'adapter le contenu de la formation à vos besoins spécifiques.\n\nMerci de le compléter au moins 2 jours avant la formation.`,
         },
       });
     } catch (logError) {

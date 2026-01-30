@@ -208,6 +208,9 @@ serve(async (req) => {
     console.log("Thank you emails sent successfully:", results.length);
 
     // Log activity for each recipient
+    const emailSubject = `Merci pour votre participation à la formation ${trainingName}`;
+    const emailContentBase = `Quelle belle journée de découverte visuelle nous avons partagé ! Merci pour votre énergie et votre participation pendant notre formation ${trainingName}.\n\nPour finaliser cette formation, j'ai besoin que vous preniez quelques minutes pour compléter le questionnaire d'évaluation.\n\n${supportsUrl ? "Vous trouverez également tous les supports de la formation pour continuer à pratiquer.\n\n" : ""}Je suis curieux de voir comment vous allez utiliser tout ce que nous avons vu ! N'hésitez pas à me contacter si vous avez des questions.`;
+    
     try {
       const logInserts = participants.map((p: any) => ({
         action_type: "thank_you_email_sent",
@@ -215,6 +218,9 @@ serve(async (req) => {
         details: {
           training_id: trainingId,
           training_name: trainingName,
+          participant_name: `${p.first_name || ""} ${p.last_name || ""}`.trim() || null,
+          email_subject: emailSubject,
+          email_content: `Bonjour${p.first_name ? ` ${p.first_name}` : ""},\n\n${emailContentBase}`,
         },
       }));
       await supabase.from("activity_logs").insert(logInserts);
