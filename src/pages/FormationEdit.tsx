@@ -302,24 +302,50 @@ const FormationEdit = () => {
 
       {/* Main content */}
       <main className="max-w-7xl mx-auto p-6">
-        {/* Back button and title */}
-        <div className="flex items-center gap-4 mb-6">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate(`/formations/${id}`)}
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-primary/10">
-              <Calendar className="h-6 w-6 text-primary" />
+        {/* Sticky header with back button, title and action buttons */}
+        <div className="sticky top-0 z-10 bg-background pb-4 -mx-6 px-6 pt-0">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => navigate(`/formations/${id}`)}
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-primary/10">
+                  <Calendar className="h-6 w-6 text-primary" />
+                </div>
+                <h1 className="text-2xl font-bold">Modifier la formation</h1>
+              </div>
             </div>
-            <h1 className="text-2xl font-bold">Modifier la formation</h1>
+            <div className="flex gap-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => navigate(`/formations/${id}`)}
+              >
+                Annuler
+              </Button>
+              <Button type="submit" form="formation-form" disabled={saving}>
+                {saving ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Enregistrement...
+                  </>
+                ) : (
+                  <>
+                    <Save className="mr-2 h-4 w-4" />
+                    Enregistrer
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form id="formation-form" onSubmit={handleSubmit} className="space-y-6">
           {/* Two column layout */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Left Column */}
@@ -545,16 +571,16 @@ const FormationEdit = () => {
                   onSchedulesChange={setSchedules}
                 />
               )}
+            </div>
 
+            {/* Right Column */}
+            <div className="space-y-6">
               {/* Prerequisites */}
               <PrerequisitesEditor
                 prerequisites={prerequisites}
                 onPrerequisitesChange={setPrerequisites}
               />
-            </div>
 
-            {/* Right Column */}
-            <div className="space-y-6">
               {/* Program */}
               <ProgramSelector
                 programFileUrl={programFileUrl}
@@ -580,30 +606,6 @@ const FormationEdit = () => {
                 onObjectivesChange={setObjectives}
               />
             </div>
-          </div>
-
-          {/* Submit */}
-          <div className="flex justify-end gap-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => navigate(`/formations/${id}`)}
-            >
-              Annuler
-            </Button>
-            <Button type="submit" disabled={saving}>
-              {saving ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Enregistrement...
-                </>
-              ) : (
-                <>
-                  <Save className="mr-2 h-4 w-4" />
-                  Enregistrer
-                </>
-              )}
-            </Button>
           </div>
         </form>
       </main>

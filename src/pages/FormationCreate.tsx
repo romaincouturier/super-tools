@@ -235,27 +235,57 @@ const FormationCreate = () => {
       </header>
 
       {/* Main content */}
-      <main className="max-w-4xl mx-auto p-6">
-        {/* Back button and title */}
-        <div className="flex items-center gap-4 mb-6">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate("/formations")}
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-primary/10">
-              <Calendar className="h-6 w-6 text-primary" />
+      <main className="max-w-7xl mx-auto p-6">
+        {/* Sticky header with back button, title and action buttons */}
+        <div className="sticky top-0 z-10 bg-background pb-4 -mx-6 px-6 pt-0">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => navigate("/formations")}
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-primary/10">
+                  <Calendar className="h-6 w-6 text-primary" />
+                </div>
+                <h1 className="text-2xl font-bold">Nouvelle formation</h1>
+              </div>
             </div>
-            <h1 className="text-2xl font-bold">Nouvelle formation</h1>
+            <div className="flex gap-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => navigate("/formations")}
+              >
+                Annuler
+              </Button>
+              <Button type="submit" form="formation-form" disabled={saving}>
+                {saving ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Création...
+                  </>
+                ) : (
+                  <>
+                    <Save className="mr-2 h-4 w-4" />
+                    Créer la formation
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Basic info */}
-          <Card>
+        <form id="formation-form" onSubmit={handleSubmit} className="space-y-6">
+          {/* Two column layout */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Left Column */}
+            <div className="space-y-6">
+              {/* Basic info */}
+              <Card>
             <CardHeader>
               <CardTitle>Informations générales</CardTitle>
             </CardHeader>
@@ -465,62 +495,43 @@ const FormationCreate = () => {
               onSchedulesChange={setSchedules}
             />
           )}
+            </div>
 
-          {/* Prerequisites */}
-          <PrerequisitesEditor
-            prerequisites={prerequisites}
-            onPrerequisitesChange={setPrerequisites}
-          />
+            {/* Right Column */}
+            <div className="space-y-6">
+              {/* Prerequisites */}
+              <PrerequisitesEditor
+                prerequisites={prerequisites}
+                onPrerequisitesChange={setPrerequisites}
+              />
 
-          {/* Program - placed before objectives so extraction can populate them */}
-          <ProgramSelector
-            programFileUrl={programFileUrl}
-            onProgramChange={setProgramFileUrl}
-            onObjectivesExtracted={(extracted) => {
-              // Merge with existing objectives, avoiding duplicates
-              setObjectives((prev) => {
-                const combined = [...prev, ...extracted];
-                return [...new Set(combined)];
-              });
-            }}
-            onPrerequisitesExtracted={(extracted) => {
-              // Merge with existing prerequisites, avoiding duplicates
-              setPrerequisites((prev) => {
-                const combined = [...prev, ...extracted];
-                return [...new Set(combined)];
-              });
-            }}
-            userId={user?.id || ""}
-          />
+              {/* Program - placed before objectives so extraction can populate them */}
+              <ProgramSelector
+                programFileUrl={programFileUrl}
+                onProgramChange={setProgramFileUrl}
+                onObjectivesExtracted={(extracted) => {
+                  // Merge with existing objectives, avoiding duplicates
+                  setObjectives((prev) => {
+                    const combined = [...prev, ...extracted];
+                    return [...new Set(combined)];
+                  });
+                }}
+                onPrerequisitesExtracted={(extracted) => {
+                  // Merge with existing prerequisites, avoiding duplicates
+                  setPrerequisites((prev) => {
+                    const combined = [...prev, ...extracted];
+                    return [...new Set(combined)];
+                  });
+                }}
+                userId={user?.id || ""}
+              />
 
-          {/* Objectives */}
-          <ObjectivesEditor
-            objectives={objectives}
-            onObjectivesChange={setObjectives}
-          />
-
-          {/* Submit */}
-          <div className="flex justify-end gap-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => navigate("/formations")}
-            >
-              Annuler
-            </Button>
-            <Button type="submit" disabled={saving}>
-              {saving ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Création...
-                </>
-              ) : (
-                <>
-                  <Save className="mr-2 h-4 w-4" />
-                  Créer la formation
-                </>
-              )}
-            </Button>
+              {/* Objectives */}
+              <ObjectivesEditor
+                objectives={objectives}
+                onObjectivesChange={setObjectives}
+              />
+            </div>
           </div>
         </form>
       </main>
