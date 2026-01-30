@@ -189,9 +189,9 @@ const ViewQuestionnaireDialog = ({ participantId, participantName, trainingId }:
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
-        <Tooltip>
-          <TooltipTrigger asChild>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <DialogTrigger asChild>
             <Button
               variant="ghost"
               size="icon"
@@ -199,12 +199,12 @@ const ViewQuestionnaireDialog = ({ participantId, participantName, trainingId }:
             >
               <Eye className="h-4 w-4" />
             </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Voir les réponses</p>
-          </TooltipContent>
-        </Tooltip>
-      </DialogTrigger>
+          </DialogTrigger>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>Voir les réponses</p>
+        </TooltipContent>
+      </Tooltip>
       <DialogContent className="max-w-2xl max-h-[85vh]">
         <DialogHeader>
           <DialogTitle>Recueil des besoins - {participantName}</DialogTitle>
