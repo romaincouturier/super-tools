@@ -68,13 +68,24 @@ const Auth = () => {
 
     try {
       if (isLogin) {
+        // Restrict login to allowed email only
+        if (email.toLowerCase() !== ALLOWED_EMAIL.toLowerCase()) {
+          toast({
+            title: "Connexion non autorisée",
+            description: "Cet email n'est pas autorisé à se connecter.",
+            variant: "destructive",
+          });
+          setIsLoading(false);
+          return;
+        }
+
         const { data, error } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
         if (error) throw error;
         
-        // Check if user must change password
+        // Check if user must change password (from onboarding)
         if (data.user) {
           const { data: metadata } = await supabase
             .from("user_security_metadata")
@@ -83,6 +94,26 @@ const Auth = () => {
             .maybeSingle();
 
           if (metadata?.must_change_password) {
+            navigate("/force-password-change");
+            return;
+          }
+
+          // Check if current password is weak - if so, force password change
+          const passwordValidation = validatePassword(password);
+          if (!passwordValidation.isValid) {
+            // Set flag to force password change
+            await supabase
+              .from("user_security_metadata")
+              .upsert({
+                user_id: data.user.id,
+                must_change_password: true,
+              }, { onConflict: "user_id" });
+
+            toast({
+              title: "Mot de passe trop faible",
+              description: "Votre mot de passe ne respecte pas les critères de sécurité. Veuillez le modifier.",
+              variant: "destructive",
+            });
             navigate("/force-password-change");
             return;
           }
