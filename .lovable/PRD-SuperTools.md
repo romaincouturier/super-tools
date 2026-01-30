@@ -439,13 +439,13 @@ Grille de modules avec icônes et descriptions.
 | Priorité | Évolution | Description |
 |----------|-----------|-------------|
 | 🟡 Basse | **Bouton réservation salle Paris/Lyon** | Intégration d'un bouton pour déclencher une demande de réservation de salle |
+| 🟡 Basse | **Réservation restaurant (sessions inter)** | Pour les formations inter-entreprises, gestion de la réservation du restaurant pour les pauses déjeuner |
 
-### 12.6 Nouvelles fonctionnalités - Logistique
+### 12.7 Conformité et maintenance
 
 | Priorité | Évolution | Description |
 |----------|-----------|-------------|
-| 🟡 Basse | **Bouton réservation salle Paris/Lyon** | Intégration d'un bouton pour déclencher une demande de réservation de salle |
-| 🟡 Basse | **Réservation restaurant (sessions inter)** | Pour les formations inter-entreprises, gestion de la réservation du restaurant pour les pauses déjeuner |
+| 🔴 Haute | **Nettoyage des données RGPD** | Mise en place d'un processus automatique de purge des données personnelles après la durée de conservation légale (3 ans Qualiopi) |
 
 ---
 
