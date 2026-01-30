@@ -14,6 +14,7 @@ import { Separator } from "@/components/ui/separator";
 import ParticipantList from "@/components/formations/ParticipantList";
 import AddParticipantDialog from "@/components/formations/AddParticipantDialog";
 import BulkAddParticipantsDialog from "@/components/formations/BulkAddParticipantsDialog";
+import ScheduledEmailsSummary from "@/components/formations/ScheduledEmailsSummary";
 
 interface Training {
   id: string;
@@ -373,9 +374,13 @@ const FormationDetail = () => {
                 </CardContent>
               </Card>
             )}
-          </div>
 
-          {/* Right column - Participants */}
+            {/* Scheduled Emails Summary */}
+            <ScheduledEmailsSummary 
+              trainingId={training.id} 
+              participants={participants}
+            />
+          </div>
           <div className="lg:col-span-2">
             <Card>
               <CardHeader>
