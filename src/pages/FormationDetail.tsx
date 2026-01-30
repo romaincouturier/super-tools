@@ -233,7 +233,7 @@ const FormationDetail = () => {
               asChild
             >
               <a 
-                href={`https://maps.google.com/?q=${encodeURIComponent(training.location)}`} 
+                href={`https://www.openstreetmap.org/search?query=${encodeURIComponent(training.location)}`} 
                 target="_blank" 
                 rel="noopener noreferrer"
               >
