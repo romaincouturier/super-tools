@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { startOfWeek, subMonths, format, eachWeekOfInterval, parseISO } from "date-fns";
@@ -18,18 +19,31 @@ interface DashboardStats {
 }
 
 export const useDashboardStats = (): DashboardStats => {
-  const endDate = new Date();
-  const startDate = subMonths(endDate, 12);
+  // IMPORTANT: keep the date range stable across renders.
+  // Otherwise queryKey changes continuously (because new Date() changes), causing infinite loading.
+  const { startDate, endDate, startDateKey } = useMemo(() => {
+    const end = new Date();
+    end.setHours(0, 0, 0, 0);
+    const start = subMonths(end, 12);
+    return {
+      startDate: start,
+      endDate: end,
+      startDateKey: format(start, "yyyy-MM-dd"),
+    };
+  }, []);
 
   // Generate all weeks in the last 12 months
-  const allWeeks = eachWeekOfInterval(
-    { start: startDate, end: endDate },
-    { weekStartsOn: 1 }
-  ).map((weekStart) => format(weekStart, "dd/MM", { locale: fr }));
+  const allWeeks = useMemo(
+    () =>
+      eachWeekOfInterval({ start: startDate, end: endDate }, { weekStartsOn: 1 }).map((weekStart) =>
+        format(weekStart, "dd/MM", { locale: fr }),
+      ),
+    [startDateKey],
+  );
 
   // Micro-devis sent per week
   const { data: microDevisData, isLoading: microDevisLoading } = useQuery({
-    queryKey: ["dashboard-micro-devis", startDate.toISOString()],
+    queryKey: ["dashboard-micro-devis", startDateKey],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("activity_logs")
@@ -48,7 +62,7 @@ export const useDashboardStats = (): DashboardStats => {
 
   // Formations per week (based on start_date)
   const { data: formationsData, isLoading: formationsLoading } = useQuery({
-    queryKey: ["dashboard-formations", startDate.toISOString()],
+    queryKey: ["dashboard-formations", startDateKey],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("trainings")
@@ -66,7 +80,7 @@ export const useDashboardStats = (): DashboardStats => {
 
   // Evaluations per week (based on date_soumission)
   const { data: evaluationsData, isLoading: evaluationsLoading } = useQuery({
-    queryKey: ["dashboard-evaluations", startDate.toISOString()],
+    queryKey: ["dashboard-evaluations", startDateKey],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("training_evaluations")

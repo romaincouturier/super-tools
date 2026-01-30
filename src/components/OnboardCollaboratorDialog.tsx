@@ -66,7 +66,7 @@ const OnboardCollaboratorDialog = ({ userEmail }: OnboardCollaboratorDialogProps
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-2">
+        <Button variant="default" size="sm" className="gap-2">
           <UserPlus className="w-4 h-4" />
           Ajouter un collaborateur
         </Button>
