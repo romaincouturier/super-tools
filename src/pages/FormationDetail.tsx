@@ -374,6 +374,8 @@ const FormationDetail = () => {
             <CardContent>
               <ParticipantList
                 participants={participants}
+                trainingId={training.id}
+                trainingStartDate={training.start_date}
                 onParticipantUpdated={fetchParticipants}
               />
             </CardContent>
