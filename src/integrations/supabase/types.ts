@@ -74,6 +74,50 @@ export type Database = {
         }
         Relationships: []
       }
+      evaluation_analyses: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          evaluations_count: number
+          id: string
+          recommendations: Json
+          strengths: Json
+          summary: string | null
+          training_id: string
+          weaknesses: Json
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          evaluations_count?: number
+          id?: string
+          recommendations?: Json
+          strengths?: Json
+          summary?: string | null
+          training_id: string
+          weaknesses?: Json
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          evaluations_count?: number
+          id?: string
+          recommendations?: Json
+          strengths?: Json
+          summary?: string | null
+          training_id?: string
+          weaknesses?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "evaluation_analyses_training_id_fkey"
+            columns: ["training_id"]
+            isOneToOne: false
+            referencedRelation: "trainings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       formation_configs: {
         Row: {
           created_at: string
@@ -163,6 +207,56 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      improvements: {
+        Row: {
+          category: string
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          description: string
+          id: string
+          source_analysis_id: string | null
+          status: string
+          title: string
+          training_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          description: string
+          id?: string
+          source_analysis_id?: string | null
+          status?: string
+          title: string
+          training_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          id?: string
+          source_analysis_id?: string | null
+          status?: string
+          title?: string
+          training_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "improvements_training_id_fkey"
+            columns: ["training_id"]
+            isOneToOne: false
+            referencedRelation: "trainings"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       program_files: {
         Row: {

@@ -13,6 +13,8 @@ import FormationEdit from "./pages/FormationEdit";
 import FormationDetail from "./pages/FormationDetail";
 import Questionnaire from "./pages/Questionnaire";
 import Evaluation from "./pages/Evaluation";
+import Evaluations from "./pages/Evaluations";
+import Ameliorations from "./pages/Ameliorations";
 import PolitiqueConfidentialite from "./pages/PolitiqueConfidentialite";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
@@ -36,6 +38,10 @@ const App = () => (
           <Route path="/formations/new" element={<FormationCreate />} />
           <Route path="/formations/:id" element={<FormationDetail />} />
           <Route path="/formations/:id/edit" element={<FormationEdit />} />
+          {/* Evaluations dashboard */}
+          <Route path="/evaluations" element={<Evaluations />} />
+          {/* Improvements tracking */}
+          <Route path="/ameliorations" element={<Ameliorations />} />
           {/* Public needs survey */}
           <Route path="/questionnaire/:token" element={<Questionnaire />} />
           {/* Public evaluation form */}

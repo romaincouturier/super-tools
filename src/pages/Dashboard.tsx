@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
-import { Loader2, Award, FileText, History, Calendar } from "lucide-react";
+import { Loader2, Award, FileText, History, Calendar, ClipboardCheck, TrendingUp } from "lucide-react";
 import SupertiltLogo from "@/components/SupertiltLogo";
 import UserMenu from "@/components/UserMenu";
 import OnboardCollaboratorDialog from "@/components/OnboardCollaboratorDialog";
@@ -23,6 +23,20 @@ const tools: Tool[] = [
     description: "Gérer les formations et les participants",
     icon: <Calendar className="w-12 h-12" />,
     path: "/formations",
+  },
+  {
+    id: "evaluations",
+    name: "Évaluations",
+    description: "Analyser les retours des participants",
+    icon: <ClipboardCheck className="w-12 h-12" />,
+    path: "/evaluations",
+  },
+  {
+    id: "ameliorations",
+    name: "Améliorations",
+    description: "Suivre les axes d'amélioration identifiés",
+    icon: <TrendingUp className="w-12 h-12" />,
+    path: "/ameliorations",
   },
   {
     id: "certificates",
