@@ -75,6 +75,13 @@ const getStatusConfig = (status: string) => {
         variant: "outline" as const,
         tooltip: "Le questionnaire a été envoyé, en attente de réponse",
       };
+    case "accueil_envoye":
+      return {
+        label: "Accueil envoyé",
+        icon: MailCheck,
+        variant: "outline" as const,
+        tooltip: "Le mail d'accueil a été envoyé (J-7)",
+      };
     case "en_cours":
       return {
         label: "En cours",

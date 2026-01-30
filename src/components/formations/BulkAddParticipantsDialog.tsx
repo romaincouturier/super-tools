@@ -38,12 +38,39 @@ const BulkAddParticipantsDialog = ({ trainingId, trainingStartDate, onParticipan
   const [isManualMode, setIsManualMode] = useState(false);
   const { toast } = useToast();
 
-  // Check if training starts in less than 2 days
+  // Determine email scheduling mode based on training date
+  const getEmailMode = (): { status: string; sendWelcomeNow: boolean } => {
+    if (!trainingStartDate) {
+      return { status: "programme", sendWelcomeNow: false };
+    }
+    
+    const startDate = parseISO(trainingStartDate);
+    const today = new Date();
+    const daysUntilStart = differenceInDays(startDate, today);
+    
+    // Training already started or is today
+    if (daysUntilStart <= 0) {
+      return { status: "non_envoye", sendWelcomeNow: false };
+    }
+    
+    // Training starts in less than 2 days
+    if (daysUntilStart < 2) {
+      return { status: "manuel", sendWelcomeNow: false };
+    }
+    
+    // Training starts between 2-7 days -> send welcome email immediately
+    if (daysUntilStart <= 7) {
+      return { status: "accueil_envoye", sendWelcomeNow: true };
+    }
+    
+    // Training is more than 7 days away -> schedule normally
+    return { status: "programme", sendWelcomeNow: false };
+  };
+
   useEffect(() => {
     if (trainingStartDate) {
-      const startDate = parseISO(trainingStartDate);
-      const daysUntilStart = differenceInDays(startDate, new Date());
-      setIsManualMode(daysUntilStart < 2);
+      const { status } = getEmailMode();
+      setIsManualMode(status === "manuel" || status === "non_envoye");
     }
   }, [trainingStartDate]);
 
@@ -111,7 +138,7 @@ const BulkAddParticipantsDialog = ({ trainingId, trainingStartDate, onParticipan
 
     try {
       // Determine initial status based on training proximity
-      const initialStatus = isManualMode ? "manuel" : "programme";
+      const { status } = getEmailMode();
 
       const toInsert = participants.map((p) => ({
         training_id: trainingId,
@@ -120,7 +147,7 @@ const BulkAddParticipantsDialog = ({ trainingId, trainingStartDate, onParticipan
         last_name: p.lastName || null,
         company: p.company || null,
         needs_survey_token: crypto.randomUUID(),
-        needs_survey_status: initialStatus,
+        needs_survey_status: status,
       }));
 
       const { data, error } = await supabase
@@ -141,9 +168,16 @@ const BulkAddParticipantsDialog = ({ trainingId, trainingStartDate, onParticipan
       }
 
       const insertedCount = data?.length || 0;
-      const statusMessage = isManualMode 
-        ? "Mode manuel activé (formation proche)."
-        : "Recueil des besoins programmé.";
+      let statusMessage = "";
+      if (status === "non_envoye") {
+        statusMessage = "Formation passée - pas d'envoi programmé.";
+      } else if (status === "manuel") {
+        statusMessage = "Mode manuel activé (formation proche).";
+      } else if (status === "accueil_envoye") {
+        statusMessage = "Mail d'accueil envoyé.";
+      } else {
+        statusMessage = "Recueil des besoins programmé.";
+      }
       
       toast({
         title: "Participants ajoutés",
@@ -195,8 +229,9 @@ const BulkAddParticipantsDialog = ({ trainingId, trainingStartDate, onParticipan
             <Alert className="mt-4">
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
-                La formation commence dans moins de 2 jours. Le recueil des besoins 
-                sera en mode manuel (pas d'envoi automatique programmé).
+                {trainingStartDate && differenceInDays(parseISO(trainingStartDate), new Date()) <= 0 
+                  ? "La formation est déjà passée ou commence aujourd'hui. Aucun mail ne sera envoyé automatiquement."
+                  : "La formation commence dans moins de 2 jours. Le recueil des besoins sera en mode manuel."}
               </AlertDescription>
             </Alert>
           )}
