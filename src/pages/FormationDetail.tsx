@@ -404,6 +404,7 @@ const FormationDetail = () => {
             attendanceSheetsUrls={training.attendance_sheets_urls || []}
             sponsorEmail={training.sponsor_email}
             sponsorName={getSponsorName()}
+            sponsorFirstName={training.sponsor_first_name}
             sponsorFormalAddress={training.sponsor_formal_address}
             supportsUrl={training.supports_url}
             onUpdate={fetchTrainingData}
