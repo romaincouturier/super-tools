@@ -191,7 +191,7 @@ serve(async (req) => {
       body: JSON.stringify({
         from: "Romain Arnoux <romain@supertilt.fr>",
         to: [participant.email],
-        bcc: ["supertilt@bcc.nocrm.io"],
+        bcc: ["romain@supertilt.fr", "supertilt@bcc.nocrm.io"],
         subject: `Questionnaire de recueil des besoins - ${training.training_name}`,
         html: htmlContent,
       }),

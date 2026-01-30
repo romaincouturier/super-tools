@@ -134,7 +134,7 @@ serve(async (req) => {
       body: JSON.stringify({
         from: "Romain Arnoux <romain@supertilt.fr>",
         to: recipientEmails,
-        bcc: ["supertilt@bcc.nocrm.io"],
+        bcc: ["romain@supertilt.fr", "supertilt@bcc.nocrm.io"],
         subject,
         html: htmlContent,
       }),
