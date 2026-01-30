@@ -138,6 +138,17 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, onParticipantAdde
         }
       }
 
+      // Log activity
+      await supabase.from("activity_logs").insert({
+        action_type: "participant_added",
+        recipient_email: email.trim().toLowerCase(),
+        details: {
+          training_id: trainingId,
+          participant_name: `${firstName.trim() || ""} ${lastName.trim() || ""}`.trim() || null,
+          company: company.trim() || null,
+        },
+      });
+
       let statusMessage = "";
       if (status === "non_envoye") {
         statusMessage = "Formation passée - pas d'envoi programmé.";

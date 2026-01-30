@@ -149,6 +149,21 @@ serve(async (req) => {
     const result = await emailResponse.json();
     console.log("Thank you email sent successfully:", result);
 
+    // Log activity for each recipient
+    try {
+      const logInserts = recipientEmails.map((email: string) => ({
+        action_type: "thank_you_email_sent",
+        recipient_email: email,
+        details: {
+          training_id: trainingId,
+          training_name: trainingName,
+        },
+      }));
+      await supabase.from("activity_logs").insert(logInserts);
+    } catch (logError) {
+      console.warn("Failed to log activity:", logError);
+    }
+
     return new Response(
       JSON.stringify({ 
         success: true, 

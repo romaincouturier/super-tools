@@ -213,6 +213,21 @@ serve(async (req) => {
     const result = await emailResponse.json();
     console.log("Needs survey email sent to:", participant.email, result);
 
+    // Log activity
+    try {
+      await supabase.from("activity_logs").insert({
+        action_type: "needs_survey_sent",
+        recipient_email: participant.email,
+        details: {
+          training_id: trainingId,
+          training_name: training.training_name,
+          participant_name: `${participant.first_name || ""} ${participant.last_name || ""}`.trim() || null,
+        },
+      });
+    } catch (logError) {
+      console.warn("Failed to log activity:", logError);
+    }
+
     return new Response(
       JSON.stringify({ success: true, messageId: result.id }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }

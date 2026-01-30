@@ -181,6 +181,19 @@ const FormationCreate = () => {
         if (schedulesError) throw schedulesError;
       }
 
+      // Log activity
+      await supabase.from("activity_logs").insert({
+        action_type: "training_created",
+        recipient_email: user.email || "unknown",
+        user_id: user.id,
+        details: {
+          training_id: training.id,
+          training_name: trainingName,
+          client_name: clientName,
+          start_date: format(startDate, "yyyy-MM-dd"),
+        },
+      });
+
       toast({
         title: "Formation créée",
         description: "La formation a été créée avec succès.",

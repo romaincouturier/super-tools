@@ -186,6 +186,21 @@ const BulkAddParticipantsDialog = ({ trainingId, trainingStartDate, onParticipan
         }
       }
 
+      // Log activity
+      if (data && data.length > 0) {
+        const logInserts = data.map((p) => ({
+          action_type: "participant_added",
+          recipient_email: p.email,
+          details: {
+            training_id: trainingId,
+            participant_name: `${p.first_name || ""} ${p.last_name || ""}`.trim() || null,
+            company: p.company || null,
+            bulk_add: true,
+          },
+        }));
+        await supabase.from("activity_logs").insert(logInserts);
+      }
+
       const insertedCount = data?.length || 0;
       let statusMessage = "";
       if (status === "non_envoye") {

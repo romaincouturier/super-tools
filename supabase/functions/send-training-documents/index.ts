@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -226,6 +227,26 @@ serve(async (req) => {
 
     const result = await emailResponse.json();
     console.log("Email sent successfully:", result);
+
+    // Log activity
+    try {
+      const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+      const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+      const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+      await supabase.from("activity_logs").insert({
+        action_type: "training_documents_sent",
+        recipient_email: recipientEmail,
+        details: {
+          training_id: trainingId,
+          document_type: documentType,
+          recipient_name: recipientName,
+          attachments_count: attachments.length,
+        },
+      });
+    } catch (logError) {
+      console.warn("Failed to log activity:", logError);
+    }
 
     return new Response(
       JSON.stringify({ success: true, messageId: result.id }),
