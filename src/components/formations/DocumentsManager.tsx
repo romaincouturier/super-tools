@@ -52,6 +52,7 @@ interface DocumentsManagerProps {
   sponsorFirstName: string | null;
   sponsorFormalAddress: boolean;
   supportsUrl: string | null;
+  evaluationLink: string;
   onUpdate?: () => void;
 }
 
@@ -67,6 +68,7 @@ const DocumentsManager = ({
   sponsorFirstName,
   sponsorFormalAddress,
   supportsUrl: initialSupportsUrl,
+  evaluationLink,
   onUpdate,
 }: DocumentsManagerProps) => {
   const [invoiceFileUrl, setInvoiceFileUrl] = useState<string | null>(initialInvoiceUrl);
@@ -84,6 +86,8 @@ const DocumentsManager = ({
   const [showCustomRecipientDialog, setShowCustomRecipientDialog] = useState(false);
   const [pendingDocumentType, setPendingDocumentType] = useState<"invoice" | "sheets" | "all" | null>(null);
   const [sendToSponsorWithOptions, setSendToSponsorWithOptions] = useState(false);
+  const [showThankYouPreview, setShowThankYouPreview] = useState(false);
+  const [participantEmails, setParticipantEmails] = useState<string[]>([]);
   const { toast } = useToast();
 
   // Fetch document send dates from activity logs
@@ -453,6 +457,19 @@ const DocumentsManager = ({
     }
   };
 
+  const openThankYouPreview = async () => {
+    // Fetch participants for this training
+    const { data: participants } = await supabase
+      .from("training_participants")
+      .select("email")
+      .eq("training_id", trainingId);
+    
+    if (participants) {
+      setParticipantEmails(participants.map(p => p.email));
+    }
+    setShowThankYouPreview(true);
+  };
+
   const handleSendThankYouEmail = async () => {
     setSendingThankYou(true);
 
@@ -467,6 +484,8 @@ const DocumentsManager = ({
         title: "Email de remerciement envoyé",
         description: `Le mail a été envoyé à ${data.recipientCount} participant(s).`,
       });
+      
+      setShowThankYouPreview(false);
     } catch (error: any) {
       console.error("Send error:", error);
       toast({
@@ -477,6 +496,27 @@ const DocumentsManager = ({
     } finally {
       setSendingThankYou(false);
     }
+  };
+
+  const getThankYouEmailContent = () => {
+    const supportsSection = supportsUrl 
+      ? `\nVous trouverez également tous les supports de la formation ici, pour continuer à pratiquer et intégrer ces techniques dans vos présentations :\n${supportsUrl}\n`
+      : "";
+    
+    return `Bonjour à toutes et à tous,
+
+Quelle belle journée de découverte visuelle nous avons partagé ! Merci pour votre énergie et votre participation pendant notre formation "${trainingName}".
+
+Pour finaliser cette formation, j'ai besoin que vous preniez quelques minutes pour compléter le questionnaire d'évaluation :
+${evaluationLink}
+${supportsSection}
+Je suis curieux de voir comment vous allez utiliser tout ce que nous avons vu ! N'hésitez pas à me contacter si vous avez des questions ou des besoins de compléments d'informations.
+
+Je vous souhaite une bonne journée
+
+—
+Romain Couturier
+romain@supertilt.fr`;
   };
 
   const openCustomRecipientDialog = (type: "invoice" | "sheets" | "all", toSponsor: boolean = false) => {
@@ -785,38 +825,20 @@ const DocumentsManager = ({
 
           {/* Thank You Email Section */}
           <div className="pt-4 border-t">
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full"
-                  disabled={sendingThankYou}
-                >
-                  {sendingThankYou ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <Heart className="h-4 w-4 mr-2" />
-                  )}
-                  Envoyer le mail de remerciement
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Envoyer le mail de remerciement ?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Un email de remerciement sera envoyé à tous les participants avec le lien d'évaluation
-                    {supportsUrl && " et le lien vers les supports de formation"}.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Annuler</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleSendThankYouEmail}>
-                    Envoyer
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              onClick={openThankYouPreview}
+              disabled={sendingThankYou}
+            >
+              {sendingThankYou ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Heart className="h-4 w-4 mr-2" />
+              )}
+              Envoyer le mail de remerciement
+            </Button>
             <p className="text-xs text-muted-foreground text-center mt-2">
               Envoi à tous les participants inscrits
             </p>
@@ -890,6 +912,75 @@ const DocumentsManager = ({
                 <Send className="h-4 w-4 mr-2" />
               )}
               Envoyer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Thank You Email Preview Dialog */}
+      <Dialog open={showThankYouPreview} onOpenChange={setShowThankYouPreview}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Heart className="h-5 w-5" />
+              Prévisualisation du mail de remerciement
+            </DialogTitle>
+            <DialogDescription>
+              Vérifiez le contenu avant envoi
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div>
+              <p className="text-sm font-medium text-muted-foreground mb-1">De</p>
+              <p className="font-medium">Romain Couturier &lt;romain@supertilt.fr&gt;</p>
+            </div>
+            
+            <div>
+              <p className="text-sm font-medium text-muted-foreground mb-1">À</p>
+              <div className="flex flex-wrap gap-1">
+                {participantEmails.length > 0 ? (
+                  participantEmails.map((email, index) => (
+                    <span key={index} className="text-sm bg-muted px-2 py-1 rounded">
+                      {email}
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-muted-foreground text-sm">Chargement...</span>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                {participantEmails.length} participant{participantEmails.length > 1 ? "s" : ""}
+              </p>
+            </div>
+            
+            <div>
+              <p className="text-sm font-medium text-muted-foreground mb-1">Objet</p>
+              <p className="font-medium">Merci pour votre participation à la formation {trainingName}</p>
+            </div>
+            
+            <div>
+              <p className="text-sm font-medium text-muted-foreground mb-1">Contenu</p>
+              <div className="bg-muted/50 rounded-lg p-4 whitespace-pre-wrap text-sm font-mono">
+                {getThankYouEmailContent()}
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setShowThankYouPreview(false)}>
+              Annuler
+            </Button>
+            <Button
+              onClick={handleSendThankYouEmail}
+              disabled={sendingThankYou || participantEmails.length === 0}
+            >
+              {sendingThankYou ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4 mr-2" />
+              )}
+              Envoyer à {participantEmails.length} participant{participantEmails.length > 1 ? "s" : ""}
             </Button>
           </DialogFooter>
         </DialogContent>
