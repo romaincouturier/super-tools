@@ -78,6 +78,31 @@ const ACTION_LABELS: Record<string, { label: string; icon: React.ReactNode; vari
     icon: <Heart className="w-4 h-4" />,
     variant: "secondary" 
   },
+  accessibility_needs_email_sent: { 
+    label: "Accessibilité", 
+    icon: <Heart className="w-4 h-4" />,
+    variant: "outline" 
+  },
+  attendance_signature_request_sent: { 
+    label: "Émargement envoyé", 
+    icon: <Send className="w-4 h-4" />,
+    variant: "default" 
+  },
+  needs_survey_reminder_sent: { 
+    label: "Rappel questionnaire", 
+    icon: <RefreshCw className="w-4 h-4" />,
+    variant: "outline" 
+  },
+  questionnaire_confirmation_sent: { 
+    label: "Confirmation questionnaire", 
+    icon: <Mail className="w-4 h-4" />,
+    variant: "secondary" 
+  },
+  scheduled_email_force_sent: { 
+    label: "Email forcé", 
+    icon: <Send className="w-4 h-4" />,
+    variant: "outline" 
+  },
 };
 
 const formatDateTime = (dateString: string): string => {
