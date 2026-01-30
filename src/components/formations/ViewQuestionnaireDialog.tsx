@@ -261,12 +261,23 @@ const ViewQuestionnaireDialog = ({ participantId, participantName, trainingId }:
                 <Field label="Lecture du programme" value={getLectureProgrammeLabel(questionnaire.lecture_programme)} />
                 
                 {/* Display individual prerequisite validations */}
-                {questionnaire.modalites_preferences && Object.keys(questionnaire.modalites_preferences as object).length > 0 && (
-                  <div className="space-y-2">
-                    <span className="text-sm text-muted-foreground">Validation des prérequis :</span>
-                    {formatPrerequisValidations(questionnaire.modalites_preferences)}
-                  </div>
-                )}
+                {questionnaire.prerequis_validation && (() => {
+                  try {
+                    const parsed = JSON.parse(questionnaire.prerequis_validation);
+                    if (typeof parsed === 'object' && !Array.isArray(parsed) && Object.keys(parsed).length > 0) {
+                      return (
+                        <div className="space-y-2">
+                          <span className="text-sm text-muted-foreground">Validation des prérequis :</span>
+                          {formatPrerequisValidations(parsed)}
+                        </div>
+                      );
+                    }
+                  } catch {
+                    // If it's not JSON, display as simple text
+                    return <Field label="Validation des prérequis" value={getPrerequisLabel(questionnaire.prerequis_validation)} />;
+                  }
+                  return null;
+                })()}
                 
                 {questionnaire.prerequis_details && (
                   <div className="text-sm p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-md">
