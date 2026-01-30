@@ -6,40 +6,47 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-// Fetch Signitic signature
+// Fetch Signitic signature for romain@supertilt.fr
 async function getSigniticSignature(): Promise<string> {
+  const signiticApiKey = Deno.env.get("SIGNITIC_API_KEY");
+  
+  if (!signiticApiKey) {
+    console.warn("SIGNITIC_API_KEY not configured, using default signature");
+    return getDefaultSignature();
+  }
+
   try {
-    const SIGNITIC_API_KEY = Deno.env.get("SIGNITIC_API_KEY");
-    if (!SIGNITIC_API_KEY) {
-      console.warn("SIGNITIC_API_KEY not configured, using default signature");
-      return `<p style="margin-top: 20px; color: #666; font-size: 14px;">
-        <strong>Romain Arnoux</strong><br/>
-        Supertilt - Formation professionnelle<br/>
-        <a href="mailto:romain@supertilt.fr">romain@supertilt.fr</a>
-      </p>`;
+    const response = await fetch(
+      "https://api.signitic.app/signatures/romain@supertilt.fr/html",
+      {
+        headers: {
+          "x-api-key": signiticApiKey,
+        },
+      }
+    );
+
+    if (response.ok) {
+      const htmlContent = await response.text();
+      if (htmlContent && !htmlContent.includes("error")) {
+        console.log("Signitic signature fetched successfully");
+        return htmlContent;
+      }
     }
-
-    const response = await fetch("https://api.signitic.com/v1/signature", {
-      headers: {
-        "Authorization": `Bearer ${SIGNITIC_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`Signitic API error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    return data.html || "";
+    
+    console.warn("Could not fetch Signitic signature:", response.status);
+    return getDefaultSignature();
   } catch (error) {
     console.error("Error fetching Signitic signature:", error);
-    return `<p style="margin-top: 20px; color: #666; font-size: 14px;">
-      <strong>Romain Arnoux</strong><br/>
-      Supertilt - Formation professionnelle<br/>
-      <a href="mailto:romain@supertilt.fr">romain@supertilt.fr</a>
-    </p>`;
+    return getDefaultSignature();
   }
+}
+
+function getDefaultSignature(): string {
+  return `<p style="margin-top: 20px; color: #666; font-size: 14px;">
+    <strong>Romain Arnoux</strong><br/>
+    Supertilt - Formation professionnelle<br/>
+    <a href="mailto:romain@supertilt.fr">romain@supertilt.fr</a>
+  </p>`;
 }
 
 serve(async (req) => {
@@ -78,14 +85,17 @@ serve(async (req) => {
     let htmlContent = "";
     const attachments: Array<{ filename: string; path: string }> = [];
 
-    const greeting = recipientName ? `Bonjour ${recipientName},` : "Bonjour,";
+    const firstName = recipientName ? recipientName.split(" ")[0] : null;
+    const greeting = firstName ? `Bonjour ${firstName},` : "Bonjour,";
 
     if (documentType === "invoice" && invoiceUrl) {
       subject = "Votre facture de formation - Supertilt";
       htmlContent = `
         <p>${greeting}</p>
-        <p>Veuillez trouver ci-joint la facture relative à votre formation.</p>
-        <p>N'hésitez pas à nous contacter si vous avez des questions.</p>
+        <p>J'espère que vous allez bien !</p>
+        <p>Veuillez trouver ci-joint la facture correspondant à notre récente formation. Je reste à votre disposition si vous avez la moindre question.</p>
+        <p>Merci encore pour votre confiance, c'est toujours un plaisir de collaborer avec vous !</p>
+        <p>Belle journée,</p>
         ${signature}
       `;
       attachments.push({
@@ -93,29 +103,41 @@ serve(async (req) => {
         path: invoiceUrl,
       });
     } else if (documentType === "sheets" && attendanceSheetsUrls?.length > 0) {
-      subject = "Feuilles d'émargement de formation - Supertilt";
+      const sheetsCount = attendanceSheetsUrls.length;
+      const sheetsText = sheetsCount > 1 ? "les feuilles d'émargement" : "la feuille d'émargement";
+      
+      subject = "Feuilles d'émargement - Supertilt";
       htmlContent = `
         <p>${greeting}</p>
-        <p>Veuillez trouver ci-joint ${attendanceSheetsUrls.length > 1 ? "les feuilles d'émargement" : "la feuille d'émargement"} relative${attendanceSheetsUrls.length > 1 ? "s" : ""} à votre formation.</p>
-        <p>N'hésitez pas à nous contacter si vous avez des questions.</p>
+        <p>J'espère que vous allez bien !</p>
+        <p>Comme convenu, je vous transmets ${sheetsText} de notre formation. Vous trouverez ${sheetsCount > 1 ? "les documents" : "le document"} en pièce jointe.</p>
+        <p>N'hésitez pas à me faire signe si vous avez besoin de quoi que ce soit d'autre.</p>
+        <p>À très bientôt,</p>
         ${signature}
       `;
       attendanceSheetsUrls.forEach((url: string, index: number) => {
+        // Detect file extension from URL
+        const extension = url.toLowerCase().match(/\.(pdf|jpg|jpeg|png|gif|webp)$/)?.[1] || "pdf";
         attachments.push({
-          filename: `Feuille_emargement_${index + 1}.pdf`,
+          filename: `Feuille_emargement_${index + 1}.${extension}`,
           path: url,
         });
       });
     } else if (documentType === "all") {
+      const sheetsCount = attendanceSheetsUrls?.length || 0;
+      
       subject = "Documents de formation - Supertilt";
       htmlContent = `
         <p>${greeting}</p>
-        <p>Veuillez trouver ci-joint les documents relatifs à votre formation :</p>
-        <ul>
-          ${invoiceUrl ? "<li>Facture</li>" : ""}
-          ${attendanceSheetsUrls?.length > 0 ? `<li>${attendanceSheetsUrls.length} feuille(s) d'émargement</li>` : ""}
+        <p>J'espère que vous allez bien !</p>
+        <p>Veuillez trouver ci-joint les documents relatifs à notre formation :</p>
+        <ul style="margin: 10px 0;">
+          ${invoiceUrl ? "<li>La facture</li>" : ""}
+          ${sheetsCount > 0 ? `<li>${sheetsCount > 1 ? "Les feuilles d'émargement" : "La feuille d'émargement"}</li>` : ""}
         </ul>
-        <p>N'hésitez pas à nous contacter si vous avez des questions.</p>
+        <p>Je reste disponible si vous avez des questions ou besoin d'informations complémentaires.</p>
+        <p>Merci encore pour cette belle collaboration !</p>
+        <p>À très bientôt,</p>
         ${signature}
       `;
       if (invoiceUrl) {
@@ -125,8 +147,9 @@ serve(async (req) => {
         });
       }
       attendanceSheetsUrls?.forEach((url: string, index: number) => {
+        const extension = url.toLowerCase().match(/\.(pdf|jpg|jpeg|png|gif|webp)$/)?.[1] || "pdf";
         attachments.push({
-          filename: `Feuille_emargement_${index + 1}.pdf`,
+          filename: `Feuille_emargement_${index + 1}.${extension}`,
           path: url,
         });
       });
