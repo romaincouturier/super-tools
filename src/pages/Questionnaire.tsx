@@ -324,6 +324,24 @@ const Questionnaire = () => {
         }
       }
 
+      // Send accessibility needs email if participant has specific needs
+      if (questionnaire.besoins_accessibilite && questionnaire.besoins_accessibilite.trim()) {
+        try {
+          await supabase.functions.invoke("send-accessibility-needs", {
+            body: {
+              questionnaireId: questionnaire.id,
+              trainingId: questionnaire.training_id,
+              participantEmail: questionnaire.email,
+              participantFirstName: questionnaire.prenom || "",
+              accessibilityNeeds: questionnaire.besoins_accessibilite,
+              trainingName: training?.training_name || "Formation",
+            },
+          });
+        } catch (emailErr) {
+          console.warn("Failed to send accessibility needs email", emailErr);
+        }
+      }
+
       dirtyRef.current = false;
       toast({
         title: "Merci !",
