@@ -499,6 +499,7 @@ export type Database = {
           program_file_url: string | null
           sponsor_email: string | null
           sponsor_first_name: string | null
+          sponsor_formal_address: boolean
           sponsor_last_name: string | null
           start_date: string
           supports_url: string | null
@@ -521,6 +522,7 @@ export type Database = {
           program_file_url?: string | null
           sponsor_email?: string | null
           sponsor_first_name?: string | null
+          sponsor_formal_address?: boolean
           sponsor_last_name?: string | null
           start_date: string
           supports_url?: string | null
@@ -543,6 +545,7 @@ export type Database = {
           program_file_url?: string | null
           sponsor_email?: string | null
           sponsor_first_name?: string | null
+          sponsor_formal_address?: boolean
           sponsor_last_name?: string | null
           start_date?: string
           supports_url?: string | null

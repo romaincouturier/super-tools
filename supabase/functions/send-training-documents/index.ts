@@ -62,7 +62,8 @@ serve(async (req) => {
       documentType,
       invoiceUrl,
       attendanceSheetsUrls,
-      ccEmail
+      ccEmail,
+      formalAddress = true // default to vouvoiement
     } = await req.json();
 
     if (!recipientEmail) {
@@ -87,14 +88,28 @@ serve(async (req) => {
 
     const firstName = recipientName ? recipientName.split(" ")[0] : null;
     const greeting = firstName ? `Bonjour ${firstName},` : "Bonjour,";
+    
+    // Generate phrases based on formal/informal address
+    const hopePhrase = formalAddress 
+      ? "J'espère que vous allez bien !"
+      : "J'espère que tu vas bien !";
+    const availabilityPhrase = formalAddress
+      ? "Je reste à votre disposition si vous avez la moindre question."
+      : "Je reste à ta disposition si tu as la moindre question.";
+    const thanksPhrase = formalAddress
+      ? "Merci encore pour votre confiance, c'est toujours un plaisir de collaborer avec vous !"
+      : "Merci encore pour ta confiance, c'est toujours un plaisir de collaborer avec toi !";
 
     if (documentType === "invoice" && invoiceUrl) {
       subject = "Votre facture de formation - Supertilt";
+      const invoiceText = formalAddress
+        ? "Veuillez trouver ci-joint la facture correspondant à notre récente formation."
+        : "Tu trouveras ci-joint la facture correspondant à notre récente formation.";
       htmlContent = `
         <p>${greeting}</p>
-        <p>J'espère que vous allez bien !</p>
-        <p>Veuillez trouver ci-joint la facture correspondant à notre récente formation. Je reste à votre disposition si vous avez la moindre question.</p>
-        <p>Merci encore pour votre confiance, c'est toujours un plaisir de collaborer avec vous !</p>
+        <p>${hopePhrase}</p>
+        <p>${invoiceText} ${availabilityPhrase}</p>
+        <p>${thanksPhrase}</p>
         <p>Belle journée,</p>
         ${signature}
       `;
@@ -105,13 +120,20 @@ serve(async (req) => {
     } else if (documentType === "sheets" && attendanceSheetsUrls?.length > 0) {
       const sheetsCount = attendanceSheetsUrls.length;
       const sheetsText = sheetsCount > 1 ? "les feuilles d'émargement" : "la feuille d'émargement";
+      const docText = sheetsCount > 1 ? "les documents" : "le document";
       
       subject = "Feuilles d'émargement - Supertilt";
+      const transmitText = formalAddress
+        ? `Comme convenu, je vous transmets ${sheetsText} de notre formation. Vous trouverez ${docText} en pièce jointe.`
+        : `Comme convenu, je te transmets ${sheetsText} de notre formation. Tu trouveras ${docText} en pièce jointe.`;
+      const needText = formalAddress
+        ? "N'hésitez pas à me faire signe si vous avez besoin de quoi que ce soit d'autre."
+        : "N'hésite pas à me faire signe si tu as besoin de quoi que ce soit d'autre.";
       htmlContent = `
         <p>${greeting}</p>
-        <p>J'espère que vous allez bien !</p>
-        <p>Comme convenu, je vous transmets ${sheetsText} de notre formation. Vous trouverez ${sheetsCount > 1 ? "les documents" : "le document"} en pièce jointe.</p>
-        <p>N'hésitez pas à me faire signe si vous avez besoin de quoi que ce soit d'autre.</p>
+        <p>${hopePhrase}</p>
+        <p>${transmitText}</p>
+        <p>${needText}</p>
         <p>À très bientôt,</p>
         ${signature}
       `;
@@ -127,15 +149,21 @@ serve(async (req) => {
       const sheetsCount = attendanceSheetsUrls?.length || 0;
       
       subject = "Documents de formation - Supertilt";
+      const findText = formalAddress
+        ? "Veuillez trouver ci-joint les documents relatifs à notre formation :"
+        : "Tu trouveras ci-joint les documents relatifs à notre formation :";
+      const questionsText = formalAddress
+        ? "Je reste disponible si vous avez des questions ou besoin d'informations complémentaires."
+        : "Je reste disponible si tu as des questions ou besoin d'informations complémentaires.";
       htmlContent = `
         <p>${greeting}</p>
-        <p>J'espère que vous allez bien !</p>
-        <p>Veuillez trouver ci-joint les documents relatifs à notre formation :</p>
+        <p>${hopePhrase}</p>
+        <p>${findText}</p>
         <ul style="margin: 10px 0;">
           ${invoiceUrl ? "<li>La facture</li>" : ""}
           ${sheetsCount > 0 ? `<li>${sheetsCount > 1 ? "Les feuilles d'émargement" : "La feuille d'émargement"}</li>` : ""}
         </ul>
-        <p>Je reste disponible si vous avez des questions ou besoin d'informations complémentaires.</p>
+        <p>${questionsText}</p>
         <p>Merci encore pour cette belle collaboration !</p>
         <p>À très bientôt,</p>
         ${signature}

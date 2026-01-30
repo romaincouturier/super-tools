@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 import { Loader2, ArrowLeft, Calendar, Users, FileText, ExternalLink, Edit2, User as UserIcon, Mail, MapPin, Building } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import SupertiltLogo from "@/components/SupertiltLogo";
@@ -33,6 +34,7 @@ interface Training {
   sponsor_first_name: string | null;
   sponsor_last_name: string | null;
   sponsor_email: string | null;
+  sponsor_formal_address: boolean;
   invoice_file_url: string | null;
   attendance_sheets_urls: string[];
   supports_url: string | null;
@@ -266,8 +268,19 @@ const FormationDetail = () => {
                   <Separator />
                   <div className="flex items-start gap-3">
                     <UserIcon className="h-4 w-4 mt-0.5 text-muted-foreground" />
-                    <div className="space-y-1">
-                      <p className="text-sm text-muted-foreground">Commanditaire</p>
+                    <div className="flex-1 space-y-1">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm text-muted-foreground">Commanditaire</p>
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                          <span>Tu</span>
+                          <Switch
+                            checked={training.sponsor_formal_address}
+                            disabled
+                            className="scale-75"
+                          />
+                          <span>Vous</span>
+                        </div>
+                      </div>
                       {(training.sponsor_first_name || training.sponsor_last_name) && (
                         <p className="font-medium">
                           {training.sponsor_first_name} {training.sponsor_last_name}
@@ -391,6 +404,7 @@ const FormationDetail = () => {
             attendanceSheetsUrls={training.attendance_sheets_urls || []}
             sponsorEmail={training.sponsor_email}
             sponsorName={getSponsorName()}
+            sponsorFormalAddress={training.sponsor_formal_address}
             supportsUrl={training.supports_url}
             onUpdate={fetchTrainingData}
           />
