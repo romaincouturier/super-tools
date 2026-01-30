@@ -292,6 +292,21 @@ const Questionnaire = () => {
 
       await insertEvent(questionnaire.id, "submitted", { source: "public_link" });
 
+      // Send confirmation email
+      try {
+        await supabase.functions.invoke("send-questionnaire-confirmation", {
+          body: {
+            questionnaireId: questionnaire.id,
+            trainingId: questionnaire.training_id,
+            participantEmail: questionnaire.email,
+            participantFirstName: questionnaire.prenom || "participant",
+            formatFormation: training?.format_formation,
+          },
+        });
+      } catch (emailErr) {
+        console.warn("Failed to send confirmation email", emailErr);
+      }
+
       // Send prerequisite warning email if needed
       if (needsPrerequisEmail) {
         try {
