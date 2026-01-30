@@ -54,7 +54,8 @@ serve(async (req) => {
       recipientName, 
       documentType,
       invoiceUrl,
-      attendanceSheetsUrls 
+      attendanceSheetsUrls,
+      ccEmail
     } = await req.json();
 
     if (!recipientEmail) {
@@ -137,8 +138,16 @@ serve(async (req) => {
     }
 
     console.log("Sending email to:", recipientEmail);
+    console.log("CC:", ccEmail || "none");
     console.log("Subject:", subject);
     console.log("Attachments:", attachments.length);
+
+    // Build recipient list
+    const toList = [recipientEmail];
+    const ccList: string[] = [];
+    if (ccEmail) {
+      ccList.push(ccEmail);
+    }
 
     const emailResponse = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -148,7 +157,8 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         from: "Romain Arnoux <romain@supertilt.fr>",
-        to: [recipientEmail],
+        to: toList,
+        cc: ccList.length > 0 ? ccList : undefined,
         bcc: ["supertilt@bcc.nocrm.io"],
         subject,
         html: htmlContent,

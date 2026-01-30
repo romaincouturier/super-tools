@@ -62,8 +62,10 @@ const DocumentsManager = ({
   const [sendingThankYou, setSendingThankYou] = useState(false);
   const [savingSupportsUrl, setSavingSupportsUrl] = useState(false);
   const [customRecipientEmail, setCustomRecipientEmail] = useState("");
+  const [ccEmail, setCcEmail] = useState("");
   const [showCustomRecipientDialog, setShowCustomRecipientDialog] = useState(false);
   const [pendingDocumentType, setPendingDocumentType] = useState<"invoice" | "sheets" | "all" | null>(null);
+  const [sendToSponsorWithOptions, setSendToSponsorWithOptions] = useState(false);
   const { toast } = useToast();
 
   const sanitizeFileName = (name: string): string => {
@@ -295,7 +297,7 @@ const DocumentsManager = ({
     }
   };
 
-  const handleSendDocuments = async (type: "invoice" | "sheets" | "all", recipientEmail?: string) => {
+  const handleSendDocuments = async (type: "invoice" | "sheets" | "all", recipientEmail?: string, cc?: string) => {
     const targetEmail = recipientEmail || sponsorEmail;
     
     if (!targetEmail) {
@@ -339,19 +341,28 @@ const DocumentsManager = ({
           documentType: type,
           invoiceUrl: type === "sheets" ? null : invoiceFileUrl,
           attendanceSheetsUrls: type === "invoice" ? [] : attendanceSheetsUrls,
+          ccEmail: cc || null,
         },
       });
 
       if (error) throw error;
 
+      let description = `Les documents ont été envoyés à ${targetEmail}`;
+      if (cc) {
+        description += ` (CC: ${cc})`;
+      }
+      description += ".";
+
       toast({
         title: "Documents envoyés",
-        description: `Les documents ont été envoyés à ${targetEmail}.`,
+        description,
       });
       
       setShowCustomRecipientDialog(false);
       setCustomRecipientEmail("");
+      setCcEmail("");
       setPendingDocumentType(null);
+      setSendToSponsorWithOptions(false);
     } catch (error: any) {
       console.error("Send error:", error);
       toast({
@@ -390,8 +401,15 @@ const DocumentsManager = ({
     }
   };
 
-  const openCustomRecipientDialog = (type: "invoice" | "sheets" | "all") => {
+  const openCustomRecipientDialog = (type: "invoice" | "sheets" | "all", toSponsor: boolean = false) => {
     setPendingDocumentType(type);
+    setSendToSponsorWithOptions(toSponsor);
+    if (toSponsor && sponsorEmail) {
+      setCustomRecipientEmail(sponsorEmail);
+    } else {
+      setCustomRecipientEmail("");
+    }
+    setCcEmail("");
     setShowCustomRecipientDialog(true);
   };
 
@@ -613,26 +631,29 @@ const DocumentsManager = ({
                     Envoyer les documents
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-64">
+                <DropdownMenuContent align="end" className="w-72">
                   {sponsorEmail && (
                     <>
-                      <p className="px-2 py-1.5 text-xs text-muted-foreground">
-                        Envoyer au commanditaire ({sponsorEmail})
+                      <p className="px-2 py-1.5 text-xs text-muted-foreground font-medium">
+                        Envoyer au commanditaire
+                      </p>
+                      <p className="px-2 pb-1.5 text-xs text-muted-foreground truncate">
+                        {sponsorEmail}
                       </p>
                       {invoiceFileUrl && (
-                        <DropdownMenuItem onClick={() => handleSendDocuments("invoice")}>
+                        <DropdownMenuItem onClick={() => openCustomRecipientDialog("invoice", true)}>
                           <Receipt className="h-4 w-4 mr-2" />
                           Facture
                         </DropdownMenuItem>
                       )}
                       {attendanceSheetsUrls.length > 0 && (
-                        <DropdownMenuItem onClick={() => handleSendDocuments("sheets")}>
+                        <DropdownMenuItem onClick={() => openCustomRecipientDialog("sheets", true)}>
                           <ClipboardList className="h-4 w-4 mr-2" />
                           Feuilles d'émargement
                         </DropdownMenuItem>
                       )}
                       {invoiceFileUrl && attendanceSheetsUrls.length > 0 && (
-                        <DropdownMenuItem onClick={() => handleSendDocuments("all")}>
+                        <DropdownMenuItem onClick={() => openCustomRecipientDialog("all", true)}>
                           <FileText className="h-4 w-4 mr-2" />
                           Tous les documents
                         </DropdownMenuItem>
@@ -640,23 +661,23 @@ const DocumentsManager = ({
                       <DropdownMenuSeparator />
                     </>
                   )}
-                  <p className="px-2 py-1.5 text-xs text-muted-foreground">
+                  <p className="px-2 py-1.5 text-xs text-muted-foreground font-medium">
                     Envoyer à un autre destinataire
                   </p>
                   {invoiceFileUrl && (
-                    <DropdownMenuItem onClick={() => openCustomRecipientDialog("invoice")}>
+                    <DropdownMenuItem onClick={() => openCustomRecipientDialog("invoice", false)}>
                       <Mail className="h-4 w-4 mr-2" />
                       Facture → autre email
                     </DropdownMenuItem>
                   )}
                   {attendanceSheetsUrls.length > 0 && (
-                    <DropdownMenuItem onClick={() => openCustomRecipientDialog("sheets")}>
+                    <DropdownMenuItem onClick={() => openCustomRecipientDialog("sheets", false)}>
                       <Mail className="h-4 w-4 mr-2" />
                       Émargements → autre email
                     </DropdownMenuItem>
                   )}
                   {invoiceFileUrl && attendanceSheetsUrls.length > 0 && (
-                    <DropdownMenuItem onClick={() => openCustomRecipientDialog("all")}>
+                    <DropdownMenuItem onClick={() => openCustomRecipientDialog("all", false)}>
                       <Mail className="h-4 w-4 mr-2" />
                       Tous → autre email
                     </DropdownMenuItem>
@@ -711,24 +732,38 @@ const DocumentsManager = ({
       <Dialog open={showCustomRecipientDialog} onOpenChange={setShowCustomRecipientDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Envoyer à un autre destinataire</DialogTitle>
+            <DialogTitle>
+              {sendToSponsorWithOptions ? "Envoyer au commanditaire" : "Envoyer à un autre destinataire"}
+            </DialogTitle>
             <DialogDescription>
-              Entrez l'adresse email du destinataire pour{" "}
-              {pendingDocumentType === "invoice" && "la facture"}
-              {pendingDocumentType === "sheets" && "les feuilles d'émargement"}
-              {pendingDocumentType === "all" && "tous les documents"}
+              {sendToSponsorWithOptions 
+                ? `Envoi de ${pendingDocumentType === "invoice" ? "la facture" : pendingDocumentType === "sheets" ? "les feuilles d'émargement" : "tous les documents"} au commanditaire. Vous pouvez ajouter un email en copie.`
+                : `Entrez l'adresse email du destinataire pour ${pendingDocumentType === "invoice" ? "la facture" : pendingDocumentType === "sheets" ? "les feuilles d'émargement" : "tous les documents"}.`
+              }
             </DialogDescription>
           </DialogHeader>
-          <div className="py-4">
-            <Label htmlFor="customEmail">Email du destinataire</Label>
-            <Input
-              id="customEmail"
-              type="email"
-              value={customRecipientEmail}
-              onChange={(e) => setCustomRecipientEmail(e.target.value)}
-              placeholder="destinataire@exemple.fr"
-              className="mt-2"
-            />
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="customEmail">Email du destinataire</Label>
+              <Input
+                id="customEmail"
+                type="email"
+                value={customRecipientEmail}
+                onChange={(e) => setCustomRecipientEmail(e.target.value)}
+                placeholder="destinataire@exemple.fr"
+                disabled={sendToSponsorWithOptions}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="ccEmail">Email en copie (CC) - optionnel</Label>
+              <Input
+                id="ccEmail"
+                type="email"
+                value={ccEmail}
+                onChange={(e) => setCcEmail(e.target.value)}
+                placeholder="copie@exemple.fr"
+              />
+            </div>
           </div>
           <DialogFooter>
             <Button
@@ -736,7 +771,9 @@ const DocumentsManager = ({
               onClick={() => {
                 setShowCustomRecipientDialog(false);
                 setCustomRecipientEmail("");
+                setCcEmail("");
                 setPendingDocumentType(null);
+                setSendToSponsorWithOptions(false);
               }}
             >
               Annuler
@@ -744,7 +781,7 @@ const DocumentsManager = ({
             <Button
               onClick={() => {
                 if (pendingDocumentType && customRecipientEmail) {
-                  handleSendDocuments(pendingDocumentType, customRecipientEmail);
+                  handleSendDocuments(pendingDocumentType, customRecipientEmail, ccEmail || undefined);
                 }
               }}
               disabled={!customRecipientEmail || sendingDocuments}
