@@ -12,6 +12,7 @@ import FormationCreate from "./pages/FormationCreate";
 import FormationEdit from "./pages/FormationEdit";
 import FormationDetail from "./pages/FormationDetail";
 import Questionnaire from "./pages/Questionnaire";
+import PolitiqueConfidentialite from "./pages/PolitiqueConfidentialite";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
 import ForcePasswordChange from "./pages/ForcePasswordChange";
@@ -36,6 +37,8 @@ const App = () => (
           <Route path="/formations/:id/edit" element={<FormationEdit />} />
           {/* Public needs survey */}
           <Route path="/questionnaire/:token" element={<Questionnaire />} />
+          {/* Privacy policy */}
+          <Route path="/politique-confidentialite" element={<PolitiqueConfidentialite />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/force-password-change" element={<ForcePasswordChange />} />
