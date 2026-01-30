@@ -113,8 +113,10 @@ serve(async (req) => {
     // Base URL for evaluation links
     const baseUrl = "https://super-tools.lovable.app";
 
-    // Create evaluations and send individual emails to each participant
-    const emailPromises = participants.map(async (participant: any) => {
+    // Create evaluations and send individual emails to each participant sequentially
+    const results: { email: string; success: boolean }[] = [];
+    
+    for (const participant of participants) {
       // Check if evaluation already exists
       const { data: existingEval } = await supabase
         .from("training_evaluations")
@@ -201,10 +203,12 @@ serve(async (req) => {
         throw new Error(`Failed to send email to ${participant.email}: ${emailResponse.status}`);
       }
 
-      return { email: participant.email, success: true };
-    });
+      results.push({ email: participant.email, success: true });
+      
+      // Wait 600ms between emails to respect Resend's rate limit (2/sec)
+      await new Promise(resolve => setTimeout(resolve, 600));
+    }
 
-    const results = await Promise.all(emailPromises);
     console.log("Thank you emails sent successfully:", results.length);
 
     // Log activity for each recipient
