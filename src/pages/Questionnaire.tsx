@@ -322,14 +322,19 @@ const Questionnaire = () => {
 
       if (upErr) throw upErr;
 
-      // Also update participant status to 'complete'
+      // Also update participant status and sync company if changed
+      const participantUpdate: Record<string, string> = { needs_survey_status: "complete" };
+      if (questionnaire.societe) {
+        participantUpdate.company = questionnaire.societe;
+      }
+      
       const { error: participantErr } = await supabase
         .from("training_participants")
-        .update({ needs_survey_status: "complete" })
+        .update(participantUpdate)
         .eq("id", questionnaire.participant_id);
 
       if (participantErr) {
-        console.warn("Failed to update participant status", participantErr);
+        console.warn("Failed to update participant", participantErr);
       }
 
       await insertEvent(questionnaire.id, "submitted", { source: "public_link" });
