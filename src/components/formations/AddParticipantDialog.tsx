@@ -123,13 +123,27 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, onParticipantAdde
         }
         return;
       }
+      // If we need to send welcome email now (J-7 to J-2 window), trigger the edge function
+      if (sendWelcomeNow && insertedParticipant) {
+        try {
+          await supabase.functions.invoke("send-welcome-email", {
+            body: {
+              participantId: insertedParticipant.id,
+              trainingId,
+            },
+          });
+        } catch (emailError) {
+          console.error("Failed to send welcome email:", emailError);
+          // Don't fail the whole operation, just log the error
+        }
+      }
 
       let statusMessage = "";
       if (status === "non_envoye") {
         statusMessage = "Formation passée - pas d'envoi programmé.";
       } else if (status === "manuel") {
         statusMessage = "Mode manuel activé (formation proche).";
-      } else if (status === "accueil_envoye") {
+      } else if (status === "accueil_envoye" || sendWelcomeNow) {
         statusMessage = "Mail d'accueil envoyé.";
       } else {
         statusMessage = "Recueil des besoins programmé.";
