@@ -258,32 +258,14 @@ export default function AttendanceSheetGenerator({
       // Add signature image
       doc.addImage(signatureBase64, "JPEG", margin, yPos + 2, 40, 20);
 
-      // Download and open print dialog using iframe instead of window.open (avoids popup blockers)
-      const pdfBlob = doc.output("blob");
-      const pdfUrl = URL.createObjectURL(pdfBlob);
-      
-      // Create hidden iframe for printing
-      const iframe = document.createElement("iframe");
-      iframe.style.position = "fixed";
-      iframe.style.right = "0";
-      iframe.style.bottom = "0";
-      iframe.style.width = "0";
-      iframe.style.height = "0";
-      iframe.style.border = "none";
-      iframe.src = pdfUrl;
-      
-      document.body.appendChild(iframe);
-      
-      iframe.onload = () => {
-        setTimeout(() => {
-          iframe.contentWindow?.print();
-          // Clean up after a delay
-          setTimeout(() => {
-            document.body.removeChild(iframe);
-            URL.revokeObjectURL(pdfUrl);
-          }, 1000);
-        }, 500);
-      };
+      // Generate filename with training name and date
+      const filenameDate = parseISO(startDate);
+      const dateStr = format(filenameDate, "yyyy-MM-dd");
+      const safeName = trainingName.replace(/[^a-zA-Z0-9àâäéèêëïîôùûüç\s-]/g, "").replace(/\s+/g, "_");
+      const filename = `Emargement_${safeName}_${dateStr}.pdf`;
+
+      // Download the PDF
+      doc.save(filename);
     } catch (error) {
       console.error("Error generating PDF:", error);
     } finally {
