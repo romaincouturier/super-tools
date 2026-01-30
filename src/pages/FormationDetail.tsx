@@ -339,11 +339,6 @@ const FormationDetail = () => {
               </Card>
             )}
 
-            {/* Scheduled Emails Summary */}
-            <ScheduledEmailsSummary 
-              trainingId={training.id} 
-              participants={participants}
-            />
           </div>
           <div className="lg:col-span-2">
             <Card>
