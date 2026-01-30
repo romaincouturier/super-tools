@@ -21,6 +21,7 @@ import ScheduleEditor from "@/components/formations/ScheduleEditor";
 import PrerequisitesEditor from "@/components/formations/PrerequisitesEditor";
 import ProgramSelector from "@/components/formations/ProgramSelector";
 import ObjectivesEditor from "@/components/formations/ObjectivesEditor";
+import TrainingNameCombobox from "@/components/formations/TrainingNameCombobox";
 
 interface Schedule {
   day_date: string;
@@ -246,12 +247,14 @@ const FormationCreate = () => {
               {/* Training name */}
               <div className="space-y-2">
                 <Label htmlFor="trainingName">Nom de la formation *</Label>
-                <Input
-                  id="trainingName"
+                <TrainingNameCombobox
                   value={trainingName}
-                  onChange={(e) => setTrainingName(e.target.value)}
-                  placeholder="Ex: AI4Product Bootcamp"
-                  required
+                  onChange={setTrainingName}
+                  onFormationSelect={(formation) => {
+                    if (formation?.programme_url) {
+                      setProgramFileUrl(formation.programme_url);
+                    }
+                  }}
                 />
               </div>
 
