@@ -82,7 +82,6 @@ const BulkAddParticipantsDialog = ({ trainingId, trainingStartDate, onParticipan
     lines.forEach((line, index) => {
       const trimmedLine = line.trim();
       
-      // Try to parse as: email, or firstName lastName <email>, or email; firstName; lastName; company
       const emailRegex = /[\w.-]+@[\w.-]+\.\w+/;
       const emailMatch = trimmedLine.match(emailRegex);
 
@@ -93,24 +92,31 @@ const BulkAddParticipantsDialog = ({ trainingId, trainingStartDate, onParticipan
 
       const email = emailMatch[0].toLowerCase();
       
-      // Try to extract name if present
       let firstName: string | undefined;
       let lastName: string | undefined;
       let company: string | undefined;
 
-      // Check if format is "First Last <email>" or "email" or "email; first; last; company"
-      if (trimmedLine.includes(";")) {
-        const parts = trimmedLine.split(";").map((p) => p.trim());
-        // Format: email; firstName; lastName; company
-        if (parts.length >= 2) firstName = parts[1] || undefined;
-        if (parts.length >= 3) lastName = parts[2] || undefined;
-        if (parts.length >= 4) company = parts[3] || undefined;
-      } else if (trimmedLine.includes("<") && trimmedLine.includes(">")) {
-        // Format: "First Last <email>"
-        const namePart = trimmedLine.split("<")[0].trim();
-        const nameParts = namePart.split(" ").filter(Boolean);
-        if (nameParts.length >= 1) firstName = nameParts[0];
-        if (nameParts.length >= 2) lastName = nameParts.slice(1).join(" ");
+      // Check if format is "Prénom Nom email, Société" or just "email"
+      if (trimmedLine.includes(",")) {
+        // Format: "Prénom Nom email, Société"
+        const [beforeComma, afterComma] = trimmedLine.split(",").map((p) => p.trim());
+        company = afterComma || undefined;
+        
+        // Extract name from the part before email
+        const beforeEmail = beforeComma.replace(emailRegex, "").trim();
+        if (beforeEmail) {
+          const nameParts = beforeEmail.split(/\s+/).filter(Boolean);
+          if (nameParts.length >= 1) firstName = nameParts[0];
+          if (nameParts.length >= 2) lastName = nameParts.slice(1).join(" ");
+        }
+      } else {
+        // Check if there's text before the email (Prénom Nom email format)
+        const beforeEmail = trimmedLine.replace(emailRegex, "").trim();
+        if (beforeEmail) {
+          const nameParts = beforeEmail.split(/\s+/).filter(Boolean);
+          if (nameParts.length >= 1) firstName = nameParts[0];
+          if (nameParts.length >= 2) lastName = nameParts.slice(1).join(" ");
+        }
       }
 
       participants.push({ email, firstName, lastName, company });
@@ -257,9 +263,7 @@ const BulkAddParticipantsDialog = ({ trainingId, trainingStartDate, onParticipan
               <br />
               • email@example.com
               <br />
-              • Prénom Nom &lt;email@example.com&gt;
-              <br />
-              • email@example.com; Prénom; Nom; Société
+              • Prénom Nom email@example.com, Société
             </DialogDescription>
           </DialogHeader>
 
@@ -282,8 +286,7 @@ const BulkAddParticipantsDialog = ({ trainingId, trainingStartDate, onParticipan
                 value={bulkText}
                 onChange={(e) => setBulkText(e.target.value)}
                 placeholder={`jean.dupont@example.com
-Marie Martin <marie.martin@example.com>
-pierre.durand@example.com; Pierre; Durand; ACME Corp`}
+Marie Martin marie.martin@example.com, ACME Corp`}
                 rows={8}
                 className="font-mono text-sm"
               />
