@@ -13,6 +13,7 @@ import { Loader2, ExternalLink, Calendar, Clock, CheckCircle2 } from "lucide-rea
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import supertiltLogo from "@/assets/supertilt-logo-anthracite-transparent.png";
 
 type QuestionnaireRecord = {
   id: string;
@@ -414,6 +415,13 @@ const Questionnaire = () => {
   return (
     <div className="min-h-screen bg-background p-4 md:p-6">
       <div className="mx-auto w-full max-w-3xl space-y-6">
+        {/* Logo */}
+        <div className="flex justify-center">
+          <a href="https://www.supertilt.fr" target="_blank" rel="noopener noreferrer">
+            <img src={supertiltLogo} alt="SuperTilt" className="h-12 md:h-16" />
+          </a>
+        </div>
+
         {/* Header with training info */}
         <Card>
           <CardHeader>
