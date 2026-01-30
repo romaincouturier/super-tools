@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 import { Loader2, ArrowLeft, Calendar, Save } from "lucide-react";
-import { format, addDays, eachDayOfInterval, parseISO } from "date-fns";
+import { format, eachDayOfInterval, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import SupertiltLogo from "@/components/SupertiltLogo";
 import UserMenu from "@/components/UserMenu";
@@ -29,7 +29,8 @@ interface Schedule {
   end_time: string;
 }
 
-const FormationCreate = () => {
+const FormationEdit = () => {
+  const { id } = useParams<{ id: string }>();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -55,6 +56,9 @@ const FormationCreate = () => {
   const [sponsorLastName, setSponsorLastName] = useState("");
   const [sponsorEmail, setSponsorEmail] = useState("");
 
+  // Track if data has been loaded (to prevent schedule regeneration)
+  const [dataLoaded, setDataLoaded] = useState(false);
+
   useEffect(() => {
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -63,7 +67,7 @@ const FormationCreate = () => {
         return;
       }
       setUser(session.user);
-      setLoading(false);
+      await fetchTrainingData();
     };
 
     checkAuth();
@@ -79,19 +83,77 @@ const FormationCreate = () => {
     );
 
     return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, [navigate, id]);
 
-  // Generate schedules when dates change
-  useEffect(() => {
-    if (!startDate) {
-      setSchedules([]);
-      return;
+  const fetchTrainingData = async () => {
+    if (!id) return;
+
+    try {
+      // Fetch training
+      const { data: training, error: trainingError } = await supabase
+        .from("trainings")
+        .select("*")
+        .eq("id", id)
+        .single();
+
+      if (trainingError) throw trainingError;
+
+      // Set form values
+      setTrainingName(training.training_name);
+      setLocation(training.location);
+      setClientName(training.client_name);
+      setEvaluationLink(training.evaluation_link);
+      setFormatFormation(training.format_formation || "");
+      setPrerequisites(training.prerequisites || []);
+      setObjectives(training.objectives || []);
+      setProgramFileUrl(training.program_file_url || "");
+      setSponsorFirstName(training.sponsor_first_name || "");
+      setSponsorLastName(training.sponsor_last_name || "");
+      setSponsorEmail(training.sponsor_email || "");
+      
+      const start = parseISO(training.start_date);
+      setStartDate(start);
+      
+      if (training.end_date) {
+        setIsMultiDay(true);
+        setEndDate(parseISO(training.end_date));
+      }
+
+      // Fetch schedules
+      const { data: schedulesData } = await supabase
+        .from("training_schedules")
+        .select("*")
+        .eq("training_id", id)
+        .order("day_date", { ascending: true });
+
+      if (schedulesData && schedulesData.length > 0) {
+        setSchedules(schedulesData.map(s => ({
+          day_date: s.day_date,
+          start_time: s.start_time,
+          end_time: s.end_time,
+        })));
+      }
+
+      setDataLoaded(true);
+      setLoading(false);
+    } catch (error: any) {
+      console.error("Error fetching training:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de charger la formation.",
+        variant: "destructive",
+      });
+      navigate("/formations");
     }
+  };
+
+  // Generate schedules when dates change (only after initial load)
+  useEffect(() => {
+    if (!dataLoaded || !startDate) return;
 
     const effectiveEndDate = isMultiDay && endDate ? endDate : startDate;
     const days = eachDayOfInterval({ start: startDate, end: effectiveEndDate });
 
-    // Keep existing times if available, otherwise use defaults
     const newSchedules = days.map((day, index) => {
       const dateStr = format(day, "yyyy-MM-dd");
       const existing = schedules.find(s => s.day_date === dateStr);
@@ -100,7 +162,6 @@ const FormationCreate = () => {
         return existing;
       }
       
-      // For new days, copy from first day if available
       if (index > 0 && schedules.length > 0) {
         return {
           day_date: dateStr,
@@ -117,7 +178,7 @@ const FormationCreate = () => {
     });
 
     setSchedules(newSchedules);
-  }, [startDate, endDate, isMultiDay]);
+  }, [startDate, endDate, isMultiDay, dataLoaded]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -127,7 +188,7 @@ const FormationCreate = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!startDate || !trainingName || !location || !clientName || !evaluationLink || !user) {
+    if (!startDate || !trainingName || !location || !clientName || !evaluationLink || !user || !id) {
       toast({
         title: "Champs requis",
         description: "Veuillez remplir tous les champs obligatoires.",
@@ -139,10 +200,10 @@ const FormationCreate = () => {
     setSaving(true);
 
     try {
-      // Create training
-      const { data: training, error: trainingError } = await supabase
+      // Update training
+      const { error: trainingError } = await supabase
         .from("trainings")
-        .insert({
+        .update({
           start_date: format(startDate, "yyyy-MM-dd"),
           end_date: isMultiDay && endDate ? format(endDate, "yyyy-MM-dd") : null,
           training_name: trainingName,
@@ -156,20 +217,23 @@ const FormationCreate = () => {
           sponsor_first_name: sponsorFirstName || null,
           sponsor_last_name: sponsorLastName || null,
           sponsor_email: sponsorEmail || null,
-          created_by: user.id,
         })
-        .select()
-        .single();
+        .eq("id", id);
 
       if (trainingError) throw trainingError;
 
-      // Create schedules
+      // Delete existing schedules and recreate
+      await supabase
+        .from("training_schedules")
+        .delete()
+        .eq("training_id", id);
+
       if (schedules.length > 0) {
         const { error: schedulesError } = await supabase
           .from("training_schedules")
           .insert(
             schedules.map(s => ({
-              training_id: training.id,
+              training_id: id,
               day_date: s.day_date,
               start_time: s.start_time,
               end_time: s.end_time,
@@ -180,16 +244,16 @@ const FormationCreate = () => {
       }
 
       toast({
-        title: "Formation créée",
-        description: "La formation a été créée avec succès.",
+        title: "Formation modifiée",
+        description: "Les modifications ont été enregistrées.",
       });
 
-      navigate(`/formations/${training.id}`);
+      navigate(`/formations/${id}`);
     } catch (error: any) {
-      console.error("Error creating training:", error);
+      console.error("Error updating training:", error);
       toast({
         title: "Erreur",
-        description: error.message || "Une erreur est survenue lors de la création.",
+        description: error.message || "Une erreur est survenue lors de la modification.",
         variant: "destructive",
       });
     } finally {
@@ -225,7 +289,7 @@ const FormationCreate = () => {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => navigate("/formations")}
+            onClick={() => navigate(`/formations/${id}`)}
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
@@ -233,7 +297,7 @@ const FormationCreate = () => {
             <div className="p-2 rounded-lg bg-primary/10">
               <Calendar className="h-6 w-6 text-primary" />
             </div>
-            <h1 className="text-2xl font-bold">Nouvelle formation</h1>
+            <h1 className="text-2xl font-bold">Modifier la formation</h1>
           </div>
         </div>
 
@@ -443,19 +507,17 @@ const FormationCreate = () => {
             onPrerequisitesChange={setPrerequisites}
           />
 
-          {/* Program - placed before objectives so extraction can populate them */}
+          {/* Program */}
           <ProgramSelector
             programFileUrl={programFileUrl}
             onProgramChange={setProgramFileUrl}
             onObjectivesExtracted={(extracted) => {
-              // Merge with existing objectives, avoiding duplicates
               setObjectives((prev) => {
                 const combined = [...prev, ...extracted];
                 return [...new Set(combined)];
               });
             }}
             onPrerequisitesExtracted={(extracted) => {
-              // Merge with existing prerequisites, avoiding duplicates
               setPrerequisites((prev) => {
                 const combined = [...prev, ...extracted];
                 return [...new Set(combined)];
@@ -475,7 +537,7 @@ const FormationCreate = () => {
             <Button
               type="button"
               variant="outline"
-              onClick={() => navigate("/formations")}
+              onClick={() => navigate(`/formations/${id}`)}
             >
               Annuler
             </Button>
@@ -483,12 +545,12 @@ const FormationCreate = () => {
               {saving ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Création...
+                  Enregistrement...
                 </>
               ) : (
                 <>
                   <Save className="mr-2 h-4 w-4" />
-                  Créer la formation
+                  Enregistrer
                 </>
               )}
             </Button>
@@ -499,4 +561,4 @@ const FormationCreate = () => {
   );
 };
 
-export default FormationCreate;
+export default FormationEdit;

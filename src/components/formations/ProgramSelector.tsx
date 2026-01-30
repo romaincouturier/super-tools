@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Upload, FileText, Check, Loader2, Sparkles } from "lucide-react";
+import { Upload, FileText, Check, Loader2, Sparkles, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,26 +9,47 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface ProgramFile {
   id: string;
   file_name: string;
   file_url: string;
   uploaded_at: string;
+  uploaded_by: string;
 }
 
 interface ProgramSelectorProps {
   programFileUrl: string;
   onProgramChange: (url: string) => void;
   onObjectivesExtracted?: (objectives: string[]) => void;
+  onPrerequisitesExtracted?: (prerequisites: string[]) => void;
   userId: string;
 }
 
-const ProgramSelector = ({ programFileUrl, onProgramChange, onObjectivesExtracted, userId }: ProgramSelectorProps) => {
+const ProgramSelector = ({ 
+  programFileUrl, 
+  onProgramChange, 
+  onObjectivesExtracted, 
+  onPrerequisitesExtracted,
+  userId 
+}: ProgramSelectorProps) => {
   const [programFiles, setProgramFiles] = useState<ProgramFile[]>([]);
   const [uploading, setUploading] = useState(false);
   const [extractingObjectives, setExtractingObjectives] = useState(false);
+  const [extractingPrerequisites, setExtractingPrerequisites] = useState(false);
   const [loadingFiles, setLoadingFiles] = useState(true);
+  const [deletingFileId, setDeletingFileId] = useState<string | null>(null);
   const { toast } = useToast();
 
   const extractObjectivesFromPdf = async (pdfUrl: string) => {
@@ -37,7 +58,7 @@ const ProgramSelector = ({ programFileUrl, onProgramChange, onObjectivesExtracte
     setExtractingObjectives(true);
     try {
       const { data, error } = await supabase.functions.invoke("extract-objectives-from-pdf", {
-        body: { pdfUrl },
+        body: { pdfUrl, extractType: "objectives" },
       });
 
       if (error) throw error;
@@ -64,6 +85,42 @@ const ProgramSelector = ({ programFileUrl, onProgramChange, onObjectivesExtracte
       });
     } finally {
       setExtractingObjectives(false);
+    }
+  };
+
+  const extractPrerequisitesFromPdf = async (pdfUrl: string) => {
+    if (!onPrerequisitesExtracted) return;
+    
+    setExtractingPrerequisites(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("extract-objectives-from-pdf", {
+        body: { pdfUrl, extractType: "prerequisites" },
+      });
+
+      if (error) throw error;
+
+      if (data?.prerequisites && Array.isArray(data.prerequisites) && data.prerequisites.length > 0) {
+        onPrerequisitesExtracted(data.prerequisites);
+        toast({
+          title: "Prérequis extraits",
+          description: `${data.prerequisites.length} prérequis extrait(s) du programme. Vous pouvez les modifier.`,
+        });
+      } else {
+        toast({
+          title: "Aucun prérequis trouvé",
+          description: "L'IA n'a pas pu extraire de prérequis du PDF. Ajoutez-les manuellement.",
+          variant: "default",
+        });
+      }
+    } catch (error: unknown) {
+      console.error("Error extracting prerequisites:", error);
+      toast({
+        title: "Extraction impossible",
+        description: "Impossible d'extraire les prérequis automatiquement. Ajoutez-les manuellement.",
+        variant: "default",
+      });
+    } finally {
+      setExtractingPrerequisites(false);
     }
   };
 
@@ -160,6 +217,11 @@ const ProgramSelector = ({ programFileUrl, onProgramChange, onObjectivesExtracte
         title: "Programme uploadé",
         description: "Le fichier a été ajouté à votre bibliothèque.",
       });
+
+      // Auto-extract prerequisites after upload
+      if (onPrerequisitesExtracted) {
+        await extractPrerequisitesFromPdf(publicUrl);
+      }
     } catch (error: any) {
       console.error("Upload error:", error);
       toast({
@@ -169,6 +231,55 @@ const ProgramSelector = ({ programFileUrl, onProgramChange, onObjectivesExtracte
       });
     } finally {
       setUploading(false);
+    }
+  };
+
+  const handleDeleteFile = async (file: ProgramFile) => {
+    setDeletingFileId(file.id);
+    try {
+      // Extract the file path from the URL
+      const urlParts = file.file_url.split("/");
+      const filePath = `programs/${urlParts[urlParts.length - 1]}`;
+
+      // Delete from storage
+      const { error: storageError } = await supabase.storage
+        .from("training-programs")
+        .remove([filePath]);
+
+      if (storageError) {
+        console.error("Storage delete error:", storageError);
+        // Continue anyway to delete from DB
+      }
+
+      // Delete from database
+      const { error: dbError } = await supabase
+        .from("program_files")
+        .delete()
+        .eq("id", file.id);
+
+      if (dbError) throw dbError;
+
+      // If deleted file was selected, clear selection
+      if (programFileUrl === file.file_url) {
+        onProgramChange("");
+      }
+
+      // Refresh list
+      await fetchProgramFiles();
+
+      toast({
+        title: "Programme supprimé",
+        description: "Le fichier a été retiré de votre bibliothèque.",
+      });
+    } catch (error: any) {
+      console.error("Delete error:", error);
+      toast({
+        title: "Erreur de suppression",
+        description: error.message || "Une erreur est survenue lors de la suppression.",
+        variant: "destructive",
+      });
+    } finally {
+      setDeletingFileId(null);
     }
   };
 
@@ -280,10 +391,8 @@ const ProgramSelector = ({ programFileUrl, onProgramChange, onObjectivesExtracte
               <ScrollArea className="h-[200px]">
                 <div className="space-y-2">
                   {programFiles.map((file) => (
-                    <button
+                    <div
                       key={file.id}
-                      type="button"
-                      onClick={() => selectProgram(file.file_url)}
                       className={cn(
                         "w-full flex items-center gap-3 p-3 rounded-lg text-left transition-colors",
                         programFileUrl === file.file_url
@@ -291,15 +400,104 @@ const ProgramSelector = ({ programFileUrl, onProgramChange, onObjectivesExtracte
                           : "bg-muted/50 hover:bg-muted border-2 border-transparent"
                       )}
                     >
-                      <FileText className="h-5 w-5 text-muted-foreground flex-shrink-0" />
-                      <span className="flex-1 text-sm truncate">{file.file_name}</span>
-                      {programFileUrl === file.file_url && (
-                        <Check className="h-4 w-4 text-primary flex-shrink-0" />
+                      <button
+                        type="button"
+                        onClick={() => selectProgram(file.file_url)}
+                        className="flex-1 flex items-center gap-3 text-left"
+                      >
+                        <FileText className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                        <span className="flex-1 text-sm truncate">{file.file_name}</span>
+                        {programFileUrl === file.file_url && (
+                          <Check className="h-4 w-4 text-primary flex-shrink-0" />
+                        )}
+                      </button>
+                      {file.uploaded_by === userId && (
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                              disabled={deletingFileId === file.id}
+                            >
+                              {deletingFileId === file.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Trash2 className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Supprimer ce programme ?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Le fichier "{file.file_name}" sera définitivement supprimé de votre bibliothèque.
+                                Cette action est irréversible.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Annuler</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => handleDeleteFile(file)}
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              >
+                                Supprimer
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       )}
-                    </button>
+                    </div>
                   ))}
                 </div>
               </ScrollArea>
+            )}
+
+            {/* Show extract button when a program is selected from library */}
+            {programFileUrl && programFiles.some(f => f.file_url === programFileUrl) && onObjectivesExtracted && (
+              <div className="mt-4 pt-4 border-t space-y-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => extractObjectivesFromPdf(programFileUrl)}
+                  disabled={extractingObjectives || extractingPrerequisites}
+                >
+                  {extractingObjectives ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Extraction des objectifs...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-4 w-4 mr-2" />
+                      Extraire les objectifs avec l'IA
+                    </>
+                  )}
+                </Button>
+                {onPrerequisitesExtracted && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => extractPrerequisitesFromPdf(programFileUrl)}
+                    disabled={extractingObjectives || extractingPrerequisites}
+                  >
+                    {extractingPrerequisites ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Extraction des prérequis...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="h-4 w-4 mr-2" />
+                        Extraire les prérequis avec l'IA
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
             )}
           </TabsContent>
         </Tabs>

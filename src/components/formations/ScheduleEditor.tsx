@@ -21,9 +21,27 @@ interface ScheduleEditorProps {
 const ScheduleEditor = ({ schedules, onSchedulesChange }: ScheduleEditorProps) => {
   const { toast } = useToast();
 
+  const calculateEndTime = (startTime: string): string => {
+    const [hours, minutes] = startTime.split(":").map(Number);
+    const endHours = hours + 8;
+    // Handle overflow past 24 hours
+    const finalHours = endHours >= 24 ? 23 : endHours;
+    const finalMinutes = endHours >= 24 ? 59 : minutes;
+    return `${String(finalHours).padStart(2, "0")}:${String(finalMinutes).padStart(2, "0")}`;
+  };
+
   const updateSchedule = (index: number, field: "start_time" | "end_time", value: string) => {
     const newSchedules = [...schedules];
-    newSchedules[index] = { ...newSchedules[index], [field]: value };
+    if (field === "start_time") {
+      // Auto-calculate end time (+8h) when start time changes
+      newSchedules[index] = { 
+        ...newSchedules[index], 
+        start_time: value,
+        end_time: calculateEndTime(value)
+      };
+    } else {
+      newSchedules[index] = { ...newSchedules[index], [field]: value };
+    }
     onSchedulesChange(newSchedules);
   };
 
