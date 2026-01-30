@@ -233,7 +233,7 @@ const FormationDetail = () => {
               asChild
             >
               <a 
-                href={`https://www.google.com/maps/place/${encodeURIComponent(training.location).replace(/%20/g, '+')}`} 
+                href={`https://www.google.com/maps/place/${training.location.replace(/ /g, '+')}`} 
                 target="_blank" 
                 rel="noopener noreferrer"
               >
