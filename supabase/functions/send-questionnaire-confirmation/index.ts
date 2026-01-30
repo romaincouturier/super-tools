@@ -243,7 +243,7 @@ serve(async (req) => {
       
       ${calendarSection}
       
-      <p>Tu peux aussi flâner sur notre <a href="https://www.youtube.com/c/SuperTilt">chaîne YouTube</a> et notre <a href="https://supertilt.fr/blog/">blog</a> sur lesquels tu y trouveras des éléments en rapport avec le programme.</p>
+      <p>Tu peux aussi flâner sur notre <a href="https://www.youtube.com/c/SuperTilt">chaîne YouTube</a> et notre <a href="https://supertilt.fr/blog/">blog</a> sur lesquels tu trouveras des éléments en rapport avec le programme.</p>
       
       <p>Si tu as la moindre question, je reste à ta disposition par téléphone : <strong>06 66 98 76 35</strong> ou par mail <a href="mailto:romain@supertilt.fr">romain@supertilt.fr</a></p>
       
