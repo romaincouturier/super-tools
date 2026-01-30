@@ -37,7 +37,7 @@ async function getSigniticSignature(): Promise<string> {
 
 function getDefaultSignature(): string {
   return `<p style="margin-top: 20px; color: #666; font-size: 14px;">
-    <strong>Romain Arnoux</strong><br/>
+    <strong>Romain Couturier</strong><br/>
     Supertilt - Formation professionnelle<br/>
     <a href="mailto:romain@supertilt.fr">romain@supertilt.fr</a>
   </p>`;
@@ -194,7 +194,7 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "Romain Arnoux <romain@supertilt.fr>",
+        from: "Romain Couturier <romain@supertilt.fr>",
         to: [participant.email],
         bcc: ["supertilt@bcc.nocrm.io"],
         subject,
