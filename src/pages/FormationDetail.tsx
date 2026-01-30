@@ -39,6 +39,7 @@ interface Training {
   invoice_file_url: string | null;
   attendance_sheets_urls: string[];
   supports_url: string | null;
+  trainer_name: string;
 }
 
 interface Schedule {
@@ -305,6 +306,10 @@ const FormationDetail = () => {
                     {getFormatLabel(training.format_formation)}
                   </Badge>
                 )}
+                <Badge variant="outline" className="flex items-center gap-1.5">
+                  <UserIcon className="h-3.5 w-3.5" />
+                  {training.trainer_name}
+                </Badge>
               </div>
 
               {/* Sponsor */}
