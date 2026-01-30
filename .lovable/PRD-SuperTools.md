@@ -432,6 +432,7 @@ Grille de modules avec icônes et descriptions.
 |----------|-----------|-------------|
 | 🟠 Moyenne | **Évaluations embarquées formations en ligne** | Support des évaluations intégrées directement dans les formations e-learning, anonymes par défaut |
 | 🟠 Moyenne | **Relance automatique des évaluations** | Emails de relance automatiques à J+2 et J+4 pour les participants n'ayant pas encore soumis leur évaluation |
+| 🟡 Basse | **Désactiver les Zaps de collecte de commentaires** | Supprimer ou désactiver les intégrations Zapier qui collectent les commentaires (migration vers solution native) |
 
 ### 12.6 Nouvelles fonctionnalités - Logistique
 
