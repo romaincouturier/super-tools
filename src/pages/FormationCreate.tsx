@@ -43,7 +43,6 @@ const FormationCreate = () => {
   const [trainingName, setTrainingName] = useState("");
   const [location, setLocation] = useState("");
   const [clientName, setClientName] = useState("");
-  const [evaluationLink, setEvaluationLink] = useState("");
   const [formatFormation, setFormatFormation] = useState<string>("");
   const [prerequisites, setPrerequisites] = useState<string[]>([]);
   const [objectives, setObjectives] = useState<string[]>([]);
@@ -128,7 +127,7 @@ const FormationCreate = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!startDate || !trainingName || !location || !clientName || !evaluationLink || !user) {
+    if (!startDate || !trainingName || !location || !clientName || !user) {
       toast({
         title: "Champs requis",
         description: "Veuillez remplir tous les champs obligatoires.",
@@ -149,7 +148,7 @@ const FormationCreate = () => {
           training_name: trainingName,
           location,
           client_name: clientName,
-          evaluation_link: evaluationLink,
+          evaluation_link: "", // Field hidden from UI but required by schema
           format_formation: formatFormation || null,
           prerequisites,
           objectives,
@@ -374,33 +373,19 @@ const FormationCreate = () => {
                 </div>
               </div>
 
-              {/* Evaluation link and format */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="evaluationLink">Lien vers l'évaluation *</Label>
-                  <Input
-                    id="evaluationLink"
-                    type="url"
-                    value={evaluationLink}
-                    onChange={(e) => setEvaluationLink(e.target.value)}
-                    placeholder="https://..."
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="format">Format de formation</Label>
-                  <Select value={formatFormation} onValueChange={setFormatFormation}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sélectionner un format" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="intra">Intra-entreprise</SelectItem>
-                      <SelectItem value="inter-entreprises">Inter-entreprises</SelectItem>
-                      <SelectItem value="classe_virtuelle">Classe virtuelle</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+              {/* Format */}
+              <div className="space-y-2">
+                <Label htmlFor="format">Format de formation</Label>
+                <Select value={formatFormation} onValueChange={setFormatFormation}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner un format" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="intra">Intra-entreprise</SelectItem>
+                    <SelectItem value="inter-entreprises">Inter-entreprises</SelectItem>
+                    <SelectItem value="classe_virtuelle">Classe virtuelle</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </CardContent>
           </Card>
