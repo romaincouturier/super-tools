@@ -451,6 +451,7 @@ export type Database = {
       }
       trainings: {
         Row: {
+          attendance_sheets_urls: string[] | null
           client_name: string
           created_at: string
           created_by: string
@@ -458,6 +459,7 @@ export type Database = {
           evaluation_link: string
           format_formation: string | null
           id: string
+          invoice_file_url: string | null
           location: string
           objectives: string[] | null
           prerequisites: string[] | null
@@ -470,6 +472,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          attendance_sheets_urls?: string[] | null
           client_name: string
           created_at?: string
           created_by: string
@@ -477,6 +480,7 @@ export type Database = {
           evaluation_link: string
           format_formation?: string | null
           id?: string
+          invoice_file_url?: string | null
           location: string
           objectives?: string[] | null
           prerequisites?: string[] | null
@@ -489,6 +493,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          attendance_sheets_urls?: string[] | null
           client_name?: string
           created_at?: string
           created_by?: string
@@ -496,6 +501,7 @@ export type Database = {
           evaluation_link?: string
           format_formation?: string | null
           id?: string
+          invoice_file_url?: string | null
           location?: string
           objectives?: string[] | null
           prerequisites?: string[] | null

@@ -1,6 +1,7 @@
-import { useState } from "react";
-import { Users, Loader2, AlertCircle } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Users, Loader2, AlertCircle, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { differenceInDays, parseISO } from "date-fns";
 import {
   Dialog,
   DialogContent,
@@ -18,6 +19,7 @@ import { useToast } from "@/hooks/use-toast";
 
 interface BulkAddParticipantsDialogProps {
   trainingId: string;
+  trainingStartDate?: string;
   onParticipantsAdded: () => void;
 }
 
@@ -28,12 +30,22 @@ interface ParsedParticipant {
   company?: string;
 }
 
-const BulkAddParticipantsDialog = ({ trainingId, onParticipantsAdded }: BulkAddParticipantsDialogProps) => {
+const BulkAddParticipantsDialog = ({ trainingId, trainingStartDate, onParticipantsAdded }: BulkAddParticipantsDialogProps) => {
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [bulkText, setBulkText] = useState("");
   const [parseErrors, setParseErrors] = useState<string[]>([]);
+  const [isManualMode, setIsManualMode] = useState(false);
   const { toast } = useToast();
+
+  // Check if training starts in less than 2 days
+  useEffect(() => {
+    if (trainingStartDate) {
+      const startDate = parseISO(trainingStartDate);
+      const daysUntilStart = differenceInDays(startDate, new Date());
+      setIsManualMode(daysUntilStart < 2);
+    }
+  }, [trainingStartDate]);
 
   const parseParticipants = (text: string): ParsedParticipant[] => {
     const lines = text.split("\n").filter((line) => line.trim());
@@ -98,6 +110,9 @@ const BulkAddParticipantsDialog = ({ trainingId, onParticipantsAdded }: BulkAddP
     setSaving(true);
 
     try {
+      // Determine initial status based on training proximity
+      const initialStatus = isManualMode ? "manuel" : "programme";
+
       const toInsert = participants.map((p) => ({
         training_id: trainingId,
         email: p.email,
@@ -105,7 +120,7 @@ const BulkAddParticipantsDialog = ({ trainingId, onParticipantsAdded }: BulkAddP
         last_name: p.lastName || null,
         company: p.company || null,
         needs_survey_token: crypto.randomUUID(),
-        needs_survey_status: "non_envoye",
+        needs_survey_status: initialStatus,
       }));
 
       const { data, error } = await supabase
@@ -126,10 +141,13 @@ const BulkAddParticipantsDialog = ({ trainingId, onParticipantsAdded }: BulkAddP
       }
 
       const insertedCount = data?.length || 0;
+      const statusMessage = isManualMode 
+        ? "Mode manuel activé (formation proche)."
+        : "Recueil des besoins programmé.";
       
       toast({
         title: "Participants ajoutés",
-        description: `${insertedCount} participant${insertedCount !== 1 ? "s" : ""} ajouté${insertedCount !== 1 ? "s" : ""}.`,
+        description: `${insertedCount} participant${insertedCount !== 1 ? "s" : ""} ajouté${insertedCount !== 1 ? "s" : ""}. ${statusMessage}`,
       });
 
       setBulkText("");
@@ -172,6 +190,16 @@ const BulkAddParticipantsDialog = ({ trainingId, onParticipantsAdded }: BulkAddP
               • email@example.com; Prénom; Nom; Société
             </DialogDescription>
           </DialogHeader>
+
+          {isManualMode && (
+            <Alert className="mt-4">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                La formation commence dans moins de 2 jours. Le recueil des besoins 
+                sera en mode manuel (pas d'envoi automatique programmé).
+              </AlertDescription>
+            </Alert>
+          )}
 
           <div className="space-y-4 py-4">
             <div className="space-y-2">

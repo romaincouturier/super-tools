@@ -1,6 +1,7 @@
-import { useState } from "react";
-import { Plus, Loader2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Plus, Loader2, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { differenceInDays, parseISO } from "date-fns";
 import {
   Dialog,
   DialogContent,
@@ -13,21 +14,33 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 
 interface AddParticipantDialogProps {
   trainingId: string;
+  trainingStartDate?: string;
   onParticipantAdded: () => void;
 }
 
-const AddParticipantDialog = ({ trainingId, onParticipantAdded }: AddParticipantDialogProps) => {
+const AddParticipantDialog = ({ trainingId, trainingStartDate, onParticipantAdded }: AddParticipantDialogProps) => {
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [company, setCompany] = useState("");
+  const [isManualMode, setIsManualMode] = useState(false);
   const { toast } = useToast();
+
+  // Check if training starts in less than 2 days
+  useEffect(() => {
+    if (trainingStartDate) {
+      const startDate = parseISO(trainingStartDate);
+      const daysUntilStart = differenceInDays(startDate, new Date());
+      setIsManualMode(daysUntilStart < 2);
+    }
+  }, [trainingStartDate]);
 
   const resetForm = () => {
     setFirstName("");
@@ -54,6 +67,9 @@ const AddParticipantDialog = ({ trainingId, onParticipantAdded }: AddParticipant
       // Generate unique token for needs survey
       const token = crypto.randomUUID();
 
+      // Determine initial status based on training proximity
+      const initialStatus = isManualMode ? "manuel" : "programme";
+
       const { error } = await supabase.from("training_participants").insert({
         training_id: trainingId,
         first_name: firstName.trim() || null,
@@ -61,7 +77,7 @@ const AddParticipantDialog = ({ trainingId, onParticipantAdded }: AddParticipant
         email: email.trim().toLowerCase(),
         company: company.trim() || null,
         needs_survey_token: token,
-        needs_survey_status: "non_envoye",
+        needs_survey_status: initialStatus,
       });
 
       if (error) {
@@ -77,9 +93,13 @@ const AddParticipantDialog = ({ trainingId, onParticipantAdded }: AddParticipant
         return;
       }
 
+      const statusMessage = isManualMode 
+        ? "Mode manuel activé (formation proche)."
+        : "Recueil des besoins programmé.";
+
       toast({
         title: "Participant ajouté",
-        description: `${email} a été ajouté à la formation.`,
+        description: `${email} a été ajouté. ${statusMessage}`,
       });
 
       resetForm();
@@ -113,6 +133,16 @@ const AddParticipantDialog = ({ trainingId, onParticipantAdded }: AddParticipant
               Ajoutez un participant à cette formation. Seul l'email est obligatoire.
             </DialogDescription>
           </DialogHeader>
+
+          {isManualMode && (
+            <Alert className="mt-4">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                La formation commence dans moins de 2 jours. Le recueil des besoins 
+                sera en mode manuel (pas d'envoi automatique programmé).
+              </AlertDescription>
+            </Alert>
+          )}
 
           <div className="space-y-4 py-4">
             <div className="grid grid-cols-2 gap-4">
