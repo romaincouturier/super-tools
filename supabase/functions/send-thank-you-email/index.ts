@@ -7,28 +7,35 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-// Fetch Signitic signature
+// Fetch Signitic signature for romain@supertilt.fr
 async function getSigniticSignature(): Promise<string> {
+  const signiticApiKey = Deno.env.get("SIGNITIC_API_KEY");
+  
+  if (!signiticApiKey) {
+    console.warn("SIGNITIC_API_KEY not configured, using default signature");
+    return getDefaultSignature();
+  }
+
   try {
-    const SIGNITIC_API_KEY = Deno.env.get("SIGNITIC_API_KEY");
-    if (!SIGNITIC_API_KEY) {
-      console.warn("SIGNITIC_API_KEY not configured, using default signature");
-      return getDefaultSignature();
+    const response = await fetch(
+      "https://api.signitic.app/signatures/romain@supertilt.fr/html",
+      {
+        headers: {
+          "x-api-key": signiticApiKey,
+        },
+      }
+    );
+
+    if (response.ok) {
+      const htmlContent = await response.text();
+      if (htmlContent && !htmlContent.includes("error")) {
+        console.log("Signitic signature fetched successfully");
+        return htmlContent;
+      }
     }
-
-    const response = await fetch("https://api.signitic.com/v1/signature", {
-      headers: {
-        "Authorization": `Bearer ${SIGNITIC_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`Signitic API error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    return data.html || getDefaultSignature();
+    
+    console.warn("Could not fetch Signitic signature:", response.status);
+    return getDefaultSignature();
   } catch (error) {
     console.error("Error fetching Signitic signature:", error);
     return getDefaultSignature();
