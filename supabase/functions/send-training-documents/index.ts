@@ -90,8 +90,10 @@ serve(async (req) => {
 
     // Use recipientFirstName if provided, otherwise extract from recipientName
     const firstName = recipientFirstName || (recipientName ? recipientName.split(" ")[0] : null);
+    console.log("DEBUG - recipientFirstName:", recipientFirstName, "recipientName:", recipientName, "firstName:", firstName, "formalAddress:", formalAddress);
     // Tutoiement: "Bonjour Prénom," / Vouvoiement: "Bonjour,"
     const greeting = formalAddress ? "Bonjour," : (firstName ? `Bonjour ${firstName},` : "Bonjour,");
+    console.log("DEBUG - greeting:", greeting);
     
     // Generate phrases based on formal/informal address
     const hopePhrase = formalAddress 
