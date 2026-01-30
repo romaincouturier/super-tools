@@ -139,10 +139,11 @@ const DocumentsManager = ({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!file.type.includes("pdf")) {
+    const allowedTypes = ["application/pdf", "image/jpeg", "image/png", "image/gif", "image/webp"];
+    if (!allowedTypes.includes(file.type)) {
       toast({
         title: "Format non supporté",
-        description: "Seuls les fichiers PDF sont acceptés.",
+        description: "Seuls les fichiers PDF et images (JPG, PNG, GIF, WebP) sont acceptés.",
         variant: "destructive",
       });
       return;
@@ -539,7 +540,7 @@ const DocumentsManager = ({
               <div>
                 <Input
                   type="file"
-                  accept=".pdf"
+                  accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,image/*"
                   onChange={handleSheetUpload}
                   disabled={uploadingSheet}
                   className="hidden"
