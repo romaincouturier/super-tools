@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.analyze-evaluations]
 verify_jwt = false
+
+[functions.send-attendance-signature-request]
+verify_jwt = false

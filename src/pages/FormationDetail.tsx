@@ -19,6 +19,7 @@ import DocumentsManager from "@/components/formations/DocumentsManager";
 import ScheduledEmailsSummary from "@/components/formations/ScheduledEmailsSummary";
 import NeedsSurveySummaryDialog from "@/components/formations/NeedsSurveySummaryDialog";
 import AttendanceSheetGenerator from "@/components/formations/AttendanceSheetGenerator";
+import AttendanceSignatureBlock from "@/components/formations/AttendanceSignatureBlock";
 
 interface Training {
   id: string;
@@ -463,7 +464,7 @@ const FormationDetail = () => {
         </div>
 
         {/* Row 2: Documents + Scheduled Emails */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           {/* Left: Documents and Communication */}
           <DocumentsManager
             trainingId={training.id}
@@ -485,6 +486,16 @@ const FormationDetail = () => {
           <ScheduledEmailsSummary
             trainingId={training.id}
             participants={participants}
+          />
+        </div>
+
+        {/* Row 3: Attendance Signature (only shown on training days) */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <AttendanceSignatureBlock
+            trainingId={training.id}
+            trainingName={training.training_name}
+            schedules={schedules}
+            participantsCount={participants.length}
           />
         </div>
       </main>
