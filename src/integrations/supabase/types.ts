@@ -41,6 +41,69 @@ export type Database = {
         }
         Relationships: []
       }
+      attendance_signatures: {
+        Row: {
+          created_at: string
+          email_opened_at: string | null
+          email_sent_at: string | null
+          id: string
+          ip_address: string | null
+          participant_id: string
+          period: string
+          schedule_date: string
+          signature_data: string | null
+          signed_at: string | null
+          token: string
+          training_id: string
+          user_agent: string | null
+        }
+        Insert: {
+          created_at?: string
+          email_opened_at?: string | null
+          email_sent_at?: string | null
+          id?: string
+          ip_address?: string | null
+          participant_id: string
+          period: string
+          schedule_date: string
+          signature_data?: string | null
+          signed_at?: string | null
+          token: string
+          training_id: string
+          user_agent?: string | null
+        }
+        Update: {
+          created_at?: string
+          email_opened_at?: string | null
+          email_sent_at?: string | null
+          id?: string
+          ip_address?: string | null
+          participant_id?: string
+          period?: string
+          schedule_date?: string
+          signature_data?: string | null
+          signed_at?: string | null
+          token?: string
+          training_id?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_signatures_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "training_participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_signatures_training_id_fkey"
+            columns: ["training_id"]
+            isOneToOne: false
+            referencedRelation: "trainings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_templates: {
         Row: {
           created_at: string

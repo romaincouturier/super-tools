@@ -19,6 +19,7 @@ import PolitiqueConfidentialite from "./pages/PolitiqueConfidentialite";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
 import ForcePasswordChange from "./pages/ForcePasswordChange";
+import Emargement from "./pages/Emargement";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -46,6 +47,8 @@ const App = () => (
           <Route path="/questionnaire/:token" element={<Questionnaire />} />
           {/* Public evaluation form */}
           <Route path="/evaluation/:token" element={<Evaluation />} />
+          {/* Public attendance signature */}
+          <Route path="/emargement/:token" element={<Emargement />} />
           {/* Privacy policy */}
           <Route path="/politique-confidentialite" element={<PolitiqueConfidentialite />} />
           <Route path="/auth" element={<Auth />} />
