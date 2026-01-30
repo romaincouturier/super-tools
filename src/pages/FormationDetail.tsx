@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
-import { Loader2, ArrowLeft, Calendar, Users, FileText, ExternalLink, Edit2, User as UserIcon, Mail } from "lucide-react";
+import { Loader2, ArrowLeft, Calendar, Users, FileText, ExternalLink, Edit2, User as UserIcon, Mail, MapPin, Building } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import SupertiltLogo from "@/components/SupertiltLogo";
@@ -232,177 +232,172 @@ const FormationDetail = () => {
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left column - Training info */}
-          <div className="lg:col-span-1 space-y-6">
-            {/* Basic info card */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Calendar className="h-5 w-5" />
-                  Informations
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <p className="text-sm text-muted-foreground">Client</p>
-                  <p className="font-medium">{training.client_name}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Lieu</p>
-                  <p className="font-medium">{training.location}</p>
-                </div>
+        {/* Row 1: Informations + Participants */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          {/* Left: Informations */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className="h-5 w-5" />
+                Informations
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Quick info badges */}
+              <div className="flex flex-wrap gap-2">
+                <Badge variant="outline" className="flex items-center gap-1.5">
+                  <Building className="h-3.5 w-3.5" />
+                  {training.client_name}
+                </Badge>
+                <Badge variant="outline" className="flex items-center gap-1.5">
+                  <MapPin className="h-3.5 w-3.5" />
+                  {training.location}
+                </Badge>
                 {getFormatLabel(training.format_formation) && (
-                  <div>
-                    <p className="text-sm text-muted-foreground">Format</p>
-                    <Badge variant="secondary">
-                      {getFormatLabel(training.format_formation)}
-                    </Badge>
-                  </div>
+                  <Badge variant="secondary">
+                    {getFormatLabel(training.format_formation)}
+                  </Badge>
                 )}
-                <Separator />
-                <div>
+              </div>
+
+              {/* Sponsor */}
+              {(training.sponsor_first_name || training.sponsor_last_name || training.sponsor_email) && (
+                <>
+                  <Separator />
+                  <div className="flex items-start gap-3">
+                    <UserIcon className="h-4 w-4 mt-0.5 text-muted-foreground" />
+                    <div className="space-y-1">
+                      <p className="text-sm text-muted-foreground">Commanditaire</p>
+                      {(training.sponsor_first_name || training.sponsor_last_name) && (
+                        <p className="font-medium">
+                          {training.sponsor_first_name} {training.sponsor_last_name}
+                        </p>
+                      )}
+                      {training.sponsor_email && (
+                        <a
+                          href={`mailto:${training.sponsor_email}`}
+                          className="flex items-center gap-1.5 text-sm text-primary hover:underline"
+                        >
+                          <Mail className="h-3.5 w-3.5" />
+                          {training.sponsor_email}
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* Links */}
+              <Separator />
+              <div className="flex flex-wrap gap-3">
+                <a
+                  href={training.evaluation_link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 text-sm text-primary hover:underline"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  Lien d'évaluation
+                </a>
+                {training.program_file_url && (
                   <a
-                    href={training.evaluation_link}
+                    href={training.program_file_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2 text-primary hover:underline"
+                    className="flex items-center gap-1.5 text-sm text-primary hover:underline"
                   >
-                    <ExternalLink className="h-4 w-4" />
-                    Lien d'évaluation
+                    <FileText className="h-4 w-4" />
+                    Programme
                   </a>
-                </div>
-                {training.program_file_url && (
-                  <div>
-                    <a
-                      href={training.program_file_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 text-primary hover:underline"
-                    >
-                      <FileText className="h-4 w-4" />
-                      Programme de formation
-                    </a>
-                  </div>
                 )}
-              </CardContent>
-            </Card>
+              </div>
 
-            {/* Sponsor card */}
-            {(training.sponsor_first_name || training.sponsor_last_name || training.sponsor_email) && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <UserIcon className="h-5 w-5" />
-                    Commanditaire
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  {(training.sponsor_first_name || training.sponsor_last_name) && (
-                    <p className="font-medium">
-                      {training.sponsor_first_name} {training.sponsor_last_name}
-                    </p>
-                  )}
-                  {training.sponsor_email && (
-                    <a
-                      href={`mailto:${training.sponsor_email}`}
-                      className="flex items-center gap-2 text-sm text-primary hover:underline"
-                    >
-                      <Mail className="h-4 w-4" />
-                      {training.sponsor_email}
-                    </a>
-                  )}
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Prerequisites card */}
-            {training.prerequisites && training.prerequisites.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Prérequis</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ul className="list-disc list-inside space-y-1 text-sm">
-                    {training.prerequisites.map((prereq, index) => (
-                      <li key={index}>{prereq}</li>
-                    ))}
-                  </ul>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Objectives card */}
-            {training.objectives && training.objectives.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Objectifs pédagogiques</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ul className="list-disc list-inside space-y-1 text-sm">
-                    {training.objectives.map((obj, index) => (
-                      <li key={index}>{obj}</li>
-                    ))}
-                  </ul>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-
-          {/* Right column - Participants, Documents, Emails */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Participants */}
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
+              {/* Prerequisites */}
+              {training.prerequisites && training.prerequisites.length > 0 && (
+                <>
+                  <Separator />
                   <div>
-                    <CardTitle className="flex items-center gap-2">
-                      <Users className="h-5 w-5" />
-                      Participants
-                    </CardTitle>
-                    <CardDescription>
-                      {participants.length} participant{participants.length !== 1 ? "s" : ""} inscrit{participants.length !== 1 ? "s" : ""}
-                    </CardDescription>
+                    <p className="text-sm font-medium mb-2">Prérequis</p>
+                    <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
+                      {training.prerequisites.map((prereq, index) => (
+                        <li key={index}>{prereq}</li>
+                      ))}
+                    </ul>
                   </div>
-                  <div className="flex gap-2">
-                    <BulkAddParticipantsDialog
-                      trainingId={training.id}
-                      trainingStartDate={training.start_date}
-                      onParticipantsAdded={fetchParticipants}
-                    />
-                    <AddParticipantDialog
-                      trainingId={training.id}
-                      trainingStartDate={training.start_date}
-                      onParticipantAdded={fetchParticipants}
-                    />
+                </>
+              )}
+
+              {/* Objectives */}
+              {training.objectives && training.objectives.length > 0 && (
+                <>
+                  <Separator />
+                  <div>
+                    <p className="text-sm font-medium mb-2">Objectifs pédagogiques</p>
+                    <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
+                      {training.objectives.map((obj, index) => (
+                        <li key={index}>{obj}</li>
+                      ))}
+                    </ul>
                   </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Right: Participants */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="h-5 w-5" />
+                    Participants
+                  </CardTitle>
+                  <CardDescription>
+                    {participants.length} participant{participants.length !== 1 ? "s" : ""} inscrit{participants.length !== 1 ? "s" : ""}
+                  </CardDescription>
                 </div>
-              </CardHeader>
-              <CardContent>
-                <ParticipantList
-                  participants={participants}
-                  onParticipantUpdated={fetchParticipants}
-                />
-              </CardContent>
-            </Card>
+                <div className="flex gap-2">
+                  <BulkAddParticipantsDialog
+                    trainingId={training.id}
+                    trainingStartDate={training.start_date}
+                    onParticipantsAdded={fetchParticipants}
+                  />
+                  <AddParticipantDialog
+                    trainingId={training.id}
+                    trainingStartDate={training.start_date}
+                    onParticipantAdded={fetchParticipants}
+                  />
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <ParticipantList
+                participants={participants}
+                onParticipantUpdated={fetchParticipants}
+              />
+            </CardContent>
+          </Card>
+        </div>
 
-            {/* Documents and Communication */}
-            <DocumentsManager
-              trainingId={training.id}
-              invoiceFileUrl={training.invoice_file_url}
-              attendanceSheetsUrls={training.attendance_sheets_urls || []}
-              sponsorEmail={training.sponsor_email}
-              sponsorName={getSponsorName()}
-              supportsUrl={training.supports_url}
-              onUpdate={fetchTrainingData}
-            />
+        {/* Row 2: Documents + Scheduled Emails */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Left: Documents and Communication */}
+          <DocumentsManager
+            trainingId={training.id}
+            invoiceFileUrl={training.invoice_file_url}
+            attendanceSheetsUrls={training.attendance_sheets_urls || []}
+            sponsorEmail={training.sponsor_email}
+            sponsorName={getSponsorName()}
+            supportsUrl={training.supports_url}
+            onUpdate={fetchTrainingData}
+          />
 
-            {/* Scheduled Emails */}
-            <ScheduledEmailsSummary
-              trainingId={training.id}
-              participants={participants}
-            />
-          </div>
+          {/* Right: Scheduled Emails */}
+          <ScheduledEmailsSummary
+            trainingId={training.id}
+            participants={participants}
+          />
         </div>
       </main>
     </div>
