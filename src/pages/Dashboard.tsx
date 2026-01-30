@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
-import { Loader2, Award, FileText, History } from "lucide-react";
+import { Loader2, Award, FileText, History, Calendar } from "lucide-react";
 import SupertiltLogo from "@/components/SupertiltLogo";
 import UserMenu from "@/components/UserMenu";
 import OnboardCollaboratorDialog from "@/components/OnboardCollaboratorDialog";
@@ -17,6 +17,13 @@ interface Tool {
 }
 
 const tools: Tool[] = [
+  {
+    id: "formations",
+    name: "Formations",
+    description: "Gérer les formations et les participants",
+    icon: <Calendar className="w-12 h-12" />,
+    path: "/formations",
+  },
   {
     id: "certificates",
     name: "Certificats",

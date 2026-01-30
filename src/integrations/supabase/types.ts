@@ -131,6 +131,372 @@ export type Database = {
         }
         Relationships: []
       }
+      program_files: {
+        Row: {
+          file_name: string
+          file_url: string
+          id: string
+          uploaded_at: string
+          uploaded_by: string
+        }
+        Insert: {
+          file_name: string
+          file_url: string
+          id?: string
+          uploaded_at?: string
+          uploaded_by: string
+        }
+        Update: {
+          file_name?: string
+          file_url?: string
+          id?: string
+          uploaded_at?: string
+          uploaded_by?: string
+        }
+        Relationships: []
+      }
+      questionnaire_besoins: {
+        Row: {
+          besoins_accessibilite: string | null
+          commentaires_libres: string | null
+          competences_actuelles: string | null
+          competences_visees: string | null
+          consentement_rgpd: boolean
+          contraintes_orga: string | null
+          created_at: string
+          date_consentement_rgpd: string | null
+          date_derniere_sauvegarde: string | null
+          date_envoi: string | null
+          date_premiere_ouverture: string | null
+          date_soumission: string | null
+          date_validation_formateur: string | null
+          email: string | null
+          etat: string
+          experience_details: string | null
+          experience_sujet: string | null
+          fonction: string | null
+          id: string
+          lecture_programme: string | null
+          lien_mission: string | null
+          modalites_preferences: Json | null
+          necessite_amenagement: boolean | null
+          necessite_validation_formateur: boolean | null
+          niveau_actuel: number | null
+          niveau_motivation: number | null
+          nom: string | null
+          participant_id: string
+          prenom: string | null
+          prerequis_details: string | null
+          prerequis_validation: string | null
+          societe: string | null
+          token: string
+          training_id: string
+          updated_at: string
+        }
+        Insert: {
+          besoins_accessibilite?: string | null
+          commentaires_libres?: string | null
+          competences_actuelles?: string | null
+          competences_visees?: string | null
+          consentement_rgpd?: boolean
+          contraintes_orga?: string | null
+          created_at?: string
+          date_consentement_rgpd?: string | null
+          date_derniere_sauvegarde?: string | null
+          date_envoi?: string | null
+          date_premiere_ouverture?: string | null
+          date_soumission?: string | null
+          date_validation_formateur?: string | null
+          email?: string | null
+          etat?: string
+          experience_details?: string | null
+          experience_sujet?: string | null
+          fonction?: string | null
+          id?: string
+          lecture_programme?: string | null
+          lien_mission?: string | null
+          modalites_preferences?: Json | null
+          necessite_amenagement?: boolean | null
+          necessite_validation_formateur?: boolean | null
+          niveau_actuel?: number | null
+          niveau_motivation?: number | null
+          nom?: string | null
+          participant_id: string
+          prenom?: string | null
+          prerequis_details?: string | null
+          prerequis_validation?: string | null
+          societe?: string | null
+          token: string
+          training_id: string
+          updated_at?: string
+        }
+        Update: {
+          besoins_accessibilite?: string | null
+          commentaires_libres?: string | null
+          competences_actuelles?: string | null
+          competences_visees?: string | null
+          consentement_rgpd?: boolean
+          contraintes_orga?: string | null
+          created_at?: string
+          date_consentement_rgpd?: string | null
+          date_derniere_sauvegarde?: string | null
+          date_envoi?: string | null
+          date_premiere_ouverture?: string | null
+          date_soumission?: string | null
+          date_validation_formateur?: string | null
+          email?: string | null
+          etat?: string
+          experience_details?: string | null
+          experience_sujet?: string | null
+          fonction?: string | null
+          id?: string
+          lecture_programme?: string | null
+          lien_mission?: string | null
+          modalites_preferences?: Json | null
+          necessite_amenagement?: boolean | null
+          necessite_validation_formateur?: boolean | null
+          niveau_actuel?: number | null
+          niveau_motivation?: number | null
+          nom?: string | null
+          participant_id?: string
+          prenom?: string | null
+          prerequis_details?: string | null
+          prerequis_validation?: string | null
+          societe?: string | null
+          token?: string
+          training_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "questionnaire_besoins_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "training_participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "questionnaire_besoins_training_id_fkey"
+            columns: ["training_id"]
+            isOneToOne: false
+            referencedRelation: "trainings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      questionnaire_events: {
+        Row: {
+          created_at: string
+          id: string
+          metadata: Json | null
+          questionnaire_id: string
+          type_evenement: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          questionnaire_id: string
+          type_evenement: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          questionnaire_id?: string
+          type_evenement?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "questionnaire_events_questionnaire_id_fkey"
+            columns: ["questionnaire_id"]
+            isOneToOne: false
+            referencedRelation: "questionnaire_besoins"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scheduled_emails: {
+        Row: {
+          created_at: string
+          email_type: string
+          error_message: string | null
+          id: string
+          participant_id: string | null
+          scheduled_for: string
+          sent_at: string | null
+          status: string
+          training_id: string
+        }
+        Insert: {
+          created_at?: string
+          email_type: string
+          error_message?: string | null
+          id?: string
+          participant_id?: string | null
+          scheduled_for: string
+          sent_at?: string | null
+          status?: string
+          training_id: string
+        }
+        Update: {
+          created_at?: string
+          email_type?: string
+          error_message?: string | null
+          id?: string
+          participant_id?: string | null
+          scheduled_for?: string
+          sent_at?: string | null
+          status?: string
+          training_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scheduled_emails_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "training_participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scheduled_emails_training_id_fkey"
+            columns: ["training_id"]
+            isOneToOne: false
+            referencedRelation: "trainings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      training_participants: {
+        Row: {
+          added_at: string
+          company: string | null
+          email: string
+          first_name: string | null
+          id: string
+          last_name: string | null
+          needs_survey_sent_at: string | null
+          needs_survey_status: string
+          needs_survey_token: string | null
+          training_id: string
+        }
+        Insert: {
+          added_at?: string
+          company?: string | null
+          email: string
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          needs_survey_sent_at?: string | null
+          needs_survey_status?: string
+          needs_survey_token?: string | null
+          training_id: string
+        }
+        Update: {
+          added_at?: string
+          company?: string | null
+          email?: string
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          needs_survey_sent_at?: string | null
+          needs_survey_status?: string
+          needs_survey_token?: string | null
+          training_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_participants_training_id_fkey"
+            columns: ["training_id"]
+            isOneToOne: false
+            referencedRelation: "trainings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      training_schedules: {
+        Row: {
+          created_at: string
+          day_date: string
+          end_time: string
+          id: string
+          start_time: string
+          training_id: string
+        }
+        Insert: {
+          created_at?: string
+          day_date: string
+          end_time: string
+          id?: string
+          start_time: string
+          training_id: string
+        }
+        Update: {
+          created_at?: string
+          day_date?: string
+          end_time?: string
+          id?: string
+          start_time?: string
+          training_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_schedules_training_id_fkey"
+            columns: ["training_id"]
+            isOneToOne: false
+            referencedRelation: "trainings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trainings: {
+        Row: {
+          client_name: string
+          created_at: string
+          created_by: string
+          end_date: string | null
+          evaluation_link: string
+          format_formation: string | null
+          id: string
+          location: string
+          prerequisites: string[] | null
+          program_file_url: string | null
+          start_date: string
+          training_name: string
+          updated_at: string
+        }
+        Insert: {
+          client_name: string
+          created_at?: string
+          created_by: string
+          end_date?: string | null
+          evaluation_link: string
+          format_formation?: string | null
+          id?: string
+          location: string
+          prerequisites?: string[] | null
+          program_file_url?: string | null
+          start_date: string
+          training_name: string
+          updated_at?: string
+        }
+        Update: {
+          client_name?: string
+          created_at?: string
+          created_by?: string
+          end_date?: string | null
+          evaluation_link?: string
+          format_formation?: string | null
+          id?: string
+          location?: string
+          prerequisites?: string[] | null
+          program_file_url?: string | null
+          start_date?: string
+          training_name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_security_metadata: {
         Row: {
           created_at: string
