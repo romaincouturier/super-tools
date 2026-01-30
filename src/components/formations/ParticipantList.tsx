@@ -1,4 +1,4 @@
-import { HelpCircle, Mail, MailCheck, Clock, CheckCircle, AlertTriangle, Trash2, Loader2, Send } from "lucide-react";
+import { HelpCircle, Mail, MailCheck, Clock, CheckCircle, AlertTriangle, Trash2, Loader2, Send, RefreshCw } from "lucide-react";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -127,6 +127,7 @@ const getStatusConfig = (status: string) => {
 const ParticipantList = ({ participants, trainingId, trainingStartDate, onParticipantUpdated }: ParticipantListProps) => {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [sendingId, setSendingId] = useState<string | null>(null);
+  const [remindingId, setRemindingId] = useState<string | null>(null);
   const { toast } = useToast();
 
   // Check if we're at J-2 or later
@@ -205,11 +206,44 @@ const ParticipantList = ({ participants, trainingId, trainingStartDate, onPartic
     }
   };
 
+  const handleSendReminder = async (participant: Participant) => {
+    setRemindingId(participant.id);
+    try {
+      const { error } = await supabase.functions.invoke("send-needs-survey-reminder", {
+        body: { participantId: participant.id, trainingId },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Relance envoyée",
+        description: `Une relance a été envoyée à ${participant.email}.`,
+      });
+
+      onParticipantUpdated();
+    } catch (error: any) {
+      console.error("Error sending reminder:", error);
+      toast({
+        title: "Erreur",
+        description: error.message || "Impossible d'envoyer la relance.",
+        variant: "destructive",
+      });
+    } finally {
+      setRemindingId(null);
+    }
+  };
+
   // Check if survey can be sent for a participant
   const canSendSurveyFor = (participant: Participant) => {
     const status = participant.needs_survey_status;
     // Can send if manual mode, not sent, or needs to be resent
     return canSendManually && (status === "manuel" || status === "non_envoye" || status === "programme");
+  };
+
+  // Check if reminder can be sent for a participant (questionnaire sent but not completed)
+  const canSendReminderFor = (participant: Participant) => {
+    const status = participant.needs_survey_status;
+    return status === "envoye" || status === "accueil_envoye" || status === "en_cours";
   };
 
   if (participants.length === 0) {
@@ -299,6 +333,31 @@ const ParticipantList = ({ participants, trainingId, trainingStartDate, onPartic
                       </TooltipContent>
                     </Tooltip>
                   )}
+
+                  {/* Reminder button - always visible for sent/in-progress statuses */}
+                  {canSendReminderFor(participant) && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-primary"
+                          onClick={() => handleSendReminder(participant)}
+                          disabled={remindingId === participant.id}
+                        >
+                          {remindingId === participant.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <RefreshCw className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Relancer pour recueillir le besoin</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
+
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button
