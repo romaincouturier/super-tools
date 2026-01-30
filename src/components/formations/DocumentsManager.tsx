@@ -35,6 +35,9 @@ import {
 
 interface DocumentsManagerProps {
   trainingId: string;
+  trainingName: string;
+  startDate: string;
+  endDate: string | null;
   invoiceFileUrl: string | null;
   attendanceSheetsUrls: string[];
   sponsorEmail: string | null;
@@ -47,6 +50,9 @@ interface DocumentsManagerProps {
 
 const DocumentsManager = ({
   trainingId,
+  trainingName,
+  startDate,
+  endDate,
   invoiceFileUrl: initialInvoiceUrl,
   attendanceSheetsUrls: initialSheetsUrls,
   sponsorEmail,
@@ -341,6 +347,9 @@ const DocumentsManager = ({
       const { error } = await supabase.functions.invoke("send-training-documents", {
         body: {
           trainingId,
+          trainingName,
+          startDate,
+          endDate,
           recipientEmail: targetEmail,
           recipientName: recipientEmail ? null : sponsorName,
           recipientFirstName: recipientEmail ? null : sponsorFirstName,

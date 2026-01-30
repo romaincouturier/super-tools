@@ -50,6 +50,46 @@ function getDefaultSignature(): string {
   </p>`;
 }
 
+// Format date for display (e.g., "15 janvier 2025")
+function formatDateFr(dateStr: string): string {
+  const date = new Date(dateStr);
+  return new Intl.DateTimeFormat("fr-FR", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(date);
+}
+
+// Format date range for subject line
+function formatDateRangeForSubject(startDate: string, endDate: string | null): string {
+  const start = new Date(startDate);
+  const end = endDate ? new Date(endDate) : null;
+  
+  const formatOptions: Intl.DateTimeFormatOptions = {
+    day: "numeric",
+    month: "long",
+  };
+  
+  if (!end || start.getTime() === end.getTime()) {
+    // Single day
+    return new Intl.DateTimeFormat("fr-FR", formatOptions).format(start);
+  }
+  
+  // Date range
+  const startFormatted = new Intl.DateTimeFormat("fr-FR", formatOptions).format(start);
+  const endFormatted = new Intl.DateTimeFormat("fr-FR", formatOptions).format(end);
+  
+  return `${startFormatted} - ${endFormatted}`;
+}
+
+// Strip HTML tags for plain text version
+function stripHtml(html: string): string {
+  return html
+    .replace(/<[^>]*>/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -58,6 +98,9 @@ serve(async (req) => {
   try {
     const { 
       trainingId, 
+      trainingName,
+      startDate,
+      endDate,
       recipientEmail, 
       recipientName, 
       recipientFirstName,
@@ -106,8 +149,14 @@ serve(async (req) => {
       ? "Merci encore pour votre confiance, c'est toujours un plaisir de collaborer avec vous !"
       : "Merci encore pour ta confiance, c'est toujours un plaisir de collaborer avec toi !";
 
+    // Format date string for subject
+    const dateInfo = startDate ? formatDateRangeForSubject(startDate, endDate) : "";
+    const trainingInfo = trainingName ? `${trainingName}${dateInfo ? ` - ${dateInfo}` : ""}` : "";
+
     if (documentType === "invoice" && invoiceUrl) {
-      subject = "Votre facture de formation - Supertilt";
+      subject = trainingInfo 
+        ? `Facture - ${trainingInfo} - Supertilt`
+        : "Votre facture de formation - Supertilt";
       const invoiceText = formalAddress
         ? "Veuillez trouver ci-joint la facture correspondant à notre récente formation."
         : "Tu trouveras ci-joint la facture correspondant à notre récente formation.";
@@ -128,7 +177,9 @@ serve(async (req) => {
       const sheetsText = sheetsCount > 1 ? "les feuilles d'émargement" : "la feuille d'émargement";
       const docText = sheetsCount > 1 ? "les documents" : "le document";
       
-      subject = "Feuilles d'émargement - Supertilt";
+      subject = trainingInfo 
+        ? `Émargements - ${trainingInfo} - Supertilt`
+        : "Feuilles d'émargement - Supertilt";
       const transmitText = formalAddress
         ? `Comme convenu, je vous transmets ${sheetsText} de notre formation. Vous trouverez ${docText} en pièce jointe.`
         : `Comme convenu, je te transmets ${sheetsText} de notre formation. Tu trouveras ${docText} en pièce jointe.`;
@@ -155,9 +206,15 @@ serve(async (req) => {
       const sheetsCount = attendanceSheetsUrls?.length || 0;
       
       // If invoice is included, mention "facture" in subject
-      subject = invoiceUrl 
-        ? "Facture et documents de formation - Supertilt"
-        : "Documents de formation - Supertilt";
+      if (trainingInfo) {
+        subject = invoiceUrl 
+          ? `Facture et émargements - ${trainingInfo} - Supertilt`
+          : `Documents - ${trainingInfo} - Supertilt`;
+      } else {
+        subject = invoiceUrl 
+          ? "Facture et documents de formation - Supertilt"
+          : "Documents de formation - Supertilt";
+      }
       const findText = formalAddress
         ? "Veuillez trouver ci-joint les documents relatifs à notre formation :"
         : "Tu trouveras ci-joint les documents relatifs à notre formation :";
@@ -235,7 +292,7 @@ serve(async (req) => {
     const result = await emailResponse.json();
     console.log("Email sent successfully:", result);
 
-    // Log activity
+    // Log activity with email subject and content
     try {
       const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
       const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -246,9 +303,12 @@ serve(async (req) => {
         recipient_email: recipientEmail,
         details: {
           training_id: trainingId,
+          training_name: trainingName,
           document_type: documentType,
           recipient_name: recipientName,
           attachments_count: attachments.length,
+          email_subject: subject,
+          email_content: stripHtml(htmlContent),
         },
       });
     } catch (logError) {

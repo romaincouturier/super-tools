@@ -400,6 +400,9 @@ const FormationDetail = () => {
           {/* Left: Documents and Communication */}
           <DocumentsManager
             trainingId={training.id}
+            trainingName={training.training_name}
+            startDate={training.start_date}
+            endDate={training.end_date}
             invoiceFileUrl={training.invoice_file_url}
             attendanceSheetsUrls={training.attendance_sheets_urls || []}
             sponsorEmail={training.sponsor_email}

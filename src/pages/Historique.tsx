@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
-import { Loader2, ArrowLeft, History, Award, FileText, RefreshCw, Search, X, Calendar, UserPlus, UserMinus, Send, Mail, Edit, Heart } from "lucide-react";
+import { Loader2, ArrowLeft, History, Award, FileText, RefreshCw, Search, X, Calendar, UserPlus, UserMinus, Send, Mail, Edit, Heart, ChevronDown, ChevronUp } from "lucide-react";
 import SupertiltLogo from "@/components/SupertiltLogo";
 import UserMenu from "@/components/UserMenu";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,6 +18,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 
 interface ActivityLog {
   id: string;
@@ -379,40 +384,59 @@ const Historique = () => {
                 {hasActiveFilters ? "Aucun résultat pour ces critères" : "Aucune activité enregistrée"}
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[180px]">Date & Heure</TableHead>
-                    <TableHead className="w-[180px]">Action</TableHead>
-                    <TableHead>Destinataire</TableHead>
-                    <TableHead>Détails</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredLogs.map((log) => {
-                    const actionInfo = getActionInfo(log.action_type);
-                    return (
-                      <TableRow key={log.id}>
-                        <TableCell className="font-mono text-sm">
-                          {formatDateTime(log.created_at)}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={actionInfo.variant} className="gap-1">
-                            {actionInfo.icon}
-                            {actionInfo.label}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="font-medium">
-                          {log.recipient_email}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground text-sm">
-                          {getDetailsDisplay(log)}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
+              <div className="space-y-2">
+                {filteredLogs.map((log) => {
+                  const actionInfo = getActionInfo(log.action_type);
+                  const hasEmailDetails = log.details?.email_subject || log.details?.email_content;
+                  
+                  return (
+                    <Collapsible key={log.id}>
+                      <div className="border rounded-lg">
+                        <CollapsibleTrigger asChild>
+                          <div className="flex items-center gap-4 p-3 hover:bg-muted/50 cursor-pointer transition-colors">
+                            <div className="w-[140px] font-mono text-sm text-muted-foreground shrink-0">
+                              {formatDateTime(log.created_at)}
+                            </div>
+                            <div className="w-[160px] shrink-0">
+                              <Badge variant={actionInfo.variant} className="gap-1">
+                                {actionInfo.icon}
+                                {actionInfo.label}
+                              </Badge>
+                            </div>
+                            <div className="font-medium shrink-0 w-[200px] truncate">
+                              {log.recipient_email}
+                            </div>
+                            <div className="flex-1 text-muted-foreground text-sm truncate">
+                              {getDetailsDisplay(log)}
+                            </div>
+                            {hasEmailDetails && (
+                              <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0 transition-transform group-data-[state=open]:rotate-180" />
+                            )}
+                          </div>
+                        </CollapsibleTrigger>
+                        {hasEmailDetails && (
+                          <CollapsibleContent>
+                            <div className="border-t bg-muted/30 p-4 space-y-3">
+                              {log.details?.email_subject && (
+                                <div>
+                                  <Label className="text-xs text-muted-foreground">Sujet du mail</Label>
+                                  <p className="font-medium">{String(log.details.email_subject)}</p>
+                                </div>
+                              )}
+                              {log.details?.email_content && (
+                                <div>
+                                  <Label className="text-xs text-muted-foreground">Contenu du mail</Label>
+                                  <p className="text-sm whitespace-pre-wrap">{String(log.details.email_content)}</p>
+                                </div>
+                              )}
+                            </div>
+                          </CollapsibleContent>
+                        )}
+                      </div>
+                    </Collapsible>
+                  );
+                })}
+              </div>
             )}
           </CardContent>
         </Card>
