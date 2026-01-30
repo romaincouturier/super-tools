@@ -188,9 +188,10 @@ const Questionnaire = () => {
     }
   };
 
-  const saveDraft = async (opts?: { silent?: boolean }) => {
+  const saveDraft = async (opts?: { silent?: boolean; force?: boolean }) => {
     if (!questionnaire) return;
-    if (!dirtyRef.current) return;
+    // Skip if not dirty, unless force is true (used during submission)
+    if (!dirtyRef.current && !opts?.force) return;
 
     const nowIso = new Date().toISOString();
     setSaving(true);
@@ -273,8 +274,8 @@ const Questionnaire = () => {
 
     setSubmitting(true);
     try {
-      // Ensure latest answers saved
-      await saveDraft({ silent: true });
+      // Force save all current form values, even if user didn't modify any field
+      await saveDraft({ silent: true, force: true });
 
       const nowIso = new Date().toISOString();
       const needsPrerequisEmail = hasUnvalidatedPrerequisites();
