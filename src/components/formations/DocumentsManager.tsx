@@ -1,11 +1,13 @@
-import { useState } from "react";
-import { Upload, FileText, Trash2, Loader2, Send, Receipt, ClipboardList, Mail, Link, Heart } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Upload, FileText, Trash2, Loader2, Send, Receipt, ClipboardList, Mail, Link, Heart, CheckCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { format, parseISO } from "date-fns";
+import { fr } from "date-fns/locale";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -32,6 +34,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+
+interface DocumentSentInfo {
+  invoice: string | null;
+  sheets: string | null;
+}
 
 interface DocumentsManagerProps {
   trainingId: string;
@@ -65,6 +72,7 @@ const DocumentsManager = ({
   const [invoiceFileUrl, setInvoiceFileUrl] = useState<string | null>(initialInvoiceUrl);
   const [attendanceSheetsUrls, setAttendanceSheetsUrls] = useState<string[]>(initialSheetsUrls);
   const [supportsUrl, setSupportsUrl] = useState<string>(initialSupportsUrl || "");
+  const [documentsSentInfo, setDocumentsSentInfo] = useState<DocumentSentInfo>({ invoice: null, sheets: null });
   
   const [uploadingInvoice, setUploadingInvoice] = useState(false);
   const [uploadingSheet, setUploadingSheet] = useState(false);
@@ -77,6 +85,51 @@ const DocumentsManager = ({
   const [pendingDocumentType, setPendingDocumentType] = useState<"invoice" | "sheets" | "all" | null>(null);
   const [sendToSponsorWithOptions, setSendToSponsorWithOptions] = useState(false);
   const { toast } = useToast();
+
+  // Fetch document send dates from activity logs
+  useEffect(() => {
+    const fetchDocumentsSentInfo = async () => {
+      const { data, error } = await supabase
+        .from("activity_logs")
+        .select("created_at, details")
+        .eq("action_type", "training_documents_sent")
+        .order("created_at", { ascending: false });
+
+      if (error || !data) return;
+
+      // Filter logs for this training and find latest send dates
+      let invoiceSentAt: string | null = null;
+      let sheetsSentAt: string | null = null;
+
+      for (const log of data) {
+        const details = log.details as { training_id?: string; document_type?: string } | null;
+        if (details?.training_id !== trainingId) continue;
+        
+        const docType = details?.document_type;
+        
+        // Invoice sent (either "invoice" or "all")
+        if (!invoiceSentAt && (docType === "invoice" || docType === "all")) {
+          invoiceSentAt = log.created_at;
+        }
+        
+        // Sheets sent (either "sheets" or "all")
+        if (!sheetsSentAt && (docType === "sheets" || docType === "all")) {
+          sheetsSentAt = log.created_at;
+        }
+        
+        // Stop once we have both
+        if (invoiceSentAt && sheetsSentAt) break;
+      }
+
+      setDocumentsSentInfo({ invoice: invoiceSentAt, sheets: sheetsSentAt });
+    };
+
+    fetchDocumentsSentInfo();
+  }, [trainingId]);
+
+  const formatSentDate = (dateStr: string): string => {
+    return format(parseISO(dateStr), "d MMM à HH:mm", { locale: fr });
+  };
 
   const sanitizeFileName = (name: string): string => {
     return name
@@ -374,6 +427,15 @@ const DocumentsManager = ({
         description,
       });
       
+      // Update local sent info immediately
+      const now = new Date().toISOString();
+      if (type === "invoice" || type === "all") {
+        setDocumentsSentInfo(prev => ({ ...prev, invoice: now }));
+      }
+      if (type === "sheets" || type === "all") {
+        setDocumentsSentInfo(prev => ({ ...prev, sheets: now }));
+      }
+      
       setShowCustomRecipientDialog(false);
       setCustomRecipientEmail("");
       setCcEmail("");
@@ -472,10 +534,18 @@ const DocumentsManager = ({
           {/* Invoice Section */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <Label className="flex items-center gap-2">
-                <Receipt className="h-4 w-4" />
-                Facture
-              </Label>
+              <div className="flex flex-col gap-1">
+                <Label className="flex items-center gap-2">
+                  <Receipt className="h-4 w-4" />
+                  Facture
+                </Label>
+                {documentsSentInfo.invoice && (
+                  <span className="text-xs text-muted-foreground flex items-center gap-1">
+                    <CheckCircle className="h-3 w-3 text-primary" />
+                    Envoyée le {formatSentDate(documentsSentInfo.invoice)}
+                  </span>
+                )}
+              </div>
               {!invoiceFileUrl && (
                 <div>
                   <Input
@@ -550,10 +620,18 @@ const DocumentsManager = ({
           {/* Attendance Sheets Section */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <Label className="flex items-center gap-2">
-                <ClipboardList className="h-4 w-4" />
-                Feuilles d'émargement ({attendanceSheetsUrls.length})
-              </Label>
+              <div className="flex flex-col gap-1">
+                <Label className="flex items-center gap-2">
+                  <ClipboardList className="h-4 w-4" />
+                  Feuilles d'émargement ({attendanceSheetsUrls.length})
+                </Label>
+                {documentsSentInfo.sheets && (
+                  <span className="text-xs text-muted-foreground flex items-center gap-1">
+                    <CheckCircle className="h-3 w-3 text-primary" />
+                    Envoyées le {formatSentDate(documentsSentInfo.sheets)}
+                  </span>
+                )}
+              </div>
               <div>
                 <Input
                   type="file"
