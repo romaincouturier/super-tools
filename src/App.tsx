@@ -11,6 +11,7 @@ import Formations from "./pages/Formations";
 import FormationCreate from "./pages/FormationCreate";
 import FormationEdit from "./pages/FormationEdit";
 import FormationDetail from "./pages/FormationDetail";
+import Questionnaire from "./pages/Questionnaire";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
 import ForcePasswordChange from "./pages/ForcePasswordChange";
@@ -33,6 +34,8 @@ const App = () => (
           <Route path="/formations/new" element={<FormationCreate />} />
           <Route path="/formations/:id" element={<FormationDetail />} />
           <Route path="/formations/:id/edit" element={<FormationEdit />} />
+          {/* Public needs survey */}
+          <Route path="/questionnaire/:token" element={<Questionnaire />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/force-password-change" element={<ForcePasswordChange />} />
