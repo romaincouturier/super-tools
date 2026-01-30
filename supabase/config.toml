@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.force-send-scheduled-email]
 verify_jwt = false
+
+[functions.process-evaluation-submission]
+verify_jwt = false

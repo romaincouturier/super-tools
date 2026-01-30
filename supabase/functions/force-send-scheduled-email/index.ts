@@ -261,6 +261,57 @@ const handler = async (req: Request): Promise<Response> => {
         break;
       }
 
+      case "google_review": {
+        recipientEmail = participant?.email || "";
+        subject = `🤩 Ton avis sur la formation ${training.training_name}`;
+        htmlContent = `
+          <p>${greeting}</p>
+          <p>J'espère que tout va bien pour toi !</p>
+          <p>Pour continuer d'améliorer nos formations et partager des retours d'expérience avec d'autres professionnels, ton avis serait précieux.<br>
+          Pourrais-tu nous accorder 1 minute pour laisser un commentaire sur notre page Google ?</p>
+          <p><a href="https://g.page/r/CYFu8NVOFD31EBM/review" style="display: inline-block; background-color: #1a1a1a; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500;">👉 Clique ici pour laisser ton avis</a></p>
+          <p>Ton retour est essentiel pour nous permettre de progresser et d'aider d'autres personnes à découvrir nos formations.</p>
+          <p>Merci infiniment pour ton soutien et pour avoir participé à notre formation ! 😊</p>
+          <p>À bientôt,</p>
+          ${signatureHtml}
+        `;
+        break;
+      }
+
+      case "video_testimonial": {
+        recipientEmail = participant?.email || "";
+        subject = `🎥 Ton avis sur la formation ${training.training_name} ?`;
+        htmlContent = `
+          <p>${greeting}</p>
+          <p>J'espère que tu vas bien et que la formation <strong>"${training.training_name}"</strong> t'a apporté ce que tu en attendais.</p>
+          <p>Ton retour d'expérience serait très précieux pour moi et pour les futurs participants. Serais-tu d'accord pour partager ton témoignage en vidéo ?</p>
+          <p>Je te propose une courte interview ensemble via Zoom, cela prend seulement 10 minutes.</p>
+          <p><a href="mailto:romain@supertilt.fr?subject=OK%20pour%20faire%20un%20t%C3%A9moignage%20Vid%C3%A9o&body=Salut%2C%0D%0A%0D%0AJe%20viens%20de%20recevoir%20ton%20mail%2C%20je%20suis%20partant%20pour%20faire%20un%20t%C3%A9moignage%20vid%C3%A9o%20%3A-)" style="display: inline-block; background-color: #1a1a1a; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500;">Je suis partant(e) !</a></p>
+          <p>Les témoignages authentiques de personnes qui ont vraiment vécu la formation sont les plus inspirants pour ceux qui hésitent encore.</p>
+          <p>Merci d'avance pour ton aide !</p>
+          <p>Bonne journée</p>
+          ${signatureHtml}
+        `;
+        break;
+      }
+
+      case "cold_evaluation": {
+        recipientEmail = participant?.email || "";
+        subject = `🫶🏻 Évaluation à froid de la formation ${training.training_name}`;
+        htmlContent = `
+          <p>${greeting}</p>
+          <p>Comment vas-tu ?</p>
+          <p>Dans le cadre de mon processus qualité (Qualiopi), je propose désormais des évaluations à froid de mes formations.</p>
+          <p>❓ Pourrais-tu prendre 2 minutes pour remplir ce questionnaire en ligne ?</p>
+          <p><a href="https://forms.gle/EXAMPLE" style="display: inline-block; background-color: #1a1a1a; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500;">Remplir le questionnaire</a></p>
+          <p>Merci énormément pour ton soutien :-)</p>
+          <p>À bientôt</p>
+          <p><em>PS : on peut continuer à rester en contact sur <a href="https://www.linkedin.com/in/romaincouturier/">LinkedIn</a> et sur <a href="https://www.instagram.com/supertilt.fr/">Instagram</a> pour d'autres contenus sur le sujet de la formation.</em></p>
+          ${signatureHtml}
+        `;
+        break;
+      }
+
       default:
         throw new Error(`Unknown email type: ${scheduledEmail.email_type}`);
     }

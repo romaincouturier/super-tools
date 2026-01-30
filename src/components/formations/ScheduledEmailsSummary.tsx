@@ -140,6 +140,12 @@ const ScheduledEmailsSummary = ({ trainingId, participants }: ScheduledEmailsSum
         return "Synthèse formateur";
       case "thank_you":
         return "Remerciement";
+      case "google_review":
+        return "Avis Google";
+      case "video_testimonial":
+        return "Témoignage vidéo";
+      case "cold_evaluation":
+        return "Évaluation à froid";
       default:
         return type;
     }
@@ -159,6 +165,12 @@ const ScheduledEmailsSummary = ({ trainingId, participants }: ScheduledEmailsSum
         return `Synthèse pré-formation - ${training.training_name}`;
       case "thank_you":
         return `Merci pour votre participation à la formation ${training.training_name}`;
+      case "google_review":
+        return `🤩 Ton avis sur la formation ${training.training_name}`;
+      case "video_testimonial":
+        return `🎥 Ton avis sur la formation ${training.training_name} ?`;
+      case "cold_evaluation":
+        return `🫶🏻 Évaluation à froid de la formation ${training.training_name}`;
       default:
         return `Email concernant ${training.training_name}`;
     }
@@ -275,6 +287,68 @@ ${supportsSection}
 Je suis curieux de voir comment vous allez utiliser tout ce que nous avons vu ! N'hésitez pas à me contacter si vous avez des questions.
 
 Je vous souhaite une bonne journée
+
+—
+Romain Couturier
+romain@supertilt.fr`;
+
+      case "google_review":
+        return `${greeting}
+
+J'espère que tout va bien pour toi !
+
+Pour continuer d'améliorer nos formations et partager des retours d'expérience avec d'autres professionnels, ton avis serait précieux.
+Pourrais-tu nous accorder 1 minute pour laisser un commentaire sur notre page Google ?
+
+👉 Clique ici pour laisser ton avis : https://g.page/r/CYFu8NVOFD31EBM/review
+
+Ton retour est essentiel pour nous permettre de progresser et d'aider d'autres personnes à découvrir nos formations.
+
+Merci infiniment pour ton soutien et pour avoir participé à notre formation ! 😊
+
+À bientôt,
+
+—
+Romain Couturier
+romain@supertilt.fr`;
+
+      case "video_testimonial":
+        return `${greeting}
+
+J'espère que tu vas bien et que la formation "${training.training_name}" t'a apporté ce que tu en attendais.
+
+Ton retour d'expérience serait très précieux pour moi et pour les futurs participants. Serais-tu d'accord pour partager ton témoignage en vidéo ?
+
+Je te propose une courte interview ensemble via Zoom, cela prend seulement 10 minutes.
+
+Réponds simplement "Je suis partant(e) !" à cet email et on organisera ça ensemble.
+
+Les témoignages authentiques de personnes qui ont vraiment vécu la formation sont les plus inspirants pour ceux qui hésitent encore.
+
+Merci d'avance pour ton aide !
+
+Bonne journée
+
+—
+Romain Couturier
+romain@supertilt.fr`;
+
+      case "cold_evaluation":
+        return `${greeting}
+
+Comment vas-tu ?
+
+Dans le cadre de mon processus qualité (Qualiopi), je propose désormais des évaluations à froid de mes formations.
+
+❓ Pourrais-tu prendre 2 minutes pour remplir ce questionnaire en ligne ?
+
+[Lien vers le questionnaire d'évaluation à froid]
+
+Merci énormément pour ton soutien :-)
+
+À bientôt
+
+PS : on peut continuer à rester en contact sur LinkedIn et sur Instagram pour d'autres contenus sur le sujet de la formation.
 
 —
 Romain Couturier
