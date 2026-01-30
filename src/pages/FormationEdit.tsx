@@ -56,6 +56,7 @@ const FormationEdit = () => {
   const [sponsorLastName, setSponsorLastName] = useState("");
   const [sponsorEmail, setSponsorEmail] = useState("");
   const [sponsorFormalAddress, setSponsorFormalAddress] = useState(true); // true = vouvoiement (default)
+  const [trainerName, setTrainerName] = useState("Romain Couturier");
 
   // Track if data has been loaded (to prevent schedule regeneration)
   const [dataLoaded, setDataLoaded] = useState(false);
@@ -112,6 +113,7 @@ const FormationEdit = () => {
       setSponsorLastName(training.sponsor_last_name || "");
       setSponsorEmail(training.sponsor_email || "");
       setSponsorFormalAddress(training.sponsor_formal_address ?? true);
+      setTrainerName(training.trainer_name || "Romain Couturier");
       
       const start = parseISO(training.start_date);
       setStartDate(start);
@@ -220,6 +222,7 @@ const FormationEdit = () => {
           sponsor_last_name: sponsorLastName || null,
           sponsor_email: sponsorEmail || null,
           sponsor_formal_address: sponsorFormalAddress,
+          trainer_name: trainerName || "Romain Couturier",
         })
         .eq("id", id);
 
@@ -468,6 +471,16 @@ const FormationEdit = () => {
                           <SelectItem value="classe_virtuelle">Classe virtuelle</SelectItem>
                         </SelectContent>
                       </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="trainerName">Nom du formateur</Label>
+                      <Input
+                        id="trainerName"
+                        value={trainerName}
+                        onChange={(e) => setTrainerName(e.target.value)}
+                        placeholder="Ex: Romain Couturier"
+                      />
                     </div>
                   </div>
                 </CardContent>
