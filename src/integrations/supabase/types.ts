@@ -1257,6 +1257,7 @@ export type Database = {
         Args: { _module: string; _user_id: string }
         Returns: boolean
       }
+      is_admin: { Args: { _user_id: string }; Returns: boolean }
       upsert_profile: {
         Args: { p_display_name?: string; p_email: string; p_user_id: string }
         Returns: undefined
