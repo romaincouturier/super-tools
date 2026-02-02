@@ -473,8 +473,48 @@ Bonne réception.`,
     },
     variables: ["greeting", "training_name", "training_dates", "has_invoice", "has_sheets"],
   },
-};
+  micro_devis: {
+    name: "Envoi de micro-devis",
+    timing: "manual",
+    subject: {
+      tu: "Votre devis pour la formation \"{{formation_name}}\"",
+      vous: "Votre devis pour la formation \"{{formation_name}}\"",
+    },
+    content: {
+      tu: `Bonjour {{recipient_name}},
 
+Merci pour votre demande concernant la formation "{{formation_name}}".
+
+Vous trouverez en pièces jointes :
+
+{{devis_description}}
+
+{{#programme_link}}
+Le programme de la formation est disponible en consultation et téléchargement ici : {{programme_link}}
+{{/programme_link}}
+
+N'hésitez pas à revenir vers nous si vous avez la moindre question. Nous sommes à votre disposition pour vous accompagner dans votre projet de formation.
+
+À très bientôt,`,
+      vous: `Bonjour {{recipient_name}},
+
+Merci pour votre demande concernant la formation "{{formation_name}}".
+
+Vous trouverez en pièces jointes :
+
+{{devis_description}}
+
+{{#programme_link}}
+Le programme de la formation est disponible en consultation et téléchargement ici : {{programme_link}}
+{{/programme_link}}
+
+N'hésitez pas à revenir vers nous si vous avez la moindre question. Nous sommes à votre disposition pour vous accompagner dans votre projet de formation.
+
+À très bientôt,`,
+    },
+    variables: ["recipient_name", "formation_name", "devis_description", "programme_link"],
+  },
+};
 const Parametres = () => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);

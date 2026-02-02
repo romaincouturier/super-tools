@@ -154,7 +154,58 @@ async function generatePdfWithPdfMonkey(
   throw new Error("PDF generation timed out");
 }
 
+// Process template with variables (same logic as other emails)
+function processTemplate(
+  template: string,
+  variables: Record<string, string | null | undefined>
+): string {
+  let result = template;
+
+  // Process conditional blocks: {{#var}}content{{/var}}
+  const conditionalRegex = /\{\{#(\w+)\}\}([\s\S]*?)\{\{\/\1\}\}/g;
+  result = result.replace(conditionalRegex, (match, varName, content) => {
+    const value = variables[varName];
+    return value ? content : "";
+  });
+
+  // Process simple variables: {{var}}
+  const variableRegex = /\{\{(\w+)\}\}/g;
+  result = result.replace(variableRegex, (match, varName) => {
+    const value = variables[varName];
+    return value || "";
+  });
+
+  return result;
+}
+
+// Convert plain text to HTML
+function textToHtml(text: string): string {
+  return text
+    .split("\n")
+    .map(line => line.trim() === "" ? "<br/>" : `<p>${line}</p>`)
+    .join("\n");
+}
+
+// Default template content
+const DEFAULT_SUBJECT = "Votre devis pour la formation \"{{formation_name}}\"";
+const DEFAULT_CONTENT = `Bonjour {{recipient_name}},
+
+Merci pour votre demande concernant la formation "{{formation_name}}".
+
+Vous trouverez en pièces jointes :
+
+{{devis_description}}
+
+{{#programme_link}}
+Le programme de la formation est disponible en consultation et téléchargement ici : {{programme_link}}
+{{/programme_link}}
+
+N'hésitez pas à revenir vers nous si vous avez la moindre question. Nous sommes à votre disposition pour vous accompagner dans votre projet de formation.
+
+À très bientôt,`;
+
 async function sendEmailWithResend(
+  supabase: any,
   emailCommanditaire: string,
   adresseCommanditaire: string,
   formationDemandee: string,
@@ -173,6 +224,18 @@ async function sendEmailWithResend(
 
   console.log(`Sending email to ${emailCommanditaire}...`);
 
+  // Fetch custom email template if exists (micro_devis always uses vouvoiement)
+  const { data: customTemplate } = await supabase
+    .from("email_templates")
+    .select("subject, html_content")
+    .eq("template_type", "micro_devis_vous")
+    .single();
+
+  const subjectTemplate = customTemplate?.subject || DEFAULT_SUBJECT;
+  const contentTemplate = customTemplate?.html_content || DEFAULT_CONTENT;
+
+  console.log("Using template:", customTemplate ? "custom" : "default");
+
   // Fetch Signitic signature for romain@supertilt.fr
   const signiticApiKey = Deno.env.get("SIGNITIC_API_KEY");
   let emailSignature = "";
@@ -189,7 +252,6 @@ async function sendEmailWithResend(
       );
       
       if (signatureResponse.ok) {
-        // The /html endpoint returns raw HTML, not JSON
         const htmlContent = await signatureResponse.text();
         if (htmlContent && !htmlContent.includes("error")) {
           emailSignature = htmlContent;
@@ -234,9 +296,35 @@ async function sendEmailWithResend(
     console.warn("Error fetching Qualiopi certificate:", error);
   }
 
-  const programmeLink = programmeUrl 
-    ? `<p>Le programme de la formation est disponible en <a href="${programmeUrl}" style="color: #2563eb; text-decoration: underline;">consultation et téléchargement ici</a>.</p>`
-    : '';
+  // Build devis description based on type
+  let devisDescription = "";
+  if (typeSubrogation === "les2") {
+    devisDescription = `- Deux versions de notre devis :
+  * Sans subrogation de paiement : vous réglez directement la formation
+  * Avec subrogation de paiement : votre OPCO règle directement la formation
+- Notre certificat Qualiopi, attestant de la qualité de nos formations`;
+  } else if (typeSubrogation === "sans") {
+    devisDescription = `- Notre devis sans subrogation de paiement : vous réglez directement la formation
+- Notre certificat Qualiopi, attestant de la qualité de nos formations`;
+  } else {
+    devisDescription = `- Notre devis avec subrogation de paiement : votre OPCO règle directement la formation
+- Notre certificat Qualiopi, attestant de la qualité de nos formations`;
+  }
+
+  // Remove duplicate "formation" from formation name for subject
+  const formationName = formationDemandee.replace(/^formation\s+/i, "");
+
+  // Process templates with variables
+  const variables = {
+    recipient_name: adresseCommanditaire,
+    formation_name: formationName,
+    devis_description: devisDescription,
+    programme_link: programmeUrl,
+  };
+
+  const subject = processTemplate(subjectTemplate, variables);
+  const contentText = processTemplate(contentTemplate, variables);
+  const contentHtml = textToHtml(contentText);
 
   // Fallback signature if Signitic fails
   const fallbackSignature = `
@@ -246,59 +334,13 @@ async function sendEmailWithResend(
     </p>
   `;
 
-  // Build email content based on type of subrogation
-  let devisDescription = "";
-  if (typeSubrogation === "les2") {
-    devisDescription = `
-      <ul style="margin: 15px 0; padding-left: 20px;">
-        <li><strong>Deux versions de notre devis</strong> :
-          <ul style="margin: 5px 0; padding-left: 20px;">
-            <li>Sans subrogation de paiement : vous réglez directement la formation</li>
-            <li>Avec subrogation de paiement : votre OPCO règle directement la formation</li>
-          </ul>
-        </li>
-        <li><strong>Notre certificat Qualiopi</strong>, attestant de la qualité de nos formations</li>
-      </ul>
-    `;
-  } else if (typeSubrogation === "sans") {
-    devisDescription = `
-      <ul style="margin: 15px 0; padding-left: 20px;">
-        <li><strong>Notre devis sans subrogation de paiement</strong> : vous réglez directement la formation</li>
-        <li><strong>Notre certificat Qualiopi</strong>, attestant de la qualité de nos formations</li>
-      </ul>
-    `;
-  } else {
-    devisDescription = `
-      <ul style="margin: 15px 0; padding-left: 20px;">
-        <li><strong>Notre devis avec subrogation de paiement</strong> : votre OPCO règle directement la formation</li>
-        <li><strong>Notre certificat Qualiopi</strong>, attestant de la qualité de nos formations</li>
-      </ul>
-    `;
-  }
-
   const htmlContent = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-      <p>Bonjour ${adresseCommanditaire},</p>
-      
-      <p>Merci pour votre demande concernant la formation <strong>"${formationDemandee}"</strong>.</p>
-      
-      <p>Vous trouverez en pièces jointes :</p>
-      
-      ${devisDescription}
-      
-      ${programmeLink}
-      
-      <p>N'hésitez pas à revenir vers nous si vous avez la moindre question. Nous sommes à votre disposition pour vous accompagner dans votre projet de formation.</p>
-      
-      <p style="margin-top: 30px;"><em>À très bientôt,</em></p>
-      
+      ${contentHtml}
       ${emailSignature || fallbackSignature}
     </div>
   `;
 
-  // Remove duplicate "formation" from subject if present
-  const formationName = formationDemandee.replace(/^formation\s+/i, "");
-  
   // Build attachments array
   const attachments: { filename: string; content: string }[] = [];
   
@@ -328,7 +370,7 @@ async function sendEmailWithResend(
     from: "Supertilt <romain@supertilt.fr>",
     to: [emailCommanditaire],
     bcc: ["supertilt@bcc.nocrm.io"],
-    subject: `Votre devis pour la formation "${formationName}"`,
+    subject,
     html: htmlContent,
     attachments,
   });
@@ -373,7 +415,9 @@ serve(async (req: Request): Promise<Response> => {
 
     // Send email with PDFs
     console.log("Sending email with PDF(s)...");
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     await sendEmailWithResend(
+      supabase,
       body.emailCommanditaire,
       body.adresseCommanditaire,
       body.formationDemandee,
@@ -385,7 +429,6 @@ serve(async (req: Request): Promise<Response> => {
 
     // Log activity
     try {
-      const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
       await supabase.from("activity_logs").insert({
         action_type: "micro_devis_sent",
         recipient_email: body.emailCommanditaire,
