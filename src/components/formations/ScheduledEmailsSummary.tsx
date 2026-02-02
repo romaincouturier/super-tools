@@ -76,6 +76,8 @@ interface DelaySettings {
   delayVideoTestimonial: number;
   delayColdEvaluation: number;
   delayColdEvaluationFunder: number;
+  delayEvaluationReminder1: number;
+  delayEvaluationReminder2: number;
 }
 
 const ScheduledEmailsSummary = ({ trainingId, participants }: ScheduledEmailsSummaryProps) => {
@@ -95,6 +97,8 @@ const ScheduledEmailsSummary = ({ trainingId, participants }: ScheduledEmailsSum
     delayVideoTestimonial: 14,
     delayColdEvaluation: 30,
     delayColdEvaluationFunder: 45,
+    delayEvaluationReminder1: 2,
+    delayEvaluationReminder2: 5,
   });
   const { toast } = useToast();
 
@@ -144,6 +148,8 @@ const ScheduledEmailsSummary = ({ trainingId, participants }: ScheduledEmailsSum
           "delay_video_testimonial_days",
           "delay_cold_evaluation_days",
           "delay_cold_evaluation_funder_days",
+          "delay_evaluation_reminder_1_days",
+          "delay_evaluation_reminder_2_days",
         ]);
 
       if (settingsData) {
@@ -156,6 +162,8 @@ const ScheduledEmailsSummary = ({ trainingId, participants }: ScheduledEmailsSum
           if (s.setting_key === "delay_video_testimonial_days") newSettings.delayVideoTestimonial = val || 14;
           if (s.setting_key === "delay_cold_evaluation_days") newSettings.delayColdEvaluation = val || 30;
           if (s.setting_key === "delay_cold_evaluation_funder_days") newSettings.delayColdEvaluationFunder = val || 45;
+          if (s.setting_key === "delay_evaluation_reminder_1_days") newSettings.delayEvaluationReminder1 = val || 2;
+          if (s.setting_key === "delay_evaluation_reminder_2_days") newSettings.delayEvaluationReminder2 = val || 5;
         });
         setDelaySettings((prev) => ({ ...prev, ...newSettings }));
       }
@@ -598,45 +606,66 @@ romain@supertilt.fr`;
         </Button>
       </CollapsibleTrigger>
       <CollapsibleContent>
-        <div className="mt-2 p-3 bg-muted/50 rounded-lg text-xs text-muted-foreground space-y-2">
-          <p className="font-medium text-foreground">Déclencheur :</p>
-          <p>La programmation des emails démarre automatiquement lors de l'<strong>ajout d'un participant</strong> à la formation.</p>
+        <div className="mt-2 p-3 bg-muted/50 rounded-lg text-xs text-muted-foreground space-y-3">
+          <div>
+            <p className="font-medium text-foreground">🚀 Déclencheur initial :</p>
+            <p>La programmation des emails démarre automatiquement lors de l'<strong>ajout d'un participant</strong> à la formation.</p>
+          </div>
           
-          <p className="font-medium text-foreground pt-2">Règles de programmation :</p>
-          <ul className="space-y-1 list-none">
-            <li className="flex items-start gap-2">
-              <span className="text-primary font-medium">J {">"} 7</span>
-              <span>→ Le questionnaire de recueil des besoins est programmé pour J-7</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-primary font-medium">J-7 à J-2</span>
-              <span>→ Un mail d'accueil est envoyé immédiatement</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-primary font-medium">J {"<"} 2</span>
-              <span>→ Mode manuel activé (aucun envoi automatique)</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-muted-foreground">Formation passée</span>
-              <span>→ Aucun email programmé</span>
-            </li>
-          </ul>
+          <div>
+            <p className="font-medium text-foreground">📅 Règles à l'ajout d'un participant :</p>
+            <ul className="space-y-1 list-none mt-1">
+              <li className="flex items-start gap-2">
+                <span className="text-primary font-medium min-w-[70px]">J {">"} 7</span>
+                <span>→ Recueil des besoins programmé pour J-7</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-primary font-medium min-w-[70px]">J-7 à J-2</span>
+                <span>→ Mail d'accueil envoyé immédiatement</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-primary font-medium min-w-[70px]">J {"<"} 2</span>
+                <span>→ Mode manuel (aucun envoi automatique)</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-muted-foreground min-w-[70px]">Passée</span>
+                <span>→ Aucun email programmé</span>
+              </li>
+            </ul>
+          </div>
           
-          <p className="font-medium text-foreground pt-2">Autres emails avant formation :</p>
-          <ul className="space-y-1 list-none">
-            <li>• <strong>J-{delaySettings.delayLogisticReminder}</strong> : Rappel logistique</li>
-            <li>• <strong>J-{delaySettings.delayTrainerSummary}</strong> : Synthèse des besoins pour le formateur</li>
-          </ul>
+          <div>
+            <p className="font-medium text-foreground">📋 Emails avant formation :</p>
+            <ul className="space-y-1 list-none mt-1">
+              <li>• <strong>J-{delaySettings.delayLogisticReminder}</strong> : Rappel logistique (participants)</li>
+              <li>• <strong>J-{delaySettings.delayTrainerSummary}</strong> : Synthèse des besoins (formateur)</li>
+            </ul>
+          </div>
           
-          <p className="font-medium text-foreground pt-2">Emails après formation :</p>
-          <p className="text-xs italic mb-1">Programmés automatiquement lors de l'envoi du mail de remerciement</p>
-          <ul className="space-y-1 list-none">
-            <li>• <strong>J+{delaySettings.delayGoogleReview}</strong> : Demande d'avis Google</li>
-            <li>• <strong>J+{delaySettings.delayVideoTestimonial}</strong> : Demande de témoignage vidéo</li>
-            <li>• <strong>J+{delaySettings.delayColdEvaluation}</strong> : Évaluation à froid commanditaire</li>
-            <li>• <strong>J+{delaySettings.delayColdEvaluationFunder}</strong> : Évaluation à froid financeur (si différent du commanditaire)</li>
-          </ul>
-          <p className="text-xs text-muted-foreground pt-2 italic">Les délais sont configurables dans Paramètres {">"} Général</p>
+          <div>
+            <p className="font-medium text-foreground">📨 Emails après formation :</p>
+            <p className="text-xs italic mb-1">Programmés lors de l'envoi du mail de remerciement</p>
+            <ul className="space-y-1 list-none">
+              <li>• <strong>J+{delaySettings.delayGoogleReview}</strong> : Demande d'avis Google</li>
+              <li>• <strong>J+{delaySettings.delayVideoTestimonial}</strong> : Demande de témoignage vidéo</li>
+              <li>• <strong>J+{delaySettings.delayColdEvaluation}</strong> : Évaluation à froid (commanditaire)</li>
+              <li>• <strong>J+{delaySettings.delayColdEvaluationFunder}</strong> : Rappel financeur (si différent)</li>
+            </ul>
+          </div>
+          
+          <div>
+            <p className="font-medium text-foreground">🔔 Relances d'évaluation :</p>
+            <p className="text-xs italic mb-1">Programmées lors de l'envoi du mail de remerciement</p>
+            <ul className="space-y-1 list-none">
+              <li>• <strong>J+{delaySettings.delayEvaluationReminder1}</strong> : 1ère relance évaluation</li>
+              <li>• <strong>J+{delaySettings.delayEvaluationReminder2}</strong> : 2ème relance évaluation</li>
+            </ul>
+            <p className="text-xs italic mt-1">⚡ Annulées automatiquement si l'évaluation est déjà soumise</p>
+          </div>
+          
+          <p className="text-xs text-muted-foreground pt-1 italic border-t border-border mt-2 pt-2">
+            💡 Les délais sont configurables dans Paramètres {">"} Général. Tous les envois respectent les jours ouvrables définis.
+          </p>
         </div>
       </CollapsibleContent>
     </Collapsible>
