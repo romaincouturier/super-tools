@@ -2,8 +2,9 @@ import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
-import { Loader2, ArrowLeft, Calendar, Users, FileText, ExternalLink, Edit2, User as UserIcon, Mail, MapPin, Building, Map, Train, Hotel, Clock } from "lucide-react";
+import { Loader2, ArrowLeft, Calendar, Users, FileText, ExternalLink, Edit2, User as UserIcon, Mail, MapPin, Building, Map, Train, Hotel, Clock, Copy, Check } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { useToast } from "@/hooks/use-toast";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import AppHeader from "@/components/AppHeader";
@@ -69,7 +70,9 @@ const FormationDetail = () => {
   const [training, setTraining] = useState<Training | null>(null);
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [participants, setParticipants] = useState<Participant[]>([]);
+  const [copiedEmail, setCopiedEmail] = useState(false);
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -363,13 +366,35 @@ const FormationDetail = () => {
                         </p>
                       )}
                       {training.sponsor_email && (
-                        <a
-                          href={`mailto:${training.sponsor_email}`}
-                          className="flex items-center gap-1.5 text-sm text-primary hover:underline"
-                        >
-                          <Mail className="h-3.5 w-3.5" />
-                          {training.sponsor_email}
-                        </a>
+                        <div className="flex items-center gap-2">
+                          <a
+                            href={`mailto:${training.sponsor_email}`}
+                            className="flex items-center gap-1.5 text-sm text-primary hover:underline"
+                          >
+                            <Mail className="h-3.5 w-3.5" />
+                            {training.sponsor_email}
+                          </a>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6"
+                            onClick={() => {
+                              navigator.clipboard.writeText(training.sponsor_email!);
+                              setCopiedEmail(true);
+                              toast({
+                                title: "Email copié",
+                                description: "L'adresse email a été copiée dans le presse-papiers.",
+                              });
+                              setTimeout(() => setCopiedEmail(false), 2000);
+                            }}
+                          >
+                            {copiedEmail ? (
+                              <Check className="h-3.5 w-3.5 text-primary" />
+                            ) : (
+                              <Copy className="h-3.5 w-3.5 text-muted-foreground" />
+                            )}
+                          </Button>
+                        </div>
                       )}
                     </div>
                   </div>
