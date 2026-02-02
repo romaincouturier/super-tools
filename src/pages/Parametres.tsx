@@ -256,6 +256,48 @@ Bonne journée`,
     },
     variables: ["first_name", "training_name"],
   },
+  cold_evaluation: {
+    name: "Évaluation à froid commanditaire",
+    timing: "after",
+    delayKey: "delay_cold_evaluation_days",
+    subject: {
+      tu: "💡 Évaluation à froid de la formation \"{{training_name}}\" 💡",
+      vous: "💡 Évaluation à froid de la formation \"{{training_name}}\" 💡",
+    },
+    content: {
+      tu: `Bonjour {{first_name}},
+
+Comment vas-tu ?
+
+Dans le cadre de mon processus qualité (Qualiopi), je propose désormais des évaluations à froid de mes formations.
+
+Pourrais-tu prendre 2 minutes pour remplir ce questionnaire en ligne ?
+
+👉 Remplir le questionnaire : https://forms.gle/Hm4TvAVUSvzuWeBJ6
+
+Merci énormément pour ton soutien :-)
+
+À bientôt
+
+PS : on peut continuer à rester en contact sur LinkedIn (https://www.linkedin.com/in/romaincouturier/) et sur Instagram (https://www.instagram.com/supertilt.ledeclic/) pour d'autres contenus sur le sujet de la formation.`,
+      vous: `Bonjour {{first_name}},
+
+Comment allez-vous ?
+
+Dans le cadre de mon processus qualité (Qualiopi), je propose désormais des évaluations à froid de mes formations.
+
+Pourriez-vous prendre 2 minutes pour remplir ce questionnaire en ligne ?
+
+👉 Remplir le questionnaire : https://forms.gle/Hm4TvAVUSvzuWeBJ6
+
+Merci infiniment pour votre soutien.
+
+À bientôt,
+
+PS : nous pouvons continuer à rester en contact sur LinkedIn (https://www.linkedin.com/in/romaincouturier/) et sur Instagram (https://www.instagram.com/supertilt.ledeclic/) pour d'autres contenus sur le sujet de la formation.`,
+    },
+    variables: ["first_name", "training_name"],
+  },
   training_documents: {
     name: "Envoi des documents de formation",
     timing: "manual",
