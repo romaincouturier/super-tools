@@ -312,6 +312,24 @@ const handler = async (req: Request): Promise<Response> => {
         break;
       }
 
+      case "funder_reminder": {
+        // This email goes to the trainer (romain@supertilt.fr) to remind about contacting the funder
+        recipientEmail = "romain@supertilt.fr";
+        const financeurName = training.financeur_name || "Financeur inconnu";
+        const financeurUrl = training.financeur_url || "";
+        
+        subject = `📋 Rappel : Contacter le financeur pour ${training.training_name}`;
+        htmlContent = `
+          <p>Bonjour,</p>
+          <p>C'est le moment de contacter le financeur pour la formation <strong>"${training.training_name}"</strong> (${training.client_name}).</p>
+          <p><strong>Financeur :</strong> ${financeurName}</p>
+          ${financeurUrl ? `<p><strong>URL :</strong> <a href="${financeurUrl}">${financeurUrl}</a></p>` : ""}
+          <p>N'oublie pas de faire le bilan qualité avec eux !</p>
+          ${signatureHtml}
+        `;
+        break;
+      }
+
       default:
         throw new Error(`Unknown email type: ${scheduledEmail.email_type}`);
     }

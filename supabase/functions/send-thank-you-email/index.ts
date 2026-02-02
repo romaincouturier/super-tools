@@ -379,11 +379,12 @@ serve(async (req) => {
     const { data: delaySettings } = await supabase
       .from("app_settings")
       .select("setting_key, setting_value")
-      .in("setting_key", ["delay_google_review_days", "delay_video_testimonial_days", "delay_cold_evaluation_days"]);
+      .in("setting_key", ["delay_google_review_days", "delay_video_testimonial_days", "delay_cold_evaluation_days", "delay_cold_evaluation_funder_days"]);
     
     let delayGoogleReview = 7;
     let delayVideoTestimonial = 14;
     let delayColdEvaluation = 30;
+    let delayColdEvaluationFunder = 45;
     
     delaySettings?.forEach((s: { setting_key: string; setting_value: string | null }) => {
       if (s.setting_key === "delay_google_review_days" && s.setting_value) {
@@ -394,6 +395,9 @@ serve(async (req) => {
       }
       if (s.setting_key === "delay_cold_evaluation_days" && s.setting_value) {
         delayColdEvaluation = parseInt(s.setting_value, 10) || 30;
+      }
+      if (s.setting_key === "delay_cold_evaluation_funder_days" && s.setting_value) {
+        delayColdEvaluationFunder = parseInt(s.setting_value, 10) || 45;
       }
     });
     
@@ -470,6 +474,38 @@ serve(async (req) => {
         console.error("Error scheduling follow-up emails:", scheduleError);
       } else {
         console.log(`Scheduled ${emailsToSchedule.length} follow-up emails`);
+      }
+    }
+    
+    // Schedule funder reminder email if funder is different from sponsor
+    if (!training.financeur_same_as_sponsor && training.financeur_name) {
+      // Check if funder reminder is already scheduled
+      const { data: existingFunderReminder } = await supabase
+        .from("scheduled_emails")
+        .select("id")
+        .eq("training_id", trainingId)
+        .eq("email_type", "funder_reminder")
+        .single();
+      
+      if (!existingFunderReminder) {
+        const funderReminderDate = new Date(endDate);
+        funderReminderDate.setDate(funderReminderDate.getDate() + delayColdEvaluationFunder);
+        
+        const { error: funderScheduleError } = await supabase
+          .from("scheduled_emails")
+          .insert({
+            training_id: trainingId,
+            participant_id: null, // No participant - this is for the trainer
+            email_type: "funder_reminder",
+            scheduled_for: funderReminderDate.toISOString(),
+            status: "pending",
+          });
+        
+        if (funderScheduleError) {
+          console.error("Error scheduling funder reminder:", funderScheduleError);
+        } else {
+          console.log("Scheduled funder reminder email");
+        }
       }
     }
 

@@ -788,6 +788,9 @@ export type Database = {
           created_by: string
           end_date: string | null
           evaluation_link: string
+          financeur_name: string | null
+          financeur_same_as_sponsor: boolean
+          financeur_url: string | null
           format_formation: string | null
           id: string
           invoice_file_url: string | null
@@ -814,6 +817,9 @@ export type Database = {
           created_by: string
           end_date?: string | null
           evaluation_link: string
+          financeur_name?: string | null
+          financeur_same_as_sponsor?: boolean
+          financeur_url?: string | null
           format_formation?: string | null
           id?: string
           invoice_file_url?: string | null
@@ -840,6 +846,9 @@ export type Database = {
           created_by?: string
           end_date?: string | null
           evaluation_link?: string
+          financeur_name?: string | null
+          financeur_same_as_sponsor?: boolean
+          financeur_url?: string | null
           format_formation?: string | null
           id?: string
           invoice_file_url?: string | null
