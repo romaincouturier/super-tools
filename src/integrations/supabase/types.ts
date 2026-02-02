@@ -1074,10 +1074,14 @@ export type Database = {
           email: string
           first_name: string | null
           id: string
+          invoice_file_url: string | null
           last_name: string | null
           needs_survey_sent_at: string | null
           needs_survey_status: string
           needs_survey_token: string | null
+          sponsor_email: string | null
+          sponsor_first_name: string | null
+          sponsor_last_name: string | null
           training_id: string
         }
         Insert: {
@@ -1086,10 +1090,14 @@ export type Database = {
           email: string
           first_name?: string | null
           id?: string
+          invoice_file_url?: string | null
           last_name?: string | null
           needs_survey_sent_at?: string | null
           needs_survey_status?: string
           needs_survey_token?: string | null
+          sponsor_email?: string | null
+          sponsor_first_name?: string | null
+          sponsor_last_name?: string | null
           training_id: string
         }
         Update: {
@@ -1098,10 +1106,14 @@ export type Database = {
           email?: string
           first_name?: string | null
           id?: string
+          invoice_file_url?: string | null
           last_name?: string | null
           needs_survey_sent_at?: string | null
           needs_survey_status?: string
           needs_survey_token?: string | null
+          sponsor_email?: string | null
+          sponsor_first_name?: string | null
+          sponsor_last_name?: string | null
           training_id?: string
         }
         Relationships: [
