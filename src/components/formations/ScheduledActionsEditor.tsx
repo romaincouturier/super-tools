@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import UserEmailCombobox from "./UserEmailCombobox";
 
 export interface ScheduledAction {
   id: string;
@@ -154,13 +155,16 @@ const ScheduledActionsEditor = ({ actions, onActionsChange }: ScheduledActionsEd
 
               {/* Email */}
               <div className="space-y-2">
-                <Label htmlFor={`email-${action.id}`}>Email de la personne concernée *</Label>
-                <Input
-                  id={`email-${action.id}`}
-                  type="email"
+                <Label>Email de la personne concernée *</Label>
+                <UserEmailCombobox
                   value={action.assignedEmail}
-                  onChange={(e) => updateAction(action.id, "assignedEmail", e.target.value)}
-                  placeholder="marie.martin@exemple.fr"
+                  onChange={(email, name) => {
+                    updateAction(action.id, "assignedEmail", email);
+                    if (name && !action.assignedName) {
+                      updateAction(action.id, "assignedName", name);
+                    }
+                  }}
+                  placeholder="Sélectionner un utilisateur ou saisir un email"
                 />
               </div>
             </div>
