@@ -1,11 +1,10 @@
 import { useState, useEffect } from "react";
-import { FileText, Upload, Trash2, Loader2, Send, Receipt, Mail, User } from "lucide-react";
+import { FileText, Upload, Trash2, Loader2, Send, Receipt, Mail, User, ClipboardList } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -24,6 +23,13 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface Participant {
   id: string;
@@ -86,6 +92,11 @@ const ParticipantDocumentsDialog = ({
   const sponsorName = participant.sponsor_first_name || participant.sponsor_last_name
     ? `${participant.sponsor_first_name || ""} ${participant.sponsor_last_name || ""}`.trim()
     : null;
+
+  const hasInvoice = Boolean(invoiceFileUrl);
+  const hasSheets = attendanceSheetsUrls.length > 0;
+  const hasSponsorEmail = Boolean(participant.sponsor_email);
+  const canSendDocuments = hasSponsorEmail && (hasInvoice || hasSheets);
 
   const handleInvoiceUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -194,9 +205,6 @@ const ParticipantDocumentsDialog = ({
       return;
     }
 
-    const hasInvoice = invoiceFileUrl;
-    const hasSheets = attendanceSheetsUrls.length > 0;
-
     if (type === "invoice" && !hasInvoice) {
       toast({
         title: "Pas de facture",
@@ -210,6 +218,15 @@ const ParticipantDocumentsDialog = ({
       toast({
         title: "Pas de feuilles",
         description: "Aucune feuille d'émargement n'a été uploadée pour cette formation.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (type === "all" && !hasInvoice && !hasSheets) {
+      toast({
+        title: "Pas de documents",
+        description: "Aucun document n'est disponible.",
         variant: "destructive",
       });
       return;
@@ -237,7 +254,11 @@ const ParticipantDocumentsDialog = ({
 
       if (error) throw error;
 
-      let description = `Les documents ont été envoyés à ${targetEmail}`;
+      const docTypeLabel = type === "invoice" ? "La facture a été envoyée" 
+        : type === "sheets" ? "Les feuilles d'émargement ont été envoyées"
+        : "Les documents ont été envoyés";
+      
+      let description = `${docTypeLabel} à ${targetEmail}`;
       if (ccEmail) {
         description += ` (CC: ${ccEmail})`;
       }
@@ -280,7 +301,7 @@ const ParticipantDocumentsDialog = ({
         <DialogHeader>
           <DialogTitle>Documents - {participantName}</DialogTitle>
           <DialogDescription>
-            Gérez la facture et les documents pour ce participant
+            Gérez la facture et envoyez les documents au commanditaire
           </DialogDescription>
         </DialogHeader>
 
@@ -297,7 +318,7 @@ const ParticipantDocumentsDialog = ({
             {participant.sponsor_email ? (
               <p className="text-sm text-primary">{participant.sponsor_email}</p>
             ) : (
-              <p className="text-sm text-muted-foreground italic">Aucun email de commanditaire défini</p>
+              <p className="text-sm text-destructive italic">Aucun email de commanditaire défini</p>
             )}
           </div>
 
@@ -375,6 +396,23 @@ const ParticipantDocumentsDialog = ({
             )}
           </div>
 
+          {/* Attendance Sheets info */}
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <ClipboardList className="h-4 w-4" />
+              Feuilles d'émargement ({attendanceSheetsUrls.length})
+            </Label>
+            {hasSheets ? (
+              <p className="text-xs text-muted-foreground">
+                Les feuilles d'émargement sont partagées pour toute la formation.
+              </p>
+            ) : (
+              <p className="text-xs text-muted-foreground italic">
+                Aucune feuille uploadée (utilisez la section Documents de la formation)
+              </p>
+            )}
+          </div>
+
           {/* CC Email */}
           <div className="space-y-2">
             <Label htmlFor="ccEmail" className="flex items-center gap-2">
@@ -391,43 +429,81 @@ const ParticipantDocumentsDialog = ({
           </div>
         </div>
 
-        <DialogFooter className="flex-col sm:flex-row gap-2">
+        {/* Send buttons */}
+        <div className="space-y-2">
+          {canSendDocuments ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  type="button"
+                  variant="default"
+                  className="w-full"
+                  disabled={sendingDocuments}
+                >
+                  {sendingDocuments ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Send className="h-4 w-4 mr-2" />
+                  )}
+                  Envoyer au commanditaire
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="center" className="w-56">
+                {hasInvoice && (
+                  <DropdownMenuItem onClick={() => handleSendDocuments("invoice")}>
+                    <Receipt className="h-4 w-4 mr-2" />
+                    Facture uniquement
+                  </DropdownMenuItem>
+                )}
+                {hasSheets && (
+                  <DropdownMenuItem onClick={() => handleSendDocuments("sheets")}>
+                    <ClipboardList className="h-4 w-4 mr-2" />
+                    Émargements uniquement
+                  </DropdownMenuItem>
+                )}
+                {hasInvoice && hasSheets && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => handleSendDocuments("all")}>
+                      <FileText className="h-4 w-4 mr-2" />
+                      Tous les documents
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Button
+              type="button"
+              variant="default"
+              className="w-full"
+              disabled
+            >
+              <Send className="h-4 w-4 mr-2" />
+              Envoyer au commanditaire
+            </Button>
+          )}
+          
+          {!hasSponsorEmail && (
+            <p className="text-xs text-destructive text-center">
+              Définissez un email de commanditaire pour pouvoir envoyer les documents
+            </p>
+          )}
+          {hasSponsorEmail && !hasInvoice && !hasSheets && (
+            <p className="text-xs text-muted-foreground text-center">
+              Uploadez une facture ou des feuilles d'émargement
+            </p>
+          )}
+        </div>
+
+        <div className="flex justify-end pt-2">
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
           >
             Fermer
           </Button>
-          
-          {invoiceFileUrl && participant.sponsor_email && (
-            <Button
-              onClick={() => handleSendDocuments("invoice")}
-              disabled={sendingDocuments}
-            >
-              {sendingDocuments ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Send className="h-4 w-4 mr-2" />
-              )}
-              Envoyer facture
-            </Button>
-          )}
-          
-          {attendanceSheetsUrls.length > 0 && participant.sponsor_email && (
-            <Button
-              variant="outline"
-              onClick={() => handleSendDocuments("sheets")}
-              disabled={sendingDocuments}
-            >
-              {sendingDocuments ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Send className="h-4 w-4 mr-2" />
-              )}
-              Envoyer émargements
-            </Button>
-          )}
-        </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );
