@@ -59,6 +59,56 @@ function getDefaultSignature(): string {
   </p>`;
 }
 
+// Default template content
+const DEFAULT_SUBJECT = "Merci pour votre participation à la formation {{training_name}}";
+const DEFAULT_CONTENT = `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
+
+Quelle belle journée de découverte visuelle nous avons partagé ! Merci pour votre énergie et votre participation pendant notre formation "{{training_name}}".
+
+Pour finaliser cette formation, j'ai besoin que vous preniez quelques minutes pour compléter le questionnaire d'évaluation :
+{{evaluation_link}}
+
+{{#supports_url}}
+Vous trouverez également tous les supports de la formation ici, pour continuer à pratiquer et intégrer ces techniques dans vos présentations :
+{{supports_url}}
+{{/supports_url}}
+
+Je suis curieux de voir comment vous allez utiliser tout ce que nous avons vu ! N'hésitez pas à me contacter si vous avez des questions ou des besoins de compléments d'informations.
+
+Je vous souhaite une bonne journée`;
+
+// Process template with variables
+function processTemplate(
+  template: string,
+  variables: Record<string, string | null | undefined>
+): string {
+  let result = template;
+
+  // Process conditional blocks: {{#var}}content{{/var}}
+  const conditionalRegex = /\{\{#(\w+)\}\}([\s\S]*?)\{\{\/\1\}\}/g;
+  result = result.replace(conditionalRegex, (match, varName, content) => {
+    const value = variables[varName];
+    return value ? content : "";
+  });
+
+  // Process simple variables: {{var}}
+  const variableRegex = /\{\{(\w+)\}\}/g;
+  result = result.replace(variableRegex, (match, varName) => {
+    const value = variables[varName];
+    return value || "";
+  });
+
+  return result;
+}
+
+// Convert plain text to HTML
+function textToHtml(text: string): string {
+  return text
+    .split("\n")
+    .map(line => line.trim() === "" ? "<br/>" : `<p>${line}</p>`)
+    .join("\n");
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -103,6 +153,18 @@ serve(async (req) => {
     if (participantsError || !participants || participants.length === 0) {
       throw new Error("No participants found for this training");
     }
+
+    // Fetch custom email template if exists
+    const { data: customTemplate } = await supabase
+      .from("email_templates")
+      .select("subject, html_content")
+      .eq("template_type", "thank_you")
+      .single();
+
+    const subjectTemplate = customTemplate?.subject || DEFAULT_SUBJECT;
+    const contentTemplate = customTemplate?.html_content || DEFAULT_CONTENT;
+
+    console.log("Using template:", customTemplate ? "custom" : "default");
 
     // Get Signitic signature
     const signature = await getSigniticSignature();
@@ -155,30 +217,22 @@ serve(async (req) => {
 
       const evaluationLink = `${baseUrl}/evaluation/${evaluationToken}`;
       
-      const supportsSection = supportsUrl 
-        ? `<p>Vous trouverez également tous les supports de la formation ici, pour continuer à pratiquer et intégrer ces techniques dans vos présentations :</p>
-           <p><a href="${supportsUrl}" style="color: #0066cc; text-decoration: underline;">Accéder aux supports de formation</a></p>`
-        : "";
+      // Process templates with variables
+      const variables = {
+        first_name: participant.first_name,
+        training_name: trainingName,
+        evaluation_link: evaluationLink,
+        supports_url: supportsUrl,
+      };
+
+      const subject = processTemplate(subjectTemplate, variables);
+      const contentText = processTemplate(contentTemplate, variables);
+      const contentHtml = textToHtml(contentText);
 
       const htmlContent = `
-        <p>Bonjour${participant.first_name ? ` ${participant.first_name}` : ""},</p>
-        
-        <p>Quelle belle journée de découverte visuelle nous avons partagé ! Merci pour votre énergie et votre participation pendant notre formation <strong>${trainingName}</strong>.</p>
-        
-        <p>Pour finaliser cette formation, j'ai besoin que vous preniez quelques minutes pour compléter le questionnaire d'évaluation.</p>
-        
-        <p><a href="${evaluationLink}" style="color: #0066cc; text-decoration: underline; font-weight: bold;">Accéder au questionnaire d'évaluation</a></p>
-        
-        ${supportsSection}
-        
-        <p>Je suis curieux de voir comment vous allez utiliser tout ce que nous avons vu ! N'hésitez pas à me contacter si vous avez des questions ou des besoins de compléments d'informations.</p>
-        
-        <p>Je vous souhaite une bonne journée</p>
-        
+        ${contentHtml}
         ${signature}
       `;
-
-      const subject = `Merci pour votre participation à la formation ${trainingName}`;
 
       console.log("Sending thank you email to:", participant.email);
 
@@ -212,8 +266,12 @@ serve(async (req) => {
     console.log("Thank you emails sent successfully:", results.length);
 
     // Log activity for each recipient
-    const emailSubject = `Merci pour votre participation à la formation ${trainingName}`;
-    const emailContentBase = `Quelle belle journée de découverte visuelle nous avons partagé ! Merci pour votre énergie et votre participation pendant notre formation ${trainingName}.\n\nPour finaliser cette formation, j'ai besoin que vous preniez quelques minutes pour compléter le questionnaire d'évaluation.\n\n${supportsUrl ? "Vous trouverez également tous les supports de la formation pour continuer à pratiquer.\n\n" : ""}Je suis curieux de voir comment vous allez utiliser tout ce que nous avons vu ! N'hésitez pas à me contacter si vous avez des questions.`;
+    const emailSubject = processTemplate(subjectTemplate, { training_name: trainingName });
+    const emailContentBase = processTemplate(contentTemplate, { 
+      training_name: trainingName,
+      evaluation_link: "[Lien d'évaluation personnalisé]",
+      supports_url: supportsUrl,
+    });
     
     try {
       const logInserts = participants.map((p: any) => ({
@@ -224,7 +282,12 @@ serve(async (req) => {
           training_name: trainingName,
           participant_name: `${p.first_name || ""} ${p.last_name || ""}`.trim() || null,
           email_subject: emailSubject,
-          email_content: `Bonjour${p.first_name ? ` ${p.first_name}` : ""},\n\n${emailContentBase}`,
+          email_content: processTemplate(contentTemplate, {
+            first_name: p.first_name,
+            training_name: trainingName,
+            evaluation_link: "[Lien d'évaluation personnalisé]",
+            supports_url: supportsUrl,
+          }),
         },
       }));
       await supabase.from("activity_logs").insert(logInserts);
