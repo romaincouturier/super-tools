@@ -11,8 +11,9 @@ serve(async (req) => {
   }
 
   try {
-    const { type, recipientEmail, cardTitle, externalUrl } = await req.json();
+    const { type, recipientEmail, cardTitle, externalUrl, cardId } = await req.json();
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+    const APP_URL = Deno.env.get("APP_URL") || "https://super-tools.lovable.app";
 
     if (!RESEND_API_KEY) {
       throw new Error("RESEND_API_KEY is not configured");
@@ -28,6 +29,9 @@ serve(async (req) => {
     let subject = "";
     let htmlContent = "";
 
+    // Build the card link
+    const cardLink = cardId ? `${APP_URL}/contenu?card=${cardId}` : APP_URL;
+
     switch (type) {
       case "review_requested":
         subject = `🔍 Nouvelle demande de relecture : ${cardTitle}`;
@@ -39,8 +43,8 @@ serve(async (req) => {
               <strong>${cardTitle}</strong>
             </div>
             ${externalUrl ? `<p>Lien externe : <a href="${externalUrl}">${externalUrl}</a></p>` : ""}
-            <p>Connectez-vous à SuperTools pour commencer la relecture.</p>
-            <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;" />
+            <p><a href="${cardLink}" style="display: inline-block; background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500;">Commencer la relecture</a></p>
+            <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
             <p style="color: #888; font-size: 12px;">SuperTilt - Gestion de contenu</p>
           </div>
         `;
@@ -55,8 +59,8 @@ serve(async (req) => {
             <div style="background-color: #f5f5f5; padding: 15px; border-radius: 8px; margin: 20px 0;">
               <strong>${cardTitle}</strong>
             </div>
-            <p>Connectez-vous à SuperTools pour voir le commentaire et répondre.</p>
-            <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;" />
+            <p><a href="${cardLink}" style="display: inline-block; background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500;">Voir le commentaire</a></p>
+            <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
             <p style="color: #888; font-size: 12px;">SuperTilt - Gestion de contenu</p>
           </div>
         `;
@@ -71,8 +75,8 @@ serve(async (req) => {
             <div style="background-color: #f5f5f5; padding: 15px; border-radius: 8px; margin: 20px 0;">
               <strong>${cardTitle}</strong>
             </div>
-            <p>Connectez-vous à SuperTools pour voir les détails.</p>
-            <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;" />
+            <p><a href="${cardLink}" style="display: inline-block; background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500;">Voir les détails</a></p>
+            <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
             <p style="color: #888; font-size: 12px;">SuperTilt - Gestion de contenu</p>
           </div>
         `;
