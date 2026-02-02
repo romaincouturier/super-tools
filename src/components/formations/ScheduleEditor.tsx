@@ -55,13 +55,32 @@ const ScheduleEditor = ({ schedules, onSchedulesChange }: ScheduleEditorProps) =
       return;
     }
 
-    const removedDate = schedules[index].day_date;
+    const removedSchedule = schedules[index];
     const newSchedules = schedules.filter((_, i) => i !== index);
     onSchedulesChange(newSchedules);
     
     toast({
       title: "Journée supprimée",
-      description: `La journée du ${format(parseISO(removedDate), "d MMMM yyyy", { locale: fr })} a été retirée.`,
+      description: `La journée du ${format(parseISO(removedSchedule.day_date), "d MMMM yyyy", { locale: fr })} a été retirée.`,
+      action: (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            // Restore the schedule in the correct position (sorted by date)
+            const restoredSchedules = [...newSchedules, removedSchedule].sort(
+              (a, b) => a.day_date.localeCompare(b.day_date)
+            );
+            onSchedulesChange(restoredSchedules);
+            toast({
+              title: "Journée restaurée",
+              description: `La journée du ${format(parseISO(removedSchedule.day_date), "d MMMM yyyy", { locale: fr })} a été restaurée.`,
+            });
+          }}
+        >
+          Annuler
+        </Button>
+      ),
     });
   };
 
