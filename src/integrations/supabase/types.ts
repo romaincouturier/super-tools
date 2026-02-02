@@ -267,6 +267,7 @@ export type Database = {
           created_by: string | null
           external_url: string | null
           id: string
+          reminder_sent_at: string | null
           reviewer_id: string
           status: Database["public"]["Enums"]["review_status"]
         }
@@ -277,6 +278,7 @@ export type Database = {
           created_by?: string | null
           external_url?: string | null
           id?: string
+          reminder_sent_at?: string | null
           reviewer_id: string
           status?: Database["public"]["Enums"]["review_status"]
         }
@@ -287,6 +289,7 @@ export type Database = {
           created_by?: string | null
           external_url?: string | null
           id?: string
+          reminder_sent_at?: string | null
           reviewer_id?: string
           status?: Database["public"]["Enums"]["review_status"]
         }
@@ -736,7 +739,9 @@ export type Database = {
           created_at: string
           id: string
           parent_comment_id: string | null
+          resolved_at: string | null
           review_id: string
+          status: string | null
         }
         Insert: {
           author_id: string
@@ -744,7 +749,9 @@ export type Database = {
           created_at?: string
           id?: string
           parent_comment_id?: string | null
+          resolved_at?: string | null
           review_id: string
+          status?: string | null
         }
         Update: {
           author_id?: string
@@ -752,7 +759,9 @@ export type Database = {
           created_at?: string
           id?: string
           parent_comment_id?: string | null
+          resolved_at?: string | null
           review_id?: string
+          status?: string | null
         }
         Relationships: [
           {
