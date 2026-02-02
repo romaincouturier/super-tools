@@ -864,6 +864,42 @@ export type Database = {
           },
         ]
       }
+      trainers: {
+        Row: {
+          created_at: string
+          email: string
+          first_name: string
+          id: string
+          is_default: boolean | null
+          last_name: string
+          phone: string | null
+          photo_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          first_name: string
+          id?: string
+          is_default?: boolean | null
+          last_name: string
+          phone?: string | null
+          photo_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          first_name?: string
+          id?: string
+          is_default?: boolean | null
+          last_name?: string
+          phone?: string | null
+          photo_url?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       training_actions: {
         Row: {
           assigned_user_email: string
@@ -1136,6 +1172,7 @@ export type Database = {
           start_date: string
           supertilt_link: string | null
           supports_url: string | null
+          trainer_id: string | null
           trainer_name: string
           training_name: string
           updated_at: string
@@ -1165,6 +1202,7 @@ export type Database = {
           start_date: string
           supertilt_link?: string | null
           supports_url?: string | null
+          trainer_id?: string | null
           trainer_name?: string
           training_name: string
           updated_at?: string
@@ -1194,11 +1232,20 @@ export type Database = {
           start_date?: string
           supertilt_link?: string | null
           supports_url?: string | null
+          trainer_id?: string | null
           trainer_name?: string
           training_name?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "trainings_trainer_id_fkey"
+            columns: ["trainer_id"]
+            isOneToOne: false
+            referencedRelation: "trainers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_module_access: {
         Row: {

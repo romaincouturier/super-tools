@@ -27,6 +27,7 @@ const ForcePasswordChange = lazy(() => import("./pages/ForcePasswordChange"));
 const Emargement = lazy(() => import("./pages/Emargement"));
 const ContentBoard = lazy(() => import("./pages/ContentBoard"));
 const BesoinsParticipants = lazy(() => import("./pages/BesoinsParticipants"));
+const TrainingSummary = lazy(() => import("./pages/TrainingSummary"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -76,6 +77,8 @@ const App = () => (
             <Route path="/evaluation/:token" element={<Evaluation />} />
             {/* Public attendance signature */}
             <Route path="/emargement/:token" element={<Emargement />} />
+            {/* Public training summary for participants */}
+            <Route path="/formation-info/:trainingId" element={<TrainingSummary />} />
             {/* Privacy policy */}
             <Route path="/politique-confidentialite" element={<PolitiqueConfidentialite />} />
             <Route path="/auth" element={<Auth />} />

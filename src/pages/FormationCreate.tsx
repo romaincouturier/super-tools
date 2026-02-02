@@ -21,6 +21,7 @@ import PrerequisitesEditor from "@/components/formations/PrerequisitesEditor";
 import ProgramSelector from "@/components/formations/ProgramSelector";
 import ObjectivesEditor from "@/components/formations/ObjectivesEditor";
 import TrainingNameCombobox from "@/components/formations/TrainingNameCombobox";
+import TrainerSelector from "@/components/formations/TrainerSelector";
 import ScheduledActionsEditor, { ScheduledAction } from "@/components/formations/ScheduledActionsEditor";
 
 interface Schedule {
@@ -63,6 +64,9 @@ const FormationCreate = () => {
   
   // Scheduled actions
   const [scheduledActions, setScheduledActions] = useState<ScheduledAction[]>([]);
+  
+  // Trainer
+  const [trainerId, setTrainerId] = useState<string | null>(null);
   
   // SuperTilt site URL from settings
   const [supertiltSiteUrl, setSupertiltSiteUrl] = useState<string>("");
@@ -183,6 +187,7 @@ const FormationCreate = () => {
           financeur_same_as_sponsor: financeurSameAsSponsor,
           financeur_name: financeurSameAsSponsor ? null : (financeurName || null),
           financeur_url: financeurSameAsSponsor ? null : (financeurUrl || null),
+          trainer_id: trainerId || null,
           created_by: user.id,
         })
         .select()
@@ -479,6 +484,15 @@ const FormationCreate = () => {
                   value={supertiltLink}
                   onChange={(e) => setSupertiltLink(e.target.value)}
                   placeholder="https://supertilt.fr/formations/..."
+                />
+              </div>
+
+              {/* Trainer selector */}
+              <div className="space-y-2">
+                <Label>Formateur</Label>
+                <TrainerSelector
+                  value={trainerId}
+                  onChange={setTrainerId}
                 />
               </div>
             </CardContent>
