@@ -34,6 +34,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import ThankYouEmailPreviewDialog from "@/components/formations/ThankYouEmailPreviewDialog";
 
 interface DocumentSentInfo {
   invoice: string | null;
@@ -87,7 +88,6 @@ const DocumentsManager = ({
   const [pendingDocumentType, setPendingDocumentType] = useState<"invoice" | "sheets" | "all" | null>(null);
   const [sendToSponsorWithOptions, setSendToSponsorWithOptions] = useState(false);
   const [showThankYouPreview, setShowThankYouPreview] = useState(false);
-  const [participantEmails, setParticipantEmails] = useState<string[]>([]);
   const { toast } = useToast();
 
   // Fetch document send dates from activity logs
@@ -483,16 +483,7 @@ const DocumentsManager = ({
     }
   };
 
-  const openThankYouPreview = async () => {
-    // Fetch participants for this training
-    const { data: participants } = await supabase
-      .from("training_participants")
-      .select("email")
-      .eq("training_id", trainingId);
-    
-    if (participants) {
-      setParticipantEmails(participants.map(p => p.email));
-    }
+  const openThankYouPreview = () => {
     setShowThankYouPreview(true);
   };
 
@@ -522,82 +513,6 @@ const DocumentsManager = ({
     } finally {
       setSendingThankYou(false);
     }
-  };
-
-  const [customTemplate, setCustomTemplate] = useState<{ subject: string; content: string } | null>(null);
-
-  // Fetch custom template on mount
-  useEffect(() => {
-    const fetchCustomTemplate = async () => {
-      const { data } = await supabase
-        .from("email_templates")
-        .select("subject, html_content")
-        .eq("template_type", "thank_you")
-        .single();
-      
-      if (data) {
-        setCustomTemplate({
-          subject: data.subject,
-          content: data.html_content,
-        });
-      }
-    };
-    fetchCustomTemplate();
-  }, []);
-
-  const processTemplate = (template: string, variables: Record<string, string | null | undefined>): string => {
-    let result = template;
-
-    // Process conditional blocks: {{#var}}content{{/var}}
-    const conditionalRegex = /\{\{#(\w+)\}\}([\s\S]*?)\{\{\/\1\}\}/g;
-    result = result.replace(conditionalRegex, (match, varName, content) => {
-      const value = variables[varName];
-      return value ? content : "";
-    });
-
-    // Process simple variables: {{var}}
-    const variableRegex = /\{\{(\w+)\}\}/g;
-    result = result.replace(variableRegex, (match, varName) => {
-      const value = variables[varName];
-      return value || "";
-    });
-
-    return result;
-  };
-
-  const getThankYouEmailSubject = () => {
-    const defaultSubject = `Merci pour votre participation à la formation ${trainingName}`;
-    if (customTemplate?.subject) {
-      return processTemplate(customTemplate.subject, { training_name: trainingName });
-    }
-    return defaultSubject;
-  };
-
-  const getThankYouEmailContent = () => {
-    const defaultContent = `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
-
-Quelle belle journée de découverte visuelle nous avons partagé ! Merci pour votre énergie et votre participation pendant notre formation "{{training_name}}".
-
-Pour finaliser cette formation, j'ai besoin que vous preniez quelques minutes pour compléter le questionnaire d'évaluation :
-{{evaluation_link}}
-
-{{#supports_url}}
-Vous trouverez également tous les supports de la formation ici, pour continuer à pratiquer et intégrer ces techniques dans vos présentations :
-{{supports_url}}
-{{/supports_url}}
-
-Je suis curieux de voir comment vous allez utiliser tout ce que nous avons vu ! N'hésitez pas à me contacter si vous avez des questions ou des besoins de compléments d'informations.
-
-Je vous souhaite une bonne journée`;
-
-    const templateToUse = customTemplate?.content || defaultContent;
-    
-    return processTemplate(templateToUse, {
-      first_name: "[Prénom]",
-      training_name: trainingName,
-      evaluation_link: "[Lien d'évaluation personnalisé]",
-      supports_url: supportsUrl || null,
-    });
   };
 
   const openCustomRecipientDialog = (type: "invoice" | "sheets" | "all", toSponsor: boolean = false) => {
@@ -999,74 +914,15 @@ Je vous souhaite une bonne journée`;
         </DialogContent>
       </Dialog>
 
-      {/* Thank You Email Preview Dialog */}
-      <Dialog open={showThankYouPreview} onOpenChange={setShowThankYouPreview}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Heart className="h-5 w-5" />
-              Prévisualisation du mail de remerciement
-            </DialogTitle>
-            <DialogDescription>
-              Vérifiez le contenu avant envoi
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground mb-1">De</p>
-              <p className="font-medium">Romain Couturier &lt;romain@supertilt.fr&gt;</p>
-            </div>
-            
-            <div>
-              <p className="text-sm font-medium text-muted-foreground mb-1">À</p>
-              <div className="flex flex-wrap gap-1">
-                {participantEmails.length > 0 ? (
-                  participantEmails.map((email, index) => (
-                    <span key={index} className="text-sm bg-muted px-2 py-1 rounded">
-                      {email}
-                    </span>
-                  ))
-                ) : (
-                  <span className="text-muted-foreground text-sm">Chargement...</span>
-                )}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                {participantEmails.length} participant{participantEmails.length > 1 ? "s" : ""}
-              </p>
-            </div>
-            
-            <div>
-              <p className="text-sm font-medium text-muted-foreground mb-1">Objet</p>
-              <p className="font-medium">{getThankYouEmailSubject()}</p>
-            </div>
-            
-            <div>
-              <p className="text-sm font-medium text-muted-foreground mb-1">Contenu</p>
-              <div className="bg-muted/50 rounded-lg p-4 whitespace-pre-wrap text-sm font-mono">
-                {getThankYouEmailContent()}
-              </div>
-            </div>
-          </div>
-
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="outline" onClick={() => setShowThankYouPreview(false)}>
-              Annuler
-            </Button>
-            <Button
-              onClick={handleSendThankYouEmail}
-              disabled={sendingThankYou || participantEmails.length === 0}
-            >
-              {sendingThankYou ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Send className="h-4 w-4 mr-2" />
-              )}
-              Envoyer à {participantEmails.length} participant{participantEmails.length > 1 ? "s" : ""}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ThankYouEmailPreviewDialog
+        open={showThankYouPreview}
+        onOpenChange={setShowThankYouPreview}
+        trainingId={trainingId}
+        trainingName={trainingName}
+        supportsUrl={supportsUrl.trim() ? supportsUrl.trim() : null}
+        onConfirmSend={handleSendThankYouEmail}
+        isSending={sendingThankYou}
+      />
     </>
   );
 };
