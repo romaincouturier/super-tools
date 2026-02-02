@@ -384,7 +384,13 @@ const FormationCreate = () => {
                       <Switch
                         id="multiDay"
                         checked={isMultiDay}
-                        onCheckedChange={setIsMultiDay}
+                        onCheckedChange={(checked) => {
+                          setIsMultiDay(checked);
+                          // Auto-set end date to start date + 1 day when enabling multi-day
+                          if (checked && startDate && !endDate) {
+                            setEndDate(addDays(startDate, 1));
+                          }
+                        }}
                       />
                       <Label htmlFor="multiDay" className="text-sm text-muted-foreground">
                         Multi-jours
