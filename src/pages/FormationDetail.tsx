@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
-import { Loader2, ArrowLeft, Calendar, Users, FileText, ExternalLink, Edit2, User as UserIcon, Mail, MapPin, Building, Map, Train, Hotel, Clock, Copy, Check, AlertCircle, Share2, CheckCircle2 } from "lucide-react";
+import { Loader2, ArrowLeft, Calendar, Users, FileText, ExternalLink, Edit2, User as UserIcon, Mail, MapPin, Building, Map, Train, Hotel, UtensilsCrossed, Clock, Copy, Check, AlertCircle, Share2, CheckCircle2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { format, parseISO } from "date-fns";
@@ -53,6 +53,7 @@ interface Training {
   trainer_name: string;
   train_booked: boolean;
   hotel_booked: boolean;
+  restaurant_booked: boolean;
 }
 
 interface Schedule {
@@ -468,6 +469,54 @@ const FormationDetail = () => {
                 title="Marquer la réservation comme effectuée"
               />
             </div>
+            
+            {/* Restaurant button with checkbox - only for inter-entreprises */}
+            {training.format_formation === "inter-entreprises" && (
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={training.restaurant_booked}
+                  title={training.restaurant_booked ? "Réservation déjà effectuée" : "Réserver un restaurant"}
+                  asChild={!training.restaurant_booked}
+                >
+                  {training.restaurant_booked ? (
+                    <span className="flex items-center">
+                      <UtensilsCrossed className="h-4 w-4 mr-2" />
+                      Restaurant
+                    </span>
+                  ) : (
+                    <a 
+                      href={`https://www.google.com/maps/search/restaurants+near+${encodeURIComponent(training.location)}`} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                    >
+                      <UtensilsCrossed className="h-4 w-4 mr-2" />
+                      Restaurant
+                    </a>
+                  )}
+                </Button>
+                <Checkbox
+                  checked={training.restaurant_booked}
+                  onCheckedChange={async (checked) => {
+                    const newValue = checked === true;
+                    const { error } = await supabase
+                      .from("trainings")
+                      .update({ restaurant_booked: newValue })
+                      .eq("id", training.id);
+                    if (!error) {
+                      setTraining({ ...training, restaurant_booked: newValue });
+                      toast({
+                        title: newValue ? "Restaurant réservé" : "Réservation restaurant annulée",
+                        description: newValue ? "La réservation restaurant a été marquée comme effectuée." : "Le statut de réservation a été réinitialisé.",
+                      });
+                    }
+                  }}
+                  className="ml-1"
+                  title="Marquer la réservation comme effectuée"
+                />
+              </div>
+            )}
             
             <AttendanceSheetGenerator
               trainingName={training.training_name}

@@ -1181,6 +1181,7 @@ export type Database = {
           participants_formal_address: boolean
           prerequisites: string[] | null
           program_file_url: string | null
+          restaurant_booked: boolean | null
           sponsor_email: string | null
           sponsor_first_name: string | null
           sponsor_formal_address: boolean
@@ -1213,6 +1214,7 @@ export type Database = {
           participants_formal_address?: boolean
           prerequisites?: string[] | null
           program_file_url?: string | null
+          restaurant_booked?: boolean | null
           sponsor_email?: string | null
           sponsor_first_name?: string | null
           sponsor_formal_address?: boolean
@@ -1245,6 +1247,7 @@ export type Database = {
           participants_formal_address?: boolean
           prerequisites?: string[] | null
           program_file_url?: string | null
+          restaurant_booked?: boolean | null
           sponsor_email?: string | null
           sponsor_first_name?: string | null
           sponsor_formal_address?: boolean

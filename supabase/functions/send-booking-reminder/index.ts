@@ -72,10 +72,16 @@ serve(async (req) => {
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // Calculate the date 3 months from now
+    // Calculate dates for different reminder windows
     const now = new Date();
     const threeMonthsFromNow = new Date(now);
     threeMonthsFromNow.setMonth(threeMonthsFromNow.getMonth() + 3);
+    
+    // For restaurant: 2 weeks and 1 week before
+    const twoWeeksFromNow = new Date(now);
+    twoWeeksFromNow.setDate(twoWeeksFromNow.getDate() + 14);
+    const oneWeekFromNow = new Date(now);
+    oneWeekFromNow.setDate(oneWeekFromNow.getDate() + 7);
 
     // Fetch trainings starting within 3 months where train or hotel is not booked
     const { data: trainings, error: trainingsError } = await supabase
@@ -89,6 +95,8 @@ serve(async (req) => {
         client_name,
         hotel_booked,
         train_booked,
+        restaurant_booked,
+        format_formation,
         trainer_id,
         trainers!trainings_trainer_id_fkey (
           id,
@@ -99,7 +107,7 @@ serve(async (req) => {
       `)
       .gte("start_date", now.toISOString().split("T")[0])
       .lte("start_date", threeMonthsFromNow.toISOString().split("T")[0])
-      .or("hotel_booked.is.null,hotel_booked.eq.false,train_booked.is.null,train_booked.eq.false");
+      .or("hotel_booked.is.null,hotel_booked.eq.false,train_booked.is.null,train_booked.eq.false,restaurant_booked.is.null,restaurant_booked.eq.false");
 
     if (trainingsError) {
       console.error("Error fetching trainings:", trainingsError);
@@ -147,27 +155,45 @@ serve(async (req) => {
         continue;
       }
 
-      // Determine what needs to be booked
-      const needsHotel = !training.hotel_booked;
-      const needsTrain = !training.train_booked;
-
-      if (!needsHotel && !needsTrain) {
-        // Both are booked, skip
-        continue;
-      }
-
-      // Build the booking list
-      const bookingItems: string[] = [];
-      if (needsTrain) bookingItems.push("le train");
-      if (needsHotel) bookingItems.push("l'hôtel");
-      const bookingText = bookingItems.join(" et ");
-
       // Calculate days until training
       const trainingDate = new Date(training.start_date);
       const daysUntil = Math.ceil((trainingDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+      
+      // Determine what needs to be booked for train/hotel (3 months reminder)
+      const needsHotel = !training.hotel_booked;
+      const needsTrain = !training.train_booked;
+      
+      // Restaurant reminder only for inter-entreprises, 2 weeks or 1 week before
+      const isInterEntreprise = training.format_formation === "inter-entreprises";
+      const needsRestaurant = isInterEntreprise && !training.restaurant_booked && daysUntil <= 14;
 
-      // Build email content
-      const subject = `Rappel : Réservation pour la formation "${training.training_name}"`;
+      // Build the booking list for transport (train/hotel)
+      const transportItems: string[] = [];
+      if (needsTrain) transportItems.push("le train");
+      if (needsHotel) transportItems.push("l'hôtel");
+      
+      // Build the booking list for restaurant
+      const restaurantItems: string[] = [];
+      if (needsRestaurant) restaurantItems.push("le restaurant");
+
+      // Skip if nothing needs to be booked
+      if (transportItems.length === 0 && restaurantItems.length === 0) {
+        continue;
+      }
+
+      // Combine all items for email
+      const allBookingItems = [...transportItems, ...restaurantItems];
+      const bookingText = allBookingItems.join(" et ");
+
+      // Customize subject based on what needs booking
+      let subject: string;
+      if (restaurantItems.length > 0 && transportItems.length === 0) {
+        subject = `🍽️ Rappel : Réservation restaurant pour "${training.training_name}"`;
+      } else if (restaurantItems.length > 0 && transportItems.length > 0) {
+        subject = `Rappel : Réservations pour la formation "${training.training_name}"`;
+      } else {
+        subject = `Rappel : Réservation pour la formation "${training.training_name}"`;
+      }
       
       const htmlContent = `
         <p>Bonjour ${trainer.first_name},</p>
@@ -178,7 +204,11 @@ serve(async (req) => {
           <strong>⚠️ À réserver :</strong> ${bookingText}<br/>
           <em>La formation a lieu dans ${daysUntil} jour${daysUntil > 1 ? 's' : ''}.</em>
         </p>
-        
+        ${needsRestaurant ? `
+        <p style="background-color: #e8f5e9; border: 1px solid #4caf50; padding: 15px; border-radius: 4px;">
+          <strong>🍽️ Restaurant :</strong> Pour les formations inter-entreprises, pensez à réserver un restaurant pour le déjeuner avec les participants.
+        </p>
+        ` : ''}
         <p>Merci de procéder à la réservation dès que possible et de cocher les cases correspondantes dans l'interface de gestion.</p>
         
         <p>Ce rappel sera envoyé chaque lundi jusqu'à ce que les réservations soient confirmées.</p>
