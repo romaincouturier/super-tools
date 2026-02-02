@@ -143,6 +143,9 @@ serve(async (req) => {
       year: 'numeric'
     });
 
+    // Build training summary page URL
+    const trainingSummaryUrl = `https://super-tools.lovable.app/formation-info/${trainingId}`;
+
     // Template variables
     const variables: Record<string, string> = {
       participant_first_name: participant.first_name || '',
@@ -154,6 +157,7 @@ serve(async (req) => {
       training_location: training.location,
       training_schedule: scheduleStr,
       client_name: training.client_name,
+      training_summary_url: trainingSummaryUrl,
     };
 
     // Get Signitic signature
@@ -166,20 +170,33 @@ serve(async (req) => {
       subject = replaceVariables(template.subject, variables);
       htmlContent = replaceVariables(template.html_content, variables) + signature;
     } else {
-      // Fallback default content
+      // Fallback default content - warm welcome email
       const greeting = participant.first_name ? `Bonjour ${participant.first_name},` : 'Bonjour,';
-      subject = `Bienvenue à votre formation ${training.training_name}`;
+      subject = `🎉 Bienvenue à la formation ${training.training_name} !`;
       htmlContent = `
         <p>${greeting}</p>
-        <p>Nous avons le plaisir de vous confirmer votre inscription à la formation <strong>${training.training_name}</strong>.</p>
-        <p><strong>Informations pratiques :</strong></p>
-        <ul>
-          <li>Date : ${trainingDate}</li>
-          <li>Horaires :<br/>${scheduleStr}</li>
-          <li>Lieu : ${training.location}</li>
+        <p>C'est avec grand plaisir que nous vous confirmons votre inscription à la formation <strong>${training.training_name}</strong> !</p>
+        
+        <p><strong>📅 Dates et horaires :</strong></p>
+        <ul style="margin-left: 20px;">
+          <li><strong>Date :</strong> ${trainingDate}</li>
+          ${scheduleStr ? `<li><strong>Horaires :</strong><br/>${scheduleStr}</li>` : ''}
+          <li><strong>Lieu :</strong> ${training.location}</li>
         </ul>
+        
+        <p><strong>📋 Prochaines étapes :</strong></p>
+        <p>Dans les prochains jours, vous recevrez un email de recueil de vos besoins pour cette formation. Ce questionnaire nous permettra de personnaliser au mieux le contenu en fonction de vos attentes.</p>
+        
+        <p><strong>📍 Retrouvez toutes les informations pratiques :</strong></p>
+        <p>En attendant, vous pouvez consulter l'ensemble des informations de la formation (programme, accès, contact du formateur) sur cette page :</p>
+        <p style="margin: 20px 0;">
+          <a href="${trainingSummaryUrl}" style="display: inline-block; background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500;">
+            Voir les informations de la formation
+          </a>
+        </p>
+        
         <p>Nous restons à votre disposition pour toute question.</p>
-        <p>À très bientôt !</p>
+        <p>À très bientôt ! 🙂</p>
         ${signature}
       `;
     }
