@@ -575,7 +575,7 @@ romain@supertilt.fr`;
             <li>• <strong>J+{delaySettings.delayGoogleReview}</strong> : Demande d'avis Google</li>
             <li>• <strong>J+{delaySettings.delayVideoTestimonial}</strong> : Demande de témoignage vidéo</li>
             <li>• <strong>J+{delaySettings.delayColdEvaluation}</strong> : Évaluation à froid commanditaire</li>
-            <li>• <strong>J+{delaySettings.delayColdEvaluationFunder}</strong> : Rappel financeur (si différent du commanditaire)</li>
+            <li>• <strong>J+{delaySettings.delayColdEvaluationFunder}</strong> : Évaluation à froid financeur (si différent du commanditaire)</li>
           </ul>
           <p className="text-xs text-muted-foreground pt-2 italic">Les délais sont configurables dans Paramètres {">"} Général</p>
         </div>
