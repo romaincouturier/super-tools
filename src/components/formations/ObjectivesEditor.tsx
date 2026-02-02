@@ -1,17 +1,22 @@
 import { useState } from "react";
-import { Plus, X, Target } from "lucide-react";
+import { Plus, X, Target, Sparkles, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface ObjectivesEditorProps {
   objectives: string[];
   onObjectivesChange: (objectives: string[]) => void;
+  programFileUrl?: string;
 }
 
-const ObjectivesEditor = ({ objectives, onObjectivesChange }: ObjectivesEditorProps) => {
+const ObjectivesEditor = ({ objectives, onObjectivesChange, programFileUrl }: ObjectivesEditorProps) => {
   const [newObjective, setNewObjective] = useState("");
+  const [extracting, setExtracting] = useState(false);
+  const { toast } = useToast();
 
   const addObjective = () => {
     if (newObjective.trim()) {
@@ -31,13 +36,74 @@ const ObjectivesEditor = ({ objectives, onObjectivesChange }: ObjectivesEditorPr
     }
   };
 
+  const extractObjectivesFromPdf = async () => {
+    if (!programFileUrl) return;
+    
+    setExtracting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("extract-objectives-from-pdf", {
+        body: { pdfUrl: programFileUrl, extractType: "objectives" },
+      });
+
+      if (error) throw error;
+
+      if (data?.objectives && Array.isArray(data.objectives) && data.objectives.length > 0) {
+        // Merge with existing objectives, avoiding duplicates
+        const combined = [...objectives, ...data.objectives];
+        onObjectivesChange([...new Set(combined)]);
+        toast({
+          title: "Objectifs extraits",
+          description: `${data.objectives.length} objectif(s) extrait(s) du programme. Vous pouvez les modifier.`,
+        });
+      } else {
+        toast({
+          title: "Aucun objectif trouvé",
+          description: "L'IA n'a pas pu extraire d'objectifs du PDF. Ajoutez-les manuellement.",
+          variant: "default",
+        });
+      }
+    } catch (error: unknown) {
+      console.error("Error extracting objectives:", error);
+      toast({
+        title: "Extraction impossible",
+        description: "Impossible d'extraire les objectifs automatiquement. Ajoutez-les manuellement.",
+        variant: "default",
+      });
+    } finally {
+      setExtracting(false);
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Target className="h-5 w-5" />
-          Objectifs de la formation
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2">
+            <Target className="h-5 w-5" />
+            Objectifs de la formation
+          </CardTitle>
+          {programFileUrl && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={extractObjectivesFromPdf}
+              disabled={extracting}
+            >
+              {extracting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Extraction...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  Extraire avec l'IA
+                </>
+              )}
+            </Button>
+          )}
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
         <p className="text-sm text-muted-foreground">

@@ -544,13 +544,6 @@ const FormationCreate = () => {
               <ProgramSelector
                 programFileUrl={programFileUrl}
                 onProgramChange={setProgramFileUrl}
-                onObjectivesExtracted={(extracted) => {
-                  // Merge with existing objectives, avoiding duplicates
-                  setObjectives((prev) => {
-                    const combined = [...prev, ...extracted];
-                    return [...new Set(combined)];
-                  });
-                }}
                 onPrerequisitesExtracted={(extracted) => {
                   // Merge with existing prerequisites, avoiding duplicates
                   setPrerequisites((prev) => {
@@ -571,6 +564,7 @@ const FormationCreate = () => {
               <ObjectivesEditor
                 objectives={objectives}
                 onObjectivesChange={setObjectives}
+                programFileUrl={programFileUrl}
               />
             </div>
           </div>

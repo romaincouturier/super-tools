@@ -629,12 +629,6 @@ const FormationEdit = () => {
               <ProgramSelector
                 programFileUrl={programFileUrl}
                 onProgramChange={setProgramFileUrl}
-                onObjectivesExtracted={(extracted) => {
-                  setObjectives((prev) => {
-                    const combined = [...prev, ...extracted];
-                    return [...new Set(combined)];
-                  });
-                }}
                 onPrerequisitesExtracted={(extracted) => {
                   setPrerequisites((prev) => {
                     const combined = [...prev, ...extracted];
@@ -648,6 +642,7 @@ const FormationEdit = () => {
               <ObjectivesEditor
                 objectives={objectives}
                 onObjectivesChange={setObjectives}
+                programFileUrl={programFileUrl}
               />
             </div>
           </div>
