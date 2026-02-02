@@ -279,24 +279,11 @@ const Auth = () => {
               )}
             </Button>
           </form>
-          <div className="mt-4 text-center space-y-2">
-            {isLogin && (
-              <div>
-                <ForgotPasswordDialog />
-              </div>
-            )}
-            <div>
-              <button
-                type="button"
-                onClick={() => setIsLogin(!isLogin)}
-                className="text-sm text-muted-foreground hover:text-primary transition-colors"
-              >
-                {isLogin
-                  ? "Pas encore de compte ? S'inscrire"
-                  : "Déjà un compte ? Se connecter"}
-              </button>
+          {isLogin && (
+            <div className="mt-4 text-center">
+              <ForgotPasswordDialog />
             </div>
-          </div>
+          )}
         </CardContent>
       </Card>
     </div>
