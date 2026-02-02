@@ -32,7 +32,6 @@ interface ProgramFile {
 interface ProgramSelectorProps {
   programFileUrl: string;
   onProgramChange: (url: string) => void;
-  onObjectivesExtracted?: (objectives: string[]) => void;
   onPrerequisitesExtracted?: (prerequisites: string[]) => void;
   userId: string;
 }
@@ -40,53 +39,15 @@ interface ProgramSelectorProps {
 const ProgramSelector = ({ 
   programFileUrl, 
   onProgramChange, 
-  onObjectivesExtracted, 
   onPrerequisitesExtracted,
   userId 
 }: ProgramSelectorProps) => {
   const [programFiles, setProgramFiles] = useState<ProgramFile[]>([]);
   const [uploading, setUploading] = useState(false);
-  const [extractingObjectives, setExtractingObjectives] = useState(false);
   const [extractingPrerequisites, setExtractingPrerequisites] = useState(false);
   const [loadingFiles, setLoadingFiles] = useState(true);
   const [deletingFileId, setDeletingFileId] = useState<string | null>(null);
   const { toast } = useToast();
-
-  const extractObjectivesFromPdf = async (pdfUrl: string) => {
-    if (!onObjectivesExtracted) return;
-    
-    setExtractingObjectives(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("extract-objectives-from-pdf", {
-        body: { pdfUrl, extractType: "objectives" },
-      });
-
-      if (error) throw error;
-
-      if (data?.objectives && Array.isArray(data.objectives) && data.objectives.length > 0) {
-        onObjectivesExtracted(data.objectives);
-        toast({
-          title: "Objectifs extraits",
-          description: `${data.objectives.length} objectif(s) extrait(s) du programme. Vous pouvez les modifier.`,
-        });
-      } else {
-        toast({
-          title: "Aucun objectif trouvé",
-          description: "L'IA n'a pas pu extraire d'objectifs du PDF. Ajoutez-les manuellement.",
-          variant: "default",
-        });
-      }
-    } catch (error: unknown) {
-      console.error("Error extracting objectives:", error);
-      toast({
-        title: "Extraction impossible",
-        description: "Impossible d'extraire les objectifs automatiquement. Ajoutez-les manuellement.",
-        variant: "default",
-      });
-    } finally {
-      setExtractingObjectives(false);
-    }
-  };
 
   const extractPrerequisitesFromPdf = async (pdfUrl: string) => {
     if (!onPrerequisitesExtracted) return;
@@ -352,27 +313,6 @@ const ProgramSelector = ({
                     </a>
                   </div>
                   
-                  {onObjectivesExtracted && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="w-full"
-                      onClick={() => extractObjectivesFromPdf(programFileUrl)}
-                      disabled={extractingObjectives}
-                    >
-                      {extractingObjectives ? (
-                        <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          Extraction des objectifs...
-                        </>
-                      ) : (
-                        <>
-                          <Sparkles className="h-4 w-4 mr-2" />
-                          Extraire les objectifs avec l'IA
-                        </>
-                      )}
-                    </Button>
-                  )}
                 </div>
               )}
             </div>
@@ -455,48 +395,27 @@ const ProgramSelector = ({
             )}
 
             {/* Show extract button when a program is selected from library */}
-            {programFileUrl && programFiles.some(f => f.file_url === programFileUrl) && onObjectivesExtracted && (
-              <div className="mt-4 pt-4 border-t space-y-2">
+            {programFileUrl && programFiles.some(f => f.file_url === programFileUrl) && onPrerequisitesExtracted && (
+              <div className="mt-4 pt-4 border-t">
                 <Button
                   type="button"
                   variant="outline"
                   className="w-full"
-                  onClick={() => extractObjectivesFromPdf(programFileUrl)}
-                  disabled={extractingObjectives || extractingPrerequisites}
+                  onClick={() => extractPrerequisitesFromPdf(programFileUrl)}
+                  disabled={extractingPrerequisites}
                 >
-                  {extractingObjectives ? (
+                  {extractingPrerequisites ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Extraction des objectifs...
+                      Extraction des prérequis...
                     </>
                   ) : (
                     <>
                       <Sparkles className="h-4 w-4 mr-2" />
-                      Extraire les objectifs avec l'IA
+                      Extraire les prérequis avec l'IA
                     </>
                   )}
                 </Button>
-                {onPrerequisitesExtracted && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => extractPrerequisitesFromPdf(programFileUrl)}
-                    disabled={extractingObjectives || extractingPrerequisites}
-                  >
-                    {extractingPrerequisites ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Extraction des prérequis...
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="h-4 w-4 mr-2" />
-                        Extraire les prérequis avec l'IA
-                      </>
-                    )}
-                  </Button>
-                )}
               </div>
             )}
           </TabsContent>
