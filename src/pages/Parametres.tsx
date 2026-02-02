@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
-import { Loader2, ArrowLeft, Settings, Mail, Save, RotateCcw, Sparkles, Cog } from "lucide-react";
+import { Loader2, ArrowLeft, Settings, Mail, Save, RotateCcw, Sparkles, Cog, ExternalLink } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import AppHeader from "@/components/AppHeader";
 import { Button } from "@/components/ui/button";
@@ -1040,14 +1040,24 @@ const Parametres = () => {
                   
                   <div className="space-y-2">
                     <Label htmlFor="google-my-business-url">URL de la fiche Google</Label>
-                    <Input
-                      id="google-my-business-url"
-                      type="url"
-                      value={googleMyBusinessUrl}
-                      onChange={(e) => setGoogleMyBusinessUrl(e.target.value)}
-                      placeholder="https://g.page/r/XXXXXXXXX/review"
-                      className="max-w-lg"
-                    />
+                    <div className="flex gap-2 max-w-lg">
+                      <Input
+                        id="google-my-business-url"
+                        type="url"
+                        value={googleMyBusinessUrl}
+                        onChange={(e) => setGoogleMyBusinessUrl(e.target.value)}
+                        placeholder="https://g.page/r/XXXXXXXXX/review"
+                      />
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => googleMyBusinessUrl && window.open(googleMyBusinessUrl, "_blank")}
+                        disabled={!googleMyBusinessUrl}
+                        title="Ouvrir le lien"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                      </Button>
+                    </div>
                     <p className="text-xs text-muted-foreground">
                       Utilisez la variable <code className="px-1 bg-muted rounded">{`{{google_review_link}}`}</code> dans vos templates d'emails.
                     </p>
