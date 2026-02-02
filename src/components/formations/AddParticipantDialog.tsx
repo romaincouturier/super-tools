@@ -44,14 +44,21 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
   // Determine email scheduling mode based on training date
   // - If training already started (past date) -> no email
   // - If training is upcoming -> send welcome email immediately
-  const getEmailMode = (): { status: string; sendWelcomeNow: boolean } => {
-    if (!trainingStartDate) {
-      return { status: "programme", sendWelcomeNow: false };
+  // NOTE: This function is called at submit time, so trainingStartDate should always be defined
+  // We use the prop directly to ensure we have the latest value
+  const getEmailMode = (startDateStr: string | undefined): { status: string; sendWelcomeNow: boolean } => {
+    console.log("[AddParticipantDialog] getEmailMode called with startDate:", startDateStr);
+    
+    if (!startDateStr) {
+      console.warn("[AddParticipantDialog] No trainingStartDate provided, defaulting to non_envoye");
+      return { status: "non_envoye", sendWelcomeNow: false };
     }
     
-    const startDate = parseISO(trainingStartDate);
+    const startDate = parseISO(startDateStr);
     const today = new Date();
     const daysUntilStart = differenceInDays(startDate, today);
+    
+    console.log("[AddParticipantDialog] Days until start:", daysUntilStart);
     
     // Training already started or is today
     if (daysUntilStart <= 0) {
@@ -64,7 +71,7 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
 
   useEffect(() => {
     if (trainingStartDate) {
-      const { status } = getEmailMode();
+      const { status } = getEmailMode(trainingStartDate);
       setIsManualMode(status === "non_envoye");
     }
   }, [trainingStartDate]);
@@ -98,7 +105,9 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
       const token = crypto.randomUUID();
 
       // Determine initial status and whether to send welcome email
-      const { status, sendWelcomeNow } = getEmailMode();
+      // Pass the prop value explicitly to avoid stale closure issues
+      const { status, sendWelcomeNow } = getEmailMode(trainingStartDate);
+      console.log("[AddParticipantDialog] Submit - status:", status, "sendWelcomeNow:", sendWelcomeNow);
 
       const participantData = {
         training_id: trainingId,
