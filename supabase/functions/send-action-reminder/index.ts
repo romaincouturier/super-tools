@@ -53,7 +53,8 @@ function getDefaultSignature(): string {
 }
 
 // Fetch BCC settings from app_settings
-async function getBccSettings(supabase: ReturnType<typeof createClient>): Promise<string[]> {
+// deno-lint-ignore no-explicit-any
+async function getBccSettings(supabase: any): Promise<string[]> {
   const { data: bccSettings } = await supabase
     .from("app_settings")
     .select("setting_key, setting_value")
