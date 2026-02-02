@@ -1273,6 +1273,7 @@ export type Database = {
         | "historique"
         | "contenu"
         | "besoins"
+        | "parametres"
       notification_type:
         | "review_requested"
         | "comment_added"
@@ -1414,6 +1415,7 @@ export const Constants = {
         "historique",
         "contenu",
         "besoins",
+        "parametres",
       ],
       notification_type: [
         "review_requested",
