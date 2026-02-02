@@ -34,7 +34,7 @@ type AddressMode = "tu" | "vous";
 // Template configuration with timing info
 interface TemplateConfig {
   name: string;
-  timing: "before" | "after" | "manual";
+  timing: "before" | "during" | "after" | "manual";
   delayKey?: string; // Key in app_settings for delay
   subject: { tu: string; vous: string };
   content: { tu: string; vous: string };
@@ -108,9 +108,10 @@ Merci d'avance pour votre participation !`,
     },
     variables: ["first_name", "training_name", "questionnaire_link"],
   },
+  // DURING TRAINING
   attendance_signature: {
     name: "Demande de signature d'émargement",
-    timing: "before",
+    timing: "during",
     subject: {
       tu: "Signature d'émargement - {{training_name}}",
       vous: "Signature d'émargement - {{training_name}}",
@@ -1213,6 +1214,43 @@ const Parametres = () => {
                                     {timingLabel}
                                   </span>
                                 )}
+                                {isCustomized && (
+                                  <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
+                                    Personnalisé
+                                  </span>
+                                )}
+                              </div>
+                            </AccordionTrigger>
+                            <AccordionContent className="space-y-4 pt-4">
+                              {renderTemplateEditor(type, defaultTemplate, currentMode, saveKey)}
+                            </AccordionContent>
+                          </AccordionItem>
+                        );
+                      })}
+                  </Accordion>
+                </div>
+
+                <Separator />
+
+                {/* During Training Emails */}
+                <div className="space-y-3">
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                    🎯 Pendant la formation
+                  </h3>
+                  <Accordion type="single" collapsible className="w-full">
+                    {Object.entries(DEFAULT_TEMPLATES)
+                      .filter(([, t]) => t.timing === "during")
+                      .map(([type, defaultTemplate]) => {
+                        const currentMode = activeMode[type] || "vous";
+                        const saveKey = `${type}_${currentMode}`;
+                        const isCustomized = templates[type]?.tu || templates[type]?.vous;
+                        
+                        return (
+                          <AccordionItem key={type} value={type}>
+                            <AccordionTrigger className="text-left">
+                              <div className="flex items-center gap-3">
+                                <Mail className="h-4 w-4 text-muted-foreground" />
+                                <span>{defaultTemplate.name}</span>
                                 {isCustomized && (
                                   <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
                                     Personnalisé
