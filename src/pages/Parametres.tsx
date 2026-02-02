@@ -180,6 +180,44 @@ Je vous souhaite une bonne journée`,
     },
     variables: ["first_name", "training_name", "evaluation_link", "supports_url"],
   },
+  google_review: {
+    name: "Demande d'avis Google",
+    timing: "after",
+    delayKey: "delay_google_review_days",
+    subject: {
+      tu: "🌟 Ton avis sur la formation \"{{training_name}}\"",
+      vous: "🌟 Votre avis sur la formation \"{{training_name}}\"",
+    },
+    content: {
+      tu: `Bonjour {{first_name}},
+
+J'espère que tout va bien pour toi !
+
+Pour continuer d'améliorer nos formations et partager des retours d'expérience avec d'autres professionnels, ton avis serait précieux en tant que commanditaire de la formation. Pourrais-tu nous accorder 1 minute pour laisser un commentaire sur notre page Google ?
+
+👉 Clique ici pour laisser ton avis : https://g.page/r/CWJ0W_P6C-BJEAE/review
+
+Ton retour est essentiel pour nous permettre de progresser et d'aider d'autres organisations à découvrir nos formations.
+
+Merci infiniment pour ton soutien et pour avoir participé à notre formation !
+
+À bientôt,`,
+      vous: `Bonjour {{first_name}},
+
+J'espère que tout va bien pour vous !
+
+Pour continuer d'améliorer nos formations et partager des retours d'expérience avec d'autres professionnels, votre avis serait précieux en tant que commanditaire de la formation. Pourriez-vous nous accorder 1 minute pour laisser un commentaire sur notre page Google ?
+
+👉 Cliquez ici pour laisser votre avis : https://g.page/r/CWJ0W_P6C-BJEAE/review
+
+Votre retour est essentiel pour nous permettre de progresser et d'aider d'autres organisations à découvrir nos formations.
+
+Merci infiniment pour votre soutien et pour avoir participé à notre formation !
+
+À bientôt,`,
+    },
+    variables: ["first_name", "training_name"],
+  },
   training_documents: {
     name: "Envoi des documents de formation",
     timing: "manual",
