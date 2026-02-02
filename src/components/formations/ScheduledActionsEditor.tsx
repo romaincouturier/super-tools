@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Trash2, Calendar, User, AlertCircle } from "lucide-react";
+import { Plus, Trash2, Calendar, User, AlertCircle, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
@@ -22,9 +22,11 @@ export interface ScheduledAction {
 interface ScheduledActionsEditorProps {
   actions: ScheduledAction[];
   onActionsChange: (actions: ScheduledAction[]) => void;
+  onSave?: () => void;
+  saving?: boolean;
 }
 
-const ScheduledActionsEditor = ({ actions, onActionsChange }: ScheduledActionsEditorProps) => {
+const ScheduledActionsEditor = ({ actions, onActionsChange, onSave, saving }: ScheduledActionsEditorProps) => {
   const generateId = () => `action_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
   const addAction = () => {
@@ -167,6 +169,26 @@ const ScheduledActionsEditor = ({ actions, onActionsChange }: ScheduledActionsEd
                   placeholder="Sélectionner un utilisateur ou saisir un email"
                 />
               </div>
+
+              {/* Save button per action */}
+              {onSave && (
+                <Button
+                  type="button"
+                  onClick={onSave}
+                  disabled={saving || !action.description || !action.dueDate || !action.assignedEmail}
+                  className="w-full"
+                  size="sm"
+                >
+                  {saving ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Enregistrement...
+                    </>
+                  ) : (
+                    "Enregistrer les actions"
+                  )}
+                </Button>
+              )}
             </div>
           ))
         )}
