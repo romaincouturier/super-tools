@@ -1,6 +1,6 @@
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Clock, Copy } from "lucide-react";
+import { Clock, Copy, Trash2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -45,6 +45,26 @@ const ScheduleEditor = ({ schedules, onSchedulesChange }: ScheduleEditorProps) =
     onSchedulesChange(newSchedules);
   };
 
+  const removeSchedule = (index: number) => {
+    if (schedules.length <= 1) {
+      toast({
+        title: "Impossible de supprimer",
+        description: "La formation doit conserver au moins une journée.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const removedDate = schedules[index].day_date;
+    const newSchedules = schedules.filter((_, i) => i !== index);
+    onSchedulesChange(newSchedules);
+    
+    toast({
+      title: "Journée supprimée",
+      description: `La journée du ${format(parseISO(removedDate), "d MMMM yyyy", { locale: fr })} a été retirée.`,
+    });
+  };
+
   const replicateFirstDay = () => {
     if (schedules.length <= 1) return;
 
@@ -69,7 +89,7 @@ const ScheduleEditor = ({ schedules, onSchedulesChange }: ScheduleEditorProps) =
           <div>
             <CardTitle className="flex items-center gap-2">
               <Clock className="h-5 w-5" />
-              Horaires par journée
+              Horaires par journée ({schedules.length} jour{schedules.length > 1 ? "s" : ""})
             </CardTitle>
             <CardDescription>
               Définissez les horaires pour chaque journée de formation
@@ -120,6 +140,18 @@ const ScheduleEditor = ({ schedules, onSchedulesChange }: ScheduleEditorProps) =
                     className="w-28"
                   />
                 </div>
+                {schedules.length > 1 && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="mt-6 text-muted-foreground hover:text-destructive"
+                    onClick={() => removeSchedule(index)}
+                    title="Supprimer cette journée"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
               </div>
             </div>
           ))}
