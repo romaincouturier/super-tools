@@ -188,17 +188,22 @@ serve(async (req) => {
       .select("setting_key, setting_value")
       .in("setting_key", ["bcc_email", "bcc_enabled"]);
     
-    let bccEmail: string | null = null;
+    // Default: BCC enabled with the email if bcc_email exists
+    let bccEnabled = true; // Default to true for backward compatibility
+    let bccEmailValue: string | null = null;
+    
     bccSettings?.forEach((s: { setting_key: string; setting_value: string | null }) => {
-      if (s.setting_key === "bcc_enabled" && s.setting_value === "true") {
-        const emailSetting = bccSettings.find((e: { setting_key: string }) => e.setting_key === "bcc_email");
-        if (emailSetting?.setting_value) {
-          bccEmail = emailSetting.setting_value;
-        }
+      if (s.setting_key === "bcc_enabled") {
+        bccEnabled = s.setting_value === "true";
+      }
+      if (s.setting_key === "bcc_email" && s.setting_value) {
+        bccEmailValue = s.setting_value;
       }
     });
     
-    console.log("BCC email:", bccEmail || "disabled");
+    const bccEmail = bccEnabled && bccEmailValue ? bccEmailValue : null;
+    
+    console.log("BCC settings - enabled:", bccEnabled, "email:", bccEmailValue, "final:", bccEmail || "none");
 
     // Get Signitic signature
     const signature = await getSigniticSignature();
