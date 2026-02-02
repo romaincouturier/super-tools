@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
-import { Loader2, ArrowLeft, Calendar, Users, FileText, ExternalLink, Edit2, User as UserIcon, Mail, MapPin, Building, Map, Train, Hotel } from "lucide-react";
+import { Loader2, ArrowLeft, Calendar, Users, FileText, ExternalLink, Edit2, User as UserIcon, Mail, MapPin, Building, Map, Train, Hotel, Clock } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -185,6 +185,24 @@ const FormationDetail = () => {
     return null;
   };
 
+  // Calculate total training duration in hours based on schedules
+  // Duration logic: sessions ≤4h count as 3.5h, sessions >4h count as 7h
+  const calculateTotalDuration = (): number => {
+    if (schedules.length === 0) return 0;
+    
+    return schedules.reduce((total, schedule) => {
+      const [startHours, startMinutes] = schedule.start_time.split(":").map(Number);
+      const [endHours, endMinutes] = schedule.end_time.split(":").map(Number);
+      
+      const startInMinutes = startHours * 60 + startMinutes;
+      const endInMinutes = endHours * 60 + endMinutes;
+      const durationInHours = (endInMinutes - startInMinutes) / 60;
+      
+      // Normalized duration: ≤4h = 3.5h, >4h = 7h
+      return total + (durationInHours <= 4 ? 3.5 : 7);
+    }, 0);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -321,6 +339,12 @@ const FormationDetail = () => {
                   <UserIcon className="h-3.5 w-3.5" />
                   {training.trainer_name}
                 </Badge>
+                {schedules.length > 0 && (
+                  <Badge variant="outline" className="flex items-center gap-1.5">
+                    <Clock className="h-3.5 w-3.5" />
+                    {calculateTotalDuration()}h
+                  </Badge>
+                )}
               </div>
 
               {/* Sponsor */}
