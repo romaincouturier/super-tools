@@ -23,3 +23,9 @@ verify_jwt = false
 
 [functions.generate-attendance-pdf]
 verify_jwt = false
+
+[functions.check-login-attempt]
+verify_jwt = false
+
+[functions.log-login-attempt]
+verify_jwt = false
