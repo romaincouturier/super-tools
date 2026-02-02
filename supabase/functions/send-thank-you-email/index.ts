@@ -412,27 +412,32 @@ serve(async (req) => {
       }
     });
     
-    // Helper function to adjust date to next working day (forward direction for post-formation emails)
-    const adjustToWorkingDay = (date: Date): Date => {
-      const result = new Date(date);
-      const maxIterations = 7; // Prevent infinite loop
+    // Helper function to add N working days to a date
+    const addWorkingDays = (startDate: Date, numDays: number): Date => {
+      const result = new Date(startDate);
+      let daysAdded = 0;
+      const maxIterations = numDays * 3; // Safety limit
       let iterations = 0;
       
-      while (!workingDays[result.getDay()] && iterations < maxIterations) {
+      while (daysAdded < numDays && iterations < maxIterations) {
         result.setDate(result.getDate() + 1);
         iterations++;
+        // Check if this day is a working day
+        if (workingDays[result.getDay()]) {
+          daysAdded++;
+        }
       }
       
       return result;
     };
     
-    // Calculate end date (use end_date if available, otherwise start_date)
-    const endDate = training.end_date ? new Date(training.end_date) : new Date(training.start_date);
+    // Reference date is NOW (when thank you email is sent), not training end date
+    const referenceDate = new Date();
     
     // Schedule follow-up emails for each participant
     const emailsToSchedule: {
       training_id: string;
-      participant_id: string;
+      participant_id: string | null;
       email_type: string;
       scheduled_for: string;
       status: string;
@@ -445,51 +450,52 @@ serve(async (req) => {
         .select("email_type")
         .eq("training_id", trainingId)
         .eq("participant_id", participant.id)
-        .in("email_type", ["google_review", "video_testimonial", "cold_evaluation"]);
+        .in("email_type", ["google_review", "video_testimonial"]);
       
       const existingTypes = new Set(existingEmails?.map(e => e.email_type) || []);
       
-      // Schedule google_review
+      // Schedule google_review (J+N working days)
       if (!existingTypes.has("google_review")) {
-        const googleReviewDate = new Date(endDate);
-        googleReviewDate.setDate(googleReviewDate.getDate() + delayGoogleReview);
-        const adjustedGoogleReviewDate = adjustToWorkingDay(googleReviewDate);
+        const googleReviewDate = addWorkingDays(referenceDate, delayGoogleReview);
         emailsToSchedule.push({
           training_id: trainingId,
           participant_id: participant.id,
           email_type: "google_review",
-          scheduled_for: adjustedGoogleReviewDate.toISOString(),
+          scheduled_for: googleReviewDate.toISOString(),
           status: "pending",
         });
       }
       
-      // Schedule video_testimonial
+      // Schedule video_testimonial (J+N working days)
       if (!existingTypes.has("video_testimonial")) {
-        const videoTestimonialDate = new Date(endDate);
-        videoTestimonialDate.setDate(videoTestimonialDate.getDate() + delayVideoTestimonial);
-        const adjustedVideoTestimonialDate = adjustToWorkingDay(videoTestimonialDate);
+        const videoTestimonialDate = addWorkingDays(referenceDate, delayVideoTestimonial);
         emailsToSchedule.push({
           training_id: trainingId,
           participant_id: participant.id,
           email_type: "video_testimonial",
-          scheduled_for: adjustedVideoTestimonialDate.toISOString(),
+          scheduled_for: videoTestimonialDate.toISOString(),
           status: "pending",
         });
       }
-      
-      // Schedule cold_evaluation
-      if (!existingTypes.has("cold_evaluation")) {
-        const coldEvaluationDate = new Date(endDate);
-        coldEvaluationDate.setDate(coldEvaluationDate.getDate() + delayColdEvaluation);
-        const adjustedColdEvaluationDate = adjustToWorkingDay(coldEvaluationDate);
-        emailsToSchedule.push({
-          training_id: trainingId,
-          participant_id: participant.id,
-          email_type: "cold_evaluation",
-          scheduled_for: adjustedColdEvaluationDate.toISOString(),
-          status: "pending",
-        });
-      }
+    }
+    
+    // Schedule cold_evaluation for the sponsor (commanditaire) - only once, not per participant
+    const { data: existingColdEval } = await supabase
+      .from("scheduled_emails")
+      .select("id")
+      .eq("training_id", trainingId)
+      .eq("email_type", "cold_evaluation")
+      .single();
+    
+    if (!existingColdEval) {
+      const coldEvaluationDate = addWorkingDays(referenceDate, delayColdEvaluation);
+      emailsToSchedule.push({
+        training_id: trainingId,
+        participant_id: null, // For sponsor, not a specific participant
+        email_type: "cold_evaluation",
+        scheduled_for: coldEvaluationDate.toISOString(),
+        status: "pending",
+      });
     }
     
     // Insert scheduled emails
@@ -516,9 +522,7 @@ serve(async (req) => {
         .single();
       
       if (!existingFunderReminder) {
-        const funderReminderDate = new Date(endDate);
-        funderReminderDate.setDate(funderReminderDate.getDate() + delayColdEvaluationFunder);
-        const adjustedFunderReminderDate = adjustToWorkingDay(funderReminderDate);
+        const funderReminderDate = addWorkingDays(referenceDate, delayColdEvaluationFunder);
         
         const { error: funderScheduleError } = await supabase
           .from("scheduled_emails")
@@ -526,7 +530,7 @@ serve(async (req) => {
             training_id: trainingId,
             participant_id: null, // No participant - this is for the trainer
             email_type: "funder_reminder",
-            scheduled_for: adjustedFunderReminderDate.toISOString(),
+            scheduled_for: funderReminderDate.toISOString(),
             status: "pending",
           });
         
