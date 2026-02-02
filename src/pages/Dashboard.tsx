@@ -2,10 +2,8 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
-import { Loader2, Award, FileText, Calendar, ClipboardCheck, TrendingUp, Star, History, Settings } from "lucide-react";
-import SupertiltLogo from "@/components/SupertiltLogo";
-import UserMenu from "@/components/UserMenu";
-import OnboardCollaboratorDialog from "@/components/OnboardCollaboratorDialog";
+import { Loader2, Award, FileText, Calendar, ClipboardCheck, TrendingUp, Star, History } from "lucide-react";
+import AppHeader from "@/components/AppHeader";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import WeeklyChart from "@/components/dashboard/WeeklyChart";
 import StatCard from "@/components/dashboard/StatCard";
@@ -134,26 +132,7 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="bg-foreground text-background py-4 px-6 shadow-lg">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <SupertiltLogo className="h-10" invert />
-            <span className="text-xl font-bold">SuperTools</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <OnboardCollaboratorDialog userEmail={user?.email} />
-            <button
-              onClick={() => navigate("/parametres")}
-              className="p-2 rounded-lg hover:bg-background/10 transition-colors"
-              title="Paramètres"
-            >
-              <Settings className="w-5 h-5" />
-            </button>
-            {user && <UserMenu user={user} onLogout={handleLogout} />}
-          </div>
-        </div>
-      </header>
+      <AppHeader user={user} onLogout={handleLogout} showOnboarding />
 
       {/* Main content */}
       <main className="max-w-7xl mx-auto p-6 space-y-8">

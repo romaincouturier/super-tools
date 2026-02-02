@@ -13,8 +13,7 @@ import {
   MoreVertical,
   Plus,
 } from "lucide-react";
-import SupertiltLogo from "@/components/SupertiltLogo";
-import UserMenu from "@/components/UserMenu";
+import AppHeader from "@/components/AppHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -318,16 +317,7 @@ const Ameliorations = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="bg-foreground text-background py-4 px-6 shadow-lg">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <SupertiltLogo className="h-10" invert />
-            <span className="text-xl font-bold">SuperTools</span>
-          </div>
-          {user && <UserMenu user={user} onLogout={handleLogout} />}
-        </div>
-      </header>
+      <AppHeader user={user} onLogout={handleLogout} />
 
       {/* Main content */}
       <main className="max-w-6xl mx-auto p-6">
