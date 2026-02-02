@@ -516,23 +516,55 @@ serve(async (req) => {
       }
     }
     
-    // Schedule cold_evaluation for the sponsor (commanditaire) - only once, not per participant
-    const { data: existingColdEval } = await supabase
-      .from("scheduled_emails")
-      .select("id")
-      .eq("training_id", trainingId)
-      .eq("email_type", "cold_evaluation")
-      .single();
+    // For inter-enterprise trainings, schedule cold_evaluation per participant with a sponsor
+    // For intra-enterprise trainings, schedule cold_evaluation once for the training sponsor
+    const isInterEntreprise = training.format_formation === "inter-entreprises";
     
-    if (!existingColdEval) {
-      const coldEvaluationDate = addWorkingDays(referenceDate, delayColdEvaluation);
-      emailsToSchedule.push({
-        training_id: trainingId,
-        participant_id: null, // For sponsor, not a specific participant
-        email_type: "cold_evaluation",
-        scheduled_for: coldEvaluationDate.toISOString(),
-        status: "pending",
-      });
+    if (isInterEntreprise) {
+      // Inter-enterprise: schedule per participant with sponsor_email
+      for (const participant of participants) {
+        if (participant.sponsor_email) {
+          // Check if cold_evaluation already scheduled for this participant
+          const { data: existingColdEval } = await supabase
+            .from("scheduled_emails")
+            .select("id")
+            .eq("training_id", trainingId)
+            .eq("participant_id", participant.id)
+            .eq("email_type", "cold_evaluation")
+            .single();
+          
+          if (!existingColdEval) {
+            const coldEvaluationDate = addWorkingDays(referenceDate, delayColdEvaluation);
+            emailsToSchedule.push({
+              training_id: trainingId,
+              participant_id: participant.id,
+              email_type: "cold_evaluation",
+              scheduled_for: coldEvaluationDate.toISOString(),
+              status: "pending",
+            });
+          }
+        }
+      }
+    } else {
+      // Intra-enterprise: schedule once for the training sponsor (commanditaire)
+      const { data: existingColdEval } = await supabase
+        .from("scheduled_emails")
+        .select("id")
+        .eq("training_id", trainingId)
+        .eq("email_type", "cold_evaluation")
+        .eq("participant_id", null)
+        .single();
+      
+      if (!existingColdEval) {
+        const coldEvaluationDate = addWorkingDays(referenceDate, delayColdEvaluation);
+        emailsToSchedule.push({
+          training_id: trainingId,
+          participant_id: null, // For training-level sponsor
+          email_type: "cold_evaluation",
+          scheduled_for: coldEvaluationDate.toISOString(),
+          status: "pending",
+        });
+      }
     }
     
     // Insert scheduled emails

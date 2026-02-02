@@ -317,14 +317,13 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="sponsorEmail">Email du commanditaire *</Label>
+                  <Label htmlFor="sponsorEmail">Email du commanditaire</Label>
                   <Input
                     id="sponsorEmail"
                     type="email"
                     value={sponsorEmail}
                     onChange={(e) => setSponsorEmail(e.target.value)}
                     placeholder="marie.martin@example.com"
-                    required={isInterEntreprise}
                   />
                 </div>
               </>
