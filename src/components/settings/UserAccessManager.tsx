@@ -45,14 +45,18 @@ export default function UserAccessManager() {
 
       if (accessError) throw accessError;
 
-      // Get profiles for emails
+      // Get profiles for names
       const { data: profilesData } = await supabase
         .from("profiles")
-        .select("user_id, email, display_name");
+        .select("user_id, email, display_name, first_name, last_name");
 
-      const profileMap = new Map<string, { email: string; display_name: string | null }>();
-      profilesData?.forEach((p) => {
-        profileMap.set(p.user_id, { email: p.email, display_name: p.display_name });
+      const profileMap = new Map<string, { email: string; first_name: string | null; last_name: string | null }>();
+      profilesData?.forEach((p: any) => {
+        profileMap.set(p.user_id, { 
+          email: p.email, 
+          first_name: p.first_name,
+          last_name: p.last_name 
+        });
       });
 
       // Group by user
@@ -68,9 +72,12 @@ export default function UserAccessManager() {
       userMap.forEach((modules, userId) => {
         if (currentUser?.id !== userId) {
           const profile = profileMap.get(userId);
+          const displayName = profile?.first_name && profile?.last_name 
+            ? `${profile.first_name} ${profile.last_name}`
+            : profile?.email || `Utilisateur ${userId.slice(0, 8)}...`;
           userList.push({
             id: userId,
-            email: profile?.display_name || profile?.email || `Utilisateur ${userId.slice(0, 8)}...`,
+            email: displayName,
             modules,
           });
         }
@@ -178,29 +185,30 @@ export default function UserAccessManager() {
             </p>
           </div>
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-4">
             {users.map((user) => (
-              <div key={user.id} className="border rounded-lg p-4 space-y-4">
-                <div className="font-medium">{user.email}</div>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              <div key={user.id} className="border rounded-lg p-4">
+                <div className="font-medium mb-3">{user.email}</div>
+                <div className="flex flex-wrap gap-x-6 gap-y-2">
                   {ALL_MODULES.map((module) => {
                     const hasAccess = user.modules.includes(module);
                     const isUpdating = updating === `${user.id}-${module}`;
                     
                     return (
-                      <div key={module} className="flex items-center justify-between gap-2">
-                        <Label
-                          htmlFor={`${user.id}-${module}`}
-                          className="text-sm cursor-pointer"
-                        >
-                          {MODULE_LABELS[module]}
-                        </Label>
+                      <div key={module} className="flex items-center gap-2">
                         <Switch
                           id={`${user.id}-${module}`}
                           checked={hasAccess}
                           onCheckedChange={() => toggleModuleAccess(user.id, module, hasAccess)}
                           disabled={isUpdating}
+                          className="scale-90"
                         />
+                        <Label
+                          htmlFor={`${user.id}-${module}`}
+                          className="text-sm cursor-pointer whitespace-nowrap"
+                        >
+                          {MODULE_LABELS[module]}
+                        </Label>
                       </div>
                     );
                   })}
