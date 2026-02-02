@@ -18,6 +18,7 @@ const MODULE_LABELS: Record<string, string> = {
   ameliorations: "Améliorations",
   historique: "Historique",
   contenu: "Contenu",
+  besoins: "Besoins participants",
 };
 
 // Generate a strong temporary password
@@ -176,7 +177,10 @@ serve(async (req: Request) => {
         subject: "Bienvenue sur SuperTools - Vos identifiants de connexion",
         html: `
           <h1>Bienvenue sur SuperTools !</h1>
-          <p>Votre compte a été créé. Voici vos identifiants de connexion :</p>
+          <p>SuperTools est l'outil interne de Supertilt pour gérer les formations, évaluations et contenus marketing.</p>
+          <p><strong>Accès à l'application :</strong> <a href="${APP_URL}" style="color: #e6bc00;">${APP_URL}</a></p>
+          
+          <h2>Vos identifiants de connexion</h2>
           <p><strong>Email :</strong> ${email}</p>
           <p><strong>Mot de passe temporaire :</strong> <code style="background: #f0f0f0; padding: 4px 8px; border-radius: 4px;">${tempPassword}</code></p>
           <p style="color: #e74c3c;"><strong>Important :</strong> Vous devrez changer ce mot de passe lors de votre première connexion.</p>
@@ -185,8 +189,8 @@ serve(async (req: Request) => {
           <p>Vous avez accès aux modules suivants :</p>
           <ul>${moduleListHtml}</ul>
           
-          <p>
-            <a href="${APP_URL}/auth" style="display: inline-block; background-color: #e6bc00; color: #101820; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 600; margin: 16px 0;">
+          <p style="margin: 24px 0;">
+            <a href="${APP_URL}/auth" style="display: inline-block; background-color: #e6bc00; color: #101820; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 600;">
               Se connecter à SuperTools
             </a>
           </p>
