@@ -9,7 +9,8 @@ export type AppModule =
   | "ameliorations"
   | "historique"
   | "contenu"
-  | "besoins";
+  | "besoins"
+  | "parametres";
 
 const ALL_MODULES: AppModule[] = [
   "micro_devis",
@@ -20,6 +21,7 @@ const ALL_MODULES: AppModule[] = [
   "historique",
   "contenu",
   "besoins",
+  "parametres",
 ];
 
 export const MODULE_LABELS: Record<AppModule, string> = {
@@ -31,6 +33,7 @@ export const MODULE_LABELS: Record<AppModule, string> = {
   historique: "Historique",
   contenu: "Contenu",
   besoins: "Besoins participants",
+  parametres: "Paramètres généraux",
 };
 
 export function useModuleAccess() {

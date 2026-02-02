@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
-import { Loader2, ArrowLeft, Calendar, Save } from "lucide-react";
+import { Loader2, ArrowLeft, Calendar, Save, ExternalLink } from "lucide-react";
 import { format, eachDayOfInterval, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import AppHeader from "@/components/AppHeader";
@@ -64,6 +64,9 @@ const FormationEdit = () => {
 
   // Track if data has been loaded (to prevent schedule regeneration)
   const [dataLoaded, setDataLoaded] = useState(false);
+  
+  // SuperTilt site URL from settings
+  const [supertiltSiteUrl, setSupertiltSiteUrl] = useState<string>("");
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -146,6 +149,17 @@ const FormationEdit = () => {
       }
 
       setDataLoaded(true);
+      
+      // Fetch SuperTilt site URL from settings
+      const { data: settingData } = await supabase
+        .from("app_settings")
+        .select("setting_value")
+        .eq("setting_key", "supertilt_site_url")
+        .maybeSingle();
+      if (settingData?.setting_value) {
+        setSupertiltSiteUrl(settingData.setting_value);
+      }
+      
       setLoading(false);
     } catch (error: any) {
       console.error("Error fetching training:", error);
@@ -499,7 +513,20 @@ const FormationEdit = () => {
 
                   {/* SuperTilt Link */}
                   <div className="space-y-2">
-                    <Label htmlFor="supertiltLink">Lien SuperTilt de la formation</Label>
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="supertiltLink">Lien SuperTilt de la formation</Label>
+                      {supertiltSiteUrl && (
+                        <a
+                          href={supertiltSiteUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-muted-foreground hover:text-primary transition-colors"
+                          title="Ouvrir le site SuperTilt"
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                        </a>
+                      )}
+                    </div>
                     <Input
                       id="supertiltLink"
                       type="url"

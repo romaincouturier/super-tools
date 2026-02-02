@@ -23,6 +23,7 @@ import {
 import UserAccessManager from "@/components/settings/UserAccessManager";
 import BackupManager from "@/components/settings/BackupManager";
 import GoogleDriveConnect from "@/components/GoogleDriveConnect";
+import { useModuleAccess } from "@/hooks/useModuleAccess";
 
 interface EmailTemplate {
   id: string;
@@ -486,6 +487,7 @@ const Parametres = () => {
   const [bccEnabled, setBccEnabled] = useState(true);
   const [bccEmail, setBccEmail] = useState("romain@supertilt.fr");
   const [googleMyBusinessUrl, setGoogleMyBusinessUrl] = useState("https://g.page/r/CWJ0W_P6C-BJEAE/review");
+  const [supertiltSiteUrl, setSupertiltSiteUrl] = useState("https://supertilt.fr");
   const [savingSettings, setSavingSettings] = useState(false);
   
   // Working days configuration (Monday to Friday by default)
@@ -505,6 +507,9 @@ const Parametres = () => {
   
   // Check if user is admin
   const isAdmin = user?.email?.toLowerCase() === "romain@supertilt.fr";
+  
+  // Module access check
+  const { hasAccess, loading: accessLoading } = useModuleAccess();
   
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -541,7 +546,7 @@ const Parametres = () => {
       .from("app_settings")
       .select("setting_key, setting_value")
       .in("setting_key", [
-        "bcc_email", "bcc_enabled", "working_days", "google_my_business_url",
+        "bcc_email", "bcc_enabled", "working_days", "google_my_business_url", "supertilt_site_url",
         "delay_needs_survey_days", "delay_reminder_days", "delay_trainer_summary_days",
         "delay_google_review_days", "delay_video_testimonial_days", 
         "delay_cold_evaluation_days", "delay_cold_evaluation_funder_days",
@@ -563,6 +568,9 @@ const Parametres = () => {
           break;
         case "google_my_business_url":
           setGoogleMyBusinessUrl(setting.setting_value || "https://g.page/r/CWJ0W_P6C-BJEAE/review");
+          break;
+        case "supertilt_site_url":
+          setSupertiltSiteUrl(setting.setting_value || "https://supertilt.fr");
           break;
         case "working_days":
           try {
@@ -612,6 +620,7 @@ const Parametres = () => {
         { setting_key: "bcc_email", setting_value: bccEmail, description: "Adresse email en copie cachée (BCC) pour tous les envois" },
         { setting_key: "bcc_enabled", setting_value: bccEnabled.toString(), description: "Activer ou désactiver l'envoi en copie cachée (BCC)" },
         { setting_key: "google_my_business_url", setting_value: googleMyBusinessUrl, description: "URL de la fiche Google My Business pour les demandes d'avis" },
+        { setting_key: "supertilt_site_url", setting_value: supertiltSiteUrl, description: "URL du site SuperTilt pour les liens formations" },
         { setting_key: "working_days", setting_value: JSON.stringify(workingDays), description: "Jours ouvrables pour l'envoi des emails (tableau de 7 booléens : dim, lun, mar, mer, jeu, ven, sam)" },
         { setting_key: "delay_needs_survey_days", setting_value: delayNeedsSurvey, description: "Délai avant formation pour envoyer le questionnaire de besoins (en jours)" },
         { setting_key: "delay_reminder_days", setting_value: delayReminder, description: "Délai avant formation pour envoyer le rappel logistique (en jours)" },
@@ -951,10 +960,48 @@ const Parametres = () => {
     </>
   );
 
-  if (loading) {
+  if (loading || accessLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // Check access to parametres module (admins always have access)
+  if (!isAdmin && !hasAccess("parametres")) {
+    return (
+      <div className="min-h-screen bg-background">
+        <AppHeader user={user} onLogout={handleLogout} />
+        <main className="max-w-6xl mx-auto p-6">
+          <div className="flex items-center gap-4 mb-6">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate("/")}
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <Settings className="h-6 w-6 text-primary" />
+              </div>
+              <h1 className="text-2xl font-bold">Paramètres</h1>
+            </div>
+          </div>
+          <Card>
+            <CardContent className="py-10 text-center">
+              <Shield className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <h2 className="text-xl font-semibold mb-2">Accès refusé</h2>
+              <p className="text-muted-foreground">
+                Vous n'avez pas les droits pour accéder aux paramètres généraux.
+              </p>
+              <Button className="mt-6" onClick={() => navigate("/")}>
+                Retour au tableau de bord
+              </Button>
+            </CardContent>
+          </Card>
+        </main>
       </div>
     );
   }
@@ -1073,6 +1120,38 @@ const Parametres = () => {
                     <p className="text-xs text-muted-foreground">
                       Utilisez la variable <code className="px-1 bg-muted rounded">{`{{google_review_link}}`}</code> dans vos templates d'emails.
                     </p>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* SuperTilt Site URL */}
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium">Site SuperTilt</h3>
+                  <p className="text-sm text-muted-foreground">
+                    URL du site SuperTilt. Ce lien sera accessible depuis les formulaires de création/édition de formation.
+                  </p>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="supertilt-site-url">URL du site</Label>
+                    <div className="flex gap-2 max-w-lg">
+                      <Input
+                        id="supertilt-site-url"
+                        type="url"
+                        value={supertiltSiteUrl}
+                        onChange={(e) => setSupertiltSiteUrl(e.target.value)}
+                        placeholder="https://supertilt.fr"
+                      />
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => supertiltSiteUrl && window.open(supertiltSiteUrl, "_blank")}
+                        disabled={!supertiltSiteUrl}
+                        title="Ouvrir le site"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
 
