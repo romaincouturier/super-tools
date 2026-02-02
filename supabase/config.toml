@@ -29,3 +29,12 @@ verify_jwt = false
 
 [functions.log-login-attempt]
 verify_jwt = false
+
+[functions.ai-content-assist]
+verify_jwt = false
+
+[functions.search-content-ideas]
+verify_jwt = false
+
+[functions.send-content-notification]
+verify_jwt = false

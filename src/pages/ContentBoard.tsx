@@ -5,7 +5,10 @@ import { User } from "@supabase/supabase-js";
 import { Loader2, ArrowLeft, Newspaper } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import KanbanBoard from "@/components/content/KanbanBoard";
+import ContentDashboard from "@/components/content/ContentDashboard";
+import AiIdeasSearch from "@/components/content/AiIdeasSearch";
+import NotificationBell from "@/components/content/NotificationBell";
 
 const ContentBoard = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -43,6 +46,11 @@ const ContentBoard = () => {
     navigate("/auth");
   };
 
+  const handleSelectCard = (cardId: string) => {
+    // Scroll to card or open dialog - for now just log
+    console.log("Selected card:", cardId);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -52,48 +60,35 @@ const ContentBoard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <AppHeader user={user} onLogout={handleLogout} />
 
-      <main className="max-w-7xl mx-auto p-6">
-        <div className="flex items-center gap-4 mb-6">
-          <Button variant="outline" size="icon" onClick={() => navigate("/")}>
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div className="flex items-center gap-3">
-            <Newspaper className="h-8 w-8 text-primary" />
-            <div>
-              <h1 className="text-2xl font-bold">Gestion du contenu</h1>
-              <p className="text-muted-foreground">
-                Tableau Kanban pour le marketing de contenu
-              </p>
+      <main className="flex-1 max-w-full mx-auto p-6 overflow-hidden">
+        <div className="flex items-center justify-between gap-4 mb-6">
+          <div className="flex items-center gap-4">
+            <Button variant="outline" size="icon" onClick={() => navigate("/")}>
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <div className="flex items-center gap-3">
+              <Newspaper className="h-8 w-8 text-primary" />
+              <div>
+                <h1 className="text-2xl font-bold">Gestion du contenu</h1>
+                <p className="text-muted-foreground">
+                  Tableau Kanban pour le marketing de contenu
+                </p>
+              </div>
             </div>
           </div>
+          <NotificationBell />
         </div>
 
-        <Card className="border-dashed">
-          <CardHeader className="text-center">
-            <CardTitle className="text-xl">Module en cours de développement</CardTitle>
-            <CardDescription>
-              Le tableau Kanban de gestion de contenu sera bientôt disponible.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col items-center gap-4 py-8">
-            <div className="p-6 rounded-full bg-primary/10">
-              <Newspaper className="h-16 w-16 text-primary" />
-            </div>
-            <div className="text-center max-w-md space-y-2">
-              <p className="text-muted-foreground">
-                Ce module permettra de gérer le marketing de contenu avec un tableau Kanban,
-                un système de relecture collaborative et une assistance par IA.
-              </p>
-              <p className="text-sm text-muted-foreground">
-                Fonctionnalités prévues : colonnes personnalisables, cartes de contenu avec images,
-                demandes de relecture, commentaires, recherche IA dans les idées, et reformulation automatique.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+        <ContentDashboard />
+
+        <div className="mb-6">
+          <AiIdeasSearch onSelectCard={handleSelectCard} />
+        </div>
+
+        <KanbanBoard />
       </main>
     </div>
   );

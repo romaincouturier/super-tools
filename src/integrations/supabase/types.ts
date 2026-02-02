@@ -41,6 +41,30 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_brand_settings: {
+        Row: {
+          content: string
+          id: string
+          setting_type: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          content?: string
+          id?: string
+          setting_type: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          content?: string
+          id?: string
+          setting_type?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       app_settings: {
         Row: {
           created_at: string
@@ -127,6 +151,151 @@ export type Database = {
             columns: ["training_id"]
             isOneToOne: false
             referencedRelation: "trainings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      content_cards: {
+        Row: {
+          column_id: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          display_order: number
+          id: string
+          image_url: string | null
+          tags: Json | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          column_id: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          display_order?: number
+          id?: string
+          image_url?: string | null
+          tags?: Json | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          column_id?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          display_order?: number
+          id?: string
+          image_url?: string | null
+          tags?: Json | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_cards_column_id_fkey"
+            columns: ["column_id"]
+            isOneToOne: false
+            referencedRelation: "content_columns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      content_columns: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          display_order: number
+          id: string
+          is_system: boolean
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          display_order?: number
+          id?: string
+          is_system?: boolean
+          name: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          display_order?: number
+          id?: string
+          is_system?: boolean
+          name?: string
+        }
+        Relationships: []
+      }
+      content_notifications: {
+        Row: {
+          created_at: string
+          id: string
+          message: string
+          read_at: string | null
+          reference_id: string
+          type: Database["public"]["Enums"]["notification_type"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message: string
+          read_at?: string | null
+          reference_id: string
+          type: Database["public"]["Enums"]["notification_type"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string
+          read_at?: string | null
+          reference_id?: string
+          type?: Database["public"]["Enums"]["notification_type"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      content_reviews: {
+        Row: {
+          card_id: string
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          external_url: string | null
+          id: string
+          reviewer_id: string
+          status: Database["public"]["Enums"]["review_status"]
+        }
+        Insert: {
+          card_id: string
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          external_url?: string | null
+          id?: string
+          reviewer_id: string
+          status?: Database["public"]["Enums"]["review_status"]
+        }
+        Update: {
+          card_id?: string
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          external_url?: string | null
+          id?: string
+          reviewer_id?: string
+          status?: Database["public"]["Enums"]["review_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_reviews_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: false
+            referencedRelation: "content_cards"
             referencedColumns: ["id"]
           },
         ]
@@ -560,6 +729,48 @@ export type Database = {
           },
         ]
       }
+      review_comments: {
+        Row: {
+          author_id: string
+          content: string
+          created_at: string
+          id: string
+          parent_comment_id: string | null
+          review_id: string
+        }
+        Insert: {
+          author_id: string
+          content: string
+          created_at?: string
+          id?: string
+          parent_comment_id?: string | null
+          review_id: string
+        }
+        Update: {
+          author_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          parent_comment_id?: string | null
+          review_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "review_comments_parent_comment_id_fkey"
+            columns: ["parent_comment_id"]
+            isOneToOne: false
+            referencedRelation: "review_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "review_comments_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: false
+            referencedRelation: "content_reviews"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       scheduled_emails: {
         Row: {
           created_at: string
@@ -964,6 +1175,11 @@ export type Database = {
         | "ameliorations"
         | "historique"
         | "contenu"
+      notification_type:
+        | "review_requested"
+        | "comment_added"
+        | "review_status_changed"
+      review_status: "pending" | "in_review" | "approved" | "changes_requested"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1100,6 +1316,12 @@ export const Constants = {
         "historique",
         "contenu",
       ],
+      notification_type: [
+        "review_requested",
+        "comment_added",
+        "review_status_changed",
+      ],
+      review_status: ["pending", "in_review", "approved", "changes_requested"],
     },
   },
 } as const
