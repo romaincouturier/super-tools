@@ -20,16 +20,17 @@ import { useToast } from "@/hooks/use-toast";
 interface AddParticipantDialogProps {
   trainingId: string;
   trainingStartDate?: string;
+  clientName?: string;
   onParticipantAdded: () => void;
 }
 
-const AddParticipantDialog = ({ trainingId, trainingStartDate, onParticipantAdded }: AddParticipantDialogProps) => {
+const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, onParticipantAdded }: AddParticipantDialogProps) => {
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
-  const [company, setCompany] = useState("");
+  const [company, setCompany] = useState(clientName || "");
   const [isManualMode, setIsManualMode] = useState(false);
   const { toast } = useToast();
 
@@ -77,7 +78,7 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, onParticipantAdde
     setFirstName("");
     setLastName("");
     setEmail("");
-    setCompany("");
+    setCompany(clientName || "");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
