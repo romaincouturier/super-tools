@@ -872,6 +872,7 @@ export type Database = {
           id: string
           is_default: boolean | null
           last_name: string
+          linkedin_url: string | null
           phone: string | null
           photo_url: string | null
           updated_at: string
@@ -883,6 +884,7 @@ export type Database = {
           id?: string
           is_default?: boolean | null
           last_name: string
+          linkedin_url?: string | null
           phone?: string | null
           photo_url?: string | null
           updated_at?: string
@@ -894,6 +896,7 @@ export type Database = {
           id?: string
           is_default?: boolean | null
           last_name?: string
+          linkedin_url?: string | null
           phone?: string | null
           photo_url?: string | null
           updated_at?: string

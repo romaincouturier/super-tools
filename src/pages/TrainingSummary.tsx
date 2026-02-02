@@ -8,18 +8,28 @@ import {
   Calendar,
   Clock,
   Navigation,
-  CalendarPlus,
   FileText,
   User,
   Mail,
   Phone,
   Loader2,
   ExternalLink,
+  Target,
+  CheckCircle2,
+  ChevronDown,
+  Linkedin,
+  MessageCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import SupertiltLogo from "@/components/SupertiltLogo";
 
 interface Training {
@@ -30,6 +40,8 @@ interface Training {
   location: string;
   program_file_url: string | null;
   trainer_id: string | null;
+  objectives: string[] | null;
+  prerequisites: string[] | null;
 }
 
 interface Schedule {
@@ -46,6 +58,7 @@ interface Trainer {
   email: string;
   phone: string | null;
   photo_url: string | null;
+  linkedin_url: string | null;
 }
 
 const TrainingSummary = () => {
@@ -67,7 +80,7 @@ const TrainingSummary = () => {
       // Fetch training
       const { data: trainingData, error: trainingError } = await supabase
         .from("trainings")
-        .select("id, training_name, start_date, end_date, location, program_file_url, trainer_id")
+        .select("id, training_name, start_date, end_date, location, program_file_url, trainer_id, objectives, prerequisites")
         .eq("id", trainingId)
         .single();
 
@@ -126,6 +139,29 @@ const TrainingSummary = () => {
     return `https://www.google.com/maps/dir/?api=1&destination=${address}`;
   };
 
+  // Generate calendar event data
+  const getCalendarEventData = () => {
+    if (!training || schedules.length === 0) return null;
+
+    const firstSchedule = schedules[0];
+    const lastSchedule = schedules[schedules.length - 1];
+    
+    const startDate = firstSchedule.day_date.replace(/-/g, "");
+    const startTime = firstSchedule.start_time.replace(/:/g, "").substring(0, 4) + "00";
+    const endDate = lastSchedule.day_date.replace(/-/g, "");
+    const endTime = lastSchedule.end_time.replace(/:/g, "").substring(0, 4) + "00";
+
+    const description = `Formation ${training.training_name}${trainer ? ` - Formateur: ${trainer.first_name} ${trainer.last_name}` : ""}`;
+
+    return {
+      title: training.training_name,
+      description,
+      location: training.location,
+      startDateTime: `${startDate}T${startTime}`,
+      endDateTime: `${endDate}T${endTime}`,
+    };
+  };
+
   const generateIcsContent = () => {
     if (!training || schedules.length === 0) return "";
 
@@ -152,7 +188,7 @@ ${events.join("\n")}
 END:VCALENDAR`;
   };
 
-  const handleAddToCalendar = () => {
+  const handleAddToAppleCalendar = () => {
     const icsContent = generateIcsContent();
     const blob = new Blob([icsContent], { type: "text/calendar;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -163,6 +199,55 @@ END:VCALENDAR`;
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
+  };
+
+  const handleAddToGoogleCalendar = () => {
+    const eventData = getCalendarEventData();
+    if (!eventData) return;
+
+    const url = new URL("https://www.google.com/calendar/render");
+    url.searchParams.set("action", "TEMPLATE");
+    url.searchParams.set("text", eventData.title);
+    url.searchParams.set("dates", `${eventData.startDateTime}/${eventData.endDateTime}`);
+    url.searchParams.set("details", eventData.description);
+    url.searchParams.set("location", eventData.location);
+    
+    window.open(url.toString(), "_blank");
+  };
+
+  const handleAddToOutlook = () => {
+    const eventData = getCalendarEventData();
+    if (!eventData) return;
+
+    const url = new URL("https://outlook.live.com/calendar/0/deeplink/compose");
+    url.searchParams.set("subject", eventData.title);
+    url.searchParams.set("body", eventData.description);
+    url.searchParams.set("location", eventData.location);
+    url.searchParams.set("startdt", `${schedules[0].day_date}T${schedules[0].start_time}`);
+    url.searchParams.set("enddt", `${schedules[schedules.length - 1].day_date}T${schedules[schedules.length - 1].end_time}`);
+    
+    window.open(url.toString(), "_blank");
+  };
+
+  const handleAddToYahoo = () => {
+    const eventData = getCalendarEventData();
+    if (!eventData) return;
+
+    const url = new URL("https://calendar.yahoo.com/");
+    url.searchParams.set("v", "60");
+    url.searchParams.set("title", eventData.title);
+    url.searchParams.set("st", eventData.startDateTime);
+    url.searchParams.set("et", eventData.endDateTime);
+    url.searchParams.set("desc", eventData.description);
+    url.searchParams.set("in_loc", eventData.location);
+    
+    window.open(url.toString(), "_blank");
+  };
+
+  const getWhatsAppUrl = (phone: string) => {
+    // Clean phone number and format for WhatsApp
+    const cleanPhone = phone.replace(/\s+/g, "").replace(/^0/, "33");
+    return `https://wa.me/${cleanPhone}`;
   };
 
   const getInitials = (firstName: string, lastName: string) => {
@@ -209,6 +294,74 @@ END:VCALENDAR`;
           </p>
         </div>
 
+        {/* Program - FIRST */}
+        {training.program_file_url && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5 text-primary" />
+                Programme de formation
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Button variant="outline" asChild>
+                <a
+                  href={training.program_file_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Consulter le programme
+                </a>
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Objectives */}
+        {training.objectives && training.objectives.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Target className="h-5 w-5 text-primary" />
+                Objectifs de la formation
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-2">
+                {training.objectives.map((objective, index) => (
+                  <li key={index} className="flex items-start gap-2">
+                    <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5 shrink-0" />
+                    <span>{objective}</span>
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Prerequisites */}
+        {training.prerequisites && training.prerequisites.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CheckCircle2 className="h-5 w-5 text-primary" />
+                Prérequis
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-2">
+                {training.prerequisites.map((prerequisite, index) => (
+                  <li key={index} className="flex items-start gap-2">
+                    <span className="text-primary font-medium">•</span>
+                    <span>{prerequisite}</span>
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Dates and Schedule */}
         <Card>
           <CardHeader>
@@ -243,10 +396,37 @@ END:VCALENDAR`;
               </p>
             )}
 
-            <Button onClick={handleAddToCalendar} className="mt-4 w-full sm:w-auto">
-              <CalendarPlus className="h-4 w-4 mr-2" />
-              Ajouter à mon agenda
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button className="mt-4 w-full sm:w-auto">
+                  <Calendar className="h-4 w-4 mr-2" />
+                  Ajouter à mon agenda
+                  <ChevronDown className="h-4 w-4 ml-2" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-56">
+                <DropdownMenuItem onClick={handleAddToGoogleCalendar}>
+                  <img src="https://www.google.com/favicon.ico" alt="Google" className="h-4 w-4 mr-2" />
+                  Google Calendar
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleAddToAppleCalendar}>
+                  <Calendar className="h-4 w-4 mr-2" />
+                  Apple Calendar (iCal)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleAddToOutlook}>
+                  <img src="https://outlook.live.com/favicon.ico" alt="Outlook" className="h-4 w-4 mr-2" />
+                  Outlook.com
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleAddToAppleCalendar}>
+                  <Calendar className="h-4 w-4 mr-2" />
+                  Outlook (Desktop)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleAddToYahoo}>
+                  <img src="https://www.yahoo.com/favicon.ico" alt="Yahoo" className="h-4 w-4 mr-2" />
+                  Yahoo Calendar
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </CardContent>
         </Card>
 
@@ -291,31 +471,7 @@ END:VCALENDAR`;
           </CardContent>
         </Card>
 
-        {/* Program */}
-        {training.program_file_url && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5 text-primary" />
-                Programme de formation
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Button variant="outline" asChild>
-                <a
-                  href={training.program_file_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  Consulter le programme
-                </a>
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Trainer Contact */}
+        {/* Trainer Contact - LAST */}
         {trainer && (
           <Card>
             <CardHeader>
@@ -332,27 +488,51 @@ END:VCALENDAR`;
                     {getInitials(trainer.first_name, trainer.last_name)}
                   </AvatarFallback>
                 </Avatar>
-                <div className="space-y-2">
+                <div className="flex-1 space-y-3">
                   <h3 className="text-xl font-semibold">
                     {trainer.first_name} {trainer.last_name}
                   </h3>
-                  <div className="space-y-1 text-muted-foreground">
-                    <a
-                      href={`mailto:${trainer.email}`}
-                      className="flex items-center gap-2 hover:text-primary transition-colors"
-                    >
-                      <Mail className="h-4 w-4" />
-                      {trainer.email}
-                    </a>
-                    {trainer.phone && (
-                      <a
-                        href={`tel:${trainer.phone}`}
-                        className="flex items-center gap-2 hover:text-primary transition-colors"
-                      >
-                        <Phone className="h-4 w-4" />
-                        {trainer.phone}
+                  
+                  {/* Contact buttons */}
+                  <div className="flex flex-wrap gap-2">
+                    <Button variant="outline" size="sm" asChild>
+                      <a href={`mailto:${trainer.email}`}>
+                        <Mail className="h-4 w-4 mr-2" />
+                        Email
                       </a>
+                    </Button>
+                    
+                    {trainer.phone && (
+                      <>
+                        <Button variant="outline" size="sm" asChild>
+                          <a href={`tel:${trainer.phone}`}>
+                            <Phone className="h-4 w-4 mr-2" />
+                            Téléphone
+                          </a>
+                        </Button>
+                        <Button variant="outline" size="sm" asChild>
+                          <a href={getWhatsAppUrl(trainer.phone)} target="_blank" rel="noopener noreferrer">
+                            <MessageCircle className="h-4 w-4 mr-2" />
+                            WhatsApp
+                          </a>
+                        </Button>
+                      </>
                     )}
+                    
+                    {trainer.linkedin_url && (
+                      <Button variant="outline" size="sm" asChild>
+                        <a href={trainer.linkedin_url} target="_blank" rel="noopener noreferrer">
+                          <Linkedin className="h-4 w-4 mr-2" />
+                          LinkedIn
+                        </a>
+                      </Button>
+                    )}
+                  </div>
+
+                  {/* Contact info details */}
+                  <div className="text-sm text-muted-foreground space-y-1">
+                    <p>{trainer.email}</p>
+                    {trainer.phone && <p>{trainer.phone}</p>}
                   </div>
                 </div>
               </div>
