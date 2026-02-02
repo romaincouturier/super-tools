@@ -221,7 +221,12 @@ serve(async (req) => {
     let htmlContent: string;
 
     if (template) {
-      subject = replaceVariables(template.subject, variables);
+      // Use template but ensure "Convocation" is in the subject
+      const templateSubject = replaceVariables(template.subject, variables);
+      // If subject doesn't already contain "Convocation", prepend it
+      subject = templateSubject.toLowerCase().includes('convocation') 
+        ? templateSubject 
+        : `Convocation - ${templateSubject}`;
       htmlContent = replaceVariables(template.html_content, variables) + signature;
     } else {
       // Fallback default content - warm welcome email with convocation mention
