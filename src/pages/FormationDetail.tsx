@@ -744,28 +744,12 @@ const FormationDetail = () => {
         {/* Row 3: Scheduled Actions + Attendance Signature */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           {/* Scheduled Actions Editor */}
-          <div className="space-y-4">
-            <ScheduledActionsEditor
-              actions={scheduledActions}
-              onActionsChange={setScheduledActions}
-            />
-            {scheduledActions.length > 0 && (
-              <Button
-                onClick={() => handleSaveActions(scheduledActions)}
-                disabled={savingActions}
-                className="w-full"
-              >
-                {savingActions ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Enregistrement...
-                  </>
-                ) : (
-                  "Enregistrer les actions"
-                )}
-              </Button>
-            )}
-          </div>
+          <ScheduledActionsEditor
+            actions={scheduledActions}
+            onActionsChange={setScheduledActions}
+            onSave={() => handleSaveActions(scheduledActions)}
+            saving={savingActions}
+          />
 
           {/* Attendance Signature */}
           <AttendanceSignatureBlock
