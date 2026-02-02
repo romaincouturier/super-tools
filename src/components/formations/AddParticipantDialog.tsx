@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Plus, Loader2, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { differenceInDays, parseISO } from "date-fns";
+import { differenceInDays, parseISO, format } from "date-fns";
 import {
   Dialog,
   DialogContent,
@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
+import { subtractWorkingDays, fetchWorkingDays, fetchNeedsSurveyDelay } from "@/lib/workingDays";
 
 interface AddParticipantDialogProps {
   trainingId: string;
@@ -136,6 +137,32 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, onPar
         } catch (emailError) {
           console.error("Failed to send welcome email:", emailError);
           // Don't fail the whole operation, just log the error
+        }
+      }
+
+      // If status is "programme", create a scheduled email for needs survey
+      if (status === "programme" && insertedParticipant && trainingStartDate) {
+        try {
+          const [workingDays, needsSurveyDelay] = await Promise.all([
+            fetchWorkingDays(supabase),
+            fetchNeedsSurveyDelay(supabase),
+          ]);
+
+          const startDate = parseISO(trainingStartDate);
+          const scheduledDate = subtractWorkingDays(startDate, needsSurveyDelay, workingDays);
+          
+          // Only schedule if the date is in the future
+          if (scheduledDate > new Date()) {
+            await supabase.from("scheduled_emails").insert({
+              training_id: trainingId,
+              participant_id: insertedParticipant.id,
+              email_type: "needs_survey",
+              scheduled_for: format(scheduledDate, "yyyy-MM-dd'T'09:00:00"),
+              status: "pending",
+            });
+          }
+        } catch (scheduleError) {
+          console.error("Failed to schedule needs survey email:", scheduleError);
         }
       }
 
