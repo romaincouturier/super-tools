@@ -6,8 +6,7 @@ import { Loader2, ArrowLeft, Calendar, Users, FileText, ExternalLink, Edit2, Use
 import { Switch } from "@/components/ui/switch";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
-import SupertiltLogo from "@/components/SupertiltLogo";
-import UserMenu from "@/components/UserMenu";
+import AppHeader from "@/components/AppHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -217,16 +216,7 @@ const FormationDetail = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="bg-foreground text-background py-4 px-6 shadow-lg">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <SupertiltLogo className="h-10" invert />
-            <span className="text-xl font-bold">SuperTools</span>
-          </div>
-          {user && <UserMenu user={user} onLogout={handleLogout} />}
-        </div>
-      </header>
+      <AppHeader user={user} onLogout={handleLogout} />
 
       {/* Main content */}
       <main className="max-w-7xl mx-auto p-6">
