@@ -209,7 +209,7 @@ const FormationDetail = () => {
             .from("training_actions")
             .update({
               description: action.description,
-              due_date: action.dueDate.toISOString().split('T')[0],
+              due_date: format(action.dueDate, 'yyyy-MM-dd'),
               assigned_user_email: action.assignedEmail,
               assigned_user_name: action.assignedName || null,
             })
@@ -221,7 +221,7 @@ const FormationDetail = () => {
             .insert({
               training_id: id,
               description: action.description,
-              due_date: action.dueDate.toISOString().split('T')[0],
+              due_date: format(action.dueDate, 'yyyy-MM-dd'),
               assigned_user_email: action.assignedEmail,
               assigned_user_name: action.assignedName || null,
               created_by: user.id,
