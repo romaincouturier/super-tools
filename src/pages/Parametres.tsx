@@ -218,6 +218,44 @@ Merci infiniment pour votre soutien et pour avoir participé à notre formation 
     },
     variables: ["first_name", "training_name"],
   },
+  video_testimonial: {
+    name: "Demande de témoignage vidéo",
+    timing: "after",
+    delayKey: "delay_video_testimonial_days",
+    subject: {
+      tu: "🎥 Partager ton expérience sur la formation \"{{training_name}}\"",
+      vous: "🎥 Partager votre expérience sur la formation \"{{training_name}}\"",
+    },
+    content: {
+      tu: `Bonjour {{first_name}},
+
+Je me permets de te contacter pour te proposer de partager ton retour d'expérience sur la formation que nous avons organisée.
+
+Ce témoignage pourrait être réalisé via une courte interview en visioconférence (10 minutes maximum) et serait précieux pour inspirer d'autres organisations et valoriser ton analyse.
+
+Si tu es partant(e), il te suffit de cliquer sur le lien ci-dessous pour convenir d'un moment ensemble :
+
+👉 Contacte-moi pour trouver un créneau : mailto:romain@supertilt.fr?subject=OK%20pour%20faire%20un%20t%C3%A9moignage%20Vid%C3%A9o&body=Salut%2C%0D%0A%0D%0AJe%20viens%20de%20recevoir%20ton%20mail%2C%20je%20suis%20partant%20pour%20faire%20un%20t%C3%A9moignage%20vid%C3%A9o%20%3A-)
+
+Merci d'avance pour ton temps et ton retour ! Je reste à disposition pour toute question ou précision.
+
+Bonne journée`,
+      vous: `Bonjour {{first_name}},
+
+Je me permets de vous contacter pour vous proposer de partager votre retour d'expérience sur la formation que nous avons organisée.
+
+Ce témoignage pourrait être réalisé via une courte interview en visioconférence (10 minutes maximum) et serait précieux pour inspirer d'autres organisations et valoriser votre analyse.
+
+Si vous êtes partant(e), il vous suffit de cliquer sur le lien ci-dessous pour convenir d'un moment ensemble :
+
+👉 Contactez-moi pour trouver un créneau : mailto:romain@supertilt.fr?subject=OK%20pour%20faire%20un%20t%C3%A9moignage%20Vid%C3%A9o&body=Bonjour%2C%0D%0A%0D%0AJe%20viens%20de%20recevoir%20votre%20mail%2C%20je%20suis%20partant%20pour%20faire%20un%20t%C3%A9moignage%20vid%C3%A9o.
+
+Merci d'avance pour votre temps et votre retour ! Je reste à disposition pour toute question ou précision.
+
+Bonne journée`,
+    },
+    variables: ["first_name", "training_name"],
+  },
   training_documents: {
     name: "Envoi des documents de formation",
     timing: "manual",
