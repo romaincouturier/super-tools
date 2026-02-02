@@ -196,7 +196,7 @@ J'espère que tout va bien pour toi !
 
 Pour continuer d'améliorer nos formations et partager des retours d'expérience avec d'autres professionnels, ton avis serait précieux en tant que commanditaire de la formation. Pourrais-tu nous accorder 1 minute pour laisser un commentaire sur notre page Google ?
 
-👉 Clique ici pour laisser ton avis : https://g.page/r/CWJ0W_P6C-BJEAE/review
+👉 Clique ici pour laisser ton avis : {{google_review_link}}
 
 Ton retour est essentiel pour nous permettre de progresser et d'aider d'autres organisations à découvrir nos formations.
 
@@ -209,7 +209,7 @@ J'espère que tout va bien pour vous !
 
 Pour continuer d'améliorer nos formations et partager des retours d'expérience avec d'autres professionnels, votre avis serait précieux en tant que commanditaire de la formation. Pourriez-vous nous accorder 1 minute pour laisser un commentaire sur notre page Google ?
 
-👉 Cliquez ici pour laisser votre avis : https://g.page/r/CWJ0W_P6C-BJEAE/review
+👉 Cliquez ici pour laisser votre avis : {{google_review_link}}
 
 Votre retour est essentiel pour nous permettre de progresser et d'aider d'autres organisations à découvrir nos formations.
 
@@ -217,7 +217,7 @@ Merci infiniment pour votre soutien et pour avoir participé à notre formation 
 
 À bientôt,`,
     },
-    variables: ["first_name", "training_name"],
+    variables: ["first_name", "training_name", "google_review_link"],
   },
   video_testimonial: {
     name: "Demande de témoignage vidéo",
@@ -482,6 +482,7 @@ const Parametres = () => {
   // General settings
   const [bccEnabled, setBccEnabled] = useState(true);
   const [bccEmail, setBccEmail] = useState("romain@supertilt.fr");
+  const [googleMyBusinessUrl, setGoogleMyBusinessUrl] = useState("https://g.page/r/CWJ0W_P6C-BJEAE/review");
   const [savingSettings, setSavingSettings] = useState(false);
   
   // Working days configuration (Monday to Friday by default)
@@ -534,7 +535,7 @@ const Parametres = () => {
       .from("app_settings")
       .select("setting_key, setting_value")
       .in("setting_key", [
-        "bcc_email", "bcc_enabled", "working_days",
+        "bcc_email", "bcc_enabled", "working_days", "google_my_business_url",
         "delay_needs_survey_days", "delay_reminder_days", "delay_trainer_summary_days",
         "delay_google_review_days", "delay_video_testimonial_days", 
         "delay_cold_evaluation_days", "delay_cold_evaluation_funder_days",
@@ -553,6 +554,9 @@ const Parametres = () => {
           break;
         case "bcc_enabled":
           setBccEnabled(setting.setting_value === "true");
+          break;
+        case "google_my_business_url":
+          setGoogleMyBusinessUrl(setting.setting_value || "https://g.page/r/CWJ0W_P6C-BJEAE/review");
           break;
         case "working_days":
           try {
@@ -601,6 +605,7 @@ const Parametres = () => {
       const settingsToSave = [
         { setting_key: "bcc_email", setting_value: bccEmail, description: "Adresse email en copie cachée (BCC) pour tous les envois" },
         { setting_key: "bcc_enabled", setting_value: bccEnabled.toString(), description: "Activer ou désactiver l'envoi en copie cachée (BCC)" },
+        { setting_key: "google_my_business_url", setting_value: googleMyBusinessUrl, description: "URL de la fiche Google My Business pour les demandes d'avis" },
         { setting_key: "working_days", setting_value: JSON.stringify(workingDays), description: "Jours ouvrables pour l'envoi des emails (tableau de 7 booléens : dim, lun, mar, mer, jeu, ven, sam)" },
         { setting_key: "delay_needs_survey_days", setting_value: delayNeedsSurvey, description: "Délai avant formation pour envoyer le questionnaire de besoins (en jours)" },
         { setting_key: "delay_reminder_days", setting_value: delayReminder, description: "Délai avant formation pour envoyer le rappel logistique (en jours)" },
@@ -1026,7 +1031,30 @@ const Parametres = () => {
 
                 <Separator />
 
-                {/* Working Days Configuration */}
+                {/* Google My Business URL */}
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium">Fiche Google My Business</h3>
+                  <p className="text-sm text-muted-foreground">
+                    URL de votre fiche Google pour les demandes d'avis. Cette URL sera utilisée dans les emails de demande d'avis Google.
+                  </p>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="google-my-business-url">URL de la fiche Google</Label>
+                    <Input
+                      id="google-my-business-url"
+                      type="url"
+                      value={googleMyBusinessUrl}
+                      onChange={(e) => setGoogleMyBusinessUrl(e.target.value)}
+                      placeholder="https://g.page/r/XXXXXXXXX/review"
+                      className="max-w-lg"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Utilisez la variable <code className="px-1 bg-muted rounded">{`{{google_review_link}}`}</code> dans vos templates d'emails.
+                    </p>
+                  </div>
+                </div>
+
+                <Separator />
                 <div className="space-y-4">
                   <h3 className="text-sm font-medium">Jours ouvrables</h3>
                   <p className="text-sm text-muted-foreground">

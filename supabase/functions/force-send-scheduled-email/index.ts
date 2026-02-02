@@ -78,6 +78,15 @@ const handler = async (req: Request): Promise<Response> => {
       .eq("training_id", training.id)
       .order("day_date", { ascending: true });
 
+    // Get Google My Business URL from settings
+    const { data: gmbSetting } = await supabase
+      .from("app_settings")
+      .select("setting_value")
+      .eq("setting_key", "google_my_business_url")
+      .single();
+    
+    const googleReviewLink = gmbSetting?.setting_value || "https://g.page/r/CWJ0W_P6C-BJEAE/review";
+
     // Get Signitic signature
     let signatureHtml = "";
     try {
@@ -269,7 +278,7 @@ const handler = async (req: Request): Promise<Response> => {
           <p>J'espère que tout va bien pour toi !</p>
           <p>Pour continuer d'améliorer nos formations et partager des retours d'expérience avec d'autres professionnels, ton avis serait précieux.<br>
           Pourrais-tu nous accorder 1 minute pour laisser un commentaire sur notre page Google ?</p>
-          <p><a href="https://g.page/r/CYFu8NVOFD31EBM/review" style="display: inline-block; background-color: #1a1a1a; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500;">👉 Clique ici pour laisser ton avis</a></p>
+          <p><a href="${googleReviewLink}" style="display: inline-block; background-color: #1a1a1a; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500;">👉 Clique ici pour laisser ton avis</a></p>
           <p>Ton retour est essentiel pour nous permettre de progresser et d'aider d'autres personnes à découvrir nos formations.</p>
           <p>Merci infiniment pour ton soutien et pour avoir participé à notre formation ! 😊</p>
           <p>À bientôt,</p>
