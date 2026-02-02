@@ -10,7 +10,10 @@ import { Loader2 } from "lucide-react";
 import SupertiltLogo from "@/components/SupertiltLogo";
 import ForgotPasswordDialog from "@/components/ForgotPasswordDialog";
 import PasswordStrengthIndicator from "@/components/PasswordStrengthIndicator";
+import LoginAttemptFeedback from "@/components/LoginAttemptFeedback";
 import { validatePassword } from "@/lib/passwordValidation";
+import { useLoginAttempts } from "@/hooks/useLoginAttempts";
+import { cn } from "@/lib/utils";
 
 const ALLOWED_EMAIL = "romain@supertilt.fr";
 
@@ -19,9 +22,11 @@ const Auth = () => {
   const [password, setPassword] = useState("");
   const [isLogin, setIsLogin] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+  const [showAttemptFeedback, setShowAttemptFeedback] = useState(false);
+  const [shakeForm, setShakeForm] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
-
+  const { status, countdown, checkAttempt, logAttempt, formatTimeRemaining } = useLoginAttempts();
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
@@ -68,8 +73,24 @@ const Auth = () => {
 
     try {
       if (isLogin) {
+        // Vérifier si la connexion est autorisée (anti-brute force)
+        const isAllowed = await checkAttempt(email);
+        if (!isAllowed) {
+          setIsLoading(false);
+          return;
+        }
+
+        // Appliquer le délai progressif si nécessaire
+        if (status.delaySeconds > 0) {
+          await new Promise((resolve) => setTimeout(resolve, status.delaySeconds * 1000));
+        }
+
         // Restrict login to allowed email only
         if (email.toLowerCase() !== ALLOWED_EMAIL.toLowerCase()) {
+          await logAttempt(email, false);
+          setShowAttemptFeedback(true);
+          setShakeForm(true);
+          setTimeout(() => setShakeForm(false), 500);
           toast({
             title: "Connexion non autorisée",
             description: "Cet email n'est pas autorisé à se connecter.",
@@ -83,7 +104,19 @@ const Auth = () => {
           email,
           password,
         });
-        if (error) throw error;
+        
+        if (error) {
+          // Logger l'échec
+          await logAttempt(email, false);
+          setShowAttemptFeedback(true);
+          setShakeForm(true);
+          setTimeout(() => setShakeForm(false), 500);
+          throw error;
+        }
+
+        // Logger le succès
+        await logAttempt(email, true);
+        setShowAttemptFeedback(false);
         
         // Check if user must change password (from onboarding)
         if (data.user) {
@@ -182,7 +215,12 @@ const Auth = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md border-2 shadow-xl">
+      <Card 
+        className={cn(
+          "w-full max-w-md border-2 shadow-xl transition-transform",
+          shakeForm && "animate-shake"
+        )}
+      >
         <CardHeader className="text-center space-y-4">
           <div className="mx-auto">
             <SupertiltLogo className="h-12 mx-auto" />
@@ -196,7 +234,18 @@ const Auth = () => {
               : "Créez votre compte"}
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
+          {/* Feedback anti-brute force */}
+          {isLogin && (
+            <LoginAttemptFeedback
+              isBlocked={status.isBlocked}
+              remainingAttempts={status.remainingAttempts}
+              countdown={countdown}
+              formatTimeRemaining={formatTimeRemaining}
+              showRemaining={showAttemptFeedback}
+            />
+          )}
+
           <form onSubmit={handleAuth} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
@@ -207,6 +256,7 @@ const Auth = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                disabled={status.isBlocked}
               />
             </div>
             <div className="space-y-2">
@@ -219,16 +269,19 @@ const Auth = () => {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 minLength={6}
+                disabled={status.isBlocked}
               />
               {!isLogin && <PasswordStrengthIndicator password={password} />}
             </div>
             <Button
               type="submit"
               className="w-full font-semibold"
-              disabled={isLoading}
+              disabled={isLoading || status.isBlocked}
             >
               {isLoading ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
+              ) : status.isBlocked ? (
+                "Connexion bloquée"
               ) : isLogin ? (
                 "Se connecter"
               ) : (
