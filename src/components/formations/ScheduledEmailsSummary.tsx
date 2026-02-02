@@ -69,6 +69,15 @@ interface ScheduledEmailsSummaryProps {
   participants: Participant[];
 }
 
+interface DelaySettings {
+  delayLogisticReminder: number;
+  delayTrainerSummary: number;
+  delayGoogleReview: number;
+  delayVideoTestimonial: number;
+  delayColdEvaluation: number;
+  delayColdEvaluationFunder: number;
+}
+
 const ScheduledEmailsSummary = ({ trainingId, participants }: ScheduledEmailsSummaryProps) => {
   const [emails, setEmails] = useState<ScheduledEmail[]>([]);
   const [loading, setLoading] = useState(true);
@@ -79,6 +88,14 @@ const ScheduledEmailsSummary = ({ trainingId, participants }: ScheduledEmailsSum
   const [deleting, setDeleting] = useState(false);
   const [forceSending, setForceSending] = useState<string | null>(null);
   const [rulesExpanded, setRulesExpanded] = useState(false);
+  const [delaySettings, setDelaySettings] = useState<DelaySettings>({
+    delayLogisticReminder: 3,
+    delayTrainerSummary: 1,
+    delayGoogleReview: 7,
+    delayVideoTestimonial: 14,
+    delayColdEvaluation: 30,
+    delayColdEvaluationFunder: 45,
+  });
   const { toast } = useToast();
 
   useEffect(() => {
@@ -114,6 +131,33 @@ const ScheduledEmailsSummary = ({ trainingId, participants }: ScheduledEmailsSum
 
       if (schedulesData) {
         setSchedules(schedulesData);
+      }
+
+      // Fetch delay settings
+      const { data: settingsData } = await supabase
+        .from("app_settings")
+        .select("setting_key, setting_value")
+        .in("setting_key", [
+          "delay_logistic_reminder_days",
+          "delay_trainer_summary_days",
+          "delay_google_review_days",
+          "delay_video_testimonial_days",
+          "delay_cold_evaluation_days",
+          "delay_cold_evaluation_funder_days",
+        ]);
+
+      if (settingsData) {
+        const newSettings: Partial<DelaySettings> = {};
+        settingsData.forEach((s) => {
+          const val = parseInt(s.setting_value || "0", 10);
+          if (s.setting_key === "delay_logistic_reminder_days") newSettings.delayLogisticReminder = val || 3;
+          if (s.setting_key === "delay_trainer_summary_days") newSettings.delayTrainerSummary = val || 1;
+          if (s.setting_key === "delay_google_review_days") newSettings.delayGoogleReview = val || 7;
+          if (s.setting_key === "delay_video_testimonial_days") newSettings.delayVideoTestimonial = val || 14;
+          if (s.setting_key === "delay_cold_evaluation_days") newSettings.delayColdEvaluation = val || 30;
+          if (s.setting_key === "delay_cold_evaluation_funder_days") newSettings.delayColdEvaluationFunder = val || 45;
+        });
+        setDelaySettings((prev) => ({ ...prev, ...newSettings }));
       }
 
       setLoading(false);
@@ -521,16 +565,17 @@ romain@supertilt.fr`;
           
           <p className="font-medium text-foreground pt-2">Autres emails avant formation :</p>
           <ul className="space-y-1 list-none">
-            <li>• <strong>J-X</strong> : Rappel logistique (configurable dans Paramètres)</li>
-            <li>• <strong>J-X</strong> : Synthèse des besoins pour le formateur</li>
+            <li>• <strong>J-{delaySettings.delayLogisticReminder}</strong> : Rappel logistique</li>
+            <li>• <strong>J-{delaySettings.delayTrainerSummary}</strong> : Synthèse des besoins pour le formateur</li>
           </ul>
           
           <p className="font-medium text-foreground pt-2">Emails après formation :</p>
           <p className="text-xs italic mb-1">Programmés automatiquement lors de l'envoi du mail de remerciement</p>
           <ul className="space-y-1 list-none">
-            <li>• <strong>J+X</strong> : Demande d'avis Google</li>
-            <li>• <strong>J+X</strong> : Demande de témoignage vidéo</li>
-            <li>• <strong>J+X</strong> : Évaluation à froid commanditaire</li>
+            <li>• <strong>J+{delaySettings.delayGoogleReview}</strong> : Demande d'avis Google</li>
+            <li>• <strong>J+{delaySettings.delayVideoTestimonial}</strong> : Demande de témoignage vidéo</li>
+            <li>• <strong>J+{delaySettings.delayColdEvaluation}</strong> : Évaluation à froid commanditaire</li>
+            <li>• <strong>J+{delaySettings.delayColdEvaluationFunder}</strong> : Rappel financeur (si différent du commanditaire)</li>
           </ul>
           <p className="text-xs text-muted-foreground pt-2 italic">Les délais sont configurables dans Paramètres {">"} Général</p>
         </div>
