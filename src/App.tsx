@@ -7,6 +7,7 @@ import Dashboard from "./pages/Dashboard";
 import CertificateGenerator from "./pages/CertificateGenerator";
 import MicroDevis from "./pages/MicroDevis";
 import Historique from "./pages/Historique";
+import Parametres from "./pages/Parametres";
 import Formations from "./pages/Formations";
 import FormationCreate from "./pages/FormationCreate";
 import FormationEdit from "./pages/FormationEdit";
@@ -35,6 +36,7 @@ const App = () => (
           <Route path="/certificates" element={<CertificateGenerator />} />
           <Route path="/micro-devis" element={<MicroDevis />} />
           <Route path="/historique" element={<Historique />} />
+          <Route path="/parametres" element={<Parametres />} />
           <Route path="/formations" element={<Formations />} />
           <Route path="/formations/new" element={<FormationCreate />} />
           <Route path="/formations/:id" element={<FormationDetail />} />

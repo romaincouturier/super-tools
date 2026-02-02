@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
-import { Loader2, Award, FileText, Calendar, ClipboardCheck, TrendingUp, Star, History } from "lucide-react";
+import { Loader2, Award, FileText, Calendar, ClipboardCheck, TrendingUp, Star, History, Settings } from "lucide-react";
 import SupertiltLogo from "@/components/SupertiltLogo";
 import UserMenu from "@/components/UserMenu";
 import OnboardCollaboratorDialog from "@/components/OnboardCollaboratorDialog";
@@ -63,8 +63,14 @@ const tools: Tool[] = [
     icon: <History className="w-10 h-10" />,
     path: "/historique",
   },
+  {
+    id: "parametres",
+    name: "Paramètres",
+    description: "Personnaliser les modèles d'emails",
+    icon: <Settings className="w-10 h-10" />,
+    path: "/parametres",
+  },
 ];
-
 const Dashboard = () => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
