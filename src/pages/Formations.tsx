@@ -36,6 +36,12 @@ interface Training {
   created_at: string;
 }
 
+interface TrainingAction {
+  id: string;
+  training_id: string;
+  status: string;
+}
+
 type SortField = "date" | "title" | "client";
 type SortOrder = "asc" | "desc";
 
@@ -43,6 +49,7 @@ const Formations = () => {
   const { user, loading: authLoading, logout } = useAuth();
   const [dataLoading, setDataLoading] = useState(true);
   const [trainings, setTrainings] = useState<Training[]>([]);
+  const [trainingActions, setTrainingActions] = useState<TrainingAction[]>([]);
   const [filter, setFilter] = useState<"upcoming" | "past">("upcoming");
   
   // Sorting state (for past trainings only)
@@ -62,18 +69,29 @@ const Formations = () => {
   }, [user]);
 
   const fetchTrainings = async () => {
-    const { data, error } = await supabase
-      .from("trainings")
-      .select("*")
-      .order("start_date", { ascending: true });
+    const [trainingsResult, actionsResult] = await Promise.all([
+      supabase
+        .from("trainings")
+        .select("*")
+        .order("start_date", { ascending: true }),
+      supabase
+        .from("training_actions")
+        .select("id, training_id, status")
+        .eq("status", "pending"),
+    ]);
 
-    if (error) {
-      console.error("Error fetching trainings:", error);
-      setDataLoading(false);
-      return;
+    if (trainingsResult.error) {
+      console.error("Error fetching trainings:", trainingsResult.error);
+    } else {
+      setTrainings(trainingsResult.data || []);
     }
 
-    setTrainings(data || []);
+    if (actionsResult.error) {
+      console.error("Error fetching actions:", actionsResult.error);
+    } else {
+      setTrainingActions(actionsResult.data || []);
+    }
+
     setDataLoading(false);
   };
 
@@ -87,6 +105,12 @@ const Formations = () => {
     trainings.filter((t) => isPast(parseISO(t.start_date))),
     [trainings]
   );
+
+  // Check if a training has pending actions
+  const hasActions = useMemo(() => {
+    const actionsByTraining = new Set(trainingActions.map((a) => a.training_id));
+    return (trainingId: string) => actionsByTraining.has(trainingId);
+  }, [trainingActions]);
 
   // Sort past trainings
   const sortedPastTrainings = useMemo(() => {
@@ -276,7 +300,17 @@ const Formations = () => {
                         <TableCell className="font-medium">
                           {formatDateRange(training.start_date, training.end_date)}
                         </TableCell>
-                        <TableCell>{training.training_name}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            {training.training_name}
+                            {hasActions(training.id) && (
+                              <span 
+                                className="inline-block w-2.5 h-2.5 rounded-full bg-warning" 
+                                title="Actions programmées"
+                              />
+                            )}
+                          </div>
+                        </TableCell>
                         <TableCell>{training.location}</TableCell>
                         <TableCell>
                           <Badge variant="outline">{training.client_name}</Badge>
