@@ -38,3 +38,6 @@ verify_jwt = false
 
 [functions.send-content-notification]
 verify_jwt = false
+
+[functions.send-booking-reminder]
+verify_jwt = false
