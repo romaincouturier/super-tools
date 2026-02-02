@@ -59,6 +59,35 @@ function replaceVariables(template: string, variables: Record<string, string>): 
   return result;
 }
 
+// Fetch BCC settings from app_settings
+async function getBccSettings(supabase: ReturnType<typeof createClient>): Promise<string[]> {
+  const { data: bccSettings } = await supabase
+    .from("app_settings")
+    .select("setting_key, setting_value")
+    .in("setting_key", ["bcc_email", "bcc_enabled"]);
+  
+  let bccEnabled = true;
+  let bccEmailValue: string | null = null;
+  
+  bccSettings?.forEach((s: { setting_key: string; setting_value: string | null }) => {
+    if (s.setting_key === "bcc_enabled") {
+      bccEnabled = s.setting_value === "true";
+    }
+    if (s.setting_key === "bcc_email" && s.setting_value) {
+      bccEmailValue = s.setting_value;
+    }
+  });
+  
+  const bccList: string[] = [];
+  if (bccEnabled && bccEmailValue) {
+    bccList.push(bccEmailValue);
+  }
+  bccList.push("supertilt@bcc.nocrm.io");
+  
+  console.log("BCC settings - enabled:", bccEnabled, "email:", bccEmailValue, "final list:", bccList.join(", "));
+  return bccList;
+}
+
 // Send notification to sponsor (intra-enterprise)
 async function sendSponsorNotification(
   resendApiKey: string,
@@ -67,7 +96,8 @@ async function sendSponsorNotification(
   sponsorFormalAddress: boolean,
   trainingName: string,
   participantsList: string[],
-  signature: string
+  signature: string,
+  bccList: string[]
 ): Promise<void> {
   const greeting = sponsorFormalAddress 
     ? 'Bonjour,' 
@@ -96,7 +126,7 @@ async function sendSponsorNotification(
     body: JSON.stringify({
       from: "Romain Couturier <romain@supertilt.fr>",
       to: [sponsorEmail],
-      bcc: ["supertilt@bcc.nocrm.io"],
+      bcc: bccList,
       subject: `Convocations envoyées - ${trainingName}`,
       html: htmlContent,
     }),
@@ -134,6 +164,9 @@ serve(async (req) => {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+    // Fetch BCC settings
+    const bccList = await getBccSettings(supabase);
 
     // Fetch participant with sponsor info
     const { data: participant, error: participantError } = await supabase
@@ -291,7 +324,7 @@ serve(async (req) => {
         from: "Romain Couturier <romain@supertilt.fr>",
         to: [participant.email],
         cc: ccList.length > 0 ? ccList : undefined,
-        bcc: ["supertilt@bcc.nocrm.io"],
+        bcc: bccList,
         subject,
         html: htmlContent,
       }),
@@ -351,7 +384,8 @@ serve(async (req) => {
             training.sponsor_formal_address,
             training.training_name,
             participantNames,
-            signature
+            signature,
+            bccList
           );
         }
       }

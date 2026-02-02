@@ -50,6 +50,35 @@ function getDefaultSignature(): string {
   </p>`;
 }
 
+// Fetch BCC settings from app_settings
+async function getBccSettings(supabase: ReturnType<typeof createClient>): Promise<string[]> {
+  const { data: bccSettings } = await supabase
+    .from("app_settings")
+    .select("setting_key, setting_value")
+    .in("setting_key", ["bcc_email", "bcc_enabled"]);
+  
+  let bccEnabled = true;
+  let bccEmailValue: string | null = null;
+  
+  bccSettings?.forEach((s: { setting_key: string; setting_value: string | null }) => {
+    if (s.setting_key === "bcc_enabled") {
+      bccEnabled = s.setting_value === "true";
+    }
+    if (s.setting_key === "bcc_email" && s.setting_value) {
+      bccEmailValue = s.setting_value;
+    }
+  });
+  
+  const bccList: string[] = [];
+  if (bccEnabled && bccEmailValue) {
+    bccList.push(bccEmailValue);
+  }
+  bccList.push("supertilt@bcc.nocrm.io");
+  
+  console.log("BCC settings - enabled:", bccEnabled, "email:", bccEmailValue, "final list:", bccList.join(", "));
+  return bccList;
+}
+
 // Format date for display (e.g., "15 janvier 2025")
 function formatDateFr(dateStr: string): string {
   const date = new Date(dateStr);
@@ -122,6 +151,13 @@ serve(async (req) => {
     if (!RESEND_API_KEY) {
       throw new Error("RESEND_API_KEY not configured");
     }
+
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+    // Fetch BCC settings
+    const bccList = await getBccSettings(supabase);
 
     // Get Signitic signature
     const signature = await getSigniticSignature();
@@ -276,7 +312,7 @@ serve(async (req) => {
         from: "Romain Couturier <romain@supertilt.fr>",
         to: toList,
         cc: ccList.length > 0 ? ccList : undefined,
-        bcc: ["romain@supertilt.fr", "supertilt@bcc.nocrm.io"],
+        bcc: bccList,
         subject,
         html: htmlContent,
         attachments,
@@ -294,10 +330,6 @@ serve(async (req) => {
 
     // Log activity with email subject and content
     try {
-      const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-      const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-      const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-
       await supabase.from("activity_logs").insert({
         action_type: "training_documents_sent",
         recipient_email: recipientEmail,

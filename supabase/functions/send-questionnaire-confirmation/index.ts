@@ -50,6 +50,35 @@ function getDefaultSignature(): string {
   </p>`;
 }
 
+// Fetch BCC settings from app_settings
+async function getBccSettings(supabase: ReturnType<typeof createClient>): Promise<string[]> {
+  const { data: bccSettings } = await supabase
+    .from("app_settings")
+    .select("setting_key, setting_value")
+    .in("setting_key", ["bcc_email", "bcc_enabled"]);
+  
+  let bccEnabled = true;
+  let bccEmailValue: string | null = null;
+  
+  bccSettings?.forEach((s: { setting_key: string; setting_value: string | null }) => {
+    if (s.setting_key === "bcc_enabled") {
+      bccEnabled = s.setting_value === "true";
+    }
+    if (s.setting_key === "bcc_email" && s.setting_value) {
+      bccEmailValue = s.setting_value;
+    }
+  });
+  
+  const bccList: string[] = [];
+  if (bccEnabled && bccEmailValue) {
+    bccList.push(bccEmailValue);
+  }
+  bccList.push("supertilt@bcc.nocrm.io");
+  
+  console.log("BCC settings - enabled:", bccEnabled, "email:", bccEmailValue, "final list:", bccList.join(", "));
+  return bccList;
+}
+
 // Format date to Google Calendar format: YYYYMMDDTHHMMSS
 function formatDateForCalendar(dateStr: string, timeStr: string): string {
   const date = new Date(dateStr);
@@ -149,6 +178,9 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    // Fetch BCC settings
+    const bccList = await getBccSettings(supabase);
+
     // Fetch training info
     let trainingName = "";
     let location = "";
@@ -212,12 +244,12 @@ serve(async (req) => {
 
     // Calendar section HTML - styled for email clients
     const calendarSection = `
-      <div style="margin: 25px 0; padding: 20px; background-color: #f8f9fa; border-radius: 8px; border-left: 4px solid #eab308;">
+      <div style="margin: 25px 0; padding: 20px; background-color: #f8f9fa; border-radius: 8px; border-left: 4px solid #e6bc00;">
         <p style="margin: 0 0 15px 0; font-weight: bold; color: #1a1a1a;">📅 Ajoute la formation à ton agenda :</p>
         <table role="presentation" cellspacing="0" cellpadding="0" border="0">
           <tr>
             <td style="padding-right: 10px;">
-              <a href="${calendarLinks.google}" target="_blank" style="display: inline-block; background-color: #eab308; color: #1a1a1a; padding: 10px 18px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 14px;">
+              <a href="${calendarLinks.google}" target="_blank" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 10px 18px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 14px;">
                 📅 Google Agenda
               </a>
             </td>
@@ -262,7 +294,7 @@ serve(async (req) => {
       body: JSON.stringify({
         from: "Romain Couturier <romain@supertilt.fr>",
         to: [participantEmail],
-        bcc: ["romain@supertilt.fr", "supertilt@bcc.nocrm.io"],
+        bcc: bccList,
         subject: `Questionnaire complété - ${trainingName}`,
         html: htmlContent,
         reply_to: "romain@supertilt.fr",
