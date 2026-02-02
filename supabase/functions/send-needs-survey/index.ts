@@ -50,6 +50,35 @@ function getDefaultSignature(): string {
   </p>`;
 }
 
+// Fetch BCC settings from app_settings
+async function getBccSettings(supabase: ReturnType<typeof createClient>): Promise<string[]> {
+  const { data: bccSettings } = await supabase
+    .from("app_settings")
+    .select("setting_key, setting_value")
+    .in("setting_key", ["bcc_email", "bcc_enabled"]);
+  
+  let bccEnabled = true;
+  let bccEmailValue: string | null = null;
+  
+  bccSettings?.forEach((s: { setting_key: string; setting_value: string | null }) => {
+    if (s.setting_key === "bcc_enabled") {
+      bccEnabled = s.setting_value === "true";
+    }
+    if (s.setting_key === "bcc_email" && s.setting_value) {
+      bccEmailValue = s.setting_value;
+    }
+  });
+  
+  const bccList: string[] = [];
+  if (bccEnabled && bccEmailValue) {
+    bccList.push(bccEmailValue);
+  }
+  bccList.push("supertilt@bcc.nocrm.io");
+  
+  console.log("BCC settings - enabled:", bccEnabled, "email:", bccEmailValue, "final list:", bccList.join(", "));
+  return bccList;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -73,6 +102,9 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Fetch BCC settings
+    const bccList = await getBccSettings(supabase);
 
     // Fetch participant and training info
     const { data: participant, error: participantError } = await supabase
@@ -178,7 +210,7 @@ serve(async (req) => {
       <p>Vous êtes inscrit(e) à la formation <strong>"${training.training_name}"</strong> qui aura lieu le <strong>${formattedDate}</strong>.</p>
       <p>Afin de personnaliser cette formation à vos attentes, je vous invite à remplir un court questionnaire de recueil des besoins :</p>
       <p style="margin: 20px 0;">
-        <a href="${questionnaireUrl}" style="display: inline-block; background-color: #eab308; color: #1a1a1a; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">
+        <a href="${questionnaireUrl}" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">
           Accéder au questionnaire
         </a>
       </p>
@@ -197,7 +229,7 @@ serve(async (req) => {
       body: JSON.stringify({
         from: "Romain Couturier <romain@supertilt.fr>",
         to: [participant.email],
-        bcc: ["romain@supertilt.fr", "supertilt@bcc.nocrm.io"],
+        bcc: bccList,
         subject: `Questionnaire de recueil des besoins - ${training.training_name}`,
         html: htmlContent,
       }),

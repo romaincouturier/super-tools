@@ -1,7 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 // Bump this when you deploy to confirm the latest code is running.
-const VERSION = "send-content-notification@2026-02-02.2";
+const VERSION = "send-content-notification@2026-02-02.3";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -51,6 +52,35 @@ function getDefaultSignature(): string {
   </p>`;
 }
 
+// Fetch BCC settings from app_settings
+async function getBccSettings(supabase: ReturnType<typeof createClient>): Promise<string[]> {
+  const { data: bccSettings } = await supabase
+    .from("app_settings")
+    .select("setting_key, setting_value")
+    .in("setting_key", ["bcc_email", "bcc_enabled"]);
+  
+  let bccEnabled = true;
+  let bccEmailValue: string | null = null;
+  
+  bccSettings?.forEach((s: { setting_key: string; setting_value: string | null }) => {
+    if (s.setting_key === "bcc_enabled") {
+      bccEnabled = s.setting_value === "true";
+    }
+    if (s.setting_key === "bcc_email" && s.setting_value) {
+      bccEmailValue = s.setting_value;
+    }
+  });
+  
+  const bccList: string[] = [];
+  if (bccEnabled && bccEmailValue) {
+    bccList.push(bccEmailValue);
+  }
+  bccList.push("supertilt@bcc.nocrm.io");
+  
+  console.log("BCC settings - enabled:", bccEnabled, "email:", bccEmailValue, "final list:", bccList.join(", "));
+  return bccList;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -82,6 +112,13 @@ serve(async (req) => {
       );
     }
 
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Fetch BCC settings
+    const bccList = await getBccSettings(supabase);
+
     const normalizedType = String(type)
       .trim()
       .toLowerCase()
@@ -111,7 +148,7 @@ serve(async (req) => {
           </div>
           ${externalUrl ? `<p>Lien externe : <a href="${externalUrl}">${externalUrl}</a></p>` : ""}
           <p style="margin: 20px 0;">
-            <a href="${cardLink}" style="display: inline-block; background-color: #eab308; color: #1a1a1a; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">
+            <a href="${cardLink}" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">
               Commencer la relecture
             </a>
           </p>
@@ -129,7 +166,7 @@ serve(async (req) => {
           </div>
           <p>Si tu es disponible, merci de traiter cette relecture dès que possible. Si ce n'est pas le bon moment, un simple retour (même bref) nous aide à nous organiser.</p>
           <p style="margin: 20px 0;">
-            <a href="${cardLink}" style="display: inline-block; background-color: #eab308; color: #1a1a1a; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">
+            <a href="${cardLink}" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">
               Ouvrir la carte
             </a>
           </p>
@@ -146,7 +183,7 @@ serve(async (req) => {
             <strong>${cardTitle}</strong>
           </div>
           <p style="margin: 20px 0;">
-            <a href="${cardLink}" style="display: inline-block; background-color: #eab308; color: #1a1a1a; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">
+            <a href="${cardLink}" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">
               Voir le commentaire
             </a>
           </p>
@@ -163,7 +200,7 @@ serve(async (req) => {
             <strong>${cardTitle}</strong>
           </div>
           <p style="margin: 20px 0;">
-            <a href="${cardLink}" style="display: inline-block; background-color: #eab308; color: #1a1a1a; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">
+            <a href="${cardLink}" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">
               Voir les détails
             </a>
           </p>
@@ -191,7 +228,7 @@ serve(async (req) => {
       body: JSON.stringify({
         from: "Romain Couturier <romain@supertilt.fr>",
         to: [recipientEmail],
-        bcc: ["supertilt@bcc.nocrm.io"],
+        bcc: bccList,
         subject,
         html: htmlContent,
       }),
