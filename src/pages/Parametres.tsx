@@ -299,7 +299,7 @@ PS : nous pouvons continuer à rester en contact sur LinkedIn (https://www.linke
     variables: ["first_name", "training_name"],
   },
   funder_reminder: {
-    name: "Rappel évaluation financeur",
+    name: "Évaluation à froid financeur",
     timing: "after",
     delayKey: "delay_funder_reminder_days",
     subject: {
