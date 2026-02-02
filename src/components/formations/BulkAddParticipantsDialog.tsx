@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { Users, Loader2, AlertCircle, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { differenceInDays, parseISO } from "date-fns";
+import { differenceInDays, parseISO, format } from "date-fns";
 import {
   Dialog,
   DialogContent,
@@ -16,6 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
+import { subtractWorkingDays, fetchWorkingDays, fetchNeedsSurveyDelay } from "@/lib/workingDays";
 
 interface BulkAddParticipantsDialogProps {
   trainingId: string;
@@ -194,6 +195,34 @@ const BulkAddParticipantsDialog = ({ trainingId, trainingStartDate, onParticipan
           } catch (emailError) {
             console.error("Failed to send welcome email to:", participant.email, emailError);
           }
+        }
+      }
+
+      // If status is "programme", create scheduled emails for needs survey
+      if (status === "programme" && data && data.length > 0 && trainingStartDate) {
+        try {
+          const [workingDays, needsSurveyDelay] = await Promise.all([
+            fetchWorkingDays(supabase),
+            fetchNeedsSurveyDelay(supabase),
+          ]);
+
+          const startDate = parseISO(trainingStartDate);
+          const scheduledDate = subtractWorkingDays(startDate, needsSurveyDelay, workingDays);
+          
+          // Only schedule if the date is in the future
+          if (scheduledDate > new Date()) {
+            const scheduledEmails = data.map((participant) => ({
+              training_id: trainingId,
+              participant_id: participant.id,
+              email_type: "needs_survey",
+              scheduled_for: format(scheduledDate, "yyyy-MM-dd'T'09:00:00"),
+              status: "pending",
+            }));
+
+            await supabase.from("scheduled_emails").insert(scheduledEmails);
+          }
+        } catch (scheduleError) {
+          console.error("Failed to schedule needs survey emails:", scheduleError);
         }
       }
 
