@@ -298,6 +298,64 @@ PS : nous pouvons continuer à rester en contact sur LinkedIn (https://www.linke
     },
     variables: ["first_name", "training_name"],
   },
+  funder_reminder: {
+    name: "Rappel évaluation financeur",
+    timing: "after",
+    delayKey: "delay_funder_reminder_days",
+    subject: {
+      tu: "📋 Prendre contact avec {{financeur_name}} pour formation \"{{training_name}}\"",
+      vous: "📋 Prendre contact avec {{financeur_name}} pour formation \"{{training_name}}\"",
+    },
+    content: {
+      tu: `Bonjour,
+
+Il faut que tu prennes contact avec {{financeur_name}}, à cette adresse : {{financeur_url}}
+
+Voici le message type à envoyer :
+
+---
+
+Bonjour,
+
+Comment allez-vous ?
+
+Dans le cadre de mon processus qualité (Qualiopi), je propose désormais des évaluations à froid de mes formations pour les financeurs.
+
+Pouvez-vous prendre 2 minutes pour remplir ce questionnaire en ligne sur la formation "{{training_name}}" ?
+
+👉 Remplir le questionnaire : https://forms.gle/Hm4TvAVUSvzuWeBJ6
+
+Merci énormément pour votre soutien :-)
+
+À bientôt
+
+PS : on peut continuer à rester en contact sur LinkedIn (https://www.linkedin.com/in/romaincouturier/) et sur Instagram (https://www.instagram.com/supertilt.ledeclic/) pour d'autres contenus sur le sujet de la formation.`,
+      vous: `Bonjour,
+
+Il faut prendre contact avec {{financeur_name}}, à cette adresse : {{financeur_url}}
+
+Voici le message type à envoyer :
+
+---
+
+Bonjour,
+
+Comment allez-vous ?
+
+Dans le cadre de mon processus qualité (Qualiopi), je propose désormais des évaluations à froid de mes formations pour les financeurs.
+
+Pouvez-vous prendre 2 minutes pour remplir ce questionnaire en ligne sur la formation "{{training_name}}" ?
+
+👉 Remplir le questionnaire : https://forms.gle/Hm4TvAVUSvzuWeBJ6
+
+Merci énormément pour votre soutien.
+
+À bientôt,
+
+PS : on peut continuer à rester en contact sur LinkedIn (https://www.linkedin.com/in/romaincouturier/) et sur Instagram (https://www.instagram.com/supertilt.ledeclic/) pour d'autres contenus sur le sujet de la formation.`,
+    },
+    variables: ["financeur_name", "financeur_url", "training_name"],
+  },
   training_documents: {
     name: "Envoi des documents de formation",
     timing: "manual",
