@@ -1,259 +1,163 @@
 
-# Plan : Émargement électronique
+# Plan de Sécurité Anti-Brute Force
 
-## Contexte
+## Analyse de la Situation Actuelle
 
-L'objectif est de créer un système d'émargement électronique permettant aux participants de signer leur présence numériquement pour chaque demi-journée de formation, avec une signature reconnue légalement en France (conformément au règlement eIDAS).
+### Ce qui est déjà en place (points positifs)
+- Politique de mot de passe forte (8 caractères minimum, majuscule, minuscule, chiffre, caractère spécial)
+- Indicateur visuel de force du mot de passe
+- Restriction d'accès à un seul email autorisé (romain@supertilt.fr)
+- Messages d'erreur génériques qui ne révèlent pas si l'email existe
+- Système de changement de mot de passe forcé si trop faible
 
-## Vue d'ensemble de la fonctionnalité
+### Ce qui manque (vulnérabilités)
+- Aucune protection contre les attaques par force brute
+- Pas de limitation du nombre de tentatives de connexion
+- Pas de délai progressif entre les tentatives
+- Pas de notification en cas de tentatives suspectes
+- Pas de verrouillage temporaire du compte
+
+---
+
+## Stratégie de Sécurité Proposée
+
+### Niveau 1 : Protection Anti-Brute Force (Prioritaire)
+
+**Limitation des tentatives de connexion :**
+- Maximum **5 tentatives** échouées par adresse IP en 15 minutes
+- Maximum **3 tentatives** échouées par email en 15 minutes
+- Après dépassement : blocage temporaire de 15 minutes
+
+**Délai progressif (rate limiting intelligent) :**
+- 1ère-3ème tentative : immédiat
+- 4ème tentative : attente de 5 secondes
+- 5ème tentative : attente de 15 secondes
+- Au-delà : blocage temporaire
+
+### Niveau 2 : Alertes et Monitoring
+
+**Notifications par email :**
+- Alerte après 3 tentatives échouées consécutives
+- Notification à chaque connexion réussie depuis une nouvelle IP
+- Résumé hebdomadaire si tentatives suspectes
+
+### Niveau 3 : Interface Utilisateur Ergonomique
+
+**Feedback clair sans révéler d'informations :**
+- Affichage du nombre de tentatives restantes
+- Compte à rebours visible pendant le blocage temporaire
+- Message rassurant expliquant la protection
+
+---
+
+## Détails Techniques d'Implémentation
+
+### 1. Nouvelle Table de Base de Données
 
 ```text
-+----------------------------+       +---------------------------+
-|   Page FormationDetail     |       |   Email automatique       |
-|   (Jour J)                 | ----> |   par demi-journée        |
-|   Bloc "Émargement"        |       |   "Signez votre présence" |
-+----------------------------+       +---------------------------+
-                                              |
-                                              v
-                              +-----------------------------------+
-                              |   Page publique /emargement/:token|
-                              |   - Titre formation               |
-                              |   - Nom Prénom                    |
-                              |   - Lieu, Date, Horaire           |
-                              |   - Canvas de signature           |
-                              |   - Bouton "Signer"               |
-                              +-----------------------------------+
-                                              |
-                                              v
-                              +-----------------------------------+
-                              |   Stockage signature + horodatage |
-                              |   dans la base de données         |
-                              +-----------------------------------+
++----------------------------------+
+|        login_attempts            |
++----------------------------------+
+| id (uuid)                        |
+| ip_address (text)                |
+| email (text)                     |
+| attempted_at (timestamp)         |
+| success (boolean)                |
+| user_agent (text)                |
++----------------------------------+
+```
+
+Avec un index sur `(ip_address, attempted_at)` et `(email, attempted_at)` pour des requêtes rapides.
+
+### 2. Fonction Backend de Vérification
+
+Une fonction serveur qui :
+- Compte les tentatives récentes par IP et par email
+- Retourne si la connexion est autorisée ou bloquée
+- Calcule le temps de déblocage restant
+
+### 3. Modifications Frontend
+
+**Page Auth.tsx :**
+- Appel à la fonction de vérification avant chaque tentative
+- Affichage du blocage avec compte à rebours
+- Animation de "shake" sur erreur pour feedback visuel
+
+**Nouveau composant LoginAttemptFeedback :**
+- Indicateur du nombre de tentatives restantes
+- Timer de déblocage si nécessaire
+
+### 4. Edge Function pour les Alertes
+
+Envoi d'email automatique vers romain@supertilt.fr en cas de :
+- 3+ tentatives échouées consécutives
+- Connexion depuis une nouvelle IP
+- Tentative de réinitialisation de mot de passe
+
+---
+
+## Fichiers à Créer/Modifier
+
+| Fichier | Action | Description |
+|---------|--------|-------------|
+| Migration SQL | Créer | Table `login_attempts` + index |
+| `supabase/functions/check-login-attempt/index.ts` | Créer | Vérification des limites |
+| `supabase/functions/log-login-attempt/index.ts` | Créer | Enregistrement des tentatives |
+| `supabase/functions/send-security-alert/index.ts` | Créer | Alertes par email |
+| `src/pages/Auth.tsx` | Modifier | Intégration du rate limiting |
+| `src/components/LoginAttemptFeedback.tsx` | Créer | UI du compte à rebours |
+| `src/hooks/useLoginAttempts.ts` | Créer | Hook pour gérer l'état |
+
+---
+
+## Expérience Utilisateur
+
+### En fonctionnement normal
+1. L'utilisateur entre ses identifiants
+2. Si erreur : message "Email ou mot de passe incorrect" + indication "4 tentatives restantes"
+3. La connexion fonctionne normalement
+
+### Après plusieurs erreurs
+1. Message : "Trop de tentatives. Réessayez dans 12:45"
+2. Compte à rebours visible
+3. Le bouton "Se connecter" est désactivé
+4. Option "Mot de passe oublié" reste accessible
+
+### Notification reçue par l'admin
+```
+Sujet : ⚠️ Alerte sécurité SuperTools
+
+3 tentatives de connexion échouées détectées
+Email : romain@supertilt.fr
+IP : 87.89.xxx.xxx
+Heure : 02/02/2026 12:25
+
+Si ce n'était pas vous, nous vous recommandons de 
+changer votre mot de passe immédiatement.
 ```
 
 ---
 
-## 1. Schéma de base de données
+## Sécurité Renforcée (Bonus Recommandé)
 
-### Nouvelle table : `attendance_signatures`
+### Nettoyage automatique
+- Suppression des logs de tentatives > 30 jours
+- Job planifié quotidien pour maintenance
 
-| Colonne | Type | Description |
-|---------|------|-------------|
-| `id` | uuid | Clé primaire |
-| `training_id` | uuid | Référence à la formation |
-| `participant_id` | uuid | Référence au participant |
-| `schedule_date` | date | Date de la demi-journée |
-| `period` | text | "AM" (matin) ou "PM" (après-midi) |
-| `token` | varchar | Token unique pour accéder à la page de signature |
-| `signature_data` | text | Image de signature encodée en base64 (data URL) |
-| `signed_at` | timestamptz | Horodatage de la signature (preuve légale) |
-| `ip_address` | text | Adresse IP du signataire |
-| `user_agent` | text | Navigateur/appareil utilisé |
-| `email_sent_at` | timestamptz | Date d'envoi de l'email d'invitation |
-| `email_opened_at` | timestamptz | Date de première ouverture |
-| `created_at` | timestamptz | Date de création |
-
-**Politiques RLS :**
-- Les utilisateurs authentifiés peuvent voir et gérer les signatures
-- Le public peut mettre à jour sa propre signature via token
+### Protection du endpoint de reset password
+- Limiter à 3 demandes par email par heure
+- Éviter le spam de demandes de réinitialisation
 
 ---
 
-## 2. Edge Function : `send-attendance-signature-request`
+## Résumé des Protections
 
-Cette fonction sera invoquée pour envoyer les emails de demande de signature.
+| Attaque | Protection |
+|---------|------------|
+| Brute force par robot | Rate limiting 5 tentatives/15min |
+| Attaque distribuée | Limitation par email en plus de l'IP |
+| Énumération d'emails | Messages génériques, même comportement |
+| Accès non autorisé | Alerte email immédiate |
+| Mot de passe faible | Politique stricte + indicateur visuel |
 
-**Paramètres :**
-- `trainingId` : ID de la formation
-- `scheduleDate` : Date ciblée
-- `period` : "AM" ou "PM"
-
-**Comportement :**
-1. Récupère tous les participants de la formation
-2. Génère un token unique pour chaque participant/demi-journée
-3. Crée les enregistrements dans `attendance_signatures`
-4. Envoie un email personnalisé à chaque participant avec le lien de signature
-
-**Email envoyé :**
-```
-Objet : ✍️ Émargement – NOM_FORMATION – Date Matin/Après-midi
-
-Bonjour Prénom,
-
-Merci de bien vouloir signer ta présence pour la formation "NOM_FORMATION".
-
-📍 Lieu : LIEU
-📅 Date : DATE
-🕐 Horaire : HORAIRE
-
-👉 Clique ici pour signer : [Lien]
-
-Cette signature électronique a valeur légale conformément au règlement eIDAS.
-
-À tout de suite !
-```
-
----
-
-## 3. Page publique : `/emargement/:token`
-
-### Composant : `src/pages/Emargement.tsx`
-
-**Éléments affichés :**
-- Logo SuperTilt en en-tête
-- Titre : "Émargement électronique"
-- Informations de la formation :
-  - Nom de la formation
-  - Nom et prénom du participant
-  - Lieu
-  - Date
-  - Horaire de demi-journée (ex: "9h00 - 12h30")
-- Zone de signature (canvas)
-- Bouton "Signer ma présence"
-- Mention légale sur la valeur juridique
-
-**Librairie de signature :**
-- Utilisation de `signature_pad` (npm) - 170k téléchargements/semaine
-- Génère une image en base64 de la signature manuscrite
-- Compatible mobile (tactile) et desktop (souris)
-
-**Validation juridique (eIDAS) :**
-- La signature simple est légalement reconnue en France
-- L'horodatage + IP + User-Agent constituent une preuve
-- Mention explicite : "En signant, j'atteste de ma présence à cette demi-journée de formation."
-
----
-
-## 4. Bloc "Émargement électronique" dans FormationDetail
-
-### Affichage le jour J uniquement
-
-Le bloc apparaît dans la page de détail de formation lorsque :
-- La date du jour correspond à une date de la formation
-
-### Contenu du bloc
-
-```text
-+----------------------------------------+
-| ✍️ Émargement électronique             |
-+----------------------------------------+
-| 15/02 Matin     [12/15 signés] [Envoyer] |
-| 15/02 Après-midi [8/15 signés] [Envoyer] |
-| 16/02 Matin     [0/15 signés] [Envoyer] |
-| 16/02 Après-midi [0/15 signés] [Envoyer] |
-+----------------------------------------+
-```
-
-**Bouton "Envoyer" :**
-- Déclenche l'envoi des emails de signature pour cette demi-journée
-- Devient "Renvoyer" si déjà envoyé
-- Affiche le nombre de signatures reçues / total participants
-
----
-
-## 5. Intégration dans les emails programmés
-
-### Nouveau type d'email : `attendance_signature`
-
-Le système existant `scheduled_emails` sera enrichi pour afficher les emails d'émargement :
-- Label : "Émargement"
-- Prévisualisation du contenu
-- Possibilité de forcer l'envoi
-
----
-
-## 6. Fichiers à créer/modifier
-
-| Fichier | Action |
-|---------|--------|
-| `supabase/migrations/xxx.sql` | Créer la table `attendance_signatures` |
-| `src/pages/Emargement.tsx` | Nouvelle page publique de signature |
-| `src/App.tsx` | Ajouter la route `/emargement/:token` |
-| `supabase/functions/send-attendance-signature-request/index.ts` | Edge function d'envoi des emails |
-| `src/components/formations/AttendanceSignatureBlock.tsx` | Nouveau composant bloc émargement |
-| `src/pages/FormationDetail.tsx` | Intégrer le bloc émargement |
-| `src/components/formations/ScheduledEmailsSummary.tsx` | Ajouter le type `attendance_signature` |
-| `supabase/functions/force-send-scheduled-email/index.ts` | Supporter le nouveau type d'email |
-| `package.json` | Ajouter la dépendance `signature_pad` |
-
----
-
-## Détails techniques
-
-### Installation de signature_pad
-
-```bash
-npm install signature_pad
-```
-
-### Exemple d'utilisation dans le composant
-
-```typescript
-import SignaturePad from "signature_pad";
-
-// Dans le composant
-const canvasRef = useRef<HTMLCanvasElement>(null);
-const [signaturePad, setSignaturePad] = useState<SignaturePad | null>(null);
-
-useEffect(() => {
-  if (canvasRef.current) {
-    const pad = new SignaturePad(canvasRef.current, {
-      backgroundColor: "rgb(255, 255, 255)",
-      penColor: "rgb(0, 0, 0)",
-    });
-    setSignaturePad(pad);
-  }
-}, []);
-
-const handleSign = async () => {
-  if (!signaturePad || signaturePad.isEmpty()) {
-    toast({ title: "Erreur", description: "Veuillez signer avant de valider" });
-    return;
-  }
-  
-  const signatureData = signaturePad.toDataURL("image/png");
-  
-  // Envoyer à Supabase
-  await supabase
-    .from("attendance_signatures")
-    .update({
-      signature_data: signatureData,
-      signed_at: new Date().toISOString(),
-      ip_address: // récupéré via edge function
-      user_agent: navigator.userAgent,
-    })
-    .eq("token", token);
-};
-```
-
-### Structure de l'email d'émargement
-
-```html
-<p>Bonjour {{prénom}},</p>
-<p>Merci de bien vouloir signer ta présence pour la formation <strong>{{nom_formation}}</strong>.</p>
-<ul>
-  <li>📍 Lieu : {{lieu}}</li>
-  <li>📅 Date : {{date}}</li>
-  <li>🕐 Horaire : {{horaire}}</li>
-</ul>
-<p><a href="{{lien}}" style="...">✍️ Signer ma présence</a></p>
-<p><small>Cette signature électronique a valeur légale conformément au règlement européen eIDAS.</small></p>
-```
-
----
-
-## Conformité légale
-
-### Signature électronique simple (eIDAS)
-
-La signature électronique simple est reconnue en France et dans l'UE. Pour garantir sa valeur probante :
-
-1. **Horodatage précis** : Date et heure de signature enregistrées
-2. **Identification** : Email du signataire + nom/prénom
-3. **Intégrité** : Signature stockée en base de données immuable
-4. **Traçabilité** : IP, User-Agent, date d'envoi de l'email
-5. **Intention** : Mention explicite "J'atteste de ma présence"
-
-### Mentions légales sur la page
-
-> "En signant, j'atteste de ma présence à cette demi-journée de formation et accepte que cette signature électronique ait valeur légale conformément au règlement européen eIDAS (UE n° 910/2014)."
+Cette stratégie offre une protection robuste tout en restant simple et ergonomique pour l'utilisateur légitime.
