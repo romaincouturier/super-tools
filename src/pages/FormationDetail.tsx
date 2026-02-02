@@ -37,6 +37,7 @@ interface Training {
   sponsor_last_name: string | null;
   sponsor_email: string | null;
   sponsor_formal_address: boolean;
+  participants_formal_address: boolean;
   invoice_file_url: string | null;
   attendance_sheets_urls: string[];
   supports_url: string | null;
@@ -438,18 +439,38 @@ const FormationDetail = () => {
                     {participants.length} participant{participants.length !== 1 ? "s" : ""} inscrit{participants.length !== 1 ? "s" : ""}
                   </CardDescription>
                 </div>
-                <div className="flex gap-2">
-                  <BulkAddParticipantsDialog
-                    trainingId={training.id}
-                    trainingStartDate={training.start_date}
-                    onParticipantsAdded={fetchParticipants}
-                  />
-                  <AddParticipantDialog
-                    trainingId={training.id}
-                    trainingStartDate={training.start_date}
-                    clientName={training.client_name}
-                    onParticipantAdded={fetchParticipants}
-                  />
+                <div className="flex items-center gap-4">
+                  {/* Formal address toggle for participants */}
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <span>Tu</span>
+                    <Switch
+                      checked={training.participants_formal_address}
+                      onCheckedChange={async (checked) => {
+                        const { error } = await supabase
+                          .from("trainings")
+                          .update({ participants_formal_address: checked })
+                          .eq("id", training.id);
+                        if (!error) {
+                          setTraining({ ...training, participants_formal_address: checked });
+                        }
+                      }}
+                      className="scale-75"
+                    />
+                    <span>Vous</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <BulkAddParticipantsDialog
+                      trainingId={training.id}
+                      trainingStartDate={training.start_date}
+                      onParticipantsAdded={fetchParticipants}
+                    />
+                    <AddParticipantDialog
+                      trainingId={training.id}
+                      trainingStartDate={training.start_date}
+                      clientName={training.client_name}
+                      onParticipantAdded={fetchParticipants}
+                    />
+                  </div>
                 </div>
               </div>
             </CardHeader>
