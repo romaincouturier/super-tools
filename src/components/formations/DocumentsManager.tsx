@@ -524,25 +524,80 @@ const DocumentsManager = ({
     }
   };
 
-  const getThankYouEmailContent = () => {
-    const supportsSection = supportsUrl 
-      ? `\nVous trouverez également tous les supports de la formation ici, pour continuer à pratiquer et intégrer ces techniques dans vos présentations :\n${supportsUrl}\n`
-      : "";
-    
-    return `Bonjour à toutes et à tous,
+  const [customTemplate, setCustomTemplate] = useState<{ subject: string; content: string } | null>(null);
 
-Quelle belle journée de découverte visuelle nous avons partagé ! Merci pour votre énergie et votre participation pendant notre formation "${trainingName}".
+  // Fetch custom template on mount
+  useEffect(() => {
+    const fetchCustomTemplate = async () => {
+      const { data } = await supabase
+        .from("email_templates")
+        .select("subject, html_content")
+        .eq("template_type", "thank_you")
+        .single();
+      
+      if (data) {
+        setCustomTemplate({
+          subject: data.subject,
+          content: data.html_content,
+        });
+      }
+    };
+    fetchCustomTemplate();
+  }, []);
+
+  const processTemplate = (template: string, variables: Record<string, string | null | undefined>): string => {
+    let result = template;
+
+    // Process conditional blocks: {{#var}}content{{/var}}
+    const conditionalRegex = /\{\{#(\w+)\}\}([\s\S]*?)\{\{\/\1\}\}/g;
+    result = result.replace(conditionalRegex, (match, varName, content) => {
+      const value = variables[varName];
+      return value ? content : "";
+    });
+
+    // Process simple variables: {{var}}
+    const variableRegex = /\{\{(\w+)\}\}/g;
+    result = result.replace(variableRegex, (match, varName) => {
+      const value = variables[varName];
+      return value || "";
+    });
+
+    return result;
+  };
+
+  const getThankYouEmailSubject = () => {
+    const defaultSubject = `Merci pour votre participation à la formation ${trainingName}`;
+    if (customTemplate?.subject) {
+      return processTemplate(customTemplate.subject, { training_name: trainingName });
+    }
+    return defaultSubject;
+  };
+
+  const getThankYouEmailContent = () => {
+    const defaultContent = `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
+
+Quelle belle journée de découverte visuelle nous avons partagé ! Merci pour votre énergie et votre participation pendant notre formation "{{training_name}}".
 
 Pour finaliser cette formation, j'ai besoin que vous preniez quelques minutes pour compléter le questionnaire d'évaluation :
-[Lien d'évaluation personnalisé]
-${supportsSection}
+{{evaluation_link}}
+
+{{#supports_url}}
+Vous trouverez également tous les supports de la formation ici, pour continuer à pratiquer et intégrer ces techniques dans vos présentations :
+{{supports_url}}
+{{/supports_url}}
+
 Je suis curieux de voir comment vous allez utiliser tout ce que nous avons vu ! N'hésitez pas à me contacter si vous avez des questions ou des besoins de compléments d'informations.
 
-Je vous souhaite une bonne journée
+Je vous souhaite une bonne journée`;
 
-—
-Romain Couturier
-romain@supertilt.fr`;
+    const templateToUse = customTemplate?.content || defaultContent;
+    
+    return processTemplate(templateToUse, {
+      first_name: "[Prénom]",
+      training_name: trainingName,
+      evaluation_link: "[Lien d'évaluation personnalisé]",
+      supports_url: supportsUrl || null,
+    });
   };
 
   const openCustomRecipientDialog = (type: "invoice" | "sheets" | "all", toSponsor: boolean = false) => {
@@ -983,7 +1038,7 @@ romain@supertilt.fr`;
             
             <div>
               <p className="text-sm font-medium text-muted-foreground mb-1">Objet</p>
-              <p className="font-medium">Merci pour votre participation à la formation {trainingName}</p>
+              <p className="font-medium">{getThankYouEmailSubject()}</p>
             </div>
             
             <div>
