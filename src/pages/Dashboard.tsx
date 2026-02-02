@@ -1,7 +1,3 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { User } from "@supabase/supabase-js";
 import { Loader2, Award, FileText, Calendar, ClipboardCheck, TrendingUp, Star, History, Newspaper } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
@@ -10,6 +6,8 @@ import StatCard from "@/components/dashboard/StatCard";
 import TopImprovements from "@/components/dashboard/TopImprovements";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
 import { useModuleAccess, AppModule } from "@/hooks/useModuleAccess";
+import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
 
 interface Tool {
   id: string;
@@ -79,9 +77,8 @@ const tools: Tool[] = [
   },
 ];
 const Dashboard = () => {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const { user, loading, logout } = useAuth();
   const {
     microDevisWeekly,
     formationsWeekly,
@@ -96,53 +93,6 @@ const Dashboard = () => {
   // Filter tools based on user access
   const accessibleTools = tools.filter((tool) => hasAccess(tool.module));
 
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setUser(session?.user ?? null);
-        setLoading(false);
-        if (!session?.user) {
-          navigate("/auth");
-        } else {
-          const { data: metadata } = await supabase
-            .from("user_security_metadata")
-            .select("must_change_password")
-            .eq("user_id", session.user.id)
-            .maybeSingle();
-
-          if (metadata?.must_change_password) {
-            navigate("/force-password-change");
-          }
-        }
-      }
-    );
-
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      setLoading(false);
-      if (!session?.user) {
-        navigate("/auth");
-      } else {
-        const { data: metadata } = await supabase
-          .from("user_security_metadata")
-          .select("must_change_password")
-          .eq("user_id", session.user.id)
-          .maybeSingle();
-
-        if (metadata?.must_change_password) {
-          navigate("/force-password-change");
-        }
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [navigate]);
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate("/auth");
-  };
-
   if (loading || accessLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -153,7 +103,7 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <AppHeader user={user} onLogout={handleLogout} showOnboarding />
+      <AppHeader user={user} onLogout={logout} showOnboarding />
 
       {/* Main content */}
       <main className="max-w-7xl mx-auto p-6 space-y-8">
