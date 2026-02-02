@@ -430,7 +430,11 @@ const Historique = () => {
                               {getDetailsDisplay(log)}
                             </div>
                             {hasEmailDetails && (
-                              <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0 transition-transform group-data-[state=open]:rotate-180" />
+                              <Badge variant="outline" className="gap-1 shrink-0">
+                                <Mail className="w-3 h-3" />
+                                Voir l'email
+                                <ChevronDown className="w-3 h-3 transition-transform [[data-state=open]_&]:rotate-180" />
+                              </Badge>
                             )}
                           </div>
                         </CollapsibleTrigger>
@@ -446,7 +450,9 @@ const Historique = () => {
                               {log.details?.email_content && (
                                 <div>
                                   <Label className="text-xs text-muted-foreground">Contenu du mail</Label>
-                                  <p className="text-sm whitespace-pre-wrap">{String(log.details.email_content)}</p>
+                                  <div className="text-sm whitespace-pre-wrap bg-background rounded-md p-3 border mt-1 max-h-[300px] overflow-y-auto">
+                                    {String(log.details.email_content)}
+                                  </div>
                                 </div>
                               )}
                             </div>
