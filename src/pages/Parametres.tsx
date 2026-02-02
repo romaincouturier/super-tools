@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
-import { Loader2, ArrowLeft, Settings, Mail, Save, RotateCcw } from "lucide-react";
+import { Loader2, ArrowLeft, Settings, Mail, Save, RotateCcw, Sparkles } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -118,6 +118,7 @@ const Parametres = () => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
+  const [improving, setImproving] = useState<string | null>(null);
   const [templates, setTemplates] = useState<Record<string, EmailTemplate>>({});
   const [editedTemplates, setEditedTemplates] = useState<Record<string, { subject: string; content: string }>>({});
   const navigate = useNavigate();
@@ -267,6 +268,52 @@ const Parametres = () => {
     }));
   };
 
+  const handleImproveWithAI = async (templateType: string) => {
+    setImproving(templateType);
+    
+    try {
+      const edited = editedTemplates[templateType];
+      const templateName = DEFAULT_TEMPLATES[templateType].name;
+
+      const { data, error } = await supabase.functions.invoke("improve-email-content", {
+        body: {
+          subject: edited.subject,
+          content: edited.content,
+          templateType,
+          templateName,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      setEditedTemplates((prev) => ({
+        ...prev,
+        [templateType]: {
+          subject: data.subject,
+          content: data.content,
+        },
+      }));
+
+      toast({
+        title: "Contenu amélioré",
+        description: "L'IA a proposé des améliorations. Vérifiez et enregistrez si satisfait.",
+      });
+    } catch (error: any) {
+      console.error("AI improvement error:", error);
+      toast({
+        title: "Erreur",
+        description: error.message || "Impossible d'améliorer le contenu avec l'IA.",
+        variant: "destructive",
+      });
+    } finally {
+      setImproving(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -368,10 +415,10 @@ const Parametres = () => {
                         </div>
 
                         {/* Actions */}
-                        <div className="flex gap-2 pt-2">
+                        <div className="flex flex-wrap gap-2 pt-2">
                           <Button
                             onClick={() => handleSaveTemplate(type)}
-                            disabled={saving === type}
+                            disabled={saving === type || improving === type}
                           >
                             {saving === type ? (
                               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -381,8 +428,21 @@ const Parametres = () => {
                             Enregistrer
                           </Button>
                           <Button
+                            variant="secondary"
+                            onClick={() => handleImproveWithAI(type)}
+                            disabled={improving === type || saving === type}
+                          >
+                            {improving === type ? (
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            ) : (
+                              <Sparkles className="h-4 w-4 mr-2" />
+                            )}
+                            Améliorer avec l'IA
+                          </Button>
+                          <Button
                             variant="outline"
                             onClick={() => handleResetTemplate(type)}
+                            disabled={saving === type || improving === type}
                           >
                             <RotateCcw className="h-4 w-4 mr-2" />
                             Réinitialiser
