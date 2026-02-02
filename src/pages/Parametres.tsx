@@ -138,11 +138,10 @@ Merci !`,
     },
     variables: ["first_name", "training_name", "session_date", "signature_link"],
   },
-  // AFTER TRAINING
+  // AFTER TRAINING (manual)
   thank_you: {
     name: "Email de remerciement",
-    timing: "after",
-    delayKey: "delay_thank_you_days",
+    timing: "manual",
     subject: {
       tu: "Merci pour ta participation à la formation {{training_name}}",
       vous: "Merci pour votre participation à la formation {{training_name}}",
@@ -416,7 +415,7 @@ const Parametres = () => {
   const [delayNeedsSurvey, setDelayNeedsSurvey] = useState("7");
   const [delayReminder, setDelayReminder] = useState("7");
   const [delayTrainerSummary, setDelayTrainerSummary] = useState("1");
-  const [delayThankYou, setDelayThankYou] = useState("1");
+  
   const [delayGoogleReview, setDelayGoogleReview] = useState("7");
   const [delayVideoTestimonial, setDelayVideoTestimonial] = useState("14");
   const [delayColdEvaluation, setDelayColdEvaluation] = useState("30");
@@ -459,7 +458,7 @@ const Parametres = () => {
       .in("setting_key", [
         "bcc_email", "bcc_enabled",
         "delay_needs_survey_days", "delay_reminder_days", "delay_trainer_summary_days",
-        "delay_thank_you_days", "delay_google_review_days", "delay_video_testimonial_days", 
+        "delay_google_review_days", "delay_video_testimonial_days", 
         "delay_cold_evaluation_days", "delay_cold_evaluation_funder_days"
       ]);
     
@@ -484,9 +483,6 @@ const Parametres = () => {
           break;
         case "delay_trainer_summary_days":
           setDelayTrainerSummary(setting.setting_value || "1");
-          break;
-        case "delay_thank_you_days":
-          setDelayThankYou(setting.setting_value || "1");
           break;
         case "delay_google_review_days":
           setDelayGoogleReview(setting.setting_value || "7");
@@ -513,7 +509,7 @@ const Parametres = () => {
         { setting_key: "delay_needs_survey_days", setting_value: delayNeedsSurvey, description: "Délai avant formation pour envoyer le questionnaire de besoins (en jours)" },
         { setting_key: "delay_reminder_days", setting_value: delayReminder, description: "Délai avant formation pour envoyer le rappel logistique (en jours)" },
         { setting_key: "delay_trainer_summary_days", setting_value: delayTrainerSummary, description: "Délai avant formation pour envoyer la synthèse au formateur (en jours)" },
-        { setting_key: "delay_thank_you_days", setting_value: delayThankYou, description: "Délai après formation pour envoyer le mail de remerciement (en jours)" },
+        
         { setting_key: "delay_google_review_days", setting_value: delayGoogleReview, description: "Délai après formation pour demander un avis Google (en jours)" },
         { setting_key: "delay_video_testimonial_days", setting_value: delayVideoTestimonial, description: "Délai après formation pour demander un témoignage vidéo (en jours)" },
         { setting_key: "delay_cold_evaluation_days", setting_value: delayColdEvaluation, description: "Délai après formation pour envoyer l'évaluation à froid (en jours)" },
@@ -1004,23 +1000,6 @@ const Parametres = () => {
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="delay-thank-you">Remerciement</Label>
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm text-muted-foreground">J +</span>
-                        <Input
-                          id="delay-thank-you"
-                          type="number"
-                          min="0"
-                          max="30"
-                          value={delayThankYou}
-                          onChange={(e) => setDelayThankYou(e.target.value)}
-                          className="w-20"
-                        />
-                        <span className="text-sm text-muted-foreground">jours</span>
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-2">
                       <Label htmlFor="delay-google-review">Avis Google</Label>
                       <div className="flex items-center gap-2">
                         <span className="text-sm text-muted-foreground">J +</span>
@@ -1191,7 +1170,6 @@ const Parametres = () => {
                         const getDelayValue = (key?: string): string | null => {
                           if (!key) return null;
                           const delayMap: Record<string, string> = {
-                            delay_thank_you_days: delayThankYou,
                             delay_google_review_days: delayGoogleReview,
                             delay_video_testimonial_days: delayVideoTestimonial,
                             delay_cold_evaluation_days: delayColdEvaluation,
