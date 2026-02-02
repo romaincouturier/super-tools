@@ -379,26 +379,39 @@ serve(async (req) => {
     const { data: delaySettings } = await supabase
       .from("app_settings")
       .select("setting_key, setting_value")
-      .in("setting_key", ["delay_google_review_days", "delay_video_testimonial_days", "delay_cold_evaluation_days", "delay_cold_evaluation_funder_days", "working_days"]);
+      .in("setting_key", [
+        "delay_google_review_days", "delay_video_testimonial_days", 
+        "delay_cold_evaluation_days", "delay_cold_evaluation_funder_days", 
+        "delay_evaluation_reminder_1_days", "delay_evaluation_reminder_2_days",
+        "working_days"
+      ]);
     
-    let delayGoogleReview = 7;
-    let delayVideoTestimonial = 14;
-    let delayColdEvaluation = 30;
-    let delayColdEvaluationFunder = 45;
+    let delayGoogleReview = 1;
+    let delayVideoTestimonial = 3;
+    let delayColdEvaluation = 10;
+    let delayColdEvaluationFunder = 15;
+    let delayEvaluationReminder1 = 2;
+    let delayEvaluationReminder2 = 5;
     let workingDays = [false, true, true, true, true, true, false]; // Default: Mon-Fri
     
     delaySettings?.forEach((s: { setting_key: string; setting_value: string | null }) => {
       if (s.setting_key === "delay_google_review_days" && s.setting_value) {
-        delayGoogleReview = parseInt(s.setting_value, 10) || 7;
+        delayGoogleReview = parseInt(s.setting_value, 10) || 1;
       }
       if (s.setting_key === "delay_video_testimonial_days" && s.setting_value) {
-        delayVideoTestimonial = parseInt(s.setting_value, 10) || 14;
+        delayVideoTestimonial = parseInt(s.setting_value, 10) || 3;
       }
       if (s.setting_key === "delay_cold_evaluation_days" && s.setting_value) {
-        delayColdEvaluation = parseInt(s.setting_value, 10) || 30;
+        delayColdEvaluation = parseInt(s.setting_value, 10) || 10;
       }
       if (s.setting_key === "delay_cold_evaluation_funder_days" && s.setting_value) {
-        delayColdEvaluationFunder = parseInt(s.setting_value, 10) || 45;
+        delayColdEvaluationFunder = parseInt(s.setting_value, 10) || 15;
+      }
+      if (s.setting_key === "delay_evaluation_reminder_1_days" && s.setting_value) {
+        delayEvaluationReminder1 = parseInt(s.setting_value, 10) || 2;
+      }
+      if (s.setting_key === "delay_evaluation_reminder_2_days" && s.setting_value) {
+        delayEvaluationReminder2 = parseInt(s.setting_value, 10) || 5;
       }
       if (s.setting_key === "working_days" && s.setting_value) {
         try {
@@ -450,7 +463,7 @@ serve(async (req) => {
         .select("email_type")
         .eq("training_id", trainingId)
         .eq("participant_id", participant.id)
-        .in("email_type", ["google_review", "video_testimonial"]);
+        .in("email_type", ["google_review", "video_testimonial", "evaluation_reminder_1", "evaluation_reminder_2"]);
       
       const existingTypes = new Set(existingEmails?.map(e => e.email_type) || []);
       
@@ -474,6 +487,30 @@ serve(async (req) => {
           participant_id: participant.id,
           email_type: "video_testimonial",
           scheduled_for: videoTestimonialDate.toISOString(),
+          status: "pending",
+        });
+      }
+      
+      // Schedule evaluation_reminder_1 (J+N working days)
+      if (!existingTypes.has("evaluation_reminder_1")) {
+        const reminder1Date = addWorkingDays(referenceDate, delayEvaluationReminder1);
+        emailsToSchedule.push({
+          training_id: trainingId,
+          participant_id: participant.id,
+          email_type: "evaluation_reminder_1",
+          scheduled_for: reminder1Date.toISOString(),
+          status: "pending",
+        });
+      }
+      
+      // Schedule evaluation_reminder_2 (J+N working days)
+      if (!existingTypes.has("evaluation_reminder_2")) {
+        const reminder2Date = addWorkingDays(referenceDate, delayEvaluationReminder2);
+        emailsToSchedule.push({
+          training_id: trainingId,
+          participant_id: participant.id,
+          email_type: "evaluation_reminder_2",
+          scheduled_for: reminder2Date.toISOString(),
           status: "pending",
         });
       }

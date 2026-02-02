@@ -330,6 +330,93 @@ const handler = async (req: Request): Promise<Response> => {
         break;
       }
 
+      case "evaluation_reminder_1":
+      case "evaluation_reminder_2": {
+        recipientEmail = participant?.email || "";
+        
+        // Check if evaluation already submitted
+        const { data: evalCheck } = await supabase
+          .from("training_evaluations")
+          .select("id, etat, token")
+          .eq("training_id", training.id)
+          .eq("participant_id", participant?.id)
+          .single();
+
+        if (evalCheck && evalCheck.etat === "soumis") {
+          // Mark as cancelled and return
+          await supabase
+            .from("scheduled_emails")
+            .update({ status: "cancelled", error_message: "Évaluation déjà soumise" })
+            .eq("id", scheduledEmailId);
+          
+          return new Response(
+            JSON.stringify({ success: true, message: "Reminder cancelled - evaluation already submitted" }),
+            { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+          );
+        }
+
+        if (!evalCheck) {
+          throw new Error("No evaluation record found for participant");
+        }
+
+        const evalUrl = `https://super-tools.lovable.app/evaluation/${evalCheck.token}`;
+        const isFirstReminder = scheduledEmail.email_type === "evaluation_reminder_1";
+        const useTutoiement = !training.participants_formal_address;
+
+        if (isFirstReminder) {
+          subject = useTutoiement 
+            ? `📝 Petit rappel : ton avis compte pour "${training.training_name}"`
+            : `📝 Petit rappel : votre avis compte pour "${training.training_name}"`;
+          htmlContent = useTutoiement
+            ? `
+              <p>Bonjour${firstName ? ` ${firstName}` : ""},</p>
+              <p>J'espère que tu vas bien et que tu as pu commencer à mettre en pratique ce que nous avons vu ensemble lors de la formation "${training.training_name}" !</p>
+              <p>Je me permets de te relancer car je n'ai pas encore reçu ton évaluation. Ton retour est vraiment précieux pour moi : il m'aide à améliorer continuellement mes formations et à mieux répondre aux attentes des futurs participants.</p>
+              <p>Cela ne prend que 2-3 minutes :</p>
+              <p><a href="${evalUrl}" style="display: inline-block; background-color: #1a1a1a; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500;">Remplir l'évaluation</a></p>
+              <p>Un grand merci d'avance pour ta contribution !</p>
+              <p>Belle journée à toi</p>
+              ${signatureHtml}
+            `
+            : `
+              <p>Bonjour${firstName ? ` ${firstName}` : ""},</p>
+              <p>J'espère que vous allez bien et que vous avez pu commencer à mettre en pratique ce que nous avons vu ensemble lors de la formation "${training.training_name}" !</p>
+              <p>Je me permets de vous relancer car je n'ai pas encore reçu votre évaluation. Votre retour est vraiment précieux pour moi : il m'aide à améliorer continuellement mes formations et à mieux répondre aux attentes des futurs participants.</p>
+              <p>Cela ne prend que 2-3 minutes :</p>
+              <p><a href="${evalUrl}" style="display: inline-block; background-color: #1a1a1a; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500;">Remplir l'évaluation</a></p>
+              <p>Un grand merci d'avance pour votre contribution !</p>
+              <p>Belle journée à vous</p>
+              ${signatureHtml}
+            `;
+        } else {
+          subject = useTutoiement
+            ? `🙏 Dernière relance : ta contribution pour "${training.training_name}"`
+            : `🙏 Dernière relance : votre contribution pour "${training.training_name}"`;
+          htmlContent = useTutoiement
+            ? `
+              <p>Bonjour${firstName ? ` ${firstName}` : ""},</p>
+              <p>Je reviens vers toi une dernière fois concernant l'évaluation de la formation "${training.training_name}".</p>
+              <p>En tant qu'organisme certifié Qualiopi, la collecte de ces retours est essentielle pour maintenir notre certification et garantir la qualité de nos formations. Ton avis, même bref, a un vrai impact !</p>
+              <p>Si tu as 2 minutes, voici le lien :</p>
+              <p><a href="${evalUrl}" style="display: inline-block; background-color: #1a1a1a; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500;">Remplir l'évaluation</a></p>
+              <p>Je te remercie sincèrement pour ton aide et te souhaite une excellente continuation dans tes projets !</p>
+              <p>À bientôt</p>
+              ${signatureHtml}
+            `
+            : `
+              <p>Bonjour${firstName ? ` ${firstName}` : ""},</p>
+              <p>Je reviens vers vous une dernière fois concernant l'évaluation de la formation "${training.training_name}".</p>
+              <p>En tant qu'organisme certifié Qualiopi, la collecte de ces retours est essentielle pour maintenir notre certification et garantir la qualité de nos formations. Votre avis, même bref, a un vrai impact !</p>
+              <p>Si vous avez 2 minutes, voici le lien :</p>
+              <p><a href="${evalUrl}" style="display: inline-block; background-color: #1a1a1a; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500;">Remplir l'évaluation</a></p>
+              <p>Je vous remercie sincèrement pour votre aide et vous souhaite une excellente continuation dans vos projets !</p>
+              <p>À bientôt</p>
+              ${signatureHtml}
+            `;
+        }
+        break;
+      }
+
       default:
         throw new Error(`Unknown email type: ${scheduledEmail.email_type}`);
     }

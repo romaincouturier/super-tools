@@ -299,6 +299,78 @@ PS : nous pouvons continuer à rester en contact sur LinkedIn (https://www.linke
     },
     variables: ["first_name", "training_name"],
   },
+  evaluation_reminder_1: {
+    name: "Relance évaluation - 1ère",
+    timing: "after",
+    delayKey: "delay_evaluation_reminder_1_days",
+    subject: {
+      tu: "📝 Petit rappel : ton avis compte pour \"{{training_name}}\"",
+      vous: "📝 Petit rappel : votre avis compte pour \"{{training_name}}\"",
+    },
+    content: {
+      tu: `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
+
+J'espère que tu vas bien et que tu as pu commencer à mettre en pratique ce que nous avons vu ensemble lors de la formation "{{training_name}}" !
+
+Je me permets de te relancer car je n'ai pas encore reçu ton évaluation. Ton retour est vraiment précieux pour moi : il m'aide à améliorer continuellement mes formations et à mieux répondre aux attentes des futurs participants.
+
+Cela ne prend que 2-3 minutes :
+{{evaluation_link}}
+
+Un grand merci d'avance pour ta contribution !
+
+Belle journée à toi`,
+      vous: `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
+
+J'espère que vous allez bien et que vous avez pu commencer à mettre en pratique ce que nous avons vu ensemble lors de la formation "{{training_name}}" !
+
+Je me permets de vous relancer car je n'ai pas encore reçu votre évaluation. Votre retour est vraiment précieux pour moi : il m'aide à améliorer continuellement mes formations et à mieux répondre aux attentes des futurs participants.
+
+Cela ne prend que 2-3 minutes :
+{{evaluation_link}}
+
+Un grand merci d'avance pour votre contribution !
+
+Belle journée à vous`,
+    },
+    variables: ["first_name", "training_name", "evaluation_link"],
+  },
+  evaluation_reminder_2: {
+    name: "Relance évaluation - 2ème",
+    timing: "after",
+    delayKey: "delay_evaluation_reminder_2_days",
+    subject: {
+      tu: "🙏 Dernière relance : ta contribution pour \"{{training_name}}\"",
+      vous: "🙏 Dernière relance : votre contribution pour \"{{training_name}}\"",
+    },
+    content: {
+      tu: `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
+
+Je reviens vers toi une dernière fois concernant l'évaluation de la formation "{{training_name}}".
+
+En tant qu'organisme certifié Qualiopi, la collecte de ces retours est essentielle pour maintenir notre certification et garantir la qualité de nos formations. Ton avis, même bref, a un vrai impact !
+
+Si tu as 2 minutes, voici le lien :
+{{evaluation_link}}
+
+Je te remercie sincèrement pour ton aide et te souhaite une excellente continuation dans tes projets !
+
+À bientôt`,
+      vous: `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
+
+Je reviens vers vous une dernière fois concernant l'évaluation de la formation "{{training_name}}".
+
+En tant qu'organisme certifié Qualiopi, la collecte de ces retours est essentielle pour maintenir notre certification et garantir la qualité de nos formations. Votre avis, même bref, a un vrai impact !
+
+Si vous avez 2 minutes, voici le lien :
+{{evaluation_link}}
+
+Je vous remercie sincèrement pour votre aide et vous souhaite une excellente continuation dans vos projets !
+
+À bientôt`,
+    },
+    variables: ["first_name", "training_name", "evaluation_link"],
+  },
   funder_reminder: {
     name: "Évaluation à froid financeur",
     timing: "after",
@@ -420,10 +492,12 @@ const Parametres = () => {
   const [delayReminder, setDelayReminder] = useState("7");
   const [delayTrainerSummary, setDelayTrainerSummary] = useState("1");
   
-  const [delayGoogleReview, setDelayGoogleReview] = useState("7");
-  const [delayVideoTestimonial, setDelayVideoTestimonial] = useState("14");
-  const [delayColdEvaluation, setDelayColdEvaluation] = useState("30");
-  const [delayColdEvaluationFunder, setDelayColdEvaluationFunder] = useState("45");
+  const [delayGoogleReview, setDelayGoogleReview] = useState("1");
+  const [delayVideoTestimonial, setDelayVideoTestimonial] = useState("3");
+  const [delayColdEvaluation, setDelayColdEvaluation] = useState("10");
+  const [delayColdEvaluationFunder, setDelayColdEvaluationFunder] = useState("15");
+  const [delayEvaluationReminder1, setDelayEvaluationReminder1] = useState("2");
+  const [delayEvaluationReminder2, setDelayEvaluationReminder2] = useState("5");
   
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -463,7 +537,8 @@ const Parametres = () => {
         "bcc_email", "bcc_enabled", "working_days",
         "delay_needs_survey_days", "delay_reminder_days", "delay_trainer_summary_days",
         "delay_google_review_days", "delay_video_testimonial_days", 
-        "delay_cold_evaluation_days", "delay_cold_evaluation_funder_days"
+        "delay_cold_evaluation_days", "delay_cold_evaluation_funder_days",
+        "delay_evaluation_reminder_1_days", "delay_evaluation_reminder_2_days"
       ]);
     
     if (error) {
@@ -499,16 +574,22 @@ const Parametres = () => {
           setDelayTrainerSummary(setting.setting_value || "1");
           break;
         case "delay_google_review_days":
-          setDelayGoogleReview(setting.setting_value || "7");
+          setDelayGoogleReview(setting.setting_value || "1");
           break;
         case "delay_video_testimonial_days":
-          setDelayVideoTestimonial(setting.setting_value || "14");
+          setDelayVideoTestimonial(setting.setting_value || "3");
           break;
         case "delay_cold_evaluation_days":
-          setDelayColdEvaluation(setting.setting_value || "30");
+          setDelayColdEvaluation(setting.setting_value || "10");
           break;
         case "delay_cold_evaluation_funder_days":
-          setDelayColdEvaluationFunder(setting.setting_value || "45");
+          setDelayColdEvaluationFunder(setting.setting_value || "15");
+          break;
+        case "delay_evaluation_reminder_1_days":
+          setDelayEvaluationReminder1(setting.setting_value || "2");
+          break;
+        case "delay_evaluation_reminder_2_days":
+          setDelayEvaluationReminder2(setting.setting_value || "5");
           break;
       }
     });
@@ -525,10 +606,12 @@ const Parametres = () => {
         { setting_key: "delay_reminder_days", setting_value: delayReminder, description: "Délai avant formation pour envoyer le rappel logistique (en jours)" },
         { setting_key: "delay_trainer_summary_days", setting_value: delayTrainerSummary, description: "Délai avant formation pour envoyer la synthèse au formateur (en jours)" },
         
-        { setting_key: "delay_google_review_days", setting_value: delayGoogleReview, description: "Délai après formation pour demander un avis Google (en jours)" },
-        { setting_key: "delay_video_testimonial_days", setting_value: delayVideoTestimonial, description: "Délai après formation pour demander un témoignage vidéo (en jours)" },
-        { setting_key: "delay_cold_evaluation_days", setting_value: delayColdEvaluation, description: "Délai après formation pour envoyer l'évaluation à froid (en jours)" },
-        { setting_key: "delay_cold_evaluation_funder_days", setting_value: delayColdEvaluationFunder, description: "Délai après formation pour rappeler de contacter le financeur (en jours)" },
+        { setting_key: "delay_google_review_days", setting_value: delayGoogleReview, description: "Délai après formation pour demander un avis Google (en jours ouvrables)" },
+        { setting_key: "delay_video_testimonial_days", setting_value: delayVideoTestimonial, description: "Délai après formation pour demander un témoignage vidéo (en jours ouvrables)" },
+        { setting_key: "delay_cold_evaluation_days", setting_value: delayColdEvaluation, description: "Délai après formation pour envoyer l'évaluation à froid (en jours ouvrables)" },
+        { setting_key: "delay_cold_evaluation_funder_days", setting_value: delayColdEvaluationFunder, description: "Délai après formation pour rappeler de contacter le financeur (en jours ouvrables)" },
+        { setting_key: "delay_evaluation_reminder_1_days", setting_value: delayEvaluationReminder1, description: "Délai pour la 1ère relance d'évaluation (en jours ouvrables après le mail de remerciement)" },
+        { setting_key: "delay_evaluation_reminder_2_days", setting_value: delayEvaluationReminder2, description: "Délai pour la 2ème relance d'évaluation (en jours ouvrables après le mail de remerciement)" },
       ];
 
       for (const setting of settingsToSave) {
@@ -1117,6 +1200,58 @@ const Parametres = () => {
                   </div>
                 </div>
 
+                <Separator />
+
+                {/* Evaluation reminder delays */}
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium">Relances pour collecte des évaluations</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Ces relances sont envoyées uniquement aux participants n'ayant pas encore soumis leur évaluation.
+                  </p>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="delay-evaluation-reminder-1">1ère relance</Label>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground">J +</span>
+                        <Input
+                          id="delay-evaluation-reminder-1"
+                          type="number"
+                          min="1"
+                          max="30"
+                          value={delayEvaluationReminder1}
+                          onChange={(e) => setDelayEvaluationReminder1(e.target.value)}
+                          className="w-20"
+                        />
+                        <span className="text-sm text-muted-foreground">jours ouvrables</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Relance amicale rappelant l'importance de l'évaluation
+                      </p>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="delay-evaluation-reminder-2">2ème relance</Label>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground">J +</span>
+                        <Input
+                          id="delay-evaluation-reminder-2"
+                          type="number"
+                          min="1"
+                          max="30"
+                          value={delayEvaluationReminder2}
+                          onChange={(e) => setDelayEvaluationReminder2(e.target.value)}
+                          className="w-20"
+                        />
+                        <span className="text-sm text-muted-foreground">jours ouvrables</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Dernière relance mentionnant l'importance pour Qualiopi
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
                 <Button 
                   onClick={handleSaveSettings}
                   disabled={savingSettings}
@@ -1219,6 +1354,8 @@ const Parametres = () => {
                             delay_video_testimonial_days: delayVideoTestimonial,
                             delay_cold_evaluation_days: delayColdEvaluation,
                             delay_funder_reminder_days: delayColdEvaluationFunder,
+                            delay_evaluation_reminder_1_days: delayEvaluationReminder1,
+                            delay_evaluation_reminder_2_days: delayEvaluationReminder2,
                           };
                           return delayMap[key] || null;
                         };
