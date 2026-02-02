@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
-import { Loader2, ArrowLeft, Settings, Mail, Save, RotateCcw, Sparkles, Cog, ExternalLink } from "lucide-react";
+import { Loader2, ArrowLeft, Settings, Mail, Save, RotateCcw, Sparkles, Cog, ExternalLink, Shield } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import AppHeader from "@/components/AppHeader";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import UserAccessManager from "@/components/settings/UserAccessManager";
 
 interface EmailTemplate {
   id: string;
@@ -499,6 +500,9 @@ const Parametres = () => {
   const [delayColdEvaluationFunder, setDelayColdEvaluationFunder] = useState("15");
   const [delayEvaluationReminder1, setDelayEvaluationReminder1] = useState("2");
   const [delayEvaluationReminder2, setDelayEvaluationReminder2] = useState("5");
+  
+  // Check if user is admin
+  const isAdmin = user?.email?.toLowerCase() === "romain@supertilt.fr";
   
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -986,6 +990,12 @@ const Parametres = () => {
               <Mail className="h-4 w-4" />
               Modèles d'emails
             </TabsTrigger>
+            {isAdmin && (
+              <TabsTrigger value="access" className="flex items-center gap-2">
+                <Shield className="h-4 w-4" />
+                Accès utilisateurs
+              </TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="general">
@@ -1504,6 +1514,12 @@ const Parametres = () => {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {isAdmin && (
+            <TabsContent value="access">
+              <UserAccessManager />
+            </TabsContent>
+          )}
         </Tabs>
       </main>
     </div>

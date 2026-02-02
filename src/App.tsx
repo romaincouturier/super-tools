@@ -21,6 +21,7 @@ import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
 import ForcePasswordChange from "./pages/ForcePasswordChange";
 import Emargement from "./pages/Emargement";
+import ContentBoard from "./pages/ContentBoard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -45,6 +46,8 @@ const App = () => (
           <Route path="/evaluations" element={<Evaluations />} />
           {/* Improvements tracking */}
           <Route path="/ameliorations" element={<Ameliorations />} />
+          {/* Content marketing board */}
+          <Route path="/contenu" element={<ContentBoard />} />
           {/* Public needs survey */}
           <Route path="/questionnaire/:token" element={<Questionnaire />} />
           {/* Public evaluation form */}
