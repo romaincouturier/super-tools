@@ -203,11 +203,21 @@ const DocumentsManager = ({
   };
 
   const handleSheetUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
 
     const allowedTypes = ["application/pdf", "image/jpeg", "image/png", "image/gif", "image/webp"];
-    if (!allowedTypes.includes(file.type)) {
+    const validFiles: File[] = [];
+    
+    // Validate all files first
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      if (allowedTypes.includes(file.type)) {
+        validFiles.push(file);
+      }
+    }
+    
+    if (validFiles.length === 0) {
       toast({
         title: "Format non supporté",
         description: "Seuls les fichiers PDF et images (JPG, PNG, GIF, WebP) sont acceptés.",
@@ -215,26 +225,40 @@ const DocumentsManager = ({
       });
       return;
     }
+    
+    if (validFiles.length < files.length) {
+      toast({
+        title: "Fichiers ignorés",
+        description: `${files.length - validFiles.length} fichier(s) ignoré(s) car non supporté(s).`,
+        variant: "default",
+      });
+    }
 
     setUploadingSheet(true);
 
     try {
-      const fileExt = file.name.split(".").pop();
-      const baseName = file.name.replace(`.${fileExt}`, "");
-      const sanitizedName = sanitizeFileName(baseName);
-      const fileName = `${trainingId}/emargement_${Date.now()}_${sanitizedName}.${fileExt}`;
+      const uploadedUrls: string[] = [];
+      
+      for (const file of validFiles) {
+        const fileExt = file.name.split(".").pop();
+        const baseName = file.name.replace(`.${fileExt}`, "");
+        const sanitizedName = sanitizeFileName(baseName);
+        const fileName = `${trainingId}/emargement_${Date.now()}_${sanitizedName}.${fileExt}`;
 
-      const { error: uploadError } = await supabase.storage
-        .from("training-documents")
-        .upload(fileName, file);
+        const { error: uploadError } = await supabase.storage
+          .from("training-documents")
+          .upload(fileName, file);
 
-      if (uploadError) throw uploadError;
+        if (uploadError) throw uploadError;
 
-      const { data: { publicUrl } } = supabase.storage
-        .from("training-documents")
-        .getPublicUrl(fileName);
+        const { data: { publicUrl } } = supabase.storage
+          .from("training-documents")
+          .getPublicUrl(fileName);
+          
+        uploadedUrls.push(publicUrl);
+      }
 
-      const newSheetsUrls = [...attendanceSheetsUrls, publicUrl];
+      const newSheetsUrls = [...attendanceSheetsUrls, ...uploadedUrls];
 
       // Save directly to database
       const { error: updateError } = await supabase
@@ -248,8 +272,8 @@ const DocumentsManager = ({
       onUpdate?.();
 
       toast({
-        title: "Feuille d'émargement uploadée",
-        description: "Le document a été ajouté à la formation.",
+        title: validFiles.length > 1 ? "Feuilles d'émargement uploadées" : "Feuille d'émargement uploadée",
+        description: `${validFiles.length} document(s) ajouté(s) à la formation.`,
       });
     } catch (error: any) {
       console.error("Upload error:", error);
@@ -260,6 +284,8 @@ const DocumentsManager = ({
       });
     } finally {
       setUploadingSheet(false);
+      // Reset input to allow re-selecting the same files
+      e.target.value = "";
     }
   };
 
@@ -676,6 +702,7 @@ romain@supertilt.fr`;
                 <Input
                   type="file"
                   accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,image/*"
+                  multiple
                   onChange={handleSheetUpload}
                   disabled={uploadingSheet}
                   className="hidden"
