@@ -427,92 +427,15 @@ const handler = async (req: Request): Promise<Response> => {
       ],
     });
 
-    // ========================================
-    // 5. Schedule follow-up emails
-    // ========================================
-    console.log("Scheduling follow-up emails...");
+    // Note: Follow-up emails (google_review, video_testimonial, cold_evaluation) 
+    // are scheduled by send-thank-you-email when the thank you email is sent,
+    // not when an evaluation is submitted. This prevents duplicate scheduling.
 
-    // Fetch working days configuration
-    const { data: workingDaysSettings } = await supabase
-      .from("app_settings")
-      .select("setting_value")
-      .eq("setting_key", "working_days")
-      .single();
-    
-    let workingDays = [false, true, true, true, true, true, false]; // Default: Mon-Fri
-    if (workingDaysSettings?.setting_value) {
-      try {
-        const parsed = JSON.parse(workingDaysSettings.setting_value);
-        if (Array.isArray(parsed) && parsed.length === 7) {
-          workingDays = parsed;
-        }
-      } catch {
-        // Keep default
-      }
-    }
-    
-    // Helper function to adjust date to next working day
-    const adjustToWorkingDay = (date: Date): Date => {
-      const result = new Date(date);
-      const maxIterations = 7;
-      let iterations = 0;
-      
-      while (!workingDays[result.getDay()] && iterations < maxIterations) {
-        result.setDate(result.getDate() + 1);
-        iterations++;
-      }
-      
-      return result;
-    };
-
-    const now = new Date();
     const trainingName = training.training_name;
     const greetingFirstName = firstName ? `Bonjour ${firstName},` : "Bonjour,";
 
-    // J+1: Google review request
-    const j1Date = new Date(now);
-    j1Date.setDate(j1Date.getDate() + 1);
-    j1Date.setHours(10, 0, 0, 0);
-    const adjustedJ1Date = adjustToWorkingDay(j1Date);
-
-    await supabase.from("scheduled_emails").insert({
-      training_id: training.id,
-      participant_id: evaluation.participant_id,
-      email_type: "google_review",
-      scheduled_for: adjustedJ1Date.toISOString(),
-      status: "pending",
-    });
-
-    // J+7: Video testimonial request
-    const j7Date = new Date(now);
-    j7Date.setDate(j7Date.getDate() + 7);
-    j7Date.setHours(10, 0, 0, 0);
-    const adjustedJ7Date = adjustToWorkingDay(j7Date);
-
-    await supabase.from("scheduled_emails").insert({
-      training_id: training.id,
-      participant_id: evaluation.participant_id,
-      email_type: "video_testimonial",
-      scheduled_for: adjustedJ7Date.toISOString(),
-      status: "pending",
-    });
-
-    // J+20: Cold evaluation
-    const j20Date = new Date(now);
-    j20Date.setDate(j20Date.getDate() + 20);
-    j20Date.setHours(10, 0, 0, 0);
-    const adjustedJ20Date = adjustToWorkingDay(j20Date);
-
-    await supabase.from("scheduled_emails").insert({
-      training_id: training.id,
-      participant_id: evaluation.participant_id,
-      email_type: "cold_evaluation",
-      scheduled_for: adjustedJ20Date.toISOString(),
-      status: "pending",
-    });
-
     // ========================================
-    // 6. Special case: Facilitation graphique
+    // 5. Special case: Facilitation graphique
     // ========================================
     if (trainingName.toLowerCase().includes("facilitation graphique")) {
       console.log("Sending special Facilitation Graphique email...");
