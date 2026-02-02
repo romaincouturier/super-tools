@@ -196,6 +196,12 @@ const ScheduledEmailsSummary = ({ trainingId, participants }: ScheduledEmailsSum
         return "Témoignage vidéo";
       case "cold_evaluation":
         return "Évaluation à froid commanditaire";
+      case "funder_reminder":
+        return "Rappel financeur";
+      case "evaluation_reminder_1":
+        return "Relance évaluation (1ère)";
+      case "evaluation_reminder_2":
+        return "Relance évaluation (2ème)";
       default:
         return type;
     }
@@ -221,6 +227,12 @@ const ScheduledEmailsSummary = ({ trainingId, participants }: ScheduledEmailsSum
         return `🎥 Ton avis sur la formation ${training.training_name} ?`;
       case "cold_evaluation":
         return `🫶🏻 Évaluation à froid de la formation ${training.training_name}`;
+      case "funder_reminder":
+        return `📋 Rappel : Contacter le financeur pour ${training.training_name}`;
+      case "evaluation_reminder_1":
+        return `📝 Petit rappel : ton avis compte pour "${training.training_name}"`;
+      case "evaluation_reminder_2":
+        return `🙏 Dernière relance : ta contribution pour "${training.training_name}"`;
       default:
         return `Email concernant ${training.training_name}`;
     }
@@ -350,7 +362,7 @@ J'espère que tout va bien pour toi !
 Pour continuer d'améliorer nos formations et partager des retours d'expérience avec d'autres professionnels, ton avis serait précieux.
 Pourrais-tu nous accorder 1 minute pour laisser un commentaire sur notre page Google ?
 
-👉 Clique ici pour laisser ton avis : https://g.page/r/CYFu8NVOFD31EBM/review
+👉 Clique ici pour laisser ton avis : [Lien configuré dans Paramètres > Général]
 
 Ton retour est essentiel pour nous permettre de progresser et d'aider d'autres personnes à découvrir nos formations.
 
@@ -399,6 +411,53 @@ Merci énormément pour ton soutien :-)
 À bientôt
 
 PS : on peut continuer à rester en contact sur LinkedIn et sur Instagram pour d'autres contenus sur le sujet de la formation.
+
+—
+Romain Couturier
+romain@supertilt.fr`;
+
+      case "funder_reminder":
+        return `Bonjour,
+
+C'est le moment de contacter le financeur pour la formation "${training.training_name}".
+
+N'oublie pas de faire le bilan qualité avec eux !
+
+—
+Romain Couturier
+romain@supertilt.fr`;
+
+      case "evaluation_reminder_1":
+        return `${greeting}
+
+J'espère que tu vas bien et que tu as pu commencer à mettre en pratique ce que nous avons vu ensemble lors de la formation "${training.training_name}" !
+
+Je me permets de te relancer car je n'ai pas encore reçu ton évaluation. Ton retour est vraiment précieux pour moi : il m'aide à améliorer continuellement mes formations et à mieux répondre aux attentes des futurs participants.
+
+Cela ne prend que 2-3 minutes :
+[Lien vers l'évaluation]
+
+Un grand merci d'avance pour ta contribution !
+
+Belle journée à toi
+
+—
+Romain Couturier
+romain@supertilt.fr`;
+
+      case "evaluation_reminder_2":
+        return `${greeting}
+
+Je reviens vers toi une dernière fois concernant l'évaluation de la formation "${training.training_name}".
+
+En tant qu'organisme certifié Qualiopi, la collecte de ces retours est essentielle pour maintenir notre certification et garantir la qualité de nos formations. Ton avis, même bref, a un vrai impact !
+
+Si tu as 2 minutes, voici le lien :
+[Lien vers l'évaluation]
+
+Je te remercie sincèrement pour ton aide et te souhaite une excellente continuation dans tes projets !
+
+À bientôt
 
 —
 Romain Couturier
