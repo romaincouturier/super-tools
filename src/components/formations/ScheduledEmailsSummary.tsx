@@ -521,17 +521,18 @@ romain@supertilt.fr`;
           
           <p className="font-medium text-foreground pt-2">Autres emails avant formation :</p>
           <ul className="space-y-1 list-none">
-            <li>• <strong>J-7</strong> : Rappel logistique (envoyé aux participants)</li>
-            <li>• <strong>J-1</strong> : Synthèse des besoins pour le formateur</li>
+            <li>• <strong>J-X</strong> : Rappel logistique (configurable dans Paramètres)</li>
+            <li>• <strong>J-X</strong> : Synthèse des besoins pour le formateur</li>
           </ul>
           
           <p className="font-medium text-foreground pt-2">Emails après formation :</p>
+          <p className="text-xs italic mb-1">Programmés automatiquement lors de l'envoi du mail de remerciement</p>
           <ul className="space-y-1 list-none">
-            <li>• <strong>J+1</strong> : Email de remerciement avec lien d'évaluation</li>
-            <li>• <strong>J+7</strong> : Demande d'avis Google</li>
-            <li>• <strong>J+14</strong> : Demande de témoignage vidéo</li>
-            <li>• <strong>J+30</strong> : Évaluation à froid</li>
+            <li>• <strong>J+X</strong> : Demande d'avis Google</li>
+            <li>• <strong>J+X</strong> : Demande de témoignage vidéo</li>
+            <li>• <strong>J+X</strong> : Évaluation à froid</li>
           </ul>
+          <p className="text-xs text-muted-foreground pt-2 italic">Les délais sont configurables dans Paramètres {">"} Général</p>
         </div>
       </CollapsibleContent>
     </Collapsible>

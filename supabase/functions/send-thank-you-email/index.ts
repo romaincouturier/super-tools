@@ -372,6 +372,107 @@ serve(async (req) => {
 
     console.log("Thank you emails sent successfully:", results.length);
 
+    // Schedule follow-up emails for each participant
+    console.log("Scheduling follow-up emails...");
+    
+    // Fetch email delay settings
+    const { data: delaySettings } = await supabase
+      .from("app_settings")
+      .select("setting_key, setting_value")
+      .in("setting_key", ["delay_google_review_days", "delay_video_testimonial_days", "delay_cold_evaluation_days"]);
+    
+    let delayGoogleReview = 7;
+    let delayVideoTestimonial = 14;
+    let delayColdEvaluation = 30;
+    
+    delaySettings?.forEach((s: { setting_key: string; setting_value: string | null }) => {
+      if (s.setting_key === "delay_google_review_days" && s.setting_value) {
+        delayGoogleReview = parseInt(s.setting_value, 10) || 7;
+      }
+      if (s.setting_key === "delay_video_testimonial_days" && s.setting_value) {
+        delayVideoTestimonial = parseInt(s.setting_value, 10) || 14;
+      }
+      if (s.setting_key === "delay_cold_evaluation_days" && s.setting_value) {
+        delayColdEvaluation = parseInt(s.setting_value, 10) || 30;
+      }
+    });
+    
+    // Calculate end date (use end_date if available, otherwise start_date)
+    const endDate = training.end_date ? new Date(training.end_date) : new Date(training.start_date);
+    
+    // Schedule follow-up emails for each participant
+    const emailsToSchedule: {
+      training_id: string;
+      participant_id: string;
+      email_type: string;
+      scheduled_for: string;
+      status: string;
+    }[] = [];
+    
+    for (const participant of participants) {
+      // Check if emails are already scheduled for this participant
+      const { data: existingEmails } = await supabase
+        .from("scheduled_emails")
+        .select("email_type")
+        .eq("training_id", trainingId)
+        .eq("participant_id", participant.id)
+        .in("email_type", ["google_review", "video_testimonial", "cold_evaluation"]);
+      
+      const existingTypes = new Set(existingEmails?.map(e => e.email_type) || []);
+      
+      // Schedule google_review
+      if (!existingTypes.has("google_review")) {
+        const googleReviewDate = new Date(endDate);
+        googleReviewDate.setDate(googleReviewDate.getDate() + delayGoogleReview);
+        emailsToSchedule.push({
+          training_id: trainingId,
+          participant_id: participant.id,
+          email_type: "google_review",
+          scheduled_for: googleReviewDate.toISOString(),
+          status: "pending",
+        });
+      }
+      
+      // Schedule video_testimonial
+      if (!existingTypes.has("video_testimonial")) {
+        const videoTestimonialDate = new Date(endDate);
+        videoTestimonialDate.setDate(videoTestimonialDate.getDate() + delayVideoTestimonial);
+        emailsToSchedule.push({
+          training_id: trainingId,
+          participant_id: participant.id,
+          email_type: "video_testimonial",
+          scheduled_for: videoTestimonialDate.toISOString(),
+          status: "pending",
+        });
+      }
+      
+      // Schedule cold_evaluation
+      if (!existingTypes.has("cold_evaluation")) {
+        const coldEvaluationDate = new Date(endDate);
+        coldEvaluationDate.setDate(coldEvaluationDate.getDate() + delayColdEvaluation);
+        emailsToSchedule.push({
+          training_id: trainingId,
+          participant_id: participant.id,
+          email_type: "cold_evaluation",
+          scheduled_for: coldEvaluationDate.toISOString(),
+          status: "pending",
+        });
+      }
+    }
+    
+    // Insert scheduled emails
+    if (emailsToSchedule.length > 0) {
+      const { error: scheduleError } = await supabase
+        .from("scheduled_emails")
+        .insert(emailsToSchedule);
+      
+      if (scheduleError) {
+        console.error("Error scheduling follow-up emails:", scheduleError);
+      } else {
+        console.log(`Scheduled ${emailsToSchedule.length} follow-up emails`);
+      }
+    }
+
     // Log activity for each recipient
     const emailSubject = processTemplate(subjectTemplate, { training_name: trainingName });
     const emailContentBase = processTemplate(contentTemplate, { 

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 import { Loader2, ArrowLeft, Settings, Mail, Save, RotateCcw, Sparkles, Cog } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
 import AppHeader from "@/components/AppHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -215,6 +216,15 @@ const Parametres = () => {
   const [bccEmail, setBccEmail] = useState("romain@supertilt.fr");
   const [savingSettings, setSavingSettings] = useState(false);
   
+  // Email scheduling delays
+  const [delayNeedsSurvey, setDelayNeedsSurvey] = useState("7");
+  const [delayReminder, setDelayReminder] = useState("7");
+  const [delayTrainerSummary, setDelayTrainerSummary] = useState("1");
+  const [delayThankYou, setDelayThankYou] = useState("1");
+  const [delayGoogleReview, setDelayGoogleReview] = useState("7");
+  const [delayVideoTestimonial, setDelayVideoTestimonial] = useState("14");
+  const [delayColdEvaluation, setDelayColdEvaluation] = useState("30");
+  
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -249,7 +259,11 @@ const Parametres = () => {
     const { data, error } = await supabase
       .from("app_settings")
       .select("setting_key, setting_value")
-      .in("setting_key", ["bcc_email", "bcc_enabled"]);
+      .in("setting_key", [
+        "bcc_email", "bcc_enabled",
+        "delay_needs_survey_days", "delay_reminder_days", "delay_trainer_summary_days",
+        "delay_thank_you_days", "delay_google_review_days", "delay_video_testimonial_days", "delay_cold_evaluation_days"
+      ]);
     
     if (error) {
       console.error("Error fetching settings:", error);
@@ -257,11 +271,34 @@ const Parametres = () => {
     }
     
     data?.forEach((setting) => {
-      if (setting.setting_key === "bcc_email") {
-        setBccEmail(setting.setting_value || "");
-      }
-      if (setting.setting_key === "bcc_enabled") {
-        setBccEnabled(setting.setting_value === "true");
+      switch (setting.setting_key) {
+        case "bcc_email":
+          setBccEmail(setting.setting_value || "");
+          break;
+        case "bcc_enabled":
+          setBccEnabled(setting.setting_value === "true");
+          break;
+        case "delay_needs_survey_days":
+          setDelayNeedsSurvey(setting.setting_value || "7");
+          break;
+        case "delay_reminder_days":
+          setDelayReminder(setting.setting_value || "7");
+          break;
+        case "delay_trainer_summary_days":
+          setDelayTrainerSummary(setting.setting_value || "1");
+          break;
+        case "delay_thank_you_days":
+          setDelayThankYou(setting.setting_value || "1");
+          break;
+        case "delay_google_review_days":
+          setDelayGoogleReview(setting.setting_value || "7");
+          break;
+        case "delay_video_testimonial_days":
+          setDelayVideoTestimonial(setting.setting_value || "14");
+          break;
+        case "delay_cold_evaluation_days":
+          setDelayColdEvaluation(setting.setting_value || "30");
+          break;
       }
     });
   };
@@ -269,23 +306,23 @@ const Parametres = () => {
   const handleSaveSettings = async () => {
     setSavingSettings(true);
     try {
-      // Upsert bcc_email
-      await supabase
-        .from("app_settings")
-        .upsert({ 
-          setting_key: "bcc_email", 
-          setting_value: bccEmail,
-          description: "Adresse email en copie cachée (BCC) pour tous les envois"
-        }, { onConflict: "setting_key" });
-      
-      // Upsert bcc_enabled
-      await supabase
-        .from("app_settings")
-        .upsert({ 
-          setting_key: "bcc_enabled", 
-          setting_value: bccEnabled.toString(),
-          description: "Activer ou désactiver l'envoi en copie cachée (BCC)"
-        }, { onConflict: "setting_key" });
+      const settingsToSave = [
+        { setting_key: "bcc_email", setting_value: bccEmail, description: "Adresse email en copie cachée (BCC) pour tous les envois" },
+        { setting_key: "bcc_enabled", setting_value: bccEnabled.toString(), description: "Activer ou désactiver l'envoi en copie cachée (BCC)" },
+        { setting_key: "delay_needs_survey_days", setting_value: delayNeedsSurvey, description: "Délai avant formation pour envoyer le questionnaire de besoins (en jours)" },
+        { setting_key: "delay_reminder_days", setting_value: delayReminder, description: "Délai avant formation pour envoyer le rappel logistique (en jours)" },
+        { setting_key: "delay_trainer_summary_days", setting_value: delayTrainerSummary, description: "Délai avant formation pour envoyer la synthèse au formateur (en jours)" },
+        { setting_key: "delay_thank_you_days", setting_value: delayThankYou, description: "Délai après formation pour envoyer le mail de remerciement (en jours)" },
+        { setting_key: "delay_google_review_days", setting_value: delayGoogleReview, description: "Délai après formation pour demander un avis Google (en jours)" },
+        { setting_key: "delay_video_testimonial_days", setting_value: delayVideoTestimonial, description: "Délai après formation pour demander un témoignage vidéo (en jours)" },
+        { setting_key: "delay_cold_evaluation_days", setting_value: delayColdEvaluation, description: "Délai après formation pour envoyer l'évaluation à froid (en jours)" },
+      ];
+
+      for (const setting of settingsToSave) {
+        await supabase
+          .from("app_settings")
+          .upsert(setting, { onConflict: "setting_key" });
+      }
 
       toast({
         title: "Paramètres enregistrés",
@@ -565,12 +602,13 @@ const Parametres = () => {
                   Configuration globale de l'application.
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
+              <CardContent className="space-y-8">
                 {/* BCC Settings */}
                 <div className="space-y-4">
+                  <h3 className="text-sm font-medium">Copie cachée des emails</h3>
                   <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
-                      <Label htmlFor="bcc-toggle" className="text-base">Copie cachée (BCC)</Label>
+                      <Label htmlFor="bcc-toggle" className="text-base">Activer le BCC</Label>
                       <p className="text-sm text-muted-foreground">
                         Ajouter automatiquement un destinataire en copie cachée sur tous les emails envoyés.
                       </p>
@@ -595,6 +633,149 @@ const Parametres = () => {
                       />
                     </div>
                   )}
+                </div>
+
+                <Separator />
+
+                {/* Email scheduling delays - Before training */}
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium">Délais des emails avant formation</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Configurez les délais d'envoi des emails automatiques avant la date de formation (J-X).
+                  </p>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="delay-needs-survey">Questionnaire de besoins</Label>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground">J -</span>
+                        <Input
+                          id="delay-needs-survey"
+                          type="number"
+                          min="1"
+                          max="30"
+                          value={delayNeedsSurvey}
+                          onChange={(e) => setDelayNeedsSurvey(e.target.value)}
+                          className="w-20"
+                        />
+                        <span className="text-sm text-muted-foreground">jours</span>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="delay-reminder">Rappel logistique</Label>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground">J -</span>
+                        <Input
+                          id="delay-reminder"
+                          type="number"
+                          min="1"
+                          max="30"
+                          value={delayReminder}
+                          onChange={(e) => setDelayReminder(e.target.value)}
+                          className="w-20"
+                        />
+                        <span className="text-sm text-muted-foreground">jours</span>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="delay-trainer-summary">Synthèse formateur</Label>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground">J -</span>
+                        <Input
+                          id="delay-trainer-summary"
+                          type="number"
+                          min="1"
+                          max="30"
+                          value={delayTrainerSummary}
+                          onChange={(e) => setDelayTrainerSummary(e.target.value)}
+                          className="w-20"
+                        />
+                        <span className="text-sm text-muted-foreground">jours</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Email scheduling delays - After training */}
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium">Délais des emails après formation</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Configurez les délais d'envoi des emails automatiques après la date de fin de formation (J+X).
+                  </p>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="delay-thank-you">Remerciement</Label>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground">J +</span>
+                        <Input
+                          id="delay-thank-you"
+                          type="number"
+                          min="0"
+                          max="30"
+                          value={delayThankYou}
+                          onChange={(e) => setDelayThankYou(e.target.value)}
+                          className="w-20"
+                        />
+                        <span className="text-sm text-muted-foreground">jours</span>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="delay-google-review">Avis Google</Label>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground">J +</span>
+                        <Input
+                          id="delay-google-review"
+                          type="number"
+                          min="1"
+                          max="60"
+                          value={delayGoogleReview}
+                          onChange={(e) => setDelayGoogleReview(e.target.value)}
+                          className="w-20"
+                        />
+                        <span className="text-sm text-muted-foreground">jours</span>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="delay-video-testimonial">Témoignage vidéo</Label>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground">J +</span>
+                        <Input
+                          id="delay-video-testimonial"
+                          type="number"
+                          min="1"
+                          max="60"
+                          value={delayVideoTestimonial}
+                          onChange={(e) => setDelayVideoTestimonial(e.target.value)}
+                          className="w-20"
+                        />
+                        <span className="text-sm text-muted-foreground">jours</span>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="delay-cold-evaluation">Évaluation à froid</Label>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground">J +</span>
+                        <Input
+                          id="delay-cold-evaluation"
+                          type="number"
+                          min="1"
+                          max="90"
+                          value={delayColdEvaluation}
+                          onChange={(e) => setDelayColdEvaluation(e.target.value)}
+                          className="w-20"
+                        />
+                        <span className="text-sm text-muted-foreground">jours</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 <Button 
