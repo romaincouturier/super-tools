@@ -59,9 +59,27 @@ function getDefaultSignature(): string {
   </p>`;
 }
 
-// Default template content
-const DEFAULT_SUBJECT = "Merci pour votre participation à la formation {{training_name}}";
-const DEFAULT_CONTENT = `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
+// Default template content - Tutoiement version
+const DEFAULT_SUBJECT_TU = "Merci pour ta participation à la formation {{training_name}}";
+const DEFAULT_CONTENT_TU = `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
+
+Quelle belle journée de découverte visuelle nous avons partagé ! Merci pour ton énergie et ta participation pendant notre formation "{{training_name}}".
+
+Pour finaliser cette formation, j'ai besoin que tu prennes quelques minutes pour compléter le questionnaire d'évaluation :
+{{evaluation_link}}
+
+{{#supports_url}}
+Tu trouveras également tous les supports de la formation ici, pour continuer à pratiquer et intégrer ces techniques dans tes présentations :
+{{supports_url}}
+{{/supports_url}}
+
+Je suis curieux de voir comment tu vas utiliser tout ce que nous avons vu ! N'hésite pas à me contacter si tu as des questions ou des besoins de compléments d'informations.
+
+Je te souhaite une bonne journée`;
+
+// Default template content - Vouvoiement version
+const DEFAULT_SUBJECT_VOUS = "Merci pour votre participation à la formation {{training_name}}";
+const DEFAULT_CONTENT_VOUS = `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
 
 Quelle belle journée de découverte visuelle nous avons partagé ! Merci pour votre énergie et votre participation pendant notre formation "{{training_name}}".
 
@@ -144,17 +162,25 @@ serve(async (req) => {
       throw new Error("Training not found");
     }
 
-    // Fetch custom email template if exists
+    // Determine if we should use tutoiement or vouvoiement
+    const useTutoiement = training.participants_formal_address === false;
+    const templateTypeSuffix = useTutoiement ? "_tu" : "_vous";
+    
+    // Fetch custom email template if exists (with mode suffix)
     const { data: customTemplate } = await supabase
       .from("email_templates")
       .select("subject, html_content")
-      .eq("template_type", "thank_you")
+      .eq("template_type", `thank_you${templateTypeSuffix}`)
       .single();
 
-    const subjectTemplate = customTemplate?.subject || DEFAULT_SUBJECT;
-    const contentTemplate = customTemplate?.html_content || DEFAULT_CONTENT;
+    // Use appropriate default based on formality setting
+    const defaultSubject = useTutoiement ? DEFAULT_SUBJECT_TU : DEFAULT_SUBJECT_VOUS;
+    const defaultContent = useTutoiement ? DEFAULT_CONTENT_TU : DEFAULT_CONTENT_VOUS;
 
-    console.log("Using template:", customTemplate ? "custom" : "default");
+    const subjectTemplate = customTemplate?.subject || defaultSubject;
+    const contentTemplate = customTemplate?.html_content || defaultContent;
+
+    console.log("Using template:", customTemplate ? "custom" : "default", "mode:", useTutoiement ? "tutoiement" : "vouvoiement");
 
     // Get Signitic signature
     const signature = await getSigniticSignature();

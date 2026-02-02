@@ -27,11 +27,32 @@ interface EmailTemplate {
   is_default: boolean;
 }
 
-const DEFAULT_TEMPLATES: Record<string, { name: string; subject: string; content: string; variables: string[] }> = {
+type AddressMode = "tu" | "vous";
+
+const DEFAULT_TEMPLATES: Record<string, { name: string; subject: { tu: string; vous: string }; content: { tu: string; vous: string }; variables: string[] }> = {
   thank_you: {
     name: "Email de remerciement",
-    subject: "Merci pour votre participation à la formation {{training_name}}",
-    content: `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
+    subject: {
+      tu: "Merci pour ta participation à la formation {{training_name}}",
+      vous: "Merci pour votre participation à la formation {{training_name}}",
+    },
+    content: {
+      tu: `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
+
+Quelle belle journée de découverte visuelle nous avons partagé ! Merci pour ton énergie et ta participation pendant notre formation "{{training_name}}".
+
+Pour finaliser cette formation, j'ai besoin que tu prennes quelques minutes pour compléter le questionnaire d'évaluation :
+{{evaluation_link}}
+
+{{#supports_url}}
+Tu trouveras également tous les supports de la formation ici, pour continuer à pratiquer et intégrer ces techniques dans tes présentations :
+{{supports_url}}
+{{/supports_url}}
+
+Je suis curieux de voir comment tu vas utiliser tout ce que nous avons vu ! N'hésite pas à me contacter si tu as des questions ou des besoins de compléments d'informations.
+
+Je te souhaite une bonne journée`,
+      vous: `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
 
 Quelle belle journée de découverte visuelle nous avons partagé ! Merci pour votre énergie et votre participation pendant notre formation "{{training_name}}".
 
@@ -46,12 +67,29 @@ Vous trouverez également tous les supports de la formation ici, pour continuer 
 Je suis curieux de voir comment vous allez utiliser tout ce que nous avons vu ! N'hésitez pas à me contacter si vous avez des questions ou des besoins de compléments d'informations.
 
 Je vous souhaite une bonne journée`,
+    },
     variables: ["first_name", "training_name", "evaluation_link", "supports_url"],
   },
   needs_survey: {
     name: "Questionnaire de recueil des besoins",
-    subject: "Préparez votre formation \"{{training_name}}\"",
-    content: `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
+    subject: {
+      tu: "Prépare ta formation \"{{training_name}}\"",
+      vous: "Préparez votre formation \"{{training_name}}\"",
+    },
+    content: {
+      tu: `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
+
+Tu es inscrit(e) à la formation "{{training_name}}" qui aura lieu le {{training_date}}.
+
+Afin de personnaliser au mieux cette formation, je t'invite à remplir ce court questionnaire de recueil des besoins :
+{{questionnaire_link}}
+
+Ce questionnaire me permettra de mieux comprendre tes attentes et d'adapter le contenu de la formation à tes besoins spécifiques.
+
+Je te remercie de le compléter avant le {{deadline_date}}.
+
+À très bientôt !`,
+      vous: `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
 
 Vous êtes inscrit(e) à la formation "{{training_name}}" qui aura lieu le {{training_date}}.
 
@@ -63,12 +101,26 @@ Ce questionnaire me permettra de mieux comprendre vos attentes et d'adapter le c
 Je vous remercie de le compléter avant le {{deadline_date}}.
 
 À très bientôt !`,
+    },
     variables: ["first_name", "training_name", "training_date", "questionnaire_link", "deadline_date"],
   },
   needs_survey_reminder: {
     name: "Rappel questionnaire besoins",
-    subject: "Rappel : Préparez votre formation \"{{training_name}}\"",
-    content: `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
+    subject: {
+      tu: "Rappel : Prépare ta formation \"{{training_name}}\"",
+      vous: "Rappel : Préparez votre formation \"{{training_name}}\"",
+    },
+    content: {
+      tu: `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
+
+Je me permets de te relancer concernant le questionnaire de préparation pour la formation "{{training_name}}".
+
+Ton retour m'est précieux pour adapter au mieux le contenu à tes besoins.
+
+{{questionnaire_link}}
+
+Merci d'avance pour ta participation !`,
+      vous: `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
 
 Je me permets de vous relancer concernant le questionnaire de préparation pour la formation "{{training_name}}".
 
@@ -77,12 +129,31 @@ Votre retour m'est précieux pour adapter au mieux le contenu à vos besoins.
 {{questionnaire_link}}
 
 Merci d'avance pour votre participation !`,
+    },
     variables: ["first_name", "training_name", "questionnaire_link"],
   },
   training_documents: {
     name: "Envoi des documents de formation",
-    subject: "Documents de la formation \"{{training_name}}\"",
-    content: `{{greeting}},
+    subject: {
+      tu: "Documents de la formation \"{{training_name}}\"",
+      vous: "Documents de la formation \"{{training_name}}\"",
+    },
+    content: {
+      tu: `{{greeting}},
+
+Voici les documents relatifs à la formation "{{training_name}}" qui s'est déroulée {{training_dates}}.
+
+{{#has_invoice}}
+- La facture
+{{/has_invoice}}
+{{#has_sheets}}
+- Les feuilles d'émargement signées
+{{/has_sheets}}
+
+N'hésite pas à me contacter si tu as des questions.
+
+Bonne réception.`,
+      vous: `{{greeting}},
 
 Veuillez trouver ci-joint les documents relatifs à la formation "{{training_name}}" qui s'est déroulée {{training_dates}}.
 
@@ -96,12 +167,26 @@ Veuillez trouver ci-joint les documents relatifs à la formation "{{training_nam
 N'hésitez pas à me contacter si vous avez des questions.
 
 Bonne réception.`,
+    },
     variables: ["greeting", "training_name", "training_dates", "has_invoice", "has_sheets"],
   },
   attendance_signature: {
     name: "Demande de signature d'émargement",
-    subject: "Signature d'émargement - {{training_name}}",
-    content: `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
+    subject: {
+      tu: "Signature d'émargement - {{training_name}}",
+      vous: "Signature d'émargement - {{training_name}}",
+    },
+    content: {
+      tu: `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
+
+Merci de bien vouloir signer ta feuille d'émargement pour la formation "{{training_name}}" du {{session_date}}.
+
+{{signature_link}}
+
+Cette signature atteste de ta présence à la formation.
+
+Merci !`,
+      vous: `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
 
 Merci de bien vouloir signer votre feuille d'émargement pour la formation "{{training_name}}" du {{session_date}}.
 
@@ -110,6 +195,7 @@ Merci de bien vouloir signer votre feuille d'émargement pour la formation "{{tr
 Cette signature atteste de votre présence à la formation.
 
 Merci !`,
+    },
     variables: ["first_name", "training_name", "session_date", "signature_link"],
   },
 };
@@ -119,8 +205,9 @@ const Parametres = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
   const [improving, setImproving] = useState<string | null>(null);
-  const [templates, setTemplates] = useState<Record<string, EmailTemplate>>({});
-  const [editedTemplates, setEditedTemplates] = useState<Record<string, { subject: string; content: string }>>({});
+  const [templates, setTemplates] = useState<Record<string, Record<AddressMode, EmailTemplate | null>>>({});
+  const [editedTemplates, setEditedTemplates] = useState<Record<string, Record<AddressMode, { subject: string; content: string }>>>({});
+  const [activeMode, setActiveMode] = useState<Record<string, AddressMode>>({});
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -161,26 +248,56 @@ const Parametres = () => {
       return;
     }
 
-    const templatesMap: Record<string, EmailTemplate> = {};
-    const editedMap: Record<string, { subject: string; content: string }> = {};
+    const templatesMap: Record<string, Record<AddressMode, EmailTemplate | null>> = {};
+    const editedMap: Record<string, Record<AddressMode, { subject: string; content: string }>> = {};
+    const modeMap: Record<string, AddressMode> = {};
     
+    // Group templates by base type and mode
     data?.forEach((t) => {
-      templatesMap[t.template_type] = t;
-      editedMap[t.template_type] = { subject: t.subject, content: t.html_content };
+      const isVous = t.template_type.endsWith("_vous");
+      const isTu = t.template_type.endsWith("_tu");
+      const mode: AddressMode = isVous ? "vous" : isTu ? "tu" : "vous";
+      const baseType = isVous ? t.template_type.replace("_vous", "") : isTu ? t.template_type.replace("_tu", "") : t.template_type;
+      
+      if (!templatesMap[baseType]) {
+        templatesMap[baseType] = { tu: null, vous: null };
+      }
+      if (!editedMap[baseType]) {
+        editedMap[baseType] = {
+          tu: { subject: "", content: "" },
+          vous: { subject: "", content: "" },
+        };
+      }
+      
+      templatesMap[baseType][mode] = t;
+      editedMap[baseType][mode] = { subject: t.subject, content: t.html_content };
     });
 
     // Initialize with defaults for any missing templates
     Object.keys(DEFAULT_TEMPLATES).forEach((type) => {
+      if (!templatesMap[type]) {
+        templatesMap[type] = { tu: null, vous: null };
+      }
       if (!editedMap[type]) {
         editedMap[type] = {
-          subject: DEFAULT_TEMPLATES[type].subject,
-          content: DEFAULT_TEMPLATES[type].content,
+          tu: { subject: DEFAULT_TEMPLATES[type].subject.tu, content: DEFAULT_TEMPLATES[type].content.tu },
+          vous: { subject: DEFAULT_TEMPLATES[type].subject.vous, content: DEFAULT_TEMPLATES[type].content.vous },
         };
+      } else {
+        // Fill in missing modes with defaults
+        if (!editedMap[type].tu.subject) {
+          editedMap[type].tu = { subject: DEFAULT_TEMPLATES[type].subject.tu, content: DEFAULT_TEMPLATES[type].content.tu };
+        }
+        if (!editedMap[type].vous.subject) {
+          editedMap[type].vous = { subject: DEFAULT_TEMPLATES[type].subject.vous, content: DEFAULT_TEMPLATES[type].content.vous };
+        }
       }
+      modeMap[type] = "vous"; // Default to vous
     });
 
     setTemplates(templatesMap);
     setEditedTemplates(editedMap);
+    setActiveMode(modeMap);
   };
 
   const handleLogout = async () => {
@@ -188,12 +305,14 @@ const Parametres = () => {
     navigate("/auth");
   };
 
-  const handleSaveTemplate = async (templateType: string) => {
-    setSaving(templateType);
+  const handleSaveTemplate = async (templateType: string, mode: AddressMode) => {
+    const saveKey = `${templateType}_${mode}`;
+    setSaving(saveKey);
     
     try {
-      const edited = editedTemplates[templateType];
-      const existing = templates[templateType];
+      const edited = editedTemplates[templateType]?.[mode];
+      const existing = templates[templateType]?.[mode];
+      const templateTypeWithMode = `${templateType}_${mode}`;
 
       if (existing) {
         // Update existing
@@ -212,8 +331,8 @@ const Parametres = () => {
         const { data, error } = await supabase
           .from("email_templates")
           .insert({
-            template_type: templateType,
-            template_name: DEFAULT_TEMPLATES[templateType].name,
+            template_type: templateTypeWithMode,
+            template_name: `${DEFAULT_TEMPLATES[templateType].name} (${mode === "tu" ? "tutoiement" : "vouvoiement"})`,
             subject: edited.subject,
             html_content: edited.content,
             is_default: false,
@@ -223,12 +342,18 @@ const Parametres = () => {
 
         if (error) throw error;
         
-        setTemplates((prev) => ({ ...prev, [templateType]: data }));
+        setTemplates((prev) => ({
+          ...prev,
+          [templateType]: {
+            ...prev[templateType],
+            [mode]: data,
+          },
+        }));
       }
 
       toast({
         title: "Template enregistré",
-        description: "Le modèle d'email a été mis à jour avec succès.",
+        description: `Le modèle d'email (${mode === "tu" ? "tutoiement" : "vouvoiement"}) a été mis à jour avec succès.`,
       });
     } catch (error: any) {
       console.error("Save error:", error);
@@ -242,13 +367,16 @@ const Parametres = () => {
     }
   };
 
-  const handleResetTemplate = (templateType: string) => {
+  const handleResetTemplate = (templateType: string, mode: AddressMode) => {
     const defaultTemplate = DEFAULT_TEMPLATES[templateType];
     setEditedTemplates((prev) => ({
       ...prev,
       [templateType]: {
-        subject: defaultTemplate.subject,
-        content: defaultTemplate.content,
+        ...prev[templateType],
+        [mode]: {
+          subject: defaultTemplate.subject[mode],
+          content: defaultTemplate.content[mode],
+        },
       },
     }));
     
@@ -258,21 +386,25 @@ const Parametres = () => {
     });
   };
 
-  const updateTemplate = (templateType: string, field: "subject" | "content", value: string) => {
+  const updateTemplate = (templateType: string, mode: AddressMode, field: "subject" | "content", value: string) => {
     setEditedTemplates((prev) => ({
       ...prev,
       [templateType]: {
         ...prev[templateType],
-        [field]: value,
+        [mode]: {
+          ...prev[templateType]?.[mode],
+          [field]: value,
+        },
       },
     }));
   };
 
-  const handleImproveWithAI = async (templateType: string) => {
-    setImproving(templateType);
+  const handleImproveWithAI = async (templateType: string, mode: AddressMode) => {
+    const improveKey = `${templateType}_${mode}`;
+    setImproving(improveKey);
     
     try {
-      const edited = editedTemplates[templateType];
+      const edited = editedTemplates[templateType]?.[mode];
       const templateName = DEFAULT_TEMPLATES[templateType].name;
 
       const { data, error } = await supabase.functions.invoke("improve-email-content", {
@@ -293,8 +425,11 @@ const Parametres = () => {
       setEditedTemplates((prev) => ({
         ...prev,
         [templateType]: {
-          subject: data.subject,
-          content: data.content,
+          ...prev[templateType],
+          [mode]: {
+            subject: data.subject,
+            content: data.content,
+          },
         },
       }));
 
@@ -364,93 +499,117 @@ const Parametres = () => {
               </CardHeader>
               <CardContent>
                 <Accordion type="single" collapsible className="w-full">
-                  {Object.entries(DEFAULT_TEMPLATES).map(([type, defaultTemplate]) => (
-                    <AccordionItem key={type} value={type}>
-                      <AccordionTrigger className="text-left">
-                        <div className="flex items-center gap-3">
-                          <Mail className="h-4 w-4 text-muted-foreground" />
-                          <span>{defaultTemplate.name}</span>
-                          {templates[type] && (
-                            <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
-                              Personnalisé
-                            </span>
-                          )}
-                        </div>
-                      </AccordionTrigger>
-                      <AccordionContent className="space-y-4 pt-4">
-                        {/* Subject */}
-                        <div className="space-y-2">
-                          <Label>Objet de l'email</Label>
-                          <Input
-                            value={editedTemplates[type]?.subject || ""}
-                            onChange={(e) => updateTemplate(type, "subject", e.target.value)}
-                            placeholder="Objet du mail..."
-                          />
-                        </div>
-
-                        {/* Content */}
-                        <div className="space-y-2">
-                          <Label>Contenu de l'email</Label>
-                          <Textarea
-                            value={editedTemplates[type]?.content || ""}
-                            onChange={(e) => updateTemplate(type, "content", e.target.value)}
-                            placeholder="Contenu du mail..."
-                            className="min-h-[200px] font-mono text-sm"
-                          />
-                        </div>
-
-                        {/* Variables */}
-                        <div className="space-y-2">
-                          <Label className="text-muted-foreground">Variables disponibles</Label>
-                          <div className="flex flex-wrap gap-2">
-                            {defaultTemplate.variables.map((variable) => (
-                              <code
-                                key={variable}
-                                className="px-2 py-1 bg-muted rounded text-xs"
-                              >
-                                {`{{${variable}}}`}
-                              </code>
-                            ))}
+                  {Object.entries(DEFAULT_TEMPLATES).map(([type, defaultTemplate]) => {
+                    const currentMode = activeMode[type] || "vous";
+                    const saveKey = `${type}_${currentMode}`;
+                    const isCustomized = templates[type]?.tu || templates[type]?.vous;
+                    
+                    return (
+                      <AccordionItem key={type} value={type}>
+                        <AccordionTrigger className="text-left">
+                          <div className="flex items-center gap-3">
+                            <Mail className="h-4 w-4 text-muted-foreground" />
+                            <span>{defaultTemplate.name}</span>
+                            {isCustomized && (
+                              <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
+                                Personnalisé
+                              </span>
+                            )}
                           </div>
-                        </div>
+                        </AccordionTrigger>
+                        <AccordionContent className="space-y-4 pt-4">
+                          {/* Tu/Vous tabs */}
+                          <div className="flex items-center gap-2 mb-4">
+                            <span className="text-sm text-muted-foreground">Version :</span>
+                            <Tabs
+                              value={currentMode}
+                              onValueChange={(v) => setActiveMode((prev) => ({ ...prev, [type]: v as AddressMode }))}
+                            >
+                              <TabsList className="h-8">
+                                <TabsTrigger value="tu" className="text-xs px-3 h-7">
+                                  Tutoiement
+                                </TabsTrigger>
+                                <TabsTrigger value="vous" className="text-xs px-3 h-7">
+                                  Vouvoiement
+                                </TabsTrigger>
+                              </TabsList>
+                            </Tabs>
+                          </div>
 
-                        {/* Actions */}
-                        <div className="flex flex-wrap gap-2 pt-2">
-                          <Button
-                            onClick={() => handleSaveTemplate(type)}
-                            disabled={saving === type || improving === type}
-                          >
-                            {saving === type ? (
-                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            ) : (
-                              <Save className="h-4 w-4 mr-2" />
-                            )}
-                            Enregistrer
-                          </Button>
-                          <Button
-                            variant="secondary"
-                            onClick={() => handleImproveWithAI(type)}
-                            disabled={improving === type || saving === type}
-                          >
-                            {improving === type ? (
-                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            ) : (
-                              <Sparkles className="h-4 w-4 mr-2" />
-                            )}
-                            Améliorer avec l'IA
-                          </Button>
-                          <Button
-                            variant="outline"
-                            onClick={() => handleResetTemplate(type)}
-                            disabled={saving === type || improving === type}
-                          >
-                            <RotateCcw className="h-4 w-4 mr-2" />
-                            Réinitialiser
-                          </Button>
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
-                  ))}
+                          {/* Subject */}
+                          <div className="space-y-2">
+                            <Label>Objet de l'email</Label>
+                            <Input
+                              value={editedTemplates[type]?.[currentMode]?.subject || ""}
+                              onChange={(e) => updateTemplate(type, currentMode, "subject", e.target.value)}
+                              placeholder="Objet du mail..."
+                            />
+                          </div>
+
+                          {/* Content */}
+                          <div className="space-y-2">
+                            <Label>Contenu de l'email</Label>
+                            <Textarea
+                              value={editedTemplates[type]?.[currentMode]?.content || ""}
+                              onChange={(e) => updateTemplate(type, currentMode, "content", e.target.value)}
+                              placeholder="Contenu du mail..."
+                              className="min-h-[200px] font-mono text-sm"
+                            />
+                          </div>
+
+                          {/* Variables */}
+                          <div className="space-y-2">
+                            <Label className="text-muted-foreground">Variables disponibles</Label>
+                            <div className="flex flex-wrap gap-2">
+                              {defaultTemplate.variables.map((variable) => (
+                                <code
+                                  key={variable}
+                                  className="px-2 py-1 bg-muted rounded text-xs"
+                                >
+                                  {`{{${variable}}}`}
+                                </code>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Actions */}
+                          <div className="flex flex-wrap gap-2 pt-2">
+                            <Button
+                              onClick={() => handleSaveTemplate(type, currentMode)}
+                              disabled={saving === saveKey || improving === saveKey}
+                            >
+                              {saving === saveKey ? (
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              ) : (
+                                <Save className="h-4 w-4 mr-2" />
+                              )}
+                              Enregistrer
+                            </Button>
+                            <Button
+                              variant="secondary"
+                              onClick={() => handleImproveWithAI(type, currentMode)}
+                              disabled={improving === saveKey || saving === saveKey}
+                            >
+                              {improving === saveKey ? (
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              ) : (
+                                <Sparkles className="h-4 w-4 mr-2" />
+                              )}
+                              Améliorer avec l'IA
+                            </Button>
+                            <Button
+                              variant="outline"
+                              onClick={() => handleResetTemplate(type, currentMode)}
+                              disabled={saving === saveKey || improving === saveKey}
+                            >
+                              <RotateCcw className="h-4 w-4 mr-2" />
+                              Réinitialiser
+                            </Button>
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+                    );
+                  })}
                 </Accordion>
               </CardContent>
             </Card>
