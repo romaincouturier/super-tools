@@ -547,6 +547,33 @@ export type Database = {
         }
         Relationships: []
       }
+      profiles: {
+        Row: {
+          created_at: string
+          display_name: string | null
+          email: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string | null
+          email: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string | null
+          email?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       program_files: {
         Row: {
           file_name: string
@@ -1223,6 +1250,10 @@ export type Database = {
       has_module_access: {
         Args: { _module: string; _user_id: string }
         Returns: boolean
+      }
+      upsert_profile: {
+        Args: { p_display_name?: string; p_email: string; p_user_id: string }
+        Returns: undefined
       }
     }
     Enums: {
