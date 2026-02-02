@@ -340,11 +340,39 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log(`Sending ${scheduledEmail.email_type} email to ${recipientEmail}`);
 
+    // Fetch BCC settings from app_settings
+    const { data: bccSettings } = await supabase
+      .from("app_settings")
+      .select("setting_key, setting_value")
+      .in("setting_key", ["bcc_enabled", "bcc_email"]);
+
+    let bccEnabled = true;
+    let bccEmail = "romain@supertilt.fr";
+    
+    if (bccSettings) {
+      for (const setting of bccSettings) {
+        if (setting.setting_key === "bcc_enabled") {
+          bccEnabled = setting.setting_value === "true";
+        }
+        if (setting.setting_key === "bcc_email") {
+          bccEmail = setting.setting_value || "romain@supertilt.fr";
+        }
+      }
+    }
+
+    // Build BCC list
+    const bccList = ["supertilt@bcc.nocrm.io"]; // Always include nocrm.io
+    if (bccEnabled && bccEmail) {
+      bccList.push(bccEmail);
+    }
+
+    console.log(`BCC enabled: ${bccEnabled}, BCC list: ${bccList.join(", ")}`);
+
     // Send the email
     const emailResponse = await resend.emails.send({
       from: "Romain Couturier <romain@supertilt.fr>",
       to: [recipientEmail],
-      bcc: ["romain@supertilt.fr", "supertilt@bcc.nocrm.io"],
+      bcc: bccList,
       subject,
       html: htmlContent,
     });
