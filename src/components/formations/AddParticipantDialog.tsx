@@ -37,9 +37,7 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, onPar
 
   // Determine email scheduling mode based on training date
   // - If training already started (past date) -> no email
-  // - If training starts in less than 2 days -> manual mode
-  // - If training starts between 2-7 days -> send welcome email immediately
-  // - Otherwise -> schedule needs survey
+  // - If training is upcoming -> send welcome email immediately
   const getEmailMode = (): { status: string; sendWelcomeNow: boolean } => {
     if (!trainingStartDate) {
       return { status: "programme", sendWelcomeNow: false };
@@ -54,24 +52,14 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, onPar
       return { status: "non_envoye", sendWelcomeNow: false };
     }
     
-    // Training starts in less than 2 days
-    if (daysUntilStart < 2) {
-      return { status: "manuel", sendWelcomeNow: false };
-    }
-    
-    // Training starts between 2-7 days -> send welcome email immediately
-    if (daysUntilStart <= 7) {
-      return { status: "accueil_envoye", sendWelcomeNow: true };
-    }
-    
-    // Training is more than 7 days away -> schedule normally
-    return { status: "programme", sendWelcomeNow: false };
+    // Training is in the future -> send welcome email immediately
+    return { status: "accueil_envoye", sendWelcomeNow: true };
   };
 
   useEffect(() => {
     if (trainingStartDate) {
       const { status } = getEmailMode();
-      setIsManualMode(status === "manuel" || status === "non_envoye");
+      setIsManualMode(status === "non_envoye");
     }
   }, [trainingStartDate]);
 
@@ -140,8 +128,8 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, onPar
         }
       }
 
-      // If status is "programme", create a scheduled email for needs survey
-      if (status === "programme" && insertedParticipant && trainingStartDate) {
+      // Schedule needs survey email for future trainings (after welcome email is sent)
+      if (sendWelcomeNow && insertedParticipant && trainingStartDate) {
         try {
           const [workingDays, needsSurveyDelay] = await Promise.all([
             fetchWorkingDays(supabase),
@@ -180,12 +168,8 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, onPar
       let statusMessage = "";
       if (status === "non_envoye") {
         statusMessage = "Formation passée - pas d'envoi programmé.";
-      } else if (status === "manuel") {
-        statusMessage = "Mode manuel activé (formation proche).";
-      } else if (status === "accueil_envoye" || sendWelcomeNow) {
-        statusMessage = "Mail d'accueil envoyé.";
-      } else {
-        statusMessage = "Recueil des besoins programmé.";
+      } else if (sendWelcomeNow) {
+        statusMessage = "Mail d'accueil envoyé avec le lien vers la page formation.";
       }
 
       toast({
@@ -229,9 +213,7 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, onPar
             <Alert className="mt-4">
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
-                {trainingStartDate && differenceInDays(parseISO(trainingStartDate), new Date()) <= 0 
-                  ? "La formation est déjà passée ou commence aujourd'hui. Aucun mail ne sera envoyé automatiquement."
-                  : "La formation commence dans moins de 2 jours. Le recueil des besoins sera en mode manuel."}
+                La formation est déjà passée ou commence aujourd'hui. Aucun mail ne sera envoyé automatiquement.
               </AlertDescription>
             </Alert>
           )}
