@@ -1,12 +1,55 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 // Bump this when you deploy to confirm the latest code is running.
-const VERSION = "send-content-notification@2026-02-02.1";
+const VERSION = "send-content-notification@2026-02-02.2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
+
+// Fetch Signitic signature for romain@supertilt.fr
+async function getSigniticSignature(): Promise<string> {
+  const signiticApiKey = Deno.env.get("SIGNITIC_API_KEY");
+  
+  if (!signiticApiKey) {
+    console.warn("SIGNITIC_API_KEY not configured, using default signature");
+    return getDefaultSignature();
+  }
+
+  try {
+    const response = await fetch(
+      "https://api.signitic.app/signatures/romain@supertilt.fr/html",
+      {
+        headers: {
+          "x-api-key": signiticApiKey,
+        },
+      }
+    );
+
+    if (response.ok) {
+      const htmlContent = await response.text();
+      if (htmlContent && !htmlContent.includes("error")) {
+        console.log("Signitic signature fetched successfully");
+        return htmlContent;
+      }
+    }
+    
+    console.warn("Could not fetch Signitic signature:", response.status);
+    return getDefaultSignature();
+  } catch (error) {
+    console.error("Error fetching Signitic signature:", error);
+    return getDefaultSignature();
+  }
+}
+
+function getDefaultSignature(): string {
+  return `<p style="margin-top: 20px; color: #666; font-size: 14px;">
+    <strong>Romain Couturier</strong><br/>
+    Supertilt - Formation professionnelle<br/>
+    <a href="mailto:romain@supertilt.fr">romain@supertilt.fr</a>
+  </p>`;
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -48,6 +91,9 @@ serve(async (req) => {
       `[${VERSION}] notification type=${normalizedType} to=${recipientEmail} cardId=${cardId ?? "(none)"}`
     );
 
+    // Get Signitic signature
+    const signature = await getSigniticSignature();
+
     let subject = "";
     let htmlContent = "";
 
@@ -58,69 +104,70 @@ serve(async (req) => {
       case "review_requested":
         subject = `🔍 Nouvelle demande de relecture : ${cardTitle}`;
         htmlContent = `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #333;">Nouvelle demande de relecture</h2>
-            <p>Vous avez reçu une demande de relecture pour le contenu :</p>
-            <div style="background-color: #f5f5f5; padding: 15px; border-radius: 8px; margin: 20px 0;">
-              <strong>${cardTitle}</strong>
-            </div>
-            ${externalUrl ? `<p>Lien externe : <a href="${externalUrl}">${externalUrl}</a></p>` : ""}
-            <p><a href="${cardLink}" style="display: inline-block; background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500;">Commencer la relecture</a></p>
-            <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
-            <p style="color: #888; font-size: 12px;">SuperTilt - Gestion de contenu</p>
+          <p>Bonjour,</p>
+          <p>Tu as reçu une demande de relecture pour le contenu :</p>
+          <div style="background-color: #f5f5f5; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <strong>${cardTitle}</strong>
           </div>
+          ${externalUrl ? `<p>Lien externe : <a href="${externalUrl}">${externalUrl}</a></p>` : ""}
+          <p style="margin: 20px 0;">
+            <a href="${cardLink}" style="display: inline-block; background-color: #eab308; color: #1a1a1a; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">
+              Commencer la relecture
+            </a>
+          </p>
+          ${signature}
         `;
         break;
 
       case "review_reminder":
         subject = `🔔 Rappel — relecture attendue : ${cardTitle}`;
         htmlContent = `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #333;">Rappel de relecture</h2>
-            <p>Petit rappel courtois : une relecture est toujours en attente sur :</p>
-            <div style="background-color: #f5f5f5; padding: 15px; border-radius: 8px; margin: 20px 0;">
-              <strong>${cardTitle}</strong>
-            </div>
-            <p style="margin: 16px 0;">
-              Si vous êtes disponible, merci de traiter cette relecture dès que possible.
-              Si ce n'est pas le bon moment, un simple retour (même bref) nous aide à nous organiser.
-            </p>
-            <p><a href="${cardLink}" style="display: inline-block; background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500;">Ouvrir la carte</a></p>
-            <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
-            <p style="color: #888; font-size: 12px;">SuperTilt - Gestion de contenu</p>
+          <p>Bonjour,</p>
+          <p>Petit rappel courtois : une relecture est toujours en attente sur :</p>
+          <div style="background-color: #f5f5f5; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <strong>${cardTitle}</strong>
           </div>
+          <p>Si tu es disponible, merci de traiter cette relecture dès que possible. Si ce n'est pas le bon moment, un simple retour (même bref) nous aide à nous organiser.</p>
+          <p style="margin: 20px 0;">
+            <a href="${cardLink}" style="display: inline-block; background-color: #eab308; color: #1a1a1a; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">
+              Ouvrir la carte
+            </a>
+          </p>
+          ${signature}
         `;
         break;
 
       case "comment_added":
         subject = `💬 Nouveau commentaire sur : ${cardTitle}`;
         htmlContent = `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #333;">Nouveau commentaire</h2>
-            <p>Un nouveau commentaire a été ajouté sur la relecture :</p>
-            <div style="background-color: #f5f5f5; padding: 15px; border-radius: 8px; margin: 20px 0;">
-              <strong>${cardTitle}</strong>
-            </div>
-            <p><a href="${cardLink}" style="display: inline-block; background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500;">Voir le commentaire</a></p>
-            <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
-            <p style="color: #888; font-size: 12px;">SuperTilt - Gestion de contenu</p>
+          <p>Bonjour,</p>
+          <p>Un nouveau commentaire a été ajouté sur la relecture :</p>
+          <div style="background-color: #f5f5f5; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <strong>${cardTitle}</strong>
           </div>
+          <p style="margin: 20px 0;">
+            <a href="${cardLink}" style="display: inline-block; background-color: #eab308; color: #1a1a1a; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">
+              Voir le commentaire
+            </a>
+          </p>
+          ${signature}
         `;
         break;
 
       case "review_status_changed":
         subject = `✅ Statut de relecture modifié : ${cardTitle}`;
         htmlContent = `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #333;">Statut de relecture modifié</h2>
-            <p>Le statut de la relecture a été mis à jour pour :</p>
-            <div style="background-color: #f5f5f5; padding: 15px; border-radius: 8px; margin: 20px 0;">
-              <strong>${cardTitle}</strong>
-            </div>
-            <p><a href="${cardLink}" style="display: inline-block; background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500;">Voir les détails</a></p>
-            <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
-            <p style="color: #888; font-size: 12px;">SuperTilt - Gestion de contenu</p>
+          <p>Bonjour,</p>
+          <p>Le statut de la relecture a été mis à jour pour :</p>
+          <div style="background-color: #f5f5f5; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <strong>${cardTitle}</strong>
           </div>
+          <p style="margin: 20px 0;">
+            <a href="${cardLink}" style="display: inline-block; background-color: #eab308; color: #1a1a1a; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">
+              Voir les détails
+            </a>
+          </p>
+          ${signature}
         `;
         break;
 
@@ -142,8 +189,9 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "SuperTilt <notifications@supertilt.fr>",
+        from: "Romain Couturier <romain@supertilt.fr>",
         to: [recipientEmail],
+        bcc: ["supertilt@bcc.nocrm.io"],
         subject,
         html: htmlContent,
       }),
