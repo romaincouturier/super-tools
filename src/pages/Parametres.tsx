@@ -31,9 +31,117 @@ interface EmailTemplate {
 
 type AddressMode = "tu" | "vous";
 
-const DEFAULT_TEMPLATES: Record<string, { name: string; subject: { tu: string; vous: string }; content: { tu: string; vous: string }; variables: string[] }> = {
+// Template configuration with timing info
+interface TemplateConfig {
+  name: string;
+  timing: "before" | "after" | "manual";
+  delayKey?: string; // Key in app_settings for delay
+  subject: { tu: string; vous: string };
+  content: { tu: string; vous: string };
+  variables: string[];
+}
+
+const DEFAULT_TEMPLATES: Record<string, TemplateConfig> = {
+  // BEFORE TRAINING
+  needs_survey: {
+    name: "Questionnaire de recueil des besoins",
+    timing: "before",
+    delayKey: "delay_needs_survey_days",
+    subject: {
+      tu: "Prépare ta formation \"{{training_name}}\"",
+      vous: "Préparez votre formation \"{{training_name}}\"",
+    },
+    content: {
+      tu: `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
+
+Tu es inscrit(e) à la formation "{{training_name}}" qui aura lieu le {{training_date}}.
+
+Afin de personnaliser au mieux cette formation, je t'invite à remplir ce court questionnaire de recueil des besoins :
+{{questionnaire_link}}
+
+Ce questionnaire me permettra de mieux comprendre tes attentes et d'adapter le contenu de la formation à tes besoins spécifiques.
+
+Je te remercie de le compléter avant le {{deadline_date}}.
+
+À très bientôt !`,
+      vous: `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
+
+Vous êtes inscrit(e) à la formation "{{training_name}}" qui aura lieu le {{training_date}}.
+
+Afin de personnaliser au mieux cette formation, je vous invite à remplir ce court questionnaire de recueil des besoins :
+{{questionnaire_link}}
+
+Ce questionnaire me permettra de mieux comprendre vos attentes et d'adapter le contenu de la formation à vos besoins spécifiques.
+
+Je vous remercie de le compléter avant le {{deadline_date}}.
+
+À très bientôt !`,
+    },
+    variables: ["first_name", "training_name", "training_date", "questionnaire_link", "deadline_date"],
+  },
+  needs_survey_reminder: {
+    name: "Rappel questionnaire besoins",
+    timing: "before",
+    subject: {
+      tu: "Rappel : Prépare ta formation \"{{training_name}}\"",
+      vous: "Rappel : Préparez votre formation \"{{training_name}}\"",
+    },
+    content: {
+      tu: `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
+
+Je me permets de te relancer concernant le questionnaire de préparation pour la formation "{{training_name}}".
+
+Ton retour m'est précieux pour adapter au mieux le contenu à tes besoins.
+
+{{questionnaire_link}}
+
+Merci d'avance pour ta participation !`,
+      vous: `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
+
+Je me permets de vous relancer concernant le questionnaire de préparation pour la formation "{{training_name}}".
+
+Votre retour m'est précieux pour adapter au mieux le contenu à vos besoins.
+
+{{questionnaire_link}}
+
+Merci d'avance pour votre participation !`,
+    },
+    variables: ["first_name", "training_name", "questionnaire_link"],
+  },
+  attendance_signature: {
+    name: "Demande de signature d'émargement",
+    timing: "before",
+    subject: {
+      tu: "Signature d'émargement - {{training_name}}",
+      vous: "Signature d'émargement - {{training_name}}",
+    },
+    content: {
+      tu: `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
+
+Merci de bien vouloir signer ta feuille d'émargement pour la formation "{{training_name}}" du {{session_date}}.
+
+{{signature_link}}
+
+Cette signature atteste de ta présence à la formation.
+
+Merci !`,
+      vous: `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
+
+Merci de bien vouloir signer votre feuille d'émargement pour la formation "{{training_name}}" du {{session_date}}.
+
+{{signature_link}}
+
+Cette signature atteste de votre présence à la formation.
+
+Merci !`,
+    },
+    variables: ["first_name", "training_name", "session_date", "signature_link"],
+  },
+  // AFTER TRAINING
   thank_you: {
     name: "Email de remerciement",
+    timing: "after",
+    delayKey: "delay_thank_you_days",
     subject: {
       tu: "Merci pour ta participation à la formation {{training_name}}",
       vous: "Merci pour votre participation à la formation {{training_name}}",
@@ -72,70 +180,9 @@ Je vous souhaite une bonne journée`,
     },
     variables: ["first_name", "training_name", "evaluation_link", "supports_url"],
   },
-  needs_survey: {
-    name: "Questionnaire de recueil des besoins",
-    subject: {
-      tu: "Prépare ta formation \"{{training_name}}\"",
-      vous: "Préparez votre formation \"{{training_name}}\"",
-    },
-    content: {
-      tu: `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
-
-Tu es inscrit(e) à la formation "{{training_name}}" qui aura lieu le {{training_date}}.
-
-Afin de personnaliser au mieux cette formation, je t'invite à remplir ce court questionnaire de recueil des besoins :
-{{questionnaire_link}}
-
-Ce questionnaire me permettra de mieux comprendre tes attentes et d'adapter le contenu de la formation à tes besoins spécifiques.
-
-Je te remercie de le compléter avant le {{deadline_date}}.
-
-À très bientôt !`,
-      vous: `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
-
-Vous êtes inscrit(e) à la formation "{{training_name}}" qui aura lieu le {{training_date}}.
-
-Afin de personnaliser au mieux cette formation, je vous invite à remplir ce court questionnaire de recueil des besoins :
-{{questionnaire_link}}
-
-Ce questionnaire me permettra de mieux comprendre vos attentes et d'adapter le contenu de la formation à vos besoins spécifiques.
-
-Je vous remercie de le compléter avant le {{deadline_date}}.
-
-À très bientôt !`,
-    },
-    variables: ["first_name", "training_name", "training_date", "questionnaire_link", "deadline_date"],
-  },
-  needs_survey_reminder: {
-    name: "Rappel questionnaire besoins",
-    subject: {
-      tu: "Rappel : Prépare ta formation \"{{training_name}}\"",
-      vous: "Rappel : Préparez votre formation \"{{training_name}}\"",
-    },
-    content: {
-      tu: `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
-
-Je me permets de te relancer concernant le questionnaire de préparation pour la formation "{{training_name}}".
-
-Ton retour m'est précieux pour adapter au mieux le contenu à tes besoins.
-
-{{questionnaire_link}}
-
-Merci d'avance pour ta participation !`,
-      vous: `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
-
-Je me permets de vous relancer concernant le questionnaire de préparation pour la formation "{{training_name}}".
-
-Votre retour m'est précieux pour adapter au mieux le contenu à vos besoins.
-
-{{questionnaire_link}}
-
-Merci d'avance pour votre participation !`,
-    },
-    variables: ["first_name", "training_name", "questionnaire_link"],
-  },
   training_documents: {
     name: "Envoi des documents de formation",
+    timing: "manual",
     subject: {
       tu: "Documents de la formation \"{{training_name}}\"",
       vous: "Documents de la formation \"{{training_name}}\"",
@@ -171,34 +218,6 @@ N'hésitez pas à me contacter si vous avez des questions.
 Bonne réception.`,
     },
     variables: ["greeting", "training_name", "training_dates", "has_invoice", "has_sheets"],
-  },
-  attendance_signature: {
-    name: "Demande de signature d'émargement",
-    subject: {
-      tu: "Signature d'émargement - {{training_name}}",
-      vous: "Signature d'émargement - {{training_name}}",
-    },
-    content: {
-      tu: `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
-
-Merci de bien vouloir signer ta feuille d'émargement pour la formation "{{training_name}}" du {{session_date}}.
-
-{{signature_link}}
-
-Cette signature atteste de ta présence à la formation.
-
-Merci !`,
-      vous: `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
-
-Merci de bien vouloir signer votre feuille d'émargement pour la formation "{{training_name}}" du {{session_date}}.
-
-{{signature_link}}
-
-Cette signature atteste de votre présence à la formation.
-
-Merci !`,
-    },
-    variables: ["first_name", "training_name", "session_date", "signature_link"],
   },
 };
 
@@ -557,6 +576,99 @@ const Parametres = () => {
     }
   };
 
+  const renderTemplateEditor = (type: string, defaultTemplate: TemplateConfig, currentMode: AddressMode, saveKey: string) => (
+    <>
+      {/* Tu/Vous tabs */}
+      <div className="flex items-center gap-2 mb-4">
+        <span className="text-sm text-muted-foreground">Version :</span>
+        <Tabs
+          value={currentMode}
+          onValueChange={(v) => setActiveMode((prev) => ({ ...prev, [type]: v as AddressMode }))}
+        >
+          <TabsList className="h-8">
+            <TabsTrigger value="tu" className="text-xs px-3 h-7">
+              Tutoiement
+            </TabsTrigger>
+            <TabsTrigger value="vous" className="text-xs px-3 h-7">
+              Vouvoiement
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </div>
+
+      {/* Subject */}
+      <div className="space-y-2">
+        <Label>Objet de l'email</Label>
+        <Input
+          value={editedTemplates[type]?.[currentMode]?.subject || ""}
+          onChange={(e) => updateTemplate(type, currentMode, "subject", e.target.value)}
+          placeholder="Objet du mail..."
+        />
+      </div>
+
+      {/* Content */}
+      <div className="space-y-2">
+        <Label>Contenu de l'email</Label>
+        <Textarea
+          value={editedTemplates[type]?.[currentMode]?.content || ""}
+          onChange={(e) => updateTemplate(type, currentMode, "content", e.target.value)}
+          placeholder="Contenu du mail..."
+          className="min-h-[200px] font-mono text-sm"
+        />
+      </div>
+
+      {/* Variables */}
+      <div className="space-y-2">
+        <Label className="text-muted-foreground">Variables disponibles</Label>
+        <div className="flex flex-wrap gap-2">
+          {defaultTemplate.variables.map((variable) => (
+            <code
+              key={variable}
+              className="px-2 py-1 bg-muted rounded text-xs"
+            >
+              {`{{${variable}}}`}
+            </code>
+          ))}
+        </div>
+      </div>
+
+      {/* Actions */}
+      <div className="flex flex-wrap gap-2 pt-2">
+        <Button
+          onClick={() => handleSaveTemplate(type, currentMode)}
+          disabled={saving === saveKey || improving === saveKey}
+        >
+          {saving === saveKey ? (
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          ) : (
+            <Save className="h-4 w-4 mr-2" />
+          )}
+          Enregistrer
+        </Button>
+        <Button
+          variant="secondary"
+          onClick={() => handleImproveWithAI(type, currentMode)}
+          disabled={improving === saveKey || saving === saveKey}
+        >
+          {improving === saveKey ? (
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          ) : (
+            <Sparkles className="h-4 w-4 mr-2" />
+          )}
+          Améliorer avec l'IA
+        </Button>
+        <Button
+          variant="outline"
+          onClick={() => handleResetTemplate(type, currentMode)}
+          disabled={saving === saveKey || improving === saveKey}
+        >
+          <RotateCcw className="h-4 w-4 mr-2" />
+          Réinitialiser
+        </Button>
+      </div>
+    </>
+  );
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -828,120 +940,129 @@ const Parametres = () => {
                   Utilisez les variables entre doubles accolades (ex: {"{{first_name}}"}) pour insérer des données dynamiques.
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                <Accordion type="single" collapsible className="w-full">
-                  {Object.entries(DEFAULT_TEMPLATES).map(([type, defaultTemplate]) => {
-                    const currentMode = activeMode[type] || "vous";
-                    const saveKey = `${type}_${currentMode}`;
-                    const isCustomized = templates[type]?.tu || templates[type]?.vous;
-                    
-                    return (
-                      <AccordionItem key={type} value={type}>
-                        <AccordionTrigger className="text-left">
-                          <div className="flex items-center gap-3">
-                            <Mail className="h-4 w-4 text-muted-foreground" />
-                            <span>{defaultTemplate.name}</span>
-                            {isCustomized && (
-                              <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
-                                Personnalisé
-                              </span>
-                            )}
-                          </div>
-                        </AccordionTrigger>
-                        <AccordionContent className="space-y-4 pt-4">
-                          {/* Tu/Vous tabs */}
-                          <div className="flex items-center gap-2 mb-4">
-                            <span className="text-sm text-muted-foreground">Version :</span>
-                            <Tabs
-                              value={currentMode}
-                              onValueChange={(v) => setActiveMode((prev) => ({ ...prev, [type]: v as AddressMode }))}
-                            >
-                              <TabsList className="h-8">
-                                <TabsTrigger value="tu" className="text-xs px-3 h-7">
-                                  Tutoiement
-                                </TabsTrigger>
-                                <TabsTrigger value="vous" className="text-xs px-3 h-7">
-                                  Vouvoiement
-                                </TabsTrigger>
-                              </TabsList>
-                            </Tabs>
-                          </div>
+              <CardContent className="space-y-6">
+                {/* Before Training Emails */}
+                <div className="space-y-3">
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                    📅 Avant la formation
+                  </h3>
+                  <Accordion type="single" collapsible className="w-full">
+                    {Object.entries(DEFAULT_TEMPLATES)
+                      .filter(([, t]) => t.timing === "before")
+                      .map(([type, defaultTemplate]) => {
+                        const currentMode = activeMode[type] || "vous";
+                        const saveKey = `${type}_${currentMode}`;
+                        const isCustomized = templates[type]?.tu || templates[type]?.vous;
+                        const delayValue = defaultTemplate.delayKey === "delay_needs_survey_days" ? delayNeedsSurvey : null;
+                        const timingLabel = delayValue ? `J-${delayValue}` : null;
+                        
+                        return (
+                          <AccordionItem key={type} value={type}>
+                            <AccordionTrigger className="text-left">
+                              <div className="flex items-center gap-3">
+                                <Mail className="h-4 w-4 text-muted-foreground" />
+                                <span>{defaultTemplate.name}</span>
+                                {timingLabel && (
+                                  <span className="text-xs bg-secondary text-secondary-foreground px-2 py-0.5 rounded font-medium">
+                                    {timingLabel}
+                                  </span>
+                                )}
+                                {isCustomized && (
+                                  <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
+                                    Personnalisé
+                                  </span>
+                                )}
+                              </div>
+                            </AccordionTrigger>
+                            <AccordionContent className="space-y-4 pt-4">
+                              {renderTemplateEditor(type, defaultTemplate, currentMode, saveKey)}
+                            </AccordionContent>
+                          </AccordionItem>
+                        );
+                      })}
+                  </Accordion>
+                </div>
 
-                          {/* Subject */}
-                          <div className="space-y-2">
-                            <Label>Objet de l'email</Label>
-                            <Input
-                              value={editedTemplates[type]?.[currentMode]?.subject || ""}
-                              onChange={(e) => updateTemplate(type, currentMode, "subject", e.target.value)}
-                              placeholder="Objet du mail..."
-                            />
-                          </div>
+                <Separator />
 
-                          {/* Content */}
-                          <div className="space-y-2">
-                            <Label>Contenu de l'email</Label>
-                            <Textarea
-                              value={editedTemplates[type]?.[currentMode]?.content || ""}
-                              onChange={(e) => updateTemplate(type, currentMode, "content", e.target.value)}
-                              placeholder="Contenu du mail..."
-                              className="min-h-[200px] font-mono text-sm"
-                            />
-                          </div>
+                {/* After Training Emails */}
+                <div className="space-y-3">
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                    ✅ Après la formation
+                  </h3>
+                  <Accordion type="single" collapsible className="w-full">
+                    {Object.entries(DEFAULT_TEMPLATES)
+                      .filter(([, t]) => t.timing === "after")
+                      .map(([type, defaultTemplate]) => {
+                        const currentMode = activeMode[type] || "vous";
+                        const saveKey = `${type}_${currentMode}`;
+                        const isCustomized = templates[type]?.tu || templates[type]?.vous;
+                        const delayValue = defaultTemplate.delayKey === "delay_thank_you_days" ? delayThankYou : null;
+                        const timingLabel = delayValue ? `J+${delayValue}` : null;
+                        
+                        return (
+                          <AccordionItem key={type} value={type}>
+                            <AccordionTrigger className="text-left">
+                              <div className="flex items-center gap-3">
+                                <Mail className="h-4 w-4 text-muted-foreground" />
+                                <span>{defaultTemplate.name}</span>
+                                {timingLabel && (
+                                  <span className="text-xs bg-accent text-accent-foreground px-2 py-0.5 rounded font-medium">
+                                    {timingLabel}
+                                  </span>
+                                )}
+                                {isCustomized && (
+                                  <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
+                                    Personnalisé
+                                  </span>
+                                )}
+                              </div>
+                            </AccordionTrigger>
+                            <AccordionContent className="space-y-4 pt-4">
+                              {renderTemplateEditor(type, defaultTemplate, currentMode, saveKey)}
+                            </AccordionContent>
+                          </AccordionItem>
+                        );
+                      })}
+                  </Accordion>
+                </div>
 
-                          {/* Variables */}
-                          <div className="space-y-2">
-                            <Label className="text-muted-foreground">Variables disponibles</Label>
-                            <div className="flex flex-wrap gap-2">
-                              {defaultTemplate.variables.map((variable) => (
-                                <code
-                                  key={variable}
-                                  className="px-2 py-1 bg-muted rounded text-xs"
-                                >
-                                  {`{{${variable}}}`}
-                                </code>
-                              ))}
-                            </div>
-                          </div>
+                <Separator />
 
-                          {/* Actions */}
-                          <div className="flex flex-wrap gap-2 pt-2">
-                            <Button
-                              onClick={() => handleSaveTemplate(type, currentMode)}
-                              disabled={saving === saveKey || improving === saveKey}
-                            >
-                              {saving === saveKey ? (
-                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                              ) : (
-                                <Save className="h-4 w-4 mr-2" />
-                              )}
-                              Enregistrer
-                            </Button>
-                            <Button
-                              variant="secondary"
-                              onClick={() => handleImproveWithAI(type, currentMode)}
-                              disabled={improving === saveKey || saving === saveKey}
-                            >
-                              {improving === saveKey ? (
-                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                              ) : (
-                                <Sparkles className="h-4 w-4 mr-2" />
-                              )}
-                              Améliorer avec l'IA
-                            </Button>
-                            <Button
-                              variant="outline"
-                              onClick={() => handleResetTemplate(type, currentMode)}
-                              disabled={saving === saveKey || improving === saveKey}
-                            >
-                              <RotateCcw className="h-4 w-4 mr-2" />
-                              Réinitialiser
-                            </Button>
-                          </div>
-                        </AccordionContent>
-                      </AccordionItem>
-                    );
-                  })}
-                </Accordion>
+                {/* Manual Emails */}
+                <div className="space-y-3">
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                    ✋ Envoi manuel
+                  </h3>
+                  <Accordion type="single" collapsible className="w-full">
+                    {Object.entries(DEFAULT_TEMPLATES)
+                      .filter(([, t]) => t.timing === "manual")
+                      .map(([type, defaultTemplate]) => {
+                        const currentMode = activeMode[type] || "vous";
+                        const saveKey = `${type}_${currentMode}`;
+                        const isCustomized = templates[type]?.tu || templates[type]?.vous;
+                        
+                        return (
+                          <AccordionItem key={type} value={type}>
+                            <AccordionTrigger className="text-left">
+                              <div className="flex items-center gap-3">
+                                <Mail className="h-4 w-4 text-muted-foreground" />
+                                <span>{defaultTemplate.name}</span>
+                                {isCustomized && (
+                                  <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
+                                    Personnalisé
+                                  </span>
+                                )}
+                              </div>
+                            </AccordionTrigger>
+                            <AccordionContent className="space-y-4 pt-4">
+                              {renderTemplateEditor(type, defaultTemplate, currentMode, saveKey)}
+                            </AccordionContent>
+                          </AccordionItem>
+                        );
+                      })}
+                  </Accordion>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
