@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Loader2, CheckCircle2, XCircle, Clock, MessageSquare } from "lucide-react";
+import { Plus, Loader2, CheckCircle2, Clock, MessageSquare, Bell, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import ReviewRequestDialog from "./ReviewRequestDialog";
@@ -15,6 +15,8 @@ interface Review {
   status: "pending" | "in_review" | "approved" | "changes_requested";
   created_at: string;
   completed_at: string | null;
+  created_by: string | null;
+  reminder_sent_at: string | null;
 }
 
 interface ReviewPanelProps {
@@ -27,17 +29,17 @@ const statusConfig: Record<
   { label: string; icon: typeof Clock; variant: "secondary" | "default" | "destructive"; className?: string }
 > = {
   pending: {
-    label: "En attente",
+    label: "En attente du relecteur",
     icon: Clock,
     variant: "secondary",
   },
   in_review: {
-    label: "En cours",
+    label: "Commentaires reçus",
     icon: MessageSquare,
     variant: "default",
   },
   approved: {
-    label: "Approuvé",
+    label: "Clôturée",
     icon: CheckCircle2,
     variant: "default",
     className: "bg-green-600 hover:bg-green-700",
@@ -53,11 +55,17 @@ const ReviewPanel = ({ cardId, cardTitle }: ReviewPanelProps) => {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [showRequestDialog, setShowRequestDialog] = useState(false);
-  const [selectedReview, setSelectedReview] = useState<Review | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchReviews();
+    getCurrentUser();
   }, [cardId]);
+
+  const getCurrentUser = async () => {
+    const { data } = await supabase.auth.getSession();
+    setCurrentUserId(data.session?.user?.id || null);
+  };
 
   const fetchReviews = async () => {
     try {
@@ -93,41 +101,77 @@ const ReviewPanel = ({ cardId, cardTitle }: ReviewPanelProps) => {
     }
   };
 
-  const handleStatusChange = async (reviewId: string, newStatus: Review["status"]) => {
+  const handleSendReminder = async (reviewId: string, reviewerEmail: string) => {
     try {
-      const updates: any = { status: newStatus };
-      if (newStatus === "approved" || newStatus === "changes_requested") {
-        updates.completed_at = new Date().toISOString();
-      }
-
+      // Update reminder timestamp
       const { error } = await supabase
         .from("content_reviews")
-        .update(updates)
+        .update({ reminder_sent_at: new Date().toISOString() })
         .eq("id", reviewId);
 
       if (error) throw error;
 
-      // Create notification
+      // Send notification
       const review = reviews.find((r) => r.id === reviewId);
       if (review) {
-        const { data: sessionData } = await supabase.auth.getSession();
-        if (sessionData.session?.user) {
-          await supabase.from("content_notifications").insert({
-            user_id: review.reviewer_id,
-            type: "review_status_changed",
-            reference_id: reviewId,
-            message: `Statut de relecture modifié : ${statusConfig[newStatus].label}`,
-          });
-        }
+        await supabase.from("content_notifications").insert({
+          user_id: review.reviewer_id,
+          type: "review_requested",
+          reference_id: reviewId,
+          message: `Rappel : Une relecture vous attend pour "${cardTitle}"`,
+        });
+
+        // Optionally trigger email via edge function
+        await supabase.functions.invoke("send-content-notification", {
+          body: {
+            type: "review_reminder",
+            recipientEmail: reviewerEmail,
+            cardTitle,
+          },
+        });
       }
 
-      toast.success("Statut mis à jour");
+      toast.success("Rappel envoyé");
       fetchReviews();
     } catch (error) {
-      console.error("Error updating status:", error);
-      toast.error("Erreur lors de la mise à jour");
+      console.error("Error sending reminder:", error);
+      toast.error("Erreur lors de l'envoi du rappel");
     }
   };
+
+  const handleCloseReview = async (reviewId: string) => {
+    try {
+      const { error } = await supabase
+        .from("content_reviews")
+        .update({ 
+          status: "approved",
+          completed_at: new Date().toISOString() 
+        })
+        .eq("id", reviewId);
+
+      if (error) throw error;
+
+      // Notify reviewer that the review is closed
+      const review = reviews.find((r) => r.id === reviewId);
+      if (review) {
+        await supabase.from("content_notifications").insert({
+          user_id: review.reviewer_id,
+          type: "review_status_changed",
+          reference_id: reviewId,
+          message: `Relecture clôturée pour "${cardTitle}"`,
+        });
+      }
+
+      toast.success("Relecture clôturée");
+      fetchReviews();
+    } catch (error) {
+      console.error("Error closing review:", error);
+      toast.error("Erreur lors de la clôture");
+    }
+  };
+
+  const isAuthor = (review: Review) => currentUserId === review.created_by;
+  const isReviewer = (review: Review) => currentUserId === review.reviewer_id;
 
   if (loading) {
     return (
@@ -149,13 +193,19 @@ const ReviewPanel = ({ cardId, cardTitle }: ReviewPanelProps) => {
 
       {reviews.length === 0 ? (
         <div className="text-center py-8 text-muted-foreground">
-          Aucune demande de relecture
+          <p>Aucune demande de relecture</p>
+          <p className="text-sm mt-2">
+            Demandez à un collègue de relire votre contenu avant publication
+          </p>
         </div>
       ) : (
         <div className="space-y-3">
           {reviews.map((review) => {
             const config = statusConfig[review.status];
             const Icon = config.icon;
+            const canSendReminder = isAuthor(review) && review.status === "pending";
+            const canClose = isAuthor(review) && review.status !== "approved";
+            const hasComments = review.status === "in_review";
 
             return (
               <div
@@ -165,15 +215,20 @@ const ReviewPanel = ({ cardId, cardTitle }: ReviewPanelProps) => {
                 <div className="flex items-start justify-between">
                   <div>
                     <p className="font-medium text-sm">
-                      {review.reviewer_email}
+                      Relecteur : {review.reviewer_email}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {new Date(review.created_at).toLocaleDateString("fr-FR", {
+                      Demandée le {new Date(review.created_at).toLocaleDateString("fr-FR", {
                         day: "numeric",
                         month: "long",
                         year: "numeric",
                       })}
                     </p>
+                    {review.reminder_sent_at && (
+                      <p className="text-xs text-orange-600">
+                        Rappel envoyé le {new Date(review.reminder_sent_at).toLocaleDateString("fr-FR")}
+                      </p>
+                    )}
                     {review.external_url && (
                       <a
                         href={review.external_url}
@@ -191,43 +246,50 @@ const ReviewPanel = ({ cardId, cardTitle }: ReviewPanelProps) => {
                   </Badge>
                 </div>
 
+                {/* Actions pour l'auteur */}
                 {review.status !== "approved" && (
-                  <div className="flex gap-2">
-                    {review.status === "pending" && (
+                  <div className="flex gap-2 flex-wrap">
+                    {canSendReminder && (
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => handleStatusChange(review.id, "in_review")}
+                        onClick={() => handleSendReminder(review.id, review.reviewer_email || "")}
                       >
-                        Commencer la relecture
+                        <Bell className="h-4 w-4 mr-1" />
+                        Relancer
                       </Button>
                     )}
-                {(review.status === "pending" || review.status === "in_review") && (
-                      <>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="border-green-600 text-green-600 hover:bg-green-50"
-                          onClick={() => handleStatusChange(review.id, "approved")}
-                        >
-                          <CheckCircle2 className="h-4 w-4 mr-1" />
-                          Approuver
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="border-orange-600 text-orange-600 hover:bg-orange-50"
-                          onClick={() => handleStatusChange(review.id, "changes_requested")}
-                        >
-                          <XCircle className="h-4 w-4 mr-1" />
-                          Demander des modifications
-                        </Button>
-                      </>
+                    {canClose && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="border-green-600 text-green-600 hover:bg-green-50"
+                        onClick={() => handleCloseReview(review.id)}
+                      >
+                        <CheckCircle2 className="h-4 w-4 mr-1" />
+                        Clôturer la relecture
+                      </Button>
                     )}
                   </div>
                 )}
 
-                <CommentThread reviewId={review.id} />
+                {/* Commentaires avec gestion des statuts */}
+                <CommentThread 
+                  reviewId={review.id} 
+                  isAuthor={isAuthor(review)}
+                  isReviewer={isReviewer(review)}
+                  reviewStatus={review.status}
+                  onCommentAdded={() => {
+                    // Update status to in_review when reviewer adds first comment
+                    if (review.status === "pending" && isReviewer(review)) {
+                      supabase
+                        .from("content_reviews")
+                        .update({ status: "in_review" })
+                        .eq("id", review.id)
+                        .then(() => fetchReviews());
+                    }
+                  }}
+                />
               </div>
             );
           })}
