@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Loader2, Send, Mail, Users } from "lucide-react";
+import { Loader2, Send, Mail, Users, TestTube } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,6 +13,9 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
 
 interface ThankYouEmailPreviewDialogProps {
   open: boolean;
@@ -42,6 +45,8 @@ const ThankYouEmailPreviewDialog = ({
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [loading, setLoading] = useState(false);
   const [customTemplate, setCustomTemplate] = useState<{ subject: string; content: string } | null>(null);
+  const [testEmail, setTestEmail] = useState("");
+  const [isSendingTest, setIsSendingTest] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -77,6 +82,32 @@ const ThankYouEmailPreviewDialog = ({
     }
     
     setLoading(false);
+  };
+
+  const handleSendTest = async () => {
+    if (!testEmail || !testEmail.includes("@")) {
+      toast.error("Veuillez saisir une adresse email valide");
+      return;
+    }
+
+    setIsSendingTest(true);
+    try {
+      const { error } = await supabase.functions.invoke("send-thank-you-email", {
+        body: { 
+          trainingId,
+          testEmail,
+        },
+      });
+
+      if (error) throw error;
+
+      toast.success(`Email de test envoyé à ${testEmail}`);
+    } catch (error) {
+      console.error("Error sending test email:", error);
+      toast.error("Erreur lors de l'envoi du mail de test");
+    } finally {
+      setIsSendingTest(false);
+    }
   };
 
   const getEmailSubject = () => {
@@ -190,6 +221,36 @@ romain@supertilt.fr`;
               Note : Chaque participant recevra un email personnalisé avec son prénom et un lien d'évaluation unique.
               Une copie sera envoyée en BCC à romain@supertilt.fr.
             </p>
+
+            {/* Test email section */}
+            <Separator className="my-4" />
+            <div className="space-y-2">
+              <Label htmlFor="test-email" className="text-sm font-medium flex items-center gap-2">
+                <TestTube className="h-4 w-4" />
+                Envoyer un mail de test
+              </Label>
+              <div className="flex gap-2">
+                <Input
+                  id="test-email"
+                  type="email"
+                  placeholder="email@exemple.com"
+                  value={testEmail}
+                  onChange={(e) => setTestEmail(e.target.value)}
+                  className="flex-1"
+                />
+                <Button
+                  variant="outline"
+                  onClick={handleSendTest}
+                  disabled={isSendingTest || !testEmail}
+                >
+                  {isSendingTest ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    "Envoyer"
+                  )}
+                </Button>
+              </div>
+            </div>
           </div>
         )}
 
