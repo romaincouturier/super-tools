@@ -39,6 +39,7 @@ import ThankYouEmailPreviewDialog from "@/components/formations/ThankYouEmailPre
 interface DocumentSentInfo {
   invoice: string | null;
   sheets: string | null;
+  thankYou: string | null;
 }
 
 interface DocumentsManagerProps {
@@ -75,7 +76,7 @@ const DocumentsManager = ({
   const [invoiceFileUrl, setInvoiceFileUrl] = useState<string | null>(initialInvoiceUrl);
   const [attendanceSheetsUrls, setAttendanceSheetsUrls] = useState<string[]>(initialSheetsUrls);
   const [supportsUrl, setSupportsUrl] = useState<string>(initialSupportsUrl || "");
-  const [documentsSentInfo, setDocumentsSentInfo] = useState<DocumentSentInfo>({ invoice: null, sheets: null });
+  const [documentsSentInfo, setDocumentsSentInfo] = useState<DocumentSentInfo>({ invoice: null, sheets: null, thankYou: null });
   
   const [uploadingInvoice, setUploadingInvoice] = useState(false);
   const [uploadingSheet, setUploadingSheet] = useState(false);
@@ -93,10 +94,11 @@ const DocumentsManager = ({
   // Fetch document send dates from activity logs
   useEffect(() => {
     const fetchDocumentsSentInfo = async () => {
+      // Fetch both training_documents_sent and thank_you_email_sent logs
       const { data, error } = await supabase
         .from("activity_logs")
-        .select("created_at, details")
-        .eq("action_type", "training_documents_sent")
+        .select("created_at, action_type, details")
+        .in("action_type", ["training_documents_sent", "thank_you_email_sent"])
         .order("created_at", { ascending: false });
 
       if (error || !data) return;
@@ -104,28 +106,35 @@ const DocumentsManager = ({
       // Filter logs for this training and find latest send dates
       let invoiceSentAt: string | null = null;
       let sheetsSentAt: string | null = null;
+      let thankYouSentAt: string | null = null;
 
       for (const log of data) {
         const details = log.details as { training_id?: string; document_type?: string } | null;
         if (details?.training_id !== trainingId) continue;
         
-        const docType = details?.document_type;
-        
-        // Invoice sent (either "invoice" or "all")
-        if (!invoiceSentAt && (docType === "invoice" || docType === "all")) {
-          invoiceSentAt = log.created_at;
+        if (log.action_type === "thank_you_email_sent") {
+          if (!thankYouSentAt) {
+            thankYouSentAt = log.created_at;
+          }
+        } else if (log.action_type === "training_documents_sent") {
+          const docType = details?.document_type;
+          
+          // Invoice sent (either "invoice" or "all")
+          if (!invoiceSentAt && (docType === "invoice" || docType === "all")) {
+            invoiceSentAt = log.created_at;
+          }
+          
+          // Sheets sent (either "sheets" or "all")
+          if (!sheetsSentAt && (docType === "sheets" || docType === "all")) {
+            sheetsSentAt = log.created_at;
+          }
         }
         
-        // Sheets sent (either "sheets" or "all")
-        if (!sheetsSentAt && (docType === "sheets" || docType === "all")) {
-          sheetsSentAt = log.created_at;
-        }
-        
-        // Stop once we have both
-        if (invoiceSentAt && sheetsSentAt) break;
+        // Stop once we have all three
+        if (invoiceSentAt && sheetsSentAt && thankYouSentAt) break;
       }
 
-      setDocumentsSentInfo({ invoice: invoiceSentAt, sheets: sheetsSentAt });
+      setDocumentsSentInfo({ invoice: invoiceSentAt, sheets: sheetsSentAt, thankYou: thankYouSentAt });
     };
 
     fetchDocumentsSentInfo();
@@ -502,6 +511,9 @@ const DocumentsManager = ({
         description: `Le mail a été envoyé à ${data.recipientCount} participant(s).`,
       });
       
+      // Update local sent info immediately
+      setDocumentsSentInfo(prev => ({ ...prev, thankYou: new Date().toISOString() }));
+      
       setShowThankYouPreview(false);
     } catch (error: any) {
       console.error("Send error:", error);
@@ -821,22 +833,36 @@ const DocumentsManager = ({
           )}
 
           {/* Thank You Email Section */}
-          <div className="pt-4 border-t">
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full"
-              onClick={openThankYouPreview}
-              disabled={sendingThankYou}
-            >
-              {sendingThankYou ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Heart className="h-4 w-4 mr-2" />
-              )}
-              Envoyer le mail de remerciement
-            </Button>
-            <p className="text-xs text-muted-foreground text-center mt-2">
+          <div className="pt-4 border-t space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-1">
+                <Label className="flex items-center gap-2">
+                  <Heart className="h-4 w-4" />
+                  Mail de remerciement
+                </Label>
+                {documentsSentInfo.thankYou && (
+                  <span className="text-xs text-muted-foreground flex items-center gap-1">
+                    <CheckCircle className="h-3 w-3 text-primary" />
+                    Envoyé le {formatSentDate(documentsSentInfo.thankYou)}
+                  </span>
+                )}
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={openThankYouPreview}
+                disabled={sendingThankYou}
+              >
+                {sendingThankYou ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4 mr-2" />
+                )}
+                Envoyer
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
               Envoi à tous les participants inscrits
             </p>
           </div>
