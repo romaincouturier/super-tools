@@ -52,6 +52,58 @@ function replaceVariables(template: string, variables: Record<string, string>): 
   return result;
 }
 
+// Send notification to sponsor (intra-enterprise)
+async function sendSponsorNotification(
+  resendApiKey: string,
+  sponsorEmail: string,
+  sponsorFirstName: string | null,
+  sponsorFormalAddress: boolean,
+  trainingName: string,
+  participantsList: string[],
+  signature: string
+): Promise<void> {
+  const greeting = sponsorFormalAddress 
+    ? 'Bonjour,' 
+    : (sponsorFirstName ? `Bonjour ${sponsorFirstName},` : 'Bonjour,');
+  
+  const participantsFormatted = participantsList.map(p => `<li>${p}</li>`).join('');
+  
+  const htmlContent = `
+    <p>${greeting}</p>
+    <p>Nous avons le plaisir de vous informer que les convocations à la formation <strong>${trainingName}</strong> ont été envoyées aux participants suivants :</p>
+    <ul style="margin-left: 20px;">
+      ${participantsFormatted}
+    </ul>
+    <p>Chaque participant a reçu un email contenant toutes les informations pratiques relatives à la formation.</p>
+    <p>Nous restons à votre disposition pour toute question.</p>
+    <p>Bien cordialement,</p>
+    ${signature}
+  `;
+
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${resendApiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      from: "Romain Couturier <romain@supertilt.fr>",
+      to: [sponsorEmail],
+      bcc: ["supertilt@bcc.nocrm.io"],
+      subject: `Convocations envoyées - ${trainingName}`,
+      html: htmlContent,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error("Error sending sponsor notification:", errorText);
+    // Don't throw - this is a secondary notification
+  } else {
+    console.log("Sponsor notification sent to:", sponsorEmail);
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -76,7 +128,7 @@ serve(async (req) => {
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // Fetch participant
+    // Fetch participant with sponsor info
     const { data: participant, error: participantError } = await supabase
       .from("training_participants")
       .select("*")
@@ -97,6 +149,8 @@ serve(async (req) => {
     if (trainingError || !training) {
       throw new Error("Training not found");
     }
+
+    const isInterEntreprise = training.format_formation === "inter-entreprises";
 
     // Fetch schedules for the training
     const { data: schedules } = await supabase
@@ -170,12 +224,16 @@ serve(async (req) => {
       subject = replaceVariables(template.subject, variables);
       htmlContent = replaceVariables(template.html_content, variables) + signature;
     } else {
-      // Fallback default content - warm welcome email
+      // Fallback default content - warm welcome email with convocation mention
       const greeting = participant.first_name ? `Bonjour ${participant.first_name},` : 'Bonjour,';
-      subject = `🎉 Bienvenue à la formation ${training.training_name} !`;
+      subject = `Convocation - Formation ${training.training_name}`;
       htmlContent = `
         <p>${greeting}</p>
         <p>C'est avec grand plaisir que nous vous confirmons votre inscription à la formation <strong>${training.training_name}</strong>.</p>
+        
+        <p style="background-color: #f0f9ff; border-left: 4px solid #2563eb; padding: 12px 16px; margin: 16px 0; font-weight: 500;">
+          📋 Ce mail constitue votre convocation à la formation.
+        </p>
         
         <p><strong>📅 Informations pratiques :</strong></p>
         <ul style="margin-left: 20px; list-style: none; padding-left: 0;">
@@ -202,6 +260,14 @@ serve(async (req) => {
 
     console.log("Sending welcome email to:", participant.email);
     console.log("Subject:", subject);
+    console.log("Is inter-entreprise:", isInterEntreprise);
+
+    // Build CC list for inter-enterprise (sponsor of the participant)
+    const ccList: string[] = [];
+    if (isInterEntreprise && participant.sponsor_email) {
+      ccList.push(participant.sponsor_email);
+      console.log("CC to participant sponsor:", participant.sponsor_email);
+    }
 
     const emailResponse = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -212,6 +278,7 @@ serve(async (req) => {
       body: JSON.stringify({
         from: "Romain Couturier <romain@supertilt.fr>",
         to: [participant.email],
+        cc: ccList.length > 0 ? ccList : undefined,
         bcc: ["supertilt@bcc.nocrm.io"],
         subject,
         html: htmlContent,
@@ -235,6 +302,48 @@ serve(async (req) => {
         needs_survey_sent_at: new Date().toISOString()
       })
       .eq("id", participantId);
+
+    // For intra-enterprise: check if we should notify the sponsor
+    // We do this by checking if all participants have now received their welcome email
+    if (!isInterEntreprise && training.sponsor_email) {
+      // Get all participants for this training
+      const { data: allParticipants } = await supabase
+        .from("training_participants")
+        .select("id, first_name, last_name, email, needs_survey_status")
+        .eq("training_id", trainingId);
+
+      if (allParticipants) {
+        // Check if all participants have received welcome email (including the one we just sent)
+        const allConvoked = allParticipants.every(p => 
+          p.id === participantId || 
+          p.needs_survey_status === "accueil_envoye" || 
+          p.needs_survey_status === "envoye" ||
+          p.needs_survey_status === "en_cours" ||
+          p.needs_survey_status === "complete" ||
+          p.needs_survey_status === "valide_formateur"
+        );
+
+        // If this is the last participant to be convoked, notify sponsor
+        if (allConvoked) {
+          const participantNames = allParticipants.map(p => {
+            const name = p.first_name || p.last_name 
+              ? `${p.first_name || ''} ${p.last_name || ''}`.trim()
+              : p.email;
+            return name;
+          });
+
+          await sendSponsorNotification(
+            RESEND_API_KEY,
+            training.sponsor_email,
+            training.sponsor_first_name,
+            training.sponsor_formal_address,
+            training.training_name,
+            participantNames,
+            signature
+          );
+        }
+      }
+    }
 
     return new Response(
       JSON.stringify({ success: true, messageId: result.id }),
