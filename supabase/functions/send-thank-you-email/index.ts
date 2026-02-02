@@ -115,7 +115,7 @@ serve(async (req) => {
   }
 
   try {
-    const { trainingId } = await req.json();
+    const { trainingId, testEmail } = await req.json();
 
     if (!trainingId) {
       return new Response(
@@ -144,16 +144,6 @@ serve(async (req) => {
       throw new Error("Training not found");
     }
 
-    // Fetch participants
-    const { data: participants, error: participantsError } = await supabase
-      .from("training_participants")
-      .select("*")
-      .eq("training_id", trainingId);
-
-    if (participantsError || !participants || participants.length === 0) {
-      throw new Error("No participants found for this training");
-    }
-
     // Fetch custom email template if exists
     const { data: customTemplate } = await supabase
       .from("email_templates")
@@ -174,6 +164,67 @@ serve(async (req) => {
     
     // Base URL for evaluation links
     const baseUrl = "https://super-tools.lovable.app";
+
+    // TEST MODE: Send only to the test email
+    if (testEmail) {
+      console.log("Sending TEST email to:", testEmail);
+      
+      const variables = {
+        first_name: "Test",
+        training_name: trainingName,
+        evaluation_link: `${baseUrl}/evaluation/test-token-preview`,
+        supports_url: supportsUrl,
+      };
+
+      const subject = `[TEST] ${processTemplate(subjectTemplate, variables)}`;
+      const contentText = processTemplate(contentTemplate, variables);
+      const contentHtml = textToHtml(contentText);
+
+      const htmlContent = `
+        <div style="background: #fff3cd; border: 1px solid #ffc107; padding: 10px; margin-bottom: 20px; border-radius: 4px;">
+          <strong>⚠️ Ceci est un email de test</strong><br/>
+          Le lien d'évaluation ci-dessous est un exemple et ne fonctionne pas.
+        </div>
+        ${contentHtml}
+        ${signature}
+      `;
+
+      const emailResponse = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${RESEND_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          from: "Romain Couturier <romain@supertilt.fr>",
+          to: [testEmail],
+          subject,
+          html: htmlContent,
+        }),
+      });
+
+      if (!emailResponse.ok) {
+        const errorText = await emailResponse.text();
+        console.error("Resend error:", errorText);
+        throw new Error(`Failed to send test email: ${emailResponse.status}`);
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, testEmail }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // PRODUCTION MODE: Send to all participants
+    // Fetch participants
+    const { data: participants, error: participantsError } = await supabase
+      .from("training_participants")
+      .select("*")
+      .eq("training_id", trainingId);
+
+    if (participantsError || !participants || participants.length === 0) {
+      throw new Error("No participants found for this training");
+    }
 
     // Create evaluations and send individual emails to each participant sequentially
     const results: { email: string; success: boolean }[] = [];
