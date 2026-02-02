@@ -50,14 +50,26 @@ const ContentCard = ({ card, isDragging, onEdit, onDelete, onView }: ContentCard
 
   const dragging = isDragging || isSortableDragging;
 
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Only trigger if clicking on the card body, not the dropdown menu
+    const target = e.target as HTMLElement;
+    if (target.closest('[data-radix-dropdown-menu-trigger]') || target.closest('[role="menu"]')) {
+      return;
+    }
+    if (onView) {
+      onView();
+    }
+  };
+
   return (
     <div
       ref={setNodeRef}
       style={style}
       {...attributes}
       {...listeners}
-      className={`bg-card border rounded-lg overflow-hidden cursor-grab active:cursor-grabbing ${
-        dragging ? "opacity-50 shadow-lg rotate-2" : ""
+      onClick={handleCardClick}
+      className={`bg-card border rounded-lg overflow-hidden cursor-pointer hover:border-primary/50 transition-colors ${
+        dragging ? "opacity-50 shadow-lg rotate-2 cursor-grabbing" : ""
       }`}
     >
       {card.image_url && (

@@ -359,6 +359,7 @@ const KanbanBoard = () => {
                 onDelete={handleDeleteColumn}
                 onAddCard={() => setNewCardColumnId(column.id)}
                 onEditCard={setEditingCard}
+                onViewCard={setEditingCard}
                 onDeleteCard={handleDeleteCard}
               />
             ))}

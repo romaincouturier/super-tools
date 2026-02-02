@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Upload, X, Plus, MessageSquare, Sparkles } from "lucide-react";
+import { Upload, X, Plus, MessageSquare, Sparkles, Maximize2, Minimize2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -10,7 +10,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,6 +17,8 @@ import { toast } from "sonner";
 import type { Card } from "./KanbanBoard";
 import ReviewPanel from "./ReviewPanel";
 import AiAssistPanel from "./AiAssistPanel";
+import RichTextEditor from "./RichTextEditor";
+import { cn } from "@/lib/utils";
 
 interface ContentCardDialogProps {
   open: boolean;
@@ -38,6 +39,7 @@ const ContentCardDialog = ({
   const [tags, setTags] = useState<string[]>([]);
   const [newTag, setNewTag] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -53,6 +55,13 @@ const ContentCardDialog = ({
       setTags([]);
     }
   }, [card, open]);
+
+  // Reset fullscreen when dialog closes
+  useEffect(() => {
+    if (!open) {
+      setIsFullscreen(false);
+    }
+  }, [open]);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -113,13 +122,37 @@ const ContentCardDialog = ({
     });
   };
 
+  const toggleFullscreen = () => {
+    setIsFullscreen(!isFullscreen);
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent
+        className={cn(
+          "max-h-[90vh] overflow-y-auto transition-all duration-300",
+          isFullscreen
+            ? "max-w-[95vw] w-[95vw] h-[95vh] max-h-[95vh]"
+            : "max-w-3xl"
+        )}
+      >
+        <DialogHeader className="flex flex-row items-center justify-between pr-8">
           <DialogTitle>
             {card ? "Modifier la carte" : "Nouvelle carte"}
           </DialogTitle>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleFullscreen}
+            className="h-8 w-8"
+            title={isFullscreen ? "Réduire" : "Plein écran"}
+          >
+            {isFullscreen ? (
+              <Minimize2 className="h-4 w-4" />
+            ) : (
+              <Maximize2 className="h-4 w-4" />
+            )}
+          </Button>
         </DialogHeader>
 
         <Tabs defaultValue="content" className="w-full">
@@ -152,12 +185,11 @@ const ContentCardDialog = ({
 
             <div className="space-y-2">
               <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
+              <RichTextEditor
+                content={description}
+                onChange={setDescription}
                 placeholder="Description du contenu..."
-                rows={6}
+                className={cn(isFullscreen && "min-h-[400px]")}
               />
             </div>
 
