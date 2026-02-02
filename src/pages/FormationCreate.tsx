@@ -54,6 +54,11 @@ const FormationCreate = () => {
   const [sponsorLastName, setSponsorLastName] = useState("");
   const [sponsorEmail, setSponsorEmail] = useState("");
   const [sponsorFormalAddress, setSponsorFormalAddress] = useState(true); // true = vouvoiement (default)
+  
+  // Financeur
+  const [financeurSameAsSponsor, setFinanceurSameAsSponsor] = useState(true);
+  const [financeurName, setFinanceurName] = useState("");
+  const [financeurUrl, setFinanceurUrl] = useState("");
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -158,6 +163,9 @@ const FormationCreate = () => {
           sponsor_last_name: sponsorLastName || null,
           sponsor_email: sponsorEmail || null,
           sponsor_formal_address: sponsorFormalAddress,
+          financeur_same_as_sponsor: financeurSameAsSponsor,
+          financeur_name: financeurSameAsSponsor ? null : (financeurName || null),
+          financeur_url: financeurSameAsSponsor ? null : (financeurUrl || null),
           created_by: user.id,
         })
         .select()
@@ -483,6 +491,49 @@ const FormationCreate = () => {
                   placeholder="jean.dupont@entreprise.fr"
                 />
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Financeur */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Financeur</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center gap-3">
+                <Switch
+                  id="financeurSameAsSponsor"
+                  checked={financeurSameAsSponsor}
+                  onCheckedChange={setFinanceurSameAsSponsor}
+                />
+                <Label htmlFor="financeurSameAsSponsor" className="text-sm">
+                  Identique au commanditaire
+                </Label>
+              </div>
+              
+              {!financeurSameAsSponsor && (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="financeurName">Nom du financeur</Label>
+                    <Input
+                      id="financeurName"
+                      value={financeurName}
+                      onChange={(e) => setFinanceurName(e.target.value)}
+                      placeholder="Ex: OPCO Atlas, France Travail..."
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="financeurUrl">URL du financeur</Label>
+                    <Input
+                      id="financeurUrl"
+                      type="url"
+                      value={financeurUrl}
+                      onChange={(e) => setFinanceurUrl(e.target.value)}
+                      placeholder="https://..."
+                    />
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
             </div>

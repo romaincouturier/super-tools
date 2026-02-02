@@ -224,6 +224,7 @@ const Parametres = () => {
   const [delayGoogleReview, setDelayGoogleReview] = useState("7");
   const [delayVideoTestimonial, setDelayVideoTestimonial] = useState("14");
   const [delayColdEvaluation, setDelayColdEvaluation] = useState("30");
+  const [delayColdEvaluationFunder, setDelayColdEvaluationFunder] = useState("45");
   
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -262,7 +263,8 @@ const Parametres = () => {
       .in("setting_key", [
         "bcc_email", "bcc_enabled",
         "delay_needs_survey_days", "delay_reminder_days", "delay_trainer_summary_days",
-        "delay_thank_you_days", "delay_google_review_days", "delay_video_testimonial_days", "delay_cold_evaluation_days"
+        "delay_thank_you_days", "delay_google_review_days", "delay_video_testimonial_days", 
+        "delay_cold_evaluation_days", "delay_cold_evaluation_funder_days"
       ]);
     
     if (error) {
@@ -299,6 +301,9 @@ const Parametres = () => {
         case "delay_cold_evaluation_days":
           setDelayColdEvaluation(setting.setting_value || "30");
           break;
+        case "delay_cold_evaluation_funder_days":
+          setDelayColdEvaluationFunder(setting.setting_value || "45");
+          break;
       }
     });
   };
@@ -316,6 +321,7 @@ const Parametres = () => {
         { setting_key: "delay_google_review_days", setting_value: delayGoogleReview, description: "Délai après formation pour demander un avis Google (en jours)" },
         { setting_key: "delay_video_testimonial_days", setting_value: delayVideoTestimonial, description: "Délai après formation pour demander un témoignage vidéo (en jours)" },
         { setting_key: "delay_cold_evaluation_days", setting_value: delayColdEvaluation, description: "Délai après formation pour envoyer l'évaluation à froid (en jours)" },
+        { setting_key: "delay_cold_evaluation_funder_days", setting_value: delayColdEvaluationFunder, description: "Délai après formation pour rappeler de contacter le financeur (en jours)" },
       ];
 
       for (const setting of settingsToSave) {
@@ -774,6 +780,26 @@ const Parametres = () => {
                         />
                         <span className="text-sm text-muted-foreground">jours</span>
                       </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="delay-cold-evaluation-funder">Rappel financeur</Label>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground">J +</span>
+                        <Input
+                          id="delay-cold-evaluation-funder"
+                          type="number"
+                          min="1"
+                          max="120"
+                          value={delayColdEvaluationFunder}
+                          onChange={(e) => setDelayColdEvaluationFunder(e.target.value)}
+                          className="w-20"
+                        />
+                        <span className="text-sm text-muted-foreground">jours</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Uniquement si le financeur est différent du commanditaire
+                      </p>
                     </div>
                   </div>
                 </div>
