@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
-import { Loader2, ArrowLeft, Settings, Mail, Save, RotateCcw, Sparkles, Cog, ExternalLink, Shield, Database } from "lucide-react";
+import { Loader2, ArrowLeft, Settings, Mail, Save, RotateCcw, Sparkles, Cog, ExternalLink, Shield, Database, Users } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import AppHeader from "@/components/AppHeader";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import UserAccessManager from "@/components/settings/UserAccessManager";
+import TrainerManager from "@/components/settings/TrainerManager";
 import BackupManager from "@/components/settings/BackupManager";
 import GoogleDriveConnect from "@/components/GoogleDriveConnect";
 import { useModuleAccess } from "@/hooks/useModuleAccess";
@@ -1035,6 +1036,10 @@ const Parametres = () => {
               <Cog className="h-4 w-4" />
               Général
             </TabsTrigger>
+            <TabsTrigger value="trainers" className="flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              Formateurs
+            </TabsTrigger>
             <TabsTrigger value="emails" className="flex items-center gap-2">
               <Mail className="h-4 w-4" />
               Modèles d'emails
@@ -1394,6 +1399,10 @@ const Parametres = () => {
                 </Button>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="trainers">
+            <TrainerManager />
           </TabsContent>
 
           <TabsContent value="emails">

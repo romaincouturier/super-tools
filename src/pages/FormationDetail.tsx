@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
-import { Loader2, ArrowLeft, Calendar, Users, FileText, ExternalLink, Edit2, User as UserIcon, Mail, MapPin, Building, Map, Train, Hotel, Clock, Copy, Check, AlertCircle } from "lucide-react";
+import { Loader2, ArrowLeft, Calendar, Users, FileText, ExternalLink, Edit2, User as UserIcon, Mail, MapPin, Building, Map, Train, Hotel, Clock, Copy, Check, AlertCircle, Share2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { format, parseISO } from "date-fns";
@@ -387,6 +387,21 @@ const FormationDetail = () => {
               schedules={schedules}
               participants={participants}
             />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const url = `${window.location.origin}/formation-info/${id}`;
+                navigator.clipboard.writeText(url);
+                toast({
+                  title: "Lien copié",
+                  description: "Le lien vers la page participant a été copié.",
+                });
+              }}
+            >
+              <Share2 className="h-4 w-4 mr-2" />
+              Page participant
+            </Button>
             <Button
               variant="outline"
               onClick={() => navigate(`/formations/${id}/edit`)}

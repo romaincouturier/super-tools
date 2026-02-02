@@ -21,6 +21,7 @@ import PrerequisitesEditor from "@/components/formations/PrerequisitesEditor";
 import ProgramSelector from "@/components/formations/ProgramSelector";
 import ObjectivesEditor from "@/components/formations/ObjectivesEditor";
 import TrainingNameCombobox from "@/components/formations/TrainingNameCombobox";
+import TrainerSelector from "@/components/formations/TrainerSelector";
 
 interface Schedule {
   day_date: string;
@@ -55,7 +56,7 @@ const FormationEdit = () => {
   const [sponsorLastName, setSponsorLastName] = useState("");
   const [sponsorEmail, setSponsorEmail] = useState("");
   const [sponsorFormalAddress, setSponsorFormalAddress] = useState(true); // true = vouvoiement (default)
-  const [trainerName, setTrainerName] = useState("Romain Couturier");
+  const [trainerId, setTrainerId] = useState<string | null>(null);
   
   // Financeur
   const [financeurSameAsSponsor, setFinanceurSameAsSponsor] = useState(true);
@@ -120,7 +121,7 @@ const FormationEdit = () => {
       setSponsorLastName(training.sponsor_last_name || "");
       setSponsorEmail(training.sponsor_email || "");
       setSponsorFormalAddress(training.sponsor_formal_address ?? true);
-      setTrainerName(training.trainer_name || "Romain Couturier");
+      setTrainerId(training.trainer_id || null);
       setFinanceurSameAsSponsor(training.financeur_same_as_sponsor ?? true);
       setFinanceurName(training.financeur_name || "");
       setFinanceurUrl(training.financeur_url || "");
@@ -243,7 +244,7 @@ const FormationEdit = () => {
           sponsor_last_name: sponsorLastName || null,
           sponsor_email: sponsorEmail || null,
           sponsor_formal_address: sponsorFormalAddress,
-          trainer_name: trainerName || "Romain Couturier",
+          trainer_id: trainerId || null,
           financeur_same_as_sponsor: financeurSameAsSponsor,
           financeur_name: financeurSameAsSponsor ? null : (financeurName || null),
           financeur_url: financeurSameAsSponsor ? null : (financeurUrl || null),
@@ -501,13 +502,12 @@ const FormationEdit = () => {
                     </Select>
                   </div>
 
+                  {/* Trainer selector */}
                   <div className="space-y-2">
-                    <Label htmlFor="trainerName">Nom du formateur</Label>
-                    <Input
-                      id="trainerName"
-                      value={trainerName}
-                      onChange={(e) => setTrainerName(e.target.value)}
-                      placeholder="Ex: Romain Couturier"
+                    <Label>Formateur</Label>
+                    <TrainerSelector
+                      value={trainerId}
+                      onChange={setTrainerId}
                     />
                   </div>
 
