@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
-import { Loader2, ArrowLeft, Calendar, Users, FileText, ExternalLink, Edit2, User as UserIcon, Mail, MapPin, Building, Map, Train, Hotel, Clock, Copy, Check, AlertCircle, Share2 } from "lucide-react";
+import { Loader2, ArrowLeft, Calendar, Users, FileText, ExternalLink, Edit2, User as UserIcon, Mail, MapPin, Building, Map, Train, Hotel, Clock, Copy, Check, AlertCircle, Share2, CheckCircle2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { format, parseISO } from "date-fns";
@@ -12,6 +12,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import ParticipantList from "@/components/formations/ParticipantList";
 import AddParticipantDialog from "@/components/formations/AddParticipantDialog";
 import BulkAddParticipantsDialog from "@/components/formations/BulkAddParticipantsDialog";
@@ -44,6 +51,8 @@ interface Training {
   attendance_sheets_urls: string[];
   supports_url: string | null;
   trainer_name: string;
+  train_booked: boolean;
+  hotel_booked: boolean;
 }
 
 interface Schedule {
@@ -74,6 +83,7 @@ const FormationDetail = () => {
   const [copiedEmail, setCopiedEmail] = useState(false);
   const [scheduledActions, setScheduledActions] = useState<ScheduledAction[]>([]);
   const [savingActions, setSavingActions] = useState(false);
+  const [mapDialogOpen, setMapDialogOpen] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -335,49 +345,91 @@ const FormationDetail = () => {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Map button - opens dialog */}
             <Button
               variant="outline"
               size="sm"
-              asChild
+              onClick={() => setMapDialogOpen(true)}
             >
-              <a 
-                href={`https://www.google.com/maps/place/${training.location.replace(/ /g, '+')}`} 
-                target="_blank" 
-                rel="noopener noreferrer"
-              >
-                <Map className="h-4 w-4 mr-2" />
-                Carte
-              </a>
+              <Map className="h-4 w-4 mr-2" />
+              Carte
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              asChild
-            >
-              <a 
-                href={`https://www.trainline.fr/search/${encodeURIComponent(training.location)}`} 
-                target="_blank" 
-                rel="noopener noreferrer"
+            
+            {/* Train button with checkbox */}
+            <div className="flex items-center gap-1">
+              <Button
+                variant="outline"
+                size="sm"
+                asChild
               >
-                <Train className="h-4 w-4 mr-2" />
-                Train
-              </a>
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              asChild
-            >
-              <a 
-                href={`https://www.booking.com/searchresults.fr.html?ss=${encodeURIComponent(training.location)}`} 
-                target="_blank" 
-                rel="noopener noreferrer"
+                <a 
+                  href={`https://www.trainline.fr/search/${encodeURIComponent(training.location)}`} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                >
+                  <Train className="h-4 w-4 mr-2" />
+                  Train
+                </a>
+              </Button>
+              <Checkbox
+                checked={training.train_booked}
+                onCheckedChange={async (checked) => {
+                  const newValue = checked === true;
+                  const { error } = await supabase
+                    .from("trainings")
+                    .update({ train_booked: newValue })
+                    .eq("id", training.id);
+                  if (!error) {
+                    setTraining({ ...training, train_booked: newValue });
+                    toast({
+                      title: newValue ? "Train réservé" : "Réservation train annulée",
+                      description: newValue ? "La réservation train a été marquée comme effectuée." : "Le statut de réservation a été réinitialisé.",
+                    });
+                  }
+                }}
+                className="ml-1"
+                title="Marquer la réservation comme effectuée"
+              />
+            </div>
+            
+            {/* Hotel button with checkbox */}
+            <div className="flex items-center gap-1">
+              <Button
+                variant="outline"
+                size="sm"
+                asChild
               >
-                <Hotel className="h-4 w-4 mr-2" />
-                Hôtel
-              </a>
-            </Button>
+                <a 
+                  href={`https://www.booking.com/searchresults.fr.html?ss=${encodeURIComponent(training.location)}`} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                >
+                  <Hotel className="h-4 w-4 mr-2" />
+                  Hôtel
+                </a>
+              </Button>
+              <Checkbox
+                checked={training.hotel_booked}
+                onCheckedChange={async (checked) => {
+                  const newValue = checked === true;
+                  const { error } = await supabase
+                    .from("trainings")
+                    .update({ hotel_booked: newValue })
+                    .eq("id", training.id);
+                  if (!error) {
+                    setTraining({ ...training, hotel_booked: newValue });
+                    toast({
+                      title: newValue ? "Hôtel réservé" : "Réservation hôtel annulée",
+                      description: newValue ? "La réservation hôtel a été marquée comme effectuée." : "Le statut de réservation a été réinitialisé.",
+                    });
+                  }
+                }}
+                className="ml-1"
+                title="Marquer la réservation comme effectuée"
+              />
+            </div>
+            
             <AttendanceSheetGenerator
               trainingName={training.training_name}
               trainerName={training.trainer_name}
@@ -688,6 +740,44 @@ const FormationDetail = () => {
           />
         </div>
       </main>
+
+      {/* Map Dialog */}
+      <Dialog open={mapDialogOpen} onOpenChange={setMapDialogOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MapPin className="h-5 w-5" />
+              Localisation de la formation
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">{training.location}</p>
+            <div className="aspect-video w-full rounded-lg overflow-hidden border">
+              <iframe
+                width="100%"
+                height="100%"
+                style={{ border: 0 }}
+                loading="lazy"
+                allowFullScreen
+                referrerPolicy="no-referrer-when-downgrade"
+                src={`https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${encodeURIComponent(training.location)}`}
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" asChild>
+                <a
+                  href={`https://www.google.com/maps/place/${training.location.replace(/ /g, '+')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Ouvrir dans Google Maps
+                </a>
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

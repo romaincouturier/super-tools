@@ -1158,6 +1158,7 @@ export type Database = {
           financeur_same_as_sponsor: boolean
           financeur_url: string | null
           format_formation: string | null
+          hotel_booked: boolean | null
           id: string
           invoice_file_url: string | null
           location: string
@@ -1172,6 +1173,7 @@ export type Database = {
           start_date: string
           supertilt_link: string | null
           supports_url: string | null
+          train_booked: boolean | null
           trainer_id: string | null
           trainer_name: string
           training_name: string
@@ -1188,6 +1190,7 @@ export type Database = {
           financeur_same_as_sponsor?: boolean
           financeur_url?: string | null
           format_formation?: string | null
+          hotel_booked?: boolean | null
           id?: string
           invoice_file_url?: string | null
           location: string
@@ -1202,6 +1205,7 @@ export type Database = {
           start_date: string
           supertilt_link?: string | null
           supports_url?: string | null
+          train_booked?: boolean | null
           trainer_id?: string | null
           trainer_name?: string
           training_name: string
@@ -1218,6 +1222,7 @@ export type Database = {
           financeur_same_as_sponsor?: boolean
           financeur_url?: string | null
           format_formation?: string | null
+          hotel_booked?: boolean | null
           id?: string
           invoice_file_url?: string | null
           location?: string
@@ -1232,6 +1237,7 @@ export type Database = {
           start_date?: string
           supertilt_link?: string | null
           supports_url?: string | null
+          train_booked?: boolean | null
           trainer_id?: string | null
           trainer_name?: string
           training_name?: string
