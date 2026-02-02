@@ -519,9 +519,9 @@ romain@supertilt.fr`;
             </li>
           </ul>
           
-          <p className="font-medium text-foreground pt-2">Emails automatiques après formation :</p>
+          <p className="font-medium text-foreground pt-2">Autres emails automatiques :</p>
           <ul className="space-y-1 list-none">
-            <li>• <strong>J+1</strong> : Rappel logistique</li>
+            <li>• <strong>J-7</strong> : Rappel logistique (envoyé aux participants)</li>
             <li>• <strong>J-1</strong> : Synthèse des besoins pour le formateur</li>
           </ul>
         </div>
