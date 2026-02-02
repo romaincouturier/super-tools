@@ -433,6 +433,7 @@ const FormationDetail = () => {
                   <AddParticipantDialog
                     trainingId={training.id}
                     trainingStartDate={training.start_date}
+                    clientName={training.client_name}
                     onParticipantAdded={fetchParticipants}
                   />
                 </div>
