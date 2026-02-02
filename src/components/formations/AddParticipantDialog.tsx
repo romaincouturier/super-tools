@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { subtractWorkingDays, fetchWorkingDays, fetchNeedsSurveyDelay } from "@/lib/workingDays";
 
@@ -36,6 +37,9 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
   const [sponsorFirstName, setSponsorFirstName] = useState("");
   const [sponsorLastName, setSponsorLastName] = useState("");
   const [sponsorEmail, setSponsorEmail] = useState("");
+  const [financeurSameAsSponsor, setFinanceurSameAsSponsor] = useState(true);
+  const [financeurName, setFinanceurName] = useState("");
+  const [financeurUrl, setFinanceurUrl] = useState("");
   const [isManualMode, setIsManualMode] = useState(false);
   const { toast } = useToast();
   
@@ -86,6 +90,9 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
     setSponsorFirstName("");
     setSponsorLastName("");
     setSponsorEmail("");
+    setFinanceurSameAsSponsor(true);
+    setFinanceurName("");
+    setFinanceurUrl("");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -119,11 +126,14 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
         company: company.trim() || null,
         needs_survey_token: token,
         needs_survey_status: status,
-        // For inter-enterprise trainings, add sponsor fields
+        // For inter-enterprise trainings, add sponsor and funder fields
         ...(isInterEntreprise && {
           sponsor_first_name: sponsorFirstName.trim() || null,
           sponsor_last_name: sponsorLastName.trim() || null,
           sponsor_email: sponsorEmail.trim().toLowerCase() || null,
+          financeur_same_as_sponsor: financeurSameAsSponsor,
+          financeur_name: !financeurSameAsSponsor ? (financeurName.trim() || null) : null,
+          financeur_url: !financeurSameAsSponsor ? (financeurUrl.trim() || null) : null,
         }),
       };
 
@@ -326,6 +336,44 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
                     placeholder="marie.martin@example.com"
                   />
                 </div>
+
+                {/* Funder section for inter-enterprise */}
+                <div className="pt-4 border-t">
+                  <Label className="text-sm font-medium text-muted-foreground">Financeur</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="financeurSameAsSponsor"
+                    checked={financeurSameAsSponsor}
+                    onCheckedChange={(checked) => setFinanceurSameAsSponsor(checked === true)}
+                  />
+                  <Label htmlFor="financeurSameAsSponsor" className="text-sm font-normal cursor-pointer">
+                    Le financeur est identique au commanditaire
+                  </Label>
+                </div>
+                {!financeurSameAsSponsor && (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="financeurName">Nom du financeur</Label>
+                      <Input
+                        id="financeurName"
+                        value={financeurName}
+                        onChange={(e) => setFinanceurName(e.target.value)}
+                        placeholder="Nom de l'organisme financeur"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="financeurUrl">URL du financeur</Label>
+                      <Input
+                        id="financeurUrl"
+                        type="url"
+                        value={financeurUrl}
+                        onChange={(e) => setFinanceurUrl(e.target.value)}
+                        placeholder="https://..."
+                      />
+                    </div>
+                  </>
+                )}
               </>
             )}
           </div>

@@ -580,34 +580,78 @@ serve(async (req) => {
       }
     }
     
-    // Schedule funder reminder email if funder is different from sponsor
-    if (!training.financeur_same_as_sponsor && training.financeur_name) {
-      // Check if funder reminder is already scheduled
-      const { data: existingFunderReminder } = await supabase
-        .from("scheduled_emails")
-        .select("id")
-        .eq("training_id", trainingId)
-        .eq("email_type", "funder_reminder")
-        .single();
-      
-      if (!existingFunderReminder) {
-        const funderReminderDate = addWorkingDays(referenceDate, delayColdEvaluationFunder);
-        
-        const { error: funderScheduleError } = await supabase
+    // Schedule funder reminder emails
+    // For intra-enterprise: at training level if funder is different from sponsor
+    // For inter-enterprise: per participant if participant's funder is different from their sponsor
+    const funderRemindersToSchedule: {
+      training_id: string;
+      participant_id: string | null;
+      email_type: string;
+      scheduled_for: string;
+      status: string;
+    }[] = [];
+    
+    if (isInterEntreprise) {
+      // Inter-enterprise: schedule funder_reminder per participant where financeur_same_as_sponsor is false
+      for (const participant of participants) {
+        // Check if this participant has a different funder
+        if (participant.financeur_same_as_sponsor === false && participant.financeur_name) {
+          // Check if funder reminder already scheduled for this participant
+          const { data: existingFunderReminder } = await supabase
+            .from("scheduled_emails")
+            .select("id")
+            .eq("training_id", trainingId)
+            .eq("participant_id", participant.id)
+            .eq("email_type", "funder_reminder")
+            .single();
+          
+          if (!existingFunderReminder) {
+            const funderReminderDate = addWorkingDays(referenceDate, delayColdEvaluationFunder);
+            funderRemindersToSchedule.push({
+              training_id: trainingId,
+              participant_id: participant.id,
+              email_type: "funder_reminder",
+              scheduled_for: funderReminderDate.toISOString(),
+              status: "pending",
+            });
+          }
+        }
+      }
+    } else {
+      // Intra-enterprise: schedule once at training level if funder is different from sponsor
+      if (!training.financeur_same_as_sponsor && training.financeur_name) {
+        // Check if funder reminder is already scheduled
+        const { data: existingFunderReminder } = await supabase
           .from("scheduled_emails")
-          .insert({
+          .select("id")
+          .eq("training_id", trainingId)
+          .eq("email_type", "funder_reminder")
+          .eq("participant_id", null)
+          .single();
+        
+        if (!existingFunderReminder) {
+          const funderReminderDate = addWorkingDays(referenceDate, delayColdEvaluationFunder);
+          funderRemindersToSchedule.push({
             training_id: trainingId,
             participant_id: null, // No participant - this is for the trainer
             email_type: "funder_reminder",
             scheduled_for: funderReminderDate.toISOString(),
             status: "pending",
           });
-        
-        if (funderScheduleError) {
-          console.error("Error scheduling funder reminder:", funderScheduleError);
-        } else {
-          console.log("Scheduled funder reminder email");
         }
+      }
+    }
+    
+    // Insert funder reminder emails
+    if (funderRemindersToSchedule.length > 0) {
+      const { error: funderScheduleError } = await supabase
+        .from("scheduled_emails")
+        .insert(funderRemindersToSchedule);
+      
+      if (funderScheduleError) {
+        console.error("Error scheduling funder reminder emails:", funderScheduleError);
+      } else {
+        console.log(`Scheduled ${funderRemindersToSchedule.length} funder reminder email(s)`);
       }
     }
 
