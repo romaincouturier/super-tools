@@ -22,6 +22,7 @@ interface BulkAddParticipantsDialogProps {
   trainingId: string;
   trainingStartDate?: string;
   onParticipantsAdded: () => void;
+  isInterEntreprise?: boolean;
 }
 
 interface ParsedParticipant {
@@ -29,9 +30,18 @@ interface ParsedParticipant {
   firstName?: string;
   lastName?: string;
   company?: string;
+  // Sponsor fields for inter-entreprise
+  sponsorFirstName?: string;
+  sponsorLastName?: string;
+  sponsorEmail?: string;
 }
 
-const BulkAddParticipantsDialog = ({ trainingId, trainingStartDate, onParticipantsAdded }: BulkAddParticipantsDialogProps) => {
+const BulkAddParticipantsDialog = ({ 
+  trainingId, 
+  trainingStartDate, 
+  onParticipantsAdded,
+  isInterEntreprise = false 
+}: BulkAddParticipantsDialogProps) => {
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [bulkText, setBulkText] = useState("");
@@ -80,47 +90,121 @@ const BulkAddParticipantsDialog = ({ trainingId, trainingStartDate, onParticipan
     const participants: ParsedParticipant[] = [];
     const errors: string[] = [];
 
+    const emailRegex = /[\w.-]+@[\w.-]+\.\w+/g;
+
     lines.forEach((line, index) => {
       const trimmedLine = line.trim();
       
-      const emailRegex = /[\w.-]+@[\w.-]+\.\w+/;
-      const emailMatch = trimmedLine.match(emailRegex);
-
-      if (!emailMatch) {
-        errors.push(`Ligne ${index + 1}: Email invalide`);
-        return;
-      }
-
-      const email = emailMatch[0].toLowerCase();
-      
-      let firstName: string | undefined;
-      let lastName: string | undefined;
-      let company: string | undefined;
-
-      // Check if format is "Prénom Nom email, Société" or just "email"
-      if (trimmedLine.includes(",")) {
-        // Format: "Prénom Nom email, Société"
-        const [beforeComma, afterComma] = trimmedLine.split(",").map((p) => p.trim());
-        company = afterComma || undefined;
+      if (isInterEntreprise) {
+        // Inter-entreprise format: "Prénom Nom email, Société | Prénom_Cmd Nom_Cmd email_cmd"
+        // or: "Prénom Nom email, Société | email_cmd"
+        const parts = trimmedLine.split("|").map(p => p.trim());
+        const participantPart = parts[0];
+        const sponsorPart = parts[1] || "";
         
-        // Extract name from the part before email
-        const beforeEmail = beforeComma.replace(emailRegex, "").trim();
-        if (beforeEmail) {
-          const nameParts = beforeEmail.split(/\s+/).filter(Boolean);
-          if (nameParts.length >= 1) firstName = nameParts[0];
-          if (nameParts.length >= 2) lastName = nameParts.slice(1).join(" ");
+        // Parse participant part
+        const participantEmails = participantPart.match(emailRegex);
+        if (!participantEmails || participantEmails.length === 0) {
+          errors.push(`Ligne ${index + 1}: Email du participant invalide`);
+          return;
         }
+        
+        const participantEmail = participantEmails[0].toLowerCase();
+        
+        let firstName: string | undefined;
+        let lastName: string | undefined;
+        let company: string | undefined;
+        
+        // Check for company after comma
+        if (participantPart.includes(",")) {
+          const [beforeComma, afterComma] = participantPart.split(",").map((p) => p.trim());
+          company = afterComma || undefined;
+          
+          // Extract name from the part before email
+          const beforeEmail = beforeComma.replace(emailRegex, "").trim();
+          if (beforeEmail) {
+            const nameParts = beforeEmail.split(/\s+/).filter(Boolean);
+            if (nameParts.length >= 1) firstName = nameParts[0];
+            if (nameParts.length >= 2) lastName = nameParts.slice(1).join(" ");
+          }
+        } else {
+          const beforeEmail = participantPart.replace(emailRegex, "").trim();
+          if (beforeEmail) {
+            const nameParts = beforeEmail.split(/\s+/).filter(Boolean);
+            if (nameParts.length >= 1) firstName = nameParts[0];
+            if (nameParts.length >= 2) lastName = nameParts.slice(1).join(" ");
+          }
+        }
+        
+        // Parse sponsor part if provided
+        let sponsorFirstName: string | undefined;
+        let sponsorLastName: string | undefined;
+        let sponsorEmail: string | undefined;
+        
+        if (sponsorPart) {
+          const sponsorEmails = sponsorPart.match(emailRegex);
+          if (sponsorEmails && sponsorEmails.length > 0) {
+            sponsorEmail = sponsorEmails[0].toLowerCase();
+            
+            // Extract sponsor name from before the email
+            const beforeSponsorEmail = sponsorPart.replace(emailRegex, "").trim();
+            if (beforeSponsorEmail) {
+              const sponsorNameParts = beforeSponsorEmail.split(/\s+/).filter(Boolean);
+              if (sponsorNameParts.length >= 1) sponsorFirstName = sponsorNameParts[0];
+              if (sponsorNameParts.length >= 2) sponsorLastName = sponsorNameParts.slice(1).join(" ");
+            }
+          }
+        }
+        
+        participants.push({ 
+          email: participantEmail, 
+          firstName, 
+          lastName, 
+          company,
+          sponsorFirstName,
+          sponsorLastName,
+          sponsorEmail
+        });
       } else {
-        // Check if there's text before the email (Prénom Nom email format)
-        const beforeEmail = trimmedLine.replace(emailRegex, "").trim();
-        if (beforeEmail) {
-          const nameParts = beforeEmail.split(/\s+/).filter(Boolean);
-          if (nameParts.length >= 1) firstName = nameParts[0];
-          if (nameParts.length >= 2) lastName = nameParts.slice(1).join(" ");
-        }
-      }
+        // Standard format (non inter-entreprise)
+        const emailMatch = trimmedLine.match(/[\w.-]+@[\w.-]+\.\w+/);
 
-      participants.push({ email, firstName, lastName, company });
+        if (!emailMatch) {
+          errors.push(`Ligne ${index + 1}: Email invalide`);
+          return;
+        }
+
+        const email = emailMatch[0].toLowerCase();
+        
+        let firstName: string | undefined;
+        let lastName: string | undefined;
+        let company: string | undefined;
+
+        // Check if format is "Prénom Nom email, Société" or just "email"
+        if (trimmedLine.includes(",")) {
+          // Format: "Prénom Nom email, Société"
+          const [beforeComma, afterComma] = trimmedLine.split(",").map((p) => p.trim());
+          company = afterComma || undefined;
+          
+          // Extract name from the part before email
+          const beforeEmail = beforeComma.replace(/[\w.-]+@[\w.-]+\.\w+/, "").trim();
+          if (beforeEmail) {
+            const nameParts = beforeEmail.split(/\s+/).filter(Boolean);
+            if (nameParts.length >= 1) firstName = nameParts[0];
+            if (nameParts.length >= 2) lastName = nameParts.slice(1).join(" ");
+          }
+        } else {
+          // Check if there's text before the email (Prénom Nom email format)
+          const beforeEmail = trimmedLine.replace(/[\w.-]+@[\w.-]+\.\w+/, "").trim();
+          if (beforeEmail) {
+            const nameParts = beforeEmail.split(/\s+/).filter(Boolean);
+            if (nameParts.length >= 1) firstName = nameParts[0];
+            if (nameParts.length >= 2) lastName = nameParts.slice(1).join(" ");
+          }
+        }
+
+        participants.push({ email, firstName, lastName, company });
+      }
     });
 
     return { participants, errors };
@@ -132,7 +216,7 @@ const BulkAddParticipantsDialog = ({ trainingId, trainingStartDate, onParticipan
     }
     const result = parseParticipants(bulkText);
     return { parsedParticipants: result.participants, parseErrors: result.errors };
-  }, [bulkText]);
+  }, [bulkText, isInterEntreprise]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -160,6 +244,10 @@ const BulkAddParticipantsDialog = ({ trainingId, trainingStartDate, onParticipan
         company: p.company || null,
         needs_survey_token: crypto.randomUUID(),
         needs_survey_status: status,
+        // Sponsor fields for inter-entreprise
+        sponsor_first_name: p.sponsorFirstName || null,
+        sponsor_last_name: p.sponsorLastName || null,
+        sponsor_email: p.sponsorEmail || null,
       }));
 
       const { data, error } = await supabase
@@ -236,6 +324,7 @@ const BulkAddParticipantsDialog = ({ trainingId, trainingStartDate, onParticipan
             participant_name: `${p.first_name || ""} ${p.last_name || ""}`.trim() || null,
             company: p.company || null,
             bulk_add: true,
+            has_sponsor: isInterEntreprise && !!p.sponsor_email,
           },
         }));
         await supabase.from("activity_logs").insert(logInserts);
@@ -273,7 +362,41 @@ const BulkAddParticipantsDialog = ({ trainingId, trainingStartDate, onParticipan
     }
   };
 
-  
+  const getPlaceholder = () => {
+    if (isInterEntreprise) {
+      return `jean.dupont@example.com, ACME Corp | Marie Sponsor marie.sponsor@acme.com
+Pierre Martin pierre.martin@test.fr, Tech SA | sponsor@tech.fr`;
+    }
+    return `jean.dupont@example.com
+Marie Martin marie.martin@example.com, ACME Corp`;
+  };
+
+  const getDescription = () => {
+    if (isInterEntreprise) {
+      return (
+        <>
+          Entrez les participants, un par ligne. Format inter-entreprises :
+          <br />
+          • Prénom Nom email, Société | Prénom_Cmd Nom_Cmd email_cmd
+          <br />
+          • email, Société | email_commanditaire
+          <br />
+          <span className="text-muted-foreground text-xs">
+            Le symbole | sépare les infos du participant de celles du commanditaire
+          </span>
+        </>
+      );
+    }
+    return (
+      <>
+        Entrez les participants, un par ligne. Formats acceptés :
+        <br />
+        • email@example.com
+        <br />
+        • Prénom Nom email@example.com, Société
+      </>
+    );
+  };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -286,13 +409,16 @@ const BulkAddParticipantsDialog = ({ trainingId, trainingStartDate, onParticipan
       <DialogContent className="max-w-2xl">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>Ajouter plusieurs participants</DialogTitle>
+            <DialogTitle>
+              Ajouter plusieurs participants
+              {isInterEntreprise && (
+                <span className="ml-2 text-sm font-normal text-muted-foreground">
+                  (Inter-entreprises)
+                </span>
+              )}
+            </DialogTitle>
             <DialogDescription>
-              Entrez les participants, un par ligne. Formats acceptés :
-              <br />
-              • email@example.com
-              <br />
-              • Prénom Nom email@example.com, Société
+              {getDescription()}
             </DialogDescription>
           </DialogHeader>
 
@@ -314,8 +440,7 @@ const BulkAddParticipantsDialog = ({ trainingId, trainingStartDate, onParticipan
                 id="bulkText"
                 value={bulkText}
                 onChange={(e) => setBulkText(e.target.value)}
-                placeholder={`jean.dupont@example.com
-Marie Martin marie.martin@example.com, ACME Corp`}
+                placeholder={getPlaceholder()}
                 rows={8}
                 className="font-mono text-sm"
               />
@@ -333,8 +458,15 @@ Marie Martin marie.martin@example.com, ACME Corp`}
             )}
 
             {parsedParticipants.length > 0 && (
-              <div className="text-sm text-muted-foreground">
-                {parsedParticipants.length} participant{parsedParticipants.length !== 1 ? "s" : ""} détecté{parsedParticipants.length !== 1 ? "s" : ""}
+              <div className="text-sm text-muted-foreground space-y-1">
+                <div>
+                  {parsedParticipants.length} participant{parsedParticipants.length !== 1 ? "s" : ""} détecté{parsedParticipants.length !== 1 ? "s" : ""}
+                </div>
+                {isInterEntreprise && (
+                  <div className="text-xs">
+                    {parsedParticipants.filter(p => p.sponsorEmail).length} avec commanditaire renseigné
+                  </div>
+                )}
               </div>
             )}
           </div>
