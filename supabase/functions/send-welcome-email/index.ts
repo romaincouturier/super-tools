@@ -175,13 +175,12 @@ serve(async (req) => {
       subject = `🎉 Bienvenue à la formation ${training.training_name} !`;
       htmlContent = `
         <p>${greeting}</p>
-        <p>C'est avec grand plaisir que nous vous confirmons votre inscription à la formation <strong>${training.training_name}</strong> !</p>
+        <p>C'est avec grand plaisir que nous vous confirmons votre inscription à la formation <strong>${training.training_name}</strong>.</p>
         
-        <p><strong>📅 Dates et horaires :</strong></p>
-        <ul style="margin-left: 20px;">
-          <li><strong>Date :</strong> ${trainingDate}</li>
-          ${scheduleStr ? `<li><strong>Horaires :</strong><br/>${scheduleStr}</li>` : ''}
-          <li><strong>Lieu :</strong> ${training.location}</li>
+        <p><strong>📅 Informations pratiques :</strong></p>
+        <ul style="margin-left: 20px; list-style: none; padding-left: 0;">
+          ${scheduleStr ? `<li style="margin-bottom: 8px;"><strong>Horaires :</strong><br/>${scheduleStr}</li>` : `<li style="margin-bottom: 8px;"><strong>Date :</strong> ${trainingDate}</li>`}
+          <li style="margin-bottom: 8px;"><strong>Lieu :</strong> ${training.location}</li>
         </ul>
         
         <p><strong>📋 Prochaines étapes :</strong></p>
