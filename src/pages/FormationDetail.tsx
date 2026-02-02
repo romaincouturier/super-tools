@@ -370,16 +370,25 @@ const FormationDetail = () => {
               <Button
                 variant="outline"
                 size="sm"
-                asChild
+                disabled={training.train_booked}
+                title={training.train_booked ? "Réservation déjà effectuée" : "Réserver un train"}
+                asChild={!training.train_booked}
               >
-                <a 
-                  href={`https://www.trainline.fr/search/${encodeURIComponent(training.location)}`} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                >
-                  <Train className="h-4 w-4 mr-2" />
-                  Train
-                </a>
+                {training.train_booked ? (
+                  <span className="flex items-center">
+                    <Train className="h-4 w-4 mr-2" />
+                    Train
+                  </span>
+                ) : (
+                  <a 
+                    href={`https://www.trainline.fr/search/${encodeURIComponent(training.location)}`} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                  >
+                    <Train className="h-4 w-4 mr-2" />
+                    Train
+                  </a>
+                )}
               </Button>
               <Checkbox
                 checked={training.train_booked}
@@ -407,16 +416,25 @@ const FormationDetail = () => {
               <Button
                 variant="outline"
                 size="sm"
-                asChild
+                disabled={training.hotel_booked}
+                title={training.hotel_booked ? "Réservation déjà effectuée" : "Réserver un hôtel"}
+                asChild={!training.hotel_booked}
               >
-                <a 
-                  href={`https://www.booking.com/searchresults.fr.html?ss=${encodeURIComponent(training.location)}`} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                >
-                  <Hotel className="h-4 w-4 mr-2" />
-                  Hôtel
-                </a>
+                {training.hotel_booked ? (
+                  <span className="flex items-center">
+                    <Hotel className="h-4 w-4 mr-2" />
+                    Hôtel
+                  </span>
+                ) : (
+                  <a 
+                    href={`https://www.booking.com/searchresults.fr.html?ss=${encodeURIComponent(training.location)}`} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                  >
+                    <Hotel className="h-4 w-4 mr-2" />
+                    Hôtel
+                  </a>
+                )}
               </Button>
               <Checkbox
                 checked={training.hotel_booked}
