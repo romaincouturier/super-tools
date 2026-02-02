@@ -10,6 +10,49 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Fetch Signitic signature for romain@supertilt.fr
+async function getSigniticSignature(): Promise<string> {
+  const signiticApiKey = Deno.env.get("SIGNITIC_API_KEY");
+  
+  if (!signiticApiKey) {
+    console.warn("SIGNITIC_API_KEY not configured, using default signature");
+    return getDefaultSignature();
+  }
+
+  try {
+    const response = await fetch(
+      "https://api.signitic.app/signatures/romain@supertilt.fr/html",
+      {
+        headers: {
+          "x-api-key": signiticApiKey,
+        },
+      }
+    );
+
+    if (response.ok) {
+      const htmlContent = await response.text();
+      if (htmlContent && !htmlContent.includes("error")) {
+        console.log("Signitic signature fetched successfully");
+        return htmlContent;
+      }
+    }
+    
+    console.warn("Could not fetch Signitic signature:", response.status);
+    return getDefaultSignature();
+  } catch (error) {
+    console.error("Error fetching Signitic signature:", error);
+    return getDefaultSignature();
+  }
+}
+
+function getDefaultSignature(): string {
+  return `<p style="margin-top: 20px; color: #666; font-size: 14px;">
+    <strong>Romain Couturier</strong><br/>
+    Supertilt - Formation professionnelle<br/>
+    <a href="mailto:romain@supertilt.fr">romain@supertilt.fr</a>
+  </p>`;
+}
+
 interface RequestBody {
   email: string;
   redirectUrl: string;
@@ -61,6 +104,9 @@ serve(async (req: Request) => {
       );
     }
 
+    // Get Signitic signature
+    const signature = await getSigniticSignature();
+
     // Send email with reset link
     const emailResponse = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -69,24 +115,22 @@ serve(async (req: Request) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "SuperTools <romain@supertilt.fr>",
+        from: "Romain Couturier <romain@supertilt.fr>",
         to: [email],
         subject: "Réinitialisation de votre mot de passe SuperTools",
         html: `
-          <h1>Réinitialisation de mot de passe</h1>
+          <p>Bonjour,</p>
           <p>Vous avez demandé à réinitialiser votre mot de passe SuperTools.</p>
           <p>Cliquez sur le bouton ci-dessous pour définir un nouveau mot de passe :</p>
           <p style="margin: 30px 0;">
             <a href="${data.properties.action_link}" 
-               style="background-color: #1a1a1a; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+               style="background-color: #eab308; color: #1a1a1a; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold;">
               Réinitialiser mon mot de passe
             </a>
           </p>
           <p style="color: #666; font-size: 14px;">Ce lien expire dans 1 heure.</p>
           <p style="color: #666; font-size: 14px;">Si vous n'avez pas demandé cette réinitialisation, ignorez cet email.</p>
-          <p style="margin-top: 40px;">--<br>
-          <strong>SuperTools</strong><br>
-          Supertilt</p>
+          ${signature}
         `,
       }),
     });
