@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
-import { Loader2, ArrowLeft, Settings, Mail, Save, RotateCcw, Sparkles, Cog, ExternalLink, Shield } from "lucide-react";
+import { Loader2, ArrowLeft, Settings, Mail, Save, RotateCcw, Sparkles, Cog, ExternalLink, Shield, Database } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import AppHeader from "@/components/AppHeader";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,8 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import UserAccessManager from "@/components/settings/UserAccessManager";
+import BackupManager from "@/components/settings/BackupManager";
+import GoogleDriveConnect from "@/components/GoogleDriveConnect";
 
 interface EmailTemplate {
   id: string;

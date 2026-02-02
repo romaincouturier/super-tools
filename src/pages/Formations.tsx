@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { User } from "@supabase/supabase-js";
 import { Loader2, Plus, Calendar, ArrowLeft, ArrowUpDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { format, parseISO, isPast } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -25,6 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useAuth } from "@/hooks/useAuth";
 
 interface Training {
   id: string;
@@ -40,8 +40,8 @@ type SortField = "date" | "title" | "client";
 type SortOrder = "asc" | "desc";
 
 const Formations = () => {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { user, loading: authLoading, logout } = useAuth();
+  const [dataLoading, setDataLoading] = useState(true);
   const [trainings, setTrainings] = useState<Training[]>([]);
   const [filter, setFilter] = useState<"upcoming" | "past">("upcoming");
   
@@ -56,31 +56,10 @@ const Formations = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) {
-        navigate("/auth");
-        return;
-      }
-      setUser(session.user);
-      await fetchTrainings();
-      setLoading(false);
-    };
-
-    checkAuth();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        if (!session?.user) {
-          navigate("/auth");
-        } else {
-          setUser(session.user);
-        }
-      }
-    );
-
-    return () => subscription.unsubscribe();
-  }, [navigate]);
+    if (user) {
+      fetchTrainings();
+    }
+  }, [user]);
 
   const fetchTrainings = async () => {
     const { data, error } = await supabase
@@ -90,15 +69,12 @@ const Formations = () => {
 
     if (error) {
       console.error("Error fetching trainings:", error);
+      setDataLoading(false);
       return;
     }
 
     setTrainings(data || []);
-  };
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate("/auth");
+    setDataLoading(false);
   };
 
   // Filter trainings
@@ -185,7 +161,7 @@ const Formations = () => {
     </TableHead>
   );
 
-  if (loading) {
+  if (authLoading || dataLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -195,7 +171,7 @@ const Formations = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <AppHeader user={user} onLogout={handleLogout} />
+      <AppHeader user={user} onLogout={logout} />
 
       {/* Main content */}
       <main className="max-w-6xl mx-auto p-6">
