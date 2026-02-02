@@ -138,6 +138,18 @@ serve(async (req: Request) => {
       // Don't fail the whole operation, but log it
     }
 
+    // Create profile for the user
+    const { error: profileError } = await supabaseClient.rpc("upsert_profile", {
+      p_user_id: newUser.user.id,
+      p_email: email,
+      p_display_name: null,
+    });
+
+    if (profileError) {
+      console.error("Profile creation error:", profileError);
+      // Don't fail the whole operation, but log it
+    }
+
     // Build module list for email
     const moduleListHtml = modules
       .map((m: string) => `<li>${MODULE_LABELS[m] || m}</li>`)

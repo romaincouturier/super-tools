@@ -35,12 +35,25 @@ export default function UserAccessManager() {
 
   const fetchUsers = async () => {
     try {
-      // Get all users from user_module_access table
+      // Get current user to exclude admin
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      
+      // Get all users from user_module_access table with profiles
       const { data: accessData, error: accessError } = await supabase
         .from("user_module_access")
         .select("user_id, module");
 
       if (accessError) throw accessError;
+
+      // Get profiles for emails
+      const { data: profilesData } = await supabase
+        .from("profiles")
+        .select("user_id, email, display_name");
+
+      const profileMap = new Map<string, { email: string; display_name: string | null }>();
+      profilesData?.forEach((p) => {
+        profileMap.set(p.user_id, { email: p.email, display_name: p.display_name });
+      });
 
       // Group by user
       const userMap = new Map<string, AppModule[]>();
@@ -50,21 +63,14 @@ export default function UserAccessManager() {
         userMap.set(row.user_id, existing);
       });
 
-      // For now, we'll show users that have at least one module access
-      // In a real scenario, you might want to fetch from a profiles table
       const userList: UserWithAccess[] = [];
       
-      // Get current user to exclude admin
-      const { data: { user: currentUser } } = await supabase.auth.getUser();
-      
-      // We need to get user emails - since we don't have direct access to auth.users,
-      // we'll need to work with what we have. For now, we'll show user IDs
-      // In production, you'd want a profiles table to store emails
       userMap.forEach((modules, userId) => {
         if (currentUser?.id !== userId) {
+          const profile = profileMap.get(userId);
           userList.push({
             id: userId,
-            email: `Utilisateur ${userId.slice(0, 8)}...`,
+            email: profile?.display_name || profile?.email || `Utilisateur ${userId.slice(0, 8)}...`,
             modules,
           });
         }
