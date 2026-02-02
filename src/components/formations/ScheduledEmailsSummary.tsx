@@ -151,7 +151,7 @@ const ScheduledEmailsSummary = ({ trainingId, participants }: ScheduledEmailsSum
       case "video_testimonial":
         return "Témoignage vidéo";
       case "cold_evaluation":
-        return "Évaluation à froid";
+        return "Évaluation à froid commanditaire";
       default:
         return type;
     }
@@ -530,7 +530,7 @@ romain@supertilt.fr`;
           <ul className="space-y-1 list-none">
             <li>• <strong>J+X</strong> : Demande d'avis Google</li>
             <li>• <strong>J+X</strong> : Demande de témoignage vidéo</li>
-            <li>• <strong>J+X</strong> : Évaluation à froid</li>
+            <li>• <strong>J+X</strong> : Évaluation à froid commanditaire</li>
           </ul>
           <p className="text-xs text-muted-foreground pt-2 italic">Les délais sont configurables dans Paramètres {">"} Général</p>
         </div>
