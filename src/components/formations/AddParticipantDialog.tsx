@@ -66,7 +66,9 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
     }
     
     // Training is in the future -> send welcome email immediately
-    return { status: "accueil_envoye", sendWelcomeNow: true };
+    // Initial status is "programme" which means "welcome sent, needs survey scheduled"
+    // The send-welcome-email function will keep the status or update appropriately
+    return { status: "programme", sendWelcomeNow: true };
   };
 
   useEffect(() => {
@@ -195,7 +197,7 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
       if (status === "non_envoye") {
         statusMessage = "Formation passée - pas d'envoi programmé.";
       } else if (sendWelcomeNow) {
-        statusMessage = "Mail d'accueil envoyé avec le lien vers la page formation.";
+        statusMessage = "Mail de convocation envoyé, recueil des besoins programmé.";
       }
 
       toast({

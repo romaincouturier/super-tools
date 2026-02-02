@@ -171,7 +171,7 @@ const handler = async (req: Request): Promise<Response> => {
           <p>${greeting}</p>
           <p>${formalAddress ? "Vous êtes inscrit(e)" : "Tu es inscrit(e)"} à la formation <strong>"${training.training_name}"</strong> qui aura lieu le ${formatDate(training.start_date)}.</p>
           <p>Afin de personnaliser cette formation à ${formalAddress ? "vos" : "tes"} attentes, je ${formalAddress ? "vous" : "t'"}invite à remplir un court questionnaire de recueil des besoins :</p>
-          <p><a href="${surveyUrl}" style="display: inline-block; background-color: #1a1a1a; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500;">Remplir le questionnaire</a></p>
+          <p><a href="${surveyUrl}" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Remplir le questionnaire</a></p>
           <p>Ce questionnaire ${formalAddress ? "vous" : "te"} prendra environ 5 minutes et me permettra d'adapter le contenu de la formation à ${formalAddress ? "vos" : "tes"} besoins spécifiques.</p>
           <p>Merci de le compléter au moins 2 jours avant la formation.</p>
           ${signatureHtml}
@@ -237,7 +237,7 @@ const handler = async (req: Request): Promise<Response> => {
           <p>Bonjour à toutes et à tous,</p>
           <p>Quelle belle journée de découverte visuelle nous avons partagé ! Merci pour ${formalAddress ? "votre" : "ton"} énergie et ${formalAddress ? "votre" : "ta"} participation pendant notre formation <strong>"${training.training_name}"</strong>.</p>
           <p>Pour finaliser cette formation, j'ai besoin que ${formalAddress ? "vous preniez" : "tu prennes"} quelques minutes pour compléter le questionnaire d'évaluation :</p>
-          <p><a href="${evaluationUrl}" style="display: inline-block; background-color: #1a1a1a; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500;">Remplir l'évaluation</a></p>
+          <p><a href="${evaluationUrl}" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Remplir l'évaluation</a></p>
           ${supportsSection}
           <p>Je suis curieux de voir comment ${formalAddress ? "vous allez" : "tu vas"} utiliser tout ce que nous avons vu ! N'${formalAddress ? "hésitez" : "hésite"} pas à me contacter si ${formalAddress ? "vous avez" : "tu as"} des questions.</p>
           <p>Je ${formalAddress ? "vous" : "te"} souhaite une bonne journée</p>
@@ -278,7 +278,7 @@ const handler = async (req: Request): Promise<Response> => {
           <p>J'espère que tout va bien pour toi !</p>
           <p>Pour continuer d'améliorer nos formations et partager des retours d'expérience avec d'autres professionnels, ton avis serait précieux.<br>
           Pourrais-tu nous accorder 1 minute pour laisser un commentaire sur notre page Google ?</p>
-          <p><a href="${googleReviewLink}" style="display: inline-block; background-color: #1a1a1a; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500;">👉 Clique ici pour laisser ton avis</a></p>
+          <p><a href="${googleReviewLink}" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">👉 Clique ici pour laisser ton avis</a></p>
           <p>Ton retour est essentiel pour nous permettre de progresser et d'aider d'autres personnes à découvrir nos formations.</p>
           <p>Merci infiniment pour ton soutien et pour avoir participé à notre formation ! 😊</p>
           <p>À bientôt,</p>
@@ -295,7 +295,7 @@ const handler = async (req: Request): Promise<Response> => {
           <p>J'espère que tu vas bien et que la formation <strong>"${training.training_name}"</strong> t'a apporté ce que tu en attendais.</p>
           <p>Ton retour d'expérience serait très précieux pour moi et pour les futurs participants. Serais-tu d'accord pour partager ton témoignage en vidéo ?</p>
           <p>Je te propose une courte interview ensemble via Zoom, cela prend seulement 10 minutes.</p>
-          <p><a href="mailto:romain@supertilt.fr?subject=OK%20pour%20faire%20un%20t%C3%A9moignage%20Vid%C3%A9o&body=Salut%2C%0D%0A%0D%0AJe%20viens%20de%20recevoir%20ton%20mail%2C%20je%20suis%20partant%20pour%20faire%20un%20t%C3%A9moignage%20vid%C3%A9o%20%3A-)" style="display: inline-block; background-color: #1a1a1a; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500;">Je suis partant(e) !</a></p>
+          <p><a href="mailto:romain@supertilt.fr?subject=OK%20pour%20faire%20un%20t%C3%A9moignage%20Vid%C3%A9o&body=Salut%2C%0D%0A%0D%0AJe%20viens%20de%20recevoir%20ton%20mail%2C%20je%20suis%20partant%20pour%20faire%20un%20t%C3%A9moignage%20vid%C3%A9o%20%3A-)" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Je suis partant(e) !</a></p>
           <p>Les témoignages authentiques de personnes qui ont vraiment vécu la formation sont les plus inspirants pour ceux qui hésitent encore.</p>
           <p>Merci d'avance pour ton aide !</p>
           <p>Bonne journée</p>
@@ -312,7 +312,7 @@ const handler = async (req: Request): Promise<Response> => {
           <p>Comment vas-tu ?</p>
           <p>Dans le cadre de mon processus qualité (Qualiopi), je propose désormais des évaluations à froid de mes formations.</p>
           <p>❓ Pourrais-tu prendre 2 minutes pour remplir ce questionnaire en ligne ?</p>
-          <p><a href="https://forms.gle/EXAMPLE" style="display: inline-block; background-color: #1a1a1a; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500;">Remplir le questionnaire</a></p>
+          <p><a href="https://forms.gle/EXAMPLE" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Remplir le questionnaire</a></p>
           <p>Merci énormément pour ton soutien :-)</p>
           <p>À bientôt</p>
           <p><em>PS : on peut continuer à rester en contact sur <a href="https://www.linkedin.com/in/romaincouturier/">LinkedIn</a> et sur <a href="https://www.instagram.com/supertilt.fr/">Instagram</a> pour d'autres contenus sur le sujet de la formation.</em></p>
@@ -382,7 +382,7 @@ const handler = async (req: Request): Promise<Response> => {
               <p>J'espère que tu vas bien et que tu as pu commencer à mettre en pratique ce que nous avons vu ensemble lors de la formation "${training.training_name}" !</p>
               <p>Je me permets de te relancer car je n'ai pas encore reçu ton évaluation. Ton retour est vraiment précieux pour moi : il m'aide à améliorer continuellement mes formations et à mieux répondre aux attentes des futurs participants.</p>
               <p>Cela ne prend que 2-3 minutes :</p>
-              <p><a href="${evalUrl}" style="display: inline-block; background-color: #1a1a1a; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500;">Remplir l'évaluation</a></p>
+              <p><a href="${evalUrl}" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Remplir l'évaluation</a></p>
               <p>Un grand merci d'avance pour ta contribution !</p>
               <p>Belle journée à toi</p>
               ${signatureHtml}
@@ -392,7 +392,7 @@ const handler = async (req: Request): Promise<Response> => {
               <p>J'espère que vous allez bien et que vous avez pu commencer à mettre en pratique ce que nous avons vu ensemble lors de la formation "${training.training_name}" !</p>
               <p>Je me permets de vous relancer car je n'ai pas encore reçu votre évaluation. Votre retour est vraiment précieux pour moi : il m'aide à améliorer continuellement mes formations et à mieux répondre aux attentes des futurs participants.</p>
               <p>Cela ne prend que 2-3 minutes :</p>
-              <p><a href="${evalUrl}" style="display: inline-block; background-color: #1a1a1a; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500;">Remplir l'évaluation</a></p>
+              <p><a href="${evalUrl}" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Remplir l'évaluation</a></p>
               <p>Un grand merci d'avance pour votre contribution !</p>
               <p>Belle journée à vous</p>
               ${signatureHtml}
@@ -407,7 +407,7 @@ const handler = async (req: Request): Promise<Response> => {
               <p>Je reviens vers toi une dernière fois concernant l'évaluation de la formation "${training.training_name}".</p>
               <p>En tant qu'organisme certifié Qualiopi, la collecte de ces retours est essentielle pour maintenir notre certification et garantir la qualité de nos formations. Ton avis, même bref, a un vrai impact !</p>
               <p>Si tu as 2 minutes, voici le lien :</p>
-              <p><a href="${evalUrl}" style="display: inline-block; background-color: #1a1a1a; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500;">Remplir l'évaluation</a></p>
+              <p><a href="${evalUrl}" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Remplir l'évaluation</a></p>
               <p>Je te remercie sincèrement pour ton aide et te souhaite une excellente continuation dans tes projets !</p>
               <p>À bientôt</p>
               ${signatureHtml}
@@ -417,7 +417,7 @@ const handler = async (req: Request): Promise<Response> => {
               <p>Je reviens vers vous une dernière fois concernant l'évaluation de la formation "${training.training_name}".</p>
               <p>En tant qu'organisme certifié Qualiopi, la collecte de ces retours est essentielle pour maintenir notre certification et garantir la qualité de nos formations. Votre avis, même bref, a un vrai impact !</p>
               <p>Si vous avez 2 minutes, voici le lien :</p>
-              <p><a href="${evalUrl}" style="display: inline-block; background-color: #1a1a1a; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500;">Remplir l'évaluation</a></p>
+              <p><a href="${evalUrl}" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Remplir l'évaluation</a></p>
               <p>Je vous remercie sincèrement pour votre aide et vous souhaite une excellente continuation dans vos projets !</p>
               <p>À bientôt</p>
               ${signatureHtml}

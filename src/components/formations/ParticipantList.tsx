@@ -69,10 +69,10 @@ const getStatusConfig = (status: string) => {
       };
     case "programme":
       return {
-        label: "Programmé",
+        label: "Recueil programmé",
         icon: Clock,
         variant: "outline" as const,
-        tooltip: "L'envoi du questionnaire est programmé automatiquement",
+        tooltip: "Le mail d'accueil a été envoyé, l'envoi du questionnaire de recueil est programmé",
       };
     case "manuel":
       return {

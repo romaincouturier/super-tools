@@ -259,7 +259,7 @@ serve(async (req) => {
         <p><strong>📍 Retrouvez toutes les informations pratiques :</strong></p>
         <p>En attendant, vous pouvez consulter l'ensemble des informations de la formation (programme, accès, contact du formateur) sur cette page :</p>
         <p style="margin: 20px 0;">
-          <a href="${trainingSummaryUrl}" style="display: inline-block; background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500;">
+          <a href="${trainingSummaryUrl}" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">
             Voir les informations de la formation
           </a>
         </p>
