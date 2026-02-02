@@ -1129,7 +1129,19 @@ const Parametres = () => {
                         const currentMode = activeMode[type] || "vous";
                         const saveKey = `${type}_${currentMode}`;
                         const isCustomized = templates[type]?.tu || templates[type]?.vous;
-                        const delayValue = defaultTemplate.delayKey === "delay_needs_survey_days" ? delayNeedsSurvey : null;
+                        
+                        // Map delayKey to actual delay value
+                        const getDelayValue = (key?: string): string | null => {
+                          if (!key) return null;
+                          const delayMap: Record<string, string> = {
+                            delay_needs_survey_days: delayNeedsSurvey,
+                            delay_reminder_days: delayReminder,
+                            delay_trainer_summary_days: delayTrainerSummary,
+                          };
+                          return delayMap[key] || null;
+                        };
+                        
+                        const delayValue = getDelayValue(defaultTemplate.delayKey);
                         const timingLabel = delayValue ? `J-${delayValue}` : null;
                         
                         return (
@@ -1173,7 +1185,21 @@ const Parametres = () => {
                         const currentMode = activeMode[type] || "vous";
                         const saveKey = `${type}_${currentMode}`;
                         const isCustomized = templates[type]?.tu || templates[type]?.vous;
-                        const delayValue = defaultTemplate.delayKey === "delay_thank_you_days" ? delayThankYou : null;
+                        
+                        // Map delayKey to actual delay value for "after" emails
+                        const getDelayValue = (key?: string): string | null => {
+                          if (!key) return null;
+                          const delayMap: Record<string, string> = {
+                            delay_thank_you_days: delayThankYou,
+                            delay_google_review_days: delayGoogleReview,
+                            delay_video_testimonial_days: delayVideoTestimonial,
+                            delay_cold_evaluation_days: delayColdEvaluation,
+                            delay_funder_reminder_days: delayColdEvaluationFunder,
+                          };
+                          return delayMap[key] || null;
+                        };
+                        
+                        const delayValue = getDelayValue(defaultTemplate.delayKey);
                         const timingLabel = delayValue ? `J+${delayValue}` : null;
                         
                         return (
