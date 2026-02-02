@@ -47,6 +47,8 @@ function generateTempPassword(): string {
 
 interface RequestBody {
   email: string;
+  firstName?: string;
+  lastName?: string;
   modules?: string[];
 }
 
@@ -76,7 +78,7 @@ serve(async (req: Request) => {
       throw new Error("Seul romain@supertilt.fr peut créer des comptes collaborateurs");
     }
 
-    const { email, modules = [] }: RequestBody = await req.json();
+    const { email, firstName, lastName, modules = [] }: RequestBody = await req.json();
     
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       throw new Error("Email invalide");
@@ -138,12 +140,16 @@ serve(async (req: Request) => {
       // Don't fail the whole operation, but log it
     }
 
-    // Create profile for the user
-    const { error: profileError } = await supabaseClient.rpc("upsert_profile", {
-      p_user_id: newUser.user.id,
-      p_email: email,
-      p_display_name: null,
-    });
+    // Create profile for the user with first/last name
+    const { error: profileError } = await supabaseClient
+      .from("profiles")
+      .insert({
+        user_id: newUser.user.id,
+        email: email,
+        first_name: firstName || null,
+        last_name: lastName || null,
+        display_name: firstName && lastName ? `${firstName} ${lastName}` : null,
+      });
 
     if (profileError) {
       console.error("Profile creation error:", profileError);

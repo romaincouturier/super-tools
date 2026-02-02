@@ -34,6 +34,8 @@ const ALL_MODULES: AppModule[] = [
 const OnboardCollaboratorDialog = ({ userEmail }: OnboardCollaboratorDialogProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [email, setEmail] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [selectedModules, setSelectedModules] = useState<AppModule[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
@@ -75,7 +77,7 @@ const OnboardCollaboratorDialog = ({ userEmail }: OnboardCollaboratorDialogProps
 
     try {
       const { data, error } = await supabase.functions.invoke("onboard-collaborator", {
-        body: { email, modules: selectedModules },
+        body: { email, firstName, lastName, modules: selectedModules },
       });
 
       if (error) throw error;
@@ -90,6 +92,8 @@ const OnboardCollaboratorDialog = ({ userEmail }: OnboardCollaboratorDialogProps
       });
 
       setEmail("");
+      setFirstName("");
+      setLastName("");
       setSelectedModules([]);
       setIsOpen(false);
     } catch (error: any) {
@@ -121,6 +125,29 @@ const OnboardCollaboratorDialog = ({ userEmail }: OnboardCollaboratorDialogProps
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="collaboratorFirstName">Prénom</Label>
+                <Input
+                  id="collaboratorFirstName"
+                  type="text"
+                  placeholder="Jean"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="collaboratorLastName">Nom</Label>
+                <Input
+                  id="collaboratorLastName"
+                  type="text"
+                  placeholder="Dupont"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                />
+              </div>
+            </div>
+            
             <div className="space-y-2">
               <Label htmlFor="collaboratorEmail">Email du collaborateur</Label>
               <Input
