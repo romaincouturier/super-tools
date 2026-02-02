@@ -33,6 +33,46 @@ interface Participant {
   last_name: string | null;
 }
 
+// Default templates
+const DEFAULT_CONTENT_TU = `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
+
+Quelle belle journée de découverte visuelle nous avons partagé ! Merci pour ton énergie et ta participation pendant notre formation "{{training_name}}".
+
+Pour finaliser cette formation, j'ai besoin que tu prennes quelques minutes pour compléter le questionnaire d'évaluation :
+[Lien d'évaluation personnalisé]
+
+{{#supports_url}}Tu trouveras également tous les supports de la formation ici, pour continuer à pratiquer et intégrer ces techniques dans tes présentations :
+{{supports_url}}
+
+{{/supports_url}}Je suis curieux de voir comment tu vas utiliser tout ce que nous avons vu ! N'hésite pas à me contacter si tu as des questions ou des besoins de compléments d'informations.
+
+Je te souhaite une bonne journée
+
+—
+Romain Couturier
+romain@supertilt.fr`;
+
+const DEFAULT_CONTENT_VOUS = `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
+
+Quelle belle journée de découverte visuelle nous avons partagé ! Merci pour votre énergie et votre participation pendant notre formation "{{training_name}}".
+
+Pour finaliser cette formation, j'ai besoin que vous preniez quelques minutes pour compléter le questionnaire d'évaluation :
+[Lien d'évaluation personnalisé]
+
+{{#supports_url}}Vous trouverez également tous les supports de la formation ici, pour continuer à pratiquer et intégrer ces techniques dans vos présentations :
+{{supports_url}}
+
+{{/supports_url}}Je suis curieux de voir comment vous allez utiliser tout ce que nous avons vu ! N'hésitez pas à me contacter si vous avez des questions ou des besoins de compléments d'informations.
+
+Je vous souhaite une bonne journée
+
+—
+Romain Couturier
+romain@supertilt.fr`;
+
+const DEFAULT_SUBJECT_TU = `Merci pour ta participation à la formation {{training_name}}`;
+const DEFAULT_SUBJECT_VOUS = `Merci pour votre participation à la formation {{training_name}}`;
+
 const ThankYouEmailPreviewDialog = ({
   open,
   onOpenChange,
@@ -47,6 +87,7 @@ const ThankYouEmailPreviewDialog = ({
   const [customTemplate, setCustomTemplate] = useState<{ subject: string; content: string } | null>(null);
   const [testEmail, setTestEmail] = useState("");
   const [isSendingTest, setIsSendingTest] = useState(false);
+  const [useTutoiement, setUseTutoiement] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -56,6 +97,16 @@ const ThankYouEmailPreviewDialog = ({
 
   const fetchData = async () => {
     setLoading(true);
+    
+    // Fetch training to get formality setting
+    const { data: trainingData } = await supabase
+      .from("trainings")
+      .select("participants_formal_address")
+      .eq("id", trainingId)
+      .single();
+    
+    const isTutoiement = trainingData?.participants_formal_address === false;
+    setUseTutoiement(isTutoiement);
     
     // Fetch participants
     const { data: participantsData } = await supabase
@@ -67,11 +118,12 @@ const ThankYouEmailPreviewDialog = ({
       setParticipants(participantsData);
     }
 
-    // Fetch custom template if exists
+    // Fetch custom template if exists (with mode suffix)
+    const templateType = `thank_you${isTutoiement ? "_tu" : "_vous"}`;
     const { data: templateData } = await supabase
       .from("email_templates")
       .select("subject, html_content")
-      .eq("template_type", "thank_you")
+      .eq("template_type", templateType)
       .single();
 
     if (templateData) {
@@ -79,6 +131,8 @@ const ThankYouEmailPreviewDialog = ({
         subject: templateData.subject,
         content: templateData.html_content,
       });
+    } else {
+      setCustomTemplate(null);
     }
     
     setLoading(false);
@@ -114,46 +168,29 @@ const ThankYouEmailPreviewDialog = ({
     if (customTemplate?.subject) {
       return customTemplate.subject.replace("{{training_name}}", trainingName);
     }
-    return `Merci pour votre participation à la formation ${trainingName}`;
+    const defaultSubject = useTutoiement ? DEFAULT_SUBJECT_TU : DEFAULT_SUBJECT_VOUS;
+    return defaultSubject.replace("{{training_name}}", trainingName);
   };
 
   const getEmailContent = (firstName?: string | null) => {
-    const defaultContent = `Bonjour${firstName ? ` ${firstName}` : ""},
-
-Quelle belle journée de découverte visuelle nous avons partagé ! Merci pour votre énergie et votre participation pendant notre formation "${trainingName}".
-
-Pour finaliser cette formation, j'ai besoin que vous preniez quelques minutes pour compléter le questionnaire d'évaluation :
-[Lien d'évaluation personnalisé]
-
-${supportsUrl ? `Vous trouverez également tous les supports de la formation ici, pour continuer à pratiquer et intégrer ces techniques dans vos présentations :
-${supportsUrl}
-
-` : ""}Je suis curieux de voir comment vous allez utiliser tout ce que nous avons vu ! N'hésitez pas à me contacter si vous avez des questions ou des besoins de compléments d'informations.
-
-Je vous souhaite une bonne journée
-
-—
-Romain Couturier
-romain@supertilt.fr`;
-
-    if (customTemplate?.content) {
-      let content = customTemplate.content;
-      content = content.replace(/\{\{#first_name\}\}(.*?)\{\{\/first_name\}\}/g, firstName ? `$1` : "");
-      content = content.replace(/\{\{first_name\}\}/g, firstName || "");
-      content = content.replace(/\{\{training_name\}\}/g, trainingName);
-      content = content.replace(/\{\{evaluation_link\}\}/g, "[Lien d'évaluation personnalisé]");
-      
-      if (supportsUrl) {
-        content = content.replace(/\{\{#supports_url\}\}([\s\S]*?)\{\{\/supports_url\}\}/g, "$1");
-        content = content.replace(/\{\{supports_url\}\}/g, supportsUrl);
-      } else {
-        content = content.replace(/\{\{#supports_url\}\}[\s\S]*?\{\{\/supports_url\}\}/g, "");
-      }
-      
-      return content;
+    const defaultContent = useTutoiement ? DEFAULT_CONTENT_TU : DEFAULT_CONTENT_VOUS;
+    
+    let content = customTemplate?.content || defaultContent;
+    
+    // Process conditional blocks: {{#var}}content{{/var}}
+    content = content.replace(/\{\{#first_name\}\}(.*?)\{\{\/first_name\}\}/g, firstName ? `$1` : "");
+    content = content.replace(/\{\{first_name\}\}/g, firstName || "");
+    content = content.replace(/\{\{training_name\}\}/g, trainingName);
+    content = content.replace(/\{\{evaluation_link\}\}/g, "[Lien d'évaluation personnalisé]");
+    
+    if (supportsUrl) {
+      content = content.replace(/\{\{#supports_url\}\}([\s\S]*?)\{\{\/supports_url\}\}/g, "$1");
+      content = content.replace(/\{\{supports_url\}\}/g, supportsUrl);
+    } else {
+      content = content.replace(/\{\{#supports_url\}\}[\s\S]*?\{\{\/supports_url\}\}/g, "");
     }
-
-    return defaultContent;
+    
+    return content;
   };
 
   return (
@@ -220,6 +257,7 @@ romain@supertilt.fr`;
             <p className="text-xs text-muted-foreground mt-3">
               Note : Chaque participant recevra un email personnalisé avec son prénom et un lien d'évaluation unique.
               Une copie sera envoyée en BCC à romain@supertilt.fr.
+              {useTutoiement ? " (Mode tutoiement)" : " (Mode vouvoiement)"}
             </p>
 
             {/* Test email section */}
