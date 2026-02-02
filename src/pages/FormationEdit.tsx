@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 import { Loader2, ArrowLeft, Calendar, Save, ExternalLink } from "lucide-react";
-import { format, eachDayOfInterval, parseISO } from "date-fns";
+import { format, addDays, eachDayOfInterval, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import AppHeader from "@/components/AppHeader";
 import { Button } from "@/components/ui/button";
@@ -424,7 +424,13 @@ const FormationEdit = () => {
                           <Switch
                             id="multiDay"
                             checked={isMultiDay}
-                            onCheckedChange={setIsMultiDay}
+                            onCheckedChange={(checked) => {
+                              setIsMultiDay(checked);
+                              // Auto-set end date to start date + 1 day when enabling multi-day
+                              if (checked && startDate && !endDate) {
+                                setEndDate(addDays(startDate, 1));
+                              }
+                            }}
                           />
                           <Label htmlFor="multiDay" className="text-sm text-muted-foreground">
                             Multi-jours
