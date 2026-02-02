@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import {
   Accordion,
@@ -411,6 +412,9 @@ const Parametres = () => {
   const [bccEmail, setBccEmail] = useState("romain@supertilt.fr");
   const [savingSettings, setSavingSettings] = useState(false);
   
+  // Working days configuration (Monday to Friday by default)
+  const [workingDays, setWorkingDays] = useState<boolean[]>([false, true, true, true, true, true, false]); // Sun, Mon, Tue, Wed, Thu, Fri, Sat
+  
   // Email scheduling delays
   const [delayNeedsSurvey, setDelayNeedsSurvey] = useState("7");
   const [delayReminder, setDelayReminder] = useState("7");
@@ -456,7 +460,7 @@ const Parametres = () => {
       .from("app_settings")
       .select("setting_key, setting_value")
       .in("setting_key", [
-        "bcc_email", "bcc_enabled",
+        "bcc_email", "bcc_enabled", "working_days",
         "delay_needs_survey_days", "delay_reminder_days", "delay_trainer_summary_days",
         "delay_google_review_days", "delay_video_testimonial_days", 
         "delay_cold_evaluation_days", "delay_cold_evaluation_funder_days"
@@ -474,6 +478,16 @@ const Parametres = () => {
           break;
         case "bcc_enabled":
           setBccEnabled(setting.setting_value === "true");
+          break;
+        case "working_days":
+          try {
+            const days = JSON.parse(setting.setting_value || "[false,true,true,true,true,true,false]");
+            if (Array.isArray(days) && days.length === 7) {
+              setWorkingDays(days);
+            }
+          } catch {
+            // Keep default
+          }
           break;
         case "delay_needs_survey_days":
           setDelayNeedsSurvey(setting.setting_value || "7");
@@ -506,6 +520,7 @@ const Parametres = () => {
       const settingsToSave = [
         { setting_key: "bcc_email", setting_value: bccEmail, description: "Adresse email en copie cachée (BCC) pour tous les envois" },
         { setting_key: "bcc_enabled", setting_value: bccEnabled.toString(), description: "Activer ou désactiver l'envoi en copie cachée (BCC)" },
+        { setting_key: "working_days", setting_value: JSON.stringify(workingDays), description: "Jours ouvrables pour l'envoi des emails (tableau de 7 booléens : dim, lun, mar, mer, jeu, ven, sam)" },
         { setting_key: "delay_needs_survey_days", setting_value: delayNeedsSurvey, description: "Délai avant formation pour envoyer le questionnaire de besoins (en jours)" },
         { setting_key: "delay_reminder_days", setting_value: delayReminder, description: "Délai avant formation pour envoyer le rappel logistique (en jours)" },
         { setting_key: "delay_trainer_summary_days", setting_value: delayTrainerSummary, description: "Délai avant formation pour envoyer la synthèse au formateur (en jours)" },
@@ -928,7 +943,37 @@ const Parametres = () => {
 
                 <Separator />
 
-                {/* Email scheduling delays - Before training */}
+                {/* Working Days Configuration */}
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium">Jours ouvrables</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Les emails automatisés (pré et post-formation) seront envoyés uniquement les jours ouvrables sélectionnés.
+                  </p>
+                  
+                  <div className="flex flex-wrap gap-4">
+                    {["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"].map((day, index) => (
+                      <div key={day} className="flex items-center gap-2">
+                        <Checkbox
+                          id={`working-day-${index}`}
+                          checked={workingDays[index]}
+                          onCheckedChange={(checked) => {
+                            const newDays = [...workingDays];
+                            newDays[index] = checked === true;
+                            setWorkingDays(newDays);
+                          }}
+                        />
+                        <Label 
+                          htmlFor={`working-day-${index}`}
+                          className="text-sm cursor-pointer"
+                        >
+                          {day}
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <Separator />
                 <div className="space-y-4">
                   <h3 className="text-sm font-medium">Délais des emails avant formation</h3>
                   <p className="text-sm text-muted-foreground">
