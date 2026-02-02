@@ -1072,6 +1072,9 @@ export type Database = {
           added_at: string
           company: string | null
           email: string
+          financeur_name: string | null
+          financeur_same_as_sponsor: boolean | null
+          financeur_url: string | null
           first_name: string | null
           id: string
           invoice_file_url: string | null
@@ -1088,6 +1091,9 @@ export type Database = {
           added_at?: string
           company?: string | null
           email: string
+          financeur_name?: string | null
+          financeur_same_as_sponsor?: boolean | null
+          financeur_url?: string | null
           first_name?: string | null
           id?: string
           invoice_file_url?: string | null
@@ -1104,6 +1110,9 @@ export type Database = {
           added_at?: string
           company?: string | null
           email?: string
+          financeur_name?: string | null
+          financeur_same_as_sponsor?: boolean | null
+          financeur_url?: string | null
           first_name?: string | null
           id?: string
           invoice_file_url?: string | null
