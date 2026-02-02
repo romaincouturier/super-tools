@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
-import { Loader2, ArrowLeft, Calendar, Users, FileText, ExternalLink, Edit2, User as UserIcon, Mail, MapPin, Building, Map, Train, Hotel, Clock, Copy, Check } from "lucide-react";
+import { Loader2, ArrowLeft, Calendar, Users, FileText, ExternalLink, Edit2, User as UserIcon, Mail, MapPin, Building, Map, Train, Hotel, Clock, Copy, Check, AlertCircle } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { format, parseISO } from "date-fns";
@@ -20,6 +20,7 @@ import ScheduledEmailsSummary from "@/components/formations/ScheduledEmailsSumma
 import NeedsSurveySummaryDialog from "@/components/formations/NeedsSurveySummaryDialog";
 import AttendanceSheetGenerator from "@/components/formations/AttendanceSheetGenerator";
 import AttendanceSignatureBlock from "@/components/formations/AttendanceSignatureBlock";
+import ScheduledActionsEditor, { ScheduledAction } from "@/components/formations/ScheduledActionsEditor";
 
 interface Training {
   id: string;
@@ -71,6 +72,8 @@ const FormationDetail = () => {
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [copiedEmail, setCopiedEmail] = useState(false);
+  const [scheduledActions, setScheduledActions] = useState<ScheduledAction[]>([]);
+  const [savingActions, setSavingActions] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -130,6 +133,97 @@ const FormationDetail = () => {
 
     // Fetch participants
     await fetchParticipants();
+    
+    // Fetch scheduled actions
+    await fetchScheduledActions();
+  };
+  
+  const fetchScheduledActions = async () => {
+    if (!id) return;
+    
+    const { data: actionsData } = await supabase
+      .from("training_actions")
+      .select("*")
+      .eq("training_id", id)
+      .order("due_date", { ascending: true });
+    
+    if (actionsData) {
+      setScheduledActions(actionsData.map(action => ({
+        id: action.id,
+        description: action.description,
+        dueDate: new Date(action.due_date),
+        assignedEmail: action.assigned_user_email,
+        assignedName: action.assigned_user_name || "",
+      })));
+    }
+  };
+  
+  const handleSaveActions = async (actions: ScheduledAction[]) => {
+    if (!id || !user) return;
+    
+    setSavingActions(true);
+    
+    try {
+      // Get current actions from DB
+      const { data: existingActions } = await supabase
+        .from("training_actions")
+        .select("id")
+        .eq("training_id", id);
+      
+      const existingIds = new Set((existingActions || []).map(a => a.id));
+      const newIds = new Set(actions.map(a => a.id));
+      
+      // Delete removed actions
+      const toDelete = [...existingIds].filter(id => !newIds.has(id));
+      if (toDelete.length > 0) {
+        await supabase
+          .from("training_actions")
+          .delete()
+          .in("id", toDelete);
+      }
+      
+      // Upsert actions
+      for (const action of actions) {
+        if (!action.description || !action.dueDate || !action.assignedEmail) continue;
+        
+        const actionData = {
+          id: action.id,
+          training_id: id,
+          description: action.description,
+          due_date: action.dueDate.toISOString().split('T')[0],
+          assigned_user_email: action.assignedEmail,
+          assigned_user_name: action.assignedName || null,
+          created_by: user.id,
+        };
+        
+        if (existingIds.has(action.id)) {
+          await supabase
+            .from("training_actions")
+            .update(actionData)
+            .eq("id", action.id);
+        } else {
+          await supabase
+            .from("training_actions")
+            .insert(actionData);
+        }
+      }
+      
+      toast({
+        title: "Actions enregistrées",
+        description: "Les actions programmées ont été sauvegardées.",
+      });
+      
+      await fetchScheduledActions();
+    } catch (error) {
+      console.error("Error saving actions:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de sauvegarder les actions.",
+        variant: "destructive",
+      });
+    } finally {
+      setSavingActions(false);
+    }
   };
 
   const fetchParticipants = async () => {
@@ -543,8 +637,33 @@ const FormationDetail = () => {
           />
         </div>
 
-        {/* Row 3: Attendance Signature (only shown on training days) */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Row 3: Scheduled Actions + Attendance Signature */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          {/* Scheduled Actions Editor */}
+          <div className="space-y-4">
+            <ScheduledActionsEditor
+              actions={scheduledActions}
+              onActionsChange={setScheduledActions}
+            />
+            {scheduledActions.length > 0 && (
+              <Button
+                onClick={() => handleSaveActions(scheduledActions)}
+                disabled={savingActions}
+                className="w-full"
+              >
+                {savingActions ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Enregistrement...
+                  </>
+                ) : (
+                  "Enregistrer les actions"
+                )}
+              </Button>
+            )}
+          </div>
+
+          {/* Attendance Signature */}
           <AttendanceSignatureBlock
             trainingId={training.id}
             trainingName={training.training_name}
