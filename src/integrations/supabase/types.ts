@@ -766,6 +766,7 @@ export type Database = {
           invoice_file_url: string | null
           location: string
           objectives: string[] | null
+          participants_formal_address: boolean
           prerequisites: string[] | null
           program_file_url: string | null
           sponsor_email: string | null
@@ -791,6 +792,7 @@ export type Database = {
           invoice_file_url?: string | null
           location: string
           objectives?: string[] | null
+          participants_formal_address?: boolean
           prerequisites?: string[] | null
           program_file_url?: string | null
           sponsor_email?: string | null
@@ -816,6 +818,7 @@ export type Database = {
           invoice_file_url?: string | null
           location?: string
           objectives?: string[] | null
+          participants_formal_address?: boolean
           prerequisites?: string[] | null
           program_file_url?: string | null
           sponsor_email?: string | null
