@@ -766,7 +766,7 @@ const Parametres = () => {
                     </div>
                     
                     <div className="space-y-2">
-                      <Label htmlFor="delay-cold-evaluation">Évaluation à froid</Label>
+                      <Label htmlFor="delay-cold-evaluation">Évaluation à froid commanditaire</Label>
                       <div className="flex items-center gap-2">
                         <span className="text-sm text-muted-foreground">J +</span>
                         <Input
