@@ -63,13 +63,6 @@ const tools: Tool[] = [
     icon: <History className="w-10 h-10" />,
     path: "/historique",
   },
-  {
-    id: "parametres",
-    name: "Paramètres",
-    description: "Personnaliser les modèles d'emails",
-    icon: <Settings className="w-10 h-10" />,
-    path: "/parametres",
-  },
 ];
 const Dashboard = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -150,6 +143,13 @@ const Dashboard = () => {
           </div>
           <div className="flex items-center gap-3">
             <OnboardCollaboratorDialog userEmail={user?.email} />
+            <button
+              onClick={() => navigate("/parametres")}
+              className="p-2 rounded-lg hover:bg-background/10 transition-colors"
+              title="Paramètres"
+            >
+              <Settings className="w-5 h-5" />
+            </button>
             {user && <UserMenu user={user} onLogout={handleLogout} />}
           </div>
         </div>
