@@ -31,6 +31,7 @@ interface KanbanColumnProps {
   onDelete: (columnId: string) => void;
   onAddCard: () => void;
   onEditCard: (card: Card) => void;
+  onViewCard: (card: Card) => void;
   onDeleteCard: (cardId: string) => void;
 }
 
@@ -41,6 +42,7 @@ const KanbanColumn = ({
   onDelete,
   onAddCard,
   onEditCard,
+  onViewCard,
   onDeleteCard,
 }: KanbanColumnProps) => {
   const [showRenameDialog, setShowRenameDialog] = useState(false);
@@ -117,6 +119,7 @@ const KanbanColumn = ({
               <ContentCard
                 key={card.id}
                 card={card}
+                onView={() => onViewCard(card)}
                 onEdit={() => onEditCard(card)}
                 onDelete={() => onDeleteCard(card.id)}
               />
