@@ -897,6 +897,30 @@ export type Database = {
         }
         Relationships: []
       }
+      user_module_access: {
+        Row: {
+          granted_at: string
+          granted_by: string | null
+          id: string
+          module: Database["public"]["Enums"]["app_module"]
+          user_id: string
+        }
+        Insert: {
+          granted_at?: string
+          granted_by?: string | null
+          id?: string
+          module: Database["public"]["Enums"]["app_module"]
+          user_id: string
+        }
+        Update: {
+          granted_at?: string
+          granted_by?: string | null
+          id?: string
+          module?: Database["public"]["Enums"]["app_module"]
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_security_metadata: {
         Row: {
           created_at: string
@@ -926,10 +950,20 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_module_access: {
+        Args: { _module: string; _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_module:
+        | "micro_devis"
+        | "formations"
+        | "evaluations"
+        | "certificates"
+        | "ameliorations"
+        | "historique"
+        | "contenu"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1056,6 +1090,16 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_module: [
+        "micro_devis",
+        "formations",
+        "evaluations",
+        "certificates",
+        "ameliorations",
+        "historique",
+        "contenu",
+      ],
+    },
   },
 } as const

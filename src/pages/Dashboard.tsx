@@ -2,13 +2,14 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
-import { Loader2, Award, FileText, Calendar, ClipboardCheck, TrendingUp, Star, History } from "lucide-react";
+import { Loader2, Award, FileText, Calendar, ClipboardCheck, TrendingUp, Star, History, Newspaper } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import WeeklyChart from "@/components/dashboard/WeeklyChart";
 import StatCard from "@/components/dashboard/StatCard";
 import TopImprovements from "@/components/dashboard/TopImprovements";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
+import { useModuleAccess, AppModule } from "@/hooks/useModuleAccess";
 
 interface Tool {
   id: string;
@@ -16,6 +17,7 @@ interface Tool {
   description: string;
   icon: React.ReactNode;
   path: string;
+  module: AppModule;
 }
 
 const tools: Tool[] = [
@@ -25,6 +27,7 @@ const tools: Tool[] = [
     description: "Créer des devis rapides et simplifiés",
     icon: <FileText className="w-10 h-10" />,
     path: "/micro-devis",
+    module: "micro_devis",
   },
   {
     id: "formations",
@@ -32,6 +35,7 @@ const tools: Tool[] = [
     description: "Gérer les formations et les participants",
     icon: <Calendar className="w-10 h-10" />,
     path: "/formations",
+    module: "formations",
   },
   {
     id: "evaluations",
@@ -39,6 +43,7 @@ const tools: Tool[] = [
     description: "Analyser les retours des participants",
     icon: <ClipboardCheck className="w-10 h-10" />,
     path: "/evaluations",
+    module: "evaluations",
   },
   {
     id: "certificates",
@@ -46,6 +51,7 @@ const tools: Tool[] = [
     description: "Générer et envoyer des certificats de formation",
     icon: <Award className="w-10 h-10" />,
     path: "/certificates",
+    module: "certificates",
   },
   {
     id: "ameliorations",
@@ -53,6 +59,7 @@ const tools: Tool[] = [
     description: "Suivre les axes d'amélioration identifiés",
     icon: <TrendingUp className="w-10 h-10" />,
     path: "/ameliorations",
+    module: "ameliorations",
   },
   {
     id: "historique",
@@ -60,6 +67,15 @@ const tools: Tool[] = [
     description: "Consulter l'historique des actions",
     icon: <History className="w-10 h-10" />,
     path: "/historique",
+    module: "historique",
+  },
+  {
+    id: "contenu",
+    name: "Contenu",
+    description: "Gérer le marketing de contenu",
+    icon: <Newspaper className="w-10 h-10" />,
+    path: "/contenu",
+    module: "contenu",
   },
 ];
 const Dashboard = () => {
@@ -74,6 +90,11 @@ const Dashboard = () => {
     topImprovements,
     isLoading: statsLoading,
   } = useDashboardStats();
+
+  const { hasAccess, loading: accessLoading } = useModuleAccess();
+
+  // Filter tools based on user access
+  const accessibleTools = tools.filter((tool) => hasAccess(tool.module));
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -122,7 +143,7 @@ const Dashboard = () => {
     navigate("/auth");
   };
 
-  if (loading) {
+  if (loading || accessLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -182,27 +203,34 @@ const Dashboard = () => {
         {/* Tools Section */}
         <section>
           <h2 className="text-xl font-semibold mb-4">Outils</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {tools.map((tool) => (
-              <Card
-                key={tool.id}
-                className="border-2 shadow-md hover:shadow-lg hover:border-primary/50 transition-all cursor-pointer group p-5"
-                onClick={() => navigate(tool.path)}
-              >
-                <div className="flex items-center gap-4">
-                  <div className="p-3 rounded-full bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                    {tool.icon}
+          {accessibleTools.length === 0 ? (
+            <Card className="p-8 text-center text-muted-foreground">
+              <p>Aucun module disponible.</p>
+              <p className="text-sm mt-2">Contactez l'administrateur pour obtenir des accès.</p>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {accessibleTools.map((tool) => (
+                <Card
+                  key={tool.id}
+                  className="border-2 shadow-md hover:shadow-lg hover:border-primary/50 transition-all cursor-pointer group p-5"
+                  onClick={() => navigate(tool.path)}
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 rounded-full bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                      {tool.icon}
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg">{tool.name}</CardTitle>
+                      <CardDescription className="text-sm">
+                        {tool.description}
+                      </CardDescription>
+                    </div>
                   </div>
-                  <div>
-                    <CardTitle className="text-lg">{tool.name}</CardTitle>
-                    <CardDescription className="text-sm">
-                      {tool.description}
-                    </CardDescription>
-                  </div>
-                </div>
-              </Card>
-            ))}
-          </div>
+                </Card>
+              ))}
+            </div>
+          )}
         </section>
       </main>
     </div>

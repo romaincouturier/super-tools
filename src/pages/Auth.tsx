@@ -15,7 +15,8 @@ import { validatePassword } from "@/lib/passwordValidation";
 import { useLoginAttempts } from "@/hooks/useLoginAttempts";
 import { cn } from "@/lib/utils";
 
-const ALLOWED_EMAIL = "romain@supertilt.fr";
+// Admin email - has full access to all modules
+const ADMIN_EMAIL = "romain@supertilt.fr";
 
 const Auth = () => {
   const [email, setEmail] = useState("");
@@ -85,20 +86,8 @@ const Auth = () => {
           await new Promise((resolve) => setTimeout(resolve, status.delaySeconds * 1000));
         }
 
-        // Restrict login to allowed email only
-        if (email.toLowerCase() !== ALLOWED_EMAIL.toLowerCase()) {
-          await logAttempt(email, false);
-          setShowAttemptFeedback(true);
-          setShakeForm(true);
-          setTimeout(() => setShakeForm(false), 500);
-          toast({
-            title: "Connexion non autorisée",
-            description: "Cet email n'est pas autorisé à se connecter.",
-            variant: "destructive",
-          });
-          setIsLoading(false);
-          return;
-        }
+        // Note: Login is now allowed for all users created via onboarding
+        // Access control is handled per-module via has_module_access()
 
         const { data, error } = await supabase.auth.signInWithPassword({
           email,
@@ -157,11 +146,12 @@ const Auth = () => {
           description: "Bienvenue !",
         });
       } else {
-        // Check if email is allowed for signup
-        if (email.toLowerCase() !== ALLOWED_EMAIL.toLowerCase()) {
+        // Only admin can create accounts via signup form
+        // Other users are created via onboarding process
+        if (email.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
           toast({
             title: "Inscription non autorisée",
-            description: "Seul l'email romain@supertilt.fr est autorisé à créer un compte.",
+            description: "Les nouveaux utilisateurs doivent être ajoutés via l'interface d'administration.",
             variant: "destructive",
           });
           setIsLoading(false);
