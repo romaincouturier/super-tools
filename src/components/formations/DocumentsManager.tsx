@@ -758,8 +758,8 @@ const DocumentsManager = ({
           </div>
 
           {/* Send Documents Section */}
-          {(invoiceFileUrl || attendanceSheetsUrls.length > 0) && (
-            <div className="pt-4 border-t space-y-3">
+          <div className="pt-4 border-t space-y-3">
+            {invoiceFileUrl || attendanceSheetsUrls.length > 0 ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
@@ -829,8 +829,23 @@ const DocumentsManager = ({
                   )}
                 </DropdownMenuContent>
               </DropdownMenu>
-            </div>
-          )}
+            ) : (
+              <Button
+                type="button"
+                variant="default"
+                className="w-full"
+                disabled
+              >
+                <Send className="h-4 w-4 mr-2" />
+                Envoyer les documents
+              </Button>
+            )}
+            {!invoiceFileUrl && attendanceSheetsUrls.length === 0 && (
+              <p className="text-xs text-muted-foreground text-center">
+                Uploadez une facture ou des feuilles d'émargement pour les envoyer
+              </p>
+            )}
+          </div>
 
           {/* Thank You Email Section */}
           <div className="pt-4 border-t space-y-2">
