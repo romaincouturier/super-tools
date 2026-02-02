@@ -10,6 +10,16 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const MODULE_LABELS: Record<string, string> = {
+  micro_devis: "Micro-devis",
+  formations: "Formations",
+  evaluations: "Évaluations",
+  certificates: "Certificats",
+  ameliorations: "Améliorations",
+  historique: "Historique",
+  contenu: "Contenu",
+};
+
 // Generate a strong temporary password
 function generateTempPassword(): string {
   const uppercase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -37,6 +47,7 @@ function generateTempPassword(): string {
 
 interface RequestBody {
   email: string;
+  modules?: string[];
 }
 
 serve(async (req: Request) => {
@@ -65,10 +76,14 @@ serve(async (req: Request) => {
       throw new Error("Seul romain@supertilt.fr peut créer des comptes collaborateurs");
     }
 
-    const { email }: RequestBody = await req.json();
+    const { email, modules = [] }: RequestBody = await req.json();
     
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       throw new Error("Email invalide");
+    }
+
+    if (!modules || modules.length === 0) {
+      throw new Error("Veuillez sélectionner au moins un module");
     }
 
     // Check if user already exists
@@ -107,6 +122,27 @@ serve(async (req: Request) => {
       // Don't fail the whole operation, but log it
     }
 
+    // Create module access entries
+    const moduleAccessEntries = modules.map((module: string) => ({
+      user_id: newUser.user.id,
+      module: module,
+      granted_by: callingUser.id,
+    }));
+
+    const { error: accessError } = await supabaseClient
+      .from("user_module_access")
+      .insert(moduleAccessEntries);
+
+    if (accessError) {
+      console.error("Module access creation error:", accessError);
+      // Don't fail the whole operation, but log it
+    }
+
+    // Build module list for email
+    const moduleListHtml = modules
+      .map((m: string) => `<li>${MODULE_LABELS[m] || m}</li>`)
+      .join("");
+
     // Send welcome email with temporary password
     const emailResponse = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -124,6 +160,11 @@ serve(async (req: Request) => {
           <p><strong>Email :</strong> ${email}</p>
           <p><strong>Mot de passe temporaire :</strong> <code style="background: #f0f0f0; padding: 4px 8px; border-radius: 4px;">${tempPassword}</code></p>
           <p style="color: #e74c3c;"><strong>Important :</strong> Vous devrez changer ce mot de passe lors de votre première connexion.</p>
+          
+          <h2>Vos accès</h2>
+          <p>Vous avez accès aux modules suivants :</p>
+          <ul>${moduleListHtml}</ul>
+          
           <p>Pour vous connecter, rendez-vous sur SuperTools et utilisez ces identifiants.</p>
           <p>Le nouveau mot de passe doit respecter les critères suivants :</p>
           <ul>
@@ -147,7 +188,7 @@ serve(async (req: Request) => {
       throw new Error("Le compte a été créé mais l'email n'a pas pu être envoyé");
     }
 
-    console.log(`Collaborator onboarded successfully: ${email}`);
+    console.log(`Collaborator onboarded successfully: ${email} with modules: ${modules.join(", ")}`);
 
     return new Response(
       JSON.stringify({ 

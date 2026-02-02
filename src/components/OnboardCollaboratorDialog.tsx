@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -14,14 +15,26 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, UserPlus } from "lucide-react";
+import { AppModule, MODULE_LABELS } from "@/hooks/useModuleAccess";
 
 interface OnboardCollaboratorDialogProps {
   userEmail?: string;
 }
 
+const ALL_MODULES: AppModule[] = [
+  "micro_devis",
+  "formations",
+  "evaluations",
+  "certificates",
+  "ameliorations",
+  "historique",
+  "contenu",
+];
+
 const OnboardCollaboratorDialog = ({ userEmail }: OnboardCollaboratorDialogProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [email, setEmail] = useState("");
+  const [selectedModules, setSelectedModules] = useState<AppModule[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
@@ -30,13 +43,39 @@ const OnboardCollaboratorDialog = ({ userEmail }: OnboardCollaboratorDialogProps
     return null;
   }
 
+  const handleModuleToggle = (module: AppModule, checked: boolean) => {
+    if (checked) {
+      setSelectedModules((prev) => [...prev, module]);
+    } else {
+      setSelectedModules((prev) => prev.filter((m) => m !== module));
+    }
+  };
+
+  const handleSelectAll = () => {
+    if (selectedModules.length === ALL_MODULES.length) {
+      setSelectedModules([]);
+    } else {
+      setSelectedModules([...ALL_MODULES]);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (selectedModules.length === 0) {
+      toast({
+        title: "Attention",
+        description: "Veuillez sélectionner au moins un module",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setIsLoading(true);
 
     try {
       const { data, error } = await supabase.functions.invoke("onboard-collaborator", {
-        body: { email },
+        body: { email, modules: selectedModules },
       });
 
       if (error) throw error;
@@ -51,6 +90,7 @@ const OnboardCollaboratorDialog = ({ userEmail }: OnboardCollaboratorDialogProps
       });
 
       setEmail("");
+      setSelectedModules([]);
       setIsOpen(false);
     } catch (error: any) {
       toast({
@@ -71,7 +111,7 @@ const OnboardCollaboratorDialog = ({ userEmail }: OnboardCollaboratorDialogProps
           Ajouter un collaborateur
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Ajouter un collaborateur</DialogTitle>
           <DialogDescription>
@@ -92,6 +132,50 @@ const OnboardCollaboratorDialog = ({ userEmail }: OnboardCollaboratorDialogProps
                 required
               />
             </div>
+
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label>Modules accessibles</Label>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleSelectAll}
+                  className="text-xs h-7"
+                >
+                  {selectedModules.length === ALL_MODULES.length
+                    ? "Tout désélectionner"
+                    : "Tout sélectionner"}
+                </Button>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {ALL_MODULES.map((module) => (
+                  <div
+                    key={module}
+                    className="flex items-center space-x-2 p-2 rounded border hover:bg-muted/50"
+                  >
+                    <Checkbox
+                      id={`module-${module}`}
+                      checked={selectedModules.includes(module)}
+                      onCheckedChange={(checked) =>
+                        handleModuleToggle(module, checked as boolean)
+                      }
+                    />
+                    <Label
+                      htmlFor={`module-${module}`}
+                      className="text-sm font-normal cursor-pointer flex-1"
+                    >
+                      {MODULE_LABELS[module]}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+              {selectedModules.length === 0 && (
+                <p className="text-xs text-muted-foreground">
+                  Sélectionnez au moins un module
+                </p>
+              )}
+            </div>
           </div>
           <DialogFooter>
             <Button
@@ -101,7 +185,7 @@ const OnboardCollaboratorDialog = ({ userEmail }: OnboardCollaboratorDialogProps
             >
               Annuler
             </Button>
-            <Button type="submit" disabled={isLoading}>
+            <Button type="submit" disabled={isLoading || selectedModules.length === 0}>
               {isLoading ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
