@@ -1,0 +1,244 @@
+{
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "add": "Add",
+    "search": "Search",
+    "filter": "Filter",
+    "loading": "Loading...",
+    "noData": "No data",
+    "confirm": "Confirm",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "close": "Close",
+    "yes": "Yes",
+    "no": "No",
+    "all": "All",
+    "actions": "Actions",
+    "status": "Status",
+    "date": "Date",
+    "name": "Name",
+    "email": "Email",
+    "phone": "Phone",
+    "address": "Address",
+    "city": "City",
+    "country": "Country",
+    "description": "Description",
+    "amount": "Amount",
+    "total": "Total",
+    "price": "Price",
+    "quantity": "Quantity",
+    "type": "Type",
+    "created": "Created",
+    "updated": "Updated",
+    "view": "View",
+    "download": "Download",
+    "export": "Export",
+    "import": "Import",
+    "success": "Success",
+    "error": "Error",
+    "warning": "Warning",
+    "info": "Information"
+  },
+  "auth": {
+    "login": "Login",
+    "logout": "Logout",
+    "register": "Register",
+    "email": "Email",
+    "password": "Password",
+    "confirmPassword": "Confirm password",
+    "forgotPassword": "Forgot password?",
+    "resetPassword": "Reset password",
+    "loginSuccess": "Login successful",
+    "loginError": "Invalid email or password",
+    "logoutSuccess": "Logout successful"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "formations": "Trainings",
+    "evaluations": "Evaluations",
+    "certificates": "Certificates",
+    "microDevis": "Quick Quote",
+    "history": "History",
+    "improvements": "Improvements",
+    "bpf": "Pedagogical Report",
+    "crm": "CRM",
+    "admin": "Administration",
+    "settings": "Settings",
+    "qualiopi": "Qualiopi"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "welcome": "Welcome",
+    "totalFormations": "Total trainings",
+    "activeFormations": "Active trainings",
+    "totalParticipants": "Total participants",
+    "averageScore": "Average score",
+    "recentActivity": "Recent activity",
+    "upcomingFormations": "Upcoming trainings"
+  },
+  "formations": {
+    "title": "Trainings",
+    "new": "New training",
+    "edit": "Edit training",
+    "name": "Training name",
+    "description": "Description",
+    "duration": "Duration",
+    "startDate": "Start date",
+    "endDate": "End date",
+    "trainer": "Trainer",
+    "participants": "Participants",
+    "location": "Location",
+    "status": {
+      "draft": "Draft",
+      "planned": "Planned",
+      "inProgress": "In progress",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    },
+    "addParticipant": "Add participant",
+    "sendInvitations": "Send invitations",
+    "generateCertificates": "Generate certificates"
+  },
+  "evaluations": {
+    "title": "Evaluations",
+    "form": "Evaluation form",
+    "score": "Score",
+    "comments": "Comments",
+    "pending": "Pending",
+    "completed": "Completed",
+    "averageScore": "Average score",
+    "responseRate": "Response rate"
+  },
+  "crm": {
+    "title": "CRM",
+    "dashboard": "CRM Dashboard",
+    "pipeline": "Pipeline",
+    "leads": "Leads",
+    "activities": "Activities",
+    "quotes": "Quotes",
+    "invoices": "Invoices",
+    "objectives": "Objectives",
+    "settings": "CRM Settings",
+    "lead": {
+      "title": "Lead",
+      "new": "New lead",
+      "company": "Company",
+      "contact": "Contact",
+      "source": "Source",
+      "priority": {
+        "title": "Priority",
+        "low": "Low",
+        "medium": "Medium",
+        "high": "High"
+      },
+      "temperature": {
+        "title": "Temperature",
+        "cold": "Cold",
+        "warm": "Warm",
+        "hot": "Hot"
+      },
+      "estimatedAmount": "Estimated amount",
+      "stage": "Stage",
+      "assignedTo": "Assigned to",
+      "notes": "Notes",
+      "history": "History"
+    },
+    "activity": {
+      "title": "Activity",
+      "new": "New activity",
+      "type": {
+        "call": "Call",
+        "email": "Email",
+        "meeting": "Meeting",
+        "task": "Task"
+      },
+      "subject": "Subject",
+      "dueDate": "Due date",
+      "completed": "Completed",
+      "pending": "Pending"
+    },
+    "quote": {
+      "title": "Quote",
+      "new": "New quote",
+      "number": "Number",
+      "amountHT": "Amount excl. tax",
+      "amountTTC": "Amount incl. tax",
+      "taxRate": "Tax rate",
+      "validUntil": "Valid until",
+      "status": {
+        "draft": "Draft",
+        "sent": "Sent",
+        "accepted": "Accepted",
+        "rejected": "Rejected",
+        "expired": "Expired"
+      }
+    },
+    "invoice": {
+      "title": "Invoice",
+      "new": "New invoice",
+      "number": "Number",
+      "dueDate": "Due date",
+      "status": {
+        "draft": "Draft",
+        "sent": "Sent",
+        "paid": "Paid",
+        "overdue": "Overdue",
+        "cancelled": "Cancelled"
+      }
+    },
+    "objectives": {
+      "title": "Objectives",
+      "new": "New objective",
+      "type": {
+        "revenue": "Revenue",
+        "leadsWon": "Deals won",
+        "activities": "Activities completed",
+        "newLeads": "New leads"
+      },
+      "target": "Target",
+      "current": "Current",
+      "period": "Period",
+      "achieved": "Achieved",
+      "inProgress": "In progress"
+    }
+  },
+  "admin": {
+    "title": "Administration",
+    "users": "Users",
+    "trainers": "Trainers",
+    "organization": "Organization",
+    "emailTemplates": "Email templates",
+    "integrations": "Integrations",
+    "subscription": "Subscription",
+    "settings": "Settings"
+  },
+  "qualiopi": {
+    "title": "Qualiopi",
+    "dashboard": "Qualiopi Dashboard",
+    "criteria": "Criteria",
+    "indicators": "Indicators",
+    "documents": "Documents",
+    "audit": "Audit",
+    "compliance": "Compliance",
+    "progress": "Progress",
+    "criterionNumber": "Criterion {{number}}",
+    "indicatorNumber": "Indicator {{number}}"
+  },
+  "settings": {
+    "title": "Settings",
+    "language": "Language",
+    "theme": "Theme",
+    "notifications": "Notifications",
+    "profile": "Profile",
+    "security": "Security",
+    "languages": {
+      "fr": "French",
+      "en": "English",
+      "es": "Spanish"
+    }
+  }
+}

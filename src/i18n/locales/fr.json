@@ -1,0 +1,244 @@
+{
+  "common": {
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "add": "Ajouter",
+    "search": "Rechercher",
+    "filter": "Filtrer",
+    "loading": "Chargement...",
+    "noData": "Aucune donnee",
+    "confirm": "Confirmer",
+    "back": "Retour",
+    "next": "Suivant",
+    "previous": "Precedent",
+    "close": "Fermer",
+    "yes": "Oui",
+    "no": "Non",
+    "all": "Tous",
+    "actions": "Actions",
+    "status": "Statut",
+    "date": "Date",
+    "name": "Nom",
+    "email": "Email",
+    "phone": "Telephone",
+    "address": "Adresse",
+    "city": "Ville",
+    "country": "Pays",
+    "description": "Description",
+    "amount": "Montant",
+    "total": "Total",
+    "price": "Prix",
+    "quantity": "Quantite",
+    "type": "Type",
+    "created": "Cree le",
+    "updated": "Mis a jour le",
+    "view": "Voir",
+    "download": "Telecharger",
+    "export": "Exporter",
+    "import": "Importer",
+    "success": "Succes",
+    "error": "Erreur",
+    "warning": "Attention",
+    "info": "Information"
+  },
+  "auth": {
+    "login": "Connexion",
+    "logout": "Deconnexion",
+    "register": "Inscription",
+    "email": "Email",
+    "password": "Mot de passe",
+    "confirmPassword": "Confirmer le mot de passe",
+    "forgotPassword": "Mot de passe oublie ?",
+    "resetPassword": "Reinitialiser le mot de passe",
+    "loginSuccess": "Connexion reussie",
+    "loginError": "Email ou mot de passe incorrect",
+    "logoutSuccess": "Deconnexion reussie"
+  },
+  "nav": {
+    "dashboard": "Tableau de bord",
+    "formations": "Formations",
+    "evaluations": "Evaluations",
+    "certificates": "Certificats",
+    "microDevis": "Micro-devis",
+    "history": "Historique",
+    "improvements": "Ameliorations",
+    "bpf": "Bilan Pedagogique",
+    "crm": "CRM",
+    "admin": "Administration",
+    "settings": "Parametres",
+    "qualiopi": "Qualiopi"
+  },
+  "dashboard": {
+    "title": "Tableau de bord",
+    "welcome": "Bienvenue",
+    "totalFormations": "Formations totales",
+    "activeFormations": "Formations actives",
+    "totalParticipants": "Participants total",
+    "averageScore": "Score moyen",
+    "recentActivity": "Activite recente",
+    "upcomingFormations": "Formations a venir"
+  },
+  "formations": {
+    "title": "Formations",
+    "new": "Nouvelle formation",
+    "edit": "Modifier la formation",
+    "name": "Nom de la formation",
+    "description": "Description",
+    "duration": "Duree",
+    "startDate": "Date de debut",
+    "endDate": "Date de fin",
+    "trainer": "Formateur",
+    "participants": "Participants",
+    "location": "Lieu",
+    "status": {
+      "draft": "Brouillon",
+      "planned": "Planifiee",
+      "inProgress": "En cours",
+      "completed": "Terminee",
+      "cancelled": "Annulee"
+    },
+    "addParticipant": "Ajouter un participant",
+    "sendInvitations": "Envoyer les invitations",
+    "generateCertificates": "Generer les certificats"
+  },
+  "evaluations": {
+    "title": "Evaluations",
+    "form": "Formulaire d'evaluation",
+    "score": "Note",
+    "comments": "Commentaires",
+    "pending": "En attente",
+    "completed": "Completee",
+    "averageScore": "Note moyenne",
+    "responseRate": "Taux de reponse"
+  },
+  "crm": {
+    "title": "CRM",
+    "dashboard": "Tableau de bord CRM",
+    "pipeline": "Pipeline",
+    "leads": "Leads",
+    "activities": "Activites",
+    "quotes": "Devis",
+    "invoices": "Factures",
+    "objectives": "Objectifs",
+    "settings": "Parametres CRM",
+    "lead": {
+      "title": "Lead",
+      "new": "Nouveau lead",
+      "company": "Entreprise",
+      "contact": "Contact",
+      "source": "Source",
+      "priority": {
+        "title": "Priorite",
+        "low": "Basse",
+        "medium": "Moyenne",
+        "high": "Haute"
+      },
+      "temperature": {
+        "title": "Temperature",
+        "cold": "Froid",
+        "warm": "Tiede",
+        "hot": "Chaud"
+      },
+      "estimatedAmount": "Montant estime",
+      "stage": "Etape",
+      "assignedTo": "Assigne a",
+      "notes": "Notes",
+      "history": "Historique"
+    },
+    "activity": {
+      "title": "Activite",
+      "new": "Nouvelle activite",
+      "type": {
+        "call": "Appel",
+        "email": "Email",
+        "meeting": "Reunion",
+        "task": "Tache"
+      },
+      "subject": "Sujet",
+      "dueDate": "Date d'echeance",
+      "completed": "Terminee",
+      "pending": "A faire"
+    },
+    "quote": {
+      "title": "Devis",
+      "new": "Nouveau devis",
+      "number": "Numero",
+      "amountHT": "Montant HT",
+      "amountTTC": "Montant TTC",
+      "taxRate": "Taux TVA",
+      "validUntil": "Valide jusqu'au",
+      "status": {
+        "draft": "Brouillon",
+        "sent": "Envoye",
+        "accepted": "Accepte",
+        "rejected": "Refuse",
+        "expired": "Expire"
+      }
+    },
+    "invoice": {
+      "title": "Facture",
+      "new": "Nouvelle facture",
+      "number": "Numero",
+      "dueDate": "Date d'echeance",
+      "status": {
+        "draft": "Brouillon",
+        "sent": "Envoyee",
+        "paid": "Payee",
+        "overdue": "En retard",
+        "cancelled": "Annulee"
+      }
+    },
+    "objectives": {
+      "title": "Objectifs",
+      "new": "Nouvel objectif",
+      "type": {
+        "revenue": "Chiffre d'affaires",
+        "leadsWon": "Affaires gagnees",
+        "activities": "Activites realisees",
+        "newLeads": "Nouveaux leads"
+      },
+      "target": "Objectif",
+      "current": "Actuel",
+      "period": "Periode",
+      "achieved": "Atteint",
+      "inProgress": "En cours"
+    }
+  },
+  "admin": {
+    "title": "Administration",
+    "users": "Utilisateurs",
+    "trainers": "Formateurs",
+    "organization": "Organisation",
+    "emailTemplates": "Modeles d'emails",
+    "integrations": "Integrations",
+    "subscription": "Abonnement",
+    "settings": "Parametres"
+  },
+  "qualiopi": {
+    "title": "Qualiopi",
+    "dashboard": "Tableau de bord Qualiopi",
+    "criteria": "Criteres",
+    "indicators": "Indicateurs",
+    "documents": "Documents",
+    "audit": "Audit",
+    "compliance": "Conformite",
+    "progress": "Progression",
+    "criterionNumber": "Critere {{number}}",
+    "indicatorNumber": "Indicateur {{number}}"
+  },
+  "settings": {
+    "title": "Parametres",
+    "language": "Langue",
+    "theme": "Theme",
+    "notifications": "Notifications",
+    "profile": "Profil",
+    "security": "Securite",
+    "languages": {
+      "fr": "Francais",
+      "en": "English",
+      "es": "Espanol"
+    }
+  }
+}

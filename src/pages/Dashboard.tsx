@@ -1,4 +1,4 @@
-import { Loader2, Award, FileText, Calendar, ClipboardCheck, TrendingUp, Star, History, Newspaper } from "lucide-react";
+import { Loader2, Award, FileText, Calendar, ClipboardCheck, TrendingUp, Star, History, Newspaper, Shield, FileSpreadsheet, Settings, Users, CheckSquare } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import WeeklyChart from "@/components/dashboard/WeeklyChart";
@@ -15,7 +15,7 @@ interface Tool {
   description: string;
   icon: React.ReactNode;
   path: string;
-  module: AppModule;
+  module?: AppModule;
 }
 
 const tools: Tool[] = [
@@ -75,6 +75,41 @@ const tools: Tool[] = [
     path: "/contenu",
     module: "contenu",
   },
+  {
+    id: "crm",
+    name: "CRM",
+    description: "Gestion des leads et pipeline commercial",
+    icon: <Users className="w-10 h-10" />,
+    path: "/crm",
+  },
+  {
+    id: "qualiopi",
+    name: "Qualiopi",
+    description: "Suivi de la conformité Qualiopi",
+    icon: <CheckSquare className="w-10 h-10" />,
+    path: "/qualiopi",
+  },
+  {
+    id: "rgpd",
+    name: "RGPD",
+    description: "Conformité et nettoyage des données",
+    icon: <Shield className="w-10 h-10" />,
+    path: "/rgpd",
+  },
+  {
+    id: "bpf",
+    name: "Bilan Pédagogique",
+    description: "Export BPF et synthèse annuelle",
+    icon: <FileSpreadsheet className="w-10 h-10" />,
+    path: "/bpf",
+  },
+  {
+    id: "admin",
+    name: "Administration",
+    description: "Paramètres, utilisateurs et abonnement",
+    icon: <Settings className="w-10 h-10" />,
+    path: "/admin",
+  },
 ];
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -90,8 +125,8 @@ const Dashboard = () => {
 
   const { hasAccess, loading: accessLoading } = useModuleAccess();
 
-  // Filter tools based on user access
-  const accessibleTools = tools.filter((tool) => hasAccess(tool.module));
+  // Filter tools based on user access (tools without module are always accessible)
+  const accessibleTools = tools.filter((tool) => !tool.module || hasAccess(tool.module));
 
   if (loading || accessLoading) {
     return (

@@ -1,0 +1,244 @@
+{
+  "common": {
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "add": "Agregar",
+    "search": "Buscar",
+    "filter": "Filtrar",
+    "loading": "Cargando...",
+    "noData": "Sin datos",
+    "confirm": "Confirmar",
+    "back": "Volver",
+    "next": "Siguiente",
+    "previous": "Anterior",
+    "close": "Cerrar",
+    "yes": "Si",
+    "no": "No",
+    "all": "Todos",
+    "actions": "Acciones",
+    "status": "Estado",
+    "date": "Fecha",
+    "name": "Nombre",
+    "email": "Correo electronico",
+    "phone": "Telefono",
+    "address": "Direccion",
+    "city": "Ciudad",
+    "country": "Pais",
+    "description": "Descripcion",
+    "amount": "Monto",
+    "total": "Total",
+    "price": "Precio",
+    "quantity": "Cantidad",
+    "type": "Tipo",
+    "created": "Creado",
+    "updated": "Actualizado",
+    "view": "Ver",
+    "download": "Descargar",
+    "export": "Exportar",
+    "import": "Importar",
+    "success": "Exito",
+    "error": "Error",
+    "warning": "Advertencia",
+    "info": "Informacion"
+  },
+  "auth": {
+    "login": "Iniciar sesion",
+    "logout": "Cerrar sesion",
+    "register": "Registrarse",
+    "email": "Correo electronico",
+    "password": "Contrasena",
+    "confirmPassword": "Confirmar contrasena",
+    "forgotPassword": "Olvido su contrasena?",
+    "resetPassword": "Restablecer contrasena",
+    "loginSuccess": "Inicio de sesion exitoso",
+    "loginError": "Correo o contrasena incorrectos",
+    "logoutSuccess": "Sesion cerrada correctamente"
+  },
+  "nav": {
+    "dashboard": "Panel de control",
+    "formations": "Formaciones",
+    "evaluations": "Evaluaciones",
+    "certificates": "Certificados",
+    "microDevis": "Presupuesto rapido",
+    "history": "Historial",
+    "improvements": "Mejoras",
+    "bpf": "Informe Pedagogico",
+    "crm": "CRM",
+    "admin": "Administracion",
+    "settings": "Configuracion",
+    "qualiopi": "Qualiopi"
+  },
+  "dashboard": {
+    "title": "Panel de control",
+    "welcome": "Bienvenido",
+    "totalFormations": "Formaciones totales",
+    "activeFormations": "Formaciones activas",
+    "totalParticipants": "Participantes totales",
+    "averageScore": "Puntuacion promedio",
+    "recentActivity": "Actividad reciente",
+    "upcomingFormations": "Proximas formaciones"
+  },
+  "formations": {
+    "title": "Formaciones",
+    "new": "Nueva formacion",
+    "edit": "Editar formacion",
+    "name": "Nombre de la formacion",
+    "description": "Descripcion",
+    "duration": "Duracion",
+    "startDate": "Fecha de inicio",
+    "endDate": "Fecha de fin",
+    "trainer": "Formador",
+    "participants": "Participantes",
+    "location": "Ubicacion",
+    "status": {
+      "draft": "Borrador",
+      "planned": "Planificada",
+      "inProgress": "En curso",
+      "completed": "Completada",
+      "cancelled": "Cancelada"
+    },
+    "addParticipant": "Agregar participante",
+    "sendInvitations": "Enviar invitaciones",
+    "generateCertificates": "Generar certificados"
+  },
+  "evaluations": {
+    "title": "Evaluaciones",
+    "form": "Formulario de evaluacion",
+    "score": "Puntuacion",
+    "comments": "Comentarios",
+    "pending": "Pendiente",
+    "completed": "Completada",
+    "averageScore": "Puntuacion promedio",
+    "responseRate": "Tasa de respuesta"
+  },
+  "crm": {
+    "title": "CRM",
+    "dashboard": "Panel de CRM",
+    "pipeline": "Pipeline",
+    "leads": "Leads",
+    "activities": "Actividades",
+    "quotes": "Presupuestos",
+    "invoices": "Facturas",
+    "objectives": "Objetivos",
+    "settings": "Configuracion CRM",
+    "lead": {
+      "title": "Lead",
+      "new": "Nuevo lead",
+      "company": "Empresa",
+      "contact": "Contacto",
+      "source": "Fuente",
+      "priority": {
+        "title": "Prioridad",
+        "low": "Baja",
+        "medium": "Media",
+        "high": "Alta"
+      },
+      "temperature": {
+        "title": "Temperatura",
+        "cold": "Frio",
+        "warm": "Tibio",
+        "hot": "Caliente"
+      },
+      "estimatedAmount": "Monto estimado",
+      "stage": "Etapa",
+      "assignedTo": "Asignado a",
+      "notes": "Notas",
+      "history": "Historial"
+    },
+    "activity": {
+      "title": "Actividad",
+      "new": "Nueva actividad",
+      "type": {
+        "call": "Llamada",
+        "email": "Correo",
+        "meeting": "Reunion",
+        "task": "Tarea"
+      },
+      "subject": "Asunto",
+      "dueDate": "Fecha limite",
+      "completed": "Completada",
+      "pending": "Pendiente"
+    },
+    "quote": {
+      "title": "Presupuesto",
+      "new": "Nuevo presupuesto",
+      "number": "Numero",
+      "amountHT": "Monto sin IVA",
+      "amountTTC": "Monto con IVA",
+      "taxRate": "Tasa de IVA",
+      "validUntil": "Valido hasta",
+      "status": {
+        "draft": "Borrador",
+        "sent": "Enviado",
+        "accepted": "Aceptado",
+        "rejected": "Rechazado",
+        "expired": "Expirado"
+      }
+    },
+    "invoice": {
+      "title": "Factura",
+      "new": "Nueva factura",
+      "number": "Numero",
+      "dueDate": "Fecha de vencimiento",
+      "status": {
+        "draft": "Borrador",
+        "sent": "Enviada",
+        "paid": "Pagada",
+        "overdue": "Vencida",
+        "cancelled": "Cancelada"
+      }
+    },
+    "objectives": {
+      "title": "Objetivos",
+      "new": "Nuevo objetivo",
+      "type": {
+        "revenue": "Ingresos",
+        "leadsWon": "Negocios ganados",
+        "activities": "Actividades realizadas",
+        "newLeads": "Nuevos leads"
+      },
+      "target": "Meta",
+      "current": "Actual",
+      "period": "Periodo",
+      "achieved": "Logrado",
+      "inProgress": "En progreso"
+    }
+  },
+  "admin": {
+    "title": "Administracion",
+    "users": "Usuarios",
+    "trainers": "Formadores",
+    "organization": "Organizacion",
+    "emailTemplates": "Plantillas de correo",
+    "integrations": "Integraciones",
+    "subscription": "Suscripcion",
+    "settings": "Configuracion"
+  },
+  "qualiopi": {
+    "title": "Qualiopi",
+    "dashboard": "Panel Qualiopi",
+    "criteria": "Criterios",
+    "indicators": "Indicadores",
+    "documents": "Documentos",
+    "audit": "Auditoria",
+    "compliance": "Conformidad",
+    "progress": "Progreso",
+    "criterionNumber": "Criterio {{number}}",
+    "indicatorNumber": "Indicador {{number}}"
+  },
+  "settings": {
+    "title": "Configuracion",
+    "language": "Idioma",
+    "theme": "Tema",
+    "notifications": "Notificaciones",
+    "profile": "Perfil",
+    "security": "Seguridad",
+    "languages": {
+      "fr": "Frances",
+      "en": "Ingles",
+      "es": "Espanol"
+    }
+  }
+}
