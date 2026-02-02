@@ -158,7 +158,7 @@ romain@supertilt.fr`;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Mail className="h-5 w-5" />
@@ -174,7 +174,7 @@ romain@supertilt.fr`;
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
         ) : (
-          <div className="flex-1 overflow-hidden">
+          <div className="space-y-4">
             {/* Recipients */}
             <div className="mb-4">
               <div className="flex items-center gap-2 mb-2">
