@@ -85,6 +85,7 @@ const FormationDetail = () => {
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [copiedEmail, setCopiedEmail] = useState(false);
+  const [copiedLocation, setCopiedLocation] = useState(false);
   const [scheduledActions, setScheduledActions] = useState<ScheduledAction[]>([]);
   const [savingActions, setSavingActions] = useState(false);
   const [mapDialogOpen, setMapDialogOpen] = useState(false);
@@ -519,9 +520,28 @@ const FormationDetail = () => {
                   <Building className="h-3.5 w-3.5" />
                   {training.client_name}
                 </Badge>
-                <Badge variant="outline" className="flex items-center gap-1.5">
+                <Badge variant="outline" className="flex items-center gap-1.5 group">
                   <MapPin className="h-3.5 w-3.5" />
                   {training.location}
+                  <button
+                    type="button"
+                    className="ml-1 p-0.5 rounded hover:bg-muted transition-colors"
+                    onClick={() => {
+                      navigator.clipboard.writeText(training.location);
+                      setCopiedLocation(true);
+                      toast({
+                        title: "Adresse copiée",
+                        description: "L'adresse a été copiée dans le presse-papiers.",
+                      });
+                      setTimeout(() => setCopiedLocation(false), 2000);
+                    }}
+                  >
+                    {copiedLocation ? (
+                      <Check className="h-3.5 w-3.5 text-primary" />
+                    ) : (
+                      <Copy className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
+                    )}
+                  </button>
                 </Badge>
                 {getFormatLabel(training.format_formation) && (
                   <Badge variant="secondary">
