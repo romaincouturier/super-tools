@@ -120,6 +120,7 @@ const ReviewRequestDialog = ({
             type: "review_requested",
             recipientEmail: selectedUser,
             cardTitle,
+            cardId,
             externalUrl: reviewType === "external" ? externalUrl : null,
           },
         });

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 import { Loader2, ArrowLeft, Newspaper } from "lucide-react";
@@ -14,6 +14,8 @@ const ContentBoard = () => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const openCardId = searchParams.get("card");
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -47,8 +49,11 @@ const ContentBoard = () => {
   };
 
   const handleSelectCard = (cardId: string) => {
-    // Scroll to card or open dialog - for now just log
-    console.log("Selected card:", cardId);
+    setSearchParams({ card: cardId });
+  };
+
+  const handleCloseCard = () => {
+    setSearchParams({});
   };
 
   if (loading) {
@@ -88,7 +93,7 @@ const ContentBoard = () => {
           <AiIdeasSearch onSelectCard={handleSelectCard} />
         </div>
 
-        <KanbanBoard />
+        <KanbanBoard openCardId={openCardId} onCloseCard={handleCloseCard} />
       </main>
     </div>
   );

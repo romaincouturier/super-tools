@@ -43,7 +43,12 @@ export interface Card {
   display_order: number;
 }
 
-const KanbanBoard = () => {
+interface KanbanBoardProps {
+  openCardId?: string | null;
+  onCloseCard?: () => void;
+}
+
+const KanbanBoard = ({ openCardId, onCloseCard }: KanbanBoardProps) => {
   const [columns, setColumns] = useState<Column[]>([]);
   const [cards, setCards] = useState<Card[]>([]);
   const [loading, setLoading] = useState(true);
@@ -66,6 +71,16 @@ const KanbanBoard = () => {
   useEffect(() => {
     fetchData();
   }, []);
+
+  // Open card from URL parameter
+  useEffect(() => {
+    if (openCardId && cards.length > 0 && !loading) {
+      const card = cards.find((c) => c.id === openCardId);
+      if (card) {
+        setEditingCard(card);
+      }
+    }
+  }, [openCardId, cards, loading]);
 
   const fetchData = async () => {
     try {
@@ -396,6 +411,7 @@ const KanbanBoard = () => {
           if (!open) {
             setEditingCard(null);
             setNewCardColumnId(null);
+            onCloseCard?.();
           }
         }}
         card={editingCard}
