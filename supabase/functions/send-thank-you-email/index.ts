@@ -375,16 +375,17 @@ serve(async (req) => {
     // Schedule follow-up emails for each participant
     console.log("Scheduling follow-up emails...");
     
-    // Fetch email delay settings
+    // Fetch email delay settings AND working days
     const { data: delaySettings } = await supabase
       .from("app_settings")
       .select("setting_key, setting_value")
-      .in("setting_key", ["delay_google_review_days", "delay_video_testimonial_days", "delay_cold_evaluation_days", "delay_cold_evaluation_funder_days"]);
+      .in("setting_key", ["delay_google_review_days", "delay_video_testimonial_days", "delay_cold_evaluation_days", "delay_cold_evaluation_funder_days", "working_days"]);
     
     let delayGoogleReview = 7;
     let delayVideoTestimonial = 14;
     let delayColdEvaluation = 30;
     let delayColdEvaluationFunder = 45;
+    let workingDays = [false, true, true, true, true, true, false]; // Default: Mon-Fri
     
     delaySettings?.forEach((s: { setting_key: string; setting_value: string | null }) => {
       if (s.setting_key === "delay_google_review_days" && s.setting_value) {
@@ -399,7 +400,31 @@ serve(async (req) => {
       if (s.setting_key === "delay_cold_evaluation_funder_days" && s.setting_value) {
         delayColdEvaluationFunder = parseInt(s.setting_value, 10) || 45;
       }
+      if (s.setting_key === "working_days" && s.setting_value) {
+        try {
+          const parsed = JSON.parse(s.setting_value);
+          if (Array.isArray(parsed) && parsed.length === 7) {
+            workingDays = parsed;
+          }
+        } catch {
+          // Keep default
+        }
+      }
     });
+    
+    // Helper function to adjust date to next working day (forward direction for post-formation emails)
+    const adjustToWorkingDay = (date: Date): Date => {
+      const result = new Date(date);
+      const maxIterations = 7; // Prevent infinite loop
+      let iterations = 0;
+      
+      while (!workingDays[result.getDay()] && iterations < maxIterations) {
+        result.setDate(result.getDate() + 1);
+        iterations++;
+      }
+      
+      return result;
+    };
     
     // Calculate end date (use end_date if available, otherwise start_date)
     const endDate = training.end_date ? new Date(training.end_date) : new Date(training.start_date);
@@ -428,11 +453,12 @@ serve(async (req) => {
       if (!existingTypes.has("google_review")) {
         const googleReviewDate = new Date(endDate);
         googleReviewDate.setDate(googleReviewDate.getDate() + delayGoogleReview);
+        const adjustedGoogleReviewDate = adjustToWorkingDay(googleReviewDate);
         emailsToSchedule.push({
           training_id: trainingId,
           participant_id: participant.id,
           email_type: "google_review",
-          scheduled_for: googleReviewDate.toISOString(),
+          scheduled_for: adjustedGoogleReviewDate.toISOString(),
           status: "pending",
         });
       }
@@ -441,11 +467,12 @@ serve(async (req) => {
       if (!existingTypes.has("video_testimonial")) {
         const videoTestimonialDate = new Date(endDate);
         videoTestimonialDate.setDate(videoTestimonialDate.getDate() + delayVideoTestimonial);
+        const adjustedVideoTestimonialDate = adjustToWorkingDay(videoTestimonialDate);
         emailsToSchedule.push({
           training_id: trainingId,
           participant_id: participant.id,
           email_type: "video_testimonial",
-          scheduled_for: videoTestimonialDate.toISOString(),
+          scheduled_for: adjustedVideoTestimonialDate.toISOString(),
           status: "pending",
         });
       }
@@ -454,11 +481,12 @@ serve(async (req) => {
       if (!existingTypes.has("cold_evaluation")) {
         const coldEvaluationDate = new Date(endDate);
         coldEvaluationDate.setDate(coldEvaluationDate.getDate() + delayColdEvaluation);
+        const adjustedColdEvaluationDate = adjustToWorkingDay(coldEvaluationDate);
         emailsToSchedule.push({
           training_id: trainingId,
           participant_id: participant.id,
           email_type: "cold_evaluation",
-          scheduled_for: coldEvaluationDate.toISOString(),
+          scheduled_for: adjustedColdEvaluationDate.toISOString(),
           status: "pending",
         });
       }
@@ -490,6 +518,7 @@ serve(async (req) => {
       if (!existingFunderReminder) {
         const funderReminderDate = new Date(endDate);
         funderReminderDate.setDate(funderReminderDate.getDate() + delayColdEvaluationFunder);
+        const adjustedFunderReminderDate = adjustToWorkingDay(funderReminderDate);
         
         const { error: funderScheduleError } = await supabase
           .from("scheduled_emails")
@@ -497,7 +526,7 @@ serve(async (req) => {
             training_id: trainingId,
             participant_id: null, // No participant - this is for the trainer
             email_type: "funder_reminder",
-            scheduled_for: funderReminderDate.toISOString(),
+            scheduled_for: adjustedFunderReminderDate.toISOString(),
             status: "pending",
           });
         
