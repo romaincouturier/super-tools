@@ -22,18 +22,24 @@ interface AddParticipantDialogProps {
   trainingId: string;
   trainingStartDate?: string;
   clientName?: string;
+  formatFormation?: string | null;
   onParticipantAdded: () => void;
 }
 
-const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, onParticipantAdded }: AddParticipantDialogProps) => {
+const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, formatFormation, onParticipantAdded }: AddParticipantDialogProps) => {
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
-  const [company, setCompany] = useState(clientName || "");
+  const [company, setCompany] = useState("");
+  const [sponsorFirstName, setSponsorFirstName] = useState("");
+  const [sponsorLastName, setSponsorLastName] = useState("");
+  const [sponsorEmail, setSponsorEmail] = useState("");
   const [isManualMode, setIsManualMode] = useState(false);
   const { toast } = useToast();
+  
+  const isInterEntreprise = formatFormation === "inter-entreprises";
 
   // Determine email scheduling mode based on training date
   // - If training already started (past date) -> no email
@@ -67,7 +73,10 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, onPar
     setFirstName("");
     setLastName("");
     setEmail("");
-    setCompany(clientName || "");
+    setCompany("");
+    setSponsorFirstName("");
+    setSponsorLastName("");
+    setSponsorEmail("");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -91,7 +100,7 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, onPar
       // Determine initial status and whether to send welcome email
       const { status, sendWelcomeNow } = getEmailMode();
 
-      const { data: insertedParticipant, error } = await supabase.from("training_participants").insert({
+      const participantData = {
         training_id: trainingId,
         first_name: firstName.trim() || null,
         last_name: lastName.trim() || null,
@@ -99,7 +108,15 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, onPar
         company: company.trim() || null,
         needs_survey_token: token,
         needs_survey_status: status,
-      }).select().single();
+        // For inter-enterprise trainings, add sponsor fields
+        ...(isInterEntreprise && {
+          sponsor_first_name: sponsorFirstName.trim() || null,
+          sponsor_last_name: sponsorLastName.trim() || null,
+          sponsor_email: sponsorEmail.trim().toLowerCase() || null,
+        }),
+      };
+
+      const { data: insertedParticipant, error } = await supabase.from("training_participants").insert(participantData).select().single();
 
       if (error) {
         if (error.code === "23505") {
@@ -261,6 +278,46 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, onPar
                 placeholder="ACME Corp"
               />
             </div>
+
+            {/* Sponsor/Commanditaire fields for inter-enterprise trainings */}
+            {isInterEntreprise && (
+              <>
+                <div className="pt-4 border-t">
+                  <Label className="text-sm font-medium text-muted-foreground">Commanditaire (facturation)</Label>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="sponsorFirstName">Prénom</Label>
+                    <Input
+                      id="sponsorFirstName"
+                      value={sponsorFirstName}
+                      onChange={(e) => setSponsorFirstName(e.target.value)}
+                      placeholder="Marie"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="sponsorLastName">Nom</Label>
+                    <Input
+                      id="sponsorLastName"
+                      value={sponsorLastName}
+                      onChange={(e) => setSponsorLastName(e.target.value)}
+                      placeholder="Martin"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="sponsorEmail">Email du commanditaire *</Label>
+                  <Input
+                    id="sponsorEmail"
+                    type="email"
+                    value={sponsorEmail}
+                    onChange={(e) => setSponsorEmail(e.target.value)}
+                    placeholder="marie.martin@example.com"
+                    required={isInterEntreprise}
+                  />
+                </div>
+              </>
+            )}
           </div>
 
           <DialogFooter>

@@ -71,6 +71,10 @@ interface Participant {
   needs_survey_status: string;
   needs_survey_sent_at: string | null;
   added_at: string;
+  sponsor_first_name?: string | null;
+  sponsor_last_name?: string | null;
+  sponsor_email?: string | null;
+  invoice_file_url?: string | null;
 }
 
 const FormationDetail = () => {
@@ -681,6 +685,7 @@ const FormationDetail = () => {
                       trainingId={training.id}
                       trainingStartDate={training.start_date}
                       clientName={training.client_name}
+                      formatFormation={training.format_formation}
                       onParticipantAdded={fetchParticipants}
                     />
                   </div>
@@ -691,7 +696,11 @@ const FormationDetail = () => {
               <ParticipantList
                 participants={participants}
                 trainingId={training.id}
+                trainingName={training.training_name}
                 trainingStartDate={training.start_date}
+                trainingEndDate={training.end_date}
+                formatFormation={training.format_formation}
+                attendanceSheetsUrls={training.attendance_sheets_urls}
                 onParticipantUpdated={fetchParticipants}
               />
               
@@ -721,6 +730,7 @@ const FormationDetail = () => {
             sponsorFormalAddress={training.sponsor_formal_address}
             supportsUrl={training.supports_url}
             evaluationLink={training.evaluation_link}
+            formatFormation={training.format_formation}
             onUpdate={fetchTrainingData}
           />
 

@@ -1,4 +1,4 @@
-import { HelpCircle, Mail, MailCheck, Clock, CheckCircle, AlertTriangle, Trash2, Loader2, Send, RefreshCw } from "lucide-react";
+import { HelpCircle, Mail, MailCheck, Clock, CheckCircle, AlertTriangle, Trash2, Loader2, Send, RefreshCw, Receipt, Building } from "lucide-react";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -30,6 +30,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import ViewQuestionnaireDialog from "./ViewQuestionnaireDialog";
+import ParticipantDocumentsDialog from "./ParticipantDocumentsDialog";
 
 interface Participant {
   id: string;
@@ -40,12 +41,20 @@ interface Participant {
   needs_survey_status: string;
   needs_survey_sent_at: string | null;
   added_at: string;
+  sponsor_first_name?: string | null;
+  sponsor_last_name?: string | null;
+  sponsor_email?: string | null;
+  invoice_file_url?: string | null;
 }
 
 interface ParticipantListProps {
   participants: Participant[];
   trainingId: string;
+  trainingName: string;
   trainingStartDate: string;
+  trainingEndDate: string | null;
+  formatFormation: string | null;
+  attendanceSheetsUrls: string[];
   onParticipantUpdated: () => void;
 }
 
@@ -124,11 +133,23 @@ const getStatusConfig = (status: string) => {
   }
 };
 
-const ParticipantList = ({ participants, trainingId, trainingStartDate, onParticipantUpdated }: ParticipantListProps) => {
+const ParticipantList = ({ 
+  participants, 
+  trainingId, 
+  trainingName,
+  trainingStartDate, 
+  trainingEndDate,
+  formatFormation,
+  attendanceSheetsUrls,
+  onParticipantUpdated 
+}: ParticipantListProps) => {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [sendingId, setSendingId] = useState<string | null>(null);
   const [remindingId, setRemindingId] = useState<string | null>(null);
+  const [documentsParticipant, setDocumentsParticipant] = useState<Participant | null>(null);
   const { toast } = useToast();
+  
+  const isInterEntreprise = formatFormation === "inter-entreprises";
 
   // Check if we're at J-2 or later
   const daysUntilTraining = differenceInDays(parseISO(trainingStartDate), new Date());
@@ -257,148 +278,215 @@ const ParticipantList = ({ participants, trainingId, trainingStartDate, onPartic
   }
 
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Nom</TableHead>
-          <TableHead>Email</TableHead>
-          <TableHead>Société</TableHead>
-          <TableHead>Recueil des besoins</TableHead>
-          <TableHead className="w-24"></TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {participants.map((participant) => {
-          const statusConfig = getStatusConfig(participant.needs_survey_status);
-          const StatusIcon = statusConfig.icon;
-          const displayName = participant.first_name || participant.last_name
-            ? `${participant.first_name || ""} ${participant.last_name || ""}`.trim()
-            : participant.email;
+    <>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Nom</TableHead>
+            <TableHead>Email</TableHead>
+            <TableHead>Société</TableHead>
+            {isInterEntreprise && <TableHead>Commanditaire</TableHead>}
+            <TableHead>Recueil des besoins</TableHead>
+            <TableHead className="w-28"></TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {participants.map((participant) => {
+            const statusConfig = getStatusConfig(participant.needs_survey_status);
+            const StatusIcon = statusConfig.icon;
+            const displayName = participant.first_name || participant.last_name
+              ? `${participant.first_name || ""} ${participant.last_name || ""}`.trim()
+              : participant.email;
+            
+            const sponsorDisplayName = participant.sponsor_first_name || participant.sponsor_last_name
+              ? `${participant.sponsor_first_name || ""} ${participant.sponsor_last_name || ""}`.trim()
+              : null;
 
-          return (
-            <TableRow key={participant.id}>
-              <TableCell className="font-medium">
-                {participant.first_name || participant.last_name
-                  ? `${participant.first_name || ""} ${participant.last_name || ""}`.trim()
-                  : "—"}
-              </TableCell>
-              <TableCell>{participant.email}</TableCell>
-              <TableCell>{participant.company || "—"}</TableCell>
-              <TableCell>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Badge
-                      variant={statusConfig.variant}
-                      className="cursor-help gap-1"
-                    >
-                      <StatusIcon className="h-3 w-3" />
-                      {statusConfig.label}
-                    </Badge>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>{statusConfig.tooltip}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TableCell>
-              <TableCell>
-                <div className="flex items-center gap-1">
-                  {/* View questionnaire button - only for completed status */}
-                  {(participant.needs_survey_status === "complete" || participant.needs_survey_status === "valide_formateur") && (
-                    <ViewQuestionnaireDialog
-                      participantId={participant.id}
-                      participantName={displayName}
-                      trainingId={trainingId}
-                    />
-                  )}
-                  
-                  {canSendSurveyFor(participant) && (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-muted-foreground hover:text-primary"
-                          onClick={() => handleSendSurvey(participant)}
-                          disabled={sendingId === participant.id}
-                        >
-                          {sendingId === participant.id ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Send className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Envoyer le questionnaire</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  )}
-
-                  {/* Reminder button - always visible for sent/in-progress statuses */}
-                  {canSendReminderFor(participant) && (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-muted-foreground hover:text-primary"
-                          onClick={() => handleSendReminder(participant)}
-                          disabled={remindingId === participant.id}
-                        >
-                          {remindingId === participant.id ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <RefreshCw className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Relancer pour recueillir le besoin</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  )}
-
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                        disabled={deletingId === participant.id}
-                      >
-                        {deletingId === participant.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Trash2 className="h-4 w-4" />
+            return (
+              <TableRow key={participant.id}>
+                <TableCell className="font-medium">
+                  {participant.first_name || participant.last_name
+                    ? `${participant.first_name || ""} ${participant.last_name || ""}`.trim()
+                    : "—"}
+                </TableCell>
+                <TableCell>{participant.email}</TableCell>
+                <TableCell>{participant.company || "—"}</TableCell>
+                {isInterEntreprise && (
+                  <TableCell>
+                    {sponsorDisplayName || participant.sponsor_email ? (
+                      <div className="flex flex-col gap-0.5">
+                        {sponsorDisplayName && (
+                          <span className="text-sm">{sponsorDisplayName}</span>
                         )}
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Supprimer ce participant ?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          {displayName} sera définitivement retiré de cette formation.
-                          Ses réponses au questionnaire seront également supprimées.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Annuler</AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={() => handleDelete(participant)}
-                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        {participant.sponsor_email && (
+                          <span className="text-xs text-muted-foreground">{participant.sponsor_email}</span>
+                        )}
+                      </div>
+                    ) : (
+                      "—"
+                    )}
+                  </TableCell>
+                )}
+                <TableCell>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Badge
+                        variant={statusConfig.variant}
+                        className="cursor-help gap-1"
+                      >
+                        <StatusIcon className="h-3 w-3" />
+                        {statusConfig.label}
+                      </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{statusConfig.tooltip}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-1">
+                    {/* Documents button - only for inter-enterprise */}
+                    {isInterEntreprise && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className={`h-8 w-8 ${participant.invoice_file_url ? "text-primary" : "text-muted-foreground hover:text-primary"}`}
+                            onClick={() => setDocumentsParticipant(participant)}
+                          >
+                            <Receipt className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>{participant.invoice_file_url ? "Facture uploadée - Gérer les documents" : "Gérer la facture"}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
+                    
+                    {/* View questionnaire button - only for completed status */}
+                    {(participant.needs_survey_status === "complete" || participant.needs_survey_status === "valide_formateur") && (
+                      <ViewQuestionnaireDialog
+                        participantId={participant.id}
+                        participantName={displayName}
+                        trainingId={trainingId}
+                      />
+                    )}
+                    
+                    {canSendSurveyFor(participant) && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-muted-foreground hover:text-primary"
+                            onClick={() => handleSendSurvey(participant)}
+                            disabled={sendingId === participant.id}
+                          >
+                            {sendingId === participant.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Send className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Envoyer le questionnaire</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
+
+                    {/* Reminder button - always visible for sent/in-progress statuses */}
+                    {canSendReminderFor(participant) && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-muted-foreground hover:text-primary"
+                            onClick={() => handleSendReminder(participant)}
+                            disabled={remindingId === participant.id}
+                          >
+                            {remindingId === participant.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <RefreshCw className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Relancer pour recueillir le besoin</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
+
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                          disabled={deletingId === participant.id}
                         >
-                          Supprimer
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </div>
-              </TableCell>
-            </TableRow>
-          );
-        })}
-      </TableBody>
-    </Table>
+                          {deletingId === participant.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Supprimer ce participant ?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            {displayName} sera définitivement retiré de cette formation.
+                            Ses réponses au questionnaire seront également supprimées.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Annuler</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => handleDelete(participant)}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          >
+                            Supprimer
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                </TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
+      
+      {/* Documents dialog for inter-enterprise */}
+      {documentsParticipant && (
+        <ParticipantDocumentsDialog
+          open={!!documentsParticipant}
+          onOpenChange={(open) => !open && setDocumentsParticipant(null)}
+          participant={{
+            id: documentsParticipant.id,
+            first_name: documentsParticipant.first_name,
+            last_name: documentsParticipant.last_name,
+            email: documentsParticipant.email,
+            company: documentsParticipant.company,
+            sponsor_first_name: documentsParticipant.sponsor_first_name || null,
+            sponsor_last_name: documentsParticipant.sponsor_last_name || null,
+            sponsor_email: documentsParticipant.sponsor_email || null,
+            invoice_file_url: documentsParticipant.invoice_file_url || null,
+          }}
+          trainingId={trainingId}
+          trainingName={trainingName}
+          startDate={trainingStartDate}
+          endDate={trainingEndDate}
+          attendanceSheetsUrls={attendanceSheetsUrls}
+          onUpdate={onParticipantUpdated}
+        />
+      )}
+    </>
   );
 };
 

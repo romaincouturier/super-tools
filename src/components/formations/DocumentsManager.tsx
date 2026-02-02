@@ -55,6 +55,7 @@ interface DocumentsManagerProps {
   sponsorFormalAddress: boolean;
   supportsUrl: string | null;
   evaluationLink: string;
+  formatFormation?: string | null;
   onUpdate?: () => void;
 }
 
@@ -71,8 +72,10 @@ const DocumentsManager = ({
   sponsorFormalAddress,
   supportsUrl: initialSupportsUrl,
   evaluationLink,
+  formatFormation,
   onUpdate,
 }: DocumentsManagerProps) => {
+  const isInterEntreprise = formatFormation === "inter-entreprises";
   const [invoiceFileUrl, setInvoiceFileUrl] = useState<string | null>(initialInvoiceUrl);
   const [attendanceSheetsUrls, setAttendanceSheetsUrls] = useState<string[]>(initialSheetsUrls);
   const [supportsUrl, setSupportsUrl] = useState<string>(initialSupportsUrl || "");
@@ -579,91 +582,100 @@ const DocumentsManager = ({
             </div>
           </div>
 
-          {/* Invoice Section */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex flex-col gap-1">
-                <Label className="flex items-center gap-2">
-                  <Receipt className="h-4 w-4" />
-                  Facture
-                </Label>
-                {documentsSentInfo.invoice && (
-                  <span className="text-xs text-muted-foreground flex items-center gap-1">
-                    <CheckCircle className="h-3 w-3 text-primary" />
-                    Envoyée le {formatSentDate(documentsSentInfo.invoice)}
-                  </span>
+          {/* Invoice Section - Hidden for inter-entreprise (invoices managed per participant) */}
+          {isInterEntreprise ? (
+            <div className="p-3 bg-muted/50 rounded-lg">
+              <p className="text-sm text-muted-foreground flex items-center gap-2">
+                <Receipt className="h-4 w-4" />
+                Les factures sont gérées par participant (cliquez sur l'icône facture dans la liste des participants)
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex flex-col gap-1">
+                  <Label className="flex items-center gap-2">
+                    <Receipt className="h-4 w-4" />
+                    Facture
+                  </Label>
+                  {documentsSentInfo.invoice && (
+                    <span className="text-xs text-muted-foreground flex items-center gap-1">
+                      <CheckCircle className="h-3 w-3 text-primary" />
+                      Envoyée le {formatSentDate(documentsSentInfo.invoice)}
+                    </span>
+                  )}
+                </div>
+                {!invoiceFileUrl && (
+                  <div>
+                    <Input
+                      type="file"
+                      accept=".pdf"
+                      onChange={handleInvoiceUpload}
+                      disabled={uploadingInvoice}
+                      className="hidden"
+                      id="invoice-upload"
+                    />
+                    <Label htmlFor="invoice-upload" className="cursor-pointer">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={uploadingInvoice}
+                        asChild
+                      >
+                        <span>
+                          {uploadingInvoice ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          ) : (
+                            <Upload className="h-4 w-4 mr-2" />
+                          )}
+                          Uploader
+                        </span>
+                      </Button>
+                    </Label>
+                  </div>
                 )}
               </div>
-              {!invoiceFileUrl && (
-                <div>
-                  <Input
-                    type="file"
-                    accept=".pdf"
-                    onChange={handleInvoiceUpload}
-                    disabled={uploadingInvoice}
-                    className="hidden"
-                    id="invoice-upload"
-                  />
-                  <Label htmlFor="invoice-upload" className="cursor-pointer">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      disabled={uploadingInvoice}
-                      asChild
-                    >
-                      <span>
-                        {uploadingInvoice ? (
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        ) : (
-                          <Upload className="h-4 w-4 mr-2" />
-                        )}
-                        Uploader
-                      </span>
-                    </Button>
-                  </Label>
+
+              {invoiceFileUrl && (
+                <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+                  <FileText className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                  <a
+                    href={invoiceFileUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 text-sm text-primary hover:underline truncate"
+                  >
+                    {getFileNameFromUrl(invoiceFileUrl)}
+                  </a>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Supprimer la facture ?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Cette action est irréversible.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Annuler</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={handleDeleteInvoice}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          Supprimer
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
               )}
             </div>
-
-            {invoiceFileUrl && (
-              <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
-                <FileText className="h-5 w-5 text-muted-foreground flex-shrink-0" />
-                <a
-                  href={invoiceFileUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex-1 text-sm text-primary hover:underline truncate"
-                >
-                  {getFileNameFromUrl(invoiceFileUrl)}
-                </a>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive">
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Supprimer la facture ?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Cette action est irréversible.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Annuler</AlertDialogCancel>
-                      <AlertDialogAction
-                        onClick={handleDeleteInvoice}
-                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                      >
-                        Supprimer
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </div>
-            )}
-          </div>
+          )}
 
           {/* Attendance Sheets Section */}
           <div className="space-y-3">
@@ -757,92 +769,140 @@ const DocumentsManager = ({
             )}
           </div>
 
-          {/* Send Documents Section */}
+          {/* Send Documents Section - For inter-entreprise, only show sheets (invoices managed per participant) */}
           <div className="pt-4 border-t space-y-3">
-            {invoiceFileUrl || attendanceSheetsUrls.length > 0 ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="default"
-                    className="w-full"
-                    disabled={sendingDocuments}
-                  >
-                    {sendingDocuments ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <Send className="h-4 w-4 mr-2" />
-                    )}
-                    Envoyer les documents
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-72">
-                  {sponsorEmail && (
-                    <>
-                      <p className="px-2 py-1.5 text-xs text-muted-foreground font-medium">
-                        Envoyer au commanditaire
-                      </p>
-                      <p className="px-2 pb-1.5 text-xs text-muted-foreground truncate">
-                        {sponsorEmail}
-                      </p>
-                      {invoiceFileUrl && (
-                        <DropdownMenuItem onClick={() => openCustomRecipientDialog("invoice", true)}>
-                          <Receipt className="h-4 w-4 mr-2" />
-                          Facture
-                        </DropdownMenuItem>
+            {isInterEntreprise ? (
+              // Inter-entreprise: only attendance sheets can be sent globally
+              attendanceSheetsUrls.length > 0 ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="default"
+                      className="w-full"
+                      disabled={sendingDocuments}
+                    >
+                      {sendingDocuments ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <Send className="h-4 w-4 mr-2" />
                       )}
-                      {attendanceSheetsUrls.length > 0 && (
-                        <DropdownMenuItem onClick={() => openCustomRecipientDialog("sheets", true)}>
-                          <ClipboardList className="h-4 w-4 mr-2" />
-                          Feuilles d'émargement
-                        </DropdownMenuItem>
-                      )}
-                      {invoiceFileUrl && attendanceSheetsUrls.length > 0 && (
-                        <DropdownMenuItem onClick={() => openCustomRecipientDialog("all", true)}>
-                          <FileText className="h-4 w-4 mr-2" />
-                          Tous les documents
-                        </DropdownMenuItem>
-                      )}
-                      <DropdownMenuSeparator />
-                    </>
-                  )}
-                  <p className="px-2 py-1.5 text-xs text-muted-foreground font-medium">
-                    Envoyer à un autre destinataire
-                  </p>
-                  {invoiceFileUrl && (
-                    <DropdownMenuItem onClick={() => openCustomRecipientDialog("invoice", false)}>
-                      <Mail className="h-4 w-4 mr-2" />
-                      Facture → autre email
-                    </DropdownMenuItem>
-                  )}
-                  {attendanceSheetsUrls.length > 0 && (
+                      Envoyer les émargements
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-72">
+                    <p className="px-2 py-1.5 text-xs text-muted-foreground font-medium">
+                      Envoyer à un destinataire
+                    </p>
                     <DropdownMenuItem onClick={() => openCustomRecipientDialog("sheets", false)}>
                       <Mail className="h-4 w-4 mr-2" />
-                      Émargements → autre email
+                      Feuilles d'émargement
                     </DropdownMenuItem>
-                  )}
-                  {invoiceFileUrl && attendanceSheetsUrls.length > 0 && (
-                    <DropdownMenuItem onClick={() => openCustomRecipientDialog("all", false)}>
-                      <Mail className="h-4 w-4 mr-2" />
-                      Tous → autre email
-                    </DropdownMenuItem>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <Button
+                  type="button"
+                  variant="default"
+                  className="w-full"
+                  disabled
+                >
+                  <Send className="h-4 w-4 mr-2" />
+                  Envoyer les émargements
+                </Button>
+              )
             ) : (
-              <Button
-                type="button"
-                variant="default"
-                className="w-full"
-                disabled
-              >
-                <Send className="h-4 w-4 mr-2" />
-                Envoyer les documents
-              </Button>
+              // Standard: full send options
+              (invoiceFileUrl || attendanceSheetsUrls.length > 0) ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="default"
+                      className="w-full"
+                      disabled={sendingDocuments}
+                    >
+                      {sendingDocuments ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <Send className="h-4 w-4 mr-2" />
+                      )}
+                      Envoyer les documents
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-72">
+                    {sponsorEmail && (
+                      <>
+                        <p className="px-2 py-1.5 text-xs text-muted-foreground font-medium">
+                          Envoyer au commanditaire
+                        </p>
+                        <p className="px-2 pb-1.5 text-xs text-muted-foreground truncate">
+                          {sponsorEmail}
+                        </p>
+                        {invoiceFileUrl && (
+                          <DropdownMenuItem onClick={() => openCustomRecipientDialog("invoice", true)}>
+                            <Receipt className="h-4 w-4 mr-2" />
+                            Facture
+                          </DropdownMenuItem>
+                        )}
+                        {attendanceSheetsUrls.length > 0 && (
+                          <DropdownMenuItem onClick={() => openCustomRecipientDialog("sheets", true)}>
+                            <ClipboardList className="h-4 w-4 mr-2" />
+                            Feuilles d'émargement
+                          </DropdownMenuItem>
+                        )}
+                        {invoiceFileUrl && attendanceSheetsUrls.length > 0 && (
+                          <DropdownMenuItem onClick={() => openCustomRecipientDialog("all", true)}>
+                            <FileText className="h-4 w-4 mr-2" />
+                            Tous les documents
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuSeparator />
+                      </>
+                    )}
+                    <p className="px-2 py-1.5 text-xs text-muted-foreground font-medium">
+                      Envoyer à un autre destinataire
+                    </p>
+                    {invoiceFileUrl && (
+                      <DropdownMenuItem onClick={() => openCustomRecipientDialog("invoice", false)}>
+                        <Mail className="h-4 w-4 mr-2" />
+                        Facture → autre email
+                      </DropdownMenuItem>
+                    )}
+                    {attendanceSheetsUrls.length > 0 && (
+                      <DropdownMenuItem onClick={() => openCustomRecipientDialog("sheets", false)}>
+                        <Mail className="h-4 w-4 mr-2" />
+                        Émargements → autre email
+                      </DropdownMenuItem>
+                    )}
+                    {invoiceFileUrl && attendanceSheetsUrls.length > 0 && (
+                      <DropdownMenuItem onClick={() => openCustomRecipientDialog("all", false)}>
+                        <Mail className="h-4 w-4 mr-2" />
+                        Tous → autre email
+                      </DropdownMenuItem>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <Button
+                  type="button"
+                  variant="default"
+                  className="w-full"
+                  disabled
+                >
+                  <Send className="h-4 w-4 mr-2" />
+                  Envoyer les documents
+                </Button>
+              )
             )}
-            {!invoiceFileUrl && attendanceSheetsUrls.length === 0 && (
+            {!isInterEntreprise && !invoiceFileUrl && attendanceSheetsUrls.length === 0 && (
               <p className="text-xs text-muted-foreground text-center">
                 Uploadez une facture ou des feuilles d'émargement pour les envoyer
+              </p>
+            )}
+            {isInterEntreprise && attendanceSheetsUrls.length === 0 && (
+              <p className="text-xs text-muted-foreground text-center">
+                Uploadez des feuilles d'émargement pour les envoyer. Les factures sont gérées par participant.
               </p>
             )}
           </div>
