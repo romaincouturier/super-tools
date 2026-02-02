@@ -434,6 +434,14 @@ const FormationCreate = () => {
             </CardContent>
           </Card>
 
+          {/* Schedules - before Commanditaire */}
+          {startDate && schedules.length > 0 && (
+            <ScheduleEditor
+              schedules={schedules}
+              onSchedulesChange={setSchedules}
+            />
+          )}
+
           {/* Sponsor/Commanditaire */}
           <Card>
             <CardHeader>
@@ -487,25 +495,11 @@ const FormationCreate = () => {
               </div>
             </CardContent>
           </Card>
-
-          {/* Schedules */}
-          {startDate && schedules.length > 0 && (
-            <ScheduleEditor
-              schedules={schedules}
-              onSchedulesChange={setSchedules}
-            />
-          )}
             </div>
 
             {/* Right Column */}
             <div className="space-y-6">
-              {/* Prerequisites */}
-              <PrerequisitesEditor
-                prerequisites={prerequisites}
-                onPrerequisitesChange={setPrerequisites}
-              />
-
-              {/* Program - placed before objectives so extraction can populate them */}
+              {/* Program - before Prerequisites */}
               <ProgramSelector
                 programFileUrl={programFileUrl}
                 onProgramChange={setProgramFileUrl}
@@ -524,6 +518,12 @@ const FormationCreate = () => {
                   });
                 }}
                 userId={user?.id || ""}
+              />
+
+              {/* Prerequisites */}
+              <PrerequisitesEditor
+                prerequisites={prerequisites}
+                onPrerequisitesChange={setPrerequisites}
               />
 
               {/* Objectives */}
