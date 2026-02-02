@@ -1,0 +1,130 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const VERSION = "send-action-reminder@2026-02-02.1";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
+};
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    const APP_URL = Deno.env.get("APP_URL") || "https://super-tools.lovable.app";
+
+    if (!RESEND_API_KEY) {
+      console.error("[send-action-reminder] Missing RESEND_API_KEY");
+      return new Response(
+        JSON.stringify({ error: "Email service not configured", _version: VERSION }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
+
+    let body: any;
+    try {
+      body = await req.json();
+    } catch {
+      return new Response(
+        JSON.stringify({ error: "Invalid JSON body", _version: VERSION }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const { actionId, trainingName, description, assignedEmail, assignedName, trainingId } = body;
+
+    if (!actionId || !assignedEmail || !description) {
+      return new Response(
+        JSON.stringify({ error: "Missing required fields", _version: VERSION }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const trainingLink = trainingId 
+      ? `${APP_URL}/formations/${trainingId}` 
+      : `${APP_URL}/formations`;
+
+    const recipientName = assignedName || "Utilisateur";
+    const formationLabel = trainingName || "Formation";
+
+    const htmlContent = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #333;">🔔 Rappel : Action à réaliser</h2>
+        <p>Bonjour ${recipientName},</p>
+        <p>Vous avez une action à réaliser dans le cadre de la formation <strong>${formationLabel}</strong> :</p>
+        <div style="background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0;">
+          <strong>${description}</strong>
+        </div>
+        <p>Merci de traiter cette action dès que possible.</p>
+        <p>
+          <a href="${trainingLink}" style="display: inline-block; background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500;">
+            Voir la formation
+          </a>
+        </p>
+        <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
+        <p style="color: #888; font-size: 12px;">SuperTilt - Gestion des formations</p>
+      </div>
+    `;
+
+    console.log(`[${VERSION}] Sending reminder to ${assignedEmail} for action ${actionId}`);
+
+    const response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${RESEND_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: "SuperTilt <notifications@supertilt.fr>",
+        to: [assignedEmail],
+        subject: `🔔 Rappel : ${description.substring(0, 50)}${description.length > 50 ? "..." : ""}`,
+        html: htmlContent,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("[send-action-reminder] Resend error:", response.status, errorText);
+      return new Response(
+        JSON.stringify({ success: false, error: "Email sending failed", _version: VERSION }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Update the action status to 'sent'
+    const { error: updateError } = await supabase
+      .from("training_actions")
+      .update({ 
+        status: "sent",
+        reminder_sent_at: new Date().toISOString()
+      })
+      .eq("id", actionId);
+
+    if (updateError) {
+      console.error("[send-action-reminder] Failed to update action status:", updateError);
+    }
+
+    return new Response(
+      JSON.stringify({ success: true, _version: VERSION }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  } catch (error) {
+    console.error("[send-action-reminder] Error:", error);
+    return new Response(
+      JSON.stringify({
+        error: error instanceof Error ? error.message : "Unknown error",
+        _version: VERSION,
+      }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+});

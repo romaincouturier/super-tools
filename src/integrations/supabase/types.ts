@@ -831,6 +831,56 @@ export type Database = {
           },
         ]
       }
+      training_actions: {
+        Row: {
+          assigned_user_email: string
+          assigned_user_name: string | null
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          description: string
+          due_date: string
+          id: string
+          reminder_sent_at: string | null
+          status: string
+          training_id: string
+        }
+        Insert: {
+          assigned_user_email: string
+          assigned_user_name?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          description: string
+          due_date: string
+          id?: string
+          reminder_sent_at?: string | null
+          status?: string
+          training_id: string
+        }
+        Update: {
+          assigned_user_email?: string
+          assigned_user_name?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          due_date?: string
+          id?: string
+          reminder_sent_at?: string | null
+          status?: string
+          training_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_actions_training_id_fkey"
+            columns: ["training_id"]
+            isOneToOne: false
+            referencedRelation: "trainings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       training_evaluations: {
         Row: {
           amelioration_suggeree: string | null

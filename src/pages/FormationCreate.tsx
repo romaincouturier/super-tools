@@ -21,6 +21,7 @@ import PrerequisitesEditor from "@/components/formations/PrerequisitesEditor";
 import ProgramSelector from "@/components/formations/ProgramSelector";
 import ObjectivesEditor from "@/components/formations/ObjectivesEditor";
 import TrainingNameCombobox from "@/components/formations/TrainingNameCombobox";
+import ScheduledActionsEditor, { ScheduledAction } from "@/components/formations/ScheduledActionsEditor";
 
 interface Schedule {
   day_date: string;
@@ -59,6 +60,9 @@ const FormationCreate = () => {
   const [financeurSameAsSponsor, setFinanceurSameAsSponsor] = useState(true);
   const [financeurName, setFinanceurName] = useState("");
   const [financeurUrl, setFinanceurUrl] = useState("");
+  
+  // Scheduled actions
+  const [scheduledActions, setScheduledActions] = useState<ScheduledAction[]>([]);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -187,6 +191,28 @@ const FormationCreate = () => {
           );
 
         if (schedulesError) throw schedulesError;
+      }
+
+      // Create scheduled actions
+      const validActions = scheduledActions.filter(
+        (a) => a.description && a.dueDate && a.assignedEmail
+      );
+      
+      if (validActions.length > 0) {
+        const { error: actionsError } = await supabase
+          .from("training_actions")
+          .insert(
+            validActions.map((a) => ({
+              training_id: training.id,
+              description: a.description,
+              due_date: format(a.dueDate!, "yyyy-MM-dd"),
+              assigned_user_email: a.assignedEmail,
+              assigned_user_name: a.assignedName || null,
+              created_by: user.id,
+            }))
+          );
+
+        if (actionsError) throw actionsError;
       }
 
       // Log activity
@@ -568,6 +594,12 @@ const FormationCreate = () => {
               />
             </div>
           </div>
+
+          {/* Scheduled Actions - Full width at the bottom */}
+          <ScheduledActionsEditor
+            actions={scheduledActions}
+            onActionsChange={setScheduledActions}
+          />
         </form>
       </main>
     </div>

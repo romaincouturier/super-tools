@@ -47,6 +47,9 @@ All colors MUST be HSL.
     --input: 210 20% 85%;
     --ring: 49 100% 45%;
 
+    --warning: 38 92% 50%; /* Amber/Orange for warnings */
+    --warning-foreground: 0 0% 0%;
+
     --radius: 0.5rem;
 
     --sidebar-background: 210 33% 9%;
@@ -87,6 +90,9 @@ All colors MUST be HSL.
     --border: 210 20% 25%;
     --input: 210 20% 25%;
     --ring: 49 100% 45%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 0%;
 
     --sidebar-background: 210 35% 6%;
     --sidebar-foreground: 150 5% 95%;
