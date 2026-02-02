@@ -756,6 +756,7 @@ const FormationDetail = () => {
                       trainingId={training.id}
                       trainingStartDate={training.start_date}
                       onParticipantsAdded={fetchParticipants}
+                      isInterEntreprise={training.format_formation === "inter-entreprises"}
                     />
                     <AddParticipantDialog
                       trainingId={training.id}
