@@ -1,5 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
+// Bump this when you deploy to confirm the latest code is running.
+const VERSION = "send-content-notification@2026-02-02.1";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
@@ -11,7 +14,17 @@ serve(async (req) => {
   }
 
   try {
-    const { type, recipientEmail, cardTitle, externalUrl, cardId } = await req.json();
+    let body: any;
+    try {
+      body = await req.json();
+    } catch {
+      return new Response(
+        JSON.stringify({ error: "Invalid JSON body", _version: VERSION }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const { type, recipientEmail, cardTitle, externalUrl, cardId } = body ?? {};
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
     const APP_URL = Deno.env.get("APP_URL") || "https://super-tools.lovable.app";
 
@@ -21,10 +34,19 @@ serve(async (req) => {
 
     if (!recipientEmail || !type) {
       return new Response(
-        JSON.stringify({ error: "Missing required fields" }),
+        JSON.stringify({ error: "Missing required fields", _version: VERSION }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    const normalizedType = String(type)
+      .trim()
+      .toLowerCase()
+      .replace(/[\s-]+/g, "_");
+
+    console.log(
+      `[${VERSION}] notification type=${normalizedType} to=${recipientEmail} cardId=${cardId ?? "(none)"}`
+    );
 
     let subject = "";
     let htmlContent = "";
@@ -32,7 +54,7 @@ serve(async (req) => {
     // Build the card link
     const cardLink = cardId ? `${APP_URL}/contenu?card=${cardId}` : `${APP_URL}/contenu`;
 
-    switch (type) {
+    switch (normalizedType) {
       case "review_requested":
         subject = `🔍 Nouvelle demande de relecture : ${cardTitle}`;
         htmlContent = `
@@ -51,7 +73,7 @@ serve(async (req) => {
         break;
 
       case "review_reminder":
-        subject = `🔔 Rappel de relecture : ${cardTitle}`;
+        subject = `🔔 Rappel — relecture attendue : ${cardTitle}`;
         htmlContent = `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <h2 style="color: #333;">Rappel de relecture</h2>
@@ -59,7 +81,10 @@ serve(async (req) => {
             <div style="background-color: #f5f5f5; padding: 15px; border-radius: 8px; margin: 20px 0;">
               <strong>${cardTitle}</strong>
             </div>
-            <p style="margin: 16px 0;">Si vous avez déjà fait les retours, vous pouvez ignorer ce message.</p>
+            <p style="margin: 16px 0;">
+              Si vous êtes disponible, merci de traiter cette relecture dès que possible.
+              Si ce n'est pas le bon moment, un simple retour (même bref) nous aide à nous organiser.
+            </p>
             <p><a href="${cardLink}" style="display: inline-block; background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500;">Ouvrir la carte</a></p>
             <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
             <p style="color: #888; font-size: 12px;">SuperTilt - Gestion de contenu</p>
@@ -101,7 +126,11 @@ serve(async (req) => {
 
       default:
         return new Response(
-          JSON.stringify({ error: "Unknown notification type" }),
+          JSON.stringify({
+            error: "Unknown notification type",
+            received_type: normalizedType,
+            _version: VERSION,
+          }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
     }
@@ -125,19 +154,22 @@ serve(async (req) => {
       console.error("Resend error:", response.status, errorText);
       // Don't fail the whole operation if email fails
       return new Response(
-        JSON.stringify({ success: false, error: "Email sending failed" }),
+        JSON.stringify({ success: false, error: "Email sending failed", _version: VERSION }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     return new Response(
-      JSON.stringify({ success: true }),
+      JSON.stringify({ success: true, _version: VERSION }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
     console.error("Error in send-content-notification:", error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
+      JSON.stringify({
+        error: error instanceof Error ? error.message : "Unknown error",
+        _version: VERSION,
+      }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
