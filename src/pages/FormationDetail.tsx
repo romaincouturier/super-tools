@@ -794,12 +794,12 @@ const FormationDetail = () => {
             <div className="flex justify-end gap-2">
               <Button variant="outline" asChild>
                 <a
-                  href={`https://www.google.com/maps/place/${training.location.replace(/ /g, '+')}`}
+                  href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(training.location)}`}
                   target="_blank"
                   rel="noopener noreferrer"
                 >
                   <ExternalLink className="h-4 w-4 mr-2" />
-                  Ouvrir dans Google Maps
+                  Itinéraire Google Maps
                 </a>
               </Button>
             </div>
