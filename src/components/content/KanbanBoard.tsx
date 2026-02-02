@@ -46,11 +46,13 @@ export interface Card {
 interface KanbanBoardProps {
   openCardId?: string | null;
   onCloseCard?: () => void;
+  filterReviewOnly?: boolean;
 }
 
-const KanbanBoard = ({ openCardId, onCloseCard }: KanbanBoardProps) => {
+const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false }: KanbanBoardProps) => {
   const [columns, setColumns] = useState<Column[]>([]);
   const [cards, setCards] = useState<Card[]>([]);
+  const [cardIdsInReview, setCardIdsInReview] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [activeCard, setActiveCard] = useState<Card | null>(null);
   const [showAddColumn, setShowAddColumn] = useState(false);
@@ -84,7 +86,7 @@ const KanbanBoard = ({ openCardId, onCloseCard }: KanbanBoardProps) => {
 
   const fetchData = async () => {
     try {
-      const [columnsRes, cardsRes] = await Promise.all([
+      const [columnsRes, cardsRes, reviewsRes] = await Promise.all([
         supabase
           .from("content_columns")
           .select("*")
@@ -93,10 +95,20 @@ const KanbanBoard = ({ openCardId, onCloseCard }: KanbanBoardProps) => {
           .from("content_cards")
           .select("*")
           .order("display_order"),
+        supabase
+          .from("content_reviews")
+          .select("card_id")
+          .in("status", ["pending", "in_review"]),
       ]);
 
       if (columnsRes.error) throw columnsRes.error;
       if (cardsRes.error) throw cardsRes.error;
+
+      // Build set of card IDs that are currently in review
+      const reviewCardIds = new Set<string>(
+        (reviewsRes.data || []).map((r) => r.card_id)
+      );
+      setCardIdsInReview(reviewCardIds);
 
       setColumns(columnsRes.data || []);
       setCards(
@@ -365,19 +377,28 @@ const KanbanBoard = ({ openCardId, onCloseCard }: KanbanBoardProps) => {
             items={columns.map((c) => c.id)}
             strategy={horizontalListSortingStrategy}
           >
-            {columns.map((column) => (
-              <KanbanColumn
-                key={column.id}
-                column={column}
-                cards={cards.filter((c) => c.column_id === column.id)}
-                onRename={handleRenameColumn}
-                onDelete={handleDeleteColumn}
-                onAddCard={() => setNewCardColumnId(column.id)}
-                onEditCard={setEditingCard}
-                onViewCard={setEditingCard}
-                onDeleteCard={handleDeleteCard}
-              />
-            ))}
+            {columns.map((column) => {
+              // Filter cards: if filterReviewOnly is true, only show cards in review
+              const columnCards = cards.filter((c) => c.column_id === column.id);
+              const filteredCards = filterReviewOnly
+                ? columnCards.filter((c) => cardIdsInReview.has(c.id))
+                : columnCards;
+
+              // If filtering and no cards match, still show empty column
+              return (
+                <KanbanColumn
+                  key={column.id}
+                  column={column}
+                  cards={filteredCards}
+                  onRename={handleRenameColumn}
+                  onDelete={handleDeleteColumn}
+                  onAddCard={() => setNewCardColumnId(column.id)}
+                  onEditCard={setEditingCard}
+                  onViewCard={setEditingCard}
+                  onDeleteCard={handleDeleteCard}
+                />
+              );
+            })}
           </SortableContext>
 
           <div className="flex-shrink-0 w-72">

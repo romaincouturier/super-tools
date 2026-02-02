@@ -2,9 +2,10 @@ import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
-import { Loader2, ArrowLeft, Newspaper } from "lucide-react";
+import { Loader2, ArrowLeft, Newspaper, Eye } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import KanbanBoard from "@/components/content/KanbanBoard";
 import ContentDashboard from "@/components/content/ContentDashboard";
 import AiIdeasSearch from "@/components/content/AiIdeasSearch";
@@ -16,6 +17,7 @@ const ContentBoard = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const openCardId = searchParams.get("card");
+  const [filterReview, setFilterReview] = useState(false);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -84,7 +86,19 @@ const ContentBoard = () => {
               </div>
             </div>
           </div>
-          <NotificationBell />
+          <div className="flex items-center gap-3">
+            <Button
+              variant={filterReview ? "default" : "outline"}
+              size="sm"
+              onClick={() => setFilterReview(!filterReview)}
+              className="gap-2"
+            >
+              <Eye className="h-4 w-4" />
+              En relecture
+              {filterReview && <Badge variant="secondary" className="ml-1 bg-background/20">Actif</Badge>}
+            </Button>
+            <NotificationBell />
+          </div>
         </div>
 
         <ContentDashboard />
@@ -93,7 +107,11 @@ const ContentBoard = () => {
           <AiIdeasSearch onSelectCard={handleSelectCard} />
         </div>
 
-        <KanbanBoard openCardId={openCardId} onCloseCard={handleCloseCard} />
+        <KanbanBoard 
+          openCardId={openCardId} 
+          onCloseCard={handleCloseCard} 
+          filterReviewOnly={filterReview}
+        />
       </main>
     </div>
   );

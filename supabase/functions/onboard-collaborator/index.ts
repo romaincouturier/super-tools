@@ -144,6 +144,8 @@ serve(async (req: Request) => {
       .join("");
 
     // Send welcome email with temporary password
+    const APP_URL = Deno.env.get("APP_URL") || "https://super-tools.lovable.app";
+    
     const emailResponse = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
@@ -165,7 +167,12 @@ serve(async (req: Request) => {
           <p>Vous avez accès aux modules suivants :</p>
           <ul>${moduleListHtml}</ul>
           
-          <p>Pour vous connecter, rendez-vous sur SuperTools et utilisez ces identifiants.</p>
+          <p>
+            <a href="${APP_URL}/auth" style="display: inline-block; background-color: #e6bc00; color: #101820; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 600; margin: 16px 0;">
+              Se connecter à SuperTools
+            </a>
+          </p>
+          
           <p>Le nouveau mot de passe doit respecter les critères suivants :</p>
           <ul>
             <li>Au moins 8 caractères</li>
