@@ -182,6 +182,24 @@ serve(async (req) => {
 
     console.log("Using template:", customTemplate ? "custom" : "default", "mode:", useTutoiement ? "tutoiement" : "vouvoiement");
 
+    // Fetch BCC settings
+    const { data: bccSettings } = await supabase
+      .from("app_settings")
+      .select("setting_key, setting_value")
+      .in("setting_key", ["bcc_email", "bcc_enabled"]);
+    
+    let bccEmail: string | null = null;
+    bccSettings?.forEach((s: { setting_key: string; setting_value: string | null }) => {
+      if (s.setting_key === "bcc_enabled" && s.setting_value === "true") {
+        const emailSetting = bccSettings.find((e: { setting_key: string }) => e.setting_key === "bcc_email");
+        if (emailSetting?.setting_value) {
+          bccEmail = emailSetting.setting_value;
+        }
+      }
+    });
+    
+    console.log("BCC email:", bccEmail || "disabled");
+
     // Get Signitic signature
     const signature = await getSigniticSignature();
 
@@ -313,6 +331,13 @@ serve(async (req) => {
 
       console.log("Sending thank you email to:", participant.email);
 
+      // Build BCC list
+      const bccList: string[] = [];
+      if (bccEmail) {
+        bccList.push(bccEmail);
+      }
+      bccList.push("supertilt@bcc.nocrm.io");
+
       const emailResponse = await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: {
@@ -322,7 +347,7 @@ serve(async (req) => {
         body: JSON.stringify({
           from: "Romain Couturier <romain@supertilt.fr>",
           to: [participant.email],
-          bcc: ["romain@supertilt.fr", "supertilt@bcc.nocrm.io"],
+          bcc: bccList,
           subject,
           html: htmlContent,
         }),

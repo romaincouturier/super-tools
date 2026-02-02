@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
-import { Loader2, ArrowLeft, Settings, Mail, Save, RotateCcw, Sparkles } from "lucide-react";
+import { Loader2, ArrowLeft, Settings, Mail, Save, RotateCcw, Sparkles, Cog } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import {
   Accordion,
@@ -208,6 +209,12 @@ const Parametres = () => {
   const [templates, setTemplates] = useState<Record<string, Record<AddressMode, EmailTemplate | null>>>({});
   const [editedTemplates, setEditedTemplates] = useState<Record<string, Record<AddressMode, { subject: string; content: string }>>>({});
   const [activeMode, setActiveMode] = useState<Record<string, AddressMode>>({});
+  
+  // General settings
+  const [bccEnabled, setBccEnabled] = useState(true);
+  const [bccEmail, setBccEmail] = useState("romain@supertilt.fr");
+  const [savingSettings, setSavingSettings] = useState(false);
+  
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -219,7 +226,7 @@ const Parametres = () => {
         return;
       }
       setUser(session.user);
-      await fetchTemplates();
+      await Promise.all([fetchTemplates(), fetchSettings()]);
       setLoading(false);
     };
 
@@ -237,6 +244,64 @@ const Parametres = () => {
 
     return () => subscription.unsubscribe();
   }, [navigate]);
+
+  const fetchSettings = async () => {
+    const { data, error } = await supabase
+      .from("app_settings")
+      .select("setting_key, setting_value")
+      .in("setting_key", ["bcc_email", "bcc_enabled"]);
+    
+    if (error) {
+      console.error("Error fetching settings:", error);
+      return;
+    }
+    
+    data?.forEach((setting) => {
+      if (setting.setting_key === "bcc_email") {
+        setBccEmail(setting.setting_value || "");
+      }
+      if (setting.setting_key === "bcc_enabled") {
+        setBccEnabled(setting.setting_value === "true");
+      }
+    });
+  };
+
+  const handleSaveSettings = async () => {
+    setSavingSettings(true);
+    try {
+      // Upsert bcc_email
+      await supabase
+        .from("app_settings")
+        .upsert({ 
+          setting_key: "bcc_email", 
+          setting_value: bccEmail,
+          description: "Adresse email en copie cachée (BCC) pour tous les envois"
+        }, { onConflict: "setting_key" });
+      
+      // Upsert bcc_enabled
+      await supabase
+        .from("app_settings")
+        .upsert({ 
+          setting_key: "bcc_enabled", 
+          setting_value: bccEnabled.toString(),
+          description: "Activer ou désactiver l'envoi en copie cachée (BCC)"
+        }, { onConflict: "setting_key" });
+
+      toast({
+        title: "Paramètres enregistrés",
+        description: "Les paramètres généraux ont été mis à jour.",
+      });
+    } catch (error) {
+      console.error("Save settings error:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible d'enregistrer les paramètres.",
+        variant: "destructive",
+      });
+    } finally {
+      setSavingSettings(false);
+    }
+  };
 
   const fetchTemplates = async () => {
     const { data, error } = await supabase
@@ -480,13 +545,72 @@ const Parametres = () => {
           </div>
         </div>
 
-        <Tabs defaultValue="emails" className="space-y-6">
+        <Tabs defaultValue="general" className="space-y-6">
           <TabsList>
+            <TabsTrigger value="general" className="flex items-center gap-2">
+              <Cog className="h-4 w-4" />
+              Général
+            </TabsTrigger>
             <TabsTrigger value="emails" className="flex items-center gap-2">
               <Mail className="h-4 w-4" />
               Modèles d'emails
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="general">
+            <Card>
+              <CardHeader>
+                <CardTitle>Paramètres généraux</CardTitle>
+                <CardDescription>
+                  Configuration globale de l'application.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* BCC Settings */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label htmlFor="bcc-toggle" className="text-base">Copie cachée (BCC)</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Ajouter automatiquement un destinataire en copie cachée sur tous les emails envoyés.
+                      </p>
+                    </div>
+                    <Switch
+                      id="bcc-toggle"
+                      checked={bccEnabled}
+                      onCheckedChange={setBccEnabled}
+                    />
+                  </div>
+                  
+                  {bccEnabled && (
+                    <div className="space-y-2 pl-0 pt-2">
+                      <Label htmlFor="bcc-email">Adresse email BCC</Label>
+                      <Input
+                        id="bcc-email"
+                        type="email"
+                        value={bccEmail}
+                        onChange={(e) => setBccEmail(e.target.value)}
+                        placeholder="email@exemple.com"
+                        className="max-w-md"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <Button 
+                  onClick={handleSaveSettings}
+                  disabled={savingSettings}
+                >
+                  {savingSettings ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4 mr-2" />
+                  )}
+                  Enregistrer
+                </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           <TabsContent value="emails">
             <Card>
