@@ -279,8 +279,10 @@ END:VCALENDAR`;
       {/* Header */}
       <header className="bg-card border-b">
         <div className="container max-w-4xl mx-auto px-4 py-6">
-          <div className="flex items-center justify-center mb-4">
-            <SupertiltLogo className="h-12" />
+          <div className="flex items-center justify-center">
+            <a href="https://www.supertilt.fr" target="_blank" rel="noopener noreferrer">
+              <SupertiltLogo className="h-12" />
+            </a>
           </div>
         </div>
       </header>
