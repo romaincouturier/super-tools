@@ -485,7 +485,10 @@ END:VCALENDAR`;
             <CardContent>
               <div className="flex items-start gap-4">
                 <Avatar className="h-20 w-20">
-                  <AvatarImage src={trainer.photo_url || undefined} />
+                  <AvatarImage 
+                    src={trainer.photo_url || undefined} 
+                    className="object-cover"
+                  />
                   <AvatarFallback className="text-xl">
                     {getInitials(trainer.first_name, trainer.last_name)}
                   </AvatarFallback>
