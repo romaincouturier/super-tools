@@ -4,6 +4,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -21,7 +26,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Mail, Clock, CheckCircle, AlertCircle, Loader2, Trash2, Eye, Send } from "lucide-react";
+import { Mail, Clock, CheckCircle, AlertCircle, Loader2, Trash2, Eye, Send, Info, ChevronDown } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
@@ -73,6 +78,7 @@ const ScheduledEmailsSummary = ({ trainingId, participants }: ScheduledEmailsSum
   const [emailToDelete, setEmailToDelete] = useState<ScheduledEmail | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [forceSending, setForceSending] = useState<string | null>(null);
+  const [rulesExpanded, setRulesExpanded] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -479,6 +485,50 @@ romain@supertilt.fr`;
     );
   }
 
+  const SchedulingRulesInfo = () => (
+    <Collapsible open={rulesExpanded} onOpenChange={setRulesExpanded}>
+      <CollapsibleTrigger asChild>
+        <Button variant="ghost" size="sm" className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground h-auto py-2 px-3">
+          <Info className="h-4 w-4 flex-shrink-0" />
+          <span className="text-xs text-left">Comment fonctionne la programmation des emails ?</span>
+          <ChevronDown className={`h-3 w-3 ml-auto transition-transform ${rulesExpanded ? "rotate-180" : ""}`} />
+        </Button>
+      </CollapsibleTrigger>
+      <CollapsibleContent>
+        <div className="mt-2 p-3 bg-muted/50 rounded-lg text-xs text-muted-foreground space-y-2">
+          <p className="font-medium text-foreground">Déclencheur :</p>
+          <p>La programmation des emails démarre automatiquement lors de l'<strong>ajout d'un participant</strong> à la formation.</p>
+          
+          <p className="font-medium text-foreground pt-2">Règles de programmation :</p>
+          <ul className="space-y-1 list-none">
+            <li className="flex items-start gap-2">
+              <span className="text-primary font-medium">J {">"} 7</span>
+              <span>→ Le questionnaire de recueil des besoins est programmé pour J-7</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-primary font-medium">J-7 à J-2</span>
+              <span>→ Un mail d'accueil est envoyé immédiatement</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-primary font-medium">J {"<"} 2</span>
+              <span>→ Mode manuel activé (aucun envoi automatique)</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-muted-foreground">Formation passée</span>
+              <span>→ Aucun email programmé</span>
+            </li>
+          </ul>
+          
+          <p className="font-medium text-foreground pt-2">Emails automatiques après formation :</p>
+          <ul className="space-y-1 list-none">
+            <li>• <strong>J+1</strong> : Rappel logistique</li>
+            <li>• <strong>J-1</strong> : Synthèse des besoins pour le formateur</li>
+          </ul>
+        </div>
+      </CollapsibleContent>
+    </Collapsible>
+  );
+
   if (emails.length === 0) {
     return (
       <Card>
@@ -488,10 +538,11 @@ romain@supertilt.fr`;
             Emails programmés
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground text-center py-4">
+        <CardContent className="space-y-3">
+          <p className="text-sm text-muted-foreground text-center py-2">
             Aucun email programmé pour cette formation
           </p>
+          <SchedulingRulesInfo />
         </CardContent>
       </Card>
     );
@@ -588,6 +639,9 @@ romain@supertilt.fr`;
               </div>
             </div>
           ))}
+          
+          {/* Scheduling rules info */}
+          <SchedulingRulesInfo />
         </CardContent>
       </Card>
 
