@@ -650,6 +650,7 @@ const FormationEdit = () => {
               <PrerequisitesEditor
                 prerequisites={prerequisites}
                 onPrerequisitesChange={setPrerequisites}
+                programFileUrl={programFileUrl}
               />
 
               {/* Program */}
