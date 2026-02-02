@@ -346,15 +346,24 @@ const FormationDetail = () => {
             </div>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            {/* Map button - opens dialog */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setMapDialogOpen(true)}
-            >
-              <Map className="h-4 w-4 mr-2" />
-              Carte
-            </Button>
+            {/* Map button - opens dialog (disabled for online/visio) */}
+            {(() => {
+              const isOnline = training.location?.toLowerCase().includes("visio") || 
+                               training.location?.toLowerCase().includes("en ligne") ||
+                               training.location?.toLowerCase().includes("distanciel");
+              return (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setMapDialogOpen(true)}
+                  disabled={isOnline}
+                  title={isOnline ? "Non disponible pour les formations en ligne" : "Voir la carte"}
+                >
+                  <Map className="h-4 w-4 mr-2" />
+                  Carte
+                </Button>
+              );
+            })()}
             
             {/* Train button with checkbox */}
             <div className="flex items-center gap-1">
