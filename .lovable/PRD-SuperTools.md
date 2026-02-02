@@ -84,7 +84,7 @@ Si le nom de la formation contient "en ligne", le lieu est automatiquement défi
 - **Nom de la formation** : Sélection via combobox (formations existantes ou saisie libre)
 - **Client** : Nom de l'entreprise cliente
 - **Lieu** : Adresse de la formation
-- **Format** : Présentiel / Distanciel / Hybride
+- **Format** : Présentiel / Distanciel / Hybride / Inter-entreprises
 - **Formateur** : Nom du formateur
 
 #### Planification
@@ -92,10 +92,17 @@ Si le nom de la formation contient "en ligne", le lieu est automatiquement défi
 - **Horaires** : Heure de début et fin par jour
 - Réplication automatique des horaires du premier jour
 - Calcul automatique de l'heure de fin (+8h par défaut)
+- **Multi-jours** : Toggle qui définit automatiquement la date de fin à J+1 si la date de début est définie
 
-#### Commanditaire
+#### Commanditaire (Intra-entreprise)
 - Prénom, Nom, Email
 - Option tutoiement/vouvoiement (vouvoiement par défaut)
+- Bouton de copie rapide de l'email
+
+#### Financeur (Intra-entreprise)
+- **Checkbox** : "Le financeur est le commanditaire"
+- Si décoché : saisie du nom et URL du financeur
+- **Email d'évaluation à froid** : Si le financeur est différent du commanditaire, un email est programmé pour romain@supertilt.fr à J+45 après l'envoi du mail de remerciement
 
 #### Objectifs pédagogiques
 - Saisie manuelle
@@ -105,18 +112,51 @@ Si le nom de la formation contient "en ligne", le lieu est automatiquement défi
 - Saisie manuelle des prérequis de la formation
 - Extraction IA depuis le programme PDF
 
-### 4.2 Gestion des participants
+### 4.2 Formats de formation
+
+#### Intra-entreprise (format par défaut)
+- Commanditaire unique au niveau de la formation
+- Financeur unique au niveau de la formation
+- Email récapitulatif au commanditaire après l'ajout du dernier participant convoqué
+
+#### Inter-entreprises
+- **Gestion par participant** : Commanditaire et financeur gérés individuellement
+- **Commanditaire optionnel** : L'assignation d'un commanditaire n'est pas obligatoire
+- **Financeur par participant** :
+  - Checkbox "Le financeur est le commanditaire"
+  - Si décoché : nom et URL du financeur personnalisés
+- **Emails d'évaluation à froid** : Programmés uniquement pour les participants ayant un commanditaire assigné ET un financeur différent
+- **Mise en copie** : Lors de l'envoi de la convocation, le commanditaire du participant est mis en CC
+
+### 4.3 Gestion des participants
 
 #### Ajout de participants
 - **Unitaire** : Email, Prénom, Nom, Entreprise
 - **En lot** : Parsing de texte (format flexible)
 
+##### Format d'ajout en lot - Intra-entreprise
+```
+email@example.com
+Prénom Nom email@example.com, Société
+```
+
+##### Format d'ajout en lot - Inter-entreprises
+```
+Prénom Nom email@example.com, Société | Prénom_Cmd Nom_Cmd email_cmd@example.com
+email@example.com, Société | email_commanditaire@example.com
+```
+Le symbole `|` sépare les informations du participant de celles du commanditaire.
+
 #### Informations participant
 - Email (obligatoire)
 - Prénom, Nom (optionnels)
 - Entreprise
+- **Inter-entreprises uniquement** :
+  - Commanditaire (prénom, nom, email) - optionnel
+  - Financeur (même logique que pour l'intra)
+  - Facturation (URL facture)
 
-### 4.3 Emails automatisés
+### 4.4 Emails automatisés
 
 #### Règles de programmation selon la proximité
 
@@ -124,8 +164,14 @@ Si le nom de la formation contient "en ligne", le lieu est automatiquement défi
 |-----------|--------------|
 | Formation passée | Aucun email envoyé (statut `non_envoye`) |
 | J < 2 jours | Mode manuel uniquement |
-| J-7 à J-2 | Email d'accueil immédiat |
+| J-7 à J-2 | Email d'accueil/convocation immédiat |
 | J > 7 jours | Processus standard programmé |
+
+#### Convocation (Email d'accueil)
+- **Objet** : "Convocation - Formation [Nom de la formation]"
+- **Contenu** : Mention "Ce mail constitue votre convocation à la formation" mise en évidence
+- **Intra-entreprise** : Email récapitulatif au commanditaire après le dernier ajout
+- **Inter-entreprises** : Commanditaire du participant mis en CC
 
 #### Séquence automatique (J > 7)
 
@@ -135,13 +181,21 @@ Si le nom de la formation contient "en ligne", le lieu est automatiquement défi
 | J-7 | Rappel logistique | Informations pratiques sur la formation |
 | J-1 | Synthèse formateur | Résumé des besoins collectés pour le formateur |
 
+#### Emails post-formation
+
+| Délai | Email | Condition |
+|-------|-------|-----------|
+| J+2 (après remerciement) | Relance évaluation 1ère | Évaluation non soumise |
+| J+5 (après remerciement) | Relance évaluation 2ème | Évaluation non soumise |
+| J+45 (après remerciement) | Évaluation à froid financeur | Financeur ≠ commanditaire, envoyé à romain@supertilt.fr |
+
 #### Actions manuelles disponibles
 - Envoi du recueil des besoins (si J-2 ou moins)
 - Envoi des documents administratifs
 - Envoi de l'email de remerciement avec lien d'évaluation
 - Relance des participants n'ayant pas répondu au questionnaire
 
-### 4.4 Questionnaire de recueil des besoins
+### 4.5 Questionnaire de recueil des besoins
 
 #### Page publique : `/questionnaire/:token`
 
@@ -164,7 +218,7 @@ Formulaire accessible par les participants sans authentification.
 - Synchronisation de l'entreprise avec la fiche participant
 - Notification automatique des besoins d'accessibilité au formateur
 
-### 4.5 Gestion documentaire
+### 4.6 Gestion documentaire
 
 #### Documents gérés
 - **Facture PDF** : Upload et envoi
@@ -403,13 +457,13 @@ Grille de modules avec icônes et descriptions.
 | Priorité | Évolution | Description |
 |----------|-----------|-------------|
 | 🔴 Haute | **Correction de l'émargement électronique** | Debug et stabilisation du système de signature |
-| 🟠 Moyenne | **Mail à froid du commanditaire (Qualiopi)** | Email automatisé au commanditaire X jours après la formation pour recueillir son avis |
 
 ### 12.2 Nouvelles fonctionnalités - Gestion financière
 
 | Priorité | Évolution | Description |
 |----------|-----------|-------------|
-| 🟠 Moyenne | **Champ email financeur optionnel** | Ajout d'un champ email pour le service financier/OPCO lors de la création de formation |
+| ✅ Fait | **Gestion financeur intra-entreprise** | Champ financeur au niveau formation avec email d'évaluation à froid |
+| ✅ Fait | **Gestion financeur inter-entreprises** | Champ financeur par participant avec email d'évaluation à froid individuel |
 | 🟠 Moyenne | **Export automatique du BPF** | Génération automatique du Bilan Pédagogique et Financier |
 | 🟡 Basse | **Synthèse actions manquantes BPF** | Tableau de bord des éléments manquants par formation pour le BPF |
 
@@ -431,7 +485,7 @@ Grille de modules avec icônes et descriptions.
 | Priorité | Évolution | Description |
 |----------|-----------|-------------|
 | 🟠 Moyenne | **Évaluations embarquées formations en ligne** | Support des évaluations intégrées directement dans les formations e-learning, anonymes par défaut |
-| 🟠 Moyenne | **Relance automatique des évaluations** | Emails de relance automatiques à J+2 et J+4 pour les participants n'ayant pas encore soumis leur évaluation |
+| ✅ Fait | **Relance automatique des évaluations** | Emails de relance automatiques à J+2 et J+5 pour les participants n'ayant pas encore soumis leur évaluation |
 | 🟡 Basse | **Désactiver les Zaps de collecte de commentaires** | Supprimer ou désactiver les intégrations Zapier qui collectent les commentaires (migration vers solution native) |
 
 ### 12.6 Nouvelles fonctionnalités - Logistique
@@ -456,7 +510,7 @@ Grille de modules avec icônes et descriptions.
 | Table | Description |
 |-------|-------------|
 | `trainings` | Formations |
-| `training_participants` | Participants aux formations |
+| `training_participants` | Participants aux formations (inclut commanditaire et financeur pour inter-entreprises) |
 | `training_schedules` | Planification des jours de formation |
 | `training_evaluations` | Évaluations des participants |
 | `attendance_signatures` | Signatures électroniques d'émargement |
@@ -467,6 +521,21 @@ Grille de modules avec icônes et descriptions.
 | `formation_configs` | Configuration des formations (micro-devis) |
 | `activity_logs` | Journal des actions |
 | `email_templates` | Templates d'emails personnalisables |
+| `trainers` | Formateurs |
+| `profiles` | Profils utilisateurs |
+| `app_settings` | Paramètres de l'application (délais, jours ouvrés, etc.) |
+
+### 13.2 Colonnes clés - training_participants
+
+| Colonne | Description |
+|---------|-------------|
+| `sponsor_first_name` | Prénom du commanditaire (inter-entreprises) |
+| `sponsor_last_name` | Nom du commanditaire (inter-entreprises) |
+| `sponsor_email` | Email du commanditaire (inter-entreprises) |
+| `financeur_same_as_sponsor` | Boolean - Le financeur est le commanditaire |
+| `financeur_name` | Nom du financeur (si différent) |
+| `financeur_url` | URL du financeur/OPCO (si différent) |
+| `invoice_file_url` | URL de la facture (inter-entreprises) |
 
 ### 13.2 Edge Functions
 
@@ -493,5 +562,12 @@ Grille de modules avec icônes et descriptions.
 
 ---
 
-*Document généré le 30 janvier 2026*
-*Version : 1.0*
+*Document mis à jour le 2 février 2026*
+*Version : 1.1*
+
+### Historique des versions
+
+| Version | Date | Modifications |
+|---------|------|---------------|
+| 1.0 | 30 janvier 2026 | Version initiale |
+| 1.1 | 2 février 2026 | Ajout gestion financeur intra/inter-entreprises, relances évaluation J+2/J+5 |
