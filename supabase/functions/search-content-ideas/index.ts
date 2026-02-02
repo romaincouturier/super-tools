@@ -29,30 +29,9 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    // First get the "Idées" column
-    const columnsRes = await fetch(
-      `${supabaseUrl}/rest/v1/content_columns?name=eq.Id%C3%A9es&select=id`,
-      {
-        headers: {
-          "apikey": supabaseKey,
-          "Authorization": `Bearer ${supabaseKey}`,
-        },
-      }
-    );
-
-    const columns = await columnsRes.json();
-    if (!columns.length) {
-      return new Response(
-        JSON.stringify({ results: [] }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    const ideasColumnId = columns[0].id;
-
-    // Fetch cards from ideas column
+    // Fetch ALL cards from ALL columns (not just "Idées")
     const cardsRes = await fetch(
-      `${supabaseUrl}/rest/v1/content_cards?column_id=eq.${ideasColumnId}&select=id,title,description,tags`,
+      `${supabaseUrl}/rest/v1/content_cards?select=id,title,description,tags,column_id,content_columns(name)`,
       {
         headers: {
           "apikey": supabaseKey,
@@ -63,6 +42,8 @@ serve(async (req) => {
 
     const cards = await cardsRes.json();
 
+    console.log(`[search-content-ideas] Found ${cards.length} cards to search through`);
+
     if (!cards.length) {
       return new Response(
         JSON.stringify({ results: [] }),
@@ -70,17 +51,20 @@ serve(async (req) => {
       );
     }
 
-    // Format cards for AI analysis
+    // Format cards for AI analysis - include column name for context
     const cardsText = cards.map((card: any, index: number) => 
       `[${index + 1}] Titre: ${card.title}
 Description: ${card.description || "Pas de description"}
-Tags: ${(card.tags || []).join(", ") || "Aucun tag"}`
+Tags: ${(card.tags || []).join(", ") || "Aucun tag"}
+Colonne: ${card.content_columns?.name || "Non classé"}`
     ).join("\n\n");
 
     const systemPrompt = `Tu es un assistant marketing spécialisé dans la recherche de contenu pertinent.
-Tu dois analyser une liste d'idées de contenu et identifier celles qui correspondent le mieux à la recherche de l'utilisateur.
+Tu dois analyser une liste de contenus (titres, descriptions, tags) et identifier ceux qui correspondent le mieux à la recherche de l'utilisateur.
 
-Pour chaque idée pertinente, donne un score de pertinence entre 1 et 5 étoiles.
+Analyse TOUS les champs : titre, description ET tags. Un mot-clé peut apparaître dans n'importe lequel de ces champs.
+
+Pour chaque contenu pertinent, donne un score de pertinence entre 1 et 5 étoiles.
 Réponds UNIQUEMENT au format JSON suivant, sans texte supplémentaire :
 {
   "matches": [
@@ -89,7 +73,7 @@ Réponds UNIQUEMENT au format JSON suivant, sans texte supplémentaire :
   ]
 }
 
-Si aucune idée ne correspond, réponds :
+Si aucun contenu ne correspond vraiment à la recherche, réponds :
 { "matches": [] }`;
 
     const userPrompt = `RECHERCHE DE L'UTILISATEUR:
@@ -145,9 +129,12 @@ Identifie les idées les plus pertinentes par rapport à cette recherche.`;
           title: cards[m.index - 1].title,
           description: cards[m.index - 1].description,
           tags: cards[m.index - 1].tags || [],
+          columnName: cards[m.index - 1].content_columns?.name || null,
         },
         relevance: m.relevance,
       }));
+
+    console.log(`[search-content-ideas] Found ${results.length} matching results for query: "${query}"`);
 
     return new Response(
       JSON.stringify({ results }),

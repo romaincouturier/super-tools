@@ -26,6 +26,7 @@ const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const ForcePasswordChange = lazy(() => import("./pages/ForcePasswordChange"));
 const Emargement = lazy(() => import("./pages/Emargement"));
 const ContentBoard = lazy(() => import("./pages/ContentBoard"));
+const BesoinsParticipants = lazy(() => import("./pages/BesoinsParticipants"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -61,6 +62,8 @@ const App = () => (
             <Route path="/formations/new" element={<FormationCreate />} />
             <Route path="/formations/:id" element={<FormationDetail />} />
             <Route path="/formations/:id/edit" element={<FormationEdit />} />
+            {/* Needs summary across all trainings */}
+            <Route path="/besoins" element={<BesoinsParticipants />} />
             {/* Evaluations dashboard */}
             <Route path="/evaluations" element={<Evaluations />} />
             {/* Improvements tracking */}

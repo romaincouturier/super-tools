@@ -1,0 +1,460 @@
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { User } from "@supabase/supabase-js";
+import { 
+  Loader2, 
+  ArrowLeft, 
+  ClipboardList, 
+  Search, 
+  Filter,
+  ChevronDown,
+  ChevronUp,
+  ExternalLink,
+  AlertCircle,
+  CheckCircle2
+} from "lucide-react";
+import { format, parseISO } from "date-fns";
+import { fr } from "date-fns/locale";
+import AppHeader from "@/components/AppHeader";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+interface NeedsSurvey {
+  id: string;
+  participant_id: string;
+  training_id: string;
+  etat: string;
+  nom: string | null;
+  prenom: string | null;
+  email: string | null;
+  societe: string | null;
+  fonction: string | null;
+  competences_actuelles: string | null;
+  competences_visees: string | null;
+  experience_sujet: string | null;
+  lien_mission: string | null;
+  contraintes_orga: string | null;
+  besoins_accessibilite: string | null;
+  commentaires_libres: string | null;
+  date_soumission: string | null;
+  training: {
+    training_name: string;
+    start_date: string;
+    client_name: string;
+  };
+}
+
+const BesoinsParticipants = () => {
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [surveys, setSurveys] = useState<NeedsSurvey[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) {
+        navigate("/auth");
+        return;
+      }
+      setUser(session.user);
+      await fetchSurveys();
+      setLoading(false);
+    };
+
+    checkAuth();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (!session?.user) {
+          navigate("/auth");
+        } else {
+          setUser(session.user);
+        }
+      }
+    );
+
+    return () => subscription.unsubscribe();
+  }, [navigate]);
+
+  const fetchSurveys = async () => {
+    const { data, error } = await supabase
+      .from("questionnaire_besoins")
+      .select(`
+        id,
+        participant_id,
+        training_id,
+        etat,
+        nom,
+        prenom,
+        email,
+        societe,
+        fonction,
+        competences_actuelles,
+        competences_visees,
+        experience_sujet,
+        lien_mission,
+        contraintes_orga,
+        besoins_accessibilite,
+        commentaires_libres,
+        date_soumission,
+        trainings:training_id (
+          training_name,
+          start_date,
+          client_name
+        )
+      `)
+      .order("date_soumission", { ascending: false, nullsFirst: false });
+
+    if (error) {
+      console.error("Error fetching surveys:", error);
+      return;
+    }
+
+    // Transform the data to match our interface
+    const transformed = (data || []).map((item: any) => ({
+      ...item,
+      training: item.trainings,
+    }));
+
+    setSurveys(transformed);
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate("/auth");
+  };
+
+  const toggleRow = (id: string) => {
+    setExpandedRows((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const getStatusBadge = (etat: string) => {
+    switch (etat) {
+      case "soumis":
+        return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Soumis</Badge>;
+      case "en_cours":
+        return <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100">En cours</Badge>;
+      case "envoye":
+        return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">Envoyé</Badge>;
+      default:
+        return <Badge variant="secondary">{etat}</Badge>;
+    }
+  };
+
+  const filteredSurveys = surveys.filter((survey) => {
+    const matchesSearch =
+      searchTerm === "" ||
+      survey.nom?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      survey.prenom?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      survey.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      survey.societe?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      survey.training?.training_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      survey.training?.client_name?.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchesStatus =
+      statusFilter === "all" || survey.etat === statusFilter;
+
+    return matchesSearch && matchesStatus;
+  });
+
+  // Count by status
+  const statusCounts = {
+    all: surveys.length,
+    soumis: surveys.filter((s) => s.etat === "soumis").length,
+    en_cours: surveys.filter((s) => s.etat === "en_cours").length,
+    envoye: surveys.filter((s) => s.etat === "envoye").length,
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
+      <AppHeader user={user} onLogout={handleLogout} />
+
+      <main className="max-w-7xl mx-auto p-6">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="icon" onClick={() => navigate("/")}>
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <ClipboardList className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold">Besoins des participants</h1>
+                <p className="text-muted-foreground">
+                  Vue consolidée de tous les recueils de besoins
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <Card>
+            <CardContent className="pt-4">
+              <div className="text-2xl font-bold">{statusCounts.all}</div>
+              <p className="text-sm text-muted-foreground">Total</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-4">
+              <div className="text-2xl font-bold text-green-600">{statusCounts.soumis}</div>
+              <p className="text-sm text-muted-foreground">Soumis</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-4">
+              <div className="text-2xl font-bold text-amber-600">{statusCounts.en_cours}</div>
+              <p className="text-sm text-muted-foreground">En cours</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-4">
+              <div className="text-2xl font-bold text-blue-600">{statusCounts.envoye}</div>
+              <p className="text-sm text-muted-foreground">Envoyés</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Filters */}
+        <Card className="mb-6">
+          <CardContent className="pt-4">
+            <div className="flex flex-col md:flex-row gap-4">
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Rechercher par nom, email, formation, client..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-[180px]">
+                  <Filter className="h-4 w-4 mr-2" />
+                  <SelectValue placeholder="Statut" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tous ({statusCounts.all})</SelectItem>
+                  <SelectItem value="soumis">Soumis ({statusCounts.soumis})</SelectItem>
+                  <SelectItem value="en_cours">En cours ({statusCounts.en_cours})</SelectItem>
+                  <SelectItem value="envoye">Envoyés ({statusCounts.envoye})</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Data Table */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Recueils de besoins</CardTitle>
+            <CardDescription>
+              {filteredSurveys.length} résultat(s) sur {surveys.length} total
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {filteredSurveys.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                <ClipboardList className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p className="text-lg">Aucun recueil de besoins trouvé</p>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-10"></TableHead>
+                    <TableHead>Participant</TableHead>
+                    <TableHead>Formation</TableHead>
+                    <TableHead>Client</TableHead>
+                    <TableHead>Date formation</TableHead>
+                    <TableHead>Statut</TableHead>
+                    <TableHead>Soumis le</TableHead>
+                    <TableHead className="w-10"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredSurveys.map((survey) => (
+                    <Collapsible key={survey.id} asChild>
+                      <>
+                        <TableRow 
+                          className="cursor-pointer hover:bg-muted/50"
+                          onClick={() => toggleRow(survey.id)}
+                        >
+                          <TableCell>
+                            <CollapsibleTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-6 w-6">
+                                {expandedRows.has(survey.id) ? (
+                                  <ChevronUp className="h-4 w-4" />
+                                ) : (
+                                  <ChevronDown className="h-4 w-4" />
+                                )}
+                              </Button>
+                            </CollapsibleTrigger>
+                          </TableCell>
+                          <TableCell>
+                            <div className="font-medium">
+                              {survey.prenom} {survey.nom}
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              {survey.email}
+                            </div>
+                          </TableCell>
+                          <TableCell>{survey.training?.training_name || "-"}</TableCell>
+                          <TableCell>{survey.training?.client_name || "-"}</TableCell>
+                          <TableCell>
+                            {survey.training?.start_date
+                              ? format(parseISO(survey.training.start_date), "d MMM yyyy", { locale: fr })
+                              : "-"}
+                          </TableCell>
+                          <TableCell>{getStatusBadge(survey.etat)}</TableCell>
+                          <TableCell>
+                            {survey.date_soumission
+                              ? format(parseISO(survey.date_soumission), "d MMM yyyy", { locale: fr })
+                              : "-"}
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/formations/${survey.training_id}`);
+                              }}
+                            >
+                              <ExternalLink className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                        <CollapsibleContent asChild>
+                          <TableRow className="bg-muted/30">
+                            <TableCell colSpan={8} className="p-4">
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {/* Left column */}
+                                <div className="space-y-4">
+                                  <div>
+                                    <h4 className="font-medium text-sm text-muted-foreground mb-1">
+                                      Fonction / Société
+                                    </h4>
+                                    <p>{survey.fonction || "-"} / {survey.societe || "-"}</p>
+                                  </div>
+                                  <div>
+                                    <h4 className="font-medium text-sm text-muted-foreground mb-1">
+                                      Compétences actuelles
+                                    </h4>
+                                    <p className="whitespace-pre-wrap">{survey.competences_actuelles || "-"}</p>
+                                  </div>
+                                  <div>
+                                    <h4 className="font-medium text-sm text-muted-foreground mb-1">
+                                      Compétences visées
+                                    </h4>
+                                    <p className="whitespace-pre-wrap">{survey.competences_visees || "-"}</p>
+                                  </div>
+                                  <div>
+                                    <h4 className="font-medium text-sm text-muted-foreground mb-1">
+                                      Expérience sur le sujet
+                                    </h4>
+                                    <p>{survey.experience_sujet || "-"}</p>
+                                  </div>
+                                </div>
+
+                                {/* Right column */}
+                                <div className="space-y-4">
+                                  <div>
+                                    <h4 className="font-medium text-sm text-muted-foreground mb-1">
+                                      Lien avec la mission
+                                    </h4>
+                                    <p className="whitespace-pre-wrap">{survey.lien_mission || "-"}</p>
+                                  </div>
+                                  <div>
+                                    <h4 className="font-medium text-sm text-muted-foreground mb-1">
+                                      Contraintes organisationnelles
+                                    </h4>
+                                    <p className="whitespace-pre-wrap">{survey.contraintes_orga || "-"}</p>
+                                  </div>
+                                  {survey.besoins_accessibilite && (
+                                    <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200">
+                                      <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                                      <div>
+                                        <h4 className="font-medium text-amber-800 mb-1">
+                                          Besoins d'accessibilité
+                                        </h4>
+                                        <p className="text-amber-700 whitespace-pre-wrap">
+                                          {survey.besoins_accessibilite}
+                                        </p>
+                                      </div>
+                                    </div>
+                                  )}
+                                  {survey.commentaires_libres && (
+                                    <div>
+                                      <h4 className="font-medium text-sm text-muted-foreground mb-1">
+                                        Commentaires
+                                      </h4>
+                                      <p className="whitespace-pre-wrap">{survey.commentaires_libres}</p>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        </CollapsibleContent>
+                      </>
+                    </Collapsible>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+      </main>
+    </div>
+  );
+};
+
+export default BesoinsParticipants;
