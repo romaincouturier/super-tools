@@ -82,7 +82,19 @@ export function useModuleAccess() {
   }, []);
 
   useEffect(() => {
-    checkAccess();
+    // Safety net: never block the whole app on an access check.
+    // If something hangs at network level, we still want to render the UI.
+    const timeout = window.setTimeout(() => {
+      setLoading(false);
+    }, 8000);
+
+    checkAccess().finally(() => {
+      window.clearTimeout(timeout);
+    });
+
+    return () => {
+      window.clearTimeout(timeout);
+    };
   }, [checkAccess]);
 
   const hasAccess = useCallback(

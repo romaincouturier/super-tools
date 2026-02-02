@@ -30,7 +30,7 @@ serve(async (req) => {
     let htmlContent = "";
 
     // Build the card link
-    const cardLink = cardId ? `${APP_URL}/contenu?card=${cardId}` : APP_URL;
+    const cardLink = cardId ? `${APP_URL}/contenu?card=${cardId}` : `${APP_URL}/contenu`;
 
     switch (type) {
       case "review_requested":
@@ -44,6 +44,23 @@ serve(async (req) => {
             </div>
             ${externalUrl ? `<p>Lien externe : <a href="${externalUrl}">${externalUrl}</a></p>` : ""}
             <p><a href="${cardLink}" style="display: inline-block; background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500;">Commencer la relecture</a></p>
+            <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
+            <p style="color: #888; font-size: 12px;">SuperTilt - Gestion de contenu</p>
+          </div>
+        `;
+        break;
+
+      case "review_reminder":
+        subject = `🔔 Rappel de relecture : ${cardTitle}`;
+        htmlContent = `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #333;">Rappel de relecture</h2>
+            <p>Petit rappel courtois : une relecture est toujours en attente sur :</p>
+            <div style="background-color: #f5f5f5; padding: 15px; border-radius: 8px; margin: 20px 0;">
+              <strong>${cardTitle}</strong>
+            </div>
+            <p style="margin: 16px 0;">Si vous avez déjà fait les retours, vous pouvez ignorer ce message.</p>
+            <p><a href="${cardLink}" style="display: inline-block; background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500;">Ouvrir la carte</a></p>
             <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
             <p style="color: #888; font-size: 12px;">SuperTilt - Gestion de contenu</p>
           </div>
