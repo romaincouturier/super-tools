@@ -519,10 +519,18 @@ romain@supertilt.fr`;
             </li>
           </ul>
           
-          <p className="font-medium text-foreground pt-2">Autres emails automatiques :</p>
+          <p className="font-medium text-foreground pt-2">Autres emails avant formation :</p>
           <ul className="space-y-1 list-none">
             <li>• <strong>J-7</strong> : Rappel logistique (envoyé aux participants)</li>
             <li>• <strong>J-1</strong> : Synthèse des besoins pour le formateur</li>
+          </ul>
+          
+          <p className="font-medium text-foreground pt-2">Emails après formation :</p>
+          <ul className="space-y-1 list-none">
+            <li>• <strong>J+1</strong> : Email de remerciement avec lien d'évaluation</li>
+            <li>• <strong>J+7</strong> : Demande d'avis Google</li>
+            <li>• <strong>J+14</strong> : Demande de témoignage vidéo</li>
+            <li>• <strong>J+30</strong> : Évaluation à froid</li>
           </ul>
         </div>
       </CollapsibleContent>
