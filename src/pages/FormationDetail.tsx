@@ -200,25 +200,32 @@ const FormationDetail = () => {
       for (const action of actions) {
         if (!action.description || !action.dueDate || !action.assignedEmail) continue;
         
-        const actionData = {
-          id: action.id,
-          training_id: id,
-          description: action.description,
-          due_date: action.dueDate.toISOString().split('T')[0],
-          assigned_user_email: action.assignedEmail,
-          assigned_user_name: action.assignedName || null,
-          created_by: user.id,
-        };
+        // Check if this is an existing action (UUID format) or a new one (generated string)
+        const isExistingAction = existingIds.has(action.id);
         
-        if (existingIds.has(action.id)) {
+        if (isExistingAction) {
+          // Update existing action
           await supabase
             .from("training_actions")
-            .update(actionData)
+            .update({
+              description: action.description,
+              due_date: action.dueDate.toISOString().split('T')[0],
+              assigned_user_email: action.assignedEmail,
+              assigned_user_name: action.assignedName || null,
+            })
             .eq("id", action.id);
         } else {
+          // Insert new action - don't include the generated id, let DB create UUID
           await supabase
             .from("training_actions")
-            .insert(actionData);
+            .insert({
+              training_id: id,
+              description: action.description,
+              due_date: action.dueDate.toISOString().split('T')[0],
+              assigned_user_email: action.assignedEmail,
+              assigned_user_name: action.assignedName || null,
+              created_by: user.id,
+            });
         }
       }
       
