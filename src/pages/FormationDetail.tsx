@@ -320,8 +320,8 @@ const FormationDetail = () => {
         return "Intra-entreprise";
       case "inter-entreprises":
         return "Inter-entreprises";
-      case "classe_virtuelle":
-        return "Classe virtuelle";
+      case "e_learning":
+        return "E-learning";
       default:
         return null;
     }
@@ -390,9 +390,9 @@ const FormationDetail = () => {
             </div>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            {/* Map button - opens dialog (disabled for online/visio) */}
-            {(() => {
-              const isOnline = training.location?.toLowerCase().includes("visio") || 
+            {/* Map button - opens dialog (hidden for e-learning, disabled for online/visio) */}
+            {training.format_formation !== "e_learning" && (() => {
+              const isOnline = training.location?.toLowerCase().includes("visio") ||
                                training.location?.toLowerCase().includes("en ligne") ||
                                training.location?.toLowerCase().includes("distanciel");
               return (
@@ -409,97 +409,101 @@ const FormationDetail = () => {
               );
             })()}
             
-            {/* Train button with checkbox */}
-            <div className="flex items-center gap-1">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={training.train_booked}
-                title={training.train_booked ? "Réservation déjà effectuée" : "Réserver un train"}
-                asChild={!training.train_booked}
-              >
-                {training.train_booked ? (
-                  <span className="flex items-center">
-                    <Train className="h-4 w-4 mr-2" />
-                    Train
-                  </span>
-                ) : (
-                  <a 
-                    href={`https://www.trainline.fr/search/${encodeURIComponent(training.location)}`} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                  >
-                    <Train className="h-4 w-4 mr-2" />
-                    Train
-                  </a>
-                )}
-              </Button>
-              <Checkbox
-                checked={training.train_booked}
-                onCheckedChange={async (checked) => {
-                  const newValue = checked === true;
-                  const { error } = await supabase
-                    .from("trainings")
-                    .update({ train_booked: newValue })
-                    .eq("id", training.id);
-                  if (!error) {
-                    setTraining({ ...training, train_booked: newValue });
-                    toast({
-                      title: newValue ? "Train réservé" : "Réservation train annulée",
-                      description: newValue ? "La réservation train a été marquée comme effectuée." : "Le statut de réservation a été réinitialisé.",
-                    });
-                  }
-                }}
-                className="ml-1"
-                title="Marquer la réservation comme effectuée"
-              />
-            </div>
-            
-            {/* Hotel button with checkbox */}
-            <div className="flex items-center gap-1">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={training.hotel_booked}
-                title={training.hotel_booked ? "Réservation déjà effectuée" : "Réserver un hôtel"}
-                asChild={!training.hotel_booked}
-              >
-                {training.hotel_booked ? (
-                  <span className="flex items-center">
-                    <Hotel className="h-4 w-4 mr-2" />
-                    Hôtel
-                  </span>
-                ) : (
-                  <a 
-                    href={`https://www.booking.com/searchresults.fr.html?ss=${encodeURIComponent(training.location)}`} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                  >
-                    <Hotel className="h-4 w-4 mr-2" />
-                    Hôtel
-                  </a>
-                )}
-              </Button>
-              <Checkbox
-                checked={training.hotel_booked}
-                onCheckedChange={async (checked) => {
-                  const newValue = checked === true;
-                  const { error } = await supabase
-                    .from("trainings")
-                    .update({ hotel_booked: newValue })
-                    .eq("id", training.id);
-                  if (!error) {
-                    setTraining({ ...training, hotel_booked: newValue });
-                    toast({
-                      title: newValue ? "Hôtel réservé" : "Réservation hôtel annulée",
-                      description: newValue ? "La réservation hôtel a été marquée comme effectuée." : "Le statut de réservation a été réinitialisé.",
-                    });
-                  }
-                }}
-                className="ml-1"
-                title="Marquer la réservation comme effectuée"
-              />
-            </div>
+            {/* Train button with checkbox - Hidden for e-learning */}
+            {training.format_formation !== "e_learning" && (
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={training.train_booked}
+                  title={training.train_booked ? "Réservation déjà effectuée" : "Réserver un train"}
+                  asChild={!training.train_booked}
+                >
+                  {training.train_booked ? (
+                    <span className="flex items-center">
+                      <Train className="h-4 w-4 mr-2" />
+                      Train
+                    </span>
+                  ) : (
+                    <a
+                      href={`https://www.trainline.fr/search/${encodeURIComponent(training.location)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <Train className="h-4 w-4 mr-2" />
+                      Train
+                    </a>
+                  )}
+                </Button>
+                <Checkbox
+                  checked={training.train_booked}
+                  onCheckedChange={async (checked) => {
+                    const newValue = checked === true;
+                    const { error } = await supabase
+                      .from("trainings")
+                      .update({ train_booked: newValue })
+                      .eq("id", training.id);
+                    if (!error) {
+                      setTraining({ ...training, train_booked: newValue });
+                      toast({
+                        title: newValue ? "Train réservé" : "Réservation train annulée",
+                        description: newValue ? "La réservation train a été marquée comme effectuée." : "Le statut de réservation a été réinitialisé.",
+                      });
+                    }
+                  }}
+                  className="ml-1"
+                  title="Marquer la réservation comme effectuée"
+                />
+              </div>
+            )}
+
+            {/* Hotel button with checkbox - Hidden for e-learning */}
+            {training.format_formation !== "e_learning" && (
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={training.hotel_booked}
+                  title={training.hotel_booked ? "Réservation déjà effectuée" : "Réserver un hôtel"}
+                  asChild={!training.hotel_booked}
+                >
+                  {training.hotel_booked ? (
+                    <span className="flex items-center">
+                      <Hotel className="h-4 w-4 mr-2" />
+                      Hôtel
+                    </span>
+                  ) : (
+                    <a
+                      href={`https://www.booking.com/searchresults.fr.html?ss=${encodeURIComponent(training.location)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <Hotel className="h-4 w-4 mr-2" />
+                      Hôtel
+                    </a>
+                  )}
+                </Button>
+                <Checkbox
+                  checked={training.hotel_booked}
+                  onCheckedChange={async (checked) => {
+                    const newValue = checked === true;
+                    const { error } = await supabase
+                      .from("trainings")
+                      .update({ hotel_booked: newValue })
+                      .eq("id", training.id);
+                    if (!error) {
+                      setTraining({ ...training, hotel_booked: newValue });
+                      toast({
+                        title: newValue ? "Hôtel réservé" : "Réservation hôtel annulée",
+                        description: newValue ? "La réservation hôtel a été marquée comme effectuée." : "Le statut de réservation a été réinitialisé.",
+                      });
+                    }
+                  }}
+                  className="ml-1"
+                  title="Marquer la réservation comme effectuée"
+                />
+              </div>
+            )}
             
             {/* Restaurant button with checkbox - only for inter-entreprises */}
             {training.format_formation === "inter-entreprises" && (

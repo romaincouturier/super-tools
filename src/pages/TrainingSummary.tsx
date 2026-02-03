@@ -42,6 +42,8 @@ interface Training {
   trainer_id: string | null;
   objectives: string[] | null;
   prerequisites: string[] | null;
+  format_formation: string | null;
+  elearning_duration: number | null;
 }
 
 interface Schedule {
@@ -80,7 +82,7 @@ const TrainingSummary = () => {
       // Fetch training
       const { data: trainingData, error: trainingError } = await supabase
         .from("trainings")
-        .select("id, training_name, start_date, end_date, location, program_file_url, trainer_id, objectives, prerequisites")
+        .select("id, training_name, start_date, end_date, location, program_file_url, trainer_id, objectives, prerequisites, format_formation, elearning_duration")
         .eq("id", trainingId)
         .single();
 
@@ -369,11 +371,30 @@ END:VCALENDAR`;
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Calendar className="h-5 w-5 text-primary" />
-              Dates et horaires
+              {training.format_formation === "e_learning" ? "Période de formation" : "Dates et horaires"}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {schedules.length > 0 ? (
+            {training.format_formation === "e_learning" ? (
+              <div className="space-y-3">
+                <div className="p-3 bg-muted/50 rounded-lg">
+                  <p className="font-medium">
+                    Du {format(parseISO(training.start_date), "d MMMM yyyy", { locale: fr })}
+                    {training.end_date &&
+                      ` au ${format(parseISO(training.end_date), "d MMMM yyyy", { locale: fr })}`}
+                  </p>
+                  {training.elearning_duration && (
+                    <p className="text-muted-foreground mt-1">
+                      <Clock className="h-4 w-4 inline mr-1" />
+                      Durée estimée : {training.elearning_duration}h
+                    </p>
+                  )}
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Formation en e-learning accessible à votre rythme pendant cette période.
+                </p>
+              </div>
+            ) : schedules.length > 0 ? (
               <div className="space-y-3">
                 {schedules.map((schedule) => (
                   <div
@@ -398,80 +419,85 @@ END:VCALENDAR`;
               </p>
             )}
 
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button className="mt-4 w-full sm:w-auto">
-                  <Calendar className="h-4 w-4 mr-2" />
-                  Ajouter à mon agenda
-                  <ChevronDown className="h-4 w-4 ml-2" />
+            {/* Hide calendar dropdown for e-learning */}
+            {training.format_formation !== "e_learning" && schedules.length > 0 && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button className="mt-4 w-full sm:w-auto">
+                    <Calendar className="h-4 w-4 mr-2" />
+                    Ajouter à mon agenda
+                    <ChevronDown className="h-4 w-4 ml-2" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-56">
+                  <DropdownMenuItem onClick={handleAddToGoogleCalendar}>
+                    <img src="https://www.google.com/favicon.ico" alt="Google" className="h-4 w-4 mr-2" />
+                    Google Calendar
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleAddToAppleCalendar}>
+                    <Calendar className="h-4 w-4 mr-2" />
+                    Apple Calendar (iCal)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleAddToOutlook}>
+                    <img src="https://outlook.live.com/favicon.ico" alt="Outlook" className="h-4 w-4 mr-2" />
+                    Outlook.com
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleAddToAppleCalendar}>
+                    <Calendar className="h-4 w-4 mr-2" />
+                    Outlook (Desktop)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleAddToYahoo}>
+                    <img src="https://www.yahoo.com/favicon.ico" alt="Yahoo" className="h-4 w-4 mr-2" />
+                    Yahoo Calendar
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Location - Hide for e-learning */}
+        {training.format_formation !== "e_learning" && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MapPin className="h-5 w-5 text-primary" />
+                Lieu de formation
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-lg">{training.location}</p>
+
+              {/* Google Maps embed */}
+              <div className="aspect-video w-full rounded-lg overflow-hidden border">
+                <iframe
+                  width="100%"
+                  height="100%"
+                  style={{ border: 0 }}
+                  loading="lazy"
+                  allowFullScreen
+                  referrerPolicy="no-referrer-when-downgrade"
+                  src={`https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${encodeURIComponent(training.location)}`}
+                />
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" asChild>
+                  <a href={getGoogleMapsUrl()} target="_blank" rel="noopener noreferrer">
+                    <MapPin className="h-4 w-4 mr-2" />
+                    Voir sur Google Maps
+                  </a>
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-56">
-                <DropdownMenuItem onClick={handleAddToGoogleCalendar}>
-                  <img src="https://www.google.com/favicon.ico" alt="Google" className="h-4 w-4 mr-2" />
-                  Google Calendar
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleAddToAppleCalendar}>
-                  <Calendar className="h-4 w-4 mr-2" />
-                  Apple Calendar (iCal)
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleAddToOutlook}>
-                  <img src="https://outlook.live.com/favicon.ico" alt="Outlook" className="h-4 w-4 mr-2" />
-                  Outlook.com
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleAddToAppleCalendar}>
-                  <Calendar className="h-4 w-4 mr-2" />
-                  Outlook (Desktop)
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleAddToYahoo}>
-                  <img src="https://www.yahoo.com/favicon.ico" alt="Yahoo" className="h-4 w-4 mr-2" />
-                  Yahoo Calendar
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </CardContent>
-        </Card>
-
-        {/* Location */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <MapPin className="h-5 w-5 text-primary" />
-              Lieu de formation
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-lg">{training.location}</p>
-
-            {/* Google Maps embed */}
-            <div className="aspect-video w-full rounded-lg overflow-hidden border">
-              <iframe
-                width="100%"
-                height="100%"
-                style={{ border: 0 }}
-                loading="lazy"
-                allowFullScreen
-                referrerPolicy="no-referrer-when-downgrade"
-                src={`https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${encodeURIComponent(training.location)}`}
-              />
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              <Button variant="outline" asChild>
-                <a href={getGoogleMapsUrl()} target="_blank" rel="noopener noreferrer">
-                  <MapPin className="h-4 w-4 mr-2" />
-                  Voir sur Google Maps
-                </a>
-              </Button>
-              <Button asChild>
-                <a href={getDirectionsUrl()} target="_blank" rel="noopener noreferrer">
-                  <Navigation className="h-4 w-4 mr-2" />
-                  Venir
-                </a>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+                <Button asChild>
+                  <a href={getDirectionsUrl()} target="_blank" rel="noopener noreferrer">
+                    <Navigation className="h-4 w-4 mr-2" />
+                    Venir
+                  </a>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Trainer Contact - LAST */}
         {trainer && (

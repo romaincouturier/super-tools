@@ -124,8 +124,11 @@ const MicroDevis = () => {
     isAdministration: boolean;
     noteDevis: string;
     formationDemandee: string;
+    formationLibre: string;
     dateFormation: string;
+    dateFormationLibre: string;
     lieu: string;
+    lieuAutre: string;
     includeCadeau: boolean;
     fraisDossier: boolean;
     participants: string;
@@ -348,7 +351,9 @@ const MicroDevis = () => {
       setNoteDevis(formData.noteDevis || "");
       setFormatFormation(formData.formatFormation || "inter");
       setFormationDemandee(formData.formationDemandee || "");
+      setFormationLibre(formData.formationLibre || "");
       setDateFormation(formData.dateFormation || "");
+      setDateFormationLibre(formData.dateFormationLibre || "");
       setParticipants(formData.participants || "");
       setIncludeCadeau(formData.includeCadeau || false);
       setFraisDossier(formData.fraisDossier ? "oui" : "non");
@@ -358,10 +363,13 @@ const MicroDevis = () => {
       const lieuValue = formData.lieu || "";
       if (LIEUX.includes(lieuValue)) {
         setLieu(lieuValue);
-        setLieuAutre("");
+        setLieuAutre(formData.lieuAutre || "");
       } else if (lieuValue) {
         setLieu("autre");
-        setLieuAutre(lieuValue);
+        setLieuAutre(formData.lieuAutre || lieuValue);
+      } else {
+        setLieu("");
+        setLieuAutre(formData.lieuAutre || "");
       }
     } else {
       // Fallback for old history items without form_data
@@ -380,6 +388,37 @@ const MicroDevis = () => {
       title: "Devis dupliqué",
       description: "Le formulaire a été pré-rempli avec les données du devis sélectionné.",
     });
+  };
+
+  // Delete a devis from history
+  const handleDeleteDevis = async (item: DevisHistoryItem) => {
+    if (!confirm("Êtes-vous sûr de vouloir supprimer ce devis de l'historique ?")) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from("activity_logs")
+        .delete()
+        .eq("id", item.id);
+
+      if (error) throw error;
+
+      // Remove from local state
+      setDevisHistory(prev => prev.filter(d => d.id !== item.id));
+
+      toast({
+        title: "Devis supprimé",
+        description: "Le devis a été supprimé de l'historique.",
+      });
+    } catch (error) {
+      console.error("Error deleting devis:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de supprimer le devis.",
+        variant: "destructive",
+      });
+    }
   };
 
   // Auto-set lieu when formation contains "en ligne"
@@ -791,6 +830,9 @@ const MicroDevis = () => {
           // Additional fields for duplication feature
           typeDevis,
           formatFormation,
+          formationLibre,
+          dateFormationLibre,
+          lieuAutre,
         },
       });
 
@@ -941,6 +983,15 @@ const MicroDevis = () => {
                                 >
                                   <Copy className="w-3 h-3 mr-1" />
                                   Dupliquer
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleDeleteDevis(item)}
+                                  title="Supprimer ce devis"
+                                  className="text-destructive hover:text-destructive"
+                                >
+                                  <Trash2 className="w-3 h-3" />
                                 </Button>
                               </div>
                             </div>

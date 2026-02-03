@@ -1,48 +1,56 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, CheckCircle2, MapPin, Calendar, Clock, User, PenLine, Shield } from "lucide-react";
+import {
+  Loader2,
+  CheckCircle2,
+  FileText,
+  Calendar,
+  Building,
+  User,
+  PenLine,
+  Shield,
+  Download,
+  ExternalLink,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import SupertiltLogo from "@/components/SupertiltLogo";
 import SignaturePad from "signature_pad";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
 
-interface AttendanceData {
+interface DevisSignatureData {
   id: string;
-  training_id: string;
-  participant_id: string;
-  schedule_date: string;
-  period: string;
   token: string;
-  signature_data: string | null;
+  recipient_email: string;
+  recipient_name: string | null;
+  client_name: string;
+  formation_name: string;
+  devis_type: string;
+  pdf_url: string;
+  status: string;
   signed_at: string | null;
-  training: {
-    training_name: string;
-    location: string;
-  };
-  participant: {
-    first_name: string | null;
-    last_name: string | null;
-    email: string;
-  };
-  schedule: {
-    start_time: string;
-    end_time: string;
-  } | null;
+  email_opened_at: string | null;
+  created_at: string;
+  expires_at: string | null;
 }
 
-const Emargement = () => {
+const SignatureDevis = () => {
   const { token } = useParams<{ token: string }>();
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [attendanceData, setAttendanceData] = useState<AttendanceData | null>(null);
+  const [devisData, setDevisData] = useState<DevisSignatureData | null>(null);
   const [alreadySigned, setAlreadySigned] = useState(false);
   const [signatureSubmitted, setSignatureSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
+  const [signerName, setSignerName] = useState("");
+  const [signerFunction, setSignerFunction] = useState("");
   const [consentGiven, setConsentGiven] = useState(false);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -50,7 +58,7 @@ const Emargement = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    const fetchAttendanceData = async () => {
+    const fetchDevisData = async () => {
       if (!token) {
         setError("Token invalide");
         setLoading(false);
@@ -58,9 +66,9 @@ const Emargement = () => {
       }
 
       try {
-        // Fetch attendance signature record
+        // Fetch devis signature record
         const { data: signature, error: sigError } = await supabase
-          .from("attendance_signatures")
+          .from("devis_signatures")
           .select("*")
           .eq("token", token)
           .maybeSingle();
@@ -73,52 +81,38 @@ const Emargement = () => {
         }
 
         if (!signature) {
-          setError("Lien d'émargement invalide ou expiré");
+          setError("Lien de signature invalide ou expiré");
           setLoading(false);
           return;
         }
 
-        // Check if already signed
-        if (signature.signed_at) {
+        // Check status
+        if (signature.status === "signed" || signature.signed_at) {
           setAlreadySigned(true);
+        } else if (signature.status === "expired" || (signature.expires_at && new Date(signature.expires_at) < new Date())) {
+          setError("Ce lien de signature a expiré");
+          setLoading(false);
+          return;
+        } else if (signature.status === "cancelled") {
+          setError("Ce devis a été annulé");
+          setLoading(false);
+          return;
         }
-
-        // Fetch training info
-        const { data: training } = await supabase
-          .from("trainings")
-          .select("training_name, location")
-          .eq("id", signature.training_id)
-          .single();
-
-        // Fetch participant info
-        const { data: participant } = await supabase
-          .from("training_participants")
-          .select("first_name, last_name, email")
-          .eq("id", signature.participant_id)
-          .single();
-
-        // Fetch schedule for this date
-        const { data: schedule } = await supabase
-          .from("training_schedules")
-          .select("start_time, end_time")
-          .eq("training_id", signature.training_id)
-          .eq("day_date", signature.schedule_date)
-          .maybeSingle();
 
         // Record first open if not already opened
         if (!signature.email_opened_at) {
           await supabase
-            .from("attendance_signatures")
+            .from("devis_signatures")
             .update({ email_opened_at: new Date().toISOString() })
             .eq("id", signature.id);
         }
 
-        setAttendanceData({
-          ...signature,
-          training: training || { training_name: "Formation", location: "" },
-          participant: participant || { first_name: null, last_name: null, email: "" },
-          schedule: schedule,
-        });
+        setDevisData(signature);
+
+        // Pre-fill signer name if available
+        if (signature.recipient_name) {
+          setSignerName(signature.recipient_name);
+        }
       } catch (err) {
         console.error("Error:", err);
         setError("Une erreur est survenue");
@@ -127,14 +121,14 @@ const Emargement = () => {
       }
     };
 
-    fetchAttendanceData();
+    fetchDevisData();
   }, [token]);
 
   // Initialize signature pad
   useEffect(() => {
-    if (canvasRef.current && !alreadySigned && attendanceData) {
+    if (canvasRef.current && !alreadySigned && devisData) {
       const canvas = canvasRef.current;
-      
+
       // Set canvas size
       const ratio = Math.max(window.devicePixelRatio || 1, 1);
       canvas.width = canvas.offsetWidth * ratio;
@@ -155,7 +149,7 @@ const Emargement = () => {
         signaturePadRef.current.off();
       }
     };
-  }, [attendanceData, alreadySigned]);
+  }, [devisData, alreadySigned]);
 
   const handleClear = () => {
     if (signaturePadRef.current) {
@@ -164,6 +158,15 @@ const Emargement = () => {
   };
 
   const handleSubmit = async () => {
+    if (!signerName.trim()) {
+      toast({
+        title: "Nom requis",
+        description: "Veuillez indiquer votre nom.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!consentGiven) {
       toast({
         title: "Consentement requis",
@@ -176,13 +179,13 @@ const Emargement = () => {
     if (!signaturePadRef.current || signaturePadRef.current.isEmpty()) {
       toast({
         title: "Signature requise",
-        description: "Veuillez signer dans le cadre prévu avant de valider.",
+        description: "Veuillez signer dans le cadre prévu.",
         variant: "destructive",
       });
       return;
     }
 
-    if (!attendanceData || !token) return;
+    if (!devisData || !token) return;
 
     setSubmitting(true);
 
@@ -197,13 +200,15 @@ const Emargement = () => {
         language: navigator.language,
       };
 
-      // Call edge function for proper IP capture and legal compliance
-      const response = await supabase.functions.invoke("submit-attendance-signature", {
+      // Call edge function
+      const response = await supabase.functions.invoke("submit-devis-signature", {
         body: {
           token,
           signatureData,
           userAgent: navigator.userAgent,
           consent: consentGiven,
+          signerName: signerName.trim(),
+          signerFunction: signerFunction.trim() || undefined,
           deviceInfo,
         },
       });
@@ -218,14 +223,14 @@ const Emargement = () => {
 
       setSignatureSubmitted(true);
       toast({
-        title: "Signature enregistrée",
-        description: "Votre présence a été validée avec succès. Cette signature est juridiquement valide.",
+        title: "Devis signé",
+        description: "Votre signature a été enregistrée avec succès.",
       });
     } catch (err) {
       console.error("Error submitting signature:", err);
       toast({
         title: "Erreur",
-        description: err instanceof Error ? err.message : "Une erreur est survenue lors de l'enregistrement de la signature.",
+        description: err instanceof Error ? err.message : "Une erreur est survenue.",
         variant: "destructive",
       });
     } finally {
@@ -233,41 +238,14 @@ const Emargement = () => {
     }
   };
 
-  const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString("fr-FR", {
-      weekday: "long",
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-    });
+  const getDevisTypeLabel = (type: string) => {
+    return type === "avec_subrogation"
+      ? "Avec subrogation de paiement"
+      : "Sans subrogation de paiement";
   };
 
-  const getPeriodLabel = (period: string) => {
-    return period === "AM" ? "Matin" : "Après-midi";
-  };
-
-  const getTimeRange = () => {
-    if (!attendanceData?.schedule) {
-      // Default times if no schedule
-      return attendanceData?.period === "AM" ? "9h00 - 12h30" : "14h00 - 17h30";
-    }
-    
-    const startTime = attendanceData.schedule.start_time.slice(0, 5).replace(":", "h");
-    const endTime = attendanceData.schedule.end_time.slice(0, 5).replace(":", "h");
-    
-    // For half-day, we need to split the full day
-    if (attendanceData.period === "AM") {
-      return `${startTime} - 12h30`;
-    } else {
-      return `14h00 - ${endTime}`;
-    }
-  };
-
-  const getParticipantName = () => {
-    const firstName = attendanceData?.participant?.first_name || "";
-    const lastName = attendanceData?.participant?.last_name || "";
-    return `${firstName} ${lastName}`.trim() || attendanceData?.participant?.email || "Participant";
+  const formatCreatedDate = (dateStr: string) => {
+    return format(new Date(dateStr), "d MMMM yyyy", { locale: fr });
   };
 
   if (loading) {
@@ -298,16 +276,20 @@ const Emargement = () => {
         <Card className="max-w-md w-full">
           <CardContent className="pt-6 text-center space-y-4">
             <CheckCircle2 className="w-16 h-16 mx-auto text-green-500" />
-            <h2 className="text-xl font-semibold">Présence confirmée</h2>
+            <h2 className="text-xl font-semibold">Devis signé</h2>
             <p className="text-muted-foreground">
-              Votre signature a été enregistrée avec succès pour cette demi-journée de formation.
+              Votre signature électronique a été enregistrée avec succès.
             </p>
-            {attendanceData && (
-              <div className="mt-4 text-sm text-muted-foreground">
-                <p><strong>{attendanceData.training.training_name}</strong></p>
-                <p>{formatDate(attendanceData.schedule_date)} - {getPeriodLabel(attendanceData.period)}</p>
+            {devisData && (
+              <div className="mt-4 text-sm text-muted-foreground space-y-1">
+                <p><strong>{devisData.formation_name}</strong></p>
+                <p>{devisData.client_name}</p>
+                <p className="text-xs">{getDevisTypeLabel(devisData.devis_type)}</p>
               </div>
             )}
+            <p className="text-sm text-muted-foreground">
+              Un email de confirmation vous sera envoyé prochainement.
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -316,36 +298,80 @@ const Emargement = () => {
 
   return (
     <div className="min-h-screen bg-background py-8 px-4">
-      <div className="max-w-lg mx-auto space-y-6">
+      <div className="max-w-2xl mx-auto space-y-6">
         {/* Header */}
         <div className="text-center">
           <SupertiltLogo className="h-12 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold">Émargement électronique</h1>
+          <h1 className="text-2xl font-bold">Signature électronique du devis</h1>
         </div>
 
-        {/* Formation info */}
+        {/* Devis info */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">{attendanceData?.training.training_name}</CardTitle>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Détails du devis
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex items-center gap-3">
-              <User className="h-4 w-4 text-muted-foreground" />
-              <span>{getParticipantName()}</span>
+              <Building className="h-4 w-4 text-muted-foreground" />
+              <span className="font-medium">{devisData?.client_name}</span>
             </div>
             <div className="flex items-center gap-3">
-              <MapPin className="h-4 w-4 text-muted-foreground" />
-              <span>{attendanceData?.training.location}</span>
+              <FileText className="h-4 w-4 text-muted-foreground" />
+              <span>{devisData?.formation_name}</span>
             </div>
             <div className="flex items-center gap-3">
               <Calendar className="h-4 w-4 text-muted-foreground" />
-              <span>{attendanceData && formatDate(attendanceData.schedule_date)}</span>
+              <span>Devis du {devisData && formatCreatedDate(devisData.created_at)}</span>
             </div>
             <div className="flex items-center gap-3">
-              <Clock className="h-4 w-4 text-muted-foreground" />
-              <span>
-                {getPeriodLabel(attendanceData?.period || "AM")} • {getTimeRange()}
+              <span className="text-sm bg-muted px-2 py-1 rounded">
+                {devisData && getDevisTypeLabel(devisData.devis_type)}
               </span>
+            </div>
+
+            {/* View PDF button */}
+            {devisData?.pdf_url && (
+              <div className="pt-2">
+                <Button variant="outline" asChild className="w-full sm:w-auto">
+                  <a href={devisData.pdf_url} target="_blank" rel="noopener noreferrer">
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    Consulter le devis PDF
+                  </a>
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Signer info */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <User className="h-5 w-5" />
+              Informations du signataire
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="signerName">Nom complet *</Label>
+              <Input
+                id="signerName"
+                value={signerName}
+                onChange={(e) => setSignerName(e.target.value)}
+                placeholder="Prénom Nom"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="signerFunction">Fonction (optionnel)</Label>
+              <Input
+                id="signerFunction"
+                value={signerFunction}
+                onChange={(e) => setSignerFunction(e.target.value)}
+                placeholder="Ex: Directeur des Ressources Humaines"
+              />
             </div>
           </CardContent>
         </Card>
@@ -376,8 +402,8 @@ const Emargement = () => {
                 className="mt-0.5"
               />
               <Label htmlFor="consent" className="text-sm leading-relaxed cursor-pointer">
-                J'atteste de ma présence à cette demi-journée de formation et j'accepte que cette
-                signature électronique ait valeur légale conformément au règlement européen eIDAS
+                En signant ce devis, j'accepte les conditions proposées et je reconnais que cette
+                signature électronique a valeur légale conformément au règlement européen eIDAS
                 (UE n° 910/2014) et aux articles 1366 et 1367 du Code civil français.
               </Label>
             </div>
@@ -392,7 +418,7 @@ const Emargement = () => {
               </Button>
               <Button
                 onClick={handleSubmit}
-                disabled={submitting || !consentGiven}
+                disabled={submitting || !consentGiven || !signerName.trim()}
                 className="flex-1"
               >
                 {submitting ? (
@@ -401,7 +427,7 @@ const Emargement = () => {
                     Envoi...
                   </>
                 ) : (
-                  "Signer ma présence"
+                  "Signer le devis"
                 )}
               </Button>
             </div>
@@ -420,9 +446,9 @@ const Emargement = () => {
                   règlement européen eIDAS (UE n° 910/2014) et aux articles 1366 et 1367 du Code civil.
                 </p>
                 <p>
-                  Données enregistrées : votre signature, la date et l'heure, votre adresse IP,
-                  les informations de votre appareil. Ces données constituent la preuve de votre présence
-                  et sont conservées pour les besoins de traçabilité de la formation.
+                  Données enregistrées : votre signature, votre nom, la date et l'heure, votre adresse IP,
+                  les informations de votre appareil. Ces données constituent la preuve de votre engagement
+                  et sont conservées pour les besoins de traçabilité.
                 </p>
               </div>
             </div>
@@ -433,4 +459,4 @@ const Emargement = () => {
   );
 };
 
-export default Emargement;
+export default SignatureDevis;

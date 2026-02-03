@@ -1,4 +1,4 @@
-import { HelpCircle, Mail, MailCheck, Clock, CheckCircle, AlertTriangle, Trash2, Loader2, Send, RefreshCw, Receipt, Building } from "lucide-react";
+import { HelpCircle, Mail, MailCheck, Clock, CheckCircle, AlertTriangle, Trash2, Loader2, Send, RefreshCw, Receipt, Building, Scroll } from "lucide-react";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -138,23 +138,25 @@ const getStatusConfig = (status: string) => {
   }
 };
 
-const ParticipantList = ({ 
-  participants, 
-  trainingId, 
+const ParticipantList = ({
+  participants,
+  trainingId,
   trainingName,
-  trainingStartDate, 
+  trainingStartDate,
   trainingEndDate,
   formatFormation,
   attendanceSheetsUrls,
-  onParticipantUpdated 
+  onParticipantUpdated
 }: ParticipantListProps) => {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [sendingId, setSendingId] = useState<string | null>(null);
   const [remindingId, setRemindingId] = useState<string | null>(null);
+  const [generatingConventionId, setGeneratingConventionId] = useState<string | null>(null);
   const [documentsParticipant, setDocumentsParticipant] = useState<Participant | null>(null);
   const { toast } = useToast();
-  
+
   const isInterEntreprise = formatFormation === "inter-entreprises";
+  const isIndividualConvention = formatFormation === "inter-entreprises" || formatFormation === "e_learning";
 
   // Check if we're at J-2 or later
   const daysUntilTraining = differenceInDays(parseISO(trainingStartDate), new Date());
@@ -256,6 +258,42 @@ const ParticipantList = ({
       });
     } finally {
       setRemindingId(null);
+    }
+  };
+
+  const handleGenerateConvention = async (participant: Participant) => {
+    setGeneratingConventionId(participant.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-convention-formation", {
+        body: {
+          trainingId,
+          participantId: participant.id,
+          subrogation: false,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+
+      if (data?.pdfUrl) {
+        window.open(data.pdfUrl, "_blank");
+        toast({
+          title: "Convention générée",
+          description: `La convention pour ${participant.first_name || participant.email} a été générée.`,
+        });
+      }
+    } catch (error: any) {
+      console.error("Error generating convention:", error);
+      toast({
+        title: "Erreur",
+        description: error.message || "Impossible de générer la convention.",
+        variant: "destructive",
+      });
+    } finally {
+      setGeneratingConventionId(null);
     }
   };
 
@@ -380,7 +418,31 @@ const ParticipantList = ({
                         </TooltipContent>
                       </Tooltip>
                     )}
-                    
+
+                    {/* Convention button - for inter-enterprise and e-learning */}
+                    {isIndividualConvention && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-muted-foreground hover:text-primary"
+                            onClick={() => handleGenerateConvention(participant)}
+                            disabled={generatingConventionId === participant.id}
+                          >
+                            {generatingConventionId === participant.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Scroll className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Générer la convention de formation</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
+
                     {/* View questionnaire button - only for completed status */}
                     {(participant.needs_survey_status === "complete" || participant.needs_survey_status === "valide_formateur") && (
                       <ViewQuestionnaireDialog

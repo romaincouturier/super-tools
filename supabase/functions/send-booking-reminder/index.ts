@@ -163,11 +163,17 @@ serve(async (req) => {
     const results: { training_id: string; training_name: string; trainer_email: string; success: boolean; error?: string }[] = [];
 
     for (const training of trainings) {
+      // Skip e-learning trainings - they don't need transport/accommodation booking
+      if (training.format_formation === "e_learning") {
+        console.log(`Skipping e-learning training ${training.id}`);
+        continue;
+      }
+
       // Check if trainer exists
       // The trainers field can be an object (single relation) or array depending on query
       const trainersData = training.trainers;
       let trainer: { id: string; first_name: string; last_name: string; email: string } | null = null;
-      
+
       if (trainersData) {
         if (Array.isArray(trainersData) && trainersData.length > 0) {
           trainer = trainersData[0] as { id: string; first_name: string; last_name: string; email: string };
@@ -175,7 +181,7 @@ serve(async (req) => {
           trainer = trainersData as { id: string; first_name: string; last_name: string; email: string };
         }
       }
-      
+
       if (!trainer || !trainer.email) {
         console.warn(`Training ${training.id} has no trainer or trainer email`);
         results.push({

@@ -1,4 +1,4 @@
-import { Loader2, Award, FileText, Calendar, ClipboardCheck, TrendingUp, Star, History, Newspaper } from "lucide-react";
+import { Loader2, Award, FileText, Calendar, ClipboardCheck, TrendingUp, Star, History, Newspaper, ClipboardList } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import WeeklyChart from "@/components/dashboard/WeeklyChart";
@@ -58,6 +58,14 @@ const tools: Tool[] = [
     icon: <TrendingUp className="w-10 h-10" />,
     path: "/ameliorations",
     module: "ameliorations",
+  },
+  {
+    id: "besoins",
+    name: "Besoins",
+    description: "Consulter les besoins exprimés par les participants",
+    icon: <ClipboardList className="w-10 h-10" />,
+    path: "/besoins",
+    module: "besoins",
   },
   {
     id: "historique",
