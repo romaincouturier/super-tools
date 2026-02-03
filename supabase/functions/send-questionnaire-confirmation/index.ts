@@ -187,8 +187,8 @@ serve(async (req) => {
     let location = "";
     let startDate = "";
     let endDate = "";
-    let isOnline = formatFormation === "en_ligne" || formatFormation === "online";
-    
+    let isOnline = formatFormation === "en_ligne" || formatFormation === "online" || formatFormation === "e_learning";
+
     const { data: training, error: trainingError } = await supabase
       .from("trainings")
       .select("training_name, format_formation, location, start_date, end_date")
@@ -200,8 +200,9 @@ serve(async (req) => {
       location = training.location || "";
       startDate = training.start_date;
       endDate = training.end_date || training.start_date;
-      isOnline = training.format_formation === "en_ligne" || 
+      isOnline = training.format_formation === "en_ligne" ||
                  training.format_formation === "online" ||
+                 training.format_formation === "e_learning" ||
                  (training.location && training.location.toLowerCase().includes("en ligne"));
     }
 
