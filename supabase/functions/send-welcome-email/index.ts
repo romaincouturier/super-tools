@@ -1,97 +1,19 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
-
-// Fetch Signitic signature for romain@supertilt.fr
-async function getSigniticSignature(): Promise<string> {
-  const signiticApiKey = Deno.env.get("SIGNITIC_API_KEY");
-  
-  if (!signiticApiKey) {
-    console.warn("SIGNITIC_API_KEY not configured, using default signature");
-    return getDefaultSignature();
-  }
-
-  try {
-    const response = await fetch(
-      "https://api.signitic.app/signatures/romain@supertilt.fr/html",
-      {
-        headers: {
-          "x-api-key": signiticApiKey,
-        },
-      }
-    );
-
-    if (response.ok) {
-      const htmlContent = await response.text();
-      if (htmlContent && !htmlContent.includes("error")) {
-        console.log("Signitic signature fetched successfully");
-        return htmlContent;
-      }
-    }
-    
-    console.warn("Could not fetch Signitic signature:", response.status);
-    return getDefaultSignature();
-  } catch (error) {
-    console.error("Error fetching Signitic signature:", error);
-    return getDefaultSignature();
-  }
-}
-
-function getDefaultSignature(): string {
-  return `<p style="margin-top: 20px; color: #666; font-size: 14px;">
-    <strong>Romain Couturier</strong><br/>
-    Supertilt - Formation professionnelle<br/>
-    <a href="mailto:romain@supertilt.fr">romain@supertilt.fr</a>
-  </p>`;
-}
-
-// Replace template variables
-function replaceVariables(template: string, variables: Record<string, string>): string {
-  let result = template;
-  for (const [key, value] of Object.entries(variables)) {
-    result = result.replace(new RegExp(`{{${key}}}`, 'g'), value || '');
-  }
-  return result;
-}
-
-// Fetch BCC settings from app_settings
-// deno-lint-ignore no-explicit-any
-async function getBccSettings(supabase: any): Promise<string[]> {
-  const { data: bccSettings } = await supabase
-    .from("app_settings")
-    .select("setting_key, setting_value")
-    .in("setting_key", ["bcc_email", "bcc_enabled"]);
-  
-  let bccEnabled = true;
-  let bccEmailValue: string | null = null;
-  
-  bccSettings?.forEach((s: { setting_key: string; setting_value: string | null }) => {
-    if (s.setting_key === "bcc_enabled") {
-      bccEnabled = s.setting_value === "true";
-    }
-    if (s.setting_key === "bcc_email" && s.setting_value) {
-      bccEmailValue = s.setting_value;
-    }
-  });
-  
-  const bccList: string[] = [];
-  if (bccEnabled && bccEmailValue) {
-    bccList.push(bccEmailValue);
-  }
-  bccList.push("supertilt@bcc.nocrm.io");
-  
-  console.log("BCC settings - enabled:", bccEnabled, "email:", bccEmailValue, "final list:", bccList.join(", "));
-  return bccList;
-}
+import {
+  corsHeaders,
+  handleCorsPreflightIfNeeded,
+  createErrorResponse,
+  createJsonResponse,
+  getSigniticSignature,
+  getBccSettings,
+  replaceVariables,
+  getSupabaseClient,
+  sendEmail,
+  escapeHtml,
+} from "../_shared/index.ts";
 
 // Send notification to sponsor (intra-enterprise)
 async function sendSponsorNotification(
-  resendApiKey: string,
   sponsorEmail: string,
   sponsorFirstName: string | null,
   sponsorFormalAddress: boolean,
@@ -100,15 +22,15 @@ async function sendSponsorNotification(
   signature: string,
   bccList: string[]
 ): Promise<void> {
-  const greeting = sponsorFormalAddress 
-    ? 'Bonjour,' 
-    : (sponsorFirstName ? `Bonjour ${sponsorFirstName},` : 'Bonjour,');
-  
-  const participantsFormatted = participantsList.map(p => `<li>${p}</li>`).join('');
-  
+  const greeting = sponsorFormalAddress
+    ? 'Bonjour,'
+    : (sponsorFirstName ? `Bonjour ${escapeHtml(sponsorFirstName)},` : 'Bonjour,');
+
+  const participantsFormatted = participantsList.map(p => `<li>${escapeHtml(p)}</li>`).join('');
+
   const htmlContent = `
     <p>${greeting}</p>
-    <p>Nous avons le plaisir de vous informer que les convocations à la formation <strong>${trainingName}</strong> ont été envoyées aux participants suivants :</p>
+    <p>Nous avons le plaisir de vous informer que les convocations à la formation <strong>${escapeHtml(trainingName)}</strong> ont été envoyées aux participants suivants :</p>
     <ul style="margin-left: 20px;">
       ${participantsFormatted}
     </ul>
@@ -118,24 +40,15 @@ async function sendSponsorNotification(
     ${signature}
   `;
 
-  const response = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${resendApiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      from: "Romain Couturier <romain@supertilt.fr>",
-      to: [sponsorEmail],
-      bcc: bccList,
-      subject: `Convocations envoyées - ${trainingName}`,
-      html: htmlContent,
-    }),
+  const result = await sendEmail({
+    to: [sponsorEmail],
+    bcc: bccList,
+    subject: `Convocations envoyées - ${trainingName}`,
+    html: htmlContent,
   });
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error("Error sending sponsor notification:", errorText);
+  if (!result.success) {
+    console.error("Error sending sponsor notification:", result.error);
     // Don't throw - this is a secondary notification
   } else {
     console.log("Sponsor notification sent to:", sponsorEmail);
@@ -143,31 +56,23 @@ async function sendSponsorNotification(
 }
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const corsResponse = handleCorsPreflightIfNeeded(req);
+  if (corsResponse) return corsResponse;
 
   try {
     const { participantId, trainingId, templateId } = await req.json();
 
     if (!participantId || !trainingId) {
-      return new Response(
-        JSON.stringify({ error: "participantId and trainingId are required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return createErrorResponse("participantId and trainingId are required", 400);
     }
 
-    const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
-    if (!RESEND_API_KEY) {
-      throw new Error("RESEND_API_KEY not configured");
-    }
+    const supabase = getSupabaseClient();
 
-    const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-
-    // Fetch BCC settings
-    const bccList = await getBccSettings(supabase);
+    // Fetch BCC settings and signature in parallel
+    const [bccList, signature] = await Promise.all([
+      getBccSettings(supabase),
+      getSigniticSignature(),
+    ]);
 
     // Fetch participant with sponsor info
     const { data: participant, error: participantError } = await supabase
@@ -222,10 +127,10 @@ serve(async (req) => {
 
     // Build schedule string
     const scheduleStr = schedules?.map(s => {
-      const date = new Date(s.day_date).toLocaleDateString('fr-FR', { 
-        weekday: 'long', 
-        day: 'numeric', 
-        month: 'long' 
+      const date = new Date(s.day_date).toLocaleDateString('fr-FR', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long'
       });
       return `${date} : ${s.start_time.slice(0, 5)} - ${s.end_time.slice(0, 5)}`;
     }).join('<br/>') || '';
@@ -255,9 +160,6 @@ serve(async (req) => {
       training_summary_url: trainingSummaryUrl,
     };
 
-    // Get Signitic signature
-    const signature = await getSigniticSignature();
-
     let subject: string;
     let htmlContent: string;
 
@@ -265,31 +167,34 @@ serve(async (req) => {
       // Use template but ensure "Convocation" is in the subject
       const templateSubject = replaceVariables(template.subject, variables);
       // If subject doesn't already contain "Convocation", prepend it
-      subject = templateSubject.toLowerCase().includes('convocation') 
-        ? templateSubject 
+      subject = templateSubject.toLowerCase().includes('convocation')
+        ? templateSubject
         : `Convocation - ${templateSubject}`;
       htmlContent = replaceVariables(template.html_content, variables) + signature;
     } else {
       // Fallback default content - warm welcome email with convocation mention
-      const greeting = participant.first_name ? `Bonjour ${participant.first_name},` : 'Bonjour,';
+      const greeting = participant.first_name ? `Bonjour ${escapeHtml(participant.first_name)},` : 'Bonjour,';
+      const safeTrainingName = escapeHtml(training.training_name);
+      const safeLocation = escapeHtml(training.location);
+
       subject = `Convocation - Formation ${training.training_name}`;
       htmlContent = `
         <p>${greeting}</p>
-        <p>C'est avec grand plaisir que nous vous confirmons votre inscription à la formation <strong>${training.training_name}</strong>.</p>
-        
+        <p>C'est avec grand plaisir que nous vous confirmons votre inscription à la formation <strong>${safeTrainingName}</strong>.</p>
+
         <p style="background-color: #f0f9ff; border-left: 4px solid #2563eb; padding: 12px 16px; margin: 16px 0; font-weight: 500;">
           📋 Ce mail constitue votre convocation à la formation.
         </p>
-        
+
         <p><strong>📅 Informations pratiques :</strong></p>
         <ul style="margin-left: 20px; list-style: none; padding-left: 0;">
           ${scheduleStr ? `<li style="margin-bottom: 8px;"><strong>Horaires :</strong><br/>${scheduleStr}</li>` : `<li style="margin-bottom: 8px;"><strong>Date :</strong> ${trainingDate}</li>`}
-          <li style="margin-bottom: 8px;"><strong>Lieu :</strong> ${training.location}</li>
+          <li style="margin-bottom: 8px;"><strong>Lieu :</strong> ${safeLocation}</li>
         </ul>
-        
+
         <p><strong>📋 Prochaines étapes :</strong></p>
         <p>Dans les prochains jours, vous recevrez un email de recueil de vos besoins pour cette formation. Ce questionnaire nous permettra de personnaliser au mieux le contenu en fonction de vos attentes.</p>
-        
+
         <p><strong>📍 Retrouvez toutes les informations pratiques :</strong></p>
         <p>En attendant, vous pouvez consulter l'ensemble des informations de la formation (programme, accès, contact du formateur) sur cette page :</p>
         <p style="margin: 20px 0;">
@@ -297,7 +202,7 @@ serve(async (req) => {
             Voir les informations de la formation
           </a>
         </p>
-        
+
         <p>Nous restons à votre disposition pour toute question.</p>
         <p>À très bientôt ! 🙂</p>
         ${signature}
@@ -315,35 +220,24 @@ serve(async (req) => {
       console.log("CC to participant sponsor:", participant.sponsor_email);
     }
 
-    const emailResponse = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${RESEND_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from: "Romain Couturier <romain@supertilt.fr>",
-        to: [participant.email],
-        cc: ccList.length > 0 ? ccList : undefined,
-        bcc: bccList,
-        subject,
-        html: htmlContent,
-      }),
+    const result = await sendEmail({
+      to: [participant.email],
+      cc: ccList.length > 0 ? ccList : undefined,
+      bcc: bccList,
+      subject,
+      html: htmlContent,
     });
 
-    if (!emailResponse.ok) {
-      const errorText = await emailResponse.text();
-      console.error("Resend error:", errorText);
-      throw new Error(`Failed to send email: ${emailResponse.status}`);
+    if (!result.success) {
+      throw new Error(`Failed to send email: ${result.error}`);
     }
 
-    const result = await emailResponse.json();
-    console.log("Welcome email sent successfully:", result);
+    console.log("Welcome email sent successfully:", result.data);
 
     // Update participant status
     await supabase
       .from("training_participants")
-      .update({ 
+      .update({
         needs_survey_status: "accueil_envoye",
         needs_survey_sent_at: new Date().toISOString()
       })
@@ -360,9 +254,9 @@ serve(async (req) => {
 
       if (allParticipants) {
         // Check if all participants have received welcome email (including the one we just sent)
-        const allConvoked = allParticipants.every(p => 
-          p.id === participantId || 
-          p.needs_survey_status === "accueil_envoye" || 
+        const allConvoked = allParticipants.every(p =>
+          p.id === participantId ||
+          p.needs_survey_status === "accueil_envoye" ||
           p.needs_survey_status === "envoye" ||
           p.needs_survey_status === "en_cours" ||
           p.needs_survey_status === "complete" ||
@@ -372,14 +266,13 @@ serve(async (req) => {
         // If this is the last participant to be convoked, notify sponsor
         if (allConvoked) {
           const participantNames = allParticipants.map(p => {
-            const name = p.first_name || p.last_name 
+            const name = p.first_name || p.last_name
               ? `${p.first_name || ''} ${p.last_name || ''}`.trim()
               : p.email;
             return name;
           });
 
           await sendSponsorNotification(
-            RESEND_API_KEY,
             training.sponsor_email,
             training.sponsor_first_name,
             training.sponsor_formal_address,
@@ -392,16 +285,10 @@ serve(async (req) => {
       }
     }
 
-    return new Response(
-      JSON.stringify({ success: true, messageId: result.id }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return createJsonResponse({ success: true, messageId: result.data?.id });
   } catch (error: unknown) {
     console.error("Error sending welcome email:", error);
     const errorMessage = error instanceof Error ? error.message : "Failed to send welcome email";
-    return new Response(
-      JSON.stringify({ error: errorMessage }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return createErrorResponse(errorMessage);
   }
 });

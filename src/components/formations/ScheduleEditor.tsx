@@ -9,7 +9,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useToast } from "@/hooks/use-toast";
 
 // Session types with predefined times (7h full day, 3.5h half-day)
-export type SessionType = "full" | "morning" | "afternoon";
+type SessionType = "full" | "morning" | "afternoon";
 
 export const SESSION_PRESETS: Record<SessionType, { start: string; end: string; label: string; duration: number }> = {
   full: { start: "09:00", end: "17:00", label: "Journée", duration: 7 },
