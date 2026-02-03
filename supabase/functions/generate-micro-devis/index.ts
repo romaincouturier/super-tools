@@ -427,7 +427,7 @@ serve(async (req: Request): Promise<Response> => {
       typeSubrogation
     );
 
-    // Log activity
+    // Log activity with all form data for duplication feature
     try {
       await supabase.from("activity_logs").insert({
         action_type: "micro_devis_sent",
@@ -437,6 +437,25 @@ serve(async (req: Request): Promise<Response> => {
           client_name: body.nomClient,
           type_subrogation: typeSubrogation,
           nb_participants: body.nbParticipants,
+          // Store all form data for duplication
+          form_data: {
+            nomClient: body.nomClient,
+            adresseClient: body.adresseClient,
+            codePostalClient: body.codePostalClient,
+            villeClient: body.villeClient,
+            pays: body.pays,
+            emailCommanditaire: body.emailCommanditaire,
+            adresseCommanditaire: body.adresseCommanditaire,
+            isAdministration: body.isAdministration,
+            noteDevis: body.noteDevis,
+            formationDemandee: body.formationDemandee,
+            dateFormation: body.dateFormation,
+            lieu: body.lieu,
+            includeCadeau: body.includeCadeau,
+            fraisDossier: body.fraisDossier,
+            participants: body.participants,
+            typeSubrogation: typeSubrogation,
+          },
         },
       });
     } catch (logError) {

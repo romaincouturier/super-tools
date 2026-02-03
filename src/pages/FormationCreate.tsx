@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 import { Loader2, ArrowLeft, Calendar, Save, ExternalLink } from "lucide-react";
-import { format, addDays, eachDayOfInterval, parseISO } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import AppHeader from "@/components/AppHeader";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import ScheduleEditor from "@/components/formations/ScheduleEditor";
+import ScheduleEditor, { Schedule, SESSION_PRESETS } from "@/components/formations/ScheduleEditor";
 import PrerequisitesEditor from "@/components/formations/PrerequisitesEditor";
 import ProgramSelector from "@/components/formations/ProgramSelector";
 import ObjectivesEditor from "@/components/formations/ObjectivesEditor";
@@ -24,12 +24,6 @@ import TrainingNameCombobox from "@/components/formations/TrainingNameCombobox";
 import TrainerSelector from "@/components/formations/TrainerSelector";
 import ScheduledActionsEditor, { ScheduledAction } from "@/components/formations/ScheduledActionsEditor";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-
-interface Schedule {
-  day_date: string;
-  start_time: string;
-  end_time: string;
-}
 
 const PREDEFINED_LOCATIONS = [
   { value: "en_ligne", label: "En ligne en accédant à son compte sur supertilt.fr" },
@@ -46,9 +40,8 @@ const FormationCreate = () => {
   const { toast } = useToast();
 
   // Form state
-  const [startDate, setStartDate] = useState<Date>();
-  const [endDate, setEndDate] = useState<Date>();
-  const [isMultiDay, setIsMultiDay] = useState(false);
+  const [selectedDates, setSelectedDates] = useState<Date[]>([]);
+  const [calendarOpen, setCalendarOpen] = useState(false);
   const [trainingName, setTrainingName] = useState("");
   const [locationType, setLocationType] = useState<string>("");
   const [locationCustom, setLocationCustom] = useState("");
@@ -76,6 +69,12 @@ const FormationCreate = () => {
   
   // Trainer
   const [trainerId, setTrainerId] = useState<string | null>(null);
+  const [trainerDetails, setTrainerDetails] = useState<{
+    id: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+  } | null>(null);
   
   // SuperTilt site URL from settings
   const [supertiltSiteUrl, setSupertiltSiteUrl] = useState<string>("");
@@ -125,43 +124,72 @@ const FormationCreate = () => {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
-  // Generate schedules when dates change
+  // Generate schedules when selected dates change
   useEffect(() => {
-    if (!startDate) {
+    if (selectedDates.length === 0) {
       setSchedules([]);
       return;
     }
 
-    const effectiveEndDate = isMultiDay && endDate ? endDate : startDate;
-    const days = eachDayOfInterval({ start: startDate, end: effectiveEndDate });
+    // Sort dates chronologically
+    const sortedDates = [...selectedDates].sort((a, b) => a.getTime() - b.getTime());
 
-    // Keep existing times if available, otherwise use defaults
-    const newSchedules = days.map((day, index) => {
+    // Keep existing schedules and add new ones
+    const newSchedules = sortedDates.map((day, index) => {
       const dateStr = format(day, "yyyy-MM-dd");
       const existing = schedules.find(s => s.day_date === dateStr);
-      
+
       if (existing) {
         return existing;
       }
-      
-      // For new days, copy from first day if available
+
+      // For new days, copy session type from first day if available
       if (index > 0 && schedules.length > 0) {
+        const firstSchedule = schedules[0];
         return {
           day_date: dateStr,
-          start_time: schedules[0].start_time,
-          end_time: schedules[0].end_time,
+          start_time: firstSchedule.start_time,
+          end_time: firstSchedule.end_time,
+          session_type: firstSchedule.session_type,
         };
       }
-      
+
+      // Default to full day (9h-17h = 7h)
       return {
         day_date: dateStr,
-        start_time: "09:00",
-        end_time: "17:00",
+        start_time: SESSION_PRESETS.full.start,
+        end_time: SESSION_PRESETS.full.end,
+        session_type: "full" as const,
       };
     });
 
-    setSchedules(newSchedules);
-  }, [startDate, endDate, isMultiDay]);
+    // Filter to only keep schedules for selected dates
+    const selectedDateStrs = sortedDates.map(d => format(d, "yyyy-MM-dd"));
+    const filteredSchedules = newSchedules.filter(s => selectedDateStrs.includes(s.day_date));
+
+    setSchedules(filteredSchedules);
+  }, [selectedDates]);
+
+  // Helper to format selected dates for display
+  const formatSelectedDates = (): string => {
+    if (selectedDates.length === 0) return "Sélectionner les jours";
+    if (selectedDates.length === 1) {
+      return format(selectedDates[0], "d MMMM yyyy", { locale: fr });
+    }
+    const sorted = [...selectedDates].sort((a, b) => a.getTime() - b.getTime());
+    return `${selectedDates.length} jours sélectionnés (${format(sorted[0], "d MMM", { locale: fr })} - ${format(sorted[sorted.length - 1], "d MMM", { locale: fr })})`;
+  };
+
+  // Get start and end dates from selected dates
+  const getStartDate = (): Date | null => {
+    if (selectedDates.length === 0) return null;
+    return selectedDates.reduce((min, d) => d < min ? d : min, selectedDates[0]);
+  };
+
+  const getEndDate = (): Date | null => {
+    if (selectedDates.length <= 1) return null;
+    return selectedDates.reduce((max, d) => d > max ? d : max, selectedDates[0]);
+  };
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -172,11 +200,13 @@ const FormationCreate = () => {
     e.preventDefault();
 
     const finalLocation = getFinalLocation();
+    const startDate = getStartDate();
+    const endDate = getEndDate();
 
-    if (!startDate || !trainingName || !finalLocation || !clientName || !user) {
+    if (selectedDates.length === 0 || !trainingName || !finalLocation || !clientName || !user) {
       toast({
         title: "Champs requis",
-        description: "Veuillez remplir tous les champs obligatoires.",
+        description: "Veuillez remplir tous les champs obligatoires (dates, nom, lieu, client).",
         variant: "destructive",
       });
       return;
@@ -185,12 +215,12 @@ const FormationCreate = () => {
     setSaving(true);
 
     try {
-      // Create training
+      // Create training with derived start/end dates
       const { data: training, error: trainingError } = await supabase
         .from("trainings")
         .insert({
-          start_date: format(startDate, "yyyy-MM-dd"),
-          end_date: isMultiDay && endDate ? format(endDate, "yyyy-MM-dd") : null,
+          start_date: format(startDate!, "yyyy-MM-dd"),
+          end_date: endDate ? format(endDate, "yyyy-MM-dd") : null,
           training_name: trainingName,
           location: finalLocation,
           client_name: clientName,
@@ -215,7 +245,7 @@ const FormationCreate = () => {
 
       if (trainingError) throw trainingError;
 
-      // Create schedules
+      // Create schedules (only for selected dates, not gap dates)
       if (schedules.length > 0) {
         const { error: schedulesError } = await supabase
           .from("training_schedules")
@@ -235,7 +265,7 @@ const FormationCreate = () => {
       const validActions = scheduledActions.filter(
         (a) => a.description && a.dueDate && a.assignedEmail
       );
-      
+
       if (validActions.length > 0) {
         const { error: actionsError } = await supabase
           .from("training_actions")
@@ -262,13 +292,47 @@ const FormationCreate = () => {
           training_id: training.id,
           training_name: trainingName,
           client_name: clientName,
-          start_date: format(startDate, "yyyy-MM-dd"),
+          start_date: format(startDate!, "yyyy-MM-dd"),
+          total_days: selectedDates.length,
         },
       });
 
+      // Send calendar invite to trainer if one is selected
+      if (trainerDetails && schedules.length > 0) {
+        try {
+          const { error: emailError } = await supabase.functions.invoke("send-training-calendar-invite", {
+            body: {
+              trainingId: training.id,
+              trainingName,
+              clientName,
+              location: finalLocation,
+              schedules: schedules.map(s => ({
+                day_date: s.day_date,
+                start_time: s.start_time,
+                end_time: s.end_time,
+              })),
+              trainerEmail: trainerDetails.email,
+              trainerFirstName: trainerDetails.first_name,
+              trainerLastName: trainerDetails.last_name,
+            },
+          });
+
+          if (emailError) {
+            console.error("Error sending calendar invite:", emailError);
+          } else {
+            console.log("Calendar invite sent to trainer:", trainerDetails.email);
+          }
+        } catch (emailErr) {
+          console.error("Failed to send calendar invite:", emailErr);
+          // Don't block the creation - this is a secondary notification
+        }
+      }
+
       toast({
         title: "Formation créée",
-        description: "La formation a été créée avec succès.",
+        description: trainerDetails
+          ? "La formation a été créée et une invitation calendrier a été envoyée au formateur."
+          : "La formation a été créée avec succès.",
       });
 
       navigate(`/formations/${training.id}`);
@@ -366,86 +430,49 @@ const FormationCreate = () => {
                 />
               </div>
 
-              {/* Dates */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Date de début *</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
+              {/* Dates - Multi-select calendar */}
+              <div className="space-y-2">
+                <Label>Jours de formation *</Label>
+                <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        selectedDates.length === 0 && "text-muted-foreground"
+                      )}
+                    >
+                      <Calendar className="mr-2 h-4 w-4" />
+                      {formatSelectedDates()}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <CalendarComponent
+                      mode="multiple"
+                      selected={selectedDates}
+                      onSelect={(dates) => setSelectedDates(dates || [])}
+                      initialFocus
+                      className="pointer-events-auto"
+                      locale={fr}
+                    />
+                    <div className="border-t p-3 flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground">
+                        {selectedDates.length} jour{selectedDates.length > 1 ? "s" : ""} sélectionné{selectedDates.length > 1 ? "s" : ""}
+                      </span>
                       <Button
+                        size="sm"
                         variant="outline"
-                        className={cn(
-                          "w-full justify-start text-left font-normal",
-                          !startDate && "text-muted-foreground"
-                        )}
+                        onClick={() => setSelectedDates([])}
+                        disabled={selectedDates.length === 0}
                       >
-                        <Calendar className="mr-2 h-4 w-4" />
-                        {startDate
-                          ? format(startDate, "d MMMM yyyy", { locale: fr })
-                          : "Sélectionner une date"}
+                        Effacer
                       </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <CalendarComponent
-                        mode="single"
-                        selected={startDate}
-                        onSelect={setStartDate}
-                        initialFocus
-                        className="pointer-events-auto"
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label>Date de fin</Label>
-                    <div className="flex items-center gap-2">
-                      <Switch
-                        id="multiDay"
-                        checked={isMultiDay}
-                        onCheckedChange={(checked) => {
-                          setIsMultiDay(checked);
-                          // Auto-set end date to start date + 1 day when enabling multi-day
-                          if (checked && startDate && !endDate) {
-                            setEndDate(addDays(startDate, 1));
-                          }
-                        }}
-                      />
-                      <Label htmlFor="multiDay" className="text-sm text-muted-foreground">
-                        Multi-jours
-                      </Label>
                     </div>
-                  </div>
-                  {isMultiDay && (
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full justify-start text-left font-normal",
-                            !endDate && "text-muted-foreground"
-                          )}
-                        >
-                          <Calendar className="mr-2 h-4 w-4" />
-                          {endDate
-                            ? format(endDate, "d MMMM yyyy", { locale: fr })
-                            : "Sélectionner une date"}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <CalendarComponent
-                          mode="single"
-                          selected={endDate}
-                          onSelect={setEndDate}
-                          disabled={(date) => startDate ? date < startDate : false}
-                          initialFocus
-                          className="pointer-events-auto"
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  )}
-                </div>
+                  </PopoverContent>
+                </Popover>
+                <p className="text-xs text-muted-foreground">
+                  Cliquez sur plusieurs dates pour les sélectionner (journées contigües ou espacées)
+                </p>
               </div>
 
               {/* Location */}
@@ -533,13 +560,19 @@ const FormationCreate = () => {
                 <TrainerSelector
                   value={trainerId}
                   onChange={setTrainerId}
+                  onTrainerSelect={(trainer) => setTrainerDetails(trainer ? {
+                    id: trainer.id,
+                    first_name: trainer.first_name,
+                    last_name: trainer.last_name,
+                    email: trainer.email,
+                  } : null)}
                 />
               </div>
             </CardContent>
           </Card>
 
           {/* Schedules - before Commanditaire */}
-          {startDate && schedules.length > 0 && (
+          {selectedDates.length > 0 && schedules.length > 0 && (
             <ScheduleEditor
               schedules={schedules}
               onSchedulesChange={setSchedules}
