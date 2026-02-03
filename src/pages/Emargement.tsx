@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, CheckCircle2, MapPin, Calendar, Clock, User, PenLine } from "lucide-react";
+import { Loader2, CheckCircle2, MapPin, Calendar, Clock, User, PenLine, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import SupertiltLogo from "@/components/SupertiltLogo";
 import SignaturePad from "signature_pad";
@@ -41,6 +43,8 @@ const Emargement = () => {
   const [signatureSubmitted, setSignatureSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
+  const [consentGiven, setConsentGiven] = useState(false);
+
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const signaturePadRef = useRef<SignaturePad | null>(null);
   const { toast } = useToast();
@@ -160,6 +164,15 @@ const Emargement = () => {
   };
 
   const handleSubmit = async () => {
+    if (!consentGiven) {
+      toast({
+        title: "Consentement requis",
+        description: "Veuillez accepter les conditions de signature électronique.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!signaturePadRef.current || signaturePadRef.current.isEmpty()) {
       toast({
         title: "Signature requise",
@@ -169,36 +182,50 @@ const Emargement = () => {
       return;
     }
 
-    if (!attendanceData) return;
+    if (!attendanceData || !token) return;
 
     setSubmitting(true);
 
     try {
       const signatureData = signaturePadRef.current.toDataURL("image/png");
 
-      const { error: updateError } = await supabase
-        .from("attendance_signatures")
-        .update({
-          signature_data: signatureData,
-          signed_at: new Date().toISOString(),
-          user_agent: navigator.userAgent,
-        })
-        .eq("token", token);
+      // Collect device info for audit trail
+      const deviceInfo = {
+        screenWidth: window.screen.width,
+        screenHeight: window.screen.height,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        language: navigator.language,
+      };
 
-      if (updateError) {
-        throw updateError;
+      // Call edge function for proper IP capture and legal compliance
+      const response = await supabase.functions.invoke("submit-attendance-signature", {
+        body: {
+          token,
+          signatureData,
+          userAgent: navigator.userAgent,
+          consent: consentGiven,
+          deviceInfo,
+        },
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message || "Erreur lors de l'enregistrement");
+      }
+
+      if (response.data?.error) {
+        throw new Error(response.data.error);
       }
 
       setSignatureSubmitted(true);
       toast({
         title: "Signature enregistrée",
-        description: "Votre présence a été validée avec succès.",
+        description: "Votre présence a été validée avec succès. Cette signature est juridiquement valide.",
       });
     } catch (err) {
       console.error("Error submitting signature:", err);
       toast({
         title: "Erreur",
-        description: "Une erreur est survenue lors de l'enregistrement de la signature.",
+        description: err instanceof Error ? err.message : "Une erreur est survenue lors de l'enregistrement de la signature.",
         variant: "destructive",
       });
     } finally {
@@ -339,6 +366,22 @@ const Emargement = () => {
                 style={{ touchAction: "none" }}
               />
             </div>
+
+            {/* Consent checkbox */}
+            <div className="flex items-start space-x-3 p-3 bg-muted/50 rounded-lg">
+              <Checkbox
+                id="consent"
+                checked={consentGiven}
+                onCheckedChange={(checked) => setConsentGiven(checked === true)}
+                className="mt-0.5"
+              />
+              <Label htmlFor="consent" className="text-sm leading-relaxed cursor-pointer">
+                J'atteste de ma présence à cette demi-journée de formation et j'accepte que cette
+                signature électronique ait valeur légale conformément au règlement européen eIDAS
+                (UE n° 910/2014) et aux articles 1366 et 1367 du Code civil français.
+              </Label>
+            </div>
+
             <div className="flex gap-2">
               <Button
                 variant="outline"
@@ -349,7 +392,7 @@ const Emargement = () => {
               </Button>
               <Button
                 onClick={handleSubmit}
-                disabled={submitting}
+                disabled={submitting || !consentGiven}
                 className="flex-1"
               >
                 {submitting ? (
@@ -366,11 +409,25 @@ const Emargement = () => {
         </Card>
 
         {/* Legal notice */}
-        <p className="text-xs text-muted-foreground text-center px-4">
-          En signant, j'atteste de ma présence à cette demi-journée de formation et accepte que 
-          cette signature électronique ait valeur légale conformément au règlement européen eIDAS 
-          (UE n° 910/2014).
-        </p>
+        <Card className="bg-muted/30 border-dashed">
+          <CardContent className="pt-4">
+            <div className="flex items-start gap-3">
+              <Shield className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+              <div className="text-xs text-muted-foreground space-y-2">
+                <p className="font-medium text-foreground">Signature électronique sécurisée</p>
+                <p>
+                  Cette signature électronique est juridiquement recevable en France conformément au
+                  règlement européen eIDAS (UE n° 910/2014) et aux articles 1366 et 1367 du Code civil.
+                </p>
+                <p>
+                  Données enregistrées : votre signature, la date et l'heure, votre adresse IP,
+                  les informations de votre appareil. Ces données constituent la preuve de votre présence
+                  et sont conservées pour les besoins de traçabilité de la formation.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
