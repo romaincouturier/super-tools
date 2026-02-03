@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
-import { Loader2, FileText, ArrowLeft, Send, Settings, Save, X, Plus, Trash2, Star, Eye, Search, ChevronUp, ChevronDown, History, Mail } from "lucide-react";
+import { Loader2, FileText, ArrowLeft, Send, Settings, Save, X, Plus, Trash2, Star, Eye, Search, ChevronUp, ChevronDown, History, Mail, Copy } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import AppHeader from "@/components/AppHeader";
@@ -113,6 +113,25 @@ const MicroDevis = () => {
   const STORAGE_KEY = "microDevisFormData";
 
   // History of sent quotes
+  interface DevisFormData {
+    nomClient: string;
+    adresseClient: string;
+    codePostalClient: string;
+    villeClient: string;
+    pays: string;
+    emailCommanditaire: string;
+    adresseCommanditaire: string;
+    isAdministration: boolean;
+    noteDevis: string;
+    formationDemandee: string;
+    dateFormation: string;
+    lieu: string;
+    includeCadeau: boolean;
+    fraisDossier: boolean;
+    participants: string;
+    typeSubrogation: "sans" | "avec" | "les2";
+  }
+
   interface DevisHistoryItem {
     id: string;
     created_at: string;
@@ -122,6 +141,7 @@ const MicroDevis = () => {
       client_name: string;
       type_subrogation: string;
       nb_participants: number;
+      form_data?: DevisFormData;
     };
   }
   const [devisHistory, setDevisHistory] = useState<DevisHistoryItem[]>([]);
@@ -304,6 +324,61 @@ const MicroDevis = () => {
       item.details?.client_name?.toLowerCase().includes(searchLower)
     );
   });
+
+  // Duplicate a devis from history
+  const handleDuplicateDevis = (item: DevisHistoryItem) => {
+    const formData = item.details?.form_data;
+
+    if (formData) {
+      // Pre-fill all form fields from saved form_data
+      setNomClient(formData.nomClient || "");
+      setAdresseClient(formData.adresseClient || "");
+      setCodePostalClient(formData.codePostalClient || "");
+      setVilleClient(formData.villeClient || "");
+      setPays(formData.pays === "France" ? "france" : "autre");
+      if (formData.pays && formData.pays !== "France") {
+        setPaysAutre(formData.pays);
+      }
+      setEmailCommanditaire(formData.emailCommanditaire || "");
+      setAdresseCommanditaire(formData.adresseCommanditaire || "");
+      setTypeDevis("formation");
+      setIsAdministration(formData.isAdministration ? "oui" : "non");
+      setNoteDevis(formData.noteDevis || "");
+      setFormatFormation("inter"); // Default to inter since we have formation from catalog
+      setFormationDemandee(formData.formationDemandee || "");
+      setDateFormation(formData.dateFormation || "");
+      setParticipants(formData.participants || "");
+      setIncludeCadeau(formData.includeCadeau || false);
+      setFraisDossier(formData.fraisDossier ? "oui" : "non");
+      setTypeSubrogation(formData.typeSubrogation || "les2");
+
+      // Handle lieu - check if it's a predefined value or custom
+      const lieuValue = formData.lieu || "";
+      if (LIEUX.includes(lieuValue)) {
+        setLieu(lieuValue);
+        setLieuAutre("");
+      } else if (lieuValue) {
+        setLieu("autre");
+        setLieuAutre(lieuValue);
+      }
+    } else {
+      // Fallback for old history items without form_data
+      setNomClient(item.details?.client_name || "");
+      setEmailCommanditaire(item.recipient_email || "");
+      setTypeDevis("formation");
+      setFormatFormation("inter");
+      setFormationDemandee(item.details?.formation_name || "");
+      setTypeSubrogation((item.details?.type_subrogation as "sans" | "avec" | "les2") || "les2");
+    }
+
+    // Close the history dialog
+    setHistoryDialogOpen(false);
+
+    toast({
+      title: "Devis dupliqué",
+      description: "Le formulaire a été pré-rempli avec les données du devis sélectionné.",
+    });
+  };
 
   // Auto-set lieu when formation contains "en ligne"
   useEffect(() => {
@@ -849,9 +924,20 @@ const MicroDevis = () => {
                                   <span>{item.recipient_email}</span>
                                 </div>
                               </div>
-                              <span className="text-xs text-muted-foreground">
-                                {format(new Date(item.created_at), "d MMM yyyy HH:mm", { locale: fr })}
-                              </span>
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs text-muted-foreground">
+                                  {format(new Date(item.created_at), "d MMM yyyy HH:mm", { locale: fr })}
+                                </span>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleDuplicateDevis(item)}
+                                  title="Dupliquer ce devis"
+                                >
+                                  <Copy className="w-3 h-3 mr-1" />
+                                  Dupliquer
+                                </Button>
+                              </div>
                             </div>
                             <div className="flex items-center gap-4 text-xs text-muted-foreground">
                               <span>Client : {item.details?.client_name || "—"}</span>

@@ -69,6 +69,12 @@ const FormationCreate = () => {
   
   // Trainer
   const [trainerId, setTrainerId] = useState<string | null>(null);
+  const [trainerDetails, setTrainerDetails] = useState<{
+    id: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+  } | null>(null);
   
   // SuperTilt site URL from settings
   const [supertiltSiteUrl, setSupertiltSiteUrl] = useState<string>("");
@@ -291,9 +297,42 @@ const FormationCreate = () => {
         },
       });
 
+      // Send calendar invite to trainer if one is selected
+      if (trainerDetails && schedules.length > 0) {
+        try {
+          const { error: emailError } = await supabase.functions.invoke("send-training-calendar-invite", {
+            body: {
+              trainingId: training.id,
+              trainingName,
+              clientName,
+              location: finalLocation,
+              schedules: schedules.map(s => ({
+                day_date: s.day_date,
+                start_time: s.start_time,
+                end_time: s.end_time,
+              })),
+              trainerEmail: trainerDetails.email,
+              trainerFirstName: trainerDetails.first_name,
+              trainerLastName: trainerDetails.last_name,
+            },
+          });
+
+          if (emailError) {
+            console.error("Error sending calendar invite:", emailError);
+          } else {
+            console.log("Calendar invite sent to trainer:", trainerDetails.email);
+          }
+        } catch (emailErr) {
+          console.error("Failed to send calendar invite:", emailErr);
+          // Don't block the creation - this is a secondary notification
+        }
+      }
+
       toast({
         title: "Formation créée",
-        description: "La formation a été créée avec succès.",
+        description: trainerDetails
+          ? "La formation a été créée et une invitation calendrier a été envoyée au formateur."
+          : "La formation a été créée avec succès.",
       });
 
       navigate(`/formations/${training.id}`);
@@ -521,6 +560,12 @@ const FormationCreate = () => {
                 <TrainerSelector
                   value={trainerId}
                   onChange={setTrainerId}
+                  onTrainerSelect={(trainer) => setTrainerDetails(trainer ? {
+                    id: trainer.id,
+                    first_name: trainer.first_name,
+                    last_name: trainer.last_name,
+                    email: trainer.email,
+                  } : null)}
                 />
               </div>
             </CardContent>
