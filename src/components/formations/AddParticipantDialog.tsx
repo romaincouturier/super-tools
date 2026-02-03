@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Plus, Loader2, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { differenceInDays, parseISO, format } from "date-fns";
@@ -16,6 +16,22 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Checkbox } from "@/components/ui/checkbox";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { subtractWorkingDays, fetchWorkingDays, fetchNeedsSurveyDelay } from "@/lib/workingDays";
 
@@ -25,9 +41,10 @@ interface AddParticipantDialogProps {
   clientName?: string;
   formatFormation?: string | null;
   onParticipantAdded: () => void;
+  onScheduledEmailsRefresh?: () => void;
 }
 
-const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, formatFormation, onParticipantAdded }: AddParticipantDialogProps) => {
+const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, formatFormation, onParticipantAdded, onScheduledEmailsRefresh }: AddParticipantDialogProps) => {
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [firstName, setFirstName] = useState("");
@@ -40,10 +57,32 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
   const [financeurSameAsSponsor, setFinanceurSameAsSponsor] = useState(true);
   const [financeurName, setFinanceurName] = useState("");
   const [financeurUrl, setFinanceurUrl] = useState("");
+  const [paymentMode, setPaymentMode] = useState<"online" | "invoice">("invoice");
+  const [financeurPopoverOpen, setFinanceurPopoverOpen] = useState(false);
+  const [existingFinanceurs, setExistingFinanceurs] = useState<string[]>([]);
   const [isManualMode, setIsManualMode] = useState(false);
   const { toast } = useToast();
   
   const isInterEntreprise = formatFormation === "inter-entreprises";
+  
+  // Fetch existing funders when dialog opens
+  useEffect(() => {
+    const fetchFinanceurs = async () => {
+      const [fromTrainings, fromParticipants] = await Promise.all([
+        supabase.from("trainings").select("financeur_name").not("financeur_name", "is", null).not("financeur_name", "eq", ""),
+        supabase.from("training_participants").select("financeur_name").not("financeur_name", "is", null).not("financeur_name", "eq", ""),
+      ]);
+      
+      const allNames = new Set<string>();
+      (fromTrainings.data || []).forEach(r => r.financeur_name && allNames.add(r.financeur_name));
+      (fromParticipants.data || []).forEach(r => r.financeur_name && allNames.add(r.financeur_name));
+      setExistingFinanceurs(Array.from(allNames).sort());
+    };
+    
+    if (open && isInterEntreprise) {
+      fetchFinanceurs();
+    }
+  }, [open, isInterEntreprise]);
 
   // Determine email scheduling mode based on training date
   // - If training already started (past date) -> no email
@@ -93,6 +132,7 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
     setFinanceurSameAsSponsor(true);
     setFinanceurName("");
     setFinanceurUrl("");
+    setPaymentMode("invoice");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -126,7 +166,7 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
         company: company.trim() || null,
         needs_survey_token: token,
         needs_survey_status: status,
-        // For inter-enterprise trainings, add sponsor and funder fields
+        // For inter-enterprise trainings, add sponsor, funder and payment fields
         ...(isInterEntreprise && {
           sponsor_first_name: sponsorFirstName.trim() || null,
           sponsor_last_name: sponsorLastName.trim() || null,
@@ -134,6 +174,7 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
           financeur_same_as_sponsor: financeurSameAsSponsor,
           financeur_name: !financeurSameAsSponsor ? (financeurName.trim() || null) : null,
           financeur_url: !financeurSameAsSponsor ? (financeurUrl.trim() || null) : null,
+          payment_mode: paymentMode,
         }),
       };
 
@@ -218,6 +259,10 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
       resetForm();
       setOpen(false);
       onParticipantAdded();
+      // Trigger scheduled emails refresh
+      if (onScheduledEmailsRefresh) {
+        onScheduledEmailsRefresh();
+      }
     } catch (error: any) {
       console.error("Error adding participant:", error);
       toast({
@@ -355,12 +400,55 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
                   <>
                     <div className="space-y-2">
                       <Label htmlFor="financeurName">Nom du financeur</Label>
-                      <Input
-                        id="financeurName"
-                        value={financeurName}
-                        onChange={(e) => setFinanceurName(e.target.value)}
-                        placeholder="Nom de l'organisme financeur"
-                      />
+                      <Popover open={financeurPopoverOpen} onOpenChange={setFinanceurPopoverOpen}>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            aria-expanded={financeurPopoverOpen}
+                            className="w-full justify-between font-normal"
+                          >
+                            {financeurName || "Sélectionner ou saisir un financeur..."}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-full p-0" align="start">
+                          <Command>
+                            <CommandInput 
+                              placeholder="Rechercher ou saisir un financeur..." 
+                              value={financeurName}
+                              onValueChange={setFinanceurName}
+                            />
+                            <CommandList>
+                              <CommandEmpty>
+                                <div className="p-2 text-sm text-muted-foreground">
+                                  Appuyez sur Entrée pour utiliser "{financeurName}"
+                                </div>
+                              </CommandEmpty>
+                              <CommandGroup>
+                                {existingFinanceurs.map((f) => (
+                                  <CommandItem
+                                    key={f}
+                                    value={f}
+                                    onSelect={(value) => {
+                                      setFinanceurName(value);
+                                      setFinanceurPopoverOpen(false);
+                                    }}
+                                  >
+                                    <Check
+                                      className={cn(
+                                        "mr-2 h-4 w-4",
+                                        financeurName === f ? "opacity-100" : "opacity-0"
+                                      )}
+                                    />
+                                    {f}
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="financeurUrl">URL du financeur</Label>
@@ -374,6 +462,21 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
                     </div>
                   </>
                 )}
+
+                {/* Payment mode */}
+                <div className="pt-4 border-t">
+                  <Label className="text-sm font-medium text-muted-foreground">Mode de paiement</Label>
+                </div>
+                <RadioGroup value={paymentMode} onValueChange={(v) => setPaymentMode(v as "online" | "invoice")} className="flex gap-4">
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="online" id="paymentOnline" />
+                    <Label htmlFor="paymentOnline" className="font-normal cursor-pointer">Payé en ligne</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="invoice" id="paymentInvoice" />
+                    <Label htmlFor="paymentInvoice" className="font-normal cursor-pointer">À facturer</Label>
+                  </div>
+                </RadioGroup>
               </>
             )}
           </div>

@@ -34,6 +34,7 @@ interface Training {
   location: string;
   client_name: string;
   created_at: string;
+  participant_count?: number;
 }
 
 interface TrainingAction {
@@ -69,7 +70,7 @@ const Formations = () => {
   }, [user]);
 
   const fetchTrainings = async () => {
-    const [trainingsResult, actionsResult] = await Promise.all([
+    const [trainingsResult, actionsResult, participantCountsResult] = await Promise.all([
       supabase
         .from("trainings")
         .select("*")
@@ -78,12 +79,25 @@ const Formations = () => {
         .from("training_actions")
         .select("id, training_id, status")
         .eq("status", "pending"),
+      supabase
+        .from("training_participants")
+        .select("training_id"),
     ]);
 
     if (trainingsResult.error) {
       console.error("Error fetching trainings:", trainingsResult.error);
     } else {
-      setTrainings(trainingsResult.data || []);
+      // Count participants per training
+      const countMap = new Map<string, number>();
+      (participantCountsResult.data || []).forEach((p) => {
+        countMap.set(p.training_id, (countMap.get(p.training_id) || 0) + 1);
+      });
+      
+      const trainingsWithCount = (trainingsResult.data || []).map((t) => ({
+        ...t,
+        participant_count: countMap.get(t.id) || 0,
+      }));
+      setTrainings(trainingsWithCount);
     }
 
     if (actionsResult.error) {
@@ -303,6 +317,11 @@ const Formations = () => {
                         <TableCell>
                           <div className="flex items-center gap-2">
                             {training.training_name}
+                            {(training.participant_count ?? 0) > 0 && (
+                              <Badge variant="secondary" className="text-xs px-1.5 py-0">
+                                {training.participant_count}
+                              </Badge>
+                            )}
                             {hasActions(training.id) && (
                               <span 
                                 className="inline-block w-2.5 h-2.5 rounded-full bg-warning" 

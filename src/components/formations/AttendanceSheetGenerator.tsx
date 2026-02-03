@@ -117,7 +117,7 @@ export default function AttendanceSheetGenerator({
 
     try {
       const doc = new jsPDF({
-        orientation: "landscape",
+        orientation: "portrait",
         unit: "mm",
         format: "a4",
       });
@@ -183,12 +183,13 @@ export default function AttendanceSheetGenerator({
       yPos += 12;
 
       const halfDayColumns = generateHalfDayColumns();
-      const colCount = 2 + halfDayColumns.length; // Nom, Prénom, + half-days
+      const colCount = 3 + halfDayColumns.length; // Nom, Prénom, Société, + half-days
 
       const tableWidth = pageWidth - 2 * margin;
-      const nameColWidth = 50;
-      const firstNameColWidth = 40;
-      const signatureColWidth = (tableWidth - nameColWidth - firstNameColWidth) / halfDayColumns.length;
+      const nameColWidth = 35;
+      const firstNameColWidth = 30;
+      const companyColWidth = 35;
+      const signatureColWidth = (tableWidth - nameColWidth - firstNameColWidth - companyColWidth) / halfDayColumns.length;
 
       const rowHeight = 12;
       const headerHeight = 10;
@@ -211,6 +212,10 @@ export default function AttendanceSheetGenerator({
       doc.line(xPos + firstNameColWidth, yPos, xPos + firstNameColWidth, yPos + headerHeight);
 
       xPos += firstNameColWidth;
+      doc.text("Société", xPos + 2, yPos + 7);
+      doc.line(xPos + companyColWidth, yPos, xPos + companyColWidth, yPos + headerHeight);
+
+      xPos += companyColWidth;
       halfDayColumns.forEach((col) => {
         // Split text to fit in column
         const text = col.label.replace(" ", "\n");
@@ -241,6 +246,13 @@ export default function AttendanceSheetGenerator({
         doc.line(xPos + firstNameColWidth, yPos, xPos + firstNameColWidth, yPos + rowHeight);
 
         xPos += firstNameColWidth;
+        // Truncate company name if too long
+        const companyText = (participant as any).company || "";
+        const truncatedCompany = companyText.length > 15 ? companyText.substring(0, 14) + "…" : companyText;
+        doc.text(truncatedCompany, xPos + 2, yPos + 8);
+        doc.line(xPos + companyColWidth, yPos, xPos + companyColWidth, yPos + rowHeight);
+
+        xPos += companyColWidth;
         halfDayColumns.forEach(() => {
           doc.line(xPos + signatureColWidth, yPos, xPos + signatureColWidth, yPos + rowHeight);
           xPos += signatureColWidth;

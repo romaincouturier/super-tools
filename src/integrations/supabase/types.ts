@@ -1082,6 +1082,7 @@ export type Database = {
           needs_survey_sent_at: string | null
           needs_survey_status: string
           needs_survey_token: string | null
+          payment_mode: string
           sponsor_email: string | null
           sponsor_first_name: string | null
           sponsor_last_name: string | null
@@ -1101,6 +1102,7 @@ export type Database = {
           needs_survey_sent_at?: string | null
           needs_survey_status?: string
           needs_survey_token?: string | null
+          payment_mode?: string
           sponsor_email?: string | null
           sponsor_first_name?: string | null
           sponsor_last_name?: string | null
@@ -1120,6 +1122,7 @@ export type Database = {
           needs_survey_sent_at?: string | null
           needs_survey_status?: string
           needs_survey_token?: string | null
+          payment_mode?: string
           sponsor_email?: string | null
           sponsor_first_name?: string | null
           sponsor_last_name?: string | null
