@@ -1,12 +1,19 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Send, Loader2, MessageCircle, Check, X, Pencil } from "lucide-react";
+import { Send, Loader2, MessageCircle, Check, X, Pencil, Image, FileText, Palette } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface Comment {
   id: string;
@@ -14,11 +21,18 @@ interface Comment {
   author_email?: string;
   content: string;
   proposed_correction?: string | null;
+  comment_type?: "fond" | "forme" | null;
+  image_url?: string | null;
   created_at: string;
   parent_comment_id: string | null;
   status: "pending" | "approved" | "refused" | "corrected";
   resolved_at: string | null;
 }
+
+const commentTypeConfig = {
+  fond: { label: "Fond", icon: FileText, className: "bg-purple-100 text-purple-800" },
+  forme: { label: "Forme", icon: Palette, className: "bg-cyan-100 text-cyan-800" },
+};
 
 interface CommentThreadProps {
   reviewId: string;
@@ -46,8 +60,13 @@ const CommentThread = ({
   const [loading, setLoading] = useState(true);
   const [newComment, setNewComment] = useState("");
   const [proposedCorrection, setProposedCorrection] = useState("");
+  const [commentType, setCommentType] = useState<"fond" | "forme" | "">("");
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [showComments, setShowComments] = useState(true);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchComments();
@@ -71,6 +90,75 @@ const CommentThread = ({
     }
   };
 
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error("L'image ne doit pas dépasser 5 Mo");
+        return;
+      }
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handlePaste = async (e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    for (const item of items) {
+      if (item.type.startsWith("image/")) {
+        e.preventDefault();
+        const file = item.getAsFile();
+        if (file) {
+          if (file.size > 5 * 1024 * 1024) {
+            toast.error("L'image ne doit pas dépasser 5 Mo");
+            return;
+          }
+          setImageFile(file);
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            setImagePreview(reader.result as string);
+          };
+          reader.readAsDataURL(file);
+        }
+        break;
+      }
+    }
+  };
+
+  const clearImage = () => {
+    setImageFile(null);
+    setImagePreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const uploadImage = async (file: File): Promise<string | null> => {
+    const fileExt = file.name.split(".").pop();
+    const fileName = `${reviewId}/${Date.now()}.${fileExt}`;
+
+    const { error } = await supabase.storage
+      .from("review-images")
+      .upload(fileName, file);
+
+    if (error) {
+      console.error("Upload error:", error);
+      return null;
+    }
+
+    const { data: urlData } = supabase.storage
+      .from("review-images")
+      .getPublicUrl(fileName);
+
+    return urlData?.publicUrl || null;
+  };
+
   const handleSubmit = async () => {
     if (!newComment.trim()) return;
 
@@ -84,11 +172,21 @@ const CommentThread = ({
         return;
       }
 
+      // Upload image if present
+      let imageUrl: string | null = null;
+      if (imageFile) {
+        setUploadingImage(true);
+        imageUrl = await uploadImage(imageFile);
+        setUploadingImage(false);
+      }
+
       const { error } = await supabase.from("review_comments").insert({
         review_id: reviewId,
         author_id: userId,
         content: newComment.trim(),
         proposed_correction: proposedCorrection.trim() || null,
+        comment_type: commentType || null,
+        image_url: imageUrl,
         status: "pending",
       });
 
@@ -119,6 +217,8 @@ const CommentThread = ({
 
       setNewComment("");
       setProposedCorrection("");
+      setCommentType("");
+      clearImage();
       fetchComments();
       onCommentAdded?.();
       toast.success("Commentaire ajouté");
@@ -237,14 +337,35 @@ const CommentThread = ({
                             minute: "2-digit",
                           })}
                         </span>
-                        <Badge 
-                          variant="secondary" 
+                        {comment.comment_type && commentTypeConfig[comment.comment_type] && (
+                          <Badge
+                            variant="secondary"
+                            className={cn("text-xs", commentTypeConfig[comment.comment_type].className)}
+                          >
+                            {commentTypeConfig[comment.comment_type].label}
+                          </Badge>
+                        )}
+                        <Badge
+                          variant="secondary"
                           className={cn("text-xs", statusConf.className)}
                         >
                           {statusConf.label}
                         </Badge>
                       </div>
-                      <p className="text-sm mt-1">{comment.content}</p>
+                      <p className="text-sm mt-1 whitespace-pre-wrap">{comment.content}</p>
+
+                      {/* Image jointe */}
+                      {comment.image_url && (
+                        <div className="mt-2">
+                          <a href={comment.image_url} target="_blank" rel="noopener noreferrer">
+                            <img
+                              src={comment.image_url}
+                              alt="Capture d'écran"
+                              className="max-w-full max-h-48 rounded border cursor-pointer hover:opacity-90"
+                            />
+                          </a>
+                        </div>
+                      )}
 
                       {/* Correction proposée (optionnelle) */}
                       {comment.proposed_correction && (
@@ -295,46 +416,105 @@ const CommentThread = ({
 
           {/* Zone de saisie - visible surtout pour le relecteur */}
           {reviewStatus !== "approved" && (
-            <div className="space-y-2">
+            <div className="space-y-3 p-3 bg-muted/30 rounded-lg">
+              {/* Type de commentaire et textarea sur la même ligne */}
               <div className="flex gap-2">
+                {isReviewer && (
+                  <Select value={commentType} onValueChange={(v) => setCommentType(v as "fond" | "forme" | "")}>
+                    <SelectTrigger className="w-24 h-auto">
+                      <SelectValue placeholder="Type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="fond">
+                        <span className="flex items-center gap-1">
+                          <FileText className="h-3 w-3" /> Fond
+                        </span>
+                      </SelectItem>
+                      <SelectItem value="forme">
+                        <span className="flex items-center gap-1">
+                          <Palette className="h-3 w-3" /> Forme
+                        </span>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
                 <Textarea
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}
+                  onPaste={handlePaste}
                   placeholder={
                     isReviewer
-                      ? "Ajoutez un commentaire de relecture..."
+                      ? "Commentaire... (Ctrl+V pour coller une capture)"
                       : "Répondre au relecteur..."
                   }
                   rows={2}
-                  className="resize-none"
+                  className="resize-none flex-1"
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
                       handleSubmit();
                     }
                   }}
                 />
-                <Button
-                  size="icon"
-                  onClick={handleSubmit}
-                  disabled={submitting || !newComment.trim()}
-                >
-                  {submitting ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Send className="h-4 w-4" />
+                <div className="flex flex-col gap-1">
+                  {isReviewer && (
+                    <>
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleImageSelect}
+                        accept="image/*"
+                        className="hidden"
+                      />
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="outline"
+                        onClick={() => fileInputRef.current?.click()}
+                        title="Ajouter une capture"
+                      >
+                        <Image className="h-4 w-4" />
+                      </Button>
+                    </>
                   )}
-                </Button>
-              </div>
-              {isReviewer && (
-                <div>
-                  <Textarea
-                    value={proposedCorrection}
-                    onChange={(e) => setProposedCorrection(e.target.value)}
-                    placeholder="Correction proposée (optionnel)"
-                    rows={2}
-                    className="resize-none text-sm"
-                  />
+                  <Button
+                    size="icon"
+                    onClick={handleSubmit}
+                    disabled={submitting || uploadingImage || !newComment.trim()}
+                  >
+                    {submitting || uploadingImage ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Send className="h-4 w-4" />
+                    )}
+                  </Button>
                 </div>
+              </div>
+
+              {/* Prévisualisation de l'image */}
+              {imagePreview && (
+                <div className="relative inline-block">
+                  <img src={imagePreview} alt="Prévisualisation" className="max-h-24 rounded border" />
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="destructive"
+                    className="absolute -top-2 -right-2 h-5 w-5"
+                    onClick={clearImage}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+              )}
+
+              {/* Correction proposée */}
+              {isReviewer && (
+                <Textarea
+                  value={proposedCorrection}
+                  onChange={(e) => setProposedCorrection(e.target.value)}
+                  placeholder="Correction proposée (optionnel)"
+                  rows={2}
+                  className="resize-none text-sm"
+                />
               )}
             </div>
           )}

@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Loader2, CheckCircle2, Clock, MessageSquare, Bell, XCircle } from "lucide-react";
+import { Plus, Loader2, CheckCircle2, Clock, MessageSquare, Bell, XCircle, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import ReviewRequestDialog from "./ReviewRequestDialog";
 import CommentThread from "./CommentThread";
 
@@ -17,6 +19,7 @@ interface Review {
   completed_at: string | null;
   created_by: string | null;
   reminder_sent_at: string | null;
+  general_opinion?: string | null;
 }
 
 interface ReviewPanelProps {
@@ -56,6 +59,9 @@ const ReviewPanel = ({ cardId, cardTitle }: ReviewPanelProps) => {
   const [loading, setLoading] = useState(true);
   const [showRequestDialog, setShowRequestDialog] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [editingOpinion, setEditingOpinion] = useState<string | null>(null);
+  const [opinionText, setOpinionText] = useState<string>("");
+  const [savingOpinion, setSavingOpinion] = useState(false);
 
   useEffect(() => {
     fetchReviews();
@@ -173,6 +179,32 @@ const ReviewPanel = ({ cardId, cardTitle }: ReviewPanelProps) => {
   const isAuthor = (review: Review) => currentUserId === review.created_by;
   const isReviewer = (review: Review) => currentUserId === review.reviewer_id;
 
+  const handleSaveOpinion = async (reviewId: string) => {
+    setSavingOpinion(true);
+    try {
+      const { error } = await supabase
+        .from("content_reviews")
+        .update({ general_opinion: opinionText.trim() || null })
+        .eq("id", reviewId);
+
+      if (error) throw error;
+
+      setEditingOpinion(null);
+      fetchReviews();
+      toast.success("Avis général enregistré");
+    } catch (error) {
+      console.error("Error saving opinion:", error);
+      toast.error("Erreur lors de l'enregistrement");
+    } finally {
+      setSavingOpinion(false);
+    }
+  };
+
+  const startEditingOpinion = (review: Review) => {
+    setEditingOpinion(review.id);
+    setOpinionText(review.general_opinion || "");
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8">
@@ -273,9 +305,71 @@ const ReviewPanel = ({ cardId, cardTitle }: ReviewPanelProps) => {
                   </div>
                 )}
 
+                {/* Avis général du relecteur */}
+                {(isReviewer(review) || review.general_opinion) && (
+                  <div className="border-t pt-3">
+                    <Label className="text-sm font-medium">Avis général</Label>
+                    {editingOpinion === review.id ? (
+                      <div className="mt-2 space-y-2">
+                        <Textarea
+                          value={opinionText}
+                          onChange={(e) => setOpinionText(e.target.value)}
+                          placeholder="Votre avis général sur le contenu..."
+                          rows={3}
+                          className="resize-none"
+                        />
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            onClick={() => handleSaveOpinion(review.id)}
+                            disabled={savingOpinion}
+                          >
+                            {savingOpinion ? (
+                              <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                            ) : (
+                              <Save className="h-4 w-4 mr-1" />
+                            )}
+                            Enregistrer
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setEditingOpinion(null)}
+                          >
+                            Annuler
+                          </Button>
+                        </div>
+                      </div>
+                    ) : review.general_opinion ? (
+                      <div className="mt-2 p-3 bg-muted/50 rounded-lg">
+                        <p className="text-sm whitespace-pre-wrap">{review.general_opinion}</p>
+                        {isReviewer(review) && review.status !== "approved" && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="mt-2 h-7 text-xs"
+                            onClick={() => startEditingOpinion(review)}
+                          >
+                            Modifier
+                          </Button>
+                        )}
+                      </div>
+                    ) : isReviewer(review) && review.status !== "approved" ? (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="mt-2"
+                        onClick={() => startEditingOpinion(review)}
+                      >
+                        Ajouter un avis général
+                      </Button>
+                    ) : null}
+                  </div>
+                )}
+
                 {/* Commentaires avec gestion des statuts */}
-                <CommentThread 
-                  reviewId={review.id} 
+                <CommentThread
+                  reviewId={review.id}
                   isAuthor={isAuthor(review)}
                   isReviewer={isReviewer(review)}
                   reviewStatus={review.status}
