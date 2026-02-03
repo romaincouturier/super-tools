@@ -23,12 +23,20 @@ import ObjectivesEditor from "@/components/formations/ObjectivesEditor";
 import TrainingNameCombobox from "@/components/formations/TrainingNameCombobox";
 import TrainerSelector from "@/components/formations/TrainerSelector";
 import ScheduledActionsEditor, { ScheduledAction } from "@/components/formations/ScheduledActionsEditor";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 interface Schedule {
   day_date: string;
   start_time: string;
   end_time: string;
 }
+
+const PREDEFINED_LOCATIONS = [
+  { value: "en_ligne", label: "En ligne en accédant à son compte sur supertilt.fr" },
+  { value: "lyon", label: "Espace Gailleton, 2 Pl. Gailleton, 69002 Lyon" },
+  { value: "paris", label: "Agile Tribu, 4ter Pass. de la Main d'Or, 75011 Paris" },
+  { value: "autre", label: "Autre" },
+];
 
 const FormationCreate = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -42,7 +50,8 @@ const FormationCreate = () => {
   const [endDate, setEndDate] = useState<Date>();
   const [isMultiDay, setIsMultiDay] = useState(false);
   const [trainingName, setTrainingName] = useState("");
-  const [location, setLocation] = useState("");
+  const [locationType, setLocationType] = useState<string>("");
+  const [locationCustom, setLocationCustom] = useState("");
   const [clientName, setClientName] = useState("");
   const [formatFormation, setFormatFormation] = useState<string>("");
   const [prerequisites, setPrerequisites] = useState<string[]>([]);
@@ -70,6 +79,15 @@ const FormationCreate = () => {
   
   // SuperTilt site URL from settings
   const [supertiltSiteUrl, setSupertiltSiteUrl] = useState<string>("");
+
+  // Get the final location string
+  const getFinalLocation = (): string => {
+    if (locationType === "autre") {
+      return locationCustom;
+    }
+    const predefined = PREDEFINED_LOCATIONS.find((l) => l.value === locationType);
+    return predefined?.label || "";
+  };
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -153,7 +171,9 @@ const FormationCreate = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!startDate || !trainingName || !location || !clientName || !user) {
+    const finalLocation = getFinalLocation();
+
+    if (!startDate || !trainingName || !finalLocation || !clientName || !user) {
       toast({
         title: "Champs requis",
         description: "Veuillez remplir tous les champs obligatoires.",
@@ -172,7 +192,7 @@ const FormationCreate = () => {
           start_date: format(startDate, "yyyy-MM-dd"),
           end_date: isMultiDay && endDate ? format(endDate, "yyyy-MM-dd") : null,
           training_name: trainingName,
-          location,
+          location: finalLocation,
           client_name: clientName,
           evaluation_link: "", // Field hidden from UI but required by schema
           format_formation: formatFormation || null,
@@ -428,29 +448,43 @@ const FormationCreate = () => {
                 </div>
               </div>
 
-              {/* Location and client */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="location">Lieu *</Label>
+              {/* Location */}
+              <div className="space-y-3">
+                <Label>Lieu de la formation *</Label>
+                <RadioGroup value={locationType} onValueChange={setLocationType} className="space-y-2">
+                  {PREDEFINED_LOCATIONS.map((loc) => (
+                    <div key={loc.value} className="flex items-center space-x-2">
+                      <RadioGroupItem value={loc.value} id={`location-${loc.value}`} />
+                      <Label
+                        htmlFor={`location-${loc.value}`}
+                        className="font-normal cursor-pointer text-sm"
+                      >
+                        {loc.label}
+                      </Label>
+                    </div>
+                  ))}
+                </RadioGroup>
+                {locationType === "autre" && (
                   <Input
-                    id="location"
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                    placeholder="Ex: Paris, Visio, Chez le client"
+                    placeholder="Adresse personnalisée"
+                    value={locationCustom}
+                    onChange={(e) => setLocationCustom(e.target.value)}
+                    className="mt-2"
                     required
                   />
-                </div>
+                )}
+              </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="clientName">Client *</Label>
-                  <Input
-                    id="clientName"
-                    value={clientName}
-                    onChange={(e) => setClientName(e.target.value)}
-                    placeholder="Ex: ACME Corp"
-                    required
-                  />
-                </div>
+              {/* Client */}
+              <div className="space-y-2">
+                <Label htmlFor="clientName">Client *</Label>
+                <Input
+                  id="clientName"
+                  value={clientName}
+                  onChange={(e) => setClientName(e.target.value)}
+                  placeholder="Ex: ACME Corp"
+                  required
+                />
               </div>
 
               {/* Format */}

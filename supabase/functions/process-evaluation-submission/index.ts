@@ -12,6 +12,9 @@ const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 const PDFMONKEY_API_KEY = Deno.env.get("PDFMONKEY_API_KEY");
 const GOOGLE_SERVICE_ACCOUNT_JSON = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_JSON");
 
+// Helper to wait between API calls (to avoid rate limits)
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
 interface ProcessRequest {
   evaluationId: string;
 }
@@ -393,12 +396,15 @@ const handler = async (req: Request): Promise<Response> => {
       html: notificationHtml,
     });
 
+    // Wait to avoid rate limit (Resend: 2 requests per second)
+    await sleep(1000);
+
     // ========================================
     // 4. Send certificate to participant
     // ========================================
     console.log("Sending certificate to participant...");
 
-    const greetingParticipant = fullName ? `Bonjour ${fullName},` : "Bonjour,";
+    const greetingParticipant = firstName ? `Bonjour ${firstName},` : "Bonjour,";
 
     const certificateEmailHtml = `
       <p>${greetingParticipant}</p>
@@ -426,6 +432,9 @@ const handler = async (req: Request): Promise<Response> => {
         },
       ],
     });
+
+    // Wait to avoid rate limit (Resend: 2 requests per second)
+    await sleep(1000);
 
     // Note: Follow-up emails (google_review, video_testimonial, cold_evaluation) 
     // are scheduled by send-thank-you-email when the thank you email is sent,
