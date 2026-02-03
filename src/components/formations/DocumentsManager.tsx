@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Upload, FileText, Trash2, Loader2, Send, Receipt, ClipboardList, Mail, Link, Heart, CheckCircle } from "lucide-react";
+import { Upload, FileText, Trash2, Loader2, Send, Receipt, ClipboardList, Mail, Link, Heart, CheckCircle, FileDown, Scroll } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -86,6 +86,7 @@ const DocumentsManager = ({
   const [sendingDocuments, setSendingDocuments] = useState(false);
   const [sendingThankYou, setSendingThankYou] = useState(false);
   const [savingSupportsUrl, setSavingSupportsUrl] = useState(false);
+  const [generatingConvention, setGeneratingConvention] = useState(false);
   const [customRecipientEmail, setCustomRecipientEmail] = useState("");
   const [ccEmail, setCcEmail] = useState("");
   const [showCustomRecipientDialog, setShowCustomRecipientDialog] = useState(false);
@@ -530,6 +531,54 @@ const DocumentsManager = ({
     }
   };
 
+  // Generate Convention de Formation (for intra)
+  const handleGenerateConvention = async () => {
+    if (isInterEntreprise || formatFormation === "e_learning") {
+      toast({
+        title: "Non disponible",
+        description: "Pour les formations inter-entreprises et e-learning, la convention se génère par participant.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setGeneratingConvention(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-convention-formation", {
+        body: {
+          trainingId,
+          subrogation: false, // Default, can be made configurable
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+
+      if (data?.pdfUrl) {
+        // Open PDF in new tab
+        window.open(data.pdfUrl, "_blank");
+
+        toast({
+          title: "Convention générée",
+          description: "La convention de formation a été générée et ouverte dans un nouvel onglet.",
+        });
+      }
+    } catch (error: any) {
+      console.error("Convention generation error:", error);
+      toast({
+        title: "Erreur",
+        description: error.message || "Impossible de générer la convention.",
+        variant: "destructive",
+      });
+    } finally {
+      setGeneratingConvention(false);
+    }
+  };
+
   const openCustomRecipientDialog = (type: "invoice" | "sheets" | "all", toSponsor: boolean = false) => {
     setPendingDocumentType(type);
     setSendToSponsorWithOptions(toSponsor);
@@ -580,6 +629,42 @@ const DocumentsManager = ({
               />
               {savingSupportsUrl && <Loader2 className="h-4 w-4 animate-spin" />}
             </div>
+          </div>
+
+          {/* Convention de Formation Section */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label className="flex items-center gap-2">
+                <Scroll className="h-4 w-4" />
+                Convention de formation
+              </Label>
+              {formatFormation === "intra" && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleGenerateConvention}
+                  disabled={generatingConvention}
+                >
+                  {generatingConvention ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <FileDown className="h-4 w-4 mr-2" />
+                  )}
+                  Générer
+                </Button>
+              )}
+            </div>
+            {formatFormation === "intra" ? (
+              <p className="text-xs text-muted-foreground">
+                Génère une convention de formation pour l'ensemble des participants (intra-entreprise)
+              </p>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Pour les formations inter-entreprises et e-learning, la convention se génère par participant
+                (via l'icône convention dans la liste des participants)
+              </p>
+            )}
           </div>
 
           {/* Invoice Section - Hidden for inter-entreprise (invoices managed per participant) */}
