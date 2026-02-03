@@ -2,7 +2,9 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
-import { Loader2, FileText, ArrowLeft, Send, Settings, Save, X, Plus, Trash2, Star, Eye, Search, ChevronUp, ChevronDown } from "lucide-react";
+import { Loader2, FileText, ArrowLeft, Send, Settings, Save, X, Plus, Trash2, Star, Eye, Search, ChevronUp, ChevronDown, History, Mail } from "lucide-react";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
 import AppHeader from "@/components/AppHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -92,15 +94,40 @@ const MicroDevis = () => {
   const [isAdministration, setIsAdministration] = useState<"oui" | "non" | "">("");
   const [noteDevis, setNoteDevis] = useState("");
 
+  // Formation type (intra or inter)
+  const [formatFormation, setFormatFormation] = useState<"intra" | "inter" | "">("");
+
   // Formation specific
   const [participants, setParticipants] = useState("");
   const [formationDemandee, setFormationDemandee] = useState("");
+  const [formationLibre, setFormationLibre] = useState(""); // For intra: free text
   const [dateFormation, setDateFormation] = useState("");
+  const [dateFormationLibre, setDateFormationLibre] = useState(""); // For intra: free text
   const [lieu, setLieu] = useState("");
   const [lieuAutre, setLieuAutre] = useState("");
   const [includeCadeau, setIncludeCadeau] = useState(false);
   const [fraisDossier, setFraisDossier] = useState<"oui" | "non" | "">("");
   const [typeSubrogation, setTypeSubrogation] = useState<"sans" | "avec" | "les2">("les2");
+
+  // Session storage key for persisting form data
+  const STORAGE_KEY = "microDevisFormData";
+
+  // History of sent quotes
+  interface DevisHistoryItem {
+    id: string;
+    created_at: string;
+    recipient_email: string;
+    details: {
+      formation_name: string;
+      client_name: string;
+      type_subrogation: string;
+      nb_participants: number;
+    };
+  }
+  const [devisHistory, setDevisHistory] = useState<DevisHistoryItem[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+  const [historySearch, setHistorySearch] = useState("");
+  const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -196,6 +223,87 @@ const MicroDevis = () => {
       loadFormationDates();
     }
   }, [user, toast]);
+
+  // Load form data from sessionStorage on mount
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const data = JSON.parse(saved);
+        if (data.formatFormation) setFormatFormation(data.formatFormation);
+        if (data.formationDemandee) setFormationDemandee(data.formationDemandee);
+        if (data.formationLibre) setFormationLibre(data.formationLibre);
+        if (data.dateFormation) setDateFormation(data.dateFormation);
+        if (data.dateFormationLibre) setDateFormationLibre(data.dateFormationLibre);
+        if (data.lieu) setLieu(data.lieu);
+        if (data.lieuAutre) setLieuAutre(data.lieuAutre);
+        if (data.nomClient) setNomClient(data.nomClient);
+        if (data.emailCommanditaire) setEmailCommanditaire(data.emailCommanditaire);
+        if (data.typeDevis) setTypeDevis(data.typeDevis);
+      }
+    } catch (e) {
+      console.error("Failed to load saved form data:", e);
+    }
+  }, []);
+
+  // Save form data to sessionStorage when key fields change
+  useEffect(() => {
+    const data = {
+      formatFormation,
+      formationDemandee,
+      formationLibre,
+      dateFormation,
+      dateFormationLibre,
+      lieu,
+      lieuAutre,
+      nomClient,
+      emailCommanditaire,
+      typeDevis,
+    };
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  }, [formatFormation, formationDemandee, formationLibre, dateFormation, dateFormationLibre, lieu, lieuAutre, nomClient, emailCommanditaire, typeDevis]);
+
+  // Load devis history when dialog opens
+  const loadDevisHistory = async () => {
+    setLoadingHistory(true);
+    try {
+      const { data, error } = await supabase
+        .from("activity_logs")
+        .select("id, created_at, recipient_email, details")
+        .eq("action_type", "micro_devis_sent")
+        .order("created_at", { ascending: false })
+        .limit(100);
+
+      if (error) throw error;
+
+      setDevisHistory((data || []) as DevisHistoryItem[]);
+    } catch (error) {
+      console.error("Error loading devis history:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de charger l'historique des devis",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
+  useEffect(() => {
+    if (historyDialogOpen) {
+      loadDevisHistory();
+    }
+  }, [historyDialogOpen]);
+
+  // Filter history by search term
+  const filteredHistory = devisHistory.filter((item) => {
+    const searchLower = historySearch.toLowerCase();
+    return (
+      item.recipient_email?.toLowerCase().includes(searchLower) ||
+      item.details?.formation_name?.toLowerCase().includes(searchLower) ||
+      item.details?.client_name?.toLowerCase().includes(searchLower)
+    );
+  });
 
   // Auto-set lieu when formation contains "en ligne"
   useEffect(() => {
@@ -678,14 +786,88 @@ const MicroDevis = () => {
 
         <Card className="border-2 shadow-xl">
           <CardHeader>
-            <div>
-              <CardTitle className="text-2xl flex items-center gap-2">
-                <FileText className="w-6 h-6 text-primary" />
-                Micro-devis
-              </CardTitle>
-              <CardDescription>
-                Créez des devis rapides et simplifiés
-              </CardDescription>
+            <div className="flex items-start justify-between">
+              <div>
+                <CardTitle className="text-2xl flex items-center gap-2">
+                  <FileText className="w-6 h-6 text-primary" />
+                  Micro-devis
+                </CardTitle>
+                <CardDescription>
+                  Créez des devis rapides et simplifiés
+                </CardDescription>
+              </div>
+              <Dialog open={historyDialogOpen} onOpenChange={setHistoryDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <History className="w-4 h-4 mr-2" />
+                    Historique
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>Historique des devis envoyés</DialogTitle>
+                    <DialogDescription>
+                      Retrouvez les devis envoyés précédemment
+                    </DialogDescription>
+                  </DialogHeader>
+
+                  <div className="space-y-4">
+                    {/* Search */}
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Rechercher par email, formation ou client..."
+                        value={historySearch}
+                        onChange={(e) => setHistorySearch(e.target.value)}
+                        className="pl-9"
+                      />
+                    </div>
+
+                    {/* History list */}
+                    {loadingHistory ? (
+                      <div className="flex justify-center py-8">
+                        <Loader2 className="w-6 h-6 animate-spin" />
+                      </div>
+                    ) : filteredHistory.length === 0 ? (
+                      <p className="text-center text-muted-foreground py-8">
+                        {historySearch ? "Aucun résultat trouvé" : "Aucun devis envoyé"}
+                      </p>
+                    ) : (
+                      <div className="space-y-3">
+                        {filteredHistory.map((item) => (
+                          <div
+                            key={item.id}
+                            className="border rounded-lg p-4 space-y-2 hover:bg-muted/50 transition-colors"
+                          >
+                            <div className="flex items-start justify-between">
+                              <div className="space-y-1">
+                                <p className="font-medium text-sm">
+                                  {item.details?.formation_name || "Formation"}
+                                </p>
+                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                  <Mail className="w-3 h-3" />
+                                  <span>{item.recipient_email}</span>
+                                </div>
+                              </div>
+                              <span className="text-xs text-muted-foreground">
+                                {format(new Date(item.created_at), "d MMM yyyy HH:mm", { locale: fr })}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                              <span>Client : {item.details?.client_name || "—"}</span>
+                              <span>Participants : {item.details?.nb_participants || "—"}</span>
+                              <span className="capitalize">
+                                {item.details?.type_subrogation === "les2" ? "2 versions" :
+                                 item.details?.type_subrogation === "avec" ? "Avec subrogation" : "Sans subrogation"}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </DialogContent>
+              </Dialog>
             </div>
           </CardHeader>
           <CardContent>
@@ -873,7 +1055,28 @@ const MicroDevis = () => {
               {typeDevis === "formation" && (
                 <div className="space-y-4 p-4 bg-primary/5 rounded-lg border border-primary/20">
                   <h3 className="text-lg font-semibold text-primary">Formation</h3>
-                  
+
+                  {/* Formation type: intra or inter */}
+                  <div className="space-y-3">
+                    <Label>Type de formation *</Label>
+                    <RadioGroup value={formatFormation} onValueChange={(v) => setFormatFormation(v as "intra" | "inter")} className="flex gap-6">
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="intra" id="format-intra" />
+                        <Label htmlFor="format-intra" className="font-normal cursor-pointer">
+                          Intra-entreprise
+                          <span className="text-xs text-muted-foreground ml-1">(formation sur-mesure)</span>
+                        </Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="inter" id="format-inter" />
+                        <Label htmlFor="format-inter" className="font-normal cursor-pointer">
+                          Inter-entreprises
+                          <span className="text-xs text-muted-foreground ml-1">(catalogue)</span>
+                        </Label>
+                      </div>
+                    </RadioGroup>
+                  </div>
+
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <Label htmlFor="participants">
@@ -1157,29 +1360,45 @@ const MicroDevis = () => {
                         </DialogContent>
                       </Dialog>
                     </div>
-                    <Select value={formationDemandee} onValueChange={setFormationDemandee}>
-                      <SelectTrigger className="w-full bg-background">
-                        <SelectValue placeholder="Sélectionner une formation" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-background border shadow-lg z-50">
-                        {formationConfigs.map((config) => (
-                          <SelectItem key={config.id} value={config.formation_name}>
-                            <div className="flex items-center gap-2">
-                              {config.is_default && <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />}
-                              <span>{config.formation_name}</span>
-                              <span className="text-muted-foreground text-xs">
-                                ({config.prix}€ • {config.duree_heures}h)
-                              </span>
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+
+                    {/* Inter-entreprises: select from catalog */}
+                    {formatFormation === "inter" && (
+                      <Select value={formationDemandee} onValueChange={setFormationDemandee}>
+                        <SelectTrigger className="w-full bg-background">
+                          <SelectValue placeholder="Sélectionner une formation" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-background border shadow-lg z-50">
+                          {formationConfigs.map((config) => (
+                            <SelectItem key={config.id} value={config.formation_name}>
+                              <div className="flex items-center gap-2">
+                                {config.is_default && <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />}
+                                <span>{config.formation_name}</span>
+                                <span className="text-muted-foreground text-xs">
+                                  ({config.prix}€ • {config.duree_heures}h)
+                                </span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+
+                    {/* Intra-entreprise: free text input */}
+                    {formatFormation === "intra" && (
+                      <Input
+                        placeholder="Nom de la formation souhaitée"
+                        value={formationLibre}
+                        onChange={(e) => setFormationLibre(e.target.value)}
+                        required
+                      />
+                    )}
                   </div>
 
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <Label>Dates de la formation *</Label>
+                      {/* Only show "Gérer" button for inter-entreprises */}
+                      {formatFormation === "inter" && (
                       <Dialog open={datesDialogOpen} onOpenChange={setDatesDialogOpen}>
                         <DialogTrigger asChild>
                           <Button variant="ghost" size="sm" className="h-6 px-2">
@@ -1414,38 +1633,61 @@ const MicroDevis = () => {
                           </div>
                         </DialogContent>
                       </Dialog>
+                      )}
                     </div>
-                    {formationDates.length > 0 ? (
-                      <Select value={dateFormation} onValueChange={setDateFormation}>
-                        <SelectTrigger className="w-full bg-background">
-                          <SelectValue placeholder="Sélectionner une date" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-background border shadow-lg z-50">
-                          {formationDates.map((dateConfig) => (
-                            <SelectItem key={dateConfig.id} value={dateConfig.date_label}>
-                              <div className="flex items-center gap-2">
-                                {dateConfig.is_default && <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />}
-                                <span>{dateConfig.date_label}</span>
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    ) : (
-                      <Input
-                        id="dateFormation"
-                        placeholder="Ex: 15 et 16 janvier 2026, ou Du 10 au 14 mars 2026"
-                        value={dateFormation}
-                        onChange={(e) => setDateFormation(e.target.value)}
-                        required
-                      />
+
+                    {/* Inter-entreprises: select from predefined dates */}
+                    {formatFormation === "inter" && (
+                      <>
+                        {formationDates.length > 0 ? (
+                          <Select value={dateFormation} onValueChange={setDateFormation}>
+                            <SelectTrigger className="w-full bg-background">
+                              <SelectValue placeholder="Sélectionner une date" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-background border shadow-lg z-50">
+                              {formationDates.map((dateConfig) => (
+                                <SelectItem key={dateConfig.id} value={dateConfig.date_label}>
+                                  <div className="flex items-center gap-2">
+                                    {dateConfig.is_default && <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />}
+                                    <span>{dateConfig.date_label}</span>
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <Input
+                            id="dateFormation"
+                            placeholder="Ex: 15 et 16 janvier 2026, ou Du 10 au 14 mars 2026"
+                            value={dateFormation}
+                            onChange={(e) => setDateFormation(e.target.value)}
+                            required
+                          />
+                        )}
+                        <p className="text-xs text-muted-foreground">
+                          {formationDates.length > 0
+                            ? "Sélectionnez une date ou gérez les dates disponibles"
+                            : "Saisissez les dates au format souhaité (ex: \"26 et 27 janvier 2026\")"
+                          }
+                        </p>
+                      </>
                     )}
-                    <p className="text-xs text-muted-foreground">
-                      {formationDates.length > 0 
-                        ? "Sélectionnez une date ou gérez les dates disponibles" 
-                        : "Saisissez les dates au format souhaité (ex: \"26 et 27 janvier 2026\")"
-                      }
-                    </p>
+
+                    {/* Intra-entreprise: free text input for dates */}
+                    {formatFormation === "intra" && (
+                      <>
+                        <Input
+                          id="dateFormationLibre"
+                          placeholder="Ex: 15 et 16 janvier 2026, ou Du 10 au 14 mars 2026, ou À définir"
+                          value={dateFormationLibre}
+                          onChange={(e) => setDateFormationLibre(e.target.value)}
+                          required
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Saisissez les dates souhaitées ou "À définir" si pas encore fixées
+                        </p>
+                      </>
+                    )}
                   </div>
 
                   <div className="space-y-3">

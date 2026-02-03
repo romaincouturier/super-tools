@@ -296,6 +296,8 @@ const Evaluation = () => {
 
   // Already submitted view
   if (evaluation.etat === "soumis" && evaluation.date_soumission) {
+    const trainingSummaryUrl = `/formation-info/${evaluation.training_id}`;
+
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
         <Card className="max-w-md w-full">
@@ -308,16 +310,25 @@ const Evaluation = () => {
             <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
               <CheckCircle2 className="w-8 h-8 text-green-600" />
             </div>
-            <CardTitle>Évaluation déjà soumise</CardTitle>
+            <CardTitle>Merci pour votre retour !</CardTitle>
             <CardDescription>
-              Vous avez déjà envoyé votre évaluation le{" "}
+              Vous avez envoyé votre évaluation pour la formation <strong>{training.training_name}</strong> le{" "}
               {format(new Date(evaluation.date_soumission), "d MMMM yyyy à HH:mm", { locale: fr })}.
             </CardDescription>
           </CardHeader>
-          <CardContent className="text-center">
+          <CardContent className="text-center space-y-4">
             <p className="text-muted-foreground">
-              Merci pour votre retour sur la formation <strong>{training.training_name}</strong>.
+              Votre certificat de réalisation vous sera envoyé par email.
             </p>
+            <p className="text-muted-foreground">
+              Les supports de la formation restent disponibles sur la page de synthèse de la formation.
+            </p>
+            <Link
+              to={trainingSummaryUrl}
+              className="inline-block bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 transition-colors"
+            >
+              Voir la page de la formation
+            </Link>
           </CardContent>
         </Card>
       </div>

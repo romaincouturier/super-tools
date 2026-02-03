@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Plus, Calendar, ArrowLeft, ArrowUpDown, ChevronLeft, ChevronRight } from "lucide-react";
-import { format, parseISO, isPast } from "date-fns";
+import { format, parseISO, isPast, differenceInDays } from "date-fns";
 import { fr } from "date-fns/locale";
 import AppHeader from "@/components/AppHeader";
 import { Button } from "@/components/ui/button";
@@ -43,7 +43,7 @@ interface TrainingAction {
   status: string;
 }
 
-type SortField = "date" | "title" | "client";
+type SortField = "date" | "title" | "client" | "location";
 type SortOrder = "asc" | "desc";
 
 const Formations = () => {
@@ -130,7 +130,7 @@ const Formations = () => {
   const sortedPastTrainings = useMemo(() => {
     const sorted = [...pastTrainings].sort((a, b) => {
       let comparison = 0;
-      
+
       switch (sortField) {
         case "date":
           comparison = new Date(a.start_date).getTime() - new Date(b.start_date).getTime();
@@ -141,11 +141,14 @@ const Formations = () => {
         case "client":
           comparison = a.client_name.localeCompare(b.client_name, "fr");
           break;
+        case "location":
+          comparison = a.location.localeCompare(b.location, "fr");
+          break;
       }
-      
+
       return sortOrder === "asc" ? comparison : -comparison;
     });
-    
+
     return sorted;
   }, [pastTrainings, sortField, sortOrder]);
 
@@ -183,6 +186,14 @@ const Formations = () => {
       return `${format(start, "d", { locale: fr })} - ${format(end, "d MMMM yyyy", { locale: fr })}`;
     }
     return `${format(start, "d MMM", { locale: fr })} - ${format(end, "d MMM yyyy", { locale: fr })}`;
+  };
+
+  // Calculate days until training start
+  const getDaysUntilStart = (startDate: string) => {
+    const start = parseISO(startDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return differenceInDays(start, today);
   };
 
   const SortableHeader = ({ field, children }: { field: SortField; children: React.ReactNode }) => (
@@ -299,43 +310,58 @@ const Formations = () => {
                   <TableHeader>
                     <TableRow>
                       <SortableHeader field="date">Date</SortableHeader>
-                      <SortableHeader field="title">Formation</SortableHeader>
-                      <TableHead>Lieu</TableHead>
                       <SortableHeader field="client">Client</SortableHeader>
+                      <SortableHeader field="title">Formation</SortableHeader>
+                      <SortableHeader field="location">Lieu</SortableHeader>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredTrainings.map((training) => (
-                      <TableRow
-                        key={training.id}
-                        className="cursor-pointer hover:bg-muted/50"
-                        onClick={() => navigate(`/formations/${training.id}`)}
-                      >
-                        <TableCell className="font-medium">
-                          {formatDateRange(training.start_date, training.end_date)}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            {training.training_name}
-                            {(training.participant_count ?? 0) > 0 && (
-                              <Badge variant="secondary" className="text-xs px-1.5 py-0">
-                                {training.participant_count}
-                              </Badge>
-                            )}
-                            {hasActions(training.id) && (
-                              <span 
-                                className="inline-block w-2.5 h-2.5 rounded-full bg-warning" 
-                                title="Actions programmées"
-                              />
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>{training.location}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{training.client_name}</Badge>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    {filteredTrainings.map((training) => {
+                      const daysUntil = getDaysUntilStart(training.start_date);
+                      const isUpcoming = filter === "upcoming";
+
+                      return (
+                        <TableRow
+                          key={training.id}
+                          className="cursor-pointer hover:bg-muted/50"
+                          onClick={() => navigate(`/formations/${training.id}`)}
+                        >
+                          <TableCell className="font-medium">
+                            <div className="flex items-center gap-2">
+                              {formatDateRange(training.start_date, training.end_date)}
+                              {isUpcoming && daysUntil >= 0 && (
+                                <Badge
+                                  variant={daysUntil <= 7 ? "default" : "secondary"}
+                                  className={`text-xs px-1.5 py-0 ${daysUntil <= 2 ? "bg-warning text-warning-foreground" : ""}`}
+                                >
+                                  J-{daysUntil}
+                                </Badge>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline">{training.client_name}</Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              {training.training_name}
+                              {(training.participant_count ?? 0) > 0 && (
+                                <Badge variant="secondary" className="text-xs px-1.5 py-0">
+                                  {training.participant_count}
+                                </Badge>
+                              )}
+                              {hasActions(training.id) && (
+                                <span
+                                  className="inline-block w-2.5 h-2.5 rounded-full bg-warning"
+                                  title="Actions programmées"
+                                />
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>{training.location}</TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
 

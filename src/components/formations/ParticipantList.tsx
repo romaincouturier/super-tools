@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import ViewQuestionnaireDialog from "./ViewQuestionnaireDialog";
 import ParticipantDocumentsDialog from "./ParticipantDocumentsDialog";
+import EditParticipantDialog from "./EditParticipantDialog";
 
 interface Participant {
   id: string;
@@ -44,6 +45,9 @@ interface Participant {
   sponsor_first_name?: string | null;
   sponsor_last_name?: string | null;
   sponsor_email?: string | null;
+  financeur_same_as_sponsor?: boolean;
+  financeur_name?: string | null;
+  financeur_url?: string | null;
   invoice_file_url?: string | null;
   payment_mode?: string;
 }
@@ -432,6 +436,14 @@ const ParticipantList = ({
                         </TooltipContent>
                       </Tooltip>
                     )}
+
+                    {/* Edit participant button */}
+                    <EditParticipantDialog
+                      participant={participant}
+                      trainingId={trainingId}
+                      formatFormation={formatFormation}
+                      onParticipantUpdated={onParticipantUpdated}
+                    />
 
                     <AlertDialog>
                       <AlertDialogTrigger asChild>

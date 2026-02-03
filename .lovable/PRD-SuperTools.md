@@ -54,10 +54,16 @@
 
 ### 3.1 Fonctionnalités
 
-- Sélection d'une formation parmi les configurations enregistrées
+- **Mode Intra/Inter-entreprises** :
+  - **Intra** : Formation et dates en saisie libre (sur-mesure)
+  - **Inter** : Sélection parmi le catalogue de formations et dates prédéfinies
+- Sélection d'une formation parmi les configurations enregistrées (mode inter)
 - Saisie des informations client (entreprise, SIREN, contact)
 - Génération automatique d'un PDF de devis
 - Recherche SIREN via API pour auto-complétion
+- **Persistance des champs** : Les données du formulaire sont conservées en sessionStorage (formation, dates, client, lieu) pour éviter la perte en cas de changement d'onglet
+- **Historique des devis** : Consultation de tous les devis envoyés avec recherche par email, client ou formation
+- Signature Signitic automatiquement ajoutée aux emails
 
 ### 3.2 Gestion des formations
 
@@ -83,7 +89,11 @@ Si le nom de la formation contient "en ligne", le lieu est automatiquement défi
 #### Informations générales
 - **Nom de la formation** : Sélection via combobox (formations existantes ou saisie libre)
 - **Client** : Nom de l'entreprise cliente
-- **Lieu** : Adresse de la formation
+- **Lieu** : Sélection parmi les lieux prédéfinis :
+  - En ligne en accédant à son compte sur supertilt.fr
+  - Espace Gailleton, 2 Pl. Gailleton, 69002 Lyon
+  - Agile Tribu, 4ter Pass. de la Main d'Or, 75011 Paris
+  - Autre (saisie libre)
 - **Format** : Présentiel / Distanciel / Hybride / Inter-entreprises
 - **Formateur** : Nom du formateur
 
@@ -133,6 +143,11 @@ Si le nom de la formation contient "en ligne", le lieu est automatiquement défi
 #### Ajout de participants
 - **Unitaire** : Email, Prénom, Nom, Entreprise
 - **En lot** : Parsing de texte (format flexible)
+
+#### Modification de participants
+- **Édition** : Bouton d'édition sur chaque ligne du tableau participants
+- Modification de tous les champs : email, prénom, nom, entreprise
+- Pour les formations inter-entreprises : modification du commanditaire et financeur
 
 ##### Format d'ajout en lot - Intra-entreprise
 ```
@@ -256,6 +271,14 @@ Système de signature électronique simple légalement reconnue en France et dan
 - Export individuel par participant
 
 ### 4.7 Interface utilisateur
+
+#### Liste des formations (Formations.tsx)
+- **Compteur J-X** : Affichage du nombre de jours avant le début de chaque formation à venir (badge J-X)
+  - Badge orange si J-2 ou moins
+  - Badge neutre sinon
+- **Colonnes du tableau** : Date | Client | Formation | Lieu
+- **Tri** : Toutes les colonnes sont triables (date, client, formation, lieu)
+- **Pagination** : Navigation entre pages de résultats
 
 #### Page détail (FormationDetail.tsx)
 Structure en deux colonnes :
@@ -562,8 +585,8 @@ Grille de modules avec icônes et descriptions.
 
 ---
 
-*Document mis à jour le 2 février 2026*
-*Version : 1.1*
+*Document mis à jour le 3 février 2026*
+*Version : 1.2*
 
 ### Historique des versions
 
@@ -571,3 +594,4 @@ Grille de modules avec icônes et descriptions.
 |---------|------|---------------|
 | 1.0 | 30 janvier 2026 | Version initiale |
 | 1.1 | 2 février 2026 | Ajout gestion financeur intra/inter-entreprises, relances évaluation J+2/J+5 |
+| 1.2 | 3 février 2026 | Compteur J-X formations, édition participants, lieux prédéfinis, micro-devis intra/inter, historique devis, tri tableau formations |
