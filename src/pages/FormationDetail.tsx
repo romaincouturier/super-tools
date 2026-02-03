@@ -268,20 +268,50 @@ const FormationDetail = () => {
   };
 
   const formatDateWithSchedule = (startDate: string, endDate: string | null, schedulesList: Schedule[]) => {
-    const start = parseISO(startDate);
-    
-    // Get unique time range (assuming consistent times across days)
-    let timeRange = "";
+    // If we have actual schedules, use them for display
     if (schedulesList.length > 0) {
+      const totalDays = schedulesList.length;
       const firstSchedule = schedulesList[0];
-      timeRange = ` • ${firstSchedule.start_time.slice(0, 5)} - ${firstSchedule.end_time.slice(0, 5)}`;
+      const lastSchedule = schedulesList[schedulesList.length - 1];
+      const firstDate = parseISO(firstSchedule.day_date);
+      const lastDate = parseISO(lastSchedule.day_date);
+
+      // Check if all days have same times
+      const allSameTimes = schedulesList.every(
+        s => s.start_time === firstSchedule.start_time && s.end_time === firstSchedule.end_time
+      );
+      const timeInfo = allSameTimes
+        ? ` • ${firstSchedule.start_time.slice(0, 5)} - ${firstSchedule.end_time.slice(0, 5)}`
+        : " • horaires variables";
+
+      if (totalDays === 1) {
+        return format(firstDate, "EEEE d MMMM yyyy", { locale: fr }) + timeInfo;
+      }
+
+      // Check if days are contiguous
+      const isContiguous = schedulesList.every((schedule, index) => {
+        if (index === 0) return true;
+        const prevDate = parseISO(schedulesList[index - 1].day_date);
+        const currDate = parseISO(schedule.day_date);
+        const diffDays = Math.round((currDate.getTime() - prevDate.getTime()) / (1000 * 60 * 60 * 24));
+        return diffDays === 1;
+      });
+
+      if (isContiguous) {
+        return `Du ${format(firstDate, "EEEE d MMMM", { locale: fr })} au ${format(lastDate, "EEEE d MMMM yyyy", { locale: fr })}${timeInfo}`;
+      }
+
+      // Non-contiguous: show number of days and date range
+      return `${totalDays} jours • ${format(firstDate, "d MMM", { locale: fr })} au ${format(lastDate, "d MMM yyyy", { locale: fr })}${timeInfo}`;
     }
-    
+
+    // Fallback to start/end dates if no schedules
+    const start = parseISO(startDate);
     if (!endDate) {
-      return format(start, "EEEE d MMMM yyyy", { locale: fr }) + timeRange;
+      return format(start, "EEEE d MMMM yyyy", { locale: fr });
     }
     const end = parseISO(endDate);
-    return `Du ${format(start, "EEEE d MMMM", { locale: fr })} au ${format(end, "EEEE d MMMM yyyy", { locale: fr })}${timeRange}`;
+    return `Du ${format(start, "EEEE d MMMM", { locale: fr })} au ${format(end, "EEEE d MMMM yyyy", { locale: fr })}`;
   };
 
   const getFormatLabel = (formatValue: string | null) => {
@@ -714,6 +744,44 @@ const FormationDetail = () => {
                         <li key={index}>{obj}</li>
                       ))}
                     </ul>
+                  </div>
+                </>
+              )}
+
+              {/* Training Schedule Details */}
+              {schedules.length > 0 && (
+                <>
+                  <Separator />
+                  <div>
+                    <p className="text-sm font-medium mb-2 flex items-center gap-2">
+                      <Clock className="h-4 w-4" />
+                      Planning ({schedules.length} session{schedules.length > 1 ? "s" : ""})
+                    </p>
+                    <div className="space-y-1.5">
+                      {schedules.map((schedule) => {
+                        const date = parseISO(schedule.day_date);
+                        const duration = (() => {
+                          const [startH, startM] = schedule.start_time.split(":").map(Number);
+                          const [endH, endM] = schedule.end_time.split(":").map(Number);
+                          const hours = (endH * 60 + endM - startH * 60 - startM) / 60;
+                          return hours <= 4 ? 3.5 : 7;
+                        })();
+                        return (
+                          <div
+                            key={schedule.id}
+                            className="flex items-center justify-between text-sm py-1.5 px-2 rounded bg-muted/50"
+                          >
+                            <span className="capitalize font-medium">
+                              {format(date, "EEEE d MMMM", { locale: fr })}
+                            </span>
+                            <span className="text-muted-foreground">
+                              {schedule.start_time.slice(0, 5)} - {schedule.end_time.slice(0, 5)}
+                              <span className="ml-2 text-xs">({duration}h)</span>
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 </>
               )}
