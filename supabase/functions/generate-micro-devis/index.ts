@@ -35,6 +35,9 @@ interface RequestBody {
   // Additional fields for duplication feature
   typeDevis?: "formation" | "jeu";
   formatFormation?: "intra" | "inter";
+  formationLibre?: string;
+  dateFormationLibre?: string;
+  lieuAutre?: string;
 }
 
 const PDFMONKEY_TEMPLATE_ID = "C3BC00C9-232F-4ADD-9D1F-9FD176573E93";
@@ -452,8 +455,11 @@ serve(async (req: Request): Promise<Response> => {
             isAdministration: body.isAdministration,
             noteDevis: body.noteDevis,
             formationDemandee: body.formationDemandee,
+            formationLibre: body.formationLibre || "",
             dateFormation: body.dateFormation,
+            dateFormationLibre: body.dateFormationLibre || "",
             lieu: body.lieu,
+            lieuAutre: body.lieuAutre || "",
             includeCadeau: body.includeCadeau,
             fraisDossier: body.fraisDossier,
             participants: body.participants,
