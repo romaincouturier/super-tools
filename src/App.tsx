@@ -25,6 +25,7 @@ const Auth = lazy(() => import("./pages/Auth"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const ForcePasswordChange = lazy(() => import("./pages/ForcePasswordChange"));
 const Emargement = lazy(() => import("./pages/Emargement"));
+const SignatureDevis = lazy(() => import("./pages/SignatureDevis"));
 const ContentBoard = lazy(() => import("./pages/ContentBoard"));
 const BesoinsParticipants = lazy(() => import("./pages/BesoinsParticipants"));
 const TrainingSummary = lazy(() => import("./pages/TrainingSummary"));
@@ -77,6 +78,8 @@ const App = () => (
             <Route path="/evaluation/:token" element={<Evaluation />} />
             {/* Public attendance signature */}
             <Route path="/emargement/:token" element={<Emargement />} />
+            {/* Public devis signature */}
+            <Route path="/signature-devis/:token" element={<SignatureDevis />} />
             {/* Public training summary for participants */}
             <Route path="/formation-info/:trainingId" element={<TrainingSummary />} />
             {/* Privacy policy */}
