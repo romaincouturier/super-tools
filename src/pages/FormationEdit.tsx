@@ -36,6 +36,11 @@ const FormationEdit = () => {
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [trainingName, setTrainingName] = useState("");
   const [location, setLocation] = useState("");
+
+  // E-learning specific fields
+  const [elearningStartDate, setElearningStartDate] = useState<Date | null>(null);
+  const [elearningEndDate, setElearningEndDate] = useState<Date | null>(null);
+  const [elearningDuration, setElearningDuration] = useState<string>("");
   const [clientName, setClientName] = useState("");
   const [formatFormation, setFormatFormation] = useState<string>("");
   const [prerequisites, setPrerequisites] = useState<string[]>([]);
@@ -119,33 +124,44 @@ const FormationEdit = () => {
       setFinanceurName(training.financeur_name || "");
       setFinanceurUrl(training.financeur_url || "");
 
-      // Fetch schedules to get actual training days
-      const { data: schedulesData } = await supabase
-        .from("training_schedules")
-        .select("*")
-        .eq("training_id", id)
-        .order("day_date", { ascending: true });
-
-      if (schedulesData && schedulesData.length > 0) {
-        // Set selected dates from schedules (actual training days)
-        const dates = schedulesData.map(s => parseISO(s.day_date));
-        setSelectedDates(dates);
-
-        setSchedules(schedulesData.map(s => ({
-          day_date: s.day_date,
-          start_time: s.start_time,
-          end_time: s.end_time,
-        })));
+      // For e-learning, load start/end dates directly (no schedules)
+      if (training.format_formation === "e_learning") {
+        setElearningStartDate(parseISO(training.start_date));
+        if (training.end_date) {
+          setElearningEndDate(parseISO(training.end_date));
+        }
+        // E-learning has no schedules
+        setSchedules([]);
+        setSelectedDates([]);
       } else {
-        // Fallback to start_date if no schedules exist
-        const start = parseISO(training.start_date);
-        setSelectedDates([start]);
-        setSchedules([{
-          day_date: training.start_date,
-          start_time: SESSION_PRESETS.full.start,
-          end_time: SESSION_PRESETS.full.end,
-          session_type: "full",
-        }]);
+        // Fetch schedules to get actual training days
+        const { data: schedulesData } = await supabase
+          .from("training_schedules")
+          .select("*")
+          .eq("training_id", id)
+          .order("day_date", { ascending: true });
+
+        if (schedulesData && schedulesData.length > 0) {
+          // Set selected dates from schedules (actual training days)
+          const dates = schedulesData.map(s => parseISO(s.day_date));
+          setSelectedDates(dates);
+
+          setSchedules(schedulesData.map(s => ({
+            day_date: s.day_date,
+            start_time: s.start_time,
+            end_time: s.end_time,
+          })));
+        } else {
+          // Fallback to start_date if no schedules exist
+          const start = parseISO(training.start_date);
+          setSelectedDates([start]);
+          setSchedules([{
+            day_date: training.start_date,
+            start_time: SESSION_PRESETS.full.start,
+            end_time: SESSION_PRESETS.full.end,
+            session_type: "full",
+          }]);
+        }
       }
 
       setDataLoaded(true);
@@ -227,11 +243,17 @@ const FormationEdit = () => {
 
   // Get start and end dates from selected dates
   const getStartDate = (): Date | null => {
+    if (formatFormation === "e_learning") {
+      return elearningStartDate;
+    }
     if (selectedDates.length === 0) return null;
     return selectedDates.reduce((min, d) => d < min ? d : min, selectedDates[0]);
   };
 
   const getEndDate = (): Date | null => {
+    if (formatFormation === "e_learning") {
+      return elearningEndDate;
+    }
     if (selectedDates.length <= 1) return null;
     return selectedDates.reduce((max, d) => d > max ? d : max, selectedDates[0]);
   };
@@ -247,10 +269,18 @@ const FormationEdit = () => {
     const startDate = getStartDate();
     const endDate = getEndDate();
 
-    if (selectedDates.length === 0 || !trainingName || !location || !clientName || !user || !id) {
+    // Validate dates based on format
+    const isElearning = formatFormation === "e_learning";
+    const hasValidDates = isElearning
+      ? (elearningStartDate && elearningEndDate)
+      : (selectedDates.length > 0);
+
+    if (!hasValidDates || !trainingName || !location || !clientName || !user || !id) {
       toast({
         title: "Champs requis",
-        description: "Veuillez remplir tous les champs obligatoires (dates, nom, lieu, client).",
+        description: isElearning
+          ? "Veuillez remplir tous les champs obligatoires (dates de début et fin, nom, lieu, client)."
+          : "Veuillez remplir tous les champs obligatoires (dates, nom, lieu, client).",
         variant: "destructive",
       });
       return;
@@ -420,50 +450,124 @@ const FormationEdit = () => {
                     />
                   </div>
 
-                  {/* Dates - Multi-select calendar */}
-                  <div className="space-y-2">
-                    <Label>Jours de formation *</Label>
-                    <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full justify-start text-left font-normal",
-                            selectedDates.length === 0 && "text-muted-foreground"
-                          )}
-                        >
-                          <Calendar className="mr-2 h-4 w-4" />
-                          {formatSelectedDates()}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <CalendarComponent
-                          mode="multiple"
-                          selected={selectedDates}
-                          onSelect={(dates) => setSelectedDates(dates || [])}
-                          initialFocus
-                          className="pointer-events-auto"
-                          locale={fr}
-                        />
-                        <div className="border-t p-3 flex justify-between items-center">
-                          <span className="text-sm text-muted-foreground">
-                            {selectedDates.length} jour{selectedDates.length > 1 ? "s" : ""} sélectionné{selectedDates.length > 1 ? "s" : ""}
-                          </span>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => setSelectedDates([])}
-                            disabled={selectedDates.length === 0}
-                          >
-                            Effacer
-                          </Button>
+                  {/* Dates - different UI for e-learning vs regular training */}
+                  {formatFormation === "e_learning" ? (
+                    /* E-learning: simple start/end dates + duration */
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Date de début *</Label>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant="outline"
+                                className={cn(
+                                  "w-full justify-start text-left font-normal",
+                                  !elearningStartDate && "text-muted-foreground"
+                                )}
+                              >
+                                <Calendar className="mr-2 h-4 w-4" />
+                                {elearningStartDate ? format(elearningStartDate, "d MMMM yyyy", { locale: fr }) : "Sélectionner"}
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <CalendarComponent
+                                mode="single"
+                                selected={elearningStartDate || undefined}
+                                onSelect={(date) => setElearningStartDate(date || null)}
+                                initialFocus
+                                locale={fr}
+                              />
+                            </PopoverContent>
+                          </Popover>
                         </div>
-                      </PopoverContent>
-                    </Popover>
-                    <p className="text-xs text-muted-foreground">
-                      Cliquez sur plusieurs dates pour les sélectionner (journées contigües ou espacées)
-                    </p>
-                  </div>
+                        <div className="space-y-2">
+                          <Label>Date de fin *</Label>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant="outline"
+                                className={cn(
+                                  "w-full justify-start text-left font-normal",
+                                  !elearningEndDate && "text-muted-foreground"
+                                )}
+                              >
+                                <Calendar className="mr-2 h-4 w-4" />
+                                {elearningEndDate ? format(elearningEndDate, "d MMMM yyyy", { locale: fr }) : "Sélectionner"}
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <CalendarComponent
+                                mode="single"
+                                selected={elearningEndDate || undefined}
+                                onSelect={(date) => setElearningEndDate(date || null)}
+                                initialFocus
+                                locale={fr}
+                              />
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="elearningDuration">Durée totale (heures)</Label>
+                        <Input
+                          id="elearningDuration"
+                          type="number"
+                          placeholder="Ex: 25"
+                          value={elearningDuration}
+                          onChange={(e) => setElearningDuration(e.target.value)}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Durée estimée du parcours e-learning
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    /* Regular training: Multi-select calendar for specific days */
+                    <div className="space-y-2">
+                      <Label>Jours de formation *</Label>
+                      <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full justify-start text-left font-normal",
+                              selectedDates.length === 0 && "text-muted-foreground"
+                            )}
+                          >
+                            <Calendar className="mr-2 h-4 w-4" />
+                            {formatSelectedDates()}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <CalendarComponent
+                            mode="multiple"
+                            selected={selectedDates}
+                            onSelect={(dates) => setSelectedDates(dates || [])}
+                            initialFocus
+                            className="pointer-events-auto"
+                            locale={fr}
+                          />
+                          <div className="border-t p-3 flex justify-between items-center">
+                            <span className="text-sm text-muted-foreground">
+                              {selectedDates.length} jour{selectedDates.length > 1 ? "s" : ""} sélectionné{selectedDates.length > 1 ? "s" : ""}
+                            </span>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setSelectedDates([])}
+                              disabled={selectedDates.length === 0}
+                            >
+                              Effacer
+                            </Button>
+                          </div>
+                        </PopoverContent>
+                      </Popover>
+                      <p className="text-xs text-muted-foreground">
+                        Cliquez sur plusieurs dates pour les sélectionner (journées contigües ou espacées)
+                      </p>
+                    </div>
+                  )}
 
                   {/* Location and client */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -638,8 +742,8 @@ const FormationEdit = () => {
                 </CardContent>
               </Card>
 
-              {/* Schedules */}
-              {selectedDates.length > 0 && schedules.length > 0 && (
+              {/* Schedules (not for e-learning) */}
+              {formatFormation !== "e_learning" && selectedDates.length > 0 && schedules.length > 0 && (
                 <ScheduleEditor
                   schedules={schedules}
                   onSchedulesChange={setSchedules}
