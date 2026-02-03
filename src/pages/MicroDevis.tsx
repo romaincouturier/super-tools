@@ -130,6 +130,8 @@ const MicroDevis = () => {
     fraisDossier: boolean;
     participants: string;
     typeSubrogation: "sans" | "avec" | "les2";
+    typeDevis: "formation" | "jeu";
+    formatFormation: "intra" | "inter";
   }
 
   interface DevisHistoryItem {
@@ -341,10 +343,10 @@ const MicroDevis = () => {
       }
       setEmailCommanditaire(formData.emailCommanditaire || "");
       setAdresseCommanditaire(formData.adresseCommanditaire || "");
-      setTypeDevis("formation");
+      setTypeDevis(formData.typeDevis || "formation");
       setIsAdministration(formData.isAdministration ? "oui" : "non");
       setNoteDevis(formData.noteDevis || "");
-      setFormatFormation("inter"); // Default to inter since we have formation from catalog
+      setFormatFormation(formData.formatFormation || "inter");
       setFormationDemandee(formData.formationDemandee || "");
       setDateFormation(formData.dateFormation || "");
       setParticipants(formData.participants || "");
@@ -786,6 +788,9 @@ const MicroDevis = () => {
           nbParticipants: countParticipants(),
           participants,
           typeSubrogation,
+          // Additional fields for duplication feature
+          typeDevis,
+          formatFormation,
         },
       });
 
