@@ -500,7 +500,7 @@ const FormationEdit = () => {
                       <SelectContent>
                         <SelectItem value="intra">Intra-entreprise</SelectItem>
                         <SelectItem value="inter-entreprises">Inter-entreprises</SelectItem>
-                        <SelectItem value="classe_virtuelle">Classe virtuelle</SelectItem>
+                        <SelectItem value="e_learning">E-learning</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

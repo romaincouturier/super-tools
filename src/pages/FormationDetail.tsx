@@ -320,8 +320,8 @@ const FormationDetail = () => {
         return "Intra-entreprise";
       case "inter-entreprises":
         return "Inter-entreprises";
-      case "classe_virtuelle":
-        return "Classe virtuelle";
+      case "e_learning":
+        return "E-learning";
       default:
         return null;
     }
