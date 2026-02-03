@@ -32,6 +32,9 @@ interface RequestBody {
   nbParticipants: number;
   participants: string; // Liste des participants (texte brut)
   typeSubrogation?: "sans" | "avec" | "les2"; // Optional for backward compatibility
+  // Additional fields for duplication feature
+  typeDevis?: "formation" | "jeu";
+  formatFormation?: "intra" | "inter";
 }
 
 const PDFMONKEY_TEMPLATE_ID = "C3BC00C9-232F-4ADD-9D1F-9FD176573E93";
@@ -455,6 +458,8 @@ serve(async (req: Request): Promise<Response> => {
             fraisDossier: body.fraisDossier,
             participants: body.participants,
             typeSubrogation: typeSubrogation,
+            typeDevis: body.typeDevis || "formation",
+            formatFormation: body.formatFormation || "inter",
           },
         },
       });
