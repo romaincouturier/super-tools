@@ -12,6 +12,51 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Fetch Signitic signature for romain@supertilt.fr
+async function getSigniticSignature(): Promise<string> {
+  const signiticApiKey = Deno.env.get("SIGNITIC_API_KEY");
+
+  if (!signiticApiKey) {
+    console.warn("SIGNITIC_API_KEY not configured, using default signature");
+    return getDefaultSignature();
+  }
+
+  try {
+    const response = await fetch(
+      "https://api.signitic.app/signatures/romain@supertilt.fr/html",
+      {
+        headers: {
+          "x-api-key": signiticApiKey,
+        },
+      }
+    );
+
+    if (response.ok) {
+      const htmlContent = await response.text();
+      if (htmlContent && htmlContent.trim()) {
+        console.log("Signitic signature fetched successfully");
+        return htmlContent;
+      }
+    }
+
+    console.warn("Could not fetch Signitic signature:", response.status);
+    return getDefaultSignature();
+  } catch (error) {
+    console.error("Error fetching Signitic signature:", error);
+    return getDefaultSignature();
+  }
+}
+
+function getDefaultSignature(): string {
+  return `
+    <p>--</p>
+    <p><strong>Romain Couturier</strong><br>
+    Expert en agilité et gestion du temps, facilitateur graphique et facilitateur d'intelligence collective<br>
+    06 66 98 76 35<br>
+    <a href="https://www.supertilt.fr">www.supertilt.fr</a></p>
+  `;
+}
+
 interface Participant {
   prenom: string;
   nom: string;
@@ -363,10 +408,11 @@ async function sendEmailWithResend(
   participantName: string,
   formationName: string,
   pdfUrl: string,
-  emailDestinataire: string
+  emailDestinataire: string,
+  signature: string
 ): Promise<void> {
   const resendApiKey = Deno.env.get("RESEND_API_KEY");
-  
+
   if (!resendApiKey) {
     throw new Error("RESEND_API_KEY is not set");
   }
@@ -401,11 +447,7 @@ async function sendEmailWithResend(
         <p>Je te souhaite de bien exploiter tout ce que tu as vu pendant la formation !</p>
         <p>Si tu souhaites aller plus loin, je t'invite à te rendre régulièrement sur <a href="https://www.supertilt.fr">www.supertilt.fr</a> et à consulter ma <a href="https://www.youtube.com/@supertilt">chaîne YouTube</a>.</p>
         <p>Bonne continuation et à bientôt !</p>
-        <p>--</p>
-        <p><strong>Romain Couturier</strong><br>
-        Expert en agilité et gestion du temps, facilitateur graphique et facilitateur d'intelligence collective<br>
-        06 66 98 76 35<br>
-        <a href="https://www.supertilt.fr">www.supertilt.fr</a></p>
+        ${signature}
       `,
       attachments: [
         {
@@ -425,7 +467,7 @@ async function sendEmailWithResend(
   // Send copy to admin
   if (emailDestinataire && emailDestinataire !== participantEmail) {
     const safeParticipantEmail = escapeHtml(participantEmail);
-    
+
     const adminEmailResponse = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
@@ -463,10 +505,11 @@ async function sendEmailWithResend(
 async function sendCertificatesToCommanditaire(
   emailCommanditaire: string,
   formationName: string,
-  pdfDataList: PdfData[]
+  pdfDataList: PdfData[],
+  signature: string
 ): Promise<void> {
   const resendApiKey = Deno.env.get("RESEND_API_KEY");
-  
+
   if (!resendApiKey) {
     throw new Error("RESEND_API_KEY is not set");
   }
@@ -493,11 +536,7 @@ async function sendCertificatesToCommanditaire(
           <p>Bonjour,</p>
           <p>Veuillez trouver ci-joint le certificat de réalisation pour la formation <strong>${escapeHtml(formationName)}</strong>.</p>
           <p>Cordialement,</p>
-          <p>--</p>
-          <p><strong>Romain Couturier</strong><br>
-          Expert en agilité et gestion du temps, facilitateur graphique et facilitateur d'intelligence collective<br>
-          06 66 98 76 35<br>
-          <a href="https://www.supertilt.fr">www.supertilt.fr</a></p>
+          ${signature}
         `,
         attachments: [
           {
@@ -525,10 +564,10 @@ async function sendCertificatesToCommanditaire(
   for (const pdfData of pdfDataList) {
     zipFiles[pdfData.fileName] = pdfData.pdfBuffer;
   }
-  
+
   const zipBuffer = zipSync(zipFiles);
   const zipBase64 = btoa(String.fromCharCode(...zipBuffer));
-  
+
   const zipFileName = `Certificats_${formationName.replace(/\s+/g, "_")}.zip`;
 
   console.log(`Sending ZIP to commanditaire: ${emailCommanditaire} (BCC: romain@supertilt.fr)`);
@@ -549,11 +588,7 @@ async function sendCertificatesToCommanditaire(
         <p>Veuillez trouver ci-joint l'ensemble des certificats de réalisation pour la formation <strong>${escapeHtml(formationName)}</strong>.</p>
         <p>Cette archive contient ${pdfDataList.length} certificat(s).</p>
         <p>Cordialement,</p>
-        <p>--</p>
-        <p><strong>Romain Couturier</strong><br>
-        Expert en agilité et gestion du temps, facilitateur graphique et facilitateur d'intelligence collective<br>
-        06 66 98 76 35<br>
-        <a href="https://www.supertilt.fr">www.supertilt.fr</a></p>
+        ${signature}
       `,
       attachments: [
         {
@@ -591,6 +626,9 @@ serve(async (req: Request): Promise<Response> => {
     if (emailCommanditaire) {
       console.log(`Will send ZIP to commanditaire: ${emailCommanditaire}`);
     }
+
+    // Fetch Signitic signature once before processing
+    const signature = await getSigniticSignature();
 
     // Create a streaming response
     const stream = new ReadableStream({
@@ -726,7 +764,8 @@ serve(async (req: Request): Promise<Response> => {
                 participantName,
                 formationName,
                 pdfUrl,
-                emailDestinataire
+                emailDestinataire,
+                signature
               );
               sendEvent({ 
                 type: "step", 
@@ -800,7 +839,7 @@ serve(async (req: Request): Promise<Response> => {
           try {
             // Wait 1 second to respect Resend rate limit
             await new Promise((resolve) => setTimeout(resolve, 1000));
-            await sendCertificatesToCommanditaire(emailCommanditaire, formationName, pdfDataList);
+            await sendCertificatesToCommanditaire(emailCommanditaire, formationName, pdfDataList, signature);
             
             const messageType = pdfDataList.length === 1 ? "Certificat envoyé" : "ZIP envoyé";
             sendEvent({ 
