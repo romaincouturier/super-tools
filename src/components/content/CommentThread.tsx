@@ -13,6 +13,7 @@ interface Comment {
   author_id: string;
   author_email?: string;
   content: string;
+  proposed_correction?: string | null;
   created_at: string;
   parent_comment_id: string | null;
   status: "pending" | "approved" | "refused" | "corrected";
@@ -44,6 +45,7 @@ const CommentThread = ({
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
   const [newComment, setNewComment] = useState("");
+  const [proposedCorrection, setProposedCorrection] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [showComments, setShowComments] = useState(true);
 
@@ -86,6 +88,7 @@ const CommentThread = ({
         review_id: reviewId,
         author_id: userId,
         content: newComment.trim(),
+        proposed_correction: proposedCorrection.trim() || null,
         status: "pending",
       });
 
@@ -115,6 +118,7 @@ const CommentThread = ({
       }
 
       setNewComment("");
+      setProposedCorrection("");
       fetchComments();
       onCommentAdded?.();
       toast.success("Commentaire ajouté");
@@ -241,7 +245,15 @@ const CommentThread = ({
                         </Badge>
                       </div>
                       <p className="text-sm mt-1">{comment.content}</p>
-                      
+
+                      {/* Correction proposée (optionnelle) */}
+                      {comment.proposed_correction && (
+                        <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded text-sm">
+                          <span className="font-medium text-blue-700">Correction proposée :</span>
+                          <p className="text-blue-900 mt-1 whitespace-pre-wrap">{comment.proposed_correction}</p>
+                        </div>
+                      )}
+
                       {/* Actions pour l'auteur de la carte */}
                       {canResolve && (
                         <div className="flex gap-1 mt-2">
@@ -283,34 +295,47 @@ const CommentThread = ({
 
           {/* Zone de saisie - visible surtout pour le relecteur */}
           {reviewStatus !== "approved" && (
-            <div className="flex gap-2">
-              <Textarea
-                value={newComment}
-                onChange={(e) => setNewComment(e.target.value)}
-                placeholder={
-                  isReviewer 
-                    ? "Ajoutez un commentaire de relecture..." 
-                    : "Répondre au relecteur..."
-                }
-                rows={2}
-                className="resize-none"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-                    handleSubmit();
+            <div className="space-y-2">
+              <div className="flex gap-2">
+                <Textarea
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                  placeholder={
+                    isReviewer
+                      ? "Ajoutez un commentaire de relecture..."
+                      : "Répondre au relecteur..."
                   }
-                }}
-              />
-              <Button
-                size="icon"
-                onClick={handleSubmit}
-                disabled={submitting || !newComment.trim()}
-              >
-                {submitting ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Send className="h-4 w-4" />
-                )}
-              </Button>
+                  rows={2}
+                  className="resize-none"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                      handleSubmit();
+                    }
+                  }}
+                />
+                <Button
+                  size="icon"
+                  onClick={handleSubmit}
+                  disabled={submitting || !newComment.trim()}
+                >
+                  {submitting ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Send className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+              {isReviewer && (
+                <div>
+                  <Textarea
+                    value={proposedCorrection}
+                    onChange={(e) => setProposedCorrection(e.target.value)}
+                    placeholder="Correction proposée (optionnel)"
+                    rows={2}
+                    className="resize-none text-sm"
+                  />
+                </div>
+              )}
             </div>
           )}
         </div>
