@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Loader2 } from "lucide-react";
+import { ChatbotProvider } from "@/components/chatbot/ChatbotProvider";
 
 // Lazy load all pages for better code splitting
 const Dashboard = lazy(() => import("./pages/Dashboard"));
@@ -29,6 +30,7 @@ const SignatureDevis = lazy(() => import("./pages/SignatureDevis"));
 const ContentBoard = lazy(() => import("./pages/ContentBoard"));
 const BesoinsParticipants = lazy(() => import("./pages/BesoinsParticipants"));
 const TrainingSummary = lazy(() => import("./pages/TrainingSummary"));
+const ChatbotAdmin = lazy(() => import("./pages/ChatbotAdmin"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -72,6 +74,8 @@ const App = () => (
             <Route path="/ameliorations" element={<Ameliorations />} />
             {/* Content marketing board */}
             <Route path="/contenu" element={<ContentBoard />} />
+            {/* Chatbot knowledge base admin */}
+            <Route path="/chatbot-admin" element={<ChatbotAdmin />} />
             {/* Public needs survey */}
             <Route path="/questionnaire/:token" element={<Questionnaire />} />
             {/* Public evaluation form */}
@@ -91,6 +95,7 @@ const App = () => (
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Suspense>
+        <ChatbotProvider />
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
