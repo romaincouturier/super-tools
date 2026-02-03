@@ -45,6 +45,7 @@ interface Participant {
   sponsor_last_name?: string | null;
   sponsor_email?: string | null;
   invoice_file_url?: string | null;
+  payment_mode?: string;
 }
 
 interface ParticipantListProps {
@@ -305,9 +306,21 @@ const ParticipantList = ({
             return (
               <TableRow key={participant.id}>
                 <TableCell className="font-medium">
-                  {participant.first_name || participant.last_name
-                    ? `${participant.first_name || ""} ${participant.last_name || ""}`.trim()
-                    : "—"}
+                  <div className="flex items-center gap-2">
+                    {participant.first_name || participant.last_name
+                      ? `${participant.first_name || ""} ${participant.last_name || ""}`.trim()
+                      : "—"}
+                    {isInterEntreprise && participant.payment_mode === "invoice" && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="inline-block w-2.5 h-2.5 rounded-full bg-warning" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>À facturer après la formation</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
+                  </div>
                 </TableCell>
                 <TableCell>{participant.email}</TableCell>
                 <TableCell>{participant.company || "—"}</TableCell>

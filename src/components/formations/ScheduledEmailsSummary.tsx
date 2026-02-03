@@ -67,6 +67,7 @@ interface Schedule {
 interface ScheduledEmailsSummaryProps {
   trainingId: string;
   participants: Participant[];
+  refreshTrigger?: number;
 }
 
 interface DelaySettings {
@@ -80,7 +81,7 @@ interface DelaySettings {
   delayEvaluationReminder2: number;
 }
 
-const ScheduledEmailsSummary = ({ trainingId, participants }: ScheduledEmailsSummaryProps) => {
+const ScheduledEmailsSummary = ({ trainingId, participants, refreshTrigger }: ScheduledEmailsSummaryProps) => {
   const [emails, setEmails] = useState<ScheduledEmail[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedEmail, setSelectedEmail] = useState<ScheduledEmail | null>(null);
@@ -173,6 +174,13 @@ const ScheduledEmailsSummary = ({ trainingId, participants }: ScheduledEmailsSum
 
     fetchData();
   }, [trainingId]);
+  
+  // Refresh when refreshTrigger changes
+  useEffect(() => {
+    if (refreshTrigger && refreshTrigger > 0) {
+      refreshEmails();
+    }
+  }, [refreshTrigger]);
 
   const refreshEmails = async () => {
     const { data, error } = await supabase

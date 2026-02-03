@@ -90,6 +90,7 @@ const FormationDetail = () => {
   const [scheduledActions, setScheduledActions] = useState<ScheduledAction[]>([]);
   const [savingActions, setSavingActions] = useState(false);
   const [mapDialogOpen, setMapDialogOpen] = useState(false);
+  const [emailsRefreshTrigger, setEmailsRefreshTrigger] = useState(0);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -764,6 +765,7 @@ const FormationDetail = () => {
                       clientName={training.client_name}
                       formatFormation={training.format_formation}
                       onParticipantAdded={fetchParticipants}
+                      onScheduledEmailsRefresh={() => setEmailsRefreshTrigger(prev => prev + 1)}
                     />
                   </div>
                 </div>
@@ -815,6 +817,7 @@ const FormationDetail = () => {
           <ScheduledEmailsSummary
             trainingId={training.id}
             participants={participants}
+            refreshTrigger={emailsRefreshTrigger}
           />
         </div>
 
