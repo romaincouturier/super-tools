@@ -40,6 +40,7 @@ const Statistiques = lazy(() => import("./pages/Statistiques"));
 const Crm = lazyWithRetry(() => import("./pages/Crm"));
 const CrmReports = lazyWithRetry(() => import("./pages/CrmReports"));
 const Missions = lazy(() => import("./pages/Missions"));
+const OKR = lazy(() => import("./pages/OKR"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -96,6 +97,8 @@ const App = () => (
               <Route path="/crm/reports" element={<CrmReports />} />
               {/* Missions Kanban */}
               <Route path="/missions" element={<Missions />} />
+              {/* OKR Management */}
+              <Route path="/okr" element={<OKR />} />
               {/* Public needs survey */}
               <Route path="/questionnaire/:token" element={<Questionnaire />} />
               {/* Public evaluation form */}

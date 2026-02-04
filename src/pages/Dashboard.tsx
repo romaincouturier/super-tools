@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Loader2, Award, FileText, Calendar, ClipboardCheck, TrendingUp, History, Newspaper, ClipboardList, Inbox, BarChart3, Kanban, Briefcase, GripVertical } from "lucide-react";
+import { Loader2, Award, FileText, Calendar, ClipboardCheck, TrendingUp, History, Newspaper, ClipboardList, Inbox, BarChart3, Kanban, Briefcase, GripVertical, Target } from "lucide-react";
 import {
   DndContext,
   closestCenter,
@@ -50,6 +50,14 @@ const tools: Tool[] = [
     icon: <Briefcase className="w-10 h-10" />,
     path: "/missions",
     module: "missions",
+  },
+  {
+    id: "okr",
+    name: "OKR",
+    description: "Objectifs et Résultats Clés",
+    icon: <Target className="w-10 h-10" />,
+    path: "/okr",
+    module: "okr",
   },
   {
     id: "contenu",
