@@ -83,21 +83,11 @@ const ReviewPanel = ({ cardId, cardTitle }: ReviewPanelProps) => {
 
       if (error) throw error;
 
-      // Fetch reviewer emails
-      const reviewerIds = [...new Set((data || []).map((r) => r.reviewer_id))];
-      const emails: Record<string, string> = {};
-
-      for (const id of reviewerIds) {
-        const { data: userData } = await supabase.auth.admin.getUserById(id).catch(() => ({ data: null }));
-        if (userData?.user?.email) {
-          emails[id] = userData.user.email;
-        }
-      }
-
+      // Use reviewer_email from the database directly
       setReviews(
         (data || []).map((r) => ({
           ...r,
-          reviewer_email: emails[r.reviewer_id] || "Utilisateur inconnu",
+          reviewer_email: r.reviewer_email || "Email non renseigné",
         }))
       );
     } catch (error) {

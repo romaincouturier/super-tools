@@ -92,13 +92,13 @@ const ReviewRequestDialog = ({
       const { data: sessionData } = await supabase.auth.getSession();
       const currentUserId = sessionData.session?.user?.id;
 
-      // For demo purposes, we'll use the current user as reviewer
-      // In production, you'd map the email to actual user IDs
-      const reviewerId = currentUserId; // This would be the selected user's ID
+      // Use current user as reviewer_id (for RLS purposes) but store the selected email
+      const reviewerId = currentUserId;
 
       const { error } = await supabase.from("content_reviews").insert({
         card_id: cardId,
         reviewer_id: reviewerId,
+        reviewer_email: selectedUser, // Store the selected email directly
         external_url: reviewType === "external" ? externalUrl : null,
         created_by: currentUserId,
       });
