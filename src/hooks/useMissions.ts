@@ -9,13 +9,13 @@ export const useMissions = () => {
   return useQuery({
     queryKey: [MISSIONS_QUERY_KEY],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as unknown as { from: (table: string) => { select: (cols: string) => { order: (col: string, opts: { ascending: boolean }) => Promise<{ data: unknown[] | null; error: Error | null }> } } })
         .from("missions")
         .select("*")
         .order("position", { ascending: true });
 
       if (error) throw error;
-      return data as Mission[];
+      return (data || []) as Mission[];
     },
   });
 };
@@ -27,7 +27,7 @@ export const useSearchMissions = (searchTerm: string) => {
     queryFn: async () => {
       if (!searchTerm.trim()) return [];
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as unknown as { from: (table: string) => { select: (cols: string) => { or: (filter: string) => { order: (col: string, opts: { ascending: boolean }) => { limit: (n: number) => Promise<{ data: unknown[] | null; error: Error | null }> } } } } })
         .from("missions")
         .select("id, title, client_name, status, start_date, end_date")
         .or(`title.ilike.%${searchTerm}%,client_name.ilike.%${searchTerm}%`)
@@ -35,7 +35,7 @@ export const useSearchMissions = (searchTerm: string) => {
         .limit(10);
 
       if (error) throw error;
-      return data as Pick<Mission, 'id' | 'title' | 'client_name' | 'status' | 'start_date' | 'end_date'>[];
+      return (data || []) as Pick<Mission, 'id' | 'title' | 'client_name' | 'status' | 'start_date' | 'end_date'>[];
     },
     enabled: searchTerm.length >= 2,
   });
@@ -48,7 +48,7 @@ export const useCreateMission = () => {
   return useMutation({
     mutationFn: async (input: CreateMissionInput) => {
       // Get max position for ordering
-      const { data: existingMissions } = await supabase
+      const { data: existingMissions } = await (supabase as unknown as { from: (table: string) => { select: (cols: string) => { eq: (col: string, val: string) => { order: (col: string, opts: { ascending: boolean }) => { limit: (n: number) => Promise<{ data: Array<{ position: number }> | null; error: Error | null }> } } } } })
         .from("missions")
         .select("position")
         .eq("status", input.status || "not_started")
@@ -57,7 +57,7 @@ export const useCreateMission = () => {
 
       const maxPosition = existingMissions?.[0]?.position ?? -1;
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as unknown as { from: (table: string) => { insert: (row: unknown) => { select: () => { single: () => Promise<{ data: unknown; error: Error | null }> } } } })
         .from("missions")
         .insert({
           ...input,
@@ -81,7 +81,7 @@ export const useUpdateMission = () => {
 
   return useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: UpdateMissionInput }) => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as unknown as { from: (table: string) => { update: (row: unknown) => { eq: (col: string, val: string) => { select: () => { single: () => Promise<{ data: unknown; error: Error | null }> } } } } })
         .from("missions")
         .update(updates)
         .eq("id", id)
@@ -103,7 +103,10 @@ export const useDeleteMission = () => {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("missions").delete().eq("id", id);
+      const { error } = await (supabase as unknown as { from: (table: string) => { delete: () => { eq: (col: string, val: string) => Promise<{ error: Error | null }> } } })
+        .from("missions")
+        .delete()
+        .eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -126,7 +129,7 @@ export const useMoveMission = () => {
       newStatus: MissionStatus;
       newPosition: number;
     }) => {
-      const { error } = await supabase
+      const { error } = await (supabase as unknown as { from: (table: string) => { update: (row: unknown) => { eq: (col: string, val: string) => Promise<{ error: Error | null }> } } })
         .from("missions")
         .update({ status: newStatus, position: newPosition })
         .eq("id", missionId);

@@ -29,10 +29,15 @@ const MissionCard = ({ mission, isDragging, onClick }: MissionCardProps) => {
 
   const dragging = isDragging || isSortableDragging;
 
+  const combinedStyle = {
+    ...style,
+    borderLeftColor: mission.color,
+  };
+
   return (
     <div
       ref={setNodeRef}
-      style={style}
+      style={combinedStyle}
       {...attributes}
       {...listeners}
       onClick={onClick}
@@ -41,10 +46,6 @@ const MissionCard = ({ mission, isDragging, onClick }: MissionCardProps) => {
         "border-l-4",
         dragging && "opacity-50 shadow-lg rotate-2"
       )}
-      style={{
-        ...style,
-        borderLeftColor: mission.color,
-      }}
     >
       {/* Title */}
       <h4 className="font-medium text-sm mb-2 line-clamp-2">{mission.title}</h4>
