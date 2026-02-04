@@ -33,6 +33,8 @@ export interface Column {
   is_system: boolean;
 }
 
+export type ReviewStatus = "none" | "pending" | "in_review" | "approved" | "changes_requested";
+
 export interface Card {
   id: string;
   column_id: string;
@@ -41,6 +43,7 @@ export interface Card {
   image_url: string | null;
   tags: string[];
   display_order: number;
+  review_status?: ReviewStatus;
 }
 
 interface KanbanBoardProps {
@@ -97,16 +100,27 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false }: Kanb
           .order("display_order"),
         supabase
           .from("content_reviews")
-          .select("card_id")
-          .in("status", ["pending", "in_review"]),
+          .select("card_id, status")
+          .order("created_at", { ascending: false }),
       ]);
 
       if (columnsRes.error) throw columnsRes.error;
       if (cardsRes.error) throw cardsRes.error;
 
-      // Build set of card IDs that are currently in review
+      // Build map of card IDs to their most recent review status
+      const cardReviewStatus = new Map<string, ReviewStatus>();
+      for (const r of reviewsRes.data || []) {
+        // Only keep the first (most recent) status for each card
+        if (!cardReviewStatus.has(r.card_id)) {
+          cardReviewStatus.set(r.card_id, r.status as ReviewStatus);
+        }
+      }
+
+      // Build set of card IDs that are currently in review (for filtering)
       const reviewCardIds = new Set<string>(
-        (reviewsRes.data || []).map((r) => r.card_id)
+        (reviewsRes.data || [])
+          .filter((r) => r.status === "pending" || r.status === "in_review")
+          .map((r) => r.card_id)
       );
       setCardIdsInReview(reviewCardIds);
 
@@ -120,6 +134,7 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false }: Kanb
           image_url: c.image_url,
           display_order: c.display_order,
           tags: Array.isArray(c.tags) ? (c.tags as string[]) : [],
+          review_status: cardReviewStatus.get(c.id) || "none",
         }))
       );
     } catch (error) {
