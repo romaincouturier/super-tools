@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
-import { Loader2, ArrowLeft, Settings, Mail, Save, RotateCcw, Sparkles, Cog, ExternalLink, Shield, Database, Users, Key } from "lucide-react";
+import { Loader2, ArrowLeft, Settings, Mail, Save, RotateCcw, Sparkles, Cog, ExternalLink, Shield, Database, Users, Key, Tag } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import AppHeader from "@/components/AppHeader";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,7 @@ import UserAccessManager from "@/components/settings/UserAccessManager";
 import TrainerManager from "@/components/settings/TrainerManager";
 import BackupManager from "@/components/settings/BackupManager";
 import { ApiKeyManager } from "@/components/settings/ApiKeyManager";
+import CrmTagManager from "@/components/settings/CrmTagManager";
 import GoogleDriveConnect from "@/components/GoogleDriveConnect";
 import { useModuleAccess } from "@/hooks/useModuleAccess";
 
@@ -1080,7 +1081,7 @@ const Parametres = () => {
         </div>
 
         <Tabs defaultValue="general" className="space-y-6">
-          <TabsList>
+          <TabsList className="flex flex-wrap h-auto gap-1">
             <TabsTrigger value="general" className="flex items-center gap-2">
               <Cog className="h-4 w-4" />
               Général
@@ -1088,6 +1089,10 @@ const Parametres = () => {
             <TabsTrigger value="trainers" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
               Formateurs
+            </TabsTrigger>
+            <TabsTrigger value="crm" className="flex items-center gap-2">
+              <Tag className="h-4 w-4" />
+              CRM
             </TabsTrigger>
             <TabsTrigger value="emails" className="flex items-center gap-2">
               <Mail className="h-4 w-4" />
@@ -1484,6 +1489,10 @@ const Parametres = () => {
 
           <TabsContent value="trainers">
             <TrainerManager />
+          </TabsContent>
+
+          <TabsContent value="crm">
+            <CrmTagManager />
           </TabsContent>
 
           <TabsContent value="emails">
