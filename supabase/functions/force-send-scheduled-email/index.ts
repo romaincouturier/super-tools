@@ -10,6 +10,48 @@ const corsHeaders = {
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
+// Signitic signature fetching with fallback
+const SIGNITIC_API_URL = "https://api.signitic.app/signatures/romain@supertilt.fr/html";
+
+function getDefaultSignature(): string {
+  return `
+    <p style="margin-top: 20px;">--</p>
+    <p style="font-size: 14px; color: #333;">
+      <strong>Romain Couturier</strong><br>
+      Expert en agilité et gestion du temps, facilitateur graphique et facilitateur d'intelligence collective<br>
+      06 66 98 76 35<br>
+      <a href="https://www.supertilt.fr" style="color: #0066cc;">www.supertilt.fr</a>
+    </p>
+  `;
+}
+
+async function getSigniticSignature(): Promise<string> {
+  const signiticApiKey = Deno.env.get("SIGNITIC_API_KEY");
+  if (!signiticApiKey) {
+    console.warn("SIGNITIC_API_KEY not configured, using default signature");
+    return getDefaultSignature();
+  }
+
+  try {
+    const response = await fetch(SIGNITIC_API_URL, {
+      headers: { "x-api-key": signiticApiKey },
+    });
+
+    if (response.ok) {
+      const htmlContent = await response.text();
+      if (htmlContent && htmlContent.trim() && !htmlContent.includes("error")) {
+        console.log("Signitic signature fetched successfully");
+        return htmlContent;
+      }
+    }
+    console.warn("Could not fetch Signitic signature:", response.status);
+    return getDefaultSignature();
+  } catch (error) {
+    console.error("Error fetching Signitic signature:", error);
+    return getDefaultSignature();
+  }
+}
+
 interface ForceSendRequest {
   scheduledEmailId: string;
 }
@@ -87,23 +129,8 @@ const handler = async (req: Request): Promise<Response> => {
     
     const googleReviewLink = gmbSetting?.setting_value || "https://g.page/r/CWJ0W_P6C-BJEAE/review";
 
-    // Get Signitic signature
-    let signatureHtml = "";
-    try {
-      const signatureResponse = await fetch(
-        `https://api.signitic.com/v1/signatures/26ef8e56-f3df-11ef-b723-42010a40000c/html`,
-        {
-          headers: {
-            "X-API-KEY": Deno.env.get("SIGNITIC_API_KEY") || "",
-          },
-        }
-      );
-      if (signatureResponse.ok) {
-        signatureHtml = await signatureResponse.text();
-      }
-    } catch (e) {
-      console.log("Could not fetch Signitic signature:", e);
-    }
+    // Get Signitic signature using correct API URL with fallback
+    const signatureHtml = await getSigniticSignature();
 
     // Format helpers
     const formatDate = (dateStr: string) => {
