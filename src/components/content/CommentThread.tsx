@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Send, Loader2, MessageCircle, Check, X, Pencil, Image, FileText, Palette } from "lucide-react";
+import { Send, Loader2, MessageCircle, Check, X, Pencil, Image, FileText, Palette, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -14,6 +14,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface Comment {
   id: string;
@@ -44,17 +50,17 @@ interface CommentThreadProps {
 
 const commentStatusConfig = {
   pending: { label: "En attente", className: "bg-yellow-100 text-yellow-800" },
-  approved: { label: "Approuvé", className: "bg-green-100 text-green-800" },
-  refused: { label: "Refusé", className: "bg-red-100 text-red-800" },
+  approved: { label: "Accepté", className: "bg-green-100 text-green-800" },
+  refused: { label: "Non pertinent", className: "bg-red-100 text-red-800" },
   corrected: { label: "Corrigé", className: "bg-blue-100 text-blue-800" },
 };
 
-const CommentThread = ({ 
-  reviewId, 
-  isAuthor, 
-  isReviewer, 
+const CommentThread = ({
+  reviewId,
+  isAuthor,
+  isReviewer,
   reviewStatus,
-  onCommentAdded 
+  onCommentAdded
 }: CommentThreadProps) => {
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -66,11 +72,18 @@ const CommentThread = ({
   const [uploadingImage, setUploadingImage] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [showComments, setShowComments] = useState(true);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchComments();
+    getCurrentUser();
   }, [reviewId]);
+
+  const getCurrentUser = async () => {
+    const { data } = await supabase.auth.getSession();
+    setCurrentUserId(data.session?.user?.id || null);
+  };
 
   const fetchComments = async () => {
     try {
@@ -261,15 +274,34 @@ const CommentThread = ({
 
       fetchComments();
       toast.success(
-        status === "approved" 
-          ? "Retour approuvé" 
-          : status === "refused" 
-            ? "Retour refusé" 
-            : "Marqué comme corrigé"
+        status === "approved"
+          ? "Retour accepté"
+          : status === "refused"
+            ? "Retour rejeté"
+            : "Correction effectuée"
       );
     } catch (error) {
       console.error("Error updating comment status:", error);
       toast.error("Erreur lors de la mise à jour");
+    }
+  };
+
+  const handleDeleteComment = async (commentId: string) => {
+    if (!confirm("Supprimer ce commentaire ?")) return;
+
+    try {
+      const { error } = await supabase
+        .from("review_comments")
+        .delete()
+        .eq("id", commentId);
+
+      if (error) throw error;
+
+      fetchComments();
+      toast.success("Commentaire supprimé");
+    } catch (error) {
+      console.error("Error deleting comment:", error);
+      toast.error("Erreur lors de la suppression");
     }
   };
 
@@ -391,33 +423,71 @@ const CommentThread = ({
 
                       {/* Actions pour l'auteur de la carte */}
                       {canResolve && (
-                        <div className="flex gap-1 mt-2">
+                        <TooltipProvider>
+                          <div className="flex gap-1 mt-2">
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-7 text-xs text-green-600 hover:text-green-700 hover:bg-green-50"
+                                  onClick={() => handleUpdateCommentStatus(comment.id, "approved")}
+                                >
+                                  <Check className="h-3 w-3 mr-1" />
+                                  D'accord
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Je suis d'accord avec ce retour</p>
+                              </TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-7 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                  onClick={() => handleUpdateCommentStatus(comment.id, "corrected")}
+                                >
+                                  <Pencil className="h-3 w-3 mr-1" />
+                                  J'ai corrigé
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>J'ai effectué la correction demandée</p>
+                              </TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-7 text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
+                                  onClick={() => handleUpdateCommentStatus(comment.id, "refused")}
+                                >
+                                  <X className="h-3 w-3 mr-1" />
+                                  Non pertinent
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Ce retour n'est pas pertinent</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </div>
+                        </TooltipProvider>
+                      )}
+
+                      {/* Bouton supprimer pour l'auteur du commentaire */}
+                      {currentUserId === comment.author_id && (
+                        <div className="flex justify-end mt-1">
                           <Button
                             size="sm"
                             variant="ghost"
-                            className="h-7 text-xs text-green-600 hover:text-green-700 hover:bg-green-50"
-                            onClick={() => handleUpdateCommentStatus(comment.id, "approved")}
+                            className="h-6 text-xs text-muted-foreground hover:text-destructive"
+                            onClick={() => handleDeleteComment(comment.id)}
                           >
-                            <Check className="h-3 w-3 mr-1" />
-                            Approuver
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-7 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                            onClick={() => handleUpdateCommentStatus(comment.id, "corrected")}
-                          >
-                            <Pencil className="h-3 w-3 mr-1" />
-                            Corrigé
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-7 text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
-                            onClick={() => handleUpdateCommentStatus(comment.id, "refused")}
-                          >
-                            <X className="h-3 w-3 mr-1" />
-                            Refuser
+                            <Trash2 className="h-3 w-3 mr-1" />
+                            Supprimer
                           </Button>
                         </div>
                       )}
