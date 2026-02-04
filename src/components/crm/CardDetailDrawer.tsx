@@ -56,6 +56,7 @@ import {
   Search,
   Undo2,
   Wand2,
+  ImageIcon,
 } from "lucide-react";
 import { format, addDays, isAfter, startOfDay } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -176,6 +177,7 @@ const CardDetailDrawer = ({
   const [descriptionSaving, setDescriptionSaving] = useState(false);
   const [descriptionSaved, setDescriptionSaved] = useState(false);
   const descriptionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [imageUploading, setImageUploading] = useState(false);
 
   // Get tomorrow's date as minimum for scheduling
   const tomorrow = format(addDays(new Date(), 1), "yyyy-MM-dd");
@@ -252,6 +254,59 @@ const CardDetailDrawer = ({
     descriptionTimeoutRef.current = setTimeout(() => {
       saveDescription(value);
     }, 1500);
+  };
+
+  // Handle image paste in description
+  const handleDescriptionPaste = async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const items = e.clipboardData?.items;
+    if (!items || !card) return;
+
+    for (const item of Array.from(items)) {
+      if (item.type.startsWith("image/")) {
+        e.preventDefault();
+        const file = item.getAsFile();
+        if (!file) continue;
+
+        setImageUploading(true);
+        try {
+          // Generate unique filename
+          const ext = file.type.split("/")[1] || "png";
+          const fileName = `${card.id}/${Date.now()}.${ext}`;
+
+          // Upload to storage
+          const { data, error } = await supabase.storage
+            .from("crm-attachments")
+            .upload(fileName, file, {
+              contentType: file.type,
+            });
+
+          if (error) throw error;
+
+          // Get public URL
+          const { data: urlData } = supabase.storage
+            .from("crm-attachments")
+            .getPublicUrl(fileName);
+
+          // Insert markdown image at cursor position
+          const textarea = e.target as HTMLTextAreaElement;
+          const start = textarea.selectionStart;
+          const end = textarea.selectionEnd;
+          const imageMarkdown = `\n![Image](${urlData.publicUrl})\n`;
+          const newValue =
+            descriptionHtml.substring(0, start) +
+            imageMarkdown +
+            descriptionHtml.substring(end);
+
+          handleDescriptionChange(newValue);
+        } catch (error) {
+          console.error("Image upload error:", error);
+          alert("Erreur lors de l'upload de l'image");
+        } finally {
+          setImageUploading(false);
+        }
+        break;
+      }
+    }
   };
 
   // Cleanup timeout on unmount
@@ -1080,13 +1135,28 @@ const CardDetailDrawer = ({
                   )}
                 </Label>
               </div>
-              <Textarea
-                value={descriptionHtml}
-                onChange={(e) => handleDescriptionChange(e.target.value)}
-                rows={12}
-                placeholder="Notez ici tous les échanges, informations et détails importants de l'opportunité..."
-                className="text-[10px] leading-relaxed"
-              />
+              <div className="relative">
+                <Textarea
+                  value={descriptionHtml}
+                  onChange={(e) => handleDescriptionChange(e.target.value)}
+                  onPaste={handleDescriptionPaste}
+                  rows={12}
+                  placeholder="Notez ici tous les échanges, informations et détails importants de l'opportunité... (Collez des images directement)"
+                  className="text-[10px] leading-relaxed"
+                />
+                {imageUploading && (
+                  <div className="absolute inset-0 bg-background/80 flex items-center justify-center rounded-md">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Upload de l'image...
+                    </div>
+                  </div>
+                )}
+                <p className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1">
+                  <ImageIcon className="h-3 w-3" />
+                  Vous pouvez coller des images (Ctrl+V)
+                </p>
+              </div>
 
               {/* Next action checkbox */}
               <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
