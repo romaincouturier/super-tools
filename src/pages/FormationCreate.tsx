@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 import { Loader2, ArrowLeft, Calendar, Save, ExternalLink } from "lucide-react";
@@ -37,7 +37,11 @@ const FormationCreate = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
+
+  // CRM card ID if coming from CRM
+  const fromCrmCardId = searchParams.get("fromCrmCardId");
 
   // Form state
   const [selectedDates, setSelectedDates] = useState<Date[]>([]);
@@ -128,6 +132,21 @@ const FormationCreate = () => {
 
     return () => subscription.unsubscribe();
   }, [navigate]);
+
+  // Pre-fill form from URL params (coming from CRM)
+  useEffect(() => {
+    const paramClientName = searchParams.get("clientName");
+    const paramSponsorFirstName = searchParams.get("sponsorFirstName");
+    const paramSponsorLastName = searchParams.get("sponsorLastName");
+    const paramSponsorEmail = searchParams.get("sponsorEmail");
+    const paramTrainingName = searchParams.get("trainingName");
+
+    if (paramClientName) setClientName(paramClientName);
+    if (paramSponsorFirstName) setSponsorFirstName(paramSponsorFirstName);
+    if (paramSponsorLastName) setSponsorLastName(paramSponsorLastName);
+    if (paramSponsorEmail) setSponsorEmail(paramSponsorEmail);
+    if (paramTrainingName) setTrainingName(paramTrainingName);
+  }, [searchParams]);
 
   // Generate schedules when selected dates change
   useEffect(() => {

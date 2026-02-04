@@ -1,9 +1,15 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
-import { BarChart3, Plus } from "lucide-react";
+import { BarChart3, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import CrmKanbanBoard from "@/components/crm/CrmKanbanBoard";
+import { NewOpportunityDialog } from "@/components/crm/NewOpportunityDialog";
+import { useAuth } from "@/hooks/useAuth";
 
 const Crm = () => {
+  const { user } = useAuth();
+  const [showNewOpportunity, setShowNewOpportunity] = useState(false);
+
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
@@ -15,6 +21,10 @@ const Crm = () => {
           </p>
         </div>
         <div className="flex gap-2">
+          <Button onClick={() => setShowNewOpportunity(true)}>
+            <Sparkles className="h-4 w-4 mr-2" />
+            Nouvelle opportunité
+          </Button>
           <Button variant="outline" asChild>
             <Link to="/crm/reports">
               <BarChart3 className="h-4 w-4 mr-2" />
@@ -28,6 +38,13 @@ const Crm = () => {
       <div className="flex-1 min-h-0">
         <CrmKanbanBoard />
       </div>
+
+      {/* New Opportunity Dialog */}
+      <NewOpportunityDialog
+        open={showNewOpportunity}
+        onOpenChange={setShowNewOpportunity}
+        userEmail={user?.email || "unknown"}
+      />
     </div>
   );
 };

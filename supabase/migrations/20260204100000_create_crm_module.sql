@@ -1,13 +1,6 @@
 -- CRM Kanban Module Migration
 -- Creates tables for columns, cards, tags, attachments, comments, emails, activity log
-
--- Add 'crm' to app_module enum if not exists
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_enum WHERE enumlabel = 'crm' AND enumtypid = (SELECT oid FROM pg_type WHERE typname = 'app_module')) THEN
-    ALTER TYPE app_module ADD VALUE 'crm';
-  END IF;
-END $$;
+-- Note: The 'crm' enum value is added in a separate prior migration (20260204095900_add_crm_enum.sql)
 
 -- CRM Columns (Kanban columns)
 CREATE TABLE IF NOT EXISTS crm_columns (
@@ -135,92 +128,92 @@ ALTER TABLE crm_activity_log ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "crm_columns_select" ON crm_columns FOR SELECT TO authenticated USING (true);
 CREATE POLICY "crm_columns_insert" ON crm_columns FOR INSERT TO authenticated WITH CHECK (
   EXISTS (SELECT 1 FROM auth.users WHERE id = auth.uid() AND email = 'romain@supertilt.fr')
-  OR EXISTS (SELECT 1 FROM user_module_access WHERE user_id = auth.uid() AND module = 'crm')
+  OR EXISTS (SELECT 1 FROM user_module_access WHERE user_id = auth.uid() AND module::text = 'crm')
 );
 CREATE POLICY "crm_columns_update" ON crm_columns FOR UPDATE TO authenticated USING (
   EXISTS (SELECT 1 FROM auth.users WHERE id = auth.uid() AND email = 'romain@supertilt.fr')
-  OR EXISTS (SELECT 1 FROM user_module_access WHERE user_id = auth.uid() AND module = 'crm')
+  OR EXISTS (SELECT 1 FROM user_module_access WHERE user_id = auth.uid() AND module::text = 'crm')
 );
 CREATE POLICY "crm_columns_delete" ON crm_columns FOR DELETE TO authenticated USING (
   EXISTS (SELECT 1 FROM auth.users WHERE id = auth.uid() AND email = 'romain@supertilt.fr')
-  OR EXISTS (SELECT 1 FROM user_module_access WHERE user_id = auth.uid() AND module = 'crm')
+  OR EXISTS (SELECT 1 FROM user_module_access WHERE user_id = auth.uid() AND module::text = 'crm')
 );
 
 -- Tags policies
 CREATE POLICY "crm_tags_select" ON crm_tags FOR SELECT TO authenticated USING (true);
 CREATE POLICY "crm_tags_insert" ON crm_tags FOR INSERT TO authenticated WITH CHECK (
   EXISTS (SELECT 1 FROM auth.users WHERE id = auth.uid() AND email = 'romain@supertilt.fr')
-  OR EXISTS (SELECT 1 FROM user_module_access WHERE user_id = auth.uid() AND module = 'crm')
+  OR EXISTS (SELECT 1 FROM user_module_access WHERE user_id = auth.uid() AND module::text = 'crm')
 );
 CREATE POLICY "crm_tags_update" ON crm_tags FOR UPDATE TO authenticated USING (
   EXISTS (SELECT 1 FROM auth.users WHERE id = auth.uid() AND email = 'romain@supertilt.fr')
-  OR EXISTS (SELECT 1 FROM user_module_access WHERE user_id = auth.uid() AND module = 'crm')
+  OR EXISTS (SELECT 1 FROM user_module_access WHERE user_id = auth.uid() AND module::text = 'crm')
 );
 CREATE POLICY "crm_tags_delete" ON crm_tags FOR DELETE TO authenticated USING (
   EXISTS (SELECT 1 FROM auth.users WHERE id = auth.uid() AND email = 'romain@supertilt.fr')
-  OR EXISTS (SELECT 1 FROM user_module_access WHERE user_id = auth.uid() AND module = 'crm')
+  OR EXISTS (SELECT 1 FROM user_module_access WHERE user_id = auth.uid() AND module::text = 'crm')
 );
 
 -- Cards policies
 CREATE POLICY "crm_cards_select" ON crm_cards FOR SELECT TO authenticated USING (true);
 CREATE POLICY "crm_cards_insert" ON crm_cards FOR INSERT TO authenticated WITH CHECK (
   EXISTS (SELECT 1 FROM auth.users WHERE id = auth.uid() AND email = 'romain@supertilt.fr')
-  OR EXISTS (SELECT 1 FROM user_module_access WHERE user_id = auth.uid() AND module = 'crm')
+  OR EXISTS (SELECT 1 FROM user_module_access WHERE user_id = auth.uid() AND module::text = 'crm')
 );
 CREATE POLICY "crm_cards_update" ON crm_cards FOR UPDATE TO authenticated USING (
   EXISTS (SELECT 1 FROM auth.users WHERE id = auth.uid() AND email = 'romain@supertilt.fr')
-  OR EXISTS (SELECT 1 FROM user_module_access WHERE user_id = auth.uid() AND module = 'crm')
+  OR EXISTS (SELECT 1 FROM user_module_access WHERE user_id = auth.uid() AND module::text = 'crm')
 );
 CREATE POLICY "crm_cards_delete" ON crm_cards FOR DELETE TO authenticated USING (
   EXISTS (SELECT 1 FROM auth.users WHERE id = auth.uid() AND email = 'romain@supertilt.fr')
-  OR EXISTS (SELECT 1 FROM user_module_access WHERE user_id = auth.uid() AND module = 'crm')
+  OR EXISTS (SELECT 1 FROM user_module_access WHERE user_id = auth.uid() AND module::text = 'crm')
 );
 
 -- Card tags policies
 CREATE POLICY "crm_card_tags_select" ON crm_card_tags FOR SELECT TO authenticated USING (true);
 CREATE POLICY "crm_card_tags_insert" ON crm_card_tags FOR INSERT TO authenticated WITH CHECK (
   EXISTS (SELECT 1 FROM auth.users WHERE id = auth.uid() AND email = 'romain@supertilt.fr')
-  OR EXISTS (SELECT 1 FROM user_module_access WHERE user_id = auth.uid() AND module = 'crm')
+  OR EXISTS (SELECT 1 FROM user_module_access WHERE user_id = auth.uid() AND module::text = 'crm')
 );
 CREATE POLICY "crm_card_tags_delete" ON crm_card_tags FOR DELETE TO authenticated USING (
   EXISTS (SELECT 1 FROM auth.users WHERE id = auth.uid() AND email = 'romain@supertilt.fr')
-  OR EXISTS (SELECT 1 FROM user_module_access WHERE user_id = auth.uid() AND module = 'crm')
+  OR EXISTS (SELECT 1 FROM user_module_access WHERE user_id = auth.uid() AND module::text = 'crm')
 );
 
 -- Attachments policies
 CREATE POLICY "crm_attachments_select" ON crm_attachments FOR SELECT TO authenticated USING (true);
 CREATE POLICY "crm_attachments_insert" ON crm_attachments FOR INSERT TO authenticated WITH CHECK (
   EXISTS (SELECT 1 FROM auth.users WHERE id = auth.uid() AND email = 'romain@supertilt.fr')
-  OR EXISTS (SELECT 1 FROM user_module_access WHERE user_id = auth.uid() AND module = 'crm')
+  OR EXISTS (SELECT 1 FROM user_module_access WHERE user_id = auth.uid() AND module::text = 'crm')
 );
 CREATE POLICY "crm_attachments_delete" ON crm_attachments FOR DELETE TO authenticated USING (
   EXISTS (SELECT 1 FROM auth.users WHERE id = auth.uid() AND email = 'romain@supertilt.fr')
-  OR EXISTS (SELECT 1 FROM user_module_access WHERE user_id = auth.uid() AND module = 'crm')
+  OR EXISTS (SELECT 1 FROM user_module_access WHERE user_id = auth.uid() AND module::text = 'crm')
 );
 
 -- Comments policies
 CREATE POLICY "crm_comments_select" ON crm_comments FOR SELECT TO authenticated USING (true);
 CREATE POLICY "crm_comments_insert" ON crm_comments FOR INSERT TO authenticated WITH CHECK (
   EXISTS (SELECT 1 FROM auth.users WHERE id = auth.uid() AND email = 'romain@supertilt.fr')
-  OR EXISTS (SELECT 1 FROM user_module_access WHERE user_id = auth.uid() AND module = 'crm')
+  OR EXISTS (SELECT 1 FROM user_module_access WHERE user_id = auth.uid() AND module::text = 'crm')
 );
 CREATE POLICY "crm_comments_update" ON crm_comments FOR UPDATE TO authenticated USING (
   EXISTS (SELECT 1 FROM auth.users WHERE id = auth.uid() AND email = 'romain@supertilt.fr')
-  OR EXISTS (SELECT 1 FROM user_module_access WHERE user_id = auth.uid() AND module = 'crm')
+  OR EXISTS (SELECT 1 FROM user_module_access WHERE user_id = auth.uid() AND module::text = 'crm')
 );
 
 -- Card emails policies
 CREATE POLICY "crm_card_emails_select" ON crm_card_emails FOR SELECT TO authenticated USING (true);
 CREATE POLICY "crm_card_emails_insert" ON crm_card_emails FOR INSERT TO authenticated WITH CHECK (
   EXISTS (SELECT 1 FROM auth.users WHERE id = auth.uid() AND email = 'romain@supertilt.fr')
-  OR EXISTS (SELECT 1 FROM user_module_access WHERE user_id = auth.uid() AND module = 'crm')
+  OR EXISTS (SELECT 1 FROM user_module_access WHERE user_id = auth.uid() AND module::text = 'crm')
 );
 
 -- Activity log policies
 CREATE POLICY "crm_activity_log_select" ON crm_activity_log FOR SELECT TO authenticated USING (true);
 CREATE POLICY "crm_activity_log_insert" ON crm_activity_log FOR INSERT TO authenticated WITH CHECK (
   EXISTS (SELECT 1 FROM auth.users WHERE id = auth.uid() AND email = 'romain@supertilt.fr')
-  OR EXISTS (SELECT 1 FROM user_module_access WHERE user_id = auth.uid() AND module = 'crm')
+  OR EXISTS (SELECT 1 FROM user_module_access WHERE user_id = auth.uid() AND module::text = 'crm')
 );
 
 -- Trigger for updated_at on crm_columns

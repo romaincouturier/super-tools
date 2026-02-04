@@ -15,6 +15,7 @@ import {
   CreateTagInput,
   SendEmailInput,
   CrmActivityType,
+  OpportunityExtraction,
 } from "@/types/crm";
 
 const CRM_QUERY_KEY = "crm-board";
@@ -701,6 +702,35 @@ export const useSendEmail = () => {
     },
     onError: (error) => {
       toast({ title: "Erreur", description: error.message, variant: "destructive" });
+    },
+  });
+};
+
+// AI Extraction
+export const useExtractOpportunity = () => {
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (rawInput: string): Promise<OpportunityExtraction> => {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+
+      if (!token) {
+        throw new Error("Non authentifié");
+      }
+
+      const response = await supabase.functions.invoke("crm-extract-opportunity", {
+        body: { raw_input: rawInput },
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message || "Échec de l'extraction");
+      }
+
+      return response.data as OpportunityExtraction;
+    },
+    onError: (error) => {
+      toast({ title: "Erreur d'extraction", description: error.message, variant: "destructive" });
     },
   });
 };

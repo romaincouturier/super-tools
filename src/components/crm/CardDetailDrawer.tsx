@@ -18,6 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Save,
   Trash2,
@@ -32,6 +33,13 @@ import {
   Loader2,
   ExternalLink,
   Download,
+  User,
+  Building2,
+  Phone,
+  Linkedin,
+  CheckCircle2,
+  Circle,
+  Receipt,
 } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -42,6 +50,7 @@ import {
   CrmColumn,
   StatusOperational,
   SalesStatus,
+  BriefQuestion,
 } from "@/types/crm";
 import {
   useCrmCardDetails,
@@ -73,6 +82,7 @@ const CardDetailDrawer = ({
   allColumns,
 }: CardDetailDrawerProps) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { data: details, isLoading: detailsLoading } = useCrmCardDetails(card?.id || null);
 
   const updateCard = useUpdateCard();
@@ -127,6 +137,9 @@ const CardDetailDrawer = ({
       return;
     }
 
+    // Check if status changed to WON
+    const statusChangedToWon = salesStatus === "WON" && card.sales_status !== "WON";
+
     await updateCard.mutateAsync({
       id: card.id,
       updates: {
@@ -143,6 +156,26 @@ const CardDetailDrawer = ({
       actorEmail: user.email,
       oldCard: card,
     });
+
+    // If opportunity is WON and is a formation, ask to create training
+    if (statusChangedToWon && card.service_type === "formation") {
+      const shouldCreateTraining = confirm(
+        "Opportunité marquée comme gagnée !\n\nVoulez-vous créer une formation à partir de cette opportunité ?"
+      );
+      if (shouldCreateTraining) {
+        // Build query params to pre-fill formation create form
+        const params = new URLSearchParams();
+        if (card.company) params.set("clientName", card.company);
+        if (card.first_name) params.set("sponsorFirstName", card.first_name);
+        if (card.last_name) params.set("sponsorLastName", card.last_name);
+        if (card.email) params.set("sponsorEmail", card.email);
+        if (card.title) params.set("trainingName", card.title.replace(/^\([^)]+\)\s*/, "")); // Remove (COMPANY) prefix
+        params.set("fromCrmCardId", card.id);
+
+        onOpenChange(false);
+        navigate(`/formations/create?${params.toString()}`);
+      }
+    }
   };
 
   const handleDelete = async () => {
@@ -252,6 +285,108 @@ const CardDetailDrawer = ({
 
           {/* Details Tab */}
           <TabsContent value="details" className="space-y-4 mt-4">
+            {/* Contact info section */}
+            {(card.first_name || card.last_name || card.company || card.email || card.phone || card.linkedin_url) && (
+              <div className="p-4 bg-muted/50 rounded-lg space-y-3">
+                <h4 className="font-medium text-sm flex items-center gap-2">
+                  <User className="h-4 w-4" />
+                  Contact
+                </h4>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  {(card.first_name || card.last_name) && (
+                    <div className="flex items-center gap-2">
+                      <User className="h-3 w-3 text-muted-foreground" />
+                      <span>{[card.first_name, card.last_name].filter(Boolean).join(" ")}</span>
+                    </div>
+                  )}
+                  {card.company && (
+                    <div className="flex items-center gap-2">
+                      <Building2 className="h-3 w-3 text-muted-foreground" />
+                      <span>{card.company}</span>
+                    </div>
+                  )}
+                  {card.email && (
+                    <div className="flex items-center gap-2">
+                      <Mail className="h-3 w-3 text-muted-foreground" />
+                      <a href={`mailto:${card.email}`} className="text-primary hover:underline">
+                        {card.email}
+                      </a>
+                    </div>
+                  )}
+                  {card.phone && (
+                    <div className="flex items-center gap-2">
+                      <Phone className="h-3 w-3 text-muted-foreground" />
+                      <a href={`tel:${card.phone}`} className="text-primary hover:underline">
+                        {card.phone}
+                      </a>
+                    </div>
+                  )}
+                  {card.linkedin_url && (
+                    <div className="col-span-2 flex items-center gap-2">
+                      <Linkedin className="h-3 w-3 text-muted-foreground" />
+                      <a
+                        href={card.linkedin_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline flex items-center gap-1"
+                      >
+                        Profil LinkedIn
+                        <ExternalLink className="h-3 w-3" />
+                      </a>
+                    </div>
+                  )}
+                </div>
+                {card.service_type && (
+                  <Badge variant="secondary" className="mt-2">
+                    {card.service_type === "formation" ? "Formation" : "Mission"}
+                  </Badge>
+                )}
+              </div>
+            )}
+
+            {/* Brief questions */}
+            {card.brief_questions && card.brief_questions.length > 0 && (
+              <div className="p-4 bg-amber-50 rounded-lg space-y-2">
+                <h4 className="font-medium text-sm flex items-center gap-2">
+                  <FileText className="h-4 w-4" />
+                  Questions pour le brief
+                </h4>
+                <ul className="space-y-1.5">
+                  {card.brief_questions.map((q: BriefQuestion) => (
+                    <li key={q.id} className="flex items-start gap-2 text-sm">
+                      {q.answered ? (
+                        <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                      ) : (
+                        <Circle className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                      )}
+                      <span className={q.answered ? "text-muted-foreground line-through" : ""}>
+                        {q.question}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Quote button */}
+            <div className="flex gap-2">
+              {card.service_type === "formation" ? (
+                <Button asChild variant="outline" className="flex-1">
+                  <Link to="/micro-devis">
+                    <Receipt className="h-4 w-4 mr-2" />
+                    Créer un devis formation
+                  </Link>
+                </Button>
+              ) : card.quote_url ? (
+                <Button asChild variant="outline" className="flex-1">
+                  <a href={card.quote_url} target="_blank" rel="noopener noreferrer">
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    Voir le devis
+                  </a>
+                </Button>
+              ) : null}
+            </div>
+
             <div>
               <Label>Titre</Label>
               <Input value={title} onChange={(e) => setTitle(e.target.value)} />
