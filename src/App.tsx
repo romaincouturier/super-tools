@@ -33,6 +33,8 @@ const TrainingSummary = lazy(() => import("./pages/TrainingSummary"));
 const ChatbotAdmin = lazy(() => import("./pages/ChatbotAdmin"));
 const InboundEmails = lazy(() => import("./pages/InboundEmails"));
 const Statistiques = lazy(() => import("./pages/Statistiques"));
+const Crm = lazy(() => import("./pages/Crm"));
+const CrmReports = lazy(() => import("./pages/CrmReports"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -82,6 +84,9 @@ const App = () => (
             <Route path="/emails" element={<InboundEmails />} />
             {/* Statistics dashboard */}
             <Route path="/statistiques" element={<Statistiques />} />
+            {/* CRM Kanban */}
+            <Route path="/crm" element={<Crm />} />
+            <Route path="/crm/reports" element={<CrmReports />} />
             {/* Public needs survey */}
             <Route path="/questionnaire/:token" element={<Questionnaire />} />
             {/* Public evaluation form */}

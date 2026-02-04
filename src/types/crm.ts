@@ -1,0 +1,149 @@
+// CRM Module Types
+
+export type StatusOperational = 'TODAY' | 'WAITING';
+export type SalesStatus = 'OPEN' | 'WON' | 'LOST' | 'CANCELED';
+
+export interface CrmColumn {
+  id: string;
+  name: string;
+  position: number;
+  is_archived: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CrmTag {
+  id: string;
+  name: string;
+  color: string;
+  category: string | null;
+  created_at: string;
+}
+
+export interface CrmCard {
+  id: string;
+  column_id: string;
+  title: string;
+  description_html: string | null;
+  status_operational: StatusOperational;
+  waiting_next_action_date: string | null;
+  waiting_next_action_text: string | null;
+  sales_status: SalesStatus;
+  estimated_value: number;
+  quote_url: string | null;
+  position: number;
+  created_at: string;
+  updated_at: string;
+  // Joined data
+  tags?: CrmTag[];
+}
+
+export interface CrmCardTag {
+  card_id: string;
+  tag_id: string;
+  created_at: string;
+}
+
+export interface CrmAttachment {
+  id: string;
+  card_id: string;
+  file_name: string;
+  file_path: string;
+  file_size: number | null;
+  mime_type: string | null;
+  created_at: string;
+}
+
+export interface CrmComment {
+  id: string;
+  card_id: string;
+  author_email: string;
+  content: string;
+  is_deleted: boolean;
+  created_at: string;
+}
+
+export interface CrmCardEmail {
+  id: string;
+  card_id: string;
+  sender_email: string;
+  recipient_email: string;
+  subject: string;
+  body_html: string;
+  sent_at: string;
+}
+
+export type CrmActivityType =
+  | 'card_created'
+  | 'card_moved'
+  | 'status_operational_changed'
+  | 'sales_status_changed'
+  | 'estimated_value_changed'
+  | 'tag_added'
+  | 'tag_removed'
+  | 'comment_added'
+  | 'attachment_added'
+  | 'attachment_removed'
+  | 'email_sent';
+
+export interface CrmActivityLog {
+  id: string;
+  card_id: string;
+  action_type: CrmActivityType;
+  old_value: string | null;
+  new_value: string | null;
+  metadata: Record<string, unknown> | null;
+  actor_email: string;
+  created_at: string;
+}
+
+// Form types
+export interface CreateCardInput {
+  column_id: string;
+  title: string;
+  description_html?: string;
+  status_operational?: StatusOperational;
+  waiting_next_action_date?: string;
+  waiting_next_action_text?: string;
+  sales_status?: SalesStatus;
+  estimated_value?: number;
+  quote_url?: string;
+}
+
+export interface UpdateCardInput {
+  title?: string;
+  description_html?: string;
+  status_operational?: StatusOperational;
+  waiting_next_action_date?: string | null;
+  waiting_next_action_text?: string | null;
+  sales_status?: SalesStatus;
+  estimated_value?: number;
+  quote_url?: string | null;
+  column_id?: string;
+  position?: number;
+}
+
+export interface CreateColumnInput {
+  name: string;
+  position?: number;
+}
+
+export interface CreateTagInput {
+  name: string;
+  color?: string;
+  category?: string;
+}
+
+export interface SendEmailInput {
+  card_id: string;
+  recipient_email: string;
+  subject: string;
+  body_html: string;
+}
+
+// Board state type
+export interface CrmBoardData {
+  columns: CrmColumn[];
+  cards: CrmCard[];
+  tags: CrmTag[];
+}
