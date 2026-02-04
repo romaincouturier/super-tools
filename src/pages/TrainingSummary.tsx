@@ -19,6 +19,8 @@ import {
   ChevronDown,
   Linkedin,
   MessageCircle,
+  Video,
+  Globe,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -126,6 +128,28 @@ const TrainingSummary = () => {
 
   const formatTime = (time: string) => {
     return time.substring(0, 5);
+  };
+
+  // Check if location is online (visio/distanciel)
+  const isOnlineLocation = () => {
+    if (!training) return false;
+    const location = training.location.toLowerCase();
+    return (
+      location.includes("visio") ||
+      location.includes("en ligne") ||
+      location.includes("distanciel") ||
+      location.includes("zoom") ||
+      location.includes("teams") ||
+      location.includes("meet") ||
+      training.format_formation === "distanciel"
+    );
+  };
+
+  // Extract URL from location if it's a link
+  const extractUrlFromLocation = () => {
+    if (!training) return null;
+    const urlMatch = training.location.match(/(https?:\/\/[^\s]+)/);
+    return urlMatch ? urlMatch[0] : null;
   };
 
   const getGoogleMapsUrl = () => {
@@ -403,6 +427,19 @@ END:VCALENDAR`;
                     </div>
                   </div>
                 ))}
+                <div className="flex items-center gap-2 text-sm text-muted-foreground mt-2">
+                  <Globe className="h-4 w-4" />
+                  <span>Horaires de Paris (Europe/Paris)</span>
+                  <span>•</span>
+                  <a
+                    href="https://www.worldtimebuddy.com/?pl=1&lid=2988507&h=2988507"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline"
+                  >
+                    Convertir dans mon fuseau horaire
+                  </a>
+                </div>
               </div>
             ) : (
               <p className="text-muted-foreground">
@@ -454,40 +491,67 @@ END:VCALENDAR`;
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <MapPin className="h-5 w-5 text-primary" />
-                Lieu de formation
+                {isOnlineLocation() ? (
+                  <Video className="h-5 w-5 text-primary" />
+                ) : (
+                  <MapPin className="h-5 w-5 text-primary" />
+                )}
+                {isOnlineLocation() ? "Formation à distance" : "Lieu de formation"}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <p className="text-lg">{training.location}</p>
+              {isOnlineLocation() ? (
+                <>
+                  {extractUrlFromLocation() ? (
+                    <a
+                      href={extractUrlFromLocation()!}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-lg text-primary hover:underline flex items-center gap-2"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                      {training.location}
+                    </a>
+                  ) : (
+                    <p className="text-lg">{training.location}</p>
+                  )}
+                  <p className="text-sm text-muted-foreground">
+                    Le lien de connexion vous sera communiqué par email avant la formation.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="text-lg">{training.location}</p>
 
-              {/* Google Maps embed */}
-              <div className="aspect-video w-full rounded-lg overflow-hidden border">
-                <iframe
-                  width="100%"
-                  height="100%"
-                  style={{ border: 0 }}
-                  loading="lazy"
-                  allowFullScreen
-                  referrerPolicy="no-referrer-when-downgrade"
-                  src={`https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${encodeURIComponent(training.location)}`}
-                />
-              </div>
+                  {/* Google Maps embed */}
+                  <div className="aspect-video w-full rounded-lg overflow-hidden border">
+                    <iframe
+                      width="100%"
+                      height="100%"
+                      style={{ border: 0 }}
+                      loading="lazy"
+                      allowFullScreen
+                      referrerPolicy="no-referrer-when-downgrade"
+                      src={`https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${encodeURIComponent(training.location)}`}
+                    />
+                  </div>
 
-              <div className="flex flex-wrap gap-2">
-                <Button variant="outline" asChild>
-                  <a href={getGoogleMapsUrl()} target="_blank" rel="noopener noreferrer">
-                    <MapPin className="h-4 w-4 mr-2" />
-                    Voir sur Google Maps
-                  </a>
-                </Button>
-                <Button asChild>
-                  <a href={getDirectionsUrl()} target="_blank" rel="noopener noreferrer">
-                    <Navigation className="h-4 w-4 mr-2" />
-                    Venir
-                  </a>
-                </Button>
-              </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button variant="outline" asChild>
+                      <a href={getGoogleMapsUrl()} target="_blank" rel="noopener noreferrer">
+                        <MapPin className="h-4 w-4 mr-2" />
+                        Voir sur Google Maps
+                      </a>
+                    </Button>
+                    <Button asChild>
+                      <a href={getDirectionsUrl()} target="_blank" rel="noopener noreferrer">
+                        <Navigation className="h-4 w-4 mr-2" />
+                        Venir
+                      </a>
+                    </Button>
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
         )}
