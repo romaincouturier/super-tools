@@ -447,6 +447,9 @@ const handler = async (req: Request): Promise<Response> => {
     // 5. Special case: Facilitation graphique
     // ========================================
     if (trainingName.toLowerCase().includes("facilitation graphique")) {
+      // Wait to avoid rate limit before sending another email
+      await sleep(1000);
+      
       console.log("Sending special Facilitation Graphique email...");
 
       const fgEmailHtml = `
