@@ -117,10 +117,11 @@ const ContentCard = ({ card, isDragging, onEdit, onDelete, onView }: ContentCard
               if (reviewInfo) {
                 const IconComponent = reviewInfo.icon;
                 return (
-                  <IconComponent
-                    className={`h-4 w-4 flex-shrink-0 mt-0.5 ${reviewInfo.color}`}
-                    title={reviewInfo.tooltip}
-                  />
+                  <span title={reviewInfo.tooltip}>
+                    <IconComponent
+                      className={`h-4 w-4 flex-shrink-0 mt-0.5 ${reviewInfo.color}`}
+                    />
+                  </span>
                 );
               }
               return null;
