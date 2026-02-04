@@ -43,7 +43,6 @@ interface Training {
   objectives: string[] | null;
   prerequisites: string[] | null;
   format_formation: string | null;
-  elearning_duration: number | null;
 }
 
 interface Schedule {
@@ -82,7 +81,7 @@ const TrainingSummary = () => {
       // Fetch training
       const { data: trainingData, error: trainingError } = await supabase
         .from("trainings")
-        .select("id, training_name, start_date, end_date, location, program_file_url, trainer_id, objectives, prerequisites, format_formation, elearning_duration")
+        .select("id, training_name, start_date, end_date, location, program_file_url, trainer_id, objectives, prerequisites, format_formation")
         .eq("id", trainingId)
         .single();
 
@@ -383,12 +382,6 @@ END:VCALENDAR`;
                     {training.end_date &&
                       ` au ${format(parseISO(training.end_date), "d MMMM yyyy", { locale: fr })}`}
                   </p>
-                  {training.elearning_duration && (
-                    <p className="text-muted-foreground mt-1">
-                      <Clock className="h-4 w-4 inline mr-1" />
-                      Durée estimée : {training.elearning_duration}h
-                    </p>
-                  )}
                 </div>
                 <p className="text-sm text-muted-foreground">
                   Formation en e-learning accessible à votre rythme pendant cette période.

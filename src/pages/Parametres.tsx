@@ -1014,7 +1014,7 @@ const Parametres = () => {
   if (!isAdmin && !hasAccess("parametres")) {
     return (
       <div className="min-h-screen bg-background">
-        <AppHeader user={user} onLogout={handleLogout} />
+        <AppHeader />
         <main className="max-w-6xl mx-auto p-6">
           <div className="flex items-center gap-4 mb-6">
             <Button
@@ -1050,7 +1050,7 @@ const Parametres = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <AppHeader user={user} onLogout={handleLogout} />
+      <AppHeader />
 
       {/* Main content */}
       <main className="max-w-6xl mx-auto p-6">

@@ -1,5 +1,4 @@
 import { useNavigate } from "react-router-dom";
-import { User } from "@supabase/supabase-js";
 import { Settings } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,15 +6,15 @@ import SupertiltLogo from "@/components/SupertiltLogo";
 import UserMenu from "@/components/UserMenu";
 import OnboardCollaboratorDialog from "@/components/OnboardCollaboratorDialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useAuth } from "@/hooks/useAuth";
 
 interface AppHeaderProps {
-  user: User | null;
-  onLogout: () => void;
   showOnboarding?: boolean;
 }
 
-const AppHeader = ({ user, onLogout, showOnboarding = false }: AppHeaderProps) => {
+const AppHeader = ({ showOnboarding = false }: AppHeaderProps) => {
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
   const [firstName, setFirstName] = useState<string | null>(null);
 
   useEffect(() => {
@@ -75,7 +74,7 @@ const AppHeader = ({ user, onLogout, showOnboarding = false }: AppHeaderProps) =
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
-          {user && <UserMenu user={user} onLogout={onLogout} />}
+          {user && <UserMenu user={user} onLogout={logout} />}
         </div>
       </div>
     </header>

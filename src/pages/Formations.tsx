@@ -220,7 +220,7 @@ const Formations = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <AppHeader user={user} onLogout={logout} />
+      <AppHeader />
 
       {/* Main content */}
       <main className="max-w-6xl mx-auto p-6">

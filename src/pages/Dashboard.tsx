@@ -119,7 +119,7 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <AppHeader user={user} onLogout={logout} showOnboarding />
+      <AppHeader showOnboarding />
 
       {/* Main content */}
       <main className="max-w-7xl mx-auto p-6 space-y-8">

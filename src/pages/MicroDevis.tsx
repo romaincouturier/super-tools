@@ -301,7 +301,7 @@ const MicroDevis = () => {
 
       if (error) throw error;
 
-      setDevisHistory((data || []) as DevisHistoryItem[]);
+      setDevisHistory((data || []) as unknown as DevisHistoryItem[]);
     } catch (error) {
       console.error("Error loading devis history:", error);
       toast({
@@ -893,7 +893,7 @@ const MicroDevis = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <AppHeader user={user} onLogout={handleLogout} />
+      <AppHeader />
 
       {/* Main content */}
       <main className="max-w-4xl mx-auto p-6">

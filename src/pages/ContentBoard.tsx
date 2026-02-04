@@ -68,7 +68,7 @@ const ContentBoard = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <AppHeader user={user} onLogout={handleLogout} />
+      <AppHeader />
 
       <main className="flex-1 max-w-full mx-auto p-6 overflow-hidden">
         <div className="flex items-center justify-between gap-4 mb-6">

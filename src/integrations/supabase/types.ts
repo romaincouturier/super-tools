@@ -65,6 +65,92 @@ export type Database = {
         }
         Relationships: []
       }
+      api_keys: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          expires_at: string | null
+          id: string
+          is_active: boolean | null
+          key_hash: string
+          key_prefix: string
+          last_used_at: string | null
+          name: string
+          permissions: string[] | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          key_hash: string
+          key_prefix: string
+          last_used_at?: string | null
+          name: string
+          permissions?: string[] | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          key_hash?: string
+          key_prefix?: string
+          last_used_at?: string | null
+          name?: string
+          permissions?: string[] | null
+        }
+        Relationships: []
+      }
+      api_request_logs: {
+        Row: {
+          api_key_id: string | null
+          created_at: string | null
+          endpoint: string
+          id: string
+          ip_address: string | null
+          method: string
+          request_body: Json | null
+          response_body: Json | null
+          status_code: number | null
+          user_agent: string | null
+        }
+        Insert: {
+          api_key_id?: string | null
+          created_at?: string | null
+          endpoint: string
+          id?: string
+          ip_address?: string | null
+          method: string
+          request_body?: Json | null
+          response_body?: Json | null
+          status_code?: number | null
+          user_agent?: string | null
+        }
+        Update: {
+          api_key_id?: string | null
+          created_at?: string | null
+          endpoint?: string
+          id?: string
+          ip_address?: string | null
+          method?: string
+          request_body?: Json | null
+          response_body?: Json | null
+          status_code?: number | null
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "api_request_logs_api_key_id_fkey"
+            columns: ["api_key_id"]
+            isOneToOne: false
+            referencedRelation: "api_keys"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       app_settings: {
         Row: {
           created_at: string
@@ -94,6 +180,7 @@ export type Database = {
       }
       attendance_signatures: {
         Row: {
+          audit_metadata: Json | null
           created_at: string
           email_opened_at: string | null
           email_sent_at: string | null
@@ -109,6 +196,7 @@ export type Database = {
           user_agent: string | null
         }
         Insert: {
+          audit_metadata?: Json | null
           created_at?: string
           email_opened_at?: string | null
           email_sent_at?: string | null
@@ -124,6 +212,7 @@ export type Database = {
           user_agent?: string | null
         }
         Update: {
+          audit_metadata?: Json | null
           created_at?: string
           email_opened_at?: string | null
           email_sent_at?: string | null
@@ -154,6 +243,72 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      chatbot_conversations: {
+        Row: {
+          answer: string
+          created_at: string | null
+          feedback: string | null
+          id: string
+          question: string
+          sources: string[] | null
+          user_id: string | null
+        }
+        Insert: {
+          answer: string
+          created_at?: string | null
+          feedback?: string | null
+          id?: string
+          question: string
+          sources?: string[] | null
+          user_id?: string | null
+        }
+        Update: {
+          answer?: string
+          created_at?: string | null
+          feedback?: string | null
+          id?: string
+          question?: string
+          sources?: string[] | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      chatbot_knowledge_base: {
+        Row: {
+          category: string
+          content: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          keywords: string[] | null
+          priority: number | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          category: string
+          content: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          keywords?: string[] | null
+          priority?: number | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string
+          content?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          keywords?: string[] | null
+          priority?: number | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       content_cards: {
         Row: {
@@ -266,6 +421,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           external_url: string | null
+          general_opinion: string | null
           id: string
           reminder_sent_at: string | null
           reviewer_id: string
@@ -277,6 +433,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           external_url?: string | null
+          general_opinion?: string | null
           id?: string
           reminder_sent_at?: string | null
           reviewer_id: string
@@ -288,6 +445,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           external_url?: string | null
+          general_opinion?: string | null
           id?: string
           reminder_sent_at?: string | null
           reviewer_id?: string
@@ -299,6 +457,83 @@ export type Database = {
             columns: ["card_id"]
             isOneToOne: false
             referencedRelation: "content_cards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      devis_signatures: {
+        Row: {
+          activity_log_id: string
+          audit_metadata: Json | null
+          client_name: string
+          created_at: string
+          devis_type: string
+          email_opened_at: string | null
+          email_sent_at: string | null
+          expires_at: string | null
+          formation_name: string
+          id: string
+          ip_address: string | null
+          pdf_url: string
+          recipient_email: string
+          recipient_name: string | null
+          signature_data: string | null
+          signed_at: string | null
+          status: string
+          token: string
+          updated_at: string
+          user_agent: string | null
+        }
+        Insert: {
+          activity_log_id: string
+          audit_metadata?: Json | null
+          client_name: string
+          created_at?: string
+          devis_type: string
+          email_opened_at?: string | null
+          email_sent_at?: string | null
+          expires_at?: string | null
+          formation_name: string
+          id?: string
+          ip_address?: string | null
+          pdf_url: string
+          recipient_email: string
+          recipient_name?: string | null
+          signature_data?: string | null
+          signed_at?: string | null
+          status?: string
+          token: string
+          updated_at?: string
+          user_agent?: string | null
+        }
+        Update: {
+          activity_log_id?: string
+          audit_metadata?: Json | null
+          client_name?: string
+          created_at?: string
+          devis_type?: string
+          email_opened_at?: string | null
+          email_sent_at?: string | null
+          expires_at?: string | null
+          formation_name?: string
+          id?: string
+          ip_address?: string | null
+          pdf_url?: string
+          recipient_email?: string
+          recipient_name?: string | null
+          signature_data?: string | null
+          signed_at?: string | null
+          status?: string
+          token?: string
+          updated_at?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "devis_signatures_activity_log_id_fkey"
+            columns: ["activity_log_id"]
+            isOneToOne: false
+            referencedRelation: "activity_logs"
             referencedColumns: ["id"]
           },
         ]
@@ -514,6 +749,90 @@ export type Database = {
           {
             foreignKeyName: "improvements_training_id_fkey"
             columns: ["training_id"]
+            isOneToOne: false
+            referencedRelation: "trainings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inbound_emails: {
+        Row: {
+          attachments: Json | null
+          bcc: string[] | null
+          cc: string[] | null
+          created_at: string | null
+          from_email: string
+          from_name: string | null
+          headers: Json | null
+          html_body: string | null
+          id: string
+          linked_participant_id: string | null
+          linked_training_id: string | null
+          message_id: string | null
+          notes: string | null
+          processed_at: string | null
+          received_at: string | null
+          reply_to: string | null
+          status: string | null
+          subject: string | null
+          text_body: string | null
+          to_email: string
+        }
+        Insert: {
+          attachments?: Json | null
+          bcc?: string[] | null
+          cc?: string[] | null
+          created_at?: string | null
+          from_email: string
+          from_name?: string | null
+          headers?: Json | null
+          html_body?: string | null
+          id?: string
+          linked_participant_id?: string | null
+          linked_training_id?: string | null
+          message_id?: string | null
+          notes?: string | null
+          processed_at?: string | null
+          received_at?: string | null
+          reply_to?: string | null
+          status?: string | null
+          subject?: string | null
+          text_body?: string | null
+          to_email: string
+        }
+        Update: {
+          attachments?: Json | null
+          bcc?: string[] | null
+          cc?: string[] | null
+          created_at?: string | null
+          from_email?: string
+          from_name?: string | null
+          headers?: Json | null
+          html_body?: string | null
+          id?: string
+          linked_participant_id?: string | null
+          linked_training_id?: string | null
+          message_id?: string | null
+          notes?: string | null
+          processed_at?: string | null
+          received_at?: string | null
+          reply_to?: string | null
+          status?: string | null
+          subject?: string | null
+          text_body?: string | null
+          to_email?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inbound_emails_linked_participant_id_fkey"
+            columns: ["linked_participant_id"]
+            isOneToOne: false
+            referencedRelation: "training_participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inbound_emails_linked_training_id_fkey"
+            columns: ["linked_training_id"]
             isOneToOne: false
             referencedRelation: "trainings"
             referencedColumns: ["id"]
@@ -768,30 +1087,39 @@ export type Database = {
       review_comments: {
         Row: {
           author_id: string
+          comment_type: string | null
           content: string
           created_at: string
           id: string
+          image_url: string | null
           parent_comment_id: string | null
+          proposed_correction: string | null
           resolved_at: string | null
           review_id: string
           status: string | null
         }
         Insert: {
           author_id: string
+          comment_type?: string | null
           content: string
           created_at?: string
           id?: string
+          image_url?: string | null
           parent_comment_id?: string | null
+          proposed_correction?: string | null
           resolved_at?: string | null
           review_id: string
           status?: string | null
         }
         Update: {
           author_id?: string
+          comment_type?: string | null
           content?: string
           created_at?: string
           id?: string
+          image_url?: string | null
           parent_comment_id?: string | null
+          proposed_correction?: string | null
           resolved_at?: string | null
           review_id?: string
           status?: string | null
@@ -1341,6 +1669,7 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
+      update_api_key_last_used: { Args: { key_id: string }; Returns: undefined }
       upsert_profile: {
         Args: { p_display_name?: string; p_email: string; p_user_id: string }
         Returns: undefined

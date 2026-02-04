@@ -95,7 +95,7 @@ export default function InboundEmails() {
 
       const { data, error } = await query.limit(100);
       if (error) throw error;
-      return data as InboundEmail[];
+      return (data || []) as unknown as InboundEmail[];
     },
     enabled: !!user,
   });

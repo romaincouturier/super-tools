@@ -210,7 +210,7 @@ const BesoinsParticipants = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <AppHeader user={user} onLogout={handleLogout} />
+      <AppHeader />
 
       <main className="max-w-7xl mx-auto p-6">
         {/* Header */}
