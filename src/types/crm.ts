@@ -67,6 +67,9 @@ export interface CrmCard {
   service_type: ServiceType | null;
   brief_questions: BriefQuestion[];
   raw_input: string | null;
+  // Next action checkbox
+  next_action_text: string | null;
+  next_action_done: boolean;
   // Joined data
   tags?: CrmTag[];
 }
@@ -175,6 +178,9 @@ export interface UpdateCardInput {
   website_url?: string | null;
   service_type?: ServiceType | null;
   brief_questions?: BriefQuestion[];
+  // Next action
+  next_action_text?: string | null;
+  next_action_done?: boolean;
 }
 
 export interface CreateColumnInput {

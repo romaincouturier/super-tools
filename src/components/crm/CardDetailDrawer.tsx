@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -134,6 +135,10 @@ const CardDetailDrawer = ({
   const [scheduledDate, setScheduledDate] = useState("");
   const [scheduledText, setScheduledText] = useState("");
 
+  // Next action state
+  const [nextActionText, setNextActionText] = useState("");
+  const [nextActionDone, setNextActionDone] = useState(false);
+
   // Comment state
   const [newComment, setNewComment] = useState("");
 
@@ -179,6 +184,9 @@ const CardDetailDrawer = ({
       setLinkedinUrl(card.linkedin_url || "");
       setWebsiteUrl(card.website_url || "");
       setServiceType(card.service_type || null);
+      // Next action
+      setNextActionText(card.next_action_text || "");
+      setNextActionDone(card.next_action_done || false);
       // Reset AI state
       setAiAnalysis(null);
       setQuoteDescription(null);
@@ -343,6 +351,8 @@ const CardDetailDrawer = ({
         linkedin_url: linkedinUrl.trim() || null,
         website_url: websiteUrl.trim() || null,
         service_type: serviceType,
+        next_action_text: nextActionText.trim() || null,
+        next_action_done: nextActionDone,
       },
       actorEmail: user.email,
       oldCard: card,
@@ -883,6 +893,26 @@ const CardDetailDrawer = ({
                 placeholder="Notez ici tous les échanges, informations et détails importants de l'opportunité..."
                 className="text-[10px] leading-relaxed"
               />
+
+              {/* Next action checkbox */}
+              <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+                <Checkbox
+                  id="next-action-done"
+                  checked={nextActionDone}
+                  onCheckedChange={(checked) => setNextActionDone(checked === true)}
+                />
+                <div className="flex-1">
+                  <Label htmlFor="next-action-done" className="text-xs text-muted-foreground mb-1 block">
+                    Prochaine action
+                  </Label>
+                  <Input
+                    value={nextActionText}
+                    onChange={(e) => setNextActionText(e.target.value)}
+                    placeholder="Quelle est la prochaine action à faire ?"
+                    className={`h-8 text-sm ${nextActionDone ? "line-through text-muted-foreground" : ""}`}
+                  />
+                </div>
+              </div>
 
               {/* AI buttons */}
               <div className="flex gap-2 flex-wrap">

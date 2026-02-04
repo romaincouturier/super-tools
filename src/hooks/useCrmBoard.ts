@@ -99,6 +99,8 @@ export const useCrmBoard = () => {
           service_type: card.service_type as CrmCard["service_type"],
           brief_questions: (Array.isArray(card.brief_questions) ? card.brief_questions : []) as unknown as CrmCard["brief_questions"],
           raw_input: card.raw_input,
+          next_action_text: card.next_action_text,
+          next_action_done: card.next_action_done ?? false,
           tags: cardTagsList,
         };
       });
