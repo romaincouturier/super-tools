@@ -1,10 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -41,6 +42,13 @@ import {
   Receipt,
   Calendar,
   LinkIcon,
+  Sparkles,
+  AlertTriangle,
+  Maximize2,
+  Minimize2,
+  Brain,
+  FileSignature,
+  Check,
 } from "lucide-react";
 import { format, addDays, isAfter, startOfDay } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -110,6 +118,15 @@ const CardDetailDrawer = ({
   const [quoteUrl, setQuoteUrl] = useState("");
   const [columnId, setColumnId] = useState("");
 
+  // Contact fields state (editable)
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [company, setCompany] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [linkedinUrl, setLinkedinUrl] = useState("");
+  const [serviceType, setServiceType] = useState<"formation" | "mission" | null>(null);
+
   // Scheduled action state
   const [scheduledDate, setScheduledDate] = useState("");
   const [scheduledText, setScheduledText] = useState("");
@@ -121,6 +138,20 @@ const CardDetailDrawer = ({
   const [emailTo, setEmailTo] = useState("");
   const [emailSubject, setEmailSubject] = useState("");
   const [emailBody, setEmailBody] = useState("");
+
+  // UI state
+  const [isFullScreen, setIsFullScreen] = useState(false);
+
+  // AI state
+  const [aiAnalyzing, setAiAnalyzing] = useState(false);
+  const [quoteGenerating, setQuoteGenerating] = useState(false);
+  const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
+  const [quoteDescription, setQuoteDescription] = useState<string | null>(null);
+
+  // Auto-save state
+  const [descriptionSaving, setDescriptionSaving] = useState(false);
+  const [descriptionSaved, setDescriptionSaved] = useState(false);
+  const descriptionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Get tomorrow's date as minimum for scheduling
   const tomorrow = format(addDays(new Date(), 1), "yyyy-MM-dd");
@@ -136,8 +167,151 @@ const CardDetailDrawer = ({
       setColumnId(card.column_id);
       setScheduledDate(card.waiting_next_action_date || "");
       setScheduledText(card.waiting_next_action_text || "");
+      // Contact fields
+      setFirstName(card.first_name || "");
+      setLastName(card.last_name || "");
+      setCompany(card.company || "");
+      setEmail(card.email || "");
+      setPhone(card.phone || "");
+      setLinkedinUrl(card.linkedin_url || "");
+      setServiceType(card.service_type || null);
+      // Reset AI state
+      setAiAnalysis(null);
+      setQuoteDescription(null);
+      setDescriptionSaved(false);
     }
   }, [card]);
+
+  // Auto-save description with debounce
+  const saveDescription = useCallback(async (newDescription: string) => {
+    if (!card || !user?.email) return;
+
+    setDescriptionSaving(true);
+    setDescriptionSaved(false);
+
+    try {
+      await updateCard.mutateAsync({
+        id: card.id,
+        updates: {
+          description_html: DOMPurify.sanitize(newDescription),
+        },
+        actorEmail: user.email,
+        oldCard: card,
+      });
+      setDescriptionSaved(true);
+      // Reset saved indicator after 2 seconds
+      setTimeout(() => setDescriptionSaved(false), 2000);
+    } catch (error) {
+      console.error("Failed to auto-save description:", error);
+    } finally {
+      setDescriptionSaving(false);
+    }
+  }, [card, user?.email, updateCard]);
+
+  const handleDescriptionChange = (value: string) => {
+    setDescriptionHtml(value);
+
+    // Clear existing timeout
+    if (descriptionTimeoutRef.current) {
+      clearTimeout(descriptionTimeoutRef.current);
+    }
+
+    // Set new timeout for auto-save (1.5 seconds debounce)
+    descriptionTimeoutRef.current = setTimeout(() => {
+      saveDescription(value);
+    }, 1500);
+  };
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (descriptionTimeoutRef.current) {
+        clearTimeout(descriptionTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // AI Analysis function
+  const handleAiAnalysis = async () => {
+    if (!card) return;
+
+    setAiAnalyzing(true);
+    setAiAnalysis(null);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("crm-ai-assist", {
+        body: {
+          action: "analyze_exchanges",
+          card_data: {
+            title: card.title,
+            description: descriptionHtml,
+            company,
+            first_name: firstName,
+            last_name: lastName,
+            service_type: serviceType,
+            estimated_value: parseFloat(estimatedValue) || 0,
+            comments: details?.comments || [],
+            brief_questions: card.brief_questions || [],
+          },
+        },
+      });
+
+      if (error) throw error;
+      setAiAnalysis(data.result);
+    } catch (error) {
+      console.error("AI analysis error:", error);
+      setAiAnalysis("Erreur lors de l'analyse. Veuillez réessayer.");
+    } finally {
+      setAiAnalyzing(false);
+    }
+  };
+
+  // Generate quote description
+  const handleGenerateQuoteDescription = async () => {
+    if (!card) return;
+
+    setQuoteGenerating(true);
+    setQuoteDescription(null);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("crm-ai-assist", {
+        body: {
+          action: "generate_quote_description",
+          card_data: {
+            title: card.title,
+            description: descriptionHtml,
+            company,
+            first_name: firstName,
+            last_name: lastName,
+            service_type: serviceType,
+            estimated_value: parseFloat(estimatedValue) || 0,
+            comments: details?.comments || [],
+            brief_questions: card.brief_questions || [],
+          },
+        },
+      });
+
+      if (error) throw error;
+      setQuoteDescription(data.result);
+    } catch (error) {
+      console.error("Quote generation error:", error);
+      setQuoteDescription("Erreur lors de la génération. Veuillez réessayer.");
+    } finally {
+      setQuoteGenerating(false);
+    }
+  };
+
+  // Copy to clipboard
+  const copyToClipboard = async (text: string) => {
+    await navigator.clipboard.writeText(text);
+  };
+
+  // Generate LinkedIn search URL from name
+  const generateLinkedInSearchUrl = () => {
+    if (!firstName && !lastName) return "";
+    const name = [firstName, lastName?.toUpperCase()].filter(Boolean).join(" ");
+    return `https://www.linkedin.com/search/results/all/?keywords=${encodeURIComponent(name)}`;
+  };
 
   const handleSave = async () => {
     if (!card || !user?.email) return;
@@ -156,23 +330,31 @@ const CardDetailDrawer = ({
         column_id: columnId,
         waiting_next_action_date: scheduledDate || null,
         waiting_next_action_text: scheduledText.trim() || null,
+        // Contact fields
+        first_name: firstName.trim() || null,
+        last_name: lastName.trim() || null,
+        company: company.trim() || null,
+        email: email.trim() || null,
+        phone: phone.trim() || null,
+        linkedin_url: linkedinUrl.trim() || null,
+        service_type: serviceType,
       },
       actorEmail: user.email,
       oldCard: card,
     });
 
     // If opportunity is WON and is a formation, ask to create training
-    if (statusChangedToWon && card.service_type === "formation") {
+    if (statusChangedToWon && serviceType === "formation") {
       const shouldCreateTraining = confirm(
         "Opportunité marquée comme gagnée !\n\nVoulez-vous créer une formation à partir de cette opportunité ?"
       );
       if (shouldCreateTraining) {
         const params = new URLSearchParams();
-        if (card.company) params.set("clientName", card.company);
-        if (card.first_name) params.set("sponsorFirstName", card.first_name);
-        if (card.last_name) params.set("sponsorLastName", card.last_name);
-        if (card.email) params.set("sponsorEmail", card.email);
-        if (card.title) params.set("trainingName", card.title.replace(/^\([^)]+\)\s*/, ""));
+        if (company) params.set("clientName", company);
+        if (firstName) params.set("sponsorFirstName", firstName);
+        if (lastName) params.set("sponsorLastName", lastName);
+        if (email) params.set("sponsorEmail", email);
+        if (title) params.set("trainingName", title.replace(/^\([^)]+\)\s*/, ""));
         params.set("fromCrmCardId", card.id);
 
         onOpenChange(false);
@@ -195,17 +377,17 @@ const CardDetailDrawer = ({
       oldCard: card,
     });
 
-    if (statusChangedToWon && card.service_type === "formation") {
+    if (statusChangedToWon && serviceType === "formation") {
       const shouldCreateTraining = confirm(
         "Opportunité marquée comme gagnée !\n\nVoulez-vous créer une formation à partir de cette opportunité ?"
       );
       if (shouldCreateTraining) {
         const params = new URLSearchParams();
-        if (card.company) params.set("clientName", card.company);
-        if (card.first_name) params.set("sponsorFirstName", card.first_name);
-        if (card.last_name) params.set("sponsorLastName", card.last_name);
-        if (card.email) params.set("sponsorEmail", card.email);
-        if (card.title) params.set("trainingName", card.title.replace(/^\([^)]+\)\s*/, ""));
+        if (company) params.set("clientName", company);
+        if (firstName) params.set("sponsorFirstName", firstName);
+        if (lastName) params.set("sponsorLastName", lastName);
+        if (email) params.set("sponsorEmail", email);
+        if (title) params.set("trainingName", title.replace(/^\([^)]+\)\s*/, ""));
         params.set("fromCrmCardId", card.id);
 
         onOpenChange(false);
@@ -321,20 +503,35 @@ const CardDetailDrawer = ({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-xl overflow-y-auto">
+      <SheetContent
+        className={`overflow-y-auto transition-all duration-300 ${
+          isFullScreen
+            ? "w-full sm:max-w-full"
+            : "w-full sm:max-w-xl"
+        }`}
+      >
         <SheetHeader>
-          <SheetTitle className="flex items-center justify-between">
-            <span className="truncate">{card.title}</span>
-            <div className="flex gap-2">
+          <SheetTitle className="flex items-center justify-between gap-2">
+            <span className="truncate flex-1">{card.title}</span>
+            <div className="flex items-center gap-1">
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setIsFullScreen(!isFullScreen)}
+                title={isFullScreen ? "Réduire" : "Plein écran"}
+              >
+                {isFullScreen ? (
+                  <Minimize2 className="h-4 w-4" />
+                ) : (
+                  <Maximize2 className="h-4 w-4" />
+                )}
+              </Button>
               <Button size="sm" onClick={handleSave} disabled={updateCard.isPending}>
                 {updateCard.isPending ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
                   <Save className="h-4 w-4" />
                 )}
-              </Button>
-              <Button size="sm" variant="destructive" onClick={handleDelete}>
-                <Trash2 className="h-4 w-4" />
               </Button>
             </div>
           </SheetTitle>
@@ -380,64 +577,125 @@ const CardDetailDrawer = ({
 
           {/* Details Tab */}
           <TabsContent value="details" className="space-y-4 mt-4">
-            {/* Contact info section */}
-            {(card.first_name || card.last_name || card.company || card.email || card.phone || card.linkedin_url) && (
-              <div className="p-4 bg-muted/50 rounded-lg space-y-3">
-                <h4 className="font-medium text-sm flex items-center gap-2">
-                  <User className="h-4 w-4" />
-                  Contact
-                </h4>
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  {(card.first_name || card.last_name) && (
-                    <div className="flex items-center gap-2">
-                      <User className="h-3 w-3 text-muted-foreground" />
-                      <span>{[card.first_name, card.last_name].filter(Boolean).join(" ")}</span>
-                    </div>
-                  )}
-                  {card.company && (
-                    <div className="flex items-center gap-2">
-                      <Building2 className="h-3 w-3 text-muted-foreground" />
-                      <span>{card.company}</span>
-                    </div>
-                  )}
-                  {card.email && (
-                    <div className="flex items-center gap-2">
-                      <Mail className="h-3 w-3 text-muted-foreground" />
-                      <a href={`mailto:${card.email}`} className="text-primary hover:underline">
-                        {card.email}
-                      </a>
-                    </div>
-                  )}
-                  {card.phone && (
-                    <div className="flex items-center gap-2">
-                      <Phone className="h-3 w-3 text-muted-foreground" />
-                      <a href={`tel:${card.phone}`} className="text-primary hover:underline">
-                        {card.phone}
-                      </a>
-                    </div>
-                  )}
-                  {card.linkedin_url && (
-                    <div className="col-span-2 flex items-center gap-2">
-                      <Linkedin className="h-3 w-3 text-muted-foreground" />
-                      <a
-                        href={card.linkedin_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-primary hover:underline flex items-center gap-1"
-                      >
-                        Profil LinkedIn
-                        <ExternalLink className="h-3 w-3" />
-                      </a>
-                    </div>
-                  )}
+            {/* Contact info section - Editable */}
+            <div className="p-4 bg-muted/50 rounded-lg space-y-3">
+              <h4 className="font-medium text-sm flex items-center gap-2">
+                <User className="h-4 w-4" />
+                Contact
+              </h4>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs">Prénom</Label>
+                  <Input
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    placeholder="Prénom"
+                    className="h-8"
+                  />
                 </div>
-                {card.service_type && (
-                  <Badge variant="secondary" className="mt-2">
-                    {card.service_type === "formation" ? "Formation" : "Mission"}
-                  </Badge>
-                )}
+                <div className="space-y-1">
+                  <Label className="text-xs">Nom</Label>
+                  <Input
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    placeholder="Nom"
+                    className="h-8"
+                  />
+                </div>
+                <div className="space-y-1 col-span-2">
+                  <Label className="text-xs flex items-center gap-1">
+                    <Building2 className="h-3 w-3" />
+                    Entreprise
+                  </Label>
+                  <Input
+                    value={company}
+                    onChange={(e) => setCompany(e.target.value)}
+                    placeholder="Nom de l'entreprise"
+                    className="h-8"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs flex items-center gap-1">
+                    <Mail className="h-3 w-3" />
+                    Email
+                  </Label>
+                  <Input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="email@exemple.com"
+                    className="h-8"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs flex items-center gap-1">
+                    <Phone className="h-3 w-3" />
+                    Téléphone
+                  </Label>
+                  <Input
+                    type="tel"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="06 12 34 56 78"
+                    className="h-8"
+                  />
+                </div>
+                <div className="space-y-1 col-span-2">
+                  <Label className="text-xs flex items-center gap-1">
+                    <Linkedin className="h-3 w-3" />
+                    LinkedIn
+                  </Label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={linkedinUrl}
+                      onChange={(e) => setLinkedinUrl(e.target.value)}
+                      placeholder="URL du profil LinkedIn"
+                      className="h-8 flex-1"
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const url = generateLinkedInSearchUrl();
+                        if (url) {
+                          setLinkedinUrl(url);
+                        }
+                      }}
+                      disabled={!firstName && !lastName}
+                      title="Générer un lien de recherche LinkedIn"
+                    >
+                      <Sparkles className="h-3 w-3" />
+                    </Button>
+                    {linkedinUrl && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        asChild
+                      >
+                        <a href={linkedinUrl} target="_blank" rel="noopener noreferrer">
+                          <ExternalLink className="h-3 w-3" />
+                        </a>
+                      </Button>
+                    )}
+                  </div>
+                </div>
+                <div className="space-y-1 col-span-2">
+                  <Label className="text-xs">Type de prestation</Label>
+                  <Select
+                    value={serviceType || ""}
+                    onValueChange={(v) => setServiceType(v as "formation" | "mission" | null)}
+                  >
+                    <SelectTrigger className="h-8">
+                      <SelectValue placeholder="Non défini" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="formation">Formation</SelectItem>
+                      <SelectItem value="mission">Mission</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-            )}
+            </div>
 
             {/* Brief questions */}
             {card.brief_questions && card.brief_questions.length > 0 && (
@@ -465,7 +723,7 @@ const CardDetailDrawer = ({
 
             {/* Quote buttons */}
             <div className="flex gap-2 flex-wrap">
-              {card.service_type === "formation" && (
+              {serviceType === "formation" && (
                 <Button asChild variant="outline" size="sm">
                   <Link to="/micro-devis">
                     <Receipt className="h-4 w-4 mr-2" />
@@ -568,14 +826,126 @@ const CardDetailDrawer = ({
               </Select>
             </div>
 
-            <div>
-              <Label>Description (HTML)</Label>
+            {/* Description with auto-save and AI */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label className="flex items-center gap-2">
+                  Description / Notes
+                  {descriptionSaving && (
+                    <span className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      Enregistrement...
+                    </span>
+                  )}
+                  {descriptionSaved && !descriptionSaving && (
+                    <span className="text-xs text-green-600 flex items-center gap-1">
+                      <Check className="h-3 w-3" />
+                      Enregistré
+                    </span>
+                  )}
+                </Label>
+              </div>
               <Textarea
                 value={descriptionHtml}
-                onChange={(e) => setDescriptionHtml(e.target.value)}
-                rows={4}
-                placeholder="Description de l'opportunité..."
+                onChange={(e) => handleDescriptionChange(e.target.value)}
+                rows={6}
+                placeholder="Notez ici tous les échanges, informations et détails importants de l'opportunité..."
+                className="font-mono text-sm"
               />
+
+              {/* AI buttons */}
+              <div className="flex gap-2 flex-wrap">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleAiAnalysis}
+                  disabled={aiAnalyzing || !descriptionHtml.trim()}
+                >
+                  {aiAnalyzing ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Brain className="h-4 w-4 mr-2" />
+                  )}
+                  Analyser avec l'IA
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleGenerateQuoteDescription}
+                  disabled={quoteGenerating || !descriptionHtml.trim()}
+                >
+                  {quoteGenerating ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <FileSignature className="h-4 w-4 mr-2" />
+                  )}
+                  Générer descriptif devis
+                </Button>
+              </div>
+
+              {/* AI Analysis result */}
+              {aiAnalysis && (
+                <div className="p-4 bg-purple-50 rounded-lg space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-medium text-sm flex items-center gap-2 text-purple-700">
+                      <Brain className="h-4 w-4" />
+                      Analyse IA
+                    </h4>
+                    <div className="flex gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => copyToClipboard(aiAnalysis)}
+                        title="Copier"
+                      >
+                        <FileText className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setAiAnalysis(null)}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="text-sm whitespace-pre-wrap text-purple-900">
+                    {aiAnalysis}
+                  </div>
+                </div>
+              )}
+
+              {/* Quote description result */}
+              {quoteDescription && (
+                <div className="p-4 bg-emerald-50 rounded-lg space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-medium text-sm flex items-center gap-2 text-emerald-700">
+                      <FileSignature className="h-4 w-4" />
+                      Descriptif pour devis
+                    </h4>
+                    <div className="flex gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => copyToClipboard(quoteDescription)}
+                        title="Copier"
+                      >
+                        <FileText className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setQuoteDescription(null)}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="text-sm whitespace-pre-wrap text-emerald-900">
+                    {quoteDescription}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div>
@@ -836,6 +1206,32 @@ const CardDetailDrawer = ({
             )}
           </TabsContent>
         </Tabs>
+
+        {/* Delete section - at the bottom */}
+        <div className="mt-8 pt-4 border-t border-destructive/20">
+          <div className="p-4 bg-destructive/5 rounded-lg space-y-3">
+            <h4 className="font-medium text-sm flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-4 w-4" />
+              Zone dangereuse
+            </h4>
+            <p className="text-sm text-muted-foreground">
+              La suppression d'une opportunité est irréversible. Toutes les données associées (commentaires, pièces jointes, historique) seront perdues.
+            </p>
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={deleteCard.isPending}
+              className="w-full"
+            >
+              {deleteCard.isPending ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Trash2 className="h-4 w-4 mr-2" />
+              )}
+              Supprimer cette opportunité
+            </Button>
+          </div>
+        </div>
       </SheetContent>
     </Sheet>
   );
