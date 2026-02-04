@@ -561,10 +561,14 @@ const CardDetailDrawer = ({
 
   const handleSalesStatusChange = async (newStatus: SalesStatus) => {
     if (!card || !user?.email) return;
+    
+    // Use local salesStatus state (the CURRENT value before this change) to detect transition
+    const previousStatus = salesStatus;
     setSalesStatus(newStatus);
 
     // Save immediately when status changes
-    const statusChangedToWon = newStatus === "WON" && card.sales_status !== "WON";
+    // Check if we're transitioning TO WON from a non-WON status
+    const statusChangedToWon = newStatus === "WON" && previousStatus !== "WON";
 
     await updateCard.mutateAsync({
       id: card.id,
@@ -573,7 +577,7 @@ const CardDetailDrawer = ({
       oldCard: card,
     });
 
-    // If opportunity is WON and is a formation (or no type set), ask to create training
+    // If opportunity is now WON and is a formation (or no type set), ask to create training
     if (statusChangedToWon && (serviceType === "formation" || !serviceType)) {
       promptCreateTraining();
     }
@@ -624,7 +628,8 @@ const CardDetailDrawer = ({
 
     // Detect if moving to a "won" column (contains "gagné" case-insensitive)
     const isWonColumn = columnName.toLowerCase().includes("gagné");
-    const wasAlreadyWon = card.sales_status === "WON";
+    // Use local salesStatus state instead of card.sales_status (which may be stale)
+    const wasAlreadyWon = salesStatus === "WON";
     const movingToWon = isWonColumn && !wasAlreadyWon;
 
     // Update column (and sales status if moving to won column)
