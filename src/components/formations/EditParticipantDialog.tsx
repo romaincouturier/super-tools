@@ -243,8 +243,8 @@ const EditParticipantDialog = ({
           <p>Modifier le participant</p>
         </TooltipContent>
       </Tooltip>
-      <DialogContent>
-        <form onSubmit={handleSubmit}>
+      <DialogContent className="max-h-[90vh] overflow-y-auto">
+        <form onSubmit={handleSubmit} id="edit-participant-form">
           <DialogHeader>
             <DialogTitle>Modifier le participant</DialogTitle>
             <DialogDescription>
@@ -451,7 +451,11 @@ const EditParticipantDialog = ({
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Annuler
             </Button>
-            <Button type="submit" disabled={saving}>
+            <Button 
+              type="submit"
+              form="edit-participant-form"
+              disabled={saving}
+            >
               {saving ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
