@@ -1622,12 +1622,20 @@ const CardDetailDrawer = ({
                   Emails envoyés
                 </h4>
                 {details.emails.map((email) => (
-                  <div key={email.id} className="p-2 bg-muted rounded mb-2">
-                    <p className="text-sm font-medium">{email.subject}</p>
-                    <p className="text-xs text-muted-foreground">
-                      À: {email.recipient_email} •{" "}
-                      {format(new Date(email.sent_at), "d MMM yyyy HH:mm", { locale: fr })}
-                    </p>
+                  <div key={email.id} className="p-3 bg-muted rounded mb-2 space-y-2">
+                    <div>
+                      <p className="text-sm font-medium">{email.subject}</p>
+                      <p className="text-xs text-muted-foreground">
+                        À: {email.recipient_email} •{" "}
+                        {format(new Date(email.sent_at), "d MMM yyyy HH:mm", { locale: fr })}
+                      </p>
+                    </div>
+                    {email.body_html && (
+                      <div
+                        className="text-xs border-t pt-2 mt-2 prose prose-xs max-w-none [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1"
+                        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(email.body_html) }}
+                      />
+                    )}
                   </div>
                 ))}
               </div>
