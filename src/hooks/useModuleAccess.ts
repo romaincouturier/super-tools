@@ -12,6 +12,7 @@ export type AppModule =
   | "besoins"
   | "emails"
   | "statistiques"
+  | "crm"
   | "parametres";
 
 const ALL_MODULES: AppModule[] = [
@@ -25,6 +26,7 @@ const ALL_MODULES: AppModule[] = [
   "besoins",
   "emails",
   "statistiques",
+  "crm",
   "parametres",
 ];
 
@@ -39,6 +41,7 @@ export const MODULE_LABELS: Record<AppModule, string> = {
   besoins: "Besoins participants",
   emails: "Emails reçus",
   statistiques: "Statistiques",
+  crm: "CRM",
   parametres: "Paramètres généraux",
 };
 

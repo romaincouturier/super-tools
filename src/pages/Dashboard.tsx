@@ -1,4 +1,4 @@
-import { Loader2, Award, FileText, Calendar, ClipboardCheck, TrendingUp, History, Newspaper, ClipboardList, Inbox, BarChart3 } from "lucide-react";
+import { Loader2, Award, FileText, Calendar, ClipboardCheck, TrendingUp, History, Newspaper, ClipboardList, Inbox, BarChart3, Kanban } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { useModuleAccess, AppModule } from "@/hooks/useModuleAccess";
@@ -15,6 +15,14 @@ interface Tool {
 }
 
 const tools: Tool[] = [
+  {
+    id: "contenu",
+    name: "Contenu",
+    description: "Gérer le marketing de contenu",
+    icon: <Newspaper className="w-10 h-10" />,
+    path: "/contenu",
+    module: "contenu",
+  },
   {
     id: "micro-devis",
     name: "Micro-devis",
@@ -72,14 +80,6 @@ const tools: Tool[] = [
     module: "historique",
   },
   {
-    id: "contenu",
-    name: "Contenu",
-    description: "Gérer le marketing de contenu",
-    icon: <Newspaper className="w-10 h-10" />,
-    path: "/contenu",
-    module: "contenu",
-  },
-  {
     id: "emails",
     name: "Emails reçus",
     description: "Consulter les emails entrants",
@@ -94,6 +94,14 @@ const tools: Tool[] = [
     icon: <BarChart3 className="w-10 h-10" />,
     path: "/statistiques",
     module: "statistiques",
+  },
+  {
+    id: "crm",
+    name: "CRM",
+    description: "Gérer le pipeline commercial et les opportunités",
+    icon: <Kanban className="w-10 h-10" />,
+    path: "/crm",
+    module: "crm",
   },
 ];
 const Dashboard = () => {
