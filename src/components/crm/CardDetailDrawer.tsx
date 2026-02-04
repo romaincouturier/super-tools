@@ -713,6 +713,7 @@ const CardDetailDrawer = ({
   }, {} as Record<string, CrmTag[]>);
 
   return (
+    <>
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         className={`overflow-y-auto transition-all duration-300 ${
@@ -1671,15 +1672,16 @@ const CardDetailDrawer = ({
           </div>
         </div>
       </SheetContent>
-
-      {/* Create Training Dialog */}
-      <CreateTrainingDialog
-        open={showCreateTrainingDialog}
-        onOpenChange={setShowCreateTrainingDialog}
-        onConfirm={handleConfirmCreateTraining}
-        opportunityTitle={title}
-      />
     </Sheet>
+
+    {/* Create Training Dialog - MUST be outside Sheet to display correctly */}
+    <CreateTrainingDialog
+      open={showCreateTrainingDialog}
+      onOpenChange={setShowCreateTrainingDialog}
+      onConfirm={handleConfirmCreateTraining}
+      opportunityTitle={title}
+    />
+    </>
   );
 };
 
