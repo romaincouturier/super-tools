@@ -52,6 +52,8 @@ import {
   Check,
   Globe,
   Copy,
+  Briefcase,
+  Search,
 } from "lucide-react";
 import { format, addDays, isAfter, startOfDay } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -76,6 +78,8 @@ import {
   useSendEmail,
 } from "@/hooks/useCrmBoard";
 import { useAuth } from "@/hooks/useAuth";
+import { useSearchMissions } from "@/hooks/useMissions";
+import { missionStatusConfig } from "@/types/missions";
 
 interface CardDetailDrawerProps {
   card: CrmCard | null;
@@ -139,6 +143,12 @@ const CardDetailDrawer = ({
   const [nextActionText, setNextActionText] = useState("");
   const [nextActionDone, setNextActionDone] = useState(false);
 
+  // Linked mission state
+  const [linkedMissionId, setLinkedMissionId] = useState<string | null>(null);
+  const [missionSearchQuery, setMissionSearchQuery] = useState("");
+  const [showMissionSearch, setShowMissionSearch] = useState(false);
+  const { data: missionSearchResults, isLoading: searchingMissions } = useSearchMissions(missionSearchQuery);
+
   // Comment state
   const [newComment, setNewComment] = useState("");
 
@@ -187,6 +197,10 @@ const CardDetailDrawer = ({
       // Next action
       setNextActionText(card.next_action_text || "");
       setNextActionDone(card.next_action_done || false);
+      // Linked mission
+      setLinkedMissionId(card.linked_mission_id || null);
+      setMissionSearchQuery("");
+      setShowMissionSearch(false);
       // Reset AI state
       setAiAnalysis(null);
       setQuoteDescription(null);
@@ -353,6 +367,7 @@ const CardDetailDrawer = ({
         service_type: serviceType,
         next_action_text: nextActionText.trim() || null,
         next_action_done: nextActionDone,
+        linked_mission_id: linkedMissionId,
       },
       actorEmail: user.email,
       oldCard: card,
@@ -737,6 +752,75 @@ const CardDetailDrawer = ({
                 </div>
               </div>
             </div>
+
+            {/* Linked Mission */}
+            {serviceType === "mission" && (
+              <div className="p-4 bg-purple-50 rounded-lg space-y-3">
+                <h4 className="font-medium text-sm flex items-center gap-2">
+                  <Briefcase className="h-4 w-4" />
+                  Mission liée
+                </h4>
+                {linkedMissionId ? (
+                  <div className="flex items-center justify-between p-2 bg-white rounded border">
+                    <span className="text-sm">Mission #{linkedMissionId.slice(0, 8)}</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setLinkedMissionId(null)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <Input
+                        value={missionSearchQuery}
+                        onChange={(e) => {
+                          setMissionSearchQuery(e.target.value);
+                          setShowMissionSearch(true);
+                        }}
+                        placeholder="Rechercher une mission..."
+                        className="h-8"
+                      />
+                      {searchingMissions && <Loader2 className="h-4 w-4 animate-spin" />}
+                    </div>
+                    {showMissionSearch && missionSearchResults && missionSearchResults.length > 0 && (
+                      <div className="border rounded bg-white max-h-40 overflow-y-auto">
+                        {missionSearchResults.map((mission) => (
+                          <button
+                            key={mission.id}
+                            className="w-full text-left p-2 hover:bg-muted text-sm border-b last:border-b-0"
+                            onClick={() => {
+                              setLinkedMissionId(mission.id);
+                              setMissionSearchQuery("");
+                              setShowMissionSearch(false);
+                            }}
+                          >
+                            <div className="font-medium">{mission.title}</div>
+                            <div className="text-xs text-muted-foreground flex items-center gap-2">
+                              {mission.client_name && <span>{mission.client_name}</span>}
+                              <span
+                                className="px-1.5 py-0.5 rounded text-[10px]"
+                                style={{
+                                  backgroundColor: missionStatusConfig[mission.status].color + "20",
+                                  color: missionStatusConfig[mission.status].color,
+                                }}
+                              >
+                                {missionStatusConfig[mission.status].label}
+                              </span>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {showMissionSearch && missionSearchQuery.length >= 2 && missionSearchResults?.length === 0 && (
+                      <p className="text-xs text-muted-foreground">Aucune mission trouvée</p>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Brief questions */}
             {card.brief_questions && card.brief_questions.length > 0 && (

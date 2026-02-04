@@ -70,6 +70,8 @@ export interface CrmCard {
   // Next action checkbox
   next_action_text: string | null;
   next_action_done: boolean;
+  // Linked mission
+  linked_mission_id: string | null;
   // Joined data
   tags?: CrmTag[];
 }
@@ -181,6 +183,8 @@ export interface UpdateCardInput {
   // Next action
   next_action_text?: string | null;
   next_action_done?: boolean;
+  // Linked mission
+  linked_mission_id?: string | null;
 }
 
 export interface CreateColumnInput {
