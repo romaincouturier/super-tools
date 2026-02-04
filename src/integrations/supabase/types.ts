@@ -635,6 +635,7 @@ export type Database = {
           updated_at: string
           waiting_next_action_date: string | null
           waiting_next_action_text: string | null
+          website_url: string | null
         }
         Insert: {
           brief_questions?: Json | null
@@ -659,6 +660,7 @@ export type Database = {
           updated_at?: string
           waiting_next_action_date?: string | null
           waiting_next_action_text?: string | null
+          website_url?: string | null
         }
         Update: {
           brief_questions?: Json | null
@@ -683,6 +685,7 @@ export type Database = {
           updated_at?: string
           waiting_next_action_date?: string | null
           waiting_next_action_text?: string | null
+          website_url?: string | null
         }
         Relationships: [
           {
@@ -755,6 +758,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      crm_settings: {
+        Row: {
+          created_at: string
+          id: string
+          setting_key: string
+          setting_value: Json | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          setting_key: string
+          setting_value?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          setting_key?: string
+          setting_value?: Json | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       crm_tags: {
         Row: {
