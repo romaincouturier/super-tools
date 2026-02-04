@@ -3,6 +3,7 @@ import { ArrowLeft, Briefcase } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import AppHeader from "@/components/AppHeader";
 import MissionsKanbanBoard from "@/components/missions/MissionsKanbanBoard";
+import MissionProfitabilityDashboard from "@/components/missions/MissionProfitabilityDashboard";
 
 const Missions = () => {
   const navigate = useNavigate();
@@ -35,6 +36,9 @@ const Missions = () => {
             </div>
           </div>
         </div>
+
+        {/* Profitability Dashboard */}
+        <MissionProfitabilityDashboard />
 
         {/* Kanban Board */}
         <div className="flex-1 min-h-0">
