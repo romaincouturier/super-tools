@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Upload, FileText, Check, Loader2, Sparkles, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -47,7 +47,20 @@ const ProgramSelector = ({
   const [extractingPrerequisites, setExtractingPrerequisites] = useState(false);
   const [loadingFiles, setLoadingFiles] = useState(true);
   const [deletingFileId, setDeletingFileId] = useState<string | null>(null);
+  const [sessionUserId, setSessionUserId] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const { toast } = useToast();
+
+  const getAuthenticatedUserId = async () => {
+    const { data, error } = await supabase.auth.getSession();
+    if (error) throw error;
+
+    const id = data.session?.user?.id;
+    if (!id) {
+      throw new Error("Vous devez être connecté pour uploader un fichier.");
+    }
+    return id;
+  };
 
   const extractPrerequisitesFromPdf = async (pdfUrl: string) => {
     if (!onPrerequisitesExtracted) return;
@@ -87,6 +100,12 @@ const ProgramSelector = ({
 
   useEffect(() => {
     fetchProgramFiles();
+
+    // Keep a local copy of the current authenticated user id.
+    // This avoids relying on a parent prop that may transiently be empty.
+    supabase.auth.getSession().then(({ data }) => {
+      setSessionUserId(data.session?.user?.id ?? null);
+    });
   }, []);
 
   const fetchProgramFiles = async () => {
@@ -104,6 +123,7 @@ const ProgramSelector = ({
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const inputEl = e.currentTarget;
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -130,6 +150,9 @@ const ProgramSelector = ({
     setUploading(true);
 
     try {
+      // Ensure the request is authenticated (otherwise RLS will reject inserts).
+      const authedUserId = await getAuthenticatedUserId();
+
       // Sanitize filename: remove accents, special chars, replace spaces
       const sanitizeFileName = (name: string): string => {
         return name
@@ -163,7 +186,7 @@ const ProgramSelector = ({
         .insert({
           file_name: file.name,
           file_url: publicUrl,
-          uploaded_by: userId,
+          uploaded_by: authedUserId,
         });
 
       if (dbError) throw dbError;
@@ -192,6 +215,14 @@ const ProgramSelector = ({
       });
     } finally {
       setUploading(false);
+
+      // UX fix: selecting the same file twice won't fire onChange unless we reset the input.
+      try {
+        inputEl.value = "";
+        if (fileInputRef.current) fileInputRef.current.value = "";
+      } catch {
+        // no-op
+      }
     }
   };
 
@@ -282,6 +313,7 @@ const ProgramSelector = ({
                   disabled={uploading}
                   className="hidden"
                   id="program-upload"
+                  ref={fileInputRef}
                 />
                 <Label
                   htmlFor="program-upload"
@@ -351,7 +383,7 @@ const ProgramSelector = ({
                           <Check className="h-4 w-4 text-primary flex-shrink-0" />
                         )}
                       </button>
-                      {file.uploaded_by === userId && (
+                      {file.uploaded_by === (sessionUserId ?? userId) && (
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
                             <Button
