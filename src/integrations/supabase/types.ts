@@ -613,14 +613,23 @@ export type Database = {
       }
       crm_cards: {
         Row: {
+          brief_questions: Json | null
           column_id: string
+          company: string | null
           created_at: string
           description_html: string | null
+          email: string | null
           estimated_value: number | null
+          first_name: string | null
           id: string
+          last_name: string | null
+          linkedin_url: string | null
+          phone: string | null
           position: number
           quote_url: string | null
+          raw_input: string | null
           sales_status: string
+          service_type: string | null
           status_operational: string
           title: string
           updated_at: string
@@ -628,14 +637,23 @@ export type Database = {
           waiting_next_action_text: string | null
         }
         Insert: {
+          brief_questions?: Json | null
           column_id: string
+          company?: string | null
           created_at?: string
           description_html?: string | null
+          email?: string | null
           estimated_value?: number | null
+          first_name?: string | null
           id?: string
+          last_name?: string | null
+          linkedin_url?: string | null
+          phone?: string | null
           position?: number
           quote_url?: string | null
+          raw_input?: string | null
           sales_status?: string
+          service_type?: string | null
           status_operational?: string
           title: string
           updated_at?: string
@@ -643,14 +661,23 @@ export type Database = {
           waiting_next_action_text?: string | null
         }
         Update: {
+          brief_questions?: Json | null
           column_id?: string
+          company?: string | null
           created_at?: string
           description_html?: string | null
+          email?: string | null
           estimated_value?: number | null
+          first_name?: string | null
           id?: string
+          last_name?: string | null
+          linkedin_url?: string | null
+          phone?: string | null
           position?: number
           quote_url?: string | null
+          raw_input?: string | null
           sales_status?: string
+          service_type?: string | null
           status_operational?: string
           title?: string
           updated_at?: string
@@ -1956,6 +1983,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      has_crm_access: { Args: { _user_id: string }; Returns: boolean }
       has_module_access: {
         Args: { _module: string; _user_id: string }
         Returns: boolean

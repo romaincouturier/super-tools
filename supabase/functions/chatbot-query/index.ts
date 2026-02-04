@@ -5,7 +5,7 @@ import {
   createJsonResponse,
   getSupabaseClient,
   escapeHtml,
-} from "../_shared/index.ts";
+} from "../_shared/mod.ts";
 
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
 

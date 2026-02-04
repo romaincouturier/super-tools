@@ -88,6 +88,16 @@ export const useCrmBoard = () => {
           position: card.position,
           created_at: card.created_at,
           updated_at: card.updated_at,
+          // Contact fields
+          first_name: card.first_name,
+          last_name: card.last_name,
+          phone: card.phone,
+          company: card.company,
+          email: card.email,
+          linkedin_url: card.linkedin_url,
+          service_type: card.service_type as CrmCard["service_type"],
+          brief_questions: (Array.isArray(card.brief_questions) ? card.brief_questions : []) as unknown as CrmCard["brief_questions"],
+          raw_input: card.raw_input,
           tags: cardTagsList,
         };
       });
@@ -297,13 +307,31 @@ export const useCreateCard = () => {
         .limit(1);
       const maxPos = cards?.[0]?.position ?? -1;
 
+      const insertData = {
+        column_id: input.column_id,
+        title: input.title,
+        description_html: input.description_html || null,
+        status_operational: input.status_operational || "TODAY",
+        waiting_next_action_date: input.waiting_next_action_date || null,
+        waiting_next_action_text: input.waiting_next_action_text || null,
+        sales_status: input.sales_status || "OPEN",
+        estimated_value: input.estimated_value ?? 0,
+        quote_url: input.quote_url || null,
+        position: maxPos + 1,
+        first_name: input.first_name || null,
+        last_name: input.last_name || null,
+        phone: input.phone || null,
+        company: input.company || null,
+        email: input.email || null,
+        linkedin_url: input.linkedin_url || null,
+        service_type: input.service_type || null,
+        brief_questions: (input.brief_questions || null) as unknown as null,
+        raw_input: input.raw_input || null,
+      };
+
       const { data, error } = await supabase
         .from("crm_cards")
-        .insert({
-          ...input,
-          position: maxPos + 1,
-          estimated_value: input.estimated_value ?? 0,
-        })
+        .insert(insertData)
         .select()
         .single();
 
@@ -338,7 +366,12 @@ export const useUpdateCard = () => {
       actorEmail: string;
       oldCard: CrmCard;
     }) => {
-      const { error } = await supabase.from("crm_cards").update(updates).eq("id", id);
+      // Prepare update data, converting brief_questions to Json type
+      const updateData: Record<string, unknown> = { ...updates };
+      if (updates.brief_questions !== undefined) {
+        updateData.brief_questions = updates.brief_questions as unknown;
+      }
+      const { error } = await supabase.from("crm_cards").update(updateData).eq("id", id);
       if (error) throw error;
 
       // Log relevant changes
@@ -747,9 +780,9 @@ export const useCrmReports = () => {
         supabase.from("crm_card_tags").select("*"),
       ]);
 
-      const columns = columnsRes.data as CrmColumn[];
-      const cards = cardsRes.data as CrmCard[];
-      const tags = tagsRes.data as CrmTag[];
+      const columns = (columnsRes.data || []) as unknown as CrmColumn[];
+      const cards = (cardsRes.data || []) as unknown as CrmCard[];
+      const tags = (tagsRes.data || []) as unknown as CrmTag[];
       const cardTags = cardTagsRes.data || [];
 
       // Cards per column

@@ -9,7 +9,7 @@ import {
   sendEmail,
   processTemplate,
   textToHtml,
-} from "../_shared/index.ts";
+} from "../_shared/mod.ts";
 
 // Default templates - Reminder 1
 const DEFAULT_SUBJECT_REMINDER_1_TU = "📝 Petit rappel : ton avis compte pour \"{{training_name}}\"";
