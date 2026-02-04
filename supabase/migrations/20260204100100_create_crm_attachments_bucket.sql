@@ -19,7 +19,7 @@ CREATE POLICY "crm_attachments_insert" ON storage.objects
   WITH CHECK (
     bucket_id = 'crm-attachments' AND (
       EXISTS (SELECT 1 FROM auth.users WHERE id = auth.uid() AND email = 'romain@supertilt.fr')
-      OR EXISTS (SELECT 1 FROM user_module_access WHERE user_id = auth.uid() AND module = 'crm')
+      OR EXISTS (SELECT 1 FROM user_module_access WHERE user_id = auth.uid() AND module::text = 'crm')
     )
   );
 
@@ -28,6 +28,6 @@ CREATE POLICY "crm_attachments_delete" ON storage.objects
   USING (
     bucket_id = 'crm-attachments' AND (
       EXISTS (SELECT 1 FROM auth.users WHERE id = auth.uid() AND email = 'romain@supertilt.fr')
-      OR EXISTS (SELECT 1 FROM user_module_access WHERE user_id = auth.uid() AND module = 'crm')
+      OR EXISTS (SELECT 1 FROM user_module_access WHERE user_id = auth.uid() AND module::text = 'crm')
     )
   );
