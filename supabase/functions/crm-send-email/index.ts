@@ -19,6 +19,67 @@ interface CrmSendEmailRequest {
   body_html: string;
 }
 
+/**
+ * Add inline styles to HTML elements for email client compatibility
+ */
+function addInlineStyles(html: string): string {
+  // Add styles to paragraphs - margin for spacing
+  let styledHtml = html.replace(
+    /<p>/g,
+    '<p style="margin: 0 0 10px 0; line-height: 1.5;">'
+  );
+
+  // Add styles to bold
+  styledHtml = styledHtml.replace(
+    /<strong>/g,
+    '<strong style="font-weight: bold;">'
+  );
+
+  // Add styles to italic
+  styledHtml = styledHtml.replace(
+    /<em>/g,
+    '<em style="font-style: italic;">'
+  );
+
+  // Add styles to underline
+  styledHtml = styledHtml.replace(
+    /<u>/g,
+    '<u style="text-decoration: underline;">'
+  );
+
+  // Add styles to links
+  styledHtml = styledHtml.replace(
+    /<a /g,
+    '<a style="color: #0066cc; text-decoration: underline;" '
+  );
+
+  // Add styles to unordered lists
+  styledHtml = styledHtml.replace(
+    /<ul>/g,
+    '<ul style="margin: 0 0 10px 0; padding-left: 20px;">'
+  );
+
+  // Add styles to ordered lists
+  styledHtml = styledHtml.replace(
+    /<ol>/g,
+    '<ol style="margin: 0 0 10px 0; padding-left: 20px;">'
+  );
+
+  // Add styles to list items
+  styledHtml = styledHtml.replace(
+    /<li>/g,
+    '<li style="margin: 0 0 5px 0;">'
+  );
+
+  // Handle line breaks (br tags)
+  styledHtml = styledHtml.replace(
+    /<br\s*\/?>/g,
+    '<br style="display: block; margin: 5px 0;">'
+  );
+
+  return styledHtml;
+}
+
 serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
@@ -45,12 +106,26 @@ serve(async (req) => {
     // Get Signitic signature
     const emailSignature = await getSigniticSignature();
 
+    // Process HTML to add inline styles for email compatibility
+    const styledBodyHtml = addInlineStyles(body_html);
+
     // Build complete email HTML with signature
     const completeHtml = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        ${body_html}
-        ${emailSignature}
-      </div>
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="font-family: Arial, sans-serif; font-size: 14px; line-height: 1.5; color: #333333; margin: 0; padding: 0;">
+  <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+    ${styledBodyHtml}
+    <div style="margin-top: 20px;">
+      ${emailSignature}
+    </div>
+  </div>
+</body>
+</html>
     `;
 
     // Send the email using Resend
