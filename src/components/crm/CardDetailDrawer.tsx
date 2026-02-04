@@ -20,6 +20,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Save,
@@ -83,6 +88,7 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { useSearchMissions } from "@/hooks/useMissions";
 import { missionStatusConfig } from "@/types/missions";
+import EmailEditor from "./EmailEditor";
 
 interface CardDetailDrawerProps {
   card: CrmCard | null;
@@ -1367,42 +1373,41 @@ const CardDetailDrawer = ({
                     </Button>
                   )}
                 </div>
-                <div className="flex gap-2">
-                  <Textarea
-                    placeholder="Corps du message..."
-                    value={emailBody}
-                    onChange={(e) => {
-                      setEmailBody(e.target.value);
+                <div className="space-y-2">
+                  <EmailEditor
+                    content={emailBody}
+                    onChange={(content) => {
+                      setEmailBody(content);
                       setEmailBodyBeforeAi(null);
                     }}
-                    rows={3}
-                    className="flex-1"
+                    placeholder="Corps du message..."
                   />
-                  <div className="flex flex-col gap-1">
-                    {emailBodyBeforeAi ? (
+                  <div className="flex justify-end gap-2">
+                    {emailBodyBeforeAi && (
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={handleUndoBodyAi}
                         title="Annuler l'amélioration"
                       >
-                        <Undo2 className="h-4 w-4" />
-                      </Button>
-                    ) : (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleImproveEmailBody}
-                        disabled={!emailBody.trim() || improvingBody}
-                        title="Améliorer avec l'IA"
-                      >
-                        {improvingBody ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Wand2 className="h-4 w-4" />
-                        )}
+                        <Undo2 className="h-4 w-4 mr-1" />
+                        Annuler IA
                       </Button>
                     )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleImproveEmailBody}
+                      disabled={!emailBody.trim() || improvingBody}
+                      title="Améliorer avec l'IA"
+                    >
+                      {improvingBody ? (
+                        <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                      ) : (
+                        <Wand2 className="h-4 w-4 mr-1" />
+                      )}
+                      Améliorer avec l'IA
+                    </Button>
                   </div>
                 </div>
                 <Button
