@@ -546,7 +546,10 @@ const Parametres = () => {
   const [delayColdEvaluationFunder, setDelayColdEvaluationFunder] = useState("15");
   const [delayEvaluationReminder1, setDelayEvaluationReminder1] = useState("2");
   const [delayEvaluationReminder2, setDelayEvaluationReminder2] = useState("5");
-  
+
+  // Permissions
+  const [canDeleteEvaluationsEmails, setCanDeleteEvaluationsEmails] = useState("");
+
   // Check if user is admin
   const isAdmin = user?.email?.toLowerCase() === "romain@supertilt.fr";
   
@@ -590,9 +593,10 @@ const Parametres = () => {
       .in("setting_key", [
         "bcc_email", "bcc_enabled", "working_days", "google_my_business_url", "supertilt_site_url",
         "delay_needs_survey_days", "delay_reminder_days", "delay_trainer_summary_days",
-        "delay_google_review_days", "delay_video_testimonial_days", 
+        "delay_google_review_days", "delay_video_testimonial_days",
         "delay_cold_evaluation_days", "delay_cold_evaluation_funder_days",
-        "delay_evaluation_reminder_1_days", "delay_evaluation_reminder_2_days"
+        "delay_evaluation_reminder_1_days", "delay_evaluation_reminder_2_days",
+        "can_delete_evaluations_emails"
       ]);
     
     if (error) {
@@ -651,6 +655,9 @@ const Parametres = () => {
         case "delay_evaluation_reminder_2_days":
           setDelayEvaluationReminder2(setting.setting_value || "5");
           break;
+        case "can_delete_evaluations_emails":
+          setCanDeleteEvaluationsEmails(setting.setting_value || "");
+          break;
       }
     });
   };
@@ -674,6 +681,7 @@ const Parametres = () => {
         { setting_key: "delay_cold_evaluation_funder_days", setting_value: delayColdEvaluationFunder, description: "Délai après formation pour rappeler de contacter le financeur (en jours ouvrables)" },
         { setting_key: "delay_evaluation_reminder_1_days", setting_value: delayEvaluationReminder1, description: "Délai pour la 1ère relance d'évaluation (en jours ouvrables après le mail de remerciement)" },
         { setting_key: "delay_evaluation_reminder_2_days", setting_value: delayEvaluationReminder2, description: "Délai pour la 2ème relance d'évaluation (en jours ouvrables après le mail de remerciement)" },
+        { setting_key: "can_delete_evaluations_emails", setting_value: canDeleteEvaluationsEmails, description: "Emails des utilisateurs autorisés à supprimer des évaluations (séparés par des virgules)" },
       ];
 
       for (const setting of settingsToSave) {
@@ -1433,7 +1441,33 @@ const Parametres = () => {
                   </div>
                 </div>
 
-                <Button 
+                <Separator />
+
+                {/* Permissions */}
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium">Droits et permissions</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Configurez les permissions spécifiques pour certaines actions sensibles.
+                  </p>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="can-delete-evaluations">Suppression des évaluations</Label>
+                    <Textarea
+                      id="can-delete-evaluations"
+                      value={canDeleteEvaluationsEmails}
+                      onChange={(e) => setCanDeleteEvaluationsEmails(e.target.value)}
+                      placeholder="email1@exemple.com, email2@exemple.com"
+                      className="max-w-lg"
+                      rows={2}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Adresses email des utilisateurs autorisés à supprimer des évaluations, séparées par des virgules.
+                      L'administrateur a toujours ce droit.
+                    </p>
+                  </div>
+                </div>
+
+                <Button
                   onClick={handleSaveSettings}
                   disabled={savingSettings}
                 >

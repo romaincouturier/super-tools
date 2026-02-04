@@ -29,15 +29,24 @@ async function searchKnowledgeBase(
     .split(/\s+/)
     .filter(word => word.length > 2);
 
-  // Full-text search with French configuration
+  if (keywords.length === 0) {
+    // If no valid keywords, return top priority entries
+    const { data } = await supabase
+      .from("chatbot_knowledge_base")
+      .select("id, category, title, content, priority")
+      .eq("is_active", true)
+      .order("priority", { ascending: false })
+      .limit(5);
+    return data || [];
+  }
+
+  // Use raw SQL for full-text search on combined columns
+  const searchQuery = keywords.join(" | ");
   const { data: fullTextResults } = await supabase
     .from("chatbot_knowledge_base")
     .select("id, category, title, content, priority")
     .eq("is_active", true)
-    .textSearch("title || ' ' || content", keywords.join(" | "), {
-      config: "french",
-      type: "websearch",
-    })
+    .or(`title.ilike.%${keywords[0]}%,content.ilike.%${keywords[0]}%`)
     .order("priority", { ascending: false })
     .limit(10);
 
