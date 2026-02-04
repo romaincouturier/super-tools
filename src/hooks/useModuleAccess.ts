@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
-export type AppModule = 
+export type AppModule =
   | "micro_devis"
   | "formations"
   | "evaluations"
@@ -10,6 +10,7 @@ export type AppModule =
   | "historique"
   | "contenu"
   | "besoins"
+  | "emails"
   | "parametres";
 
 const ALL_MODULES: AppModule[] = [
@@ -21,6 +22,7 @@ const ALL_MODULES: AppModule[] = [
   "historique",
   "contenu",
   "besoins",
+  "emails",
   "parametres",
 ];
 
@@ -33,6 +35,7 @@ export const MODULE_LABELS: Record<AppModule, string> = {
   historique: "Historique",
   contenu: "Contenu",
   besoins: "Besoins participants",
+  emails: "Emails reçus",
   parametres: "Paramètres généraux",
 };
 

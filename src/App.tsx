@@ -31,6 +31,7 @@ const ContentBoard = lazy(() => import("./pages/ContentBoard"));
 const BesoinsParticipants = lazy(() => import("./pages/BesoinsParticipants"));
 const TrainingSummary = lazy(() => import("./pages/TrainingSummary"));
 const ChatbotAdmin = lazy(() => import("./pages/ChatbotAdmin"));
+const InboundEmails = lazy(() => import("./pages/InboundEmails"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -76,6 +77,8 @@ const App = () => (
             <Route path="/contenu" element={<ContentBoard />} />
             {/* Chatbot knowledge base admin */}
             <Route path="/chatbot-admin" element={<ChatbotAdmin />} />
+            {/* Inbound emails */}
+            <Route path="/emails" element={<InboundEmails />} />
             {/* Public needs survey */}
             <Route path="/questionnaire/:token" element={<Questionnaire />} />
             {/* Public evaluation form */}
