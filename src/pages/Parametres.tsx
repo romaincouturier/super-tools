@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
-import { Loader2, ArrowLeft, Settings, Mail, Save, RotateCcw, Sparkles, Cog, ExternalLink, Shield, Database, Users } from "lucide-react";
+import { Loader2, ArrowLeft, Settings, Mail, Save, RotateCcw, Sparkles, Cog, ExternalLink, Shield, Database, Users, Key } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import AppHeader from "@/components/AppHeader";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,7 @@ import {
 import UserAccessManager from "@/components/settings/UserAccessManager";
 import TrainerManager from "@/components/settings/TrainerManager";
 import BackupManager from "@/components/settings/BackupManager";
+import { ApiKeyManager } from "@/components/settings/ApiKeyManager";
 import GoogleDriveConnect from "@/components/GoogleDriveConnect";
 import { useModuleAccess } from "@/hooks/useModuleAccess";
 
@@ -1090,6 +1091,12 @@ const Parametres = () => {
                 Accès utilisateurs
               </TabsTrigger>
             )}
+            {isAdmin && (
+              <TabsTrigger value="integrations" className="flex items-center gap-2">
+                <Key className="h-4 w-4" />
+                Intégrations
+              </TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="general">
@@ -1648,6 +1655,12 @@ const Parametres = () => {
           {isAdmin && (
             <TabsContent value="access">
               <UserAccessManager />
+            </TabsContent>
+          )}
+
+          {isAdmin && (
+            <TabsContent value="integrations">
+              <ApiKeyManager />
             </TabsContent>
           )}
         </Tabs>
