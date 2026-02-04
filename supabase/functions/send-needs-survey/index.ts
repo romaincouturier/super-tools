@@ -9,7 +9,7 @@ import {
   sendEmail,
   escapeHtml,
   formatDateWithDayFr,
-} from "../_shared/index.ts";
+} from "../_shared/mod.ts";
 
 serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);

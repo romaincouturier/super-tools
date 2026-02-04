@@ -10,7 +10,7 @@ import {
   sendEmail,
   processTemplate,
   textToHtml,
-} from "../_shared/index.ts";
+} from "../_shared/mod.ts";
 
 // Generate a secure token for evaluation access
 function generateEvaluationToken(): string {

@@ -10,7 +10,7 @@ import {
   getSupabaseClient,
   sendEmail,
   escapeHtml,
-} from "../_shared/index.ts";
+} from "../_shared/mod.ts";
 
 // Send notification to sponsor (intra-enterprise)
 async function sendSponsorNotification(

@@ -5,7 +5,7 @@ import {
   createJsonResponse,
   getSupabaseClient,
   verifyAuth,
-} from "../_shared/index.ts";
+} from "../_shared/mod.ts";
 
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
 
@@ -175,9 +175,10 @@ serve(async (req) => {
 
   try {
     const supabase = getSupabaseClient();
-    const authResult = await verifyAuth(req, supabase);
+    const authHeader = req.headers.get("Authorization");
+    const authResult = await verifyAuth(authHeader);
 
-    if (!authResult.user) {
+    if (!authResult) {
       return createErrorResponse("Non autorisé", 401);
     }
 
