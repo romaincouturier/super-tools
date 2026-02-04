@@ -8,10 +8,6 @@ interface UserPreference<T> {
   save: (value: T) => Promise<void>;
 }
 
-interface UserPreferenceRow {
-  preference_value: unknown;
-}
-
 export function useUserPreference<T>(key: string, defaultValue: T): UserPreference<T> {
   const [value, setValue] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
@@ -27,16 +23,9 @@ export function useUserPreference<T>(key: string, defaultValue: T): UserPreferen
           return;
         }
 
-        const { data, error: fetchError } = await (supabase
-          .from("user_preferences") as unknown as {
-            select: (columns: string) => {
-              eq: (column: string, value: string) => {
-                eq: (column: string, value: string) => {
-                  maybeSingle: () => Promise<{ data: UserPreferenceRow | null; error: Error | null }>;
-                };
-              };
-            };
-          })
+        // Use any to bypass TypeScript issues with generated types
+        const { data, error: fetchError } = await (supabase as any)
+          .from("user_preferences")
           .select("preference_value")
           .eq("user_id", session.session.user.id)
           .eq("preference_key", key)
@@ -68,18 +57,14 @@ export function useUserPreference<T>(key: string, defaultValue: T): UserPreferen
         throw new Error("User not authenticated");
       }
 
-      const { error: upsertError } = await (supabase
-        .from("user_preferences") as unknown as {
-          upsert: (
-            data: Record<string, unknown>,
-            options: { onConflict: string }
-          ) => Promise<{ error: Error | null }>;
-        })
+      // Use any to bypass TypeScript issues with generated types
+      const { error: upsertError } = await (supabase as any)
+        .from("user_preferences")
         .upsert(
           {
             user_id: session.session.user.id,
             preference_key: key,
-            preference_value: newValue as unknown as Record<string, unknown>,
+            preference_value: newValue,
           },
           {
             onConflict: "user_id,preference_key",

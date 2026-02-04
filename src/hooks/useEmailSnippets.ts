@@ -13,14 +13,9 @@ export const useEmailSnippets = () => {
   return useQuery({
     queryKey: ["email-snippets"],
     queryFn: async () => {
-      const { data, error } = await (supabase
-        .from("email_snippets") as unknown as {
-          select: (columns: string) => {
-            order: (column: string) => {
-              order: (column: string) => Promise<{ data: EmailSnippet[] | null; error: Error | null }>;
-            };
-          };
-        })
+      // Use any to bypass TypeScript issues with generated types
+      const { data, error } = await (supabase as any)
+        .from("email_snippets")
         .select("*")
         .order("category")
         .order("position");
