@@ -41,3 +41,15 @@ verify_jwt = false
 
 [functions.send-booking-reminder]
 verify_jwt = false
+
+[functions.process-scheduled-emails]
+verify_jwt = false
+
+[functions.zapier-create-training]
+verify_jwt = false
+
+[functions.resend-inbound-webhook]
+verify_jwt = false
+
+[functions.chatbot-query]
+verify_jwt = false
