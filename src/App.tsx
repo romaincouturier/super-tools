@@ -6,6 +6,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { ChatbotProvider } from "@/components/chatbot/ChatbotProvider";
+import { GlobalChunkErrorHandler } from "@/components/GlobalChunkErrorHandler";
+import { RouteErrorBoundary } from "@/components/RouteErrorBoundary";
+import { lazyWithRetry } from "@/lib/lazyWithRetry";
 
 // Lazy load all pages for better code splitting
 const Dashboard = lazy(() => import("./pages/Dashboard"));
@@ -33,8 +36,9 @@ const TrainingSummary = lazy(() => import("./pages/TrainingSummary"));
 const ChatbotAdmin = lazy(() => import("./pages/ChatbotAdmin"));
 const InboundEmails = lazy(() => import("./pages/InboundEmails"));
 const Statistiques = lazy(() => import("./pages/Statistiques"));
-const Crm = lazy(() => import("./pages/Crm"));
-const CrmReports = lazy(() => import("./pages/CrmReports"));
+// These routes are often visited in long-running tabs; add retry for chunk-load resilience.
+const Crm = lazyWithRetry(() => import("./pages/Crm"));
+const CrmReports = lazyWithRetry(() => import("./pages/CrmReports"));
 const Missions = lazy(() => import("./pages/Missions"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
@@ -59,55 +63,58 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
+      <GlobalChunkErrorHandler />
       <BrowserRouter>
         <Suspense fallback={<PageLoader />}>
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/certificates" element={<CertificateGenerator />} />
-            <Route path="/micro-devis" element={<MicroDevis />} />
-            <Route path="/historique" element={<Historique />} />
-            <Route path="/parametres" element={<Parametres />} />
-            <Route path="/formations" element={<Formations />} />
-            <Route path="/formations/new" element={<FormationCreate />} />
-            <Route path="/formations/:id" element={<FormationDetail />} />
-            <Route path="/formations/:id/edit" element={<FormationEdit />} />
-            {/* Needs summary across all trainings */}
-            <Route path="/besoins" element={<BesoinsParticipants />} />
-            {/* Evaluations dashboard */}
-            <Route path="/evaluations" element={<Evaluations />} />
-            {/* Improvements tracking */}
-            <Route path="/ameliorations" element={<Ameliorations />} />
-            {/* Content marketing board */}
-            <Route path="/contenu" element={<ContentBoard />} />
-            {/* Chatbot knowledge base admin */}
-            <Route path="/chatbot-admin" element={<ChatbotAdmin />} />
-            {/* Inbound emails */}
-            <Route path="/emails" element={<InboundEmails />} />
-            {/* Statistics dashboard */}
-            <Route path="/statistiques" element={<Statistiques />} />
-            {/* CRM Kanban */}
-            <Route path="/crm" element={<Crm />} />
-            <Route path="/crm/reports" element={<CrmReports />} />
-            {/* Missions Kanban */}
-            <Route path="/missions" element={<Missions />} />
-            {/* Public needs survey */}
-            <Route path="/questionnaire/:token" element={<Questionnaire />} />
-            {/* Public evaluation form */}
-            <Route path="/evaluation/:token" element={<Evaluation />} />
-            {/* Public attendance signature */}
-            <Route path="/emargement/:token" element={<Emargement />} />
-            {/* Public devis signature */}
-            <Route path="/signature-devis/:token" element={<SignatureDevis />} />
-            {/* Public training summary for participants */}
-            <Route path="/formation-info/:trainingId" element={<TrainingSummary />} />
-            {/* Privacy policy */}
-            <Route path="/politique-confidentialite" element={<PolitiqueConfidentialite />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
-            <Route path="/force-password-change" element={<ForcePasswordChange />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <RouteErrorBoundary>
+            <Routes>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/certificates" element={<CertificateGenerator />} />
+              <Route path="/micro-devis" element={<MicroDevis />} />
+              <Route path="/historique" element={<Historique />} />
+              <Route path="/parametres" element={<Parametres />} />
+              <Route path="/formations" element={<Formations />} />
+              <Route path="/formations/new" element={<FormationCreate />} />
+              <Route path="/formations/:id" element={<FormationDetail />} />
+              <Route path="/formations/:id/edit" element={<FormationEdit />} />
+              {/* Needs summary across all trainings */}
+              <Route path="/besoins" element={<BesoinsParticipants />} />
+              {/* Evaluations dashboard */}
+              <Route path="/evaluations" element={<Evaluations />} />
+              {/* Improvements tracking */}
+              <Route path="/ameliorations" element={<Ameliorations />} />
+              {/* Content marketing board */}
+              <Route path="/contenu" element={<ContentBoard />} />
+              {/* Chatbot knowledge base admin */}
+              <Route path="/chatbot-admin" element={<ChatbotAdmin />} />
+              {/* Inbound emails */}
+              <Route path="/emails" element={<InboundEmails />} />
+              {/* Statistics dashboard */}
+              <Route path="/statistiques" element={<Statistiques />} />
+              {/* CRM Kanban */}
+              <Route path="/crm" element={<Crm />} />
+              <Route path="/crm/reports" element={<CrmReports />} />
+              {/* Missions Kanban */}
+              <Route path="/missions" element={<Missions />} />
+              {/* Public needs survey */}
+              <Route path="/questionnaire/:token" element={<Questionnaire />} />
+              {/* Public evaluation form */}
+              <Route path="/evaluation/:token" element={<Evaluation />} />
+              {/* Public attendance signature */}
+              <Route path="/emargement/:token" element={<Emargement />} />
+              {/* Public devis signature */}
+              <Route path="/signature-devis/:token" element={<SignatureDevis />} />
+              {/* Public training summary for participants */}
+              <Route path="/formation-info/:trainingId" element={<TrainingSummary />} />
+              {/* Privacy policy */}
+              <Route path="/politique-confidentialite" element={<PolitiqueConfidentialite />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/force-password-change" element={<ForcePasswordChange />} />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </RouteErrorBoundary>
         </Suspense>
         <ChatbotProvider />
       </BrowserRouter>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface UserPreference<T> {
@@ -9,6 +9,10 @@ interface UserPreference<T> {
 }
 
 export function useUserPreference<T>(key: string, defaultValue: T): UserPreference<T> {
+  // defaultValue is often passed as an inline array/object and can change identity every render.
+  // Keep a stable reference to prevent request loops.
+  const defaultValueRef = useRef(defaultValue);
+
   const [value, setValue] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -18,7 +22,7 @@ export function useUserPreference<T>(key: string, defaultValue: T): UserPreferen
       try {
         const { data: session } = await supabase.auth.getSession();
         if (!session.session?.user?.id) {
-          setValue(defaultValue);
+          setValue(defaultValueRef.current);
           setLoading(false);
           return;
         }
@@ -36,19 +40,19 @@ export function useUserPreference<T>(key: string, defaultValue: T): UserPreferen
         if (data?.preference_value) {
           setValue(data.preference_value as T);
         } else {
-          setValue(defaultValue);
+          setValue(defaultValueRef.current);
         }
       } catch (err) {
         console.error("Error fetching user preference:", err);
         setError(err as Error);
-        setValue(defaultValue);
+        setValue(defaultValueRef.current);
       } finally {
         setLoading(false);
       }
     };
 
     fetchPreference();
-  }, [key, defaultValue]);
+  }, [key]);
 
   const save = useCallback(async (newValue: T) => {
     try {
@@ -81,5 +85,5 @@ export function useUserPreference<T>(key: string, defaultValue: T): UserPreferen
     }
   }, [key]);
 
-  return { value: value ?? defaultValue, loading, error, save };
+  return { value: value ?? defaultValueRef.current, loading, error, save };
 }
