@@ -89,6 +89,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useSearchMissions } from "@/hooks/useMissions";
 import { missionStatusConfig } from "@/types/missions";
 import EmailEditor from "./EmailEditor";
+import { CreateTrainingDialog } from "./CreateTrainingDialog";
 
 interface CardDetailDrawerProps {
   card: CrmCard | null;
@@ -184,6 +185,10 @@ const CardDetailDrawer = ({
   const [descriptionSaved, setDescriptionSaved] = useState(false);
   const descriptionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [imageUploading, setImageUploading] = useState(false);
+
+  // Create training dialog state
+  const [showCreateTrainingDialog, setShowCreateTrainingDialog] = useState(false);
+  const [pendingTrainingParams, setPendingTrainingParams] = useState<URLSearchParams | null>(null);
 
   // Get tomorrow's date as minimum for scheduling
   const tomorrow = format(addDays(new Date(), 1), "yyyy-MM-dd");
@@ -480,6 +485,39 @@ const CardDetailDrawer = ({
     return `https://www.linkedin.com/search/results/all/?keywords=${encodeURIComponent(name)}`;
   };
 
+  // Helper to build training creation params from current card data
+  const buildTrainingParams = (): URLSearchParams => {
+    const params = new URLSearchParams();
+    if (company) params.set("clientName", company);
+    if (firstName) params.set("sponsorFirstName", firstName);
+    if (lastName) params.set("sponsorLastName", lastName);
+    if (email) params.set("sponsorEmail", email);
+    if (phone) params.set("sponsorPhone", phone);
+    if (title) params.set("trainingName", title.replace(/^\([^)]+\)\s*/, ""));
+    if (card?.id) params.set("fromCrmCardId", card.id);
+    if (estimatedValue && parseFloat(estimatedValue) > 0) {
+      params.set("estimatedValue", estimatedValue);
+    }
+    return params;
+  };
+
+  // Called when user confirms training creation from dialog
+  const handleConfirmCreateTraining = () => {
+    if (pendingTrainingParams) {
+      setShowCreateTrainingDialog(false);
+      onOpenChange(false);
+      navigate(`/formations/new?${pendingTrainingParams.toString()}`);
+      setPendingTrainingParams(null);
+    }
+  };
+
+  // Show training creation dialog (for formations or when user might want to create one)
+  const promptCreateTraining = () => {
+    const params = buildTrainingParams();
+    setPendingTrainingParams(params);
+    setShowCreateTrainingDialog(true);
+  };
+
   const handleSave = async () => {
     if (!card || !user?.email) return;
 
@@ -514,23 +552,9 @@ const CardDetailDrawer = ({
       oldCard: card,
     });
 
-    // If opportunity is WON and is a formation, ask to create training
-    if (statusChangedToWon && serviceType === "formation") {
-      const shouldCreateTraining = confirm(
-        "Opportunité marquée comme gagnée !\n\nVoulez-vous créer une formation à partir de cette opportunité ?"
-      );
-      if (shouldCreateTraining) {
-        const params = new URLSearchParams();
-        if (company) params.set("clientName", company);
-        if (firstName) params.set("sponsorFirstName", firstName);
-        if (lastName) params.set("sponsorLastName", lastName);
-        if (email) params.set("sponsorEmail", email);
-        if (title) params.set("trainingName", title.replace(/^\([^)]+\)\s*/, ""));
-        params.set("fromCrmCardId", card.id);
-
-        onOpenChange(false);
-        navigate(`/formations/new?${params.toString()}`);
-      }
+    // If opportunity is WON and is a formation (or no type set), ask to create training
+    if (statusChangedToWon && (serviceType === "formation" || !serviceType)) {
+      promptCreateTraining();
     }
   };
 
@@ -548,22 +572,9 @@ const CardDetailDrawer = ({
       oldCard: card,
     });
 
-    if (statusChangedToWon && serviceType === "formation") {
-      const shouldCreateTraining = confirm(
-        "Opportunité marquée comme gagnée !\n\nVoulez-vous créer une formation à partir de cette opportunité ?"
-      );
-      if (shouldCreateTraining) {
-        const params = new URLSearchParams();
-        if (company) params.set("clientName", company);
-        if (firstName) params.set("sponsorFirstName", firstName);
-        if (lastName) params.set("sponsorLastName", lastName);
-        if (email) params.set("sponsorEmail", email);
-        if (title) params.set("trainingName", title.replace(/^\([^)]+\)\s*/, ""));
-        params.set("fromCrmCardId", card.id);
-
-        onOpenChange(false);
-        navigate(`/formations/new?${params.toString()}`);
-      }
+    // If opportunity is WON and is a formation (or no type set), ask to create training
+    if (statusChangedToWon && (serviceType === "formation" || !serviceType)) {
+      promptCreateTraining();
     }
   };
 
@@ -590,18 +601,9 @@ const CardDetailDrawer = ({
       oldCard: card,
     });
 
-    // If moving to won column and is a formation, navigate to training creation
-    if (movingToWon && serviceType === "formation") {
-      const params = new URLSearchParams();
-      if (company) params.set("clientName", company);
-      if (firstName) params.set("sponsorFirstName", firstName);
-      if (lastName) params.set("sponsorLastName", lastName);
-      if (email) params.set("sponsorEmail", email);
-      if (title) params.set("trainingName", title.replace(/^\([^)]+\)\s*/, ""));
-      params.set("fromCrmCardId", card.id);
-
-      onOpenChange(false);
-      navigate(`/formations/new?${params.toString()}`);
+    // If moving to won column and is a formation (or no type), prompt training creation
+    if (movingToWon && (serviceType === "formation" || !serviceType)) {
+      promptCreateTraining();
     }
   };
 
@@ -1669,6 +1671,14 @@ const CardDetailDrawer = ({
           </div>
         </div>
       </SheetContent>
+
+      {/* Create Training Dialog */}
+      <CreateTrainingDialog
+        open={showCreateTrainingDialog}
+        onOpenChange={setShowCreateTrainingDialog}
+        onConfirm={handleConfirmCreateTraining}
+        opportunityTitle={title}
+      />
     </Sheet>
   );
 };
