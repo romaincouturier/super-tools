@@ -153,32 +153,35 @@ const ProgramSelector = ({
       // Ensure the request is authenticated (otherwise RLS will reject inserts).
       const authedUserId = await getAuthenticatedUserId();
 
-      // Sanitize filename: remove accents, special chars, replace spaces
-      const sanitizeFileName = (name: string): string => {
-        return name
-          .normalize("NFD")
-          .replace(/[\u0300-\u036f]/g, "") // Remove accents
-          .replace(/[()[\]{}]/g, "") // Remove brackets/parentheses
-          .replace(/\s+/g, "_") // Replace spaces with underscores
-          .replace(/[^a-zA-Z0-9_.-]/g, ""); // Keep only safe characters
-      };
+      // Workaround for persistent Storage RLS insert failures:
+      // we request a signed upload token from a backend function (service-role),
+      // then upload directly with that token.
+      const { data: signedData, error: signedError } = await supabase.functions.invoke(
+        "create-program-upload-url",
+        { body: { originalFileName: file.name } }
+      );
 
-      const fileExt = file.name.split(".").pop();
-      const baseName = file.name.replace(`.${fileExt}`, "");
-      const sanitizedName = sanitizeFileName(baseName);
-      const fileName = `${Date.now()}_${sanitizedName}.${fileExt}`;
-      const filePath = `programs/${fileName}`;
+      if (signedError) throw signedError;
+
+      const path = (signedData as any)?.path as string | undefined;
+      const token = (signedData as any)?.token as string | undefined;
+      const publicUrl = (signedData as any)?.publicUrl as string | undefined;
+
+      if (!path || !token || !publicUrl) {
+        console.error("[ProgramSelector] Invalid signed upload response:", signedData);
+        throw new Error("Réponse d'upload invalide. Veuillez réessayer.");
+      }
+
+      console.log("[ProgramSelector] Signed upload prepared", {
+        authedUserId,
+        path,
+      });
 
       const { error: uploadError } = await supabase.storage
         .from("training-programs")
-        .upload(filePath, file);
+        .uploadToSignedUrl(path, token, file);
 
       if (uploadError) throw uploadError;
-
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from("training-programs")
-        .getPublicUrl(filePath);
 
       // Save to program_files table
       const { error: dbError } = await supabase
