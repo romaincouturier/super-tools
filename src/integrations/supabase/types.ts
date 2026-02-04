@@ -461,6 +461,298 @@ export type Database = {
           },
         ]
       }
+      crm_activity_log: {
+        Row: {
+          action_type: string
+          actor_email: string
+          card_id: string
+          created_at: string
+          id: string
+          metadata: Json | null
+          new_value: string | null
+          old_value: string | null
+        }
+        Insert: {
+          action_type: string
+          actor_email: string
+          card_id: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          new_value?: string | null
+          old_value?: string | null
+        }
+        Update: {
+          action_type?: string
+          actor_email?: string
+          card_id?: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          new_value?: string | null
+          old_value?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_activity_log_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: false
+            referencedRelation: "crm_cards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_attachments: {
+        Row: {
+          card_id: string
+          created_at: string
+          file_name: string
+          file_path: string
+          file_size: number | null
+          id: string
+          mime_type: string | null
+        }
+        Insert: {
+          card_id: string
+          created_at?: string
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          id?: string
+          mime_type?: string | null
+        }
+        Update: {
+          card_id?: string
+          created_at?: string
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          id?: string
+          mime_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_attachments_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: false
+            referencedRelation: "crm_cards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_card_emails: {
+        Row: {
+          body_html: string
+          card_id: string
+          id: string
+          recipient_email: string
+          sender_email: string
+          sent_at: string
+          subject: string
+        }
+        Insert: {
+          body_html: string
+          card_id: string
+          id?: string
+          recipient_email: string
+          sender_email: string
+          sent_at?: string
+          subject: string
+        }
+        Update: {
+          body_html?: string
+          card_id?: string
+          id?: string
+          recipient_email?: string
+          sender_email?: string
+          sent_at?: string
+          subject?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_card_emails_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: false
+            referencedRelation: "crm_cards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_card_tags: {
+        Row: {
+          card_id: string
+          created_at: string
+          tag_id: string
+        }
+        Insert: {
+          card_id: string
+          created_at?: string
+          tag_id: string
+        }
+        Update: {
+          card_id?: string
+          created_at?: string
+          tag_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_card_tags_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: false
+            referencedRelation: "crm_cards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_card_tags_tag_id_fkey"
+            columns: ["tag_id"]
+            isOneToOne: false
+            referencedRelation: "crm_tags"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_cards: {
+        Row: {
+          column_id: string
+          created_at: string
+          description_html: string | null
+          estimated_value: number | null
+          id: string
+          position: number
+          quote_url: string | null
+          sales_status: string
+          status_operational: string
+          title: string
+          updated_at: string
+          waiting_next_action_date: string | null
+          waiting_next_action_text: string | null
+        }
+        Insert: {
+          column_id: string
+          created_at?: string
+          description_html?: string | null
+          estimated_value?: number | null
+          id?: string
+          position?: number
+          quote_url?: string | null
+          sales_status?: string
+          status_operational?: string
+          title: string
+          updated_at?: string
+          waiting_next_action_date?: string | null
+          waiting_next_action_text?: string | null
+        }
+        Update: {
+          column_id?: string
+          created_at?: string
+          description_html?: string | null
+          estimated_value?: number | null
+          id?: string
+          position?: number
+          quote_url?: string | null
+          sales_status?: string
+          status_operational?: string
+          title?: string
+          updated_at?: string
+          waiting_next_action_date?: string | null
+          waiting_next_action_text?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_cards_column_id_fkey"
+            columns: ["column_id"]
+            isOneToOne: false
+            referencedRelation: "crm_columns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_columns: {
+        Row: {
+          created_at: string
+          id: string
+          is_archived: boolean
+          name: string
+          position: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_archived?: boolean
+          name: string
+          position?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_archived?: boolean
+          name?: string
+          position?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      crm_comments: {
+        Row: {
+          author_email: string
+          card_id: string
+          content: string
+          created_at: string
+          id: string
+          is_deleted: boolean
+        }
+        Insert: {
+          author_email: string
+          card_id: string
+          content: string
+          created_at?: string
+          id?: string
+          is_deleted?: boolean
+        }
+        Update: {
+          author_email?: string
+          card_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          is_deleted?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_comments_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: false
+            referencedRelation: "crm_cards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_tags: {
+        Row: {
+          category: string | null
+          color: string
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          category?: string | null
+          color?: string
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          category?: string | null
+          color?: string
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       devis_signatures: {
         Row: {
           activity_log_id: string
