@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -51,6 +52,11 @@ import {
   Check,
   Globe,
   Copy,
+  Briefcase,
+  Search,
+  Undo2,
+  Wand2,
+  ImageIcon,
 } from "lucide-react";
 import { format, addDays, isAfter, startOfDay } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -75,6 +81,8 @@ import {
   useSendEmail,
 } from "@/hooks/useCrmBoard";
 import { useAuth } from "@/hooks/useAuth";
+import { useSearchMissions } from "@/hooks/useMissions";
+import { missionStatusConfig } from "@/types/missions";
 
 interface CardDetailDrawerProps {
   card: CrmCard | null;
@@ -134,6 +142,16 @@ const CardDetailDrawer = ({
   const [scheduledDate, setScheduledDate] = useState("");
   const [scheduledText, setScheduledText] = useState("");
 
+  // Next action state
+  const [nextActionText, setNextActionText] = useState("");
+  const [nextActionDone, setNextActionDone] = useState(false);
+
+  // Linked mission state
+  const [linkedMissionId, setLinkedMissionId] = useState<string | null>(null);
+  const [missionSearchQuery, setMissionSearchQuery] = useState("");
+  const [showMissionSearch, setShowMissionSearch] = useState(false);
+  const { data: missionSearchResults, isLoading: searchingMissions } = useSearchMissions(missionSearchQuery);
+
   // Comment state
   const [newComment, setNewComment] = useState("");
 
@@ -141,6 +159,10 @@ const CardDetailDrawer = ({
   const [emailTo, setEmailTo] = useState("");
   const [emailSubject, setEmailSubject] = useState("");
   const [emailBody, setEmailBody] = useState("");
+  const [emailSubjectBeforeAi, setEmailSubjectBeforeAi] = useState<string | null>(null);
+  const [emailBodyBeforeAi, setEmailBodyBeforeAi] = useState<string | null>(null);
+  const [improvingSubject, setImprovingSubject] = useState(false);
+  const [improvingBody, setImprovingBody] = useState(false);
 
   // UI state
   const [isFullScreen, setIsFullScreen] = useState(false);
@@ -155,6 +177,7 @@ const CardDetailDrawer = ({
   const [descriptionSaving, setDescriptionSaving] = useState(false);
   const [descriptionSaved, setDescriptionSaved] = useState(false);
   const descriptionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [imageUploading, setImageUploading] = useState(false);
 
   // Get tomorrow's date as minimum for scheduling
   const tomorrow = format(addDays(new Date(), 1), "yyyy-MM-dd");
@@ -179,6 +202,13 @@ const CardDetailDrawer = ({
       setLinkedinUrl(card.linkedin_url || "");
       setWebsiteUrl(card.website_url || "");
       setServiceType(card.service_type || null);
+      // Next action
+      setNextActionText(card.next_action_text || "");
+      setNextActionDone(card.next_action_done || false);
+      // Linked mission
+      setLinkedMissionId(card.linked_mission_id || null);
+      setMissionSearchQuery("");
+      setShowMissionSearch(false);
       // Reset AI state
       setAiAnalysis(null);
       setQuoteDescription(null);
@@ -224,6 +254,59 @@ const CardDetailDrawer = ({
     descriptionTimeoutRef.current = setTimeout(() => {
       saveDescription(value);
     }, 1500);
+  };
+
+  // Handle image paste in description
+  const handleDescriptionPaste = async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const items = e.clipboardData?.items;
+    if (!items || !card) return;
+
+    for (const item of Array.from(items)) {
+      if (item.type.startsWith("image/")) {
+        e.preventDefault();
+        const file = item.getAsFile();
+        if (!file) continue;
+
+        setImageUploading(true);
+        try {
+          // Generate unique filename
+          const ext = file.type.split("/")[1] || "png";
+          const fileName = `${card.id}/${Date.now()}.${ext}`;
+
+          // Upload to storage
+          const { data, error } = await supabase.storage
+            .from("crm-attachments")
+            .upload(fileName, file, {
+              contentType: file.type,
+            });
+
+          if (error) throw error;
+
+          // Get public URL
+          const { data: urlData } = supabase.storage
+            .from("crm-attachments")
+            .getPublicUrl(fileName);
+
+          // Insert markdown image at cursor position
+          const textarea = e.target as HTMLTextAreaElement;
+          const start = textarea.selectionStart;
+          const end = textarea.selectionEnd;
+          const imageMarkdown = `\n![Image](${urlData.publicUrl})\n`;
+          const newValue =
+            descriptionHtml.substring(0, start) +
+            imageMarkdown +
+            descriptionHtml.substring(end);
+
+          handleDescriptionChange(newValue);
+        } catch (error) {
+          console.error("Image upload error:", error);
+          alert("Erreur lors de l'upload de l'image");
+        } finally {
+          setImageUploading(false);
+        }
+        break;
+      }
+    }
   };
 
   // Cleanup timeout on unmount
@@ -305,6 +388,80 @@ const CardDetailDrawer = ({
     }
   };
 
+  // Improve email subject with AI
+  const handleImproveEmailSubject = async () => {
+    if (!emailSubject.trim()) return;
+    setImprovingSubject(true);
+    setEmailSubjectBeforeAi(emailSubject);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("crm-ai-assist", {
+        body: {
+          action: "improve_email_subject",
+          card_data: {
+            subject: emailSubject,
+            company,
+            first_name: firstName,
+            context: descriptionHtml,
+          },
+        },
+      });
+
+      if (error) throw error;
+      setEmailSubject(data.result);
+    } catch (error) {
+      console.error("AI subject improvement error:", error);
+      setEmailSubjectBeforeAi(null);
+    } finally {
+      setImprovingSubject(false);
+    }
+  };
+
+  // Improve email body with AI
+  const handleImproveEmailBody = async () => {
+    if (!emailBody.trim()) return;
+    setImprovingBody(true);
+    setEmailBodyBeforeAi(emailBody);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("crm-ai-assist", {
+        body: {
+          action: "improve_email_body",
+          card_data: {
+            body: emailBody,
+            subject: emailSubject,
+            company,
+            first_name: firstName,
+            context: descriptionHtml,
+          },
+        },
+      });
+
+      if (error) throw error;
+      setEmailBody(data.result);
+    } catch (error) {
+      console.error("AI body improvement error:", error);
+      setEmailBodyBeforeAi(null);
+    } finally {
+      setImprovingBody(false);
+    }
+  };
+
+  // Undo AI improvement
+  const handleUndoSubjectAi = () => {
+    if (emailSubjectBeforeAi) {
+      setEmailSubject(emailSubjectBeforeAi);
+      setEmailSubjectBeforeAi(null);
+    }
+  };
+
+  const handleUndoBodyAi = () => {
+    if (emailBodyBeforeAi) {
+      setEmailBody(emailBodyBeforeAi);
+      setEmailBodyBeforeAi(null);
+    }
+  };
+
   // Copy to clipboard
   const copyToClipboard = async (text: string) => {
     await navigator.clipboard.writeText(text);
@@ -343,6 +500,9 @@ const CardDetailDrawer = ({
         linkedin_url: linkedinUrl.trim() || null,
         website_url: websiteUrl.trim() || null,
         service_type: serviceType,
+        next_action_text: nextActionText.trim() || null,
+        next_action_done: nextActionDone,
+        linked_mission_id: linkedMissionId,
       },
       actorEmail: user.email,
       oldCard: card,
@@ -728,6 +888,75 @@ const CardDetailDrawer = ({
               </div>
             </div>
 
+            {/* Linked Mission */}
+            {serviceType === "mission" && (
+              <div className="p-4 bg-purple-50 rounded-lg space-y-3">
+                <h4 className="font-medium text-sm flex items-center gap-2">
+                  <Briefcase className="h-4 w-4" />
+                  Mission liée
+                </h4>
+                {linkedMissionId ? (
+                  <div className="flex items-center justify-between p-2 bg-white rounded border">
+                    <span className="text-sm">Mission #{linkedMissionId.slice(0, 8)}</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setLinkedMissionId(null)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <Input
+                        value={missionSearchQuery}
+                        onChange={(e) => {
+                          setMissionSearchQuery(e.target.value);
+                          setShowMissionSearch(true);
+                        }}
+                        placeholder="Rechercher une mission..."
+                        className="h-8"
+                      />
+                      {searchingMissions && <Loader2 className="h-4 w-4 animate-spin" />}
+                    </div>
+                    {showMissionSearch && missionSearchResults && missionSearchResults.length > 0 && (
+                      <div className="border rounded bg-white max-h-40 overflow-y-auto">
+                        {missionSearchResults.map((mission) => (
+                          <button
+                            key={mission.id}
+                            className="w-full text-left p-2 hover:bg-muted text-sm border-b last:border-b-0"
+                            onClick={() => {
+                              setLinkedMissionId(mission.id);
+                              setMissionSearchQuery("");
+                              setShowMissionSearch(false);
+                            }}
+                          >
+                            <div className="font-medium">{mission.title}</div>
+                            <div className="text-xs text-muted-foreground flex items-center gap-2">
+                              {mission.client_name && <span>{mission.client_name}</span>}
+                              <span
+                                className="px-1.5 py-0.5 rounded text-[10px]"
+                                style={{
+                                  backgroundColor: missionStatusConfig[mission.status].color + "20",
+                                  color: missionStatusConfig[mission.status].color,
+                                }}
+                              >
+                                {missionStatusConfig[mission.status].label}
+                              </span>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {showMissionSearch && missionSearchQuery.length >= 2 && missionSearchResults?.length === 0 && (
+                      <p className="text-xs text-muted-foreground">Aucune mission trouvée</p>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Brief questions */}
             {card.brief_questions && card.brief_questions.length > 0 && (
               <div className="p-4 bg-amber-50 rounded-lg space-y-2">
@@ -802,7 +1031,45 @@ const CardDetailDrawer = ({
                   </Button>
                 </div>
               )}
+              {/* Default action buttons */}
+              <div className="flex flex-wrap gap-1">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="text-xs h-7"
+                  onClick={() => setScheduledText("Envoyer un devis")}
+                >
+                  Envoyer un devis
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="text-xs h-7"
+                  onClick={() => setScheduledText("Faire un retour après consultation interne")}
+                >
+                  Retour après consultation
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="text-xs h-7"
+                  onClick={() => setScheduledText("Relancer le client")}
+                >
+                  Relancer le client
+                </Button>
+              </div>
               <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label className="text-xs">Action</Label>
+                  <Input
+                    value={scheduledText}
+                    onChange={(e) => setScheduledText(e.target.value)}
+                    placeholder="Relancer le client"
+                  />
+                </div>
                 <div>
                   <Label className="text-xs">Date (à partir de demain)</Label>
                   <Input
@@ -810,14 +1077,6 @@ const CardDetailDrawer = ({
                     min={tomorrow}
                     value={scheduledDate}
                     onChange={(e) => setScheduledDate(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs">Action</Label>
-                  <Input
-                    value={scheduledText}
-                    onChange={(e) => setScheduledText(e.target.value)}
-                    placeholder="Relancer le client"
                   />
                 </div>
               </div>
@@ -876,13 +1135,48 @@ const CardDetailDrawer = ({
                   )}
                 </Label>
               </div>
-              <Textarea
-                value={descriptionHtml}
-                onChange={(e) => handleDescriptionChange(e.target.value)}
-                rows={6}
-                placeholder="Notez ici tous les échanges, informations et détails importants de l'opportunité..."
-                className="font-mono text-sm"
-              />
+              <div className="relative">
+                <Textarea
+                  value={descriptionHtml}
+                  onChange={(e) => handleDescriptionChange(e.target.value)}
+                  onPaste={handleDescriptionPaste}
+                  rows={12}
+                  placeholder="Notez ici tous les échanges, informations et détails importants de l'opportunité... (Collez des images directement)"
+                  className="text-[10px] leading-relaxed"
+                />
+                {imageUploading && (
+                  <div className="absolute inset-0 bg-background/80 flex items-center justify-center rounded-md">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Upload de l'image...
+                    </div>
+                  </div>
+                )}
+                <p className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1">
+                  <ImageIcon className="h-3 w-3" />
+                  Vous pouvez coller des images (Ctrl+V)
+                </p>
+              </div>
+
+              {/* Next action checkbox */}
+              <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+                <Checkbox
+                  id="next-action-done"
+                  checked={nextActionDone}
+                  onCheckedChange={(checked) => setNextActionDone(checked === true)}
+                />
+                <div className="flex-1">
+                  <Label htmlFor="next-action-done" className="text-xs text-muted-foreground mb-1 block">
+                    Prochaine action
+                  </Label>
+                  <Input
+                    value={nextActionText}
+                    onChange={(e) => setNextActionText(e.target.value)}
+                    placeholder="Quelle est la prochaine action à faire ?"
+                    className={`h-8 text-sm ${nextActionDone ? "line-through text-muted-foreground" : ""}`}
+                  />
+                </div>
+              </div>
 
               {/* AI buttons */}
               <div className="flex gap-2 flex-wrap">
@@ -1016,17 +1310,79 @@ const CardDetailDrawer = ({
                     </Button>
                   )}
                 </div>
-                <Input
-                  placeholder="Sujet"
-                  value={emailSubject}
-                  onChange={(e) => setEmailSubject(e.target.value)}
-                />
-                <Textarea
-                  placeholder="Corps du message..."
-                  value={emailBody}
-                  onChange={(e) => setEmailBody(e.target.value)}
-                  rows={3}
-                />
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Sujet"
+                    value={emailSubject}
+                    onChange={(e) => {
+                      setEmailSubject(e.target.value);
+                      setEmailSubjectBeforeAi(null);
+                    }}
+                    className="flex-1"
+                  />
+                  {emailSubjectBeforeAi ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleUndoSubjectAi}
+                      title="Annuler l'amélioration"
+                    >
+                      <Undo2 className="h-4 w-4" />
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleImproveEmailSubject}
+                      disabled={!emailSubject.trim() || improvingSubject}
+                      title="Améliorer avec l'IA"
+                    >
+                      {improvingSubject ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Wand2 className="h-4 w-4" />
+                      )}
+                    </Button>
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  <Textarea
+                    placeholder="Corps du message..."
+                    value={emailBody}
+                    onChange={(e) => {
+                      setEmailBody(e.target.value);
+                      setEmailBodyBeforeAi(null);
+                    }}
+                    rows={3}
+                    className="flex-1"
+                  />
+                  <div className="flex flex-col gap-1">
+                    {emailBodyBeforeAi ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleUndoBodyAi}
+                        title="Annuler l'amélioration"
+                      >
+                        <Undo2 className="h-4 w-4" />
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleImproveEmailBody}
+                        disabled={!emailBody.trim() || improvingBody}
+                        title="Améliorer avec l'IA"
+                      >
+                        {improvingBody ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Wand2 className="h-4 w-4" />
+                        )}
+                      </Button>
+                    )}
+                  </div>
+                </div>
                 <Button
                   onClick={handleSendEmail}
                   disabled={!emailTo.trim() || !emailSubject.trim() || sendEmail.isPending}

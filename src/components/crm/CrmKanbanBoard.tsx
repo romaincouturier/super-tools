@@ -25,7 +25,6 @@ import CrmColumn from "./CrmColumn";
 import CrmCardComponent from "./CrmCard";
 import CardDetailDrawer from "./CardDetailDrawer";
 import AddColumnDialog from "./AddColumnDialog";
-import CreateCardDialog from "./CreateCardDialog";
 import { isAfter, startOfDay } from "date-fns";
 
 const CrmKanbanBoard = () => {
@@ -40,7 +39,6 @@ const CrmKanbanBoard = () => {
   const [activeCard, setActiveCard] = useState<CrmCard | null>(null);
   const [selectedCard, setSelectedCard] = useState<CrmCard | null>(null);
   const [showAddColumn, setShowAddColumn] = useState(false);
-  const [newCardColumnId, setNewCardColumnId] = useState<string | null>(null);
   const [localCards, setLocalCards] = useState<CrmCard[]>([]);
 
   const sensors = useSensors(
@@ -191,7 +189,6 @@ const CrmKanbanBoard = () => {
                   column={column}
                   cards={columnCards}
                   allColumns={columns}
-                  onAddCard={() => setNewCardColumnId(column.id)}
                   onCardClick={handleCardClick}
                   serviceTypeColors={serviceTypeColors}
                 />
@@ -226,13 +223,6 @@ const CrmKanbanBoard = () => {
         open={showAddColumn}
         onOpenChange={setShowAddColumn}
         onAdd={handleAddColumn}
-      />
-
-      <CreateCardDialog
-        open={!!newCardColumnId}
-        onOpenChange={(open) => !open && setNewCardColumnId(null)}
-        columnId={newCardColumnId || ""}
-        columns={columns}
       />
 
       <CardDetailDrawer

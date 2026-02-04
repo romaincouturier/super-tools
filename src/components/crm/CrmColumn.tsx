@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
-import { Plus, MoreVertical, Pencil, Archive, Trash2 } from "lucide-react";
+import { MoreVertical, Pencil, Archive } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -31,12 +31,11 @@ interface CrmColumnProps {
   column: CrmColumnType;
   cards: CrmCard[];
   allColumns: CrmColumnType[];
-  onAddCard: () => void;
   onCardClick: (card: CrmCard) => void;
   serviceTypeColors?: ServiceTypeColors;
 }
 
-const CrmColumn = ({ column, cards, allColumns, onAddCard, onCardClick, serviceTypeColors }: CrmColumnProps) => {
+const CrmColumn = ({ column, cards, allColumns, onCardClick, serviceTypeColors }: CrmColumnProps) => {
   const [showRenameDialog, setShowRenameDialog] = useState(false);
   const [newName, setNewName] = useState(column.name);
 
@@ -118,17 +117,6 @@ const CrmColumn = ({ column, cards, allColumns, onAddCard, onCardClick, serviceT
           ))}
         </SortableContext>
       </div>
-
-      {/* Add Card Button */}
-      <Button
-        variant="ghost"
-        size="sm"
-        className="w-full mt-2 justify-start text-muted-foreground"
-        onClick={onAddCard}
-      >
-        <Plus className="h-4 w-4 mr-2" />
-        Ajouter une opportunité
-      </Button>
 
       {/* Rename Dialog */}
       <Dialog open={showRenameDialog} onOpenChange={setShowRenameDialog}>
