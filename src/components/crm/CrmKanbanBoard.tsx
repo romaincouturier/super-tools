@@ -28,6 +28,7 @@ import AddColumnDialog from "./AddColumnDialog";
 import { CreateTrainingDialog } from "./CreateTrainingDialog";
 import { useNavigate } from "react-router-dom";
 import { isAfter, startOfDay } from "date-fns";
+import confetti from "canvas-confetti";
 
 const CrmKanbanBoard = () => {
   const { user } = useAuth();
@@ -111,6 +112,44 @@ const CrmKanbanBoard = () => {
     }
   };
 
+  // Celebration confetti animation for won deals
+  const celebrateWin = () => {
+    const duration = 3000;
+    const end = Date.now() + duration;
+    const colors = ["#FFD700", "#FFA500", "#FF6347", "#32CD32", "#1E90FF", "#9370DB"];
+
+    const frame = () => {
+      confetti({
+        particleCount: 3,
+        angle: 60,
+        spread: 55,
+        origin: { x: 0, y: 0.8 },
+        colors: colors,
+      });
+      confetti({
+        particleCount: 3,
+        angle: 120,
+        spread: 55,
+        origin: { x: 1, y: 0.8 },
+        colors: colors,
+      });
+
+      if (Date.now() < end) {
+        requestAnimationFrame(frame);
+      }
+    };
+
+    // Initial burst
+    confetti({
+      particleCount: 100,
+      spread: 70,
+      origin: { x: 0.5, y: 0.5 },
+      colors: colors,
+    });
+
+    frame();
+  };
+
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
     setActiveCard(null);
@@ -144,24 +183,34 @@ const CrmKanbanBoard = () => {
     // Get old column for logging
     const originalCard = boardData?.cards.find((c) => c.id === activeCardId);
     const oldColumnId = originalCard?.column_id || targetColumnId;
+    const oldColumn = boardData?.columns.find((col) => col.id === oldColumnId);
 
-    // Check if moving to a "won" column (contains "gagné" case-insensitive)
-    const isWonColumn = targetColumn?.name.toLowerCase().includes("gagné");
-    const wasAlreadyWon = originalCard?.sales_status === "WON";
-    const movingToWon = isWonColumn && !wasAlreadyWon;
+    // Check if moving to/from a "won" column (contains "gagné" case-insensitive)
+    const isWonColumn = targetColumn?.name.toLowerCase().includes("gagné") || false;
+    const wasInWonColumn = oldColumn?.name.toLowerCase().includes("gagné") || false;
 
-    // If moving to won column, update sales_status to WON
+    // Detect if this is a fresh win (moving to won from non-won)
+    const movingToWon = isWonColumn && !wasInWonColumn;
+
+    // Detect if leaving a won column (moving from won to non-won)
+    const leavingWonColumn = wasInWonColumn && !isWonColumn;
+
+    // Determine what updates to apply
     if (movingToWon) {
+      // Moving to won column: set sales_status to WON + trigger celebration
       await updateCard.mutateAsync({
         id: activeCardId,
-        updates: { 
-          column_id: targetColumnId, 
+        updates: {
+          column_id: targetColumnId,
           position: Math.max(0, newIndex),
-          sales_status: "WON" 
+          sales_status: "WON"
         },
         actorEmail: user.email,
         oldCard: originalCard!,
       });
+
+      // Celebrate with confetti!
+      celebrateWin();
 
       // Check if card is a formation (or no type set) and prompt for training creation
       const cardServiceType = originalCard?.service_type;
@@ -169,8 +218,20 @@ const CrmKanbanBoard = () => {
         setPendingTrainingCard(originalCard!);
         setShowCreateTrainingDialog(true);
       }
+    } else if (leavingWonColumn) {
+      // Leaving won column: reset sales_status to OPEN
+      await updateCard.mutateAsync({
+        id: activeCardId,
+        updates: {
+          column_id: targetColumnId,
+          position: Math.max(0, newIndex),
+          sales_status: "OPEN"
+        },
+        actorEmail: user.email,
+        oldCard: originalCard!,
+      });
     } else {
-      // Persist regular move
+      // Regular move (no status change)
       moveCard.mutate({
         cardId: activeCardId,
         newColumnId: targetColumnId,

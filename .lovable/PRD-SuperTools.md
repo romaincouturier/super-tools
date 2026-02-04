@@ -2,377 +2,474 @@
 
 ## 1. Vue d'ensemble
 
-**SuperTools** est une application web interne destinée aux formateurs de **SuperTilt**. Elle centralise la gestion administrative des formations professionnelles et automatise les tâches répétitives liées au suivi des participants, à la conformité Qualiopi et à l'amélioration continue.
+**SuperTools** est une application web interne destinée aux formateurs et consultants de **SuperTilt**. Elle centralise la gestion commerciale (CRM), la gestion des formations professionnelles, le suivi des missions, la création de contenu marketing, et automatise les tâches répétitives liées à l'activité.
 
 ### 1.1 Objectifs principaux
 
-- **Gain de temps** : Automatiser les communications (emails de recueil des besoins, rappels, remerciements, demandes d'évaluation)
-- **Conformité Qualiopi** : Garantir la traçabilité des actions de formation (émargement, évaluations, conservation 3 ans)
-- **Qualité** : Collecter et analyser les retours participants pour amélioration continue
-- **Centralisation** : Un point d'entrée unique pour toutes les opérations administratives
+- **Gestion commerciale** : Pipeline CRM avec extraction IA des opportunités
+- **Gain de temps** : Automatiser les communications (emails, rappels, relances)
+- **Conformité Qualiopi** : Garantir la traçabilité des actions de formation
+- **Qualité** : Collecter et analyser les retours participants
+- **Centralisation** : Un point d'entrée unique pour toutes les opérations
 
 ### 1.2 Stack technique
 
 - **Frontend** : React 18, TypeScript, Vite, Tailwind CSS, shadcn/ui
-- **Backend** : Lovable Cloud (Supabase) - Base de données PostgreSQL, Edge Functions, Auth
+- **Backend** : Supabase (PostgreSQL, Edge Functions, Auth, Storage)
 - **Emails** : Resend API avec signatures HTML Signitic
-- **PDF** : jsPDF (génération côté client), PDFMonkey (certificats)
-- **IA** : Google Gemini (extraction d'objectifs, analyse d'évaluations)
+- **PDF** : jsPDF (côté client), PDFMonkey (certificats)
+- **IA** : Google Gemini (extraction, analyse, amélioration de contenu)
+- **Drag & Drop** : dnd-kit (Kanban boards)
+- **Rich Text** : TipTap editor
 
 ---
 
 ## 2. Architecture fonctionnelle
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                        DASHBOARD                                 │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐           │
-│  │ Micro-   │ │Formations│ │Évaluations│ │Certificats│          │
-│  │ devis    │ │          │ │          │ │          │           │
-│  └──────────┘ └──────────┘ └──────────┘ └──────────┘           │
-│  ┌──────────┐ ┌──────────┐                                      │
-│  │Améliora- │ │Historique│                                      │
-│  │tions     │ │          │                                      │
-│  └──────────┘ └──────────┘                                      │
-└─────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────┐
+│                            DASHBOARD                                      │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐       │
+│  │   CRM    │ │Formations│ │ Missions │ │ Contenu  │ │  Emails  │       │
+│  │          │ │          │ │          │ │          │ │ entrants │       │
+│  └──────────┘ └──────────┘ └──────────┘ └──────────┘ └──────────┘       │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐       │
+│  │ Micro-   │ │Évaluations│ │Certificats│ │Améliora- │ │Historique│      │
+│  │ devis    │ │          │ │          │ │tions     │ │          │       │
+│  └──────────┘ └──────────┘ └──────────┘ └──────────┘ └──────────┘       │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐                                  │
+│  │Statistiq.│ │ Chatbot  │ │Paramètres│                                  │
+│  │          │ │  Admin   │ │          │                                  │
+│  └──────────┘ └──────────┘ └──────────┘                                  │
+└─────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### 2.1 Modules disponibles
 
-| Module | Description |
-|--------|-------------|
-| **Micro-devis** | Génération de devis PDF rapides |
-| **Formations** | Gestion complète des sessions de formation |
-| **Évaluations** | Consultation et analyse des retours participants |
-| **Certificats** | Génération de certificats de réalisation |
-| **Améliorations** | Suivi des axes d'amélioration identifiés |
-| **Historique** | Journal de toutes les actions effectuées |
+| Module | Route | Description |
+|--------|-------|-------------|
+| **CRM** | `/crm` | Pipeline commercial Kanban avec IA |
+| **Formations** | `/formations` | Gestion complète des sessions de formation |
+| **Missions** | `/missions` | Suivi des missions consulting (Kanban) |
+| **Contenu** | `/contenu` | Gestion du contenu marketing avec workflow de review |
+| **Emails entrants** | `/emails` | Boîte de réception des emails Resend |
+| **Micro-devis** | `/micro-devis` | Génération rapide de devis PDF |
+| **Évaluations** | `/evaluations` | Analyse des retours participants |
+| **Certificats** | `/certificates` | Génération de certificats de réalisation |
+| **Améliorations** | `/ameliorations` | Suivi des axes d'amélioration |
+| **Historique** | `/historique` | Journal de toutes les actions |
+| **Statistiques** | `/statistiques` | Tableau de bord analytique |
+| **Chatbot Admin** | `/chatbot-admin` | Gestion de la base de connaissances IA |
+| **Paramètres** | `/parametres` | Configuration de l'application |
 
 ---
 
-## 3. Module : Micro-devis
+## 3. Module : CRM (Gestion Commerciale)
 
-### 3.1 Fonctionnalités
+### 3.1 Vue d'ensemble
+
+Pipeline commercial de type Kanban pour gérer les opportunités de vente, de la qualification jusqu'à la signature.
+
+### 3.2 Structure du Kanban
+
+#### Colonnes
+- Colonnes personnalisables (ex: Qualification, Premier contact, Proposition, Négociation, Gagné)
+- Réorganisation par drag & drop
+- Archivage de colonnes (masque sans supprimer)
+- Affichage du nombre de cartes et valeur totale par colonne
+
+#### Cartes (Opportunités)
+- **Informations contact** : Prénom, Nom, Entreprise, Email, Téléphone, LinkedIn, Site web
+- **Détails opportunité** : Titre, Description (HTML), Type de service (Formation/Mission), Valeur estimée
+- **Statuts** :
+  - Opérationnel : `TODAY` | `WAITING`
+  - Commercial : `OPEN` | `WON` | `LOST` | `CANCELED`
+- **Programmation d'actions** : Date + texte de l'action à effectuer
+- **Questions brief** : Questions générées par l'IA nécessitant réponse
+- **Liaison mission** : Lien vers une mission du module Missions
+
+### 3.3 Fonctionnalités IA
+
+#### Extraction automatique d'opportunité
+- Coller un texte brut (email, notes)
+- L'IA extrait : titre, contact, entreprise, type de service, questions clés
+- Révision avant création
+
+#### Analyse stratégique
+- Analyse du contexte de l'opportunité
+- Recommandations d'actions
+- Identification des points clés
+
+#### Génération de devis
+- Génération automatique de descriptif de devis
+- Basé sur les informations de l'opportunité
+
+### 3.4 Emails depuis le CRM
+
+#### Éditeur riche
+- Formatage : gras, italique, souligné, listes, liens
+- **Snippets d'emails** : Blocs de texte pré-configurés par catégorie
+- Amélioration IA du sujet et du corps
+- Styles inline pour compatibilité email
+
+#### Workflow
+1. Sélection du destinataire (pré-rempli depuis la carte)
+2. Rédaction avec snippets et formatage
+3. Amélioration optionnelle par IA
+4. Envoi avec signature Signitic
+5. Historisation dans l'opportunité
+
+### 3.5 Animation de célébration
+
+Quand une opportunité passe en statut "Gagné" :
+- Animation de confettis colorés (3 secondes)
+- Explosion initiale au centre + jets continus des côtés
+- Couleurs : or, orange, rouge, vert, bleu, violet
+
+### 3.6 Création de formation
+
+Pour les opportunités de type "Formation" gagnées :
+- Dialog de confirmation pour créer la session
+- Pré-remplissage automatique des champs (client, contact, titre, valeur)
+- Navigation vers `/formations/new` avec paramètres
+
+### 3.7 Rapports CRM
+
+Page `/crm/reports` avec :
+- **KPIs** : Pipeline ouvert, Ventes gagnées, Ventes perdues, Taux de conversion
+- **Graphiques** : Répartition par colonne, Répartition par catégorie de tag
+- **Tableau récapitulatif** des métriques
+
+### 3.8 Tables de données
+
+| Table | Description |
+|-------|-------------|
+| `crm_columns` | Colonnes du pipeline |
+| `crm_cards` | Opportunités |
+| `crm_tags` | Tags personnalisés |
+| `crm_card_tags` | Relations cartes-tags |
+| `crm_comments` | Commentaires sur les cartes |
+| `crm_attachments` | Pièces jointes |
+| `crm_activity_log` | Journal d'activité |
+| `crm_card_emails` | Emails envoyés |
+| `email_snippets` | Snippets d'emails pré-configurés |
+
+---
+
+## 4. Module : Missions
+
+### 4.1 Vue d'ensemble
+
+Kanban de suivi des missions consulting avec gestion financière (TJM, jours facturés).
+
+### 4.2 Structure
+
+#### Colonnes (statuts fixes)
+| Statut | Label | Couleur |
+|--------|-------|---------|
+| `not_started` | À démarrer | Gris |
+| `in_progress` | En cours | Bleu |
+| `completed` | Terminée | Vert |
+| `cancelled` | Annulée | Rouge |
+
+#### Propriétés d'une mission
+- **Titre** (obligatoire)
+- **Client** : Nom et contact
+- **Dates** : Début et fin
+- **Financier** : TJM (€/jour), Nombre de jours, Montant total (calculé)
+- **Tags** : Étiquettes personnalisées
+- **Couleur** : Bordure visuelle (9 couleurs disponibles)
+- **Description** : Notes détaillées
+
+### 4.3 Intégration CRM
+
+- Les opportunités de type "Mission" peuvent être liées à une mission
+- Recherche et sélection depuis le détail de l'opportunité CRM
+- Suivi bout-en-bout : prospection → exécution
+
+---
+
+## 5. Module : Contenu (Content Board)
+
+### 5.1 Vue d'ensemble
+
+Système de gestion de contenu marketing avec workflow de création et validation.
+
+### 5.2 Structure Kanban
+
+#### Colonnes
+- **Idées** : Colonne initiale pour les nouvelles idées
+- **Colonnes personnalisées** : En rédaction, En review, Prêt à publier, etc.
+- **Archive** : Contenu publié ou abandonné
+
+#### Cartes de contenu
+- Titre
+- Description (éditeur riche TipTap)
+- Image de couverture
+- Tags de catégorisation
+- Statut de review
+
+### 5.3 Workflow de review
+
+#### Statuts de review
+| Statut | Description |
+|--------|-------------|
+| `none` | Pas de review demandée |
+| `pending` | Review demandée, en attente |
+| `in_review` | Reviewer a soumis des commentaires |
+| `approved` | Review validée |
+| `changes_requested` | Modifications demandées |
+
+#### Commentaires de review
+- **Types** : Fond (contenu) ou Forme (style/grammaire)
+- **Actions auteur** : Accepter, Refuser, Corriger
+- **Pièces jointes** : Images/screenshots (max 5 Mo)
+- **Corrections proposées** : Suggestions de texte
+
+### 5.4 Assistance IA
+
+- **Reformuler** : Rephrase le contenu
+- **Adapter pour Blog** : Format article
+- **Adapter pour LinkedIn** : Style professionnel
+- **Adapter pour Instagram** : Style casual/visuel
+- **Recherche sémantique** : Trouver du contenu similaire
+
+### 5.5 Notifications
+
+- Notifications temps réel pour les reviews
+- Emails aux reviewers
+- Badge de compteur non lu
+
+---
+
+## 6. Module : Emails Entrants
+
+### 6.1 Vue d'ensemble
+
+Boîte de réception pour les emails reçus via Resend (webhook).
+
+### 6.2 Fonctionnalités
+
+#### Affichage
+- Liste des emails avec expéditeur, sujet, aperçu
+- Détail complet (HTML ou texte brut)
+- Pièces jointes avec taille
+
+#### Gestion
+- **Statuts** : Reçu, Traité, Archivé, Spam
+- Recherche par email, sujet, expéditeur
+- Filtrage par statut
+- Actions : Marquer traité, Archiver, Supprimer
+
+#### Intégration
+- Liaison possible avec une formation (`linked_training_id`)
+- Liaison possible avec un participant (`linked_participant_id`)
+- Notes personnalisées
+
+---
+
+## 7. Module : Micro-devis
+
+### 7.1 Fonctionnalités
 
 - **Mode Intra/Inter-entreprises** :
-  - **Intra** : Formation et dates en saisie libre (sur-mesure)
-  - **Inter** : Sélection parmi le catalogue de formations et dates prédéfinies
-- Sélection d'une formation parmi les configurations enregistrées (mode inter)
+  - **Intra** : Formation et dates en saisie libre
+  - **Inter** : Sélection catalogue et dates prédéfinies
+- Sélection d'une formation parmi les configurations enregistrées
 - Saisie des informations client (entreprise, SIREN, contact)
-- Génération automatique d'un PDF de devis
 - Recherche SIREN via API pour auto-complétion
-- **Persistance des champs** : Les données du formulaire sont conservées en sessionStorage (formation, dates, client, lieu) pour éviter la perte en cas de changement d'onglet
-- **Historique des devis** : Consultation de tous les devis envoyés avec recherche par email, client ou formation
-- Signature Signitic automatiquement ajoutée aux emails
+- Génération automatique d'un PDF de devis
+- **Persistance des champs** en sessionStorage
+- **Historique des devis** avec recherche
 
-### 3.2 Gestion des formations
+### 7.2 Signature électronique de devis
 
-Les formations sont configurables via une interface CRUD :
-- Nom de la formation
-- Prix HT
-- Durée en heures
-- URL du programme
-- Ordre d'affichage
-- Statut par défaut
+- Page publique `/signature-devis/:token`
+- Signature tactile/souris
+- Horodatage et métadonnées légales
 
-### 3.3 Règle spéciale "En ligne"
+### 7.3 Règle spéciale "En ligne"
 
-Si le nom de la formation contient "en ligne", le lieu est automatiquement défini à :
+Si le nom contient "en ligne", le lieu est automatiquement :
 > "En ligne en accédant à son compte sur supertilt.fr"
 
 ---
 
-## 4. Module : Gestion des Formations
+## 8. Module : Gestion des Formations
 
-### 4.1 Création d'une formation
+### 8.1 Création d'une formation
 
 #### Informations générales
-- **Nom de la formation** : Sélection via combobox (formations existantes ou saisie libre)
-- **Client** : Nom de l'entreprise cliente
-- **Lieu** : Sélection parmi les lieux prédéfinis :
-  - En ligne en accédant à son compte sur supertilt.fr
-  - Espace Gailleton, 2 Pl. Gailleton, 69002 Lyon
-  - Agile Tribu, 4ter Pass. de la Main d'Or, 75011 Paris
-  - Autre (saisie libre)
+- **Nom** : Sélection via combobox ou saisie libre
+- **Client** : Entreprise cliente
+- **Lieu** : Lieux prédéfinis ou saisie libre
 - **Format** : Présentiel / Distanciel / Hybride / Inter-entreprises
-- **Formateur** : Nom du formateur
+- **Formateur** : Sélection parmi les formateurs
 
 #### Planification
-- **Dates** : Sélection multiple de jours
-- **Horaires** : Heure de début et fin par jour
-- Réplication automatique des horaires du premier jour
-- Calcul automatique de l'heure de fin (+8h par défaut)
-- **Multi-jours** : Toggle qui définit automatiquement la date de fin à J+1 si la date de début est définie
+- Sélection multiple de jours
+- Horaires par jour avec réplication automatique
+- Toggle multi-jours (J+1 automatique)
 
-#### Commanditaire (Intra-entreprise)
+#### Commanditaire (Intra)
 - Prénom, Nom, Email
-- Option tutoiement/vouvoiement (vouvoiement par défaut)
-- Bouton de copie rapide de l'email
+- Option tutoiement/vouvoiement
 
-#### Financeur (Intra-entreprise)
-- **Checkbox** : "Le financeur est le commanditaire"
-- Si décoché : saisie du nom et URL du financeur
-- **Email d'évaluation à froid** : Si le financeur est différent du commanditaire, un email est programmé pour romain@supertilt.fr à J+45 après l'envoi du mail de remerciement
+#### Financeur
+- Checkbox "Le financeur est le commanditaire"
+- Si différent : nom et URL du financeur
+- Email d'évaluation à froid programmé à J+45
 
-#### Objectifs pédagogiques
+#### Objectifs et prérequis
 - Saisie manuelle
-- **Extraction IA** : Upload d'un PDF de programme → extraction automatique via Gemini
+- **Extraction IA** depuis PDF de programme
 
-#### Prérequis
-- Saisie manuelle des prérequis de la formation
-- Extraction IA depuis le programme PDF
+### 8.2 Formats de formation
 
-### 4.2 Formats de formation
-
-#### Intra-entreprise (format par défaut)
-- Commanditaire unique au niveau de la formation
-- Financeur unique au niveau de la formation
-- Email récapitulatif au commanditaire après l'ajout du dernier participant convoqué
+#### Intra-entreprise
+- Commanditaire unique au niveau formation
+- Email récapitulatif après dernier participant convoqué
 
 #### Inter-entreprises
-- **Gestion par participant** : Commanditaire et financeur gérés individuellement
-- **Commanditaire optionnel** : L'assignation d'un commanditaire n'est pas obligatoire
-- **Financeur par participant** :
-  - Checkbox "Le financeur est le commanditaire"
-  - Si décoché : nom et URL du financeur personnalisés
-- **Emails d'évaluation à froid** : Programmés uniquement pour les participants ayant un commanditaire assigné ET un financeur différent
-- **Mise en copie** : Lors de l'envoi de la convocation, le commanditaire du participant est mis en CC
+- Commanditaire par participant (optionnel)
+- Financeur par participant
+- Mise en CC du commanditaire lors de la convocation
 
-### 4.3 Gestion des participants
+### 8.3 Gestion des participants
 
-#### Ajout de participants
+#### Ajout
 - **Unitaire** : Email, Prénom, Nom, Entreprise
-- **En lot** : Parsing de texte (format flexible)
+- **En lot** : Parsing de texte flexible
+- Symbole `|` pour séparer participant et commanditaire (inter)
 
-#### Modification de participants
-- **Édition** : Bouton d'édition sur chaque ligne du tableau participants
-- Modification de tous les champs : email, prénom, nom, entreprise
-- Pour les formations inter-entreprises : modification du commanditaire et financeur
+#### Modification
+- Édition inline de tous les champs
+- Pour inter : modification commanditaire/financeur
 
-##### Format d'ajout en lot - Intra-entreprise
-```
-email@example.com
-Prénom Nom email@example.com, Société
-```
-
-##### Format d'ajout en lot - Inter-entreprises
-```
-Prénom Nom email@example.com, Société | Prénom_Cmd Nom_Cmd email_cmd@example.com
-email@example.com, Société | email_commanditaire@example.com
-```
-Le symbole `|` sépare les informations du participant de celles du commanditaire.
-
-#### Informations participant
-- Email (obligatoire)
-- Prénom, Nom (optionnels)
-- Entreprise
-- **Inter-entreprises uniquement** :
-  - Commanditaire (prénom, nom, email) - optionnel
-  - Financeur (même logique que pour l'intra)
-  - Facturation (URL facture)
-
-### 4.4 Emails automatisés
-
-#### Règles de programmation selon la proximité
+### 8.4 Emails automatisés
 
 | Proximité | Comportement |
 |-----------|--------------|
-| Formation passée | Aucun email envoyé (statut `non_envoye`) |
+| Formation passée | Aucun email |
 | J < 2 jours | Mode manuel uniquement |
-| J-7 à J-2 | Email d'accueil/convocation immédiat |
-| J > 7 jours | Processus standard programmé |
+| J-7 à J-2 | Email immédiat |
+| J > 7 jours | Séquence programmée |
 
-#### Convocation (Email d'accueil)
-- **Objet** : "Convocation - Formation [Nom de la formation]"
-- **Contenu** : Mention "Ce mail constitue votre convocation à la formation" mise en évidence
-- **Intra-entreprise** : Email récapitulatif au commanditaire après le dernier ajout
-- **Inter-entreprises** : Commanditaire du participant mis en CC
+#### Séquence automatique
+| Délai | Email |
+|-------|-------|
+| J+1 (ajout) | Recueil des besoins |
+| J-7 | Rappel logistique |
+| J-1 | Synthèse formateur |
 
-#### Séquence automatique (J > 7)
-
-| Délai | Email | Description |
-|-------|-------|-------------|
-| J+1 (après ajout) | Recueil des besoins | Invitation à remplir le questionnaire |
-| J-7 | Rappel logistique | Informations pratiques sur la formation |
-| J-1 | Synthèse formateur | Résumé des besoins collectés pour le formateur |
-
-#### Emails post-formation
-
+#### Post-formation
 | Délai | Email | Condition |
 |-------|-------|-----------|
-| J+2 (après remerciement) | Relance évaluation 1ère | Évaluation non soumise |
-| J+5 (après remerciement) | Relance évaluation 2ème | Évaluation non soumise |
-| J+45 (après remerciement) | Évaluation à froid financeur | Financeur ≠ commanditaire, envoyé à romain@supertilt.fr |
+| J+2 | Relance évaluation | Non soumise |
+| J+5 | 2ème relance | Non soumise |
+| J+45 | Évaluation à froid | Financeur ≠ commanditaire |
 
-#### Actions manuelles disponibles
-- Envoi du recueil des besoins (si J-2 ou moins)
-- Envoi des documents administratifs
-- Envoi de l'email de remerciement avec lien d'évaluation
-- Relance des participants n'ayant pas répondu au questionnaire
+### 8.5 Questionnaire de recueil des besoins
 
-### 4.5 Questionnaire de recueil des besoins
+Page publique `/questionnaire/:token` :
+- Informations personnelles
+- Niveau actuel et expérience
+- Compétences visées
+- Contraintes et accessibilité
+- Motivation
+- Sauvegarde automatique
 
-#### Page publique : `/questionnaire/:token`
-
-Formulaire accessible par les participants sans authentification.
-
-#### Champs collectés
-- Informations personnelles (nom, prénom, email, fonction, société)
-- Niveau actuel (échelle 1-5)
-- Expérience sur le sujet (aucune, courte, longue, certification)
-- Compétences actuelles et visées
-- Lecture du programme (complète, partielle, non)
-- Contraintes organisationnelles
-- Besoins d'accessibilité
-- Niveau de motivation (échelle 1-5)
-- Consentement RGPD
-
-#### Fonctionnalités
-- Sauvegarde automatique (autosave)
-- Restauration en cas de fermeture accidentelle
-- Synchronisation de l'entreprise avec la fiche participant
-- Notification automatique des besoins d'accessibilité au formateur
-
-### 4.6 Gestion documentaire
-
-#### Documents gérés
-- **Facture PDF** : Upload et envoi
-- **Feuilles d'émargement** : PDF ou images, multiples fichiers possibles
-- **Lien supports** : URL vers les ressources de formation
-
-#### Envoi de documents
-- Destinataire par défaut : commanditaire
-- Possibilité d'envoi à une adresse personnalisée
-- Email du commanditaire automatiquement en CC si envoi personnalisé
-- BCC systématique à romain@supertilt.fr
-
-### 4.6 Émargement électronique
+### 8.6 Émargement électronique
 
 #### Conformité eIDAS
-
-Système de signature électronique simple légalement reconnue en France et dans l'UE.
+Signature électronique simple légalement reconnue.
 
 #### Processus
+1. Envoi du lien par email
+2. Page `/emargement/:token`
+3. Signature canvas tactile/souris
+4. Stockage : image + horodatage + IP + User-Agent
 
-1. **Déclenchement** : Bouton "Envoyer" dans le bloc émargement (jour J)
-2. **Email envoyé** : Lien personnalisé par participant et demi-journée
-3. **Page publique** : `/emargement/:token`
-4. **Signature** : Canvas tactile/souris via `signature_pad`
-5. **Stockage** : Image base64 + horodatage + IP + User-Agent
+#### Preuves conservées
+- Horodatage précis
+- Adresse IP
+- User-Agent
+- Date d'envoi/ouverture
 
-#### Preuves légales conservées
-- Horodatage précis de signature
-- Adresse IP du signataire
-- User-Agent (navigateur/appareil)
-- Date d'envoi et d'ouverture de l'email
+### 8.7 Interface utilisateur
 
-#### Export PDF
-- Feuille d'émargement complète par session
-- Export individuel par participant
+#### Liste des formations
+- **Compteur J-X** : Badge orange si J-2 ou moins
+- Colonnes : Date, Client, Formation, Lieu
+- Tri sur toutes les colonnes
+- Pagination
 
-### 4.7 Interface utilisateur
-
-#### Liste des formations (Formations.tsx)
-- **Compteur J-X** : Affichage du nombre de jours avant le début de chaque formation à venir (badge J-X)
-  - Badge orange si J-2 ou moins
-  - Badge neutre sinon
-- **Colonnes du tableau** : Date | Client | Formation | Lieu
-- **Tri** : Toutes les colonnes sont triables (date, client, formation, lieu)
-- **Pagination** : Navigation entre pages de résultats
-
-#### Page détail (FormationDetail.tsx)
-Structure en deux colonnes :
-- **Gauche** : Informations générales, Objectifs, Prérequis
-- **Droite** : Participants, Communication, Émargement
-
-#### Pages création/édition
-- Grille à deux colonnes
-- En-tête sticky avec boutons d'action (Enregistrer, Annuler)
-- Horaires affichés à côté de chaque date
+#### Page détail
+- Deux colonnes : Infos générales / Participants & Communication
+- Onglets : Participants, Émargement, Documents
 
 ---
 
-## 5. Module : Évaluations
+## 9. Module : Évaluations
 
-### 5.1 Formulaire d'évaluation
+### 9.1 Formulaire d'évaluation
 
-#### Page publique : `/evaluation/:token`
-
-Accessible via le lien personnalisé envoyé après la formation.
-
-#### Échelle de notation
-Inversée : 5 (très satisfait) → 1 (insatisfait)
-
-#### Sections évaluées
-- Appréciation générale
-- Évaluation des objectifs pédagogiques (dynamique selon la formation)
+Page publique `/evaluation/:token` :
+- Appréciation générale (échelle 5→1)
+- Évaluation des objectifs pédagogiques
 - Équilibre théorie/pratique
-- Rythme de la formation
-- Qualification de l'intervenant
-- Adaptation au public
-- Conditions d'information
-- Recommandation (NPS)
-- Axes d'amélioration suggérés
+- Qualification intervenant
+- NPS (recommandation)
+- Axes d'amélioration
 - Commentaires libres
 
-### 5.2 Workflow post-soumission
+### 9.2 Workflow post-soumission
 
-#### Actions automatiques immédiates
-1. **Génération du certificat** : PDFMonkey (Template 6593BDA5-6890-45E8-804F-77488D64BEDF)
-2. **Stockage Google Drive** : Archivage automatique
-3. **Envoi au participant** : Certificat en pièce jointe
-4. **Code "FG4FREE"** : Envoyé automatiquement pour les formations "Facilitation graphique"
+1. **Génération certificat** via PDFMonkey
+2. **Archivage Google Drive**
+3. **Envoi au participant**
+4. **Code promo** (si "Facilitation graphique")
 
-#### Emails de suivi programmés
+#### Emails de suivi
+| Délai | Email |
+|-------|-------|
+| J+1 | Demande avis Google |
+| J+7 | Demande témoignage vidéo |
+| J+20 | Évaluation à froid |
 
-| Délai | Email | Objectif |
-|-------|-------|----------|
-| J+1 | Demande avis Google | Collecte d'avis publics |
-| J+7 | Demande témoignage vidéo | Collecte de témoignages |
-| J+20 | Évaluation à froid | Mesure de l'impact à moyen terme |
+### 9.3 Analyse IA
 
-### 5.3 Analyse IA des évaluations
-
-- **Synthèse automatique** : Résumé des retours par formation
-- **Points forts identifiés** : Ce qui fonctionne bien
-- **Points faibles** : Ce qui peut être amélioré
-- **Recommandations** : Actions concrètes suggérées
+- Synthèse automatique des retours
+- Points forts identifiés
+- Points d'amélioration
+- Recommandations d'actions
 
 ---
 
-## 6. Module : Certificats
+## 10. Module : Certificats
 
-### 6.1 Génération de certificats
+### 10.1 Génération
 
-#### Informations incluses
-- Nom du participant
-- Intitulé de la formation
-- Dates de la formation
-- Durée en heures
-- Objectifs pédagogiques atteints
+- Template PDFMonkey : `6593BDA5-6890-45E8-804F-77488D64BEDF`
+- Informations : Nom, Formation, Dates, Durée, Objectifs
 
-#### Template
-PDFMonkey Template ID : `6593BDA5-6890-45E8-804F-77488D64BEDF`
+### 10.2 Livraison
 
-### 6.2 Livraison
-
-- **Email au participant** : PDF individuel
-- **Email au commanditaire** (optionnel) :
-  - ZIP si plusieurs certificats
-  - PDF brut si un seul
-- **BCC** : romain@supertilt.fr
-- **Délai** : 1 seconde entre chaque email (rate limit Resend)
+- Email individuel au participant
+- Email groupé au commanditaire (ZIP si plusieurs)
+- BCC systématique
+- Rate limit : 1s entre envois
 
 ---
 
-## 7. Module : Améliorations
+## 11. Module : Améliorations
 
-### 7.1 Sources des améliorations
+### 11.1 Sources
 
-- **Analyses IA** : Recommandations issues des évaluations
-- **Saisie manuelle** : Actions identifiées par le formateur
+- Analyses IA des évaluations
+- Saisie manuelle
 
-### 7.2 Catégories
+### 11.2 Catégories
 
 - Contenu pédagogique
 - Logistique
@@ -380,218 +477,266 @@ PDFMonkey Template ID : `6593BDA5-6890-45E8-804F-77488D64BEDF`
 - Outils et supports
 - Autre
 
-### 7.3 Statuts
+### 11.3 Statuts
 
-- **À faire** : Action identifiée
-- **En cours** : Travail en cours
-- **Terminé** : Action réalisée
+- À faire
+- En cours
+- Terminé
 
-### 7.4 Affichage Dashboard
+### 11.4 Dashboard
 
-Top 3 des améliorations prioritaires affiché sur la page d'accueil.
+Top 3 des améliorations prioritaires affiché sur l'accueil.
 
 ---
 
-## 8. Module : Historique
+## 12. Module : Historique
 
-### 8.1 Événements tracés
+### 12.1 Événements tracés
 
-- Créations (formations, participants, emails...)
-- Modifications
-- Suppressions
-- Envois d'emails (avec objet et contenu consultables)
+- Créations, Modifications, Suppressions
+- Envois d'emails (contenu consultable)
 
-### 8.2 Recherche avancée
+### 12.2 Recherche
 
 - Filtrage par email destinataire
-- Recherche dans les détails (JSONB)
+- Recherche dans les détails JSONB
 - Filtrage par plage de dates
 
-### 8.3 Consultation des emails
+---
 
-Vue détaillée permettant de consulter :
-- Expéditeur
-- Destinataire
-- Objet
-- Contenu complet du message
+## 13. Module : Statistiques
+
+### 13.1 Métriques
+
+- **Graphiques hebdomadaires** (12 mois) :
+  - Micro-devis générés
+  - Formations réalisées
+  - Évaluations reçues
+- **Note moyenne** des évaluations
+- **Top 3 améliorations** prioritaires
+
+### 13.2 Sources de données
+
+| Donnée | Table | Champ |
+|--------|-------|-------|
+| Micro-devis | `activity_logs` | action_type = "micro_devis_generated" |
+| Formations | `trainings` | start_date |
+| Évaluations | `training_evaluations` | date_soumission |
+| Note moyenne | `training_evaluations` | appreciation_generale |
+| Améliorations | `improvements` | status = "pending" |
 
 ---
 
-## 9. Tableau de bord
+## 14. Module : Chatbot Admin
 
-### 9.1 Statistiques affichées
+### 14.1 Assistant IA
 
-- Graphiques hebdomadaires sur 12 mois :
-  - Nombre de micro-devis générés
-  - Nombre de formations réalisées
-  - Nombre d'évaluations reçues
-- Note moyenne globale des évaluations
-- Top 3 des améliorations prioritaires
+Chatbot d'aide intégré à l'application pour guider les utilisateurs.
 
-### 9.2 Navigation
+### 14.2 Base de connaissances
 
-Grille de modules avec icônes et descriptions.
+#### Catégories
+- `fonctionnalite` : Fonctionnalités
+- `workflow` : Processus
+- `regle_metier` : Règles métier
+- `qualiopi` : Conformité Qualiopi
+- `email` : Emails
+- `documents` : Documents
+- `faq` : FAQ
+
+#### Gestion
+- CRUD complet des entrées
+- Activation/désactivation
+- Priorité (0-100)
+- Recherche et filtrage
+
+### 14.3 Sécurité
+
+- Accès réservé aux administrateurs
+- Vérification via RPC `is_admin()`
 
 ---
 
-## 10. Standards techniques
+## 15. Standards techniques
 
-### 10.1 Emails
+### 15.1 Emails
 
 - **Expéditeur** : romain@supertilt.fr
 - **Signature HTML** : API Signitic
-- **BCC systématique** : romain@supertilt.fr
+- **BCC systématique** : romain@supertilt.fr + nocrm.io
 - **Boutons calendrier** : Google Calendar + Outlook
-- **Ton** : Tutoiement pour les communications participants
+- **Styles inline** : Compatibilité tous clients email
 
-### 10.2 Conformité
+### 15.2 Conformité
 
 | Norme | Application |
 |-------|-------------|
-| **Qualiopi** | Conservation 3 ans, validation prérequis, traçabilité |
+| **Qualiopi** | Conservation 3 ans, traçabilité |
 | **RGPD** | Consentement explicite, droit à l'oubli |
 | **RGAA** | Accessibilité niveau AA |
 | **eIDAS** | Signature électronique simple |
 
-### 10.3 Sécurité
+### 15.3 Sécurité
 
-- Authentification obligatoire (email + mot de passe)
-- RLS (Row Level Security) sur toutes les tables
-- Tokens uniques pour les pages publiques
+- Authentification obligatoire
+- RLS sur toutes les tables
+- Tokens uniques pour pages publiques
 - Changement de mot de passe forcé si nécessaire
 
 ---
 
-## 11. Pages publiques (sans authentification)
+## 16. Pages publiques (sans authentification)
 
 | Route | Usage |
 |-------|-------|
-| `/questionnaire/:token` | Recueil des besoins participant |
+| `/questionnaire/:token` | Recueil des besoins |
 | `/evaluation/:token` | Évaluation post-formation |
-| `/emargement/:token` | Signature électronique de présence |
+| `/emargement/:token` | Signature de présence |
+| `/signature-devis/:token` | Signature de devis |
+| `/formation-info/:trainingId` | Récapitulatif formation participant |
 | `/politique-confidentialite` | Politique de confidentialité |
 
 ---
 
-## 12. Évolutions prévues
+## 17. Évolutions prévues
 
-### 12.1 Corrections et améliorations
+### 17.1 Priorité haute
 
-| Priorité | Évolution | Description |
-|----------|-----------|-------------|
-| 🔴 Haute | **Correction de l'émargement électronique** | Debug et stabilisation du système de signature |
+| Évolution | Description | Statut |
+|-----------|-------------|--------|
+| Stabilisation émargement | Debug du système de signature électronique | 🔴 En attente |
+| Nettoyage RGPD | Purge automatique après 3 ans | 🔴 En attente |
 
-### 12.2 Nouvelles fonctionnalités - Gestion financière
+### 17.2 Priorité moyenne
 
-| Priorité | Évolution | Description |
-|----------|-----------|-------------|
-| ✅ Fait | **Gestion financeur intra-entreprise** | Champ financeur au niveau formation avec email d'évaluation à froid |
-| ✅ Fait | **Gestion financeur inter-entreprises** | Champ financeur par participant avec email d'évaluation à froid individuel |
-| 🟠 Moyenne | **Export automatique du BPF** | Génération automatique du Bilan Pédagogique et Financier |
-| 🟡 Basse | **Synthèse actions manquantes BPF** | Tableau de bord des éléments manquants par formation pour le BPF |
+| Évolution | Description | Statut |
+|-----------|-------------|--------|
+| Export BPF automatique | Génération du Bilan Pédagogique et Financier | 🟠 En attente |
+| Synthèse BPF | Tableau des éléments manquants par formation | 🟠 En attente |
+| Évaluations e-learning | Support évaluations intégrées formations en ligne | 🟠 En attente |
 
-### 12.3 Nouvelles fonctionnalités - Prospection et réseau
+### 17.3 Priorité basse
 
-| Priorité | Évolution | Description |
-|----------|-----------|-------------|
-| 🟡 Basse | **Recherche LinkedIn participants** | Recherche automatique du profil LinkedIn de chaque participant pour faciliter la connexion post-formation |
-
-### 12.4 Nouvelles fonctionnalités - Offre de formation
-
-| Priorité | Évolution | Description |
-|----------|-----------|-------------|
-| 🟠 Moyenne | **Créer une formation à venir** | Ajout de nouvelles formations au catalogue (ex: URSSAF) |
-| 🟠 Moyenne | **Ajout de formations en ligne** | Support complet des formations 100% distancielles avec spécificités (accès plateforme, etc.) |
-
-### 12.5 Nouvelles fonctionnalités - Évaluations
-
-| Priorité | Évolution | Description |
-|----------|-----------|-------------|
-| 🟠 Moyenne | **Évaluations embarquées formations en ligne** | Support des évaluations intégrées directement dans les formations e-learning, anonymes par défaut |
-| ✅ Fait | **Relance automatique des évaluations** | Emails de relance automatiques à J+2 et J+5 pour les participants n'ayant pas encore soumis leur évaluation |
-| 🟡 Basse | **Désactiver les Zaps de collecte de commentaires** | Supprimer ou désactiver les intégrations Zapier qui collectent les commentaires (migration vers solution native) |
-
-### 12.6 Nouvelles fonctionnalités - Logistique
-
-| Priorité | Évolution | Description |
-|----------|-----------|-------------|
-| 🟡 Basse | **Bouton réservation salle Paris/Lyon** | Intégration d'un bouton pour déclencher une demande de réservation de salle |
-| 🟡 Basse | **Réservation restaurant (sessions inter)** | Pour les formations inter-entreprises, gestion de la réservation du restaurant pour les pauses déjeuner |
-
-### 12.7 Conformité et maintenance
-
-| Priorité | Évolution | Description |
-|----------|-----------|-------------|
-| 🔴 Haute | **Nettoyage des données RGPD** | Mise en place d'un processus automatique de purge des données personnelles après la durée de conservation légale (3 ans Qualiopi) |
+| Évolution | Description | Statut |
+|-----------|-------------|--------|
+| Recherche LinkedIn participants | Lien LinkedIn auto depuis les formations | 🟡 En attente |
+| Réservation salle Paris/Lyon | Bouton de demande de réservation | 🟡 En attente |
+| Réservation restaurant | Gestion repas formations inter | 🟡 En attente |
 
 ---
 
-## 13. Annexes
+## 18. Annexes
 
-### 13.1 Tables de la base de données
+### 18.1 Tables principales
 
 | Table | Description |
 |-------|-------------|
 | `trainings` | Formations |
-| `training_participants` | Participants aux formations (inclut commanditaire et financeur pour inter-entreprises) |
-| `training_schedules` | Planification des jours de formation |
-| `training_evaluations` | Évaluations des participants |
-| `attendance_signatures` | Signatures électroniques d'émargement |
-| `questionnaire_besoins` | Réponses au recueil des besoins |
-| `scheduled_emails` | File d'attente des emails programmés |
+| `training_participants` | Participants aux formations |
+| `training_schedules` | Planification des jours |
+| `training_evaluations` | Évaluations |
+| `attendance_signatures` | Signatures d'émargement |
+| `questionnaire_besoins` | Réponses recueil des besoins |
+| `scheduled_emails` | File d'attente emails programmés |
 | `improvements` | Axes d'amélioration |
-| `evaluation_analyses` | Analyses IA des évaluations |
-| `formation_configs` | Configuration des formations (micro-devis) |
+| `evaluation_analyses` | Analyses IA |
+| `formation_configs` | Configuration formations (micro-devis) |
 | `activity_logs` | Journal des actions |
-| `email_templates` | Templates d'emails personnalisables |
+| `email_templates` | Templates d'emails |
 | `trainers` | Formateurs |
 | `profiles` | Profils utilisateurs |
-| `app_settings` | Paramètres de l'application (délais, jours ouvrés, etc.) |
+| `app_settings` | Paramètres application |
+| `crm_columns` | Colonnes CRM |
+| `crm_cards` | Opportunités CRM |
+| `crm_tags` | Tags CRM |
+| `crm_card_emails` | Emails CRM |
+| `crm_activity_log` | Journal CRM |
+| `missions` | Missions consulting |
+| `content_columns` | Colonnes contenu |
+| `content_cards` | Cartes contenu |
+| `content_reviews` | Reviews contenu |
+| `review_comments` | Commentaires review |
+| `content_notifications` | Notifications contenu |
+| `inbound_emails` | Emails reçus |
+| `chatbot_knowledge_base` | Base de connaissances chatbot |
+| `email_snippets` | Snippets emails pré-configurés |
 
-### 13.2 Colonnes clés - training_participants
+### 18.2 Edge Functions
 
-| Colonne | Description |
-|---------|-------------|
-| `sponsor_first_name` | Prénom du commanditaire (inter-entreprises) |
-| `sponsor_last_name` | Nom du commanditaire (inter-entreprises) |
-| `sponsor_email` | Email du commanditaire (inter-entreprises) |
-| `financeur_same_as_sponsor` | Boolean - Le financeur est le commanditaire |
-| `financeur_name` | Nom du financeur (si différent) |
-| `financeur_url` | URL du financeur/OPCO (si différent) |
-| `invoice_file_url` | URL de la facture (inter-entreprises) |
-
-### 13.2 Edge Functions
-
+#### Formations
 | Fonction | Rôle |
 |----------|------|
-| `send-needs-survey` | Envoi du questionnaire de besoins |
+| `send-needs-survey` | Envoi questionnaire besoins |
 | `send-needs-survey-reminder` | Relance questionnaire |
 | `send-welcome-email` | Email d'accueil J-7 |
-| `send-training-documents` | Envoi des documents administratifs |
+| `send-training-documents` | Envoi documents administratifs |
 | `send-thank-you-email` | Remerciement + lien évaluation |
-| `send-attendance-signature-request` | Demande de signature émargement |
+| `send-attendance-signature-request` | Demande signature émargement |
+| `submit-attendance-signature` | Soumission signature |
 | `send-accessibility-needs` | Notification besoins accessibilité |
 | `send-questionnaire-confirmation` | Confirmation soumission questionnaire |
-| `generate-certificates` | Génération des certificats PDFMonkey |
+| `send-evaluation-reminder` | Relance évaluation J+2/J+5 |
+| `send-training-calendar-invite` | Invitation calendrier |
+| `generate-certificates` | Génération certificats PDFMonkey |
 | `generate-attendance-pdf` | Export PDF émargement |
-| `generate-micro-devis` | Génération devis PDF |
-| `analyze-evaluations` | Analyse IA des évaluations |
-| `extract-objectives-from-pdf` | Extraction objectifs/prérequis via IA |
-| `summarize-needs-survey` | Synthèse des besoins pour formateur |
+| `generate-convention-formation` | Génération convention |
+| `analyze-evaluations` | Analyse IA évaluations |
+| `extract-objectives-from-pdf` | Extraction objectifs/prérequis IA |
+| `summarize-needs-survey` | Synthèse besoins pour formateur |
 | `process-evaluation-submission` | Workflow post-évaluation |
-| `force-send-scheduled-email` | Envoi forcé d'un email programmé |
-| `onboard-collaborator` | Création de compte collaborateur |
-| `search-siren` | Recherche entreprise par SIREN |
+| `force-send-scheduled-email` | Envoi forcé email programmé |
+| `process-scheduled-emails` | Traitement file d'attente emails |
+| `send-prerequis-warning` | Alerte prérequis non validés |
+| `send-booking-reminder` | Rappel réservation |
+
+#### CRM
+| Fonction | Rôle |
+|----------|------|
+| `crm-extract-opportunity` | Extraction IA d'opportunité |
+| `crm-ai-assist` | Analyse, génération devis, amélioration email |
+| `crm-send-email` | Envoi email depuis opportunité |
+
+#### Devis
+| Fonction | Rôle |
+|----------|------|
+| `generate-micro-devis` | Génération devis PDF |
+| `send-devis-signature-request` | Demande signature devis |
+| `submit-devis-signature` | Soumission signature devis |
+
+#### Contenu
+| Fonction | Rôle |
+|----------|------|
+| `ai-content-assist` | Reformulation/adaptation IA |
+| `search-content-ideas` | Recherche sémantique contenu |
+| `send-content-notification` | Notifications review |
+
+#### Système
+| Fonction | Rôle |
+|----------|------|
+| `chatbot-query` | Requêtes chatbot assistant |
+| `resend-inbound-webhook` | Réception emails entrants |
+| `search-siren` | Recherche entreprise SIREN |
+| `onboard-collaborator` | Création compte collaborateur |
+| `send-password-reset` | Réinitialisation mot de passe |
+| `check-login-attempt` | Vérification tentative connexion |
+| `log-login-attempt` | Journalisation connexion |
+| `improve-email-content` | Amélioration contenu email IA |
+| `backup-export` | Export de sauvegarde |
+| `backup-import` | Import de sauvegarde |
+| `google-drive-auth` | Authentification Google Drive |
+| `zapier-create-training` | Création formation via Zapier |
+| `send-action-reminder` | Rappel action programmée |
 
 ---
 
-*Document mis à jour le 3 février 2026*
-*Version : 1.2*
+*Document mis à jour le 4 février 2026*
+*Version : 2.0*
 
 ### Historique des versions
 
 | Version | Date | Modifications |
 |---------|------|---------------|
 | 1.0 | 30 janvier 2026 | Version initiale |
-| 1.1 | 2 février 2026 | Ajout gestion financeur intra/inter-entreprises, relances évaluation J+2/J+5 |
-| 1.2 | 3 février 2026 | Compteur J-X formations, édition participants, lieux prédéfinis, micro-devis intra/inter, historique devis, tri tableau formations |
+| 1.1 | 2 février 2026 | Ajout gestion financeur intra/inter-entreprises, relances évaluation |
+| 1.2 | 3 février 2026 | Compteur J-X, édition participants, lieux prédéfinis, micro-devis intra/inter |
+| 2.0 | 4 février 2026 | Ajout modules CRM, Missions, Contenu, Emails entrants, Chatbot Admin, Statistiques. Refonte complète du document avec toutes les edge functions. Animation confetti CRM, éditeur email riche avec snippets. |

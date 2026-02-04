@@ -641,15 +641,28 @@ const CardDetailDrawer = ({
 
     // Detect if moving to a "won" column (contains "gagné" case-insensitive)
     const isWonColumn = columnName.toLowerCase().includes("gagné");
-    // Use local salesStatus state instead of card.sales_status (which may be stale)
-    const wasAlreadyWon = salesStatus === "WON";
-    const movingToWon = isWonColumn && !wasAlreadyWon;
 
-    // Update column (and sales status if moving to won column)
+    // Check if currently in a "won" column (before this move)
+    const currentColumn = allColumns.find(col => col.id === card.column_id);
+    const wasInWonColumn = currentColumn?.name.toLowerCase().includes("gagné") || false;
+
+    // Detect if this is a fresh win (moving to won from non-won)
+    const movingToWon = isWonColumn && !wasInWonColumn;
+
+    // Detect if leaving a won column (moving from won to non-won)
+    const leavingWonColumn = wasInWonColumn && !isWonColumn;
+
+    // Update column and sales status
     const updates: Record<string, any> = { column_id: newColumnId };
+
     if (isWonColumn) {
+      // Moving to won column: set status to WON
       updates.sales_status = "WON";
       setSalesStatus("WON");
+    } else if (leavingWonColumn) {
+      // Leaving won column: reset status to OPEN
+      updates.sales_status = "OPEN";
+      setSalesStatus("OPEN");
     }
 
     await updateCard.mutateAsync({
