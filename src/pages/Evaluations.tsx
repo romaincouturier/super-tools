@@ -97,6 +97,7 @@ const Evaluations = () => {
   const [trainings, setTrainings] = useState<Training[]>([]);
   const [evaluations, setEvaluations] = useState<Evaluation[]>([]);
   const [selectedTraining, setSelectedTraining] = useState<string>("all");
+  const [canDeleteEvaluations, setCanDeleteEvaluations] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
   const [showAnalysis, setShowAnalysis] = useState(false);
@@ -113,10 +114,33 @@ const Evaluations = () => {
       } else {
         setUser(session.user);
         fetchData();
+        checkDeletePermission(session.user.email || "");
       }
       setLoading(false);
     });
   }, [navigate]);
+
+  const checkDeletePermission = async (userEmail: string) => {
+    // Admin always has permission
+    if (userEmail.toLowerCase() === "romain@supertilt.fr") {
+      setCanDeleteEvaluations(true);
+      return;
+    }
+
+    // Check app_settings for allowed emails
+    const { data } = await supabase
+      .from("app_settings")
+      .select("setting_value")
+      .eq("setting_key", "can_delete_evaluations_emails")
+      .single();
+
+    if (data?.setting_value) {
+      const allowedEmails = data.setting_value
+        .split(",")
+        .map((email: string) => email.trim().toLowerCase());
+      setCanDeleteEvaluations(allowedEmails.includes(userEmail.toLowerCase()));
+    }
+  };
 
   const fetchData = async () => {
     // Fetch trainings
@@ -465,22 +489,33 @@ const Evaluations = () => {
                       <div className="flex flex-col items-end gap-2">
                         <div className="flex items-center gap-2">
                           <div className="flex">{getStars(evaluation.appreciation_generale)}</div>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteEvaluation(evaluation.id);
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          {canDeleteEvaluations && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteEvaluation(evaluation.id);
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
                         </div>
                         {getRecommandationBadge(evaluation.recommandation)}
                         {evaluation.date_soumission && (
                           <span className="text-xs text-muted-foreground">
-                            {new Date(evaluation.date_soumission).toLocaleDateString("fr-FR")}
+                            {new Date(evaluation.date_soumission).toLocaleDateString("fr-FR", {
+                              day: "numeric",
+                              month: "short",
+                              year: "numeric",
+                            })}{" "}
+                            à{" "}
+                            {new Date(evaluation.date_soumission).toLocaleTimeString("fr-FR", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
                           </span>
                         )}
                       </div>
