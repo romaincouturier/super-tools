@@ -63,6 +63,7 @@ export interface CrmCard {
   company: string | null;
   email: string | null;
   linkedin_url: string | null;
+  website_url: string | null;
   service_type: ServiceType | null;
   brief_questions: BriefQuestion[];
   raw_input: string | null;
@@ -147,6 +148,7 @@ export interface CreateCardInput {
   company?: string;
   email?: string;
   linkedin_url?: string;
+  website_url?: string;
   service_type?: ServiceType;
   brief_questions?: BriefQuestion[];
   raw_input?: string;
@@ -170,6 +172,7 @@ export interface UpdateCardInput {
   company?: string | null;
   email?: string | null;
   linkedin_url?: string | null;
+  website_url?: string | null;
   service_type?: ServiceType | null;
   brief_questions?: BriefQuestion[];
 }

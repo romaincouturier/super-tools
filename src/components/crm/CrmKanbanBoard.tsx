@@ -18,7 +18,7 @@ import {
 } from "@dnd-kit/sortable";
 import { Plus, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useCrmBoard, useMoveCard, useCreateColumn } from "@/hooks/useCrmBoard";
+import { useCrmBoard, useMoveCard, useCreateColumn, useCrmSettings } from "@/hooks/useCrmBoard";
 import { useAuth } from "@/hooks/useAuth";
 import { CrmCard } from "@/types/crm";
 import CrmColumn from "./CrmColumn";
@@ -31,8 +31,11 @@ import { isAfter, startOfDay } from "date-fns";
 const CrmKanbanBoard = () => {
   const { user } = useAuth();
   const { data: boardData, isLoading } = useCrmBoard();
+  const { data: crmSettings } = useCrmSettings();
   const moveCard = useMoveCard();
   const createColumn = useCreateColumn();
+
+  const serviceTypeColors = crmSettings?.serviceTypeColors;
 
   const [activeCard, setActiveCard] = useState<CrmCard | null>(null);
   const [selectedCard, setSelectedCard] = useState<CrmCard | null>(null);
@@ -190,6 +193,7 @@ const CrmKanbanBoard = () => {
                   allColumns={columns}
                   onAddCard={() => setNewCardColumnId(column.id)}
                   onCardClick={handleCardClick}
+                  serviceTypeColors={serviceTypeColors}
                 />
               );
             })}
@@ -208,7 +212,13 @@ const CrmKanbanBoard = () => {
         </div>
 
         <DragOverlay>
-          {activeCard ? <CrmCardComponent card={activeCard} isDragging /> : null}
+          {activeCard ? (
+            <CrmCardComponent
+              card={activeCard}
+              isDragging
+              serviceTypeColors={serviceTypeColors}
+            />
+          ) : null}
         </DragOverlay>
       </DndContext>
 

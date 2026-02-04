@@ -21,15 +21,22 @@ import { CrmColumn as CrmColumnType, CrmCard } from "@/types/crm";
 import { useUpdateColumn, useArchiveColumn } from "@/hooks/useCrmBoard";
 import CrmCardComponent from "./CrmCard";
 
+interface ServiceTypeColors {
+  formation: string;
+  mission: string;
+  default: string;
+}
+
 interface CrmColumnProps {
   column: CrmColumnType;
   cards: CrmCard[];
   allColumns: CrmColumnType[];
   onAddCard: () => void;
   onCardClick: (card: CrmCard) => void;
+  serviceTypeColors?: ServiceTypeColors;
 }
 
-const CrmColumn = ({ column, cards, allColumns, onAddCard, onCardClick }: CrmColumnProps) => {
+const CrmColumn = ({ column, cards, allColumns, onAddCard, onCardClick, serviceTypeColors }: CrmColumnProps) => {
   const [showRenameDialog, setShowRenameDialog] = useState(false);
   const [newName, setNewName] = useState(column.name);
 
@@ -106,6 +113,7 @@ const CrmColumn = ({ column, cards, allColumns, onAddCard, onCardClick }: CrmCol
               card={card}
               allColumns={allColumns}
               onClick={() => onCardClick(card)}
+              serviceTypeColors={serviceTypeColors}
             />
           ))}
         </SortableContext>

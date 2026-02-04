@@ -95,6 +95,7 @@ export const useCrmBoard = () => {
           company: card.company,
           email: card.email,
           linkedin_url: card.linkedin_url,
+          website_url: card.website_url,
           service_type: card.service_type as CrmCard["service_type"],
           brief_questions: (Array.isArray(card.brief_questions) ? card.brief_questions : []) as unknown as CrmCard["brief_questions"],
           raw_input: card.raw_input,
@@ -832,6 +833,72 @@ export const useCrmReports = () => {
         breakdownByCategory,
         totalCards: cards.length,
       };
+    },
+  });
+};
+
+// Service type colors interface
+export interface ServiceTypeColors {
+  formation: string;
+  mission: string;
+  default: string;
+}
+
+// Fetch CRM settings
+export const useCrmSettings = () => {
+  return useQuery({
+    queryKey: [CRM_QUERY_KEY, "settings"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("crm_settings")
+        .select("setting_key, setting_value")
+        .in("setting_key", ["service_type_colors"]);
+
+      if (error) throw error;
+
+      const settings: Record<string, unknown> = {};
+      (data || []).forEach((row) => {
+        settings[row.setting_key] = row.setting_value;
+      });
+
+      return {
+        serviceTypeColors: (settings.service_type_colors || {
+          formation: "#3b82f6",
+          mission: "#8b5cf6",
+          default: "#6b7280",
+        }) as ServiceTypeColors,
+      };
+    },
+  });
+};
+
+// Update CRM settings
+export const useUpdateCrmSettings = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({
+      key,
+      value,
+    }: {
+      key: string;
+      value: unknown;
+    }) => {
+      const { error } = await supabase
+        .from("crm_settings")
+        .upsert(
+          { setting_key: key, setting_value: value, updated_at: new Date().toISOString() },
+          { onConflict: "setting_key" }
+        );
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [CRM_QUERY_KEY, "settings"] });
+      toast({ title: "Paramètres enregistrés" });
+    },
+    onError: (error) => {
+      toast({ title: "Erreur", description: error.message, variant: "destructive" });
     },
   });
 };
