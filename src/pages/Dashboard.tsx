@@ -1,4 +1,4 @@
-import { Loader2, Award, FileText, Calendar, ClipboardCheck, TrendingUp, Star, History, Newspaper, ClipboardList } from "lucide-react";
+import { Loader2, Award, FileText, Calendar, ClipboardCheck, TrendingUp, Star, History, Newspaper, ClipboardList, Inbox } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import WeeklyChart from "@/components/dashboard/WeeklyChart";
@@ -82,6 +82,14 @@ const tools: Tool[] = [
     icon: <Newspaper className="w-10 h-10" />,
     path: "/contenu",
     module: "contenu",
+  },
+  {
+    id: "emails",
+    name: "Emails reçus",
+    description: "Consulter les emails entrants",
+    icon: <Inbox className="w-10 h-10" />,
+    path: "/emails",
+    module: "emails",
   },
 ];
 const Dashboard = () => {

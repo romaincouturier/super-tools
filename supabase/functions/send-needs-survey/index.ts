@@ -1,111 +1,34 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
-
-// Fetch Signitic signature for romain@supertilt.fr
-async function getSigniticSignature(): Promise<string> {
-  const signiticApiKey = Deno.env.get("SIGNITIC_API_KEY");
-  
-  if (!signiticApiKey) {
-    console.warn("SIGNITIC_API_KEY not configured, using default signature");
-    return getDefaultSignature();
-  }
-
-  try {
-    const response = await fetch(
-      "https://api.signitic.app/signatures/romain@supertilt.fr/html",
-      {
-        headers: {
-          "x-api-key": signiticApiKey,
-        },
-      }
-    );
-
-    if (response.ok) {
-      const htmlContent = await response.text();
-      if (htmlContent && !htmlContent.includes("error")) {
-        console.log("Signitic signature fetched successfully");
-        return htmlContent;
-      }
-    }
-    
-    console.warn("Could not fetch Signitic signature:", response.status);
-    return getDefaultSignature();
-  } catch (error) {
-    console.error("Error fetching Signitic signature:", error);
-    return getDefaultSignature();
-  }
-}
-
-function getDefaultSignature(): string {
-  return `<p style="margin-top: 20px; color: #666; font-size: 14px;">
-    <strong>Romain Couturier</strong><br/>
-    Supertilt - Formation professionnelle<br/>
-    <a href="mailto:romain@supertilt.fr">romain@supertilt.fr</a>
-  </p>`;
-}
-
-// Fetch BCC settings from app_settings
-// deno-lint-ignore no-explicit-any
-async function getBccSettings(supabase: any): Promise<string[]> {
-  const { data: bccSettings } = await supabase
-    .from("app_settings")
-    .select("setting_key, setting_value")
-    .in("setting_key", ["bcc_email", "bcc_enabled"]);
-  
-  let bccEnabled = true;
-  let bccEmailValue: string | null = null;
-  
-  bccSettings?.forEach((s: { setting_key: string; setting_value: string | null }) => {
-    if (s.setting_key === "bcc_enabled") {
-      bccEnabled = s.setting_value === "true";
-    }
-    if (s.setting_key === "bcc_email" && s.setting_value) {
-      bccEmailValue = s.setting_value;
-    }
-  });
-  
-  const bccList: string[] = [];
-  if (bccEnabled && bccEmailValue) {
-    bccList.push(bccEmailValue);
-  }
-  bccList.push("supertilt@bcc.nocrm.io");
-  
-  console.log("BCC settings - enabled:", bccEnabled, "email:", bccEmailValue, "final list:", bccList.join(", "));
-  return bccList;
-}
+import {
+  handleCorsPreflightIfNeeded,
+  createErrorResponse,
+  createJsonResponse,
+  getSigniticSignature,
+  getBccSettings,
+  getSupabaseClient,
+  sendEmail,
+  escapeHtml,
+  formatDateWithDayFr,
+} from "../_shared/index.ts";
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const corsResponse = handleCorsPreflightIfNeeded(req);
+  if (corsResponse) return corsResponse;
 
   try {
     const { participantId, trainingId } = await req.json();
 
     if (!participantId || !trainingId) {
-      return new Response(
-        JSON.stringify({ error: "participantId and trainingId are required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return createErrorResponse("participantId and trainingId are required", 400);
     }
 
-    const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
-    if (!RESEND_API_KEY) {
-      throw new Error("RESEND_API_KEY not configured");
-    }
+    const supabase = getSupabaseClient();
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-    // Fetch BCC settings
-    const bccList = await getBccSettings(supabase);
+    // Fetch BCC settings and signature in parallel
+    const [bccList, signature] = await Promise.all([
+      getBccSettings(supabase),
+      getSigniticSignature(),
+    ]);
 
     // Fetch participant and training info
     const { data: participant, error: participantError } = await supabase
@@ -144,7 +67,7 @@ serve(async (req) => {
     } else {
       // Create new questionnaire with token
       token = crypto.randomUUID();
-      
+
       const { error: insertError } = await supabase
         .from("questionnaire_besoins")
         .insert({
@@ -168,7 +91,7 @@ serve(async (req) => {
     // Update participant status
     await supabase
       .from("training_participants")
-      .update({ 
+      .update({
         needs_survey_status: "envoye",
         needs_survey_sent_at: new Date().toISOString(),
         needs_survey_token: token,
@@ -179,7 +102,7 @@ serve(async (req) => {
     if (questionnaire.data) {
       await supabase
         .from("questionnaire_besoins")
-        .update({ 
+        .update({
           etat: "envoye",
           date_envoi: new Date().toISOString(),
         })
@@ -190,25 +113,17 @@ serve(async (req) => {
     const baseUrl = "https://super-tools.lovable.app";
     const questionnaireUrl = `${baseUrl}/questionnaire/${token}`;
 
-    // Get signature
-    const signature = await getSigniticSignature();
-
     // Format training date
-    const startDate = new Date(training.start_date);
-    const formattedDate = startDate.toLocaleDateString("fr-FR", {
-      weekday: "long",
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-    });
+    const formattedDate = formatDateWithDayFr(training.start_date);
 
     // Build email
     const firstName = participant.first_name || "";
-    const greeting = firstName ? `Bonjour ${firstName},` : "Bonjour,";
+    const greeting = firstName ? `Bonjour ${escapeHtml(firstName)},` : "Bonjour,";
+    const safeTrainingName = escapeHtml(training.training_name);
 
     const htmlContent = `
       <p>${greeting}</p>
-      <p>Vous êtes inscrit(e) à la formation <strong>"${training.training_name}"</strong> qui aura lieu le <strong>${formattedDate}</strong>.</p>
+      <p>Vous êtes inscrit(e) à la formation <strong>"${safeTrainingName}"</strong> qui aura lieu le <strong>${formattedDate}</strong>.</p>
       <p>Afin de personnaliser cette formation à vos attentes, je vous invite à remplir un court questionnaire de recueil des besoins :</p>
       <p style="margin: 20px 0;">
         <a href="${questionnaireUrl}" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">
@@ -221,32 +136,21 @@ serve(async (req) => {
     `;
 
     // Send email
-    const emailResponse = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${RESEND_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from: "Romain Couturier <romain@supertilt.fr>",
-        to: [participant.email],
-        bcc: bccList,
-        subject: `Questionnaire de recueil des besoins - ${training.training_name}`,
-        html: htmlContent,
-      }),
+    const emailSubject = `Questionnaire de recueil des besoins - ${training.training_name}`;
+    const result = await sendEmail({
+      to: [participant.email],
+      bcc: bccList,
+      subject: emailSubject,
+      html: htmlContent,
     });
 
-    if (!emailResponse.ok) {
-      const errorText = await emailResponse.text();
-      console.error("Resend error:", errorText);
-      throw new Error(`Failed to send email: ${emailResponse.status}`);
+    if (!result.success) {
+      throw new Error(`Failed to send email: ${result.error}`);
     }
 
-    const result = await emailResponse.json();
-    console.log("Needs survey email sent to:", participant.email, result);
+    console.log("Needs survey email sent to:", participant.email, result.data);
 
     // Log activity
-    const emailSubject = `Questionnaire de recueil des besoins - ${training.training_name}`;
     try {
       await supabase.from("activity_logs").insert({
         action_type: "needs_survey_sent",
@@ -256,23 +160,17 @@ serve(async (req) => {
           training_name: training.training_name,
           participant_name: `${participant.first_name || ""} ${participant.last_name || ""}`.trim() || null,
           email_subject: emailSubject,
-          email_content: `${greeting}\n\nVous êtes inscrit(e) à la formation "${training.training_name}" qui aura lieu le ${formattedDate}.\n\nAfin de personnaliser cette formation à vos attentes, je vous invite à remplir un court questionnaire de recueil des besoins.\n\nCe questionnaire vous prendra environ 5 minutes et me permettra d'adapter le contenu de la formation à vos besoins spécifiques.\n\nMerci de le compléter au moins 2 jours avant la formation.`,
+          email_content: `${firstName ? `Bonjour ${firstName},` : "Bonjour,"}\n\nVous êtes inscrit(e) à la formation "${training.training_name}" qui aura lieu le ${formattedDate}.\n\nAfin de personnaliser cette formation à vos attentes, je vous invite à remplir un court questionnaire de recueil des besoins.\n\nCe questionnaire vous prendra environ 5 minutes et me permettra d'adapter le contenu de la formation à vos besoins spécifiques.\n\nMerci de le compléter au moins 2 jours avant la formation.`,
         },
       });
     } catch (logError) {
       console.warn("Failed to log activity:", logError);
     }
 
-    return new Response(
-      JSON.stringify({ success: true, messageId: result.id }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return createJsonResponse({ success: true, messageId: result.data?.id });
   } catch (error: unknown) {
     console.error("Error sending needs survey:", error);
     const errorMessage = error instanceof Error ? error.message : "Failed to send needs survey";
-    return new Response(
-      JSON.stringify({ error: errorMessage }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return createErrorResponse(errorMessage);
   }
 });

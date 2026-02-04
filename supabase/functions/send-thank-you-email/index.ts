@@ -1,12 +1,16 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { randomBytes, createHash } from "https://deno.land/std@0.168.0/node/crypto.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
+import {
+  handleCorsPreflightIfNeeded,
+  createErrorResponse,
+  createJsonResponse,
+  getSigniticSignature,
+  getBccSettings,
+  getSupabaseClient,
+  sendEmail,
+  processTemplate,
+  textToHtml,
+} from "../_shared/index.ts";
 
 // Generate a secure token for evaluation access
 function generateEvaluationToken(): string {
@@ -14,49 +18,6 @@ function generateEvaluationToken(): string {
   const randomPart = randomBytes(8).toString("hex");
   const hash = createHash("sha256").update(uuid + randomPart).digest("hex").slice(0, 16);
   return `${uuid}-${hash}`;
-}
-
-// Fetch Signitic signature for romain@supertilt.fr
-async function getSigniticSignature(): Promise<string> {
-  const signiticApiKey = Deno.env.get("SIGNITIC_API_KEY");
-  
-  if (!signiticApiKey) {
-    console.warn("SIGNITIC_API_KEY not configured, using default signature");
-    return getDefaultSignature();
-  }
-
-  try {
-    const response = await fetch(
-      "https://api.signitic.app/signatures/romain@supertilt.fr/html",
-      {
-        headers: {
-          "x-api-key": signiticApiKey,
-        },
-      }
-    );
-
-    if (response.ok) {
-      const htmlContent = await response.text();
-      if (htmlContent && !htmlContent.includes("error")) {
-        console.log("Signitic signature fetched successfully");
-        return htmlContent;
-      }
-    }
-    
-    console.warn("Could not fetch Signitic signature:", response.status);
-    return getDefaultSignature();
-  } catch (error) {
-    console.error("Error fetching Signitic signature:", error);
-    return getDefaultSignature();
-  }
-}
-
-function getDefaultSignature(): string {
-  return `<p style="margin-top: 20px; color: #666; font-size: 14px;">
-    <strong>Romain Couturier</strong><br/>
-    Supertilt - Formation professionnelle<br/>
-    <a href="mailto:romain@supertilt.fr">romain@supertilt.fr</a>
-  </p>`;
 }
 
 // Default template content - Tutoiement version
@@ -95,61 +56,36 @@ Je suis curieux de voir comment vous allez utiliser tout ce que nous avons vu ! 
 
 Je vous souhaite une bonne journée`;
 
-// Process template with variables
-function processTemplate(
-  template: string,
-  variables: Record<string, string | null | undefined>
-): string {
-  let result = template;
+// Helper function to add N working days to a date
+function addWorkingDays(startDate: Date, numDays: number, workingDays: boolean[]): Date {
+  const result = new Date(startDate);
+  let daysAdded = 0;
+  const maxIterations = numDays * 3; // Safety limit
+  let iterations = 0;
 
-  // Process conditional blocks: {{#var}}content{{/var}}
-  const conditionalRegex = /\{\{#(\w+)\}\}([\s\S]*?)\{\{\/\1\}\}/g;
-  result = result.replace(conditionalRegex, (match, varName, content) => {
-    const value = variables[varName];
-    return value ? content : "";
-  });
-
-  // Process simple variables: {{var}}
-  const variableRegex = /\{\{(\w+)\}\}/g;
-  result = result.replace(variableRegex, (match, varName) => {
-    const value = variables[varName];
-    return value || "";
-  });
+  while (daysAdded < numDays && iterations < maxIterations) {
+    result.setDate(result.getDate() + 1);
+    iterations++;
+    if (workingDays[result.getDay()]) {
+      daysAdded++;
+    }
+  }
 
   return result;
 }
 
-// Convert plain text to HTML
-function textToHtml(text: string): string {
-  return text
-    .split("\n")
-    .map(line => line.trim() === "" ? "<br/>" : `<p>${line}</p>`)
-    .join("\n");
-}
-
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const corsResponse = handleCorsPreflightIfNeeded(req);
+  if (corsResponse) return corsResponse;
 
   try {
     const { trainingId, testEmail } = await req.json();
 
     if (!trainingId) {
-      return new Response(
-        JSON.stringify({ error: "trainingId is required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return createErrorResponse("trainingId is required", 400);
     }
 
-    const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
-    if (!RESEND_API_KEY) {
-      throw new Error("RESEND_API_KEY not configured");
-    }
-
-    const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    const supabase = getSupabaseClient();
 
     // Fetch training
     const { data: training, error: trainingError } = await supabase
@@ -165,7 +101,7 @@ serve(async (req) => {
     // Determine if we should use tutoiement or vouvoiement
     const useTutoiement = training.participants_formal_address === false;
     const templateTypeSuffix = useTutoiement ? "_tu" : "_vous";
-    
+
     // Fetch custom email template if exists (with mode suffix)
     const { data: customTemplate } = await supabase
       .from("email_templates")
@@ -182,42 +118,22 @@ serve(async (req) => {
 
     console.log("Using template:", customTemplate ? "custom" : "default", "mode:", useTutoiement ? "tutoiement" : "vouvoiement");
 
-    // Fetch BCC settings
-    const { data: bccSettings } = await supabase
-      .from("app_settings")
-      .select("setting_key, setting_value")
-      .in("setting_key", ["bcc_email", "bcc_enabled"]);
-    
-    // Default: BCC enabled with the email if bcc_email exists
-    let bccEnabled = true; // Default to true for backward compatibility
-    let bccEmailValue: string | null = null;
-    
-    bccSettings?.forEach((s: { setting_key: string; setting_value: string | null }) => {
-      if (s.setting_key === "bcc_enabled") {
-        bccEnabled = s.setting_value === "true";
-      }
-      if (s.setting_key === "bcc_email" && s.setting_value) {
-        bccEmailValue = s.setting_value;
-      }
-    });
-    
-    const bccEmail = bccEnabled && bccEmailValue ? bccEmailValue : null;
-    
-    console.log("BCC settings - enabled:", bccEnabled, "email:", bccEmailValue, "final:", bccEmail || "none");
-
-    // Get Signitic signature
-    const signature = await getSigniticSignature();
+    // Fetch BCC settings and signature in parallel
+    const [bccList, signature] = await Promise.all([
+      getBccSettings(supabase),
+      getSigniticSignature(),
+    ]);
 
     const trainingName = training.training_name;
     const supportsUrl = training.supports_url || "";
-    
+
     // Base URL for evaluation links
     const baseUrl = "https://super-tools.lovable.app";
 
     // TEST MODE: Send only to the test email
     if (testEmail) {
       console.log("Sending TEST email to:", testEmail);
-      
+
       const variables = {
         first_name: "Test",
         training_name: trainingName,
@@ -225,8 +141,8 @@ serve(async (req) => {
         supports_url: supportsUrl,
       };
 
-      const subject = `[TEST] ${processTemplate(subjectTemplate, variables)}`;
-      const contentText = processTemplate(contentTemplate, variables);
+      const subject = `[TEST] ${processTemplate(subjectTemplate, variables, false)}`;
+      const contentText = processTemplate(contentTemplate, variables, false);
       const contentHtml = textToHtml(contentText);
 
       const htmlContent = `
@@ -238,34 +154,20 @@ serve(async (req) => {
         ${signature}
       `;
 
-      const emailResponse = await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${RESEND_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          from: "Romain Couturier <romain@supertilt.fr>",
-          to: [testEmail],
-          subject,
-          html: htmlContent,
-        }),
+      const result = await sendEmail({
+        to: [testEmail],
+        subject,
+        html: htmlContent,
       });
 
-      if (!emailResponse.ok) {
-        const errorText = await emailResponse.text();
-        console.error("Resend error:", errorText);
-        throw new Error(`Failed to send test email: ${emailResponse.status}`);
+      if (!result.success) {
+        throw new Error(`Failed to send test email: ${result.error}`);
       }
 
-      return new Response(
-        JSON.stringify({ success: true, testEmail }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return createJsonResponse({ success: true, testEmail });
     }
 
     // PRODUCTION MODE: Send to all participants
-    // Fetch participants
     const { data: participants, error: participantsError } = await supabase
       .from("training_participants")
       .select("*")
@@ -277,7 +179,7 @@ serve(async (req) => {
 
     // Create evaluations and send individual emails to each participant sequentially
     const results: { email: string; success: boolean }[] = [];
-    
+
     for (const participant of participants) {
       // Check if evaluation already exists
       const { data: existingEval } = await supabase
@@ -294,7 +196,7 @@ serve(async (req) => {
       } else {
         // Create a new evaluation record
         evaluationToken = generateEvaluationToken();
-        
+
         const { error: evalError } = await supabase
           .from("training_evaluations")
           .insert({
@@ -316,7 +218,7 @@ serve(async (req) => {
       }
 
       const evaluationLink = `${baseUrl}/evaluation/${evaluationToken}`;
-      
+
       // Process templates with variables
       const variables = {
         first_name: participant.first_name,
@@ -325,8 +227,8 @@ serve(async (req) => {
         supports_url: supportsUrl,
       };
 
-      const subject = processTemplate(subjectTemplate, variables);
-      const contentText = processTemplate(contentTemplate, variables);
+      const subject = processTemplate(subjectTemplate, variables, false);
+      const contentText = processTemplate(contentTemplate, variables, false);
       const contentHtml = textToHtml(contentText);
 
       const htmlContent = `
@@ -336,36 +238,20 @@ serve(async (req) => {
 
       console.log("Sending thank you email to:", participant.email);
 
-      // Build BCC list
-      const bccList: string[] = [];
-      if (bccEmail) {
-        bccList.push(bccEmail);
-      }
-      bccList.push("supertilt@bcc.nocrm.io");
-
-      const emailResponse = await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${RESEND_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          from: "Romain Couturier <romain@supertilt.fr>",
-          to: [participant.email],
-          bcc: bccList,
-          subject,
-          html: htmlContent,
-        }),
+      const result = await sendEmail({
+        to: [participant.email],
+        bcc: bccList,
+        subject,
+        html: htmlContent,
       });
 
-      if (!emailResponse.ok) {
-        const errorText = await emailResponse.text();
-        console.error("Resend error for", participant.email, ":", errorText);
-        throw new Error(`Failed to send email to ${participant.email}: ${emailResponse.status}`);
+      if (!result.success) {
+        console.error("Resend error for", participant.email, ":", result.error);
+        throw new Error(`Failed to send email to ${participant.email}: ${result.error}`);
       }
 
       results.push({ email: participant.email, success: true });
-      
+
       // Wait 600ms between emails to respect Resend's rate limit (2/sec)
       await new Promise(resolve => setTimeout(resolve, 600));
     }
@@ -374,18 +260,18 @@ serve(async (req) => {
 
     // Schedule follow-up emails for each participant
     console.log("Scheduling follow-up emails...");
-    
+
     // Fetch email delay settings AND working days
     const { data: delaySettings } = await supabase
       .from("app_settings")
       .select("setting_key, setting_value")
       .in("setting_key", [
-        "delay_google_review_days", "delay_video_testimonial_days", 
-        "delay_cold_evaluation_days", "delay_cold_evaluation_funder_days", 
+        "delay_google_review_days", "delay_video_testimonial_days",
+        "delay_cold_evaluation_days", "delay_cold_evaluation_funder_days",
         "delay_evaluation_reminder_1_days", "delay_evaluation_reminder_2_days",
         "working_days"
       ]);
-    
+
     let delayGoogleReview = 1;
     let delayVideoTestimonial = 3;
     let delayColdEvaluation = 10;
@@ -393,7 +279,7 @@ serve(async (req) => {
     let delayEvaluationReminder1 = 2;
     let delayEvaluationReminder2 = 5;
     let workingDays = [false, true, true, true, true, true, false]; // Default: Mon-Fri
-    
+
     delaySettings?.forEach((s: { setting_key: string; setting_value: string | null }) => {
       if (s.setting_key === "delay_google_review_days" && s.setting_value) {
         delayGoogleReview = parseInt(s.setting_value, 10) || 1;
@@ -424,29 +310,10 @@ serve(async (req) => {
         }
       }
     });
-    
-    // Helper function to add N working days to a date
-    const addWorkingDays = (startDate: Date, numDays: number): Date => {
-      const result = new Date(startDate);
-      let daysAdded = 0;
-      const maxIterations = numDays * 3; // Safety limit
-      let iterations = 0;
-      
-      while (daysAdded < numDays && iterations < maxIterations) {
-        result.setDate(result.getDate() + 1);
-        iterations++;
-        // Check if this day is a working day
-        if (workingDays[result.getDay()]) {
-          daysAdded++;
-        }
-      }
-      
-      return result;
-    };
-    
+
     // Reference date is NOW (when thank you email is sent), not training end date
     const referenceDate = new Date();
-    
+
     // Schedule follow-up emails for each participant
     const emailsToSchedule: {
       training_id: string;
@@ -455,7 +322,7 @@ serve(async (req) => {
       scheduled_for: string;
       status: string;
     }[] = [];
-    
+
     for (const participant of participants) {
       // Check if emails are already scheduled for this participant
       const { data: existingEmails } = await supabase
@@ -464,12 +331,12 @@ serve(async (req) => {
         .eq("training_id", trainingId)
         .eq("participant_id", participant.id)
         .in("email_type", ["google_review", "video_testimonial", "evaluation_reminder_1", "evaluation_reminder_2"]);
-      
+
       const existingTypes = new Set(existingEmails?.map(e => e.email_type) || []);
-      
+
       // Schedule google_review (J+N working days)
       if (!existingTypes.has("google_review")) {
-        const googleReviewDate = addWorkingDays(referenceDate, delayGoogleReview);
+        const googleReviewDate = addWorkingDays(referenceDate, delayGoogleReview, workingDays);
         emailsToSchedule.push({
           training_id: trainingId,
           participant_id: participant.id,
@@ -478,10 +345,10 @@ serve(async (req) => {
           status: "pending",
         });
       }
-      
+
       // Schedule video_testimonial (J+N working days)
       if (!existingTypes.has("video_testimonial")) {
-        const videoTestimonialDate = addWorkingDays(referenceDate, delayVideoTestimonial);
+        const videoTestimonialDate = addWorkingDays(referenceDate, delayVideoTestimonial, workingDays);
         emailsToSchedule.push({
           training_id: trainingId,
           participant_id: participant.id,
@@ -490,10 +357,10 @@ serve(async (req) => {
           status: "pending",
         });
       }
-      
+
       // Schedule evaluation_reminder_1 (J+N working days)
       if (!existingTypes.has("evaluation_reminder_1")) {
-        const reminder1Date = addWorkingDays(referenceDate, delayEvaluationReminder1);
+        const reminder1Date = addWorkingDays(referenceDate, delayEvaluationReminder1, workingDays);
         emailsToSchedule.push({
           training_id: trainingId,
           participant_id: participant.id,
@@ -502,10 +369,10 @@ serve(async (req) => {
           status: "pending",
         });
       }
-      
+
       // Schedule evaluation_reminder_2 (J+N working days)
       if (!existingTypes.has("evaluation_reminder_2")) {
-        const reminder2Date = addWorkingDays(referenceDate, delayEvaluationReminder2);
+        const reminder2Date = addWorkingDays(referenceDate, delayEvaluationReminder2, workingDays);
         emailsToSchedule.push({
           training_id: trainingId,
           participant_id: participant.id,
@@ -515,11 +382,11 @@ serve(async (req) => {
         });
       }
     }
-    
+
     // For inter-enterprise trainings, schedule cold_evaluation per participant with a sponsor
     // For intra-enterprise trainings, schedule cold_evaluation once for the training sponsor
     const isInterEntreprise = training.format_formation === "inter-entreprises";
-    
+
     if (isInterEntreprise) {
       // Inter-enterprise: schedule per participant with sponsor_email
       for (const participant of participants) {
@@ -532,9 +399,9 @@ serve(async (req) => {
             .eq("participant_id", participant.id)
             .eq("email_type", "cold_evaluation")
             .single();
-          
+
           if (!existingColdEval) {
-            const coldEvaluationDate = addWorkingDays(referenceDate, delayColdEvaluation);
+            const coldEvaluationDate = addWorkingDays(referenceDate, delayColdEvaluation, workingDays);
             emailsToSchedule.push({
               training_id: trainingId,
               participant_id: participant.id,
@@ -554,9 +421,9 @@ serve(async (req) => {
         .eq("email_type", "cold_evaluation")
         .eq("participant_id", null)
         .single();
-      
+
       if (!existingColdEval) {
-        const coldEvaluationDate = addWorkingDays(referenceDate, delayColdEvaluation);
+        const coldEvaluationDate = addWorkingDays(referenceDate, delayColdEvaluation, workingDays);
         emailsToSchedule.push({
           training_id: trainingId,
           participant_id: null, // For training-level sponsor
@@ -566,23 +433,21 @@ serve(async (req) => {
         });
       }
     }
-    
+
     // Insert scheduled emails
     if (emailsToSchedule.length > 0) {
       const { error: scheduleError } = await supabase
         .from("scheduled_emails")
         .insert(emailsToSchedule);
-      
+
       if (scheduleError) {
         console.error("Error scheduling follow-up emails:", scheduleError);
       } else {
         console.log(`Scheduled ${emailsToSchedule.length} follow-up emails`);
       }
     }
-    
+
     // Schedule funder reminder emails
-    // For intra-enterprise: at training level if funder is different from sponsor
-    // For inter-enterprise: per participant if participant's funder is different from their sponsor
     const funderRemindersToSchedule: {
       training_id: string;
       participant_id: string | null;
@@ -590,13 +455,11 @@ serve(async (req) => {
       scheduled_for: string;
       status: string;
     }[] = [];
-    
+
     if (isInterEntreprise) {
       // Inter-enterprise: schedule funder_reminder per participant where financeur_same_as_sponsor is false
       for (const participant of participants) {
-        // Check if this participant has a different funder
         if (participant.financeur_same_as_sponsor === false && participant.financeur_name) {
-          // Check if funder reminder already scheduled for this participant
           const { data: existingFunderReminder } = await supabase
             .from("scheduled_emails")
             .select("id")
@@ -604,9 +467,9 @@ serve(async (req) => {
             .eq("participant_id", participant.id)
             .eq("email_type", "funder_reminder")
             .single();
-          
+
           if (!existingFunderReminder) {
-            const funderReminderDate = addWorkingDays(referenceDate, delayColdEvaluationFunder);
+            const funderReminderDate = addWorkingDays(referenceDate, delayColdEvaluationFunder, workingDays);
             funderRemindersToSchedule.push({
               training_id: trainingId,
               participant_id: participant.id,
@@ -620,7 +483,6 @@ serve(async (req) => {
     } else {
       // Intra-enterprise: schedule once at training level if funder is different from sponsor
       if (!training.financeur_same_as_sponsor && training.financeur_name) {
-        // Check if funder reminder is already scheduled
         const { data: existingFunderReminder } = await supabase
           .from("scheduled_emails")
           .select("id")
@@ -628,12 +490,12 @@ serve(async (req) => {
           .eq("email_type", "funder_reminder")
           .eq("participant_id", null)
           .single();
-        
+
         if (!existingFunderReminder) {
-          const funderReminderDate = addWorkingDays(referenceDate, delayColdEvaluationFunder);
+          const funderReminderDate = addWorkingDays(referenceDate, delayColdEvaluationFunder, workingDays);
           funderRemindersToSchedule.push({
             training_id: trainingId,
-            participant_id: null, // No participant - this is for the trainer
+            participant_id: null,
             email_type: "funder_reminder",
             scheduled_for: funderReminderDate.toISOString(),
             status: "pending",
@@ -641,13 +503,13 @@ serve(async (req) => {
         }
       }
     }
-    
+
     // Insert funder reminder emails
     if (funderRemindersToSchedule.length > 0) {
       const { error: funderScheduleError } = await supabase
         .from("scheduled_emails")
         .insert(funderRemindersToSchedule);
-      
+
       if (funderScheduleError) {
         console.error("Error scheduling funder reminder emails:", funderScheduleError);
       } else {
@@ -656,14 +518,10 @@ serve(async (req) => {
     }
 
     // Log activity for each recipient
-    const emailSubject = processTemplate(subjectTemplate, { training_name: trainingName });
-    const emailContentBase = processTemplate(contentTemplate, { 
-      training_name: trainingName,
-      evaluation_link: "[Lien d'évaluation personnalisé]",
-      supports_url: supportsUrl,
-    });
-    
+    const emailSubject = processTemplate(subjectTemplate, { training_name: trainingName }, false);
+
     try {
+      // deno-lint-ignore no-explicit-any
       const logInserts = participants.map((p: any) => ({
         action_type: "thank_you_email_sent",
         recipient_email: p.email,
@@ -677,7 +535,7 @@ serve(async (req) => {
             training_name: trainingName,
             evaluation_link: "[Lien d'évaluation personnalisé]",
             supports_url: supportsUrl,
-          }),
+          }, false),
         },
       }));
       await supabase.from("activity_logs").insert(logInserts);
@@ -685,19 +543,13 @@ serve(async (req) => {
       console.warn("Failed to log activity:", logError);
     }
 
-    return new Response(
-      JSON.stringify({ 
-        success: true, 
-        recipientCount: participants.length 
-      }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return createJsonResponse({
+      success: true,
+      recipientCount: participants.length
+    });
   } catch (error: unknown) {
     console.error("Error sending thank you email:", error);
     const errorMessage = error instanceof Error ? error.message : "Failed to send thank you email";
-    return new Response(
-      JSON.stringify({ error: errorMessage }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return createErrorResponse(errorMessage);
   }
 });
