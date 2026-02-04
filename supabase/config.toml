@@ -53,3 +53,6 @@ verify_jwt = false
 
 [functions.chatbot-query]
 verify_jwt = false
+
+[functions.crm-extract-opportunity]
+verify_jwt = false
