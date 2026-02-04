@@ -561,6 +561,44 @@ const CardDetailDrawer = ({
     }
   };
 
+  const handleColumnChange = async (newColumnId: string, columnName: string) => {
+    if (!card || !user?.email) return;
+    setColumnId(newColumnId);
+
+    // Detect if moving to a "won" column (contains "gagné" case-insensitive)
+    const isWonColumn = columnName.toLowerCase().includes("gagné");
+    const wasAlreadyWon = card.sales_status === "WON";
+    const movingToWon = isWonColumn && !wasAlreadyWon;
+
+    // Update column (and sales status if moving to won column)
+    const updates: Record<string, any> = { column_id: newColumnId };
+    if (isWonColumn) {
+      updates.sales_status = "WON";
+      setSalesStatus("WON");
+    }
+
+    await updateCard.mutateAsync({
+      id: card.id,
+      updates,
+      actorEmail: user.email,
+      oldCard: card,
+    });
+
+    // If moving to won column and is a formation, navigate to training creation
+    if (movingToWon && serviceType === "formation") {
+      const params = new URLSearchParams();
+      if (company) params.set("clientName", company);
+      if (firstName) params.set("sponsorFirstName", firstName);
+      if (lastName) params.set("sponsorLastName", lastName);
+      if (email) params.set("sponsorEmail", email);
+      if (title) params.set("trainingName", title.replace(/^\([^)]+\)\s*/, ""));
+      params.set("fromCrmCardId", card.id);
+
+      onOpenChange(false);
+      navigate(`/formations/create?${params.toString()}`);
+    }
+  };
+
   const handleScheduleAction = async () => {
     if (!card || !user?.email || !scheduledDate || !scheduledText.trim()) return;
 
@@ -702,20 +740,20 @@ const CardDetailDrawer = ({
           </SheetTitle>
         </SheetHeader>
 
-        {/* Sales Status Buttons - Always visible at top */}
+        {/* Column Buttons - Always visible at top */}
         <div className="mt-4 mb-4">
-          <Label className="mb-2 block text-sm">Statut commercial</Label>
+          <Label className="mb-2 block text-sm">État de l'opportunité</Label>
           <div className="flex gap-2 flex-wrap">
-            {(Object.keys(salesStatusConfig) as SalesStatus[]).map((status) => (
+            {allColumns.map((col) => (
               <Button
-                key={status}
+                key={col.id}
                 size="sm"
-                variant={salesStatus === status ? "default" : "outline"}
-                className={salesStatus === status ? salesStatusConfig[status].color + " text-white" : ""}
-                onClick={() => handleSalesStatusChange(status)}
+                variant={columnId === col.id ? "default" : "outline"}
+                className={columnId === col.id ? "bg-primary text-white" : ""}
+                onClick={() => handleColumnChange(col.id, col.name)}
                 disabled={updateCard.isPending}
               >
-                {salesStatusConfig[status].label}
+                {col.name}
               </Button>
             ))}
           </div>
@@ -1098,22 +1136,6 @@ const CardDetailDrawer = ({
             <div>
               <Label>Titre</Label>
               <Input value={title} onChange={(e) => setTitle(e.target.value)} />
-            </div>
-
-            <div>
-              <Label>Colonne</Label>
-              <Select value={columnId} onValueChange={setColumnId}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {allColumns.map((col) => (
-                    <SelectItem key={col.id} value={col.id}>
-                      {col.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
 
             {/* Description with auto-save and AI */}

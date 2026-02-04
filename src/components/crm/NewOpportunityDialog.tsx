@@ -65,6 +65,7 @@ export function NewOpportunityDialog({ open, onOpenChange, userEmail }: NewOppor
           service_type: editedExtraction.service_type || undefined,
           brief_questions: editedExtraction.brief_questions,
           raw_input: rawInput,
+          description_html: rawInput, // Save the pasted text in description/notes
         },
         actorEmail: userEmail,
       });
