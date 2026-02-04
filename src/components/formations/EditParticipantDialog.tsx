@@ -216,9 +216,9 @@ const EditParticipantDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Tooltip>
-          <TooltipTrigger asChild>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <DialogTrigger asChild>
             <Button
               variant="ghost"
               size="icon"
@@ -226,12 +226,12 @@ const EditParticipantDialog = ({
             >
               <Pencil className="h-4 w-4" />
             </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Modifier le participant</p>
-          </TooltipContent>
-        </Tooltip>
-      </DialogTrigger>
+          </DialogTrigger>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>Modifier le participant</p>
+        </TooltipContent>
+      </Tooltip>
       <DialogContent>
         <form onSubmit={handleSubmit}>
           <DialogHeader>
