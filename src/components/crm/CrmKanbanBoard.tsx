@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -26,6 +26,7 @@ import CrmCardComponent from "./CrmCard";
 import CardDetailDrawer from "./CardDetailDrawer";
 import AddColumnDialog from "./AddColumnDialog";
 import CreateCardDialog from "./CreateCardDialog";
+import { isAfter, startOfDay } from "date-fns";
 
 const CrmKanbanBoard = () => {
   const { user } = useAuth();
@@ -48,10 +49,20 @@ const CrmKanbanBoard = () => {
     })
   );
 
-  // Sync local cards with server data
+  // Filter function to hide cards with scheduled action in the future
+  const isCardVisible = (card: CrmCard): boolean => {
+    if (!card.waiting_next_action_date) return true;
+    const scheduledDate = startOfDay(new Date(card.waiting_next_action_date));
+    const today = startOfDay(new Date());
+    // Show card if scheduled date is today or in the past
+    return !isAfter(scheduledDate, today);
+  };
+
+  // Sync local cards with server data, filtering out hidden cards
   useEffect(() => {
     if (boardData?.cards) {
-      setLocalCards(boardData.cards);
+      const visibleCards = boardData.cards.filter(isCardVisible);
+      setLocalCards(visibleCards);
     }
   }, [boardData?.cards]);
 

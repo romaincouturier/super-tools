@@ -32,7 +32,6 @@ import {
   FileText,
   Loader2,
   ExternalLink,
-  Download,
   User,
   Building2,
   Phone,
@@ -40,15 +39,16 @@ import {
   CheckCircle2,
   Circle,
   Receipt,
+  Calendar,
+  LinkIcon,
 } from "lucide-react";
-import { format } from "date-fns";
+import { format, addDays, isAfter, startOfDay } from "date-fns";
 import { fr } from "date-fns/locale";
 import DOMPurify from "dompurify";
 import {
   CrmCard,
   CrmTag,
   CrmColumn,
-  StatusOperational,
   SalesStatus,
   BriefQuestion,
 } from "@/types/crm";
@@ -74,6 +74,13 @@ interface CardDetailDrawerProps {
   allColumns: CrmColumn[];
 }
 
+const salesStatusConfig: Record<SalesStatus, { label: string; color: string }> = {
+  OPEN: { label: "En cours", color: "bg-blue-500 hover:bg-blue-600" },
+  WON: { label: "Gagné", color: "bg-green-500 hover:bg-green-600" },
+  LOST: { label: "Perdu", color: "bg-red-500 hover:bg-red-600" },
+  CANCELED: { label: "Annulé", color: "bg-gray-500 hover:bg-gray-600" },
+};
+
 const CardDetailDrawer = ({
   card,
   open,
@@ -98,13 +105,14 @@ const CardDetailDrawer = ({
   // Form state
   const [title, setTitle] = useState("");
   const [descriptionHtml, setDescriptionHtml] = useState("");
-  const [statusOperational, setStatusOperational] = useState<StatusOperational>("TODAY");
-  const [waitingDate, setWaitingDate] = useState("");
-  const [waitingText, setWaitingText] = useState("");
   const [salesStatus, setSalesStatus] = useState<SalesStatus>("OPEN");
   const [estimatedValue, setEstimatedValue] = useState("");
   const [quoteUrl, setQuoteUrl] = useState("");
   const [columnId, setColumnId] = useState("");
+
+  // Scheduled action state
+  const [scheduledDate, setScheduledDate] = useState("");
+  const [scheduledText, setScheduledText] = useState("");
 
   // Comment state
   const [newComment, setNewComment] = useState("");
@@ -114,28 +122,25 @@ const CardDetailDrawer = ({
   const [emailSubject, setEmailSubject] = useState("");
   const [emailBody, setEmailBody] = useState("");
 
+  // Get tomorrow's date as minimum for scheduling
+  const tomorrow = format(addDays(new Date(), 1), "yyyy-MM-dd");
+
   // Initialize form when card changes
   useEffect(() => {
     if (card) {
       setTitle(card.title);
       setDescriptionHtml(card.description_html || "");
-      setStatusOperational(card.status_operational);
-      setWaitingDate(card.waiting_next_action_date || "");
-      setWaitingText(card.waiting_next_action_text || "");
       setSalesStatus(card.sales_status);
       setEstimatedValue(String(card.estimated_value || 0));
       setQuoteUrl(card.quote_url || "");
       setColumnId(card.column_id);
+      setScheduledDate(card.waiting_next_action_date || "");
+      setScheduledText(card.waiting_next_action_text || "");
     }
   }, [card]);
 
   const handleSave = async () => {
     if (!card || !user?.email) return;
-
-    // Validation
-    if (statusOperational === "WAITING" && (!waitingDate || !waitingText.trim())) {
-      return;
-    }
 
     // Check if status changed to WON
     const statusChangedToWon = salesStatus === "WON" && card.sales_status !== "WON";
@@ -145,13 +150,12 @@ const CardDetailDrawer = ({
       updates: {
         title: title.trim(),
         description_html: DOMPurify.sanitize(descriptionHtml),
-        status_operational: statusOperational,
-        waiting_next_action_date: statusOperational === "WAITING" ? waitingDate : null,
-        waiting_next_action_text: statusOperational === "WAITING" ? waitingText.trim() : null,
         sales_status: salesStatus,
         estimated_value: parseFloat(estimatedValue) || 0,
         quote_url: quoteUrl.trim() || null,
         column_id: columnId,
+        waiting_next_action_date: scheduledDate || null,
+        waiting_next_action_text: scheduledText.trim() || null,
       },
       actorEmail: user.email,
       oldCard: card,
@@ -163,19 +167,92 @@ const CardDetailDrawer = ({
         "Opportunité marquée comme gagnée !\n\nVoulez-vous créer une formation à partir de cette opportunité ?"
       );
       if (shouldCreateTraining) {
-        // Build query params to pre-fill formation create form
         const params = new URLSearchParams();
         if (card.company) params.set("clientName", card.company);
         if (card.first_name) params.set("sponsorFirstName", card.first_name);
         if (card.last_name) params.set("sponsorLastName", card.last_name);
         if (card.email) params.set("sponsorEmail", card.email);
-        if (card.title) params.set("trainingName", card.title.replace(/^\([^)]+\)\s*/, "")); // Remove (COMPANY) prefix
+        if (card.title) params.set("trainingName", card.title.replace(/^\([^)]+\)\s*/, ""));
         params.set("fromCrmCardId", card.id);
 
         onOpenChange(false);
         navigate(`/formations/create?${params.toString()}`);
       }
     }
+  };
+
+  const handleSalesStatusChange = async (newStatus: SalesStatus) => {
+    if (!card || !user?.email) return;
+    setSalesStatus(newStatus);
+
+    // Save immediately when status changes
+    const statusChangedToWon = newStatus === "WON" && card.sales_status !== "WON";
+
+    await updateCard.mutateAsync({
+      id: card.id,
+      updates: { sales_status: newStatus },
+      actorEmail: user.email,
+      oldCard: card,
+    });
+
+    if (statusChangedToWon && card.service_type === "formation") {
+      const shouldCreateTraining = confirm(
+        "Opportunité marquée comme gagnée !\n\nVoulez-vous créer une formation à partir de cette opportunité ?"
+      );
+      if (shouldCreateTraining) {
+        const params = new URLSearchParams();
+        if (card.company) params.set("clientName", card.company);
+        if (card.first_name) params.set("sponsorFirstName", card.first_name);
+        if (card.last_name) params.set("sponsorLastName", card.last_name);
+        if (card.email) params.set("sponsorEmail", card.email);
+        if (card.title) params.set("trainingName", card.title.replace(/^\([^)]+\)\s*/, ""));
+        params.set("fromCrmCardId", card.id);
+
+        onOpenChange(false);
+        navigate(`/formations/create?${params.toString()}`);
+      }
+    }
+  };
+
+  const handleScheduleAction = async () => {
+    if (!card || !user?.email || !scheduledDate || !scheduledText.trim()) return;
+
+    // Validate date is in the future (not today)
+    const selectedDate = startOfDay(new Date(scheduledDate));
+    const today = startOfDay(new Date());
+    if (!isAfter(selectedDate, today)) {
+      alert("La date doit être dans le futur (pas aujourd'hui)");
+      return;
+    }
+
+    await updateCard.mutateAsync({
+      id: card.id,
+      updates: {
+        waiting_next_action_date: scheduledDate,
+        waiting_next_action_text: scheduledText.trim(),
+      },
+      actorEmail: user.email,
+      oldCard: card,
+    });
+
+    onOpenChange(false);
+  };
+
+  const handleClearSchedule = async () => {
+    if (!card || !user?.email) return;
+
+    await updateCard.mutateAsync({
+      id: card.id,
+      updates: {
+        waiting_next_action_date: null,
+        waiting_next_action_text: null,
+      },
+      actorEmail: user.email,
+      oldCard: card,
+    });
+
+    setScheduledDate("");
+    setScheduledText("");
   };
 
   const handleDelete = async () => {
@@ -235,7 +312,6 @@ const CardDetailDrawer = ({
   if (!card) return null;
 
   const cardTags = card.tags || [];
-  const availableTags = allTags.filter((t) => !cardTags.some((ct) => ct.id === t.id));
   const tagsByCategory = allTags.reduce((acc, tag) => {
     const cat = tag.category || "Autre";
     if (!acc[cat]) acc[cat] = [];
@@ -263,6 +339,25 @@ const CardDetailDrawer = ({
             </div>
           </SheetTitle>
         </SheetHeader>
+
+        {/* Sales Status Buttons - Always visible at top */}
+        <div className="mt-4 mb-4">
+          <Label className="mb-2 block text-sm">Statut commercial</Label>
+          <div className="flex gap-2 flex-wrap">
+            {(Object.keys(salesStatusConfig) as SalesStatus[]).map((status) => (
+              <Button
+                key={status}
+                size="sm"
+                variant={salesStatus === status ? "default" : "outline"}
+                className={salesStatus === status ? salesStatusConfig[status].color + " text-white" : ""}
+                onClick={() => handleSalesStatusChange(status)}
+                disabled={updateCard.isPending}
+              >
+                {salesStatusConfig[status].label}
+              </Button>
+            ))}
+          </div>
+        </div>
 
         <Tabs defaultValue="details" className="mt-4">
           <TabsList className="grid grid-cols-5 w-full">
@@ -368,23 +463,88 @@ const CardDetailDrawer = ({
               </div>
             )}
 
-            {/* Quote button */}
-            <div className="flex gap-2">
-              {card.service_type === "formation" ? (
-                <Button asChild variant="outline" className="flex-1">
+            {/* Quote buttons */}
+            <div className="flex gap-2 flex-wrap">
+              {card.service_type === "formation" && (
+                <Button asChild variant="outline" size="sm">
                   <Link to="/micro-devis">
                     <Receipt className="h-4 w-4 mr-2" />
                     Créer un devis formation
                   </Link>
                 </Button>
-              ) : card.quote_url ? (
-                <Button asChild variant="outline" className="flex-1">
-                  <a href={card.quote_url} target="_blank" rel="noopener noreferrer">
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const url = prompt("URL du devis existant :", quoteUrl);
+                  if (url !== null) {
+                    setQuoteUrl(url);
+                  }
+                }}
+              >
+                <LinkIcon className="h-4 w-4 mr-2" />
+                Lier à un devis existant
+              </Button>
+              {quoteUrl && (
+                <Button asChild variant="outline" size="sm">
+                  <a href={quoteUrl} target="_blank" rel="noopener noreferrer">
                     <ExternalLink className="h-4 w-4 mr-2" />
                     Voir le devis
                   </a>
                 </Button>
-              ) : null}
+              )}
+            </div>
+
+            {/* Schedule action */}
+            <div className="p-4 bg-blue-50 rounded-lg space-y-3">
+              <h4 className="font-medium text-sm flex items-center gap-2">
+                <Calendar className="h-4 w-4" />
+                Programmer une action
+              </h4>
+              {card.waiting_next_action_date && (
+                <div className="text-sm text-blue-700 flex items-center justify-between">
+                  <span>
+                    Action programmée le {format(new Date(card.waiting_next_action_date), "d MMMM yyyy", { locale: fr })}
+                    {card.waiting_next_action_text && ` : ${card.waiting_next_action_text}`}
+                  </span>
+                  <Button variant="ghost" size="sm" onClick={handleClearSchedule}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label className="text-xs">Date (à partir de demain)</Label>
+                  <Input
+                    type="date"
+                    min={tomorrow}
+                    value={scheduledDate}
+                    onChange={(e) => setScheduledDate(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">Action</Label>
+                  <Input
+                    value={scheduledText}
+                    onChange={(e) => setScheduledText(e.target.value)}
+                    placeholder="Relancer le client"
+                  />
+                </div>
+              </div>
+              <Button
+                size="sm"
+                onClick={handleScheduleAction}
+                disabled={!scheduledDate || !scheduledText.trim() || updateCard.isPending}
+                className="w-full"
+              >
+                {updateCard.isPending ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Calendar className="h-4 w-4 mr-2" />
+                )}
+                Programmer
+              </Button>
             </div>
 
             <div>
@@ -418,82 +578,15 @@ const CardDetailDrawer = ({
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Statut opérationnel</Label>
-                <Select
-                  value={statusOperational}
-                  onValueChange={(v) => setStatusOperational(v as StatusOperational)}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="TODAY">À traiter</SelectItem>
-                    <SelectItem value="WAITING">En attente</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label>Statut commercial</Label>
-                <Select
-                  value={salesStatus}
-                  onValueChange={(v) => setSalesStatus(v as SalesStatus)}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="OPEN">En cours</SelectItem>
-                    <SelectItem value="WON">Gagné</SelectItem>
-                    <SelectItem value="LOST">Perdu</SelectItem>
-                    <SelectItem value="CANCELED">Annulé</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {statusOperational === "WAITING" && (
-              <div className="grid grid-cols-2 gap-4 p-3 bg-amber-50 rounded-lg">
-                <div>
-                  <Label>Date prochaine action</Label>
-                  <Input
-                    type="date"
-                    value={waitingDate}
-                    onChange={(e) => setWaitingDate(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <Label>Action prévue</Label>
-                  <Input
-                    value={waitingText}
-                    onChange={(e) => setWaitingText(e.target.value)}
-                    placeholder="Relancer le client"
-                  />
-                </div>
-              </div>
-            )}
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Valeur estimée (€)</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={estimatedValue}
-                  onChange={(e) => setEstimatedValue(e.target.value)}
-                />
-              </div>
-              <div>
-                <Label>URL Devis</Label>
-                <Input
-                  value={quoteUrl}
-                  onChange={(e) => setQuoteUrl(e.target.value)}
-                  placeholder="https://..."
-                />
-              </div>
+            <div>
+              <Label>Valeur estimée (€)</Label>
+              <Input
+                type="number"
+                min="0"
+                step="0.01"
+                value={estimatedValue}
+                onChange={(e) => setEstimatedValue(e.target.value)}
+              />
             </div>
 
             {/* Email section */}
@@ -761,6 +854,7 @@ function formatActivityType(type: string): string {
     attachment_added: "Pièce jointe ajoutée",
     attachment_removed: "Pièce jointe supprimée",
     email_sent: "Email envoyé",
+    action_scheduled: "Action programmée",
   };
   return labels[type] || type;
 }
