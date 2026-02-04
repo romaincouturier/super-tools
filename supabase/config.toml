@@ -56,3 +56,9 @@ verify_jwt = false
 
 [functions.crm-extract-opportunity]
 verify_jwt = false
+
+[functions.crm-ai-assist]
+verify_jwt = false
+
+[functions.crm-send-email]
+verify_jwt = false
