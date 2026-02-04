@@ -1,10 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -43,6 +44,11 @@ import {
   LinkIcon,
   Sparkles,
   AlertTriangle,
+  Maximize2,
+  Minimize2,
+  Brain,
+  FileSignature,
+  Check,
 } from "lucide-react";
 import { format, addDays, isAfter, startOfDay } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -133,6 +139,20 @@ const CardDetailDrawer = ({
   const [emailSubject, setEmailSubject] = useState("");
   const [emailBody, setEmailBody] = useState("");
 
+  // UI state
+  const [isFullScreen, setIsFullScreen] = useState(false);
+
+  // AI state
+  const [aiAnalyzing, setAiAnalyzing] = useState(false);
+  const [quoteGenerating, setQuoteGenerating] = useState(false);
+  const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
+  const [quoteDescription, setQuoteDescription] = useState<string | null>(null);
+
+  // Auto-save state
+  const [descriptionSaving, setDescriptionSaving] = useState(false);
+  const [descriptionSaved, setDescriptionSaved] = useState(false);
+  const descriptionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   // Get tomorrow's date as minimum for scheduling
   const tomorrow = format(addDays(new Date(), 1), "yyyy-MM-dd");
 
@@ -155,8 +175,136 @@ const CardDetailDrawer = ({
       setPhone(card.phone || "");
       setLinkedinUrl(card.linkedin_url || "");
       setServiceType(card.service_type || null);
+      // Reset AI state
+      setAiAnalysis(null);
+      setQuoteDescription(null);
+      setDescriptionSaved(false);
     }
   }, [card]);
+
+  // Auto-save description with debounce
+  const saveDescription = useCallback(async (newDescription: string) => {
+    if (!card || !user?.email) return;
+
+    setDescriptionSaving(true);
+    setDescriptionSaved(false);
+
+    try {
+      await updateCard.mutateAsync({
+        id: card.id,
+        updates: {
+          description_html: DOMPurify.sanitize(newDescription),
+        },
+        actorEmail: user.email,
+        oldCard: card,
+      });
+      setDescriptionSaved(true);
+      // Reset saved indicator after 2 seconds
+      setTimeout(() => setDescriptionSaved(false), 2000);
+    } catch (error) {
+      console.error("Failed to auto-save description:", error);
+    } finally {
+      setDescriptionSaving(false);
+    }
+  }, [card, user?.email, updateCard]);
+
+  const handleDescriptionChange = (value: string) => {
+    setDescriptionHtml(value);
+
+    // Clear existing timeout
+    if (descriptionTimeoutRef.current) {
+      clearTimeout(descriptionTimeoutRef.current);
+    }
+
+    // Set new timeout for auto-save (1.5 seconds debounce)
+    descriptionTimeoutRef.current = setTimeout(() => {
+      saveDescription(value);
+    }, 1500);
+  };
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (descriptionTimeoutRef.current) {
+        clearTimeout(descriptionTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // AI Analysis function
+  const handleAiAnalysis = async () => {
+    if (!card) return;
+
+    setAiAnalyzing(true);
+    setAiAnalysis(null);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("crm-ai-assist", {
+        body: {
+          action: "analyze_exchanges",
+          card_data: {
+            title: card.title,
+            description: descriptionHtml,
+            company,
+            first_name: firstName,
+            last_name: lastName,
+            service_type: serviceType,
+            estimated_value: parseFloat(estimatedValue) || 0,
+            comments: details?.comments || [],
+            brief_questions: card.brief_questions || [],
+          },
+        },
+      });
+
+      if (error) throw error;
+      setAiAnalysis(data.result);
+    } catch (error) {
+      console.error("AI analysis error:", error);
+      setAiAnalysis("Erreur lors de l'analyse. Veuillez réessayer.");
+    } finally {
+      setAiAnalyzing(false);
+    }
+  };
+
+  // Generate quote description
+  const handleGenerateQuoteDescription = async () => {
+    if (!card) return;
+
+    setQuoteGenerating(true);
+    setQuoteDescription(null);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("crm-ai-assist", {
+        body: {
+          action: "generate_quote_description",
+          card_data: {
+            title: card.title,
+            description: descriptionHtml,
+            company,
+            first_name: firstName,
+            last_name: lastName,
+            service_type: serviceType,
+            estimated_value: parseFloat(estimatedValue) || 0,
+            comments: details?.comments || [],
+            brief_questions: card.brief_questions || [],
+          },
+        },
+      });
+
+      if (error) throw error;
+      setQuoteDescription(data.result);
+    } catch (error) {
+      console.error("Quote generation error:", error);
+      setQuoteDescription("Erreur lors de la génération. Veuillez réessayer.");
+    } finally {
+      setQuoteGenerating(false);
+    }
+  };
+
+  // Copy to clipboard
+  const copyToClipboard = async (text: string) => {
+    await navigator.clipboard.writeText(text);
+  };
 
   // Generate LinkedIn search URL from name
   const generateLinkedInSearchUrl = () => {
@@ -355,17 +503,37 @@ const CardDetailDrawer = ({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-xl overflow-y-auto">
+      <SheetContent
+        className={`overflow-y-auto transition-all duration-300 ${
+          isFullScreen
+            ? "w-full sm:max-w-full"
+            : "w-full sm:max-w-xl"
+        }`}
+      >
         <SheetHeader>
-          <SheetTitle className="flex items-center justify-between">
-            <span className="truncate">{card.title}</span>
-            <Button size="sm" onClick={handleSave} disabled={updateCard.isPending}>
-              {updateCard.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Save className="h-4 w-4" />
-              )}
-            </Button>
+          <SheetTitle className="flex items-center justify-between gap-2">
+            <span className="truncate flex-1">{card.title}</span>
+            <div className="flex items-center gap-1">
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setIsFullScreen(!isFullScreen)}
+                title={isFullScreen ? "Réduire" : "Plein écran"}
+              >
+                {isFullScreen ? (
+                  <Minimize2 className="h-4 w-4" />
+                ) : (
+                  <Maximize2 className="h-4 w-4" />
+                )}
+              </Button>
+              <Button size="sm" onClick={handleSave} disabled={updateCard.isPending}>
+                {updateCard.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
           </SheetTitle>
         </SheetHeader>
 
@@ -658,14 +826,126 @@ const CardDetailDrawer = ({
               </Select>
             </div>
 
-            <div>
-              <Label>Description (HTML)</Label>
+            {/* Description with auto-save and AI */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label className="flex items-center gap-2">
+                  Description / Notes
+                  {descriptionSaving && (
+                    <span className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      Enregistrement...
+                    </span>
+                  )}
+                  {descriptionSaved && !descriptionSaving && (
+                    <span className="text-xs text-green-600 flex items-center gap-1">
+                      <Check className="h-3 w-3" />
+                      Enregistré
+                    </span>
+                  )}
+                </Label>
+              </div>
               <Textarea
                 value={descriptionHtml}
-                onChange={(e) => setDescriptionHtml(e.target.value)}
-                rows={4}
-                placeholder="Description de l'opportunité..."
+                onChange={(e) => handleDescriptionChange(e.target.value)}
+                rows={6}
+                placeholder="Notez ici tous les échanges, informations et détails importants de l'opportunité..."
+                className="font-mono text-sm"
               />
+
+              {/* AI buttons */}
+              <div className="flex gap-2 flex-wrap">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleAiAnalysis}
+                  disabled={aiAnalyzing || !descriptionHtml.trim()}
+                >
+                  {aiAnalyzing ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Brain className="h-4 w-4 mr-2" />
+                  )}
+                  Analyser avec l'IA
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleGenerateQuoteDescription}
+                  disabled={quoteGenerating || !descriptionHtml.trim()}
+                >
+                  {quoteGenerating ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <FileSignature className="h-4 w-4 mr-2" />
+                  )}
+                  Générer descriptif devis
+                </Button>
+              </div>
+
+              {/* AI Analysis result */}
+              {aiAnalysis && (
+                <div className="p-4 bg-purple-50 rounded-lg space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-medium text-sm flex items-center gap-2 text-purple-700">
+                      <Brain className="h-4 w-4" />
+                      Analyse IA
+                    </h4>
+                    <div className="flex gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => copyToClipboard(aiAnalysis)}
+                        title="Copier"
+                      >
+                        <FileText className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setAiAnalysis(null)}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="text-sm whitespace-pre-wrap text-purple-900">
+                    {aiAnalysis}
+                  </div>
+                </div>
+              )}
+
+              {/* Quote description result */}
+              {quoteDescription && (
+                <div className="p-4 bg-emerald-50 rounded-lg space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-medium text-sm flex items-center gap-2 text-emerald-700">
+                      <FileSignature className="h-4 w-4" />
+                      Descriptif pour devis
+                    </h4>
+                    <div className="flex gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => copyToClipboard(quoteDescription)}
+                        title="Copier"
+                      >
+                        <FileText className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setQuoteDescription(null)}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="text-sm whitespace-pre-wrap text-emerald-900">
+                    {quoteDescription}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div>
