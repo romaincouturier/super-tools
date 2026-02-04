@@ -1,13 +1,6 @@
 -- CRM Kanban Module Migration
 -- Creates tables for columns, cards, tags, attachments, comments, emails, activity log
-
--- Add 'crm' to app_module enum if not exists
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_enum WHERE enumlabel = 'crm' AND enumtypid = (SELECT oid FROM pg_type WHERE typname = 'app_module')) THEN
-    ALTER TYPE app_module ADD VALUE 'crm';
-  END IF;
-END $$;
+-- Note: The 'crm' enum value is added in a separate prior migration (20260204095900_add_crm_enum.sql)
 
 -- CRM Columns (Kanban columns)
 CREATE TABLE IF NOT EXISTS crm_columns (
