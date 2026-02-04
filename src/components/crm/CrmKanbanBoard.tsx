@@ -18,21 +18,25 @@ import {
 } from "@dnd-kit/sortable";
 import { Plus, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useCrmBoard, useMoveCard, useCreateColumn, useCrmSettings } from "@/hooks/useCrmBoard";
+import { useCrmBoard, useMoveCard, useCreateColumn, useCrmSettings, useUpdateCard } from "@/hooks/useCrmBoard";
 import { useAuth } from "@/hooks/useAuth";
 import { CrmCard } from "@/types/crm";
 import CrmColumn from "./CrmColumn";
 import CrmCardComponent from "./CrmCard";
 import CardDetailDrawer from "./CardDetailDrawer";
 import AddColumnDialog from "./AddColumnDialog";
+import { CreateTrainingDialog } from "./CreateTrainingDialog";
+import { useNavigate } from "react-router-dom";
 import { isAfter, startOfDay } from "date-fns";
 
 const CrmKanbanBoard = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { data: boardData, isLoading } = useCrmBoard();
   const { data: crmSettings } = useCrmSettings();
   const moveCard = useMoveCard();
   const createColumn = useCreateColumn();
+  const updateCard = useUpdateCard();
 
   const serviceTypeColors = crmSettings?.serviceTypeColors;
 
@@ -40,6 +44,10 @@ const CrmKanbanBoard = () => {
   const [selectedCard, setSelectedCard] = useState<CrmCard | null>(null);
   const [showAddColumn, setShowAddColumn] = useState(false);
   const [localCards, setLocalCards] = useState<CrmCard[]>([]);
+  
+  // Training creation dialog state
+  const [showCreateTrainingDialog, setShowCreateTrainingDialog] = useState(false);
+  const [pendingTrainingCard, setPendingTrainingCard] = useState<CrmCard | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -111,18 +119,20 @@ const CrmKanbanBoard = () => {
 
     const activeCardId = active.id as string;
     const overId = over.id as string;
-    const activeCard = localCards.find((c) => c.id === activeCardId);
-    if (!activeCard) return;
+    const draggedCard = localCards.find((c) => c.id === activeCardId);
+    if (!draggedCard) return;
 
     // Determine target column
-    let targetColumnId = activeCard.column_id;
+    let targetColumnId = draggedCard.column_id;
     const overColumn = boardData?.columns.find((col) => col.id === overId);
     const overCard = localCards.find((c) => c.id === overId);
+    let targetColumn = overColumn;
 
     if (overColumn) {
       targetColumnId = overColumn.id;
     } else if (overCard) {
       targetColumnId = overCard.column_id;
+      targetColumn = boardData?.columns.find((col) => col.id === targetColumnId);
     }
 
     // Calculate new position
@@ -132,16 +142,68 @@ const CrmKanbanBoard = () => {
       : columnCards.length;
 
     // Get old column for logging
-    const oldColumnId = boardData?.cards.find((c) => c.id === activeCardId)?.column_id || targetColumnId;
+    const originalCard = boardData?.cards.find((c) => c.id === activeCardId);
+    const oldColumnId = originalCard?.column_id || targetColumnId;
 
-    // Persist change
-    moveCard.mutate({
-      cardId: activeCardId,
-      newColumnId: targetColumnId,
-      newPosition: Math.max(0, newIndex),
-      actorEmail: user.email,
-      oldColumnId,
-    });
+    // Check if moving to a "won" column (contains "gagné" case-insensitive)
+    const isWonColumn = targetColumn?.name.toLowerCase().includes("gagné");
+    const wasAlreadyWon = originalCard?.sales_status === "WON";
+    const movingToWon = isWonColumn && !wasAlreadyWon;
+
+    // If moving to won column, update sales_status to WON
+    if (movingToWon) {
+      await updateCard.mutateAsync({
+        id: activeCardId,
+        updates: { 
+          column_id: targetColumnId, 
+          position: Math.max(0, newIndex),
+          sales_status: "WON" 
+        },
+        actorEmail: user.email,
+        oldCard: originalCard!,
+      });
+
+      // Check if card is a formation (or no type set) and prompt for training creation
+      const cardServiceType = originalCard?.service_type;
+      if (cardServiceType === "formation" || !cardServiceType) {
+        setPendingTrainingCard(originalCard!);
+        setShowCreateTrainingDialog(true);
+      }
+    } else {
+      // Persist regular move
+      moveCard.mutate({
+        cardId: activeCardId,
+        newColumnId: targetColumnId,
+        newPosition: Math.max(0, newIndex),
+        actorEmail: user.email,
+        oldColumnId,
+      });
+    }
+  };
+
+  // Build training params from a card
+  const buildTrainingParams = (card: CrmCard): URLSearchParams => {
+    const params = new URLSearchParams();
+    if (card.company) params.set("clientName", card.company);
+    if (card.first_name) params.set("sponsorFirstName", card.first_name);
+    if (card.last_name) params.set("sponsorLastName", card.last_name);
+    if (card.email) params.set("sponsorEmail", card.email);
+    if (card.phone) params.set("sponsorPhone", card.phone);
+    if (card.title) params.set("trainingName", card.title.replace(/^\([^)]+\)\s*/, ""));
+    params.set("fromCrmCardId", card.id);
+    if (card.estimated_value && card.estimated_value > 0) {
+      params.set("estimatedValue", String(card.estimated_value));
+    }
+    return params;
+  };
+
+  const handleConfirmCreateTraining = () => {
+    if (pendingTrainingCard) {
+      const params = buildTrainingParams(pendingTrainingCard);
+      setShowCreateTrainingDialog(false);
+      navigate(`/formations/new?${params.toString()}`);
+      setPendingTrainingCard(null);
+    }
   };
 
   const handleAddColumn = async (name: string) => {
@@ -231,6 +293,17 @@ const CrmKanbanBoard = () => {
         onOpenChange={(open) => !open && setSelectedCard(null)}
         allTags={tags}
         allColumns={columns}
+      />
+
+      {/* Create Training Dialog for drag-to-won */}
+      <CreateTrainingDialog
+        open={showCreateTrainingDialog}
+        onOpenChange={(open) => {
+          setShowCreateTrainingDialog(open);
+          if (!open) setPendingTrainingCard(null);
+        }}
+        onConfirm={handleConfirmCreateTraining}
+        opportunityTitle={pendingTrainingCard?.title || ""}
       />
     </div>
   );
