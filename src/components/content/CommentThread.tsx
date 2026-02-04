@@ -140,15 +140,29 @@ const CommentThread = ({
   };
 
   const uploadImage = async (file: File): Promise<string | null> => {
-    const fileExt = file.name.split(".").pop();
+    // Get extension from MIME type as fallback (important for pasted images)
+    const mimeToExt: Record<string, string> = {
+      'image/png': 'png',
+      'image/jpeg': 'jpg',
+      'image/gif': 'gif',
+      'image/webp': 'webp',
+    };
+
+    // Check if file has a proper extension, otherwise use MIME type
+    const hasExtension = file.name.includes('.') && file.name.split('.').pop()?.length! <= 5;
+    const fileExt = hasExtension ? file.name.split(".").pop() : mimeToExt[file.type] || 'png';
     const fileName = `${reviewId}/${Date.now()}.${fileExt}`;
 
     const { error } = await supabase.storage
       .from("review-images")
-      .upload(fileName, file);
+      .upload(fileName, file, {
+        contentType: file.type,
+        upsert: false,
+      });
 
     if (error) {
       console.error("Upload error:", error);
+      toast.error("Erreur lors de l'upload de l'image");
       return null;
     }
 
