@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Save,
   Trash2,
@@ -82,6 +82,7 @@ const CardDetailDrawer = ({
   allColumns,
 }: CardDetailDrawerProps) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { data: details, isLoading: detailsLoading } = useCrmCardDetails(card?.id || null);
 
   const updateCard = useUpdateCard();
@@ -136,6 +137,9 @@ const CardDetailDrawer = ({
       return;
     }
 
+    // Check if status changed to WON
+    const statusChangedToWon = salesStatus === "WON" && card.sales_status !== "WON";
+
     await updateCard.mutateAsync({
       id: card.id,
       updates: {
@@ -152,6 +156,26 @@ const CardDetailDrawer = ({
       actorEmail: user.email,
       oldCard: card,
     });
+
+    // If opportunity is WON and is a formation, ask to create training
+    if (statusChangedToWon && card.service_type === "formation") {
+      const shouldCreateTraining = confirm(
+        "Opportunité marquée comme gagnée !\n\nVoulez-vous créer une formation à partir de cette opportunité ?"
+      );
+      if (shouldCreateTraining) {
+        // Build query params to pre-fill formation create form
+        const params = new URLSearchParams();
+        if (card.company) params.set("clientName", card.company);
+        if (card.first_name) params.set("sponsorFirstName", card.first_name);
+        if (card.last_name) params.set("sponsorLastName", card.last_name);
+        if (card.email) params.set("sponsorEmail", card.email);
+        if (card.title) params.set("trainingName", card.title.replace(/^\([^)]+\)\s*/, "")); // Remove (COMPANY) prefix
+        params.set("fromCrmCardId", card.id);
+
+        onOpenChange(false);
+        navigate(`/formations/create?${params.toString()}`);
+      }
+    }
   };
 
   const handleDelete = async () => {
