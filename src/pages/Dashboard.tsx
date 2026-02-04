@@ -1,10 +1,6 @@
-import { Loader2, Award, FileText, Calendar, ClipboardCheck, TrendingUp, Star, History, Newspaper, ClipboardList, Inbox } from "lucide-react";
+import { Loader2, Award, FileText, Calendar, ClipboardCheck, TrendingUp, History, Newspaper, ClipboardList, Inbox, BarChart3 } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
-import WeeklyChart from "@/components/dashboard/WeeklyChart";
-import StatCard from "@/components/dashboard/StatCard";
-import TopImprovements from "@/components/dashboard/TopImprovements";
-import { useDashboardStats } from "@/hooks/useDashboardStats";
 import { useModuleAccess, AppModule } from "@/hooks/useModuleAccess";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
@@ -91,19 +87,18 @@ const tools: Tool[] = [
     path: "/emails",
     module: "emails",
   },
+  {
+    id: "statistiques",
+    name: "Statistiques",
+    description: "Visualiser les statistiques et indicateurs",
+    icon: <BarChart3 className="w-10 h-10" />,
+    path: "/statistiques",
+    module: "statistiques",
+  },
 ];
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user, loading, logout } = useAuth();
-  const {
-    microDevisWeekly,
-    formationsWeekly,
-    evaluationsWeekly,
-    averageEvaluation,
-    topImprovements,
-    isLoading: statsLoading,
-  } = useDashboardStats();
-
   const { hasAccess, loading: accessLoading } = useModuleAccess();
 
   // Filter tools based on user access
@@ -123,52 +118,9 @@ const Dashboard = () => {
 
       {/* Main content */}
       <main className="max-w-7xl mx-auto p-6 space-y-8">
-        {/* Dashboard Section */}
-        <section>
-          <h1 className="text-2xl font-bold mb-6">Tableau de bord</h1>
-          
-          {statsLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="w-8 h-8 animate-spin text-primary" />
-            </div>
-          ) : (
-            <div className="space-y-6">
-              {/* Charts Row */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <WeeklyChart
-                  title="Micro-devis par semaine"
-                  data={microDevisWeekly}
-                  color="hsl(var(--primary))"
-                />
-                <WeeklyChart
-                  title="Formations par semaine"
-                  data={formationsWeekly}
-                  color="hsl(var(--chart-2))"
-                />
-                <WeeklyChart
-                  title="Évaluations par semaine"
-                  data={evaluationsWeekly}
-                  color="hsl(var(--chart-3))"
-                />
-              </div>
-
-              {/* Stats Row */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <StatCard
-                  title="Évaluation moyenne"
-                  value={averageEvaluation ? `${averageEvaluation.toFixed(1)}/5` : "N/A"}
-                  icon={Star}
-                  description="Basée sur toutes les évaluations soumises"
-                />
-                <TopImprovements improvements={topImprovements} />
-              </div>
-            </div>
-          )}
-        </section>
-
         {/* Tools Section */}
         <section>
-          <h2 className="text-xl font-semibold mb-4">Outils</h2>
+          <h1 className="text-2xl font-bold mb-6">Tableau de bord</h1>
           {accessibleTools.length === 0 ? (
             <Card className="p-8 text-center text-muted-foreground">
               <p>Aucun module disponible.</p>

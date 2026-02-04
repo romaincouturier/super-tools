@@ -32,6 +32,7 @@ const BesoinsParticipants = lazy(() => import("./pages/BesoinsParticipants"));
 const TrainingSummary = lazy(() => import("./pages/TrainingSummary"));
 const ChatbotAdmin = lazy(() => import("./pages/ChatbotAdmin"));
 const InboundEmails = lazy(() => import("./pages/InboundEmails"));
+const Statistiques = lazy(() => import("./pages/Statistiques"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -79,6 +80,8 @@ const App = () => (
             <Route path="/chatbot-admin" element={<ChatbotAdmin />} />
             {/* Inbound emails */}
             <Route path="/emails" element={<InboundEmails />} />
+            {/* Statistics dashboard */}
+            <Route path="/statistiques" element={<Statistiques />} />
             {/* Public needs survey */}
             <Route path="/questionnaire/:token" element={<Questionnaire />} />
             {/* Public evaluation form */}
