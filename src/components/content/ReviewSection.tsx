@@ -9,6 +9,12 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import ReviewRequestDialog from "./ReviewRequestDialog";
 import CommentThread from "./CommentThread";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface Review {
   id: string;
@@ -21,6 +27,7 @@ interface Review {
   created_by: string | null;
   reminder_sent_at: string | null;
   general_opinion?: string | null;
+  pending_comments_count?: number;
 }
 
 interface ReviewSectionProps {
@@ -80,9 +87,24 @@ const ReviewSection = ({ cardId, cardTitle }: ReviewSectionProps) => {
 
       if (error) throw error;
 
+      // Fetch pending comments count for each review
+      const reviewIds = (data || []).map(r => r.id);
+      const { data: commentsData } = await supabase
+        .from("review_comments")
+        .select("review_id, status")
+        .in("review_id", reviewIds)
+        .eq("status", "pending");
+
+      // Count pending comments per review
+      const pendingCounts: Record<string, number> = {};
+      (commentsData || []).forEach(c => {
+        pendingCounts[c.review_id] = (pendingCounts[c.review_id] || 0) + 1;
+      });
+
       const reviewsData = (data || []).map((r) => ({
         ...r,
         reviewer_email: r.reviewer_email || "Email non renseigné",
+        pending_comments_count: pendingCounts[r.id] || 0,
       }));
 
       setReviews(reviewsData);
@@ -237,7 +259,9 @@ const ReviewSection = ({ cardId, cardTitle }: ReviewSectionProps) => {
             const Icon = config.icon;
             const isExpanded = expandedReview === review.id;
             const canSendReminder = isAuthor(review) && review.status === "pending";
-            const canClose = isAuthor(review) && review.status !== "approved";
+            const hasPendingComments = (review.pending_comments_count || 0) > 0;
+            const canClose = isAuthor(review) && review.status !== "approved" && !hasPendingComments;
+            const showCloseButton = isAuthor(review) && review.status !== "approved";
             const canEditOpinion = isReviewer(review) && review.status !== "approved";
 
             return (
@@ -303,19 +327,40 @@ const ReviewSection = ({ cardId, cardTitle }: ReviewSectionProps) => {
                             Relancer
                           </Button>
                         )}
-                        {canClose && (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-7 text-xs text-green-600 hover:text-green-700 hover:bg-green-50"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleCloseReview(review.id);
-                            }}
-                          >
-                            <CheckCircle2 className="h-3 w-3 mr-1" />
-                            Clôturer
-                          </Button>
+                        {showCloseButton && (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className={cn(
+                                      "h-7 text-xs",
+                                      canClose
+                                        ? "text-green-600 hover:text-green-700 hover:bg-green-50"
+                                        : "text-muted-foreground cursor-not-allowed opacity-50"
+                                    )}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (canClose) {
+                                        handleCloseReview(review.id);
+                                      }
+                                    }}
+                                    disabled={!canClose}
+                                  >
+                                    <CheckCircle2 className="h-3 w-3 mr-1" />
+                                    Clôturer
+                                  </Button>
+                                </span>
+                              </TooltipTrigger>
+                              {!canClose && hasPendingComments && (
+                                <TooltipContent>
+                                  <p>{review.pending_comments_count} commentaire{(review.pending_comments_count || 0) > 1 ? "s" : ""} en attente de traitement</p>
+                                </TooltipContent>
+                              )}
+                            </Tooltip>
+                          </TooltipProvider>
                         )}
                         {review.external_url && (
                           <a
@@ -371,12 +416,16 @@ const ReviewSection = ({ cardId, cardTitle }: ReviewSectionProps) => {
                       isReviewer={isReviewer(review)}
                       reviewStatus={review.status}
                       onCommentAdded={() => {
+                        // Update status to in_review when reviewer adds first comment
                         if (review.status === "pending" && isReviewer(review)) {
                           supabase
                             .from("content_reviews")
                             .update({ status: "in_review" })
                             .eq("id", review.id)
                             .then(() => fetchReviews());
+                        } else {
+                          // Always refresh to update pending count
+                          fetchReviews();
                         }
                       }}
                     />

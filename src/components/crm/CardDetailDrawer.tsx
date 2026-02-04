@@ -20,6 +20,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Save,
@@ -83,6 +88,7 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { useSearchMissions } from "@/hooks/useMissions";
 import { missionStatusConfig } from "@/types/missions";
+import EmailEditor from "./EmailEditor";
 
 interface CardDetailDrawerProps {
   card: CrmCard | null;
@@ -561,6 +567,44 @@ const CardDetailDrawer = ({
     }
   };
 
+  const handleColumnChange = async (newColumnId: string, columnName: string) => {
+    if (!card || !user?.email) return;
+    setColumnId(newColumnId);
+
+    // Detect if moving to a "won" column (contains "gagné" case-insensitive)
+    const isWonColumn = columnName.toLowerCase().includes("gagné");
+    const wasAlreadyWon = card.sales_status === "WON";
+    const movingToWon = isWonColumn && !wasAlreadyWon;
+
+    // Update column (and sales status if moving to won column)
+    const updates: Record<string, any> = { column_id: newColumnId };
+    if (isWonColumn) {
+      updates.sales_status = "WON";
+      setSalesStatus("WON");
+    }
+
+    await updateCard.mutateAsync({
+      id: card.id,
+      updates,
+      actorEmail: user.email,
+      oldCard: card,
+    });
+
+    // If moving to won column and is a formation, navigate to training creation
+    if (movingToWon && serviceType === "formation") {
+      const params = new URLSearchParams();
+      if (company) params.set("clientName", company);
+      if (firstName) params.set("sponsorFirstName", firstName);
+      if (lastName) params.set("sponsorLastName", lastName);
+      if (email) params.set("sponsorEmail", email);
+      if (title) params.set("trainingName", title.replace(/^\([^)]+\)\s*/, ""));
+      params.set("fromCrmCardId", card.id);
+
+      onOpenChange(false);
+      navigate(`/formations/create?${params.toString()}`);
+    }
+  };
+
   const handleScheduleAction = async () => {
     if (!card || !user?.email || !scheduledDate || !scheduledText.trim()) return;
 
@@ -702,20 +746,20 @@ const CardDetailDrawer = ({
           </SheetTitle>
         </SheetHeader>
 
-        {/* Sales Status Buttons - Always visible at top */}
+        {/* Column Buttons - Always visible at top */}
         <div className="mt-4 mb-4">
-          <Label className="mb-2 block text-sm">Statut commercial</Label>
+          <Label className="mb-2 block text-sm">État de l'opportunité</Label>
           <div className="flex gap-2 flex-wrap">
-            {(Object.keys(salesStatusConfig) as SalesStatus[]).map((status) => (
+            {allColumns.map((col) => (
               <Button
-                key={status}
+                key={col.id}
                 size="sm"
-                variant={salesStatus === status ? "default" : "outline"}
-                className={salesStatus === status ? salesStatusConfig[status].color + " text-white" : ""}
-                onClick={() => handleSalesStatusChange(status)}
+                variant={columnId === col.id ? "default" : "outline"}
+                className={columnId === col.id ? "bg-primary text-white" : ""}
+                onClick={() => handleColumnChange(col.id, col.name)}
                 disabled={updateCard.isPending}
               >
-                {salesStatusConfig[status].label}
+                {col.name}
               </Button>
             ))}
           </div>
@@ -1100,22 +1144,6 @@ const CardDetailDrawer = ({
               <Input value={title} onChange={(e) => setTitle(e.target.value)} />
             </div>
 
-            <div>
-              <Label>Colonne</Label>
-              <Select value={columnId} onValueChange={setColumnId}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {allColumns.map((col) => (
-                    <SelectItem key={col.id} value={col.id}>
-                      {col.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
             {/* Description with auto-save and AI */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
@@ -1345,42 +1373,41 @@ const CardDetailDrawer = ({
                     </Button>
                   )}
                 </div>
-                <div className="flex gap-2">
-                  <Textarea
-                    placeholder="Corps du message..."
-                    value={emailBody}
-                    onChange={(e) => {
-                      setEmailBody(e.target.value);
+                <div className="space-y-2">
+                  <EmailEditor
+                    content={emailBody}
+                    onChange={(content) => {
+                      setEmailBody(content);
                       setEmailBodyBeforeAi(null);
                     }}
-                    rows={3}
-                    className="flex-1"
+                    placeholder="Corps du message..."
                   />
-                  <div className="flex flex-col gap-1">
-                    {emailBodyBeforeAi ? (
+                  <div className="flex justify-end gap-2">
+                    {emailBodyBeforeAi && (
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={handleUndoBodyAi}
                         title="Annuler l'amélioration"
                       >
-                        <Undo2 className="h-4 w-4" />
-                      </Button>
-                    ) : (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleImproveEmailBody}
-                        disabled={!emailBody.trim() || improvingBody}
-                        title="Améliorer avec l'IA"
-                      >
-                        {improvingBody ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Wand2 className="h-4 w-4" />
-                        )}
+                        <Undo2 className="h-4 w-4 mr-1" />
+                        Annuler IA
                       </Button>
                     )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleImproveEmailBody}
+                      disabled={!emailBody.trim() || improvingBody}
+                      title="Améliorer avec l'IA"
+                    >
+                      {improvingBody ? (
+                        <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                      ) : (
+                        <Wand2 className="h-4 w-4 mr-1" />
+                      )}
+                      Améliorer avec l'IA
+                    </Button>
                   </div>
                 </div>
                 <Button
@@ -1595,12 +1622,20 @@ const CardDetailDrawer = ({
                   Emails envoyés
                 </h4>
                 {details.emails.map((email) => (
-                  <div key={email.id} className="p-2 bg-muted rounded mb-2">
-                    <p className="text-sm font-medium">{email.subject}</p>
-                    <p className="text-xs text-muted-foreground">
-                      À: {email.recipient_email} •{" "}
-                      {format(new Date(email.sent_at), "d MMM yyyy HH:mm", { locale: fr })}
-                    </p>
+                  <div key={email.id} className="p-3 bg-muted rounded mb-2 space-y-2">
+                    <div>
+                      <p className="text-sm font-medium">{email.subject}</p>
+                      <p className="text-xs text-muted-foreground">
+                        À: {email.recipient_email} •{" "}
+                        {format(new Date(email.sent_at), "d MMM yyyy HH:mm", { locale: fr })}
+                      </p>
+                    </div>
+                    {email.body_html && (
+                      <div
+                        className="text-xs border-t pt-2 mt-2 prose prose-xs max-w-none [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1"
+                        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(email.body_html) }}
+                      />
+                    )}
                   </div>
                 ))}
               </div>

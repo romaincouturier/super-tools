@@ -1,5 +1,5 @@
-import { Link } from "react-router-dom";
-import { ArrowLeft, Loader2, TrendingUp, TrendingDown, Target, DollarSign } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { ArrowLeft, Loader2, TrendingUp, TrendingDown, Target, DollarSign, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -16,24 +16,32 @@ import {
   Legend,
 } from "recharts";
 import { useCrmReports } from "@/hooks/useCrmBoard";
+import AppHeader from "@/components/AppHeader";
 
 const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8", "#82ca9d"];
 
 const CrmReports = () => {
+  const navigate = useNavigate();
   const { data: reports, isLoading } = useCrmReports();
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      <div className="min-h-screen bg-background">
+        <AppHeader />
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
       </div>
     );
   }
 
   if (!reports) {
     return (
-      <div className="text-center py-8">
-        <p className="text-muted-foreground">Aucune donnée disponible</p>
+      <div className="min-h-screen bg-background">
+        <AppHeader />
+        <div className="text-center py-8">
+          <p className="text-muted-foreground">Aucune donnée disponible</p>
+        </div>
       </div>
     );
   }
@@ -44,19 +52,25 @@ const CrmReports = () => {
       : 0;
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" asChild>
-          <Link to="/crm">
+    <div className="min-h-screen bg-background">
+      <AppHeader />
+
+      <main className="max-w-7xl mx-auto p-6 space-y-6">
+        {/* Header */}
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={() => navigate("/crm")}>
             <ArrowLeft className="h-5 w-5" />
-          </Link>
-        </Button>
-        <div>
-          <h1 className="text-2xl font-bold">Reporting CRM</h1>
-          <p className="text-muted-foreground">Statistiques du pipeline commercial</p>
+          </Button>
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-primary/10">
+              <BarChart3 className="h-6 w-6 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold">Reporting CRM</h1>
+              <p className="text-muted-foreground text-sm">Statistiques du pipeline commercial</p>
+            </div>
+          </div>
         </div>
-      </div>
 
       {/* KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -217,6 +231,7 @@ const CrmReports = () => {
           </div>
         </CardContent>
       </Card>
+      </main>
     </div>
   );
 };

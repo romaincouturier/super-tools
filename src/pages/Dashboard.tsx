@@ -1,9 +1,29 @@
-import { Loader2, Award, FileText, Calendar, ClipboardCheck, TrendingUp, History, Newspaper, ClipboardList, Inbox, BarChart3, Kanban, Briefcase } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { Loader2, Award, FileText, Calendar, ClipboardCheck, TrendingUp, History, Newspaper, ClipboardList, Inbox, BarChart3, Kanban, Briefcase, GripVertical } from "lucide-react";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  rectSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import AppHeader from "@/components/AppHeader";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { useModuleAccess, AppModule } from "@/hooks/useModuleAccess";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
+import { useUserPreference } from "@/hooks/useUserPreferences";
+import { cn } from "@/lib/utils";
 
 interface Tool {
   id: string;
@@ -112,15 +132,149 @@ const tools: Tool[] = [
     module: "statistiques",
   },
 ];
+
+// Sortable card component
+interface SortableToolCardProps {
+  tool: Tool;
+  onClick: () => void;
+}
+
+const SortableToolCard = ({ tool, onClick }: SortableToolCardProps) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: tool.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <Card
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        "border-2 shadow-md hover:shadow-lg hover:border-primary/50 transition-all cursor-pointer group p-5 relative",
+        isDragging && "opacity-50 shadow-xl z-50"
+      )}
+      onClick={onClick}
+    >
+      {/* Drag handle */}
+      <div
+        {...attributes}
+        {...listeners}
+        className="absolute top-2 right-2 p-1 rounded hover:bg-muted cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <GripVertical className="h-4 w-4 text-muted-foreground" />
+      </div>
+
+      <div className="flex items-center gap-4">
+        <div className="p-3 rounded-full bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+          {tool.icon}
+        </div>
+        <div>
+          <CardTitle className="text-lg">{tool.name}</CardTitle>
+          <CardDescription className="text-sm">
+            {tool.description}
+          </CardDescription>
+        </div>
+      </div>
+    </Card>
+  );
+};
+
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { user, loading, logout } = useAuth();
+  const { user, loading } = useAuth();
   const { hasAccess, loading: accessLoading } = useModuleAccess();
 
-  // Filter tools based on user access
-  const accessibleTools = tools.filter((tool) => hasAccess(tool.module));
+  // Default order is the order defined in the tools array
+  const defaultOrder = tools.map((t) => t.id);
 
-  if (loading || accessLoading) {
+  // Load saved module order from user preferences
+  const {
+    value: savedOrder,
+    loading: prefsLoading,
+    save: saveOrder,
+  } = useUserPreference<string[]>("module_order", defaultOrder);
+
+  // Local state for the current order (for immediate UI feedback)
+  const [moduleOrder, setModuleOrder] = useState<string[]>(defaultOrder);
+
+  // Update local order when saved order loads
+  useEffect(() => {
+    if (savedOrder && savedOrder.length > 0) {
+      // Ensure all current modules are included (in case new modules were added)
+      const currentModuleIds = tools.map((t) => t.id);
+      const validSavedOrder = savedOrder.filter((id) => currentModuleIds.includes(id));
+      const newModules = currentModuleIds.filter((id) => !savedOrder.includes(id));
+      setModuleOrder([...validSavedOrder, ...newModules]);
+    }
+  }, [savedOrder]);
+
+  // Filter tools based on user access and sort by saved order
+  const accessibleTools = useMemo(() => {
+    const filtered = tools.filter((tool) => hasAccess(tool.module));
+    return filtered.sort((a, b) => {
+      const indexA = moduleOrder.indexOf(a.id);
+      const indexB = moduleOrder.indexOf(b.id);
+      return indexA - indexB;
+    });
+  }, [hasAccess, moduleOrder]);
+
+  // Drag and drop sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  // Handle drag end
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      const oldIndex = accessibleTools.findIndex((t) => t.id === active.id);
+      const newIndex = accessibleTools.findIndex((t) => t.id === over.id);
+
+      const newAccessibleOrder = arrayMove(accessibleTools, oldIndex, newIndex);
+
+      // Update the full order (including non-accessible modules)
+      const newFullOrder = [...moduleOrder];
+      const accessibleIds = newAccessibleOrder.map((t) => t.id);
+
+      // Replace accessible module positions in the full order
+      let accessibleIndex = 0;
+      for (let i = 0; i < newFullOrder.length; i++) {
+        if (accessibleIds.includes(newFullOrder[i])) {
+          newFullOrder[i] = accessibleIds[accessibleIndex];
+          accessibleIndex++;
+        }
+      }
+
+      setModuleOrder(newFullOrder);
+
+      // Save to database
+      try {
+        await saveOrder(newFullOrder);
+      } catch (error) {
+        console.error("Failed to save module order:", error);
+      }
+    }
+  };
+
+  if (loading || accessLoading || prefsLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -143,27 +297,26 @@ const Dashboard = () => {
               <p className="text-sm mt-2">Contactez l'administrateur pour obtenir des accès.</p>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {accessibleTools.map((tool) => (
-                <Card
-                  key={tool.id}
-                  className="border-2 shadow-md hover:shadow-lg hover:border-primary/50 transition-all cursor-pointer group p-5"
-                  onClick={() => navigate(tool.path)}
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 rounded-full bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                      {tool.icon}
-                    </div>
-                    <div>
-                      <CardTitle className="text-lg">{tool.name}</CardTitle>
-                      <CardDescription className="text-sm">
-                        {tool.description}
-                      </CardDescription>
-                    </div>
-                  </div>
-                </Card>
-              ))}
-            </div>
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext
+                items={accessibleTools.map((t) => t.id)}
+                strategy={rectSortingStrategy}
+              >
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {accessibleTools.map((tool) => (
+                    <SortableToolCard
+                      key={tool.id}
+                      tool={tool}
+                      onClick={() => navigate(tool.path)}
+                    />
+                  ))}
+                </div>
+              </SortableContext>
+            </DndContext>
           )}
         </section>
       </main>
