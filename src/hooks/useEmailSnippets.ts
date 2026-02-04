@@ -13,8 +13,14 @@ export const useEmailSnippets = () => {
   return useQuery({
     queryKey: ["email-snippets"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("email_snippets")
+      const { data, error } = await (supabase
+        .from("email_snippets") as unknown as {
+          select: (columns: string) => {
+            order: (column: string) => {
+              order: (column: string) => Promise<{ data: EmailSnippet[] | null; error: Error | null }>;
+            };
+          };
+        })
         .select("*")
         .order("category")
         .order("position");

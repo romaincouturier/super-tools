@@ -626,7 +626,10 @@ export type Database = {
           first_name: string | null
           id: string
           last_name: string | null
+          linked_mission_id: string | null
           linkedin_url: string | null
+          next_action_done: boolean | null
+          next_action_text: string | null
           phone: string | null
           position: number
           quote_url: string | null
@@ -651,7 +654,10 @@ export type Database = {
           first_name?: string | null
           id?: string
           last_name?: string | null
+          linked_mission_id?: string | null
           linkedin_url?: string | null
+          next_action_done?: boolean | null
+          next_action_text?: string | null
           phone?: string | null
           position?: number
           quote_url?: string | null
@@ -676,7 +682,10 @@ export type Database = {
           first_name?: string | null
           id?: string
           last_name?: string | null
+          linked_mission_id?: string | null
           linkedin_url?: string | null
+          next_action_done?: boolean | null
+          next_action_text?: string | null
           phone?: string | null
           position?: number
           quote_url?: string | null
@@ -886,6 +895,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      email_snippets: {
+        Row: {
+          category: string | null
+          content: string
+          created_at: string | null
+          id: string
+          name: string
+          position: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          category?: string | null
+          content: string
+          created_at?: string | null
+          id?: string
+          name: string
+          position?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string | null
+          content?: string
+          created_at?: string | null
+          id?: string
+          name?: string
+          position?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       email_templates: {
         Row: {
@@ -1980,6 +2019,33 @@ export type Database = {
           granted_by?: string | null
           id?: string
           module?: Database["public"]["Enums"]["app_module"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_preferences: {
+        Row: {
+          created_at: string
+          id: string
+          preference_key: string
+          preference_value: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          preference_key: string
+          preference_value?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          preference_key?: string
+          preference_value?: Json
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
