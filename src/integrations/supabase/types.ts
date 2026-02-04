@@ -424,6 +424,7 @@ export type Database = {
           general_opinion: string | null
           id: string
           reminder_sent_at: string | null
+          reviewer_email: string | null
           reviewer_id: string
           status: Database["public"]["Enums"]["review_status"]
         }
@@ -436,6 +437,7 @@ export type Database = {
           general_opinion?: string | null
           id?: string
           reminder_sent_at?: string | null
+          reviewer_email?: string | null
           reviewer_id: string
           status?: Database["public"]["Enums"]["review_status"]
         }
@@ -448,6 +450,7 @@ export type Database = {
           general_opinion?: string | null
           id?: string
           reminder_sent_at?: string | null
+          reviewer_email?: string | null
           reviewer_id?: string
           status?: Database["public"]["Enums"]["review_status"]
         }
