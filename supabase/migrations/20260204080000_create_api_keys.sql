@@ -44,9 +44,8 @@ CREATE POLICY "API keys manageable by admins"
   TO authenticated
   USING (
     EXISTS (
-      SELECT 1 FROM profiles
-      WHERE profiles.id = auth.uid()
-      AND profiles.role = 'admin'
+      SELECT 1 FROM auth.users
+      WHERE id = auth.uid() AND email = 'romain@supertilt.fr'
     )
   );
 
@@ -56,9 +55,8 @@ CREATE POLICY "API logs viewable by admins"
   TO authenticated
   USING (
     EXISTS (
-      SELECT 1 FROM profiles
-      WHERE profiles.id = auth.uid()
-      AND profiles.role = 'admin'
+      SELECT 1 FROM auth.users
+      WHERE id = auth.uid() AND email = 'romain@supertilt.fr'
     )
   );
 
