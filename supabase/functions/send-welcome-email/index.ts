@@ -222,8 +222,7 @@ serve(async (req) => {
 
     const result = await sendEmail({
       to: [participant.email],
-      cc: ccList.length > 0 ? ccList : undefined,
-      bcc: bccList,
+      bcc: [...bccList, ...(ccList.length > 0 ? ccList : [])],
       subject,
       html: htmlContent,
     });
@@ -232,7 +231,7 @@ serve(async (req) => {
       throw new Error(`Failed to send email: ${result.error}`);
     }
 
-    console.log("Welcome email sent successfully:", result.data);
+    console.log("Welcome email sent successfully:", result.id);
 
     // Update participant status
     await supabase
@@ -285,7 +284,7 @@ serve(async (req) => {
       }
     }
 
-    return createJsonResponse({ success: true, messageId: result.data?.id });
+    return createJsonResponse({ success: true, messageId: result.id });
   } catch (error: unknown) {
     console.error("Error sending welcome email:", error);
     const errorMessage = error instanceof Error ? error.message : "Failed to send welcome email";

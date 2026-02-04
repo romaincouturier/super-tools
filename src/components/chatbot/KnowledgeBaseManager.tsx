@@ -72,7 +72,7 @@ export function KnowledgeBaseManager() {
 
       const { data, error } = await query;
       if (error) throw error;
-      return data as KnowledgeEntry[];
+      return (data || []) as unknown as KnowledgeEntry[];
     },
   });
 

@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { createHash } from "https://deno.land/std@0.168.0/node/crypto.ts";
+import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { crypto } from "https://deno.land/std@0.168.0/crypto/mod.ts";
+import { encode as hexEncode } from "https://deno.land/std@0.168.0/encoding/hex.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -48,17 +49,29 @@ interface TrainingInput {
   supports_url?: string;
 }
 
+interface ApiKeyData {
+  id: string;
+  permissions: string[] | null;
+  is_active: boolean;
+  expires_at: string | null;
+}
+
 // Validate API key and return key info
 async function validateApiKey(
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseClient,
   apiKey: string
 ): Promise<{ valid: boolean; keyId?: string; permissions?: string[] }> {
   if (!apiKey) {
     return { valid: false };
   }
 
-  // Hash the API key for comparison
-  const keyHash = createHash("sha256").update(apiKey).digest("hex");
+  // Hash the API key for comparison using Web Crypto
+  const encoder = new TextEncoder();
+  const data = encoder.encode(apiKey);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  const keyHash = Array.from(new Uint8Array(hashBuffer))
+    .map(b => b.toString(16).padStart(2, "0"))
+    .join("");
 
   const { data: keyData, error } = await supabase
     .from("api_keys")
@@ -70,29 +83,35 @@ async function validateApiKey(
     return { valid: false };
   }
 
+  const typedKeyData = keyData as ApiKeyData;
+
   // Check if key is active
-  if (!keyData.is_active) {
+  if (!typedKeyData.is_active) {
     return { valid: false };
   }
 
   // Check expiration
-  if (keyData.expires_at && new Date(keyData.expires_at) < new Date()) {
+  if (typedKeyData.expires_at && new Date(typedKeyData.expires_at) < new Date()) {
     return { valid: false };
   }
 
   // Update last used
-  await supabase.rpc("update_api_key_last_used", { key_id: keyData.id });
+  try {
+    await supabase.rpc("update_api_key_last_used", { key_id: typedKeyData.id });
+  } catch (e) {
+    console.warn("Failed to update last_used:", e);
+  }
 
   return {
     valid: true,
-    keyId: keyData.id,
-    permissions: keyData.permissions,
+    keyId: typedKeyData.id,
+    permissions: typedKeyData.permissions || [],
   };
 }
 
 // Log API request
 async function logRequest(
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseClient,
   keyId: string | null,
   endpoint: string,
   method: string,
@@ -107,8 +126,8 @@ async function logRequest(
       endpoint,
       method,
       status_code: statusCode,
-      request_body: requestBody,
-      response_body: responseBody,
+      request_body: requestBody as Record<string, unknown>,
+      response_body: responseBody as Record<string, unknown>,
       ip_address: req.headers.get("x-forwarded-for") || req.headers.get("cf-connecting-ip"),
       user_agent: req.headers.get("user-agent"),
     });
@@ -193,15 +212,14 @@ serve(async (req) => {
       end_date: requestBody!.end_date,
       location: requestBody!.location,
       format_formation: requestBody!.format_formation || "intra-entreprise",
-      program_id: requestBody!.program_id || null,
       sponsor_email: requestBody!.sponsor_email || null,
       sponsor_first_name: requestBody!.sponsor_first_name || null,
       sponsor_last_name: requestBody!.sponsor_last_name || null,
-      sponsor_company: requestBody!.sponsor_company || requestBody!.client_name,
       sponsor_formal_address: requestBody!.sponsor_formal_address ?? true,
-      notes: requestBody!.notes || null,
       supports_url: requestBody!.supports_url || null,
-      status: "planifiee",
+      evaluation_link: crypto.randomUUID(),
+      created_by: "api",
+      trainer_name: "À définir",
     };
 
     const { data: training, error: trainingError } = await supabase
@@ -249,7 +267,6 @@ serve(async (req) => {
           first_name: participant.first_name || null,
           last_name: participant.last_name || null,
           company: participant.company || requestBody!.client_name,
-          job_title: participant.job_title || null,
           needs_survey_status: "non_envoye",
         };
 

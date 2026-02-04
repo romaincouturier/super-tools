@@ -1,6 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { createHmac } from "https://deno.land/std@0.168.0/node/crypto.ts";
+import { crypto } from "https://deno.land/std@0.168.0/crypto/mod.ts";
+import { encode as hexEncode } from "https://deno.land/std@0.168.0/encoding/hex.ts";
+import { decode as base64Decode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -32,7 +34,7 @@ interface ResendInboundPayload {
 }
 
 // Verify Resend webhook signature (using Svix)
-function verifyWebhookSignature(
+async function verifyWebhookSignature(
   payload: string,
   headers: {
     svixId: string | null;
@@ -40,7 +42,7 @@ function verifyWebhookSignature(
     svixSignature: string | null;
   },
   webhookSecret: string
-): boolean {
+): Promise<boolean> {
   if (!headers.svixId || !headers.svixTimestamp || !headers.svixSignature) {
     console.log("Missing Svix headers");
     return false;
@@ -63,11 +65,26 @@ function verifyWebhookSignature(
     : webhookSecret;
 
   // Decode base64 secret
-  const secretDecoded = Uint8Array.from(atob(secretBytes), (c) => c.charCodeAt(0));
+  const secretDecoded = base64Decode(secretBytes);
 
-  const hmac = createHmac("sha256", secretDecoded);
-  hmac.update(signedPayload);
-  const expectedSignature = hmac.digest("base64");
+  // Create HMAC using Web Crypto API
+  const key = await crypto.subtle.importKey(
+    "raw",
+    secretDecoded.buffer as ArrayBuffer,
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+
+  const encoder = new TextEncoder();
+  const signatureBytes = await crypto.subtle.sign(
+    "HMAC",
+    key,
+    encoder.encode(signedPayload)
+  );
+
+  // Convert to base64
+  const expectedSignature = btoa(String.fromCharCode(...new Uint8Array(signatureBytes)));
 
   // Check if any of the signatures match
   const signatures = headers.svixSignature.split(" ");
@@ -118,7 +135,7 @@ serve(async (req) => {
 
     // Verify webhook signature if secret is configured
     if (RESEND_WEBHOOK_SECRET) {
-      const isValid = verifyWebhookSignature(
+      const isValid = await verifyWebhookSignature(
         payloadText,
         {
           svixId: req.headers.get("svix-id"),

@@ -368,7 +368,7 @@ const FormationDetail = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <AppHeader user={user} onLogout={handleLogout} />
+      <AppHeader />
 
       {/* Main content */}
       <main className="max-w-7xl mx-auto p-6">

@@ -13,6 +13,7 @@ interface UserWithAccess {
   modules: AppModule[];
 }
 
+// Only include modules that exist in the database enum
 const ALL_MODULES: AppModule[] = [
   "micro_devis",
   "formations",
@@ -21,6 +22,8 @@ const ALL_MODULES: AppModule[] = [
   "ameliorations",
   "historique",
   "contenu",
+  "besoins",
+  "parametres",
 ];
 
 export default function UserAccessManager() {
@@ -97,6 +100,9 @@ export default function UserAccessManager() {
   };
 
   const toggleModuleAccess = async (userId: string, module: AppModule, currentlyHasAccess: boolean) => {
+    // Don't allow toggling 'emails' module since it doesn't exist in DB enum
+    if (module === "emails") return;
+    
     setUpdating(`${userId}-${module}`);
     try {
       if (currentlyHasAccess) {
@@ -105,7 +111,7 @@ export default function UserAccessManager() {
           .from("user_module_access")
           .delete()
           .eq("user_id", userId)
-          .eq("module", module);
+          .eq("module", module as "ameliorations" | "besoins" | "certificates" | "contenu" | "evaluations" | "formations" | "historique" | "micro_devis" | "parametres");
 
         if (error) throw error;
       } else {
@@ -115,7 +121,7 @@ export default function UserAccessManager() {
           .from("user_module_access")
           .insert({
             user_id: userId,
-            module,
+            module: module as "ameliorations" | "besoins" | "certificates" | "contenu" | "evaluations" | "formations" | "historique" | "micro_devis" | "parametres",
             granted_by: user?.id,
           });
 

@@ -183,9 +183,7 @@ serve(async (req: Request): Promise<Response> => {
     `;
 
     // Encode ICS file for attachment
-    const encoder = new TextEncoder();
-    const icsBytes = encoder.encode(icsContent);
-    const icsBase64 = base64Encode(icsBytes);
+    const icsBase64 = base64Encode(icsContent);
 
     // Send email with ICS attachment
     const emailResponse = await resend.emails.send({

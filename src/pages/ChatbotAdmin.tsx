@@ -1,13 +1,16 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import { KnowledgeBaseManager } from "@/components/chatbot/KnowledgeBaseManager";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function ChatbotAdmin() {
-  const { user, loading, profile } = useAuth();
+  const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [checkingAdmin, setCheckingAdmin] = useState(true);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -15,10 +18,24 @@ export default function ChatbotAdmin() {
     }
   }, [user, loading, navigate]);
 
-  // Check if user is admin
-  const isAdmin = profile?.role === "admin";
+  useEffect(() => {
+    const checkAdmin = async () => {
+      if (!user) {
+        setCheckingAdmin(false);
+        return;
+      }
+      
+      const { data } = await supabase.rpc("is_admin", { _user_id: user.id });
+      setIsAdmin(!!data);
+      setCheckingAdmin(false);
+    };
+    
+    if (user) {
+      checkAdmin();
+    }
+  }, [user]);
 
-  if (loading) {
+  if (loading || checkingAdmin) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin" />

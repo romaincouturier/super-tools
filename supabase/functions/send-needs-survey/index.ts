@@ -148,7 +148,7 @@ serve(async (req) => {
       throw new Error(`Failed to send email: ${result.error}`);
     }
 
-    console.log("Needs survey email sent to:", participant.email, result.data);
+    console.log("Needs survey email sent to:", participant.email, result.id);
 
     // Log activity
     try {
@@ -167,7 +167,7 @@ serve(async (req) => {
       console.warn("Failed to log activity:", logError);
     }
 
-    return createJsonResponse({ success: true, messageId: result.data?.id });
+    return createJsonResponse({ success: true, messageId: result.id });
   } catch (error: unknown) {
     console.error("Error sending needs survey:", error);
     const errorMessage = error instanceof Error ? error.message : "Failed to send needs survey";
