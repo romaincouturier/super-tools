@@ -882,6 +882,7 @@ const FormationDetail = () => {
             supportsUrl={training.supports_url}
             evaluationLink={training.evaluation_link}
             formatFormation={training.format_formation}
+            conventionFileUrl={training.convention_file_url}
             onUpdate={fetchTrainingData}
           />
 
