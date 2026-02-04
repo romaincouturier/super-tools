@@ -16,6 +16,14 @@ interface Tool {
 
 const tools: Tool[] = [
   {
+    id: "crm",
+    name: "CRM",
+    description: "Gérer le pipeline commercial et les opportunités",
+    icon: <Kanban className="w-10 h-10" />,
+    path: "/crm",
+    module: "crm",
+  },
+  {
     id: "contenu",
     name: "Contenu",
     description: "Gérer le marketing de contenu",
@@ -94,14 +102,6 @@ const tools: Tool[] = [
     icon: <BarChart3 className="w-10 h-10" />,
     path: "/statistiques",
     module: "statistiques",
-  },
-  {
-    id: "crm",
-    name: "CRM",
-    description: "Gérer le pipeline commercial et les opportunités",
-    icon: <Kanban className="w-10 h-10" />,
-    path: "/crm",
-    module: "crm",
   },
 ];
 const Dashboard = () => {
