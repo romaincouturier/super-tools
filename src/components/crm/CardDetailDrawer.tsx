@@ -879,9 +879,9 @@ const CardDetailDrawer = ({
               <Textarea
                 value={descriptionHtml}
                 onChange={(e) => handleDescriptionChange(e.target.value)}
-                rows={6}
+                rows={12}
                 placeholder="Notez ici tous les échanges, informations et détails importants de l'opportunité..."
-                className="font-mono text-sm"
+                className="text-[10px] leading-relaxed"
               />
 
               {/* AI buttons */}
