@@ -95,7 +95,7 @@ export const useCrmBoard = () => {
           company: card.company,
           email: card.email,
           linkedin_url: card.linkedin_url,
-          website_url: card.website_url,
+          website_url: (card as unknown as { website_url?: string }).website_url ?? null,
           service_type: card.service_type as CrmCard["service_type"],
           brief_questions: (Array.isArray(card.brief_questions) ? card.brief_questions : []) as unknown as CrmCard["brief_questions"],
           raw_input: card.raw_input,
@@ -701,7 +701,7 @@ export const useDeleteAttachment = () => {
   });
 };
 
-// Email mutations (mock send)
+// Email mutations (real send via edge function)
 export const useSendEmail = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -714,28 +714,29 @@ export const useSendEmail = () => {
       input: SendEmailInput;
       senderEmail: string;
     }) => {
-      // Mock send - just store the email
-      const { error } = await supabase.from("crm_card_emails").insert({
-        card_id: input.card_id,
-        sender_email: senderEmail,
-        recipient_email: input.recipient_email,
-        subject: input.subject,
-        body_html: input.body_html,
+      // Send email via edge function
+      const { data, error } = await supabase.functions.invoke("crm-send-email", {
+        body: {
+          card_id: input.card_id,
+          recipient_email: input.recipient_email,
+          subject: input.subject,
+          body_html: input.body_html,
+        },
       });
-      if (error) throw error;
 
-      await logActivity(
-        input.card_id,
-        "email_sent",
-        senderEmail,
-        null,
-        `To: ${input.recipient_email} - ${input.subject}`,
-        { recipient: input.recipient_email, subject: input.subject }
-      );
+      if (error) {
+        throw new Error(error.message || "Échec de l'envoi de l'email");
+      }
+
+      if (!data?.success) {
+        throw new Error(data?.message || "Erreur lors de l'envoi de l'email");
+      }
+
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [CRM_QUERY_KEY] });
-      toast({ title: "Email envoyé (mock)", description: "L'email a été enregistré dans l'historique." });
+      toast({ title: "Email envoyé", description: "L'email a été envoyé avec succès." });
     },
     onError: (error) => {
       toast({ title: "Erreur", description: error.message, variant: "destructive" });
@@ -852,10 +853,14 @@ export const useCrmSettings = () => {
   return useQuery({
     queryKey: [CRM_QUERY_KEY, "settings"],
     queryFn: async () => {
+      // Use raw query to access crm_settings table (not yet in generated types)
       const { data, error } = await supabase
-        .from("crm_settings")
-        .select("setting_key, setting_value")
-        .in("setting_key", ["service_type_colors"]);
+        .from("crm_settings" as "crm_cards")
+        .select("*")
+        .in("setting_key" as "title", ["service_type_colors"]) as unknown as {
+          data: { setting_key: string; setting_value: unknown }[] | null;
+          error: Error | null;
+        };
 
       if (error) throw error;
 
@@ -888,7 +893,8 @@ export const useUpdateCrmSettings = () => {
       key: string;
       value: unknown;
     }) => {
-      const { error } = await supabase
+      // Use raw query for crm_settings table (not yet in generated types)
+      const { error } = await (supabase as unknown as { from: (table: string) => { upsert: (data: Record<string, unknown>, options: { onConflict: string }) => Promise<{ error: Error | null }> } })
         .from("crm_settings")
         .upsert(
           { setting_key: key, setting_value: value, updated_at: new Date().toISOString() },
