@@ -90,6 +90,7 @@ import { useSearchMissions } from "@/hooks/useMissions";
 import { missionStatusConfig } from "@/types/missions";
 import EmailEditor from "./EmailEditor";
 import { CreateTrainingDialog } from "./CreateTrainingDialog";
+import confetti from "canvas-confetti";
 
 interface CardDetailDrawerProps {
   card: CrmCard | null;
@@ -578,6 +579,45 @@ const CardDetailDrawer = ({
     }
   };
 
+  // Celebration confetti animation for won deals
+  const celebrateWin = () => {
+    const duration = 3000;
+    const end = Date.now() + duration;
+
+    const colors = ["#FFD700", "#FFA500", "#FF6347", "#32CD32", "#1E90FF", "#9370DB"];
+
+    const frame = () => {
+      confetti({
+        particleCount: 3,
+        angle: 60,
+        spread: 55,
+        origin: { x: 0, y: 0.8 },
+        colors: colors,
+      });
+      confetti({
+        particleCount: 3,
+        angle: 120,
+        spread: 55,
+        origin: { x: 1, y: 0.8 },
+        colors: colors,
+      });
+
+      if (Date.now() < end) {
+        requestAnimationFrame(frame);
+      }
+    };
+
+    // Initial burst
+    confetti({
+      particleCount: 100,
+      spread: 70,
+      origin: { x: 0.5, y: 0.5 },
+      colors: colors,
+    });
+
+    frame();
+  };
+
   const handleColumnChange = async (newColumnId: string, columnName: string) => {
     if (!card || !user?.email) return;
     setColumnId(newColumnId);
@@ -600,6 +640,11 @@ const CardDetailDrawer = ({
       actorEmail: user.email,
       oldCard: card,
     });
+
+    // Celebrate with confetti when deal is won!
+    if (movingToWon) {
+      celebrateWin();
+    }
 
     // If moving to won column and is a formation (or no type), prompt training creation
     if (movingToWon && (serviceType === "formation" || !serviceType)) {
