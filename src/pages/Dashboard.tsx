@@ -1,4 +1,4 @@
-import { Loader2, Award, FileText, Calendar, ClipboardCheck, TrendingUp, History, Newspaper, ClipboardList, Inbox, BarChart3, Kanban } from "lucide-react";
+import { Loader2, Award, FileText, Calendar, ClipboardCheck, TrendingUp, History, Newspaper, ClipboardList, Inbox, BarChart3, Kanban, Briefcase } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { useModuleAccess, AppModule } from "@/hooks/useModuleAccess";
@@ -22,6 +22,14 @@ const tools: Tool[] = [
     icon: <Kanban className="w-10 h-10" />,
     path: "/crm",
     module: "crm",
+  },
+  {
+    id: "missions",
+    name: "Missions",
+    description: "Suivi des missions de conseil",
+    icon: <Briefcase className="w-10 h-10" />,
+    path: "/missions",
+    module: "missions",
   },
   {
     id: "contenu",
