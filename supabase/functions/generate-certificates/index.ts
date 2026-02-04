@@ -406,6 +406,7 @@ async function findOrCreateFolder(accessToken: string, folderName: string, paren
 async function sendEmailWithResend(
   participantEmail: string,
   participantName: string,
+  participantFirstName: string,
   formationName: string,
   pdfUrl: string,
   emailDestinataire: string,
@@ -427,8 +428,11 @@ async function sendEmailWithResend(
   console.log(`Sending email to ${participantEmail}...`);
 
   // HTML-escape user-provided data
-  const safeParticipantName = escapeHtml(participantName);
+  const safeParticipantFirstName = escapeHtml(participantFirstName);
   const safeFormationName = escapeHtml(formationName);
+  
+  // Use first name only for greeting
+  const greeting = safeParticipantFirstName ? `Bonjour ${safeParticipantFirstName},` : "Bonjour,";
 
   // Send to participant
   const participantEmailResponse = await fetch("https://api.resend.com/emails", {
@@ -442,7 +446,7 @@ async function sendEmailWithResend(
       to: [participantEmail],
       subject: `Ton certificat de réalisation pour la formation ${formationName}`,
       html: `
-        <p>Bonjour ${safeParticipantName},</p>
+        <p>${greeting}</p>
         <p>Tu trouveras en pièce jointe ton certificat de réalisation pour la formation ${safeFormationName}.</p>
         <p>Je te souhaite de bien exploiter tout ce que tu as vu pendant la formation !</p>
         <p>Si tu souhaites aller plus loin, je t'invite à te rendre régulièrement sur <a href="https://www.supertilt.fr">www.supertilt.fr</a> et à consulter ma <a href="https://www.youtube.com/@supertilt">chaîne YouTube</a>.</p>
@@ -467,6 +471,7 @@ async function sendEmailWithResend(
   // Send copy to admin
   if (emailDestinataire && emailDestinataire !== participantEmail) {
     const safeParticipantEmail = escapeHtml(participantEmail);
+    const safeParticipantNameForAdmin = escapeHtml(participantName);
 
     const adminEmailResponse = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -480,7 +485,7 @@ async function sendEmailWithResend(
         subject: `[Copie] Certificat envoyé à ${participantName} - ${formationName}`,
         html: `
           <h1>Certificat envoyé</h1>
-          <p>Le certificat de formation a été envoyé à <strong>${safeParticipantName}</strong> (${safeParticipantEmail}).</p>
+          <p>Le certificat de formation a été envoyé à <strong>${safeParticipantNameForAdmin}</strong> (${safeParticipantEmail}).</p>
           <p><strong>Formation :</strong> ${safeFormationName}</p>
           <p>Une copie du certificat est jointe à cet email.</p>
         `,
@@ -762,6 +767,7 @@ serve(async (req: Request): Promise<Response> => {
               await sendEmailWithResend(
                 participant.email,
                 participantName,
+                participant.prenom || "",
                 formationName,
                 pdfUrl,
                 emailDestinataire,
