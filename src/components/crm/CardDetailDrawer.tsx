@@ -49,6 +49,8 @@ import {
   Brain,
   FileSignature,
   Check,
+  Globe,
+  Copy,
 } from "lucide-react";
 import { format, addDays, isAfter, startOfDay } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -125,6 +127,7 @@ const CardDetailDrawer = ({
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [linkedinUrl, setLinkedinUrl] = useState("");
+  const [websiteUrl, setWebsiteUrl] = useState("");
   const [serviceType, setServiceType] = useState<"formation" | "mission" | null>(null);
 
   // Scheduled action state
@@ -174,6 +177,7 @@ const CardDetailDrawer = ({
       setEmail(card.email || "");
       setPhone(card.phone || "");
       setLinkedinUrl(card.linkedin_url || "");
+      setWebsiteUrl(card.website_url || "");
       setServiceType(card.service_type || null);
       // Reset AI state
       setAiAnalysis(null);
@@ -337,6 +341,7 @@ const CardDetailDrawer = ({
         email: email.trim() || null,
         phone: phone.trim() || null,
         linkedin_url: linkedinUrl.trim() || null,
+        website_url: websiteUrl.trim() || null,
         service_type: serviceType,
       },
       actorEmail: user.email,
@@ -680,6 +685,32 @@ const CardDetailDrawer = ({
                   </div>
                 </div>
                 <div className="space-y-1 col-span-2">
+                  <Label className="text-xs flex items-center gap-1">
+                    <Globe className="h-3 w-3" />
+                    Site web
+                  </Label>
+                  <div className="flex gap-2">
+                    <Input
+                      type="url"
+                      value={websiteUrl}
+                      onChange={(e) => setWebsiteUrl(e.target.value)}
+                      placeholder="https://www.exemple.com"
+                      className="h-8 flex-1"
+                    />
+                    {websiteUrl && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        asChild
+                      >
+                        <a href={websiteUrl} target="_blank" rel="noopener noreferrer">
+                          <ExternalLink className="h-3 w-3" />
+                        </a>
+                      </Button>
+                    )}
+                  </div>
+                </div>
+                <div className="space-y-1 col-span-2">
                   <Label className="text-xs">Type de prestation</Label>
                   <Select
                     value={serviceType || ""}
@@ -963,14 +994,28 @@ const CardDetailDrawer = ({
             <div className="border-t pt-4 mt-4">
               <h4 className="font-medium mb-3 flex items-center gap-2">
                 <Mail className="h-4 w-4" />
-                Envoyer un email (mock)
+                Envoyer un email
               </h4>
               <div className="space-y-3">
-                <Input
-                  placeholder="Destinataire (email)"
-                  value={emailTo}
-                  onChange={(e) => setEmailTo(e.target.value)}
-                />
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Destinataire (email)"
+                    value={emailTo}
+                    onChange={(e) => setEmailTo(e.target.value)}
+                    className="flex-1"
+                  />
+                  {email && email !== emailTo && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setEmailTo(email)}
+                      title={`Utiliser ${email}`}
+                    >
+                      <Copy className="h-3 w-3 mr-1" />
+                      Client
+                    </Button>
+                  )}
+                </div>
                 <Input
                   placeholder="Sujet"
                   value={emailSubject}
