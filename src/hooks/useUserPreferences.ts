@@ -8,6 +8,10 @@ interface UserPreference<T> {
   save: (value: T) => Promise<void>;
 }
 
+interface UserPreferenceRow {
+  preference_value: unknown;
+}
+
 export function useUserPreference<T>(key: string, defaultValue: T): UserPreference<T> {
   const [value, setValue] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
@@ -23,8 +27,16 @@ export function useUserPreference<T>(key: string, defaultValue: T): UserPreferen
           return;
         }
 
-        const { data, error: fetchError } = await supabase
-          .from("user_preferences")
+        const { data, error: fetchError } = await (supabase
+          .from("user_preferences") as unknown as {
+            select: (columns: string) => {
+              eq: (column: string, value: string) => {
+                eq: (column: string, value: string) => {
+                  maybeSingle: () => Promise<{ data: UserPreferenceRow | null; error: Error | null }>;
+                };
+              };
+            };
+          })
           .select("preference_value")
           .eq("user_id", session.session.user.id)
           .eq("preference_key", key)
@@ -56,8 +68,13 @@ export function useUserPreference<T>(key: string, defaultValue: T): UserPreferen
         throw new Error("User not authenticated");
       }
 
-      const { error: upsertError } = await supabase
-        .from("user_preferences")
+      const { error: upsertError } = await (supabase
+        .from("user_preferences") as unknown as {
+          upsert: (
+            data: Record<string, unknown>,
+            options: { onConflict: string }
+          ) => Promise<{ error: Error | null }>;
+        })
         .upsert(
           {
             user_id: session.session.user.id,

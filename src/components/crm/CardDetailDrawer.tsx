@@ -529,7 +529,7 @@ const CardDetailDrawer = ({
         params.set("fromCrmCardId", card.id);
 
         onOpenChange(false);
-        navigate(`/formations/create?${params.toString()}`);
+        navigate(`/formations/new?${params.toString()}`);
       }
     }
   };
@@ -562,7 +562,7 @@ const CardDetailDrawer = ({
         params.set("fromCrmCardId", card.id);
 
         onOpenChange(false);
-        navigate(`/formations/create?${params.toString()}`);
+        navigate(`/formations/new?${params.toString()}`);
       }
     }
   };
@@ -601,7 +601,7 @@ const CardDetailDrawer = ({
       params.set("fromCrmCardId", card.id);
 
       onOpenChange(false);
-      navigate(`/formations/create?${params.toString()}`);
+      navigate(`/formations/new?${params.toString()}`);
     }
   };
 
