@@ -258,21 +258,22 @@ const CommentThread = ({
   };
 
   const handleUpdateCommentStatus = async (
-    commentId: string, 
+    commentId: string,
     status: "approved" | "refused" | "corrected"
   ) => {
     try {
       const { error } = await supabase
         .from("review_comments")
-        .update({ 
-          status, 
-          resolved_at: new Date().toISOString() 
+        .update({
+          status,
+          resolved_at: new Date().toISOString()
         })
         .eq("id", commentId);
 
       if (error) throw error;
 
       fetchComments();
+      onCommentAdded?.(); // Notify parent to refresh pending count
       toast.success(
         status === "approved"
           ? "Retour accepté"
@@ -298,6 +299,7 @@ const CommentThread = ({
       if (error) throw error;
 
       fetchComments();
+      onCommentAdded?.(); // Notify parent to refresh pending count
       toast.success("Commentaire supprimé");
     } catch (error) {
       console.error("Error deleting comment:", error);
