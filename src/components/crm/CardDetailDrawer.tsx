@@ -54,6 +54,8 @@ import {
   Copy,
   Briefcase,
   Search,
+  Undo2,
+  Wand2,
 } from "lucide-react";
 import { format, addDays, isAfter, startOfDay } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -156,6 +158,10 @@ const CardDetailDrawer = ({
   const [emailTo, setEmailTo] = useState("");
   const [emailSubject, setEmailSubject] = useState("");
   const [emailBody, setEmailBody] = useState("");
+  const [emailSubjectBeforeAi, setEmailSubjectBeforeAi] = useState<string | null>(null);
+  const [emailBodyBeforeAi, setEmailBodyBeforeAi] = useState<string | null>(null);
+  const [improvingSubject, setImprovingSubject] = useState(false);
+  const [improvingBody, setImprovingBody] = useState(false);
 
   // UI state
   const [isFullScreen, setIsFullScreen] = useState(false);
@@ -324,6 +330,80 @@ const CardDetailDrawer = ({
       setQuoteDescription("Erreur lors de la génération. Veuillez réessayer.");
     } finally {
       setQuoteGenerating(false);
+    }
+  };
+
+  // Improve email subject with AI
+  const handleImproveEmailSubject = async () => {
+    if (!emailSubject.trim()) return;
+    setImprovingSubject(true);
+    setEmailSubjectBeforeAi(emailSubject);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("crm-ai-assist", {
+        body: {
+          action: "improve_email_subject",
+          card_data: {
+            subject: emailSubject,
+            company,
+            first_name: firstName,
+            context: descriptionHtml,
+          },
+        },
+      });
+
+      if (error) throw error;
+      setEmailSubject(data.result);
+    } catch (error) {
+      console.error("AI subject improvement error:", error);
+      setEmailSubjectBeforeAi(null);
+    } finally {
+      setImprovingSubject(false);
+    }
+  };
+
+  // Improve email body with AI
+  const handleImproveEmailBody = async () => {
+    if (!emailBody.trim()) return;
+    setImprovingBody(true);
+    setEmailBodyBeforeAi(emailBody);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("crm-ai-assist", {
+        body: {
+          action: "improve_email_body",
+          card_data: {
+            body: emailBody,
+            subject: emailSubject,
+            company,
+            first_name: firstName,
+            context: descriptionHtml,
+          },
+        },
+      });
+
+      if (error) throw error;
+      setEmailBody(data.result);
+    } catch (error) {
+      console.error("AI body improvement error:", error);
+      setEmailBodyBeforeAi(null);
+    } finally {
+      setImprovingBody(false);
+    }
+  };
+
+  // Undo AI improvement
+  const handleUndoSubjectAi = () => {
+    if (emailSubjectBeforeAi) {
+      setEmailSubject(emailSubjectBeforeAi);
+      setEmailSubjectBeforeAi(null);
+    }
+  };
+
+  const handleUndoBodyAi = () => {
+    if (emailBodyBeforeAi) {
+      setEmailBody(emailBodyBeforeAi);
+      setEmailBodyBeforeAi(null);
     }
   };
 
@@ -896,7 +976,45 @@ const CardDetailDrawer = ({
                   </Button>
                 </div>
               )}
+              {/* Default action buttons */}
+              <div className="flex flex-wrap gap-1">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="text-xs h-7"
+                  onClick={() => setScheduledText("Envoyer un devis")}
+                >
+                  Envoyer un devis
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="text-xs h-7"
+                  onClick={() => setScheduledText("Faire un retour après consultation interne")}
+                >
+                  Retour après consultation
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="text-xs h-7"
+                  onClick={() => setScheduledText("Relancer le client")}
+                >
+                  Relancer le client
+                </Button>
+              </div>
               <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label className="text-xs">Action</Label>
+                  <Input
+                    value={scheduledText}
+                    onChange={(e) => setScheduledText(e.target.value)}
+                    placeholder="Relancer le client"
+                  />
+                </div>
                 <div>
                   <Label className="text-xs">Date (à partir de demain)</Label>
                   <Input
@@ -904,14 +1022,6 @@ const CardDetailDrawer = ({
                     min={tomorrow}
                     value={scheduledDate}
                     onChange={(e) => setScheduledDate(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs">Action</Label>
-                  <Input
-                    value={scheduledText}
-                    onChange={(e) => setScheduledText(e.target.value)}
-                    placeholder="Relancer le client"
                   />
                 </div>
               </div>
@@ -1130,17 +1240,79 @@ const CardDetailDrawer = ({
                     </Button>
                   )}
                 </div>
-                <Input
-                  placeholder="Sujet"
-                  value={emailSubject}
-                  onChange={(e) => setEmailSubject(e.target.value)}
-                />
-                <Textarea
-                  placeholder="Corps du message..."
-                  value={emailBody}
-                  onChange={(e) => setEmailBody(e.target.value)}
-                  rows={3}
-                />
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Sujet"
+                    value={emailSubject}
+                    onChange={(e) => {
+                      setEmailSubject(e.target.value);
+                      setEmailSubjectBeforeAi(null);
+                    }}
+                    className="flex-1"
+                  />
+                  {emailSubjectBeforeAi ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleUndoSubjectAi}
+                      title="Annuler l'amélioration"
+                    >
+                      <Undo2 className="h-4 w-4" />
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleImproveEmailSubject}
+                      disabled={!emailSubject.trim() || improvingSubject}
+                      title="Améliorer avec l'IA"
+                    >
+                      {improvingSubject ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Wand2 className="h-4 w-4" />
+                      )}
+                    </Button>
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  <Textarea
+                    placeholder="Corps du message..."
+                    value={emailBody}
+                    onChange={(e) => {
+                      setEmailBody(e.target.value);
+                      setEmailBodyBeforeAi(null);
+                    }}
+                    rows={3}
+                    className="flex-1"
+                  />
+                  <div className="flex flex-col gap-1">
+                    {emailBodyBeforeAi ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleUndoBodyAi}
+                        title="Annuler l'amélioration"
+                      >
+                        <Undo2 className="h-4 w-4" />
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleImproveEmailBody}
+                        disabled={!emailBody.trim() || improvingBody}
+                        title="Améliorer avec l'IA"
+                      >
+                        {improvingBody ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Wand2 className="h-4 w-4" />
+                        )}
+                      </Button>
+                    )}
+                  </div>
+                </div>
                 <Button
                   onClick={handleSendEmail}
                   disabled={!emailTo.trim() || !emailSubject.trim() || sendEmail.isPending}
