@@ -181,6 +181,17 @@ const EditParticipantDialog = ({
         return;
       }
 
+      // Update training_evaluations if participant info changed
+      await supabase
+        .from("training_evaluations")
+        .update({
+          email: email.trim().toLowerCase(),
+          first_name: firstName.trim() || null,
+          last_name: lastName.trim() || null,
+          company: company.trim() || null,
+        })
+        .eq("participant_id", participant.id);
+
       // Log activity
       await supabase.from("activity_logs").insert({
         action_type: "participant_updated",
