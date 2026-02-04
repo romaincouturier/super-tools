@@ -566,13 +566,26 @@ const CardDetailDrawer = ({
     const previousStatus = salesStatus;
     setSalesStatus(newStatus);
 
+    // When opportunity becomes WON or LOST, reset operational status to TODAY and clear waiting fields
+    const isFinalStatus = newStatus === "WON" || newStatus === "LOST";
+    const updates: Record<string, unknown> = { sales_status: newStatus };
+    
+    if (isFinalStatus) {
+      updates.status_operational = "TODAY";
+      updates.waiting_next_action_date = null;
+      updates.waiting_next_action_text = null;
+      // Clear local state for scheduled action fields
+      setScheduledDate("");
+      setScheduledText("");
+    }
+
     // Save immediately when status changes
     // Check if we're transitioning TO WON from a non-WON status
     const statusChangedToWon = newStatus === "WON" && previousStatus !== "WON";
 
     await updateCard.mutateAsync({
       id: card.id,
-      updates: { sales_status: newStatus },
+      updates,
       actorEmail: user.email,
       oldCard: card,
     });
