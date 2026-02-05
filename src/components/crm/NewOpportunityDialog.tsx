@@ -32,8 +32,8 @@ export function NewOpportunityDialog({ open, onOpenChange, userEmail }: NewOppor
   const extractMutation = useExtractOpportunity();
   const createCardMutation = useCreateCard();
 
-  // Find Qualification column
-  const qualificationColumn = boardData?.columns.find((col) => col.name === "Qualification");
+  // Find "Entrant" column (first column for new opportunities)
+  const entrantColumn = boardData?.columns.find((col) => col.name === "Entrant") || boardData?.columns[0];
 
   const handleExtract = async () => {
     if (!rawInput.trim()) return;
@@ -49,12 +49,12 @@ export function NewOpportunityDialog({ open, onOpenChange, userEmail }: NewOppor
   };
 
   const handleCreate = async () => {
-    if (!editedExtraction || !qualificationColumn) return;
+    if (!editedExtraction || !entrantColumn) return;
 
     try {
       await createCardMutation.mutateAsync({
         input: {
-          column_id: qualificationColumn.id,
+          column_id: entrantColumn.id,
           title: editedExtraction.title,
           first_name: editedExtraction.first_name || undefined,
           last_name: editedExtraction.last_name || undefined,
