@@ -67,6 +67,7 @@ export interface Card {
   display_order: number;
   review_status?: ReviewStatus;
   card_type?: ContentCardType;
+  emoji?: string | null;
 }
 
 interface KanbanBoardProps {
@@ -167,6 +168,7 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false }: Kanb
           tags: Array.isArray(c.tags) ? (c.tags as string[]) : [],
           review_status: cardReviewStatus.get(c.id) || "none",
           card_type: (c.card_type as ContentCardType) || "article",
+          emoji: (c as any).emoji || null,
         }))
       );
     } catch (error) {
@@ -403,6 +405,7 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false }: Kanb
             image_url: cardData.image_url,
             tags: cardData.tags,
             card_type: cardData.card_type || "article",
+            emoji: cardData.emoji ?? null,
           })
           .eq("id", editingCard.id);
 
@@ -417,6 +420,7 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false }: Kanb
           image_url: cardData.image_url,
           tags: cardData.tags || [],
           card_type: cardData.card_type || "article",
+          emoji: cardData.emoji ?? null,
           display_order: columnCards.length,
         });
 

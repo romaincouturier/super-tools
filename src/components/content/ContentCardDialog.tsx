@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Upload, X, Plus, Maximize2, Minimize2, RefreshCw, FileText, Linkedin, Instagram, Loader2, Save } from "lucide-react";
+import { Upload, X, Plus, Maximize2, Minimize2, RefreshCw, FileText, Linkedin, Instagram, Loader2, Save, Mail, Check } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -8,11 +8,21 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
 import type { Card, ContentCardType } from "./KanbanBoard";
 import ReviewSection from "./ReviewSection";
 import RichTextEditor from "./RichTextEditor";
+import EmojiPickerButton from "@/components/ui/emoji-picker-button";
 import { cn } from "@/lib/utils";
 
 type AiActionType = "reformulate" | "adapt_blog" | "adapt_linkedin" | "adapt_instagram";
@@ -43,9 +53,13 @@ const ContentCardDialog = ({
   const [tags, setTags] = useState<string[]>([]);
   const [newTag, setNewTag] = useState("");
   const [cardType, setCardType] = useState<ContentCardType>("article");
+  const [emoji, setEmoji] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [aiLoading, setAiLoading] = useState<AiActionType | null>(null);
+  const [draftNewsletters, setDraftNewsletters] = useState<{ id: string; title: string | null; scheduled_date: string }[]>([]);
+  const [attachedNewsletterId, setAttachedNewsletterId] = useState<string | null>(null);
+  const [attachingNewsletter, setAttachingNewsletter] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -55,22 +69,58 @@ const ContentCardDialog = ({
       setImageUrl(card.image_url || "");
       setTags(card.tags || []);
       setCardType(card.card_type || "article");
+      setEmoji(card.emoji || null);
     } else {
       setTitle("");
       setDescription("");
       setImageUrl("");
       setTags([]);
       setCardType("article");
+      setEmoji(null);
     }
   }, [card, open]);
 
-  // Reset state when dialog closes
+  // Fetch newsletters and current attachment when dialog opens
   useEffect(() => {
     if (!open) {
       setIsFullscreen(false);
       setAiLoading(null);
+      return;
     }
-  }, [open]);
+
+    const fetchNewsletters = async () => {
+      try {
+        const { data } = await (supabase as any)
+          .from("newsletters")
+          .select("id, title, scheduled_date")
+          .eq("status", "draft")
+          .order("scheduled_date", { ascending: true });
+        setDraftNewsletters(data || []);
+      } catch {
+        setDraftNewsletters([]);
+      }
+    };
+
+    const fetchAttachment = async () => {
+      if (!card) {
+        setAttachedNewsletterId(null);
+        return;
+      }
+      try {
+        const { data } = await (supabase as any)
+          .from("newsletter_cards")
+          .select("newsletter_id")
+          .eq("card_id", card.id)
+          .limit(1);
+        setAttachedNewsletterId(data?.[0]?.newsletter_id || null);
+      } catch {
+        setAttachedNewsletterId(null);
+      }
+    };
+
+    fetchNewsletters();
+    fetchAttachment();
+  }, [open, card]);
 
   const handleAiAction = async (action: AiActionType) => {
     if (!description.trim()) {
@@ -155,7 +205,57 @@ const ContentCardDialog = ({
       image_url: imageUrl || null,
       tags,
       card_type: cardType,
+      emoji,
     });
+  };
+
+  const handleNewsletterChange = async (newsletterId: string) => {
+    if (!card) return;
+
+    setAttachingNewsletter(true);
+    try {
+      // Remove existing attachment
+      if (attachedNewsletterId) {
+        await (supabase as any)
+          .from("newsletter_cards")
+          .delete()
+          .eq("card_id", card.id)
+          .eq("newsletter_id", attachedNewsletterId);
+      }
+
+      if (newsletterId === "none") {
+        setAttachedNewsletterId(null);
+        toast.success("Carte retirée de la newsletter");
+      } else {
+        // Get max display_order for this newsletter
+        const { data: existing } = await (supabase as any)
+          .from("newsletter_cards")
+          .select("display_order")
+          .eq("newsletter_id", newsletterId)
+          .order("display_order", { ascending: false })
+          .limit(1);
+
+        const nextOrder = (existing?.[0]?.display_order ?? -1) + 1;
+
+        const { error } = await (supabase as any)
+          .from("newsletter_cards")
+          .insert({
+            newsletter_id: newsletterId,
+            card_id: card.id,
+            display_order: nextOrder,
+          });
+
+        if (error) throw error;
+
+        setAttachedNewsletterId(newsletterId);
+        toast.success("Carte ajoutée à la newsletter");
+      }
+    } catch (error) {
+      console.error("Error updating newsletter attachment:", error);
+      toast.error("Erreur lors de la mise à jour");
+    } finally {
+      setAttachingNewsletter(false);
+    }
   };
 
   const toggleFullscreen = () => {
@@ -174,6 +274,7 @@ const ContentCardDialog = ({
       >
         {/* Sticky header with title and actions */}
         <div className="sticky top-0 z-10 bg-background border-b px-6 py-3 flex items-center gap-3">
+          <EmojiPickerButton emoji={emoji} onEmojiChange={setEmoji} size="lg" />
           <Input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
@@ -340,6 +441,39 @@ const ContentCardDialog = ({
                 </Button>
               </div>
             </div>
+
+            {/* Newsletter */}
+            {card && draftNewsletters.length > 0 && (
+              <div className="space-y-2">
+                <Label className="flex items-center gap-1.5">
+                  <Mail className="h-3.5 w-3.5" />
+                  Newsletter
+                </Label>
+                <Select
+                  value={attachedNewsletterId || "none"}
+                  onValueChange={handleNewsletterChange}
+                  disabled={attachingNewsletter}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Rattacher à une newsletter..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Aucune newsletter</SelectItem>
+                    {draftNewsletters.map((nl) => (
+                      <SelectItem key={nl.id} value={nl.id}>
+                        {nl.title || "Newsletter"} — {format(new Date(nl.scheduled_date), "d MMM yyyy", { locale: fr })}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {attachedNewsletterId && (
+                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    <Check className="h-3 w-3 text-green-600" />
+                    Rattachée à la newsletter
+                  </p>
+                )}
+              </div>
+            )}
 
             {/* Section Relecture (flat, pour cartes existantes) */}
             {card && (

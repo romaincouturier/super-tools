@@ -22,6 +22,7 @@ import { Mission, MissionStatus, missionStatusConfig } from "@/types/missions";
 import { useUpdateMission, useDeleteMission } from "@/hooks/useMissions";
 import MissionActivityTracker from "./MissionActivityTracker";
 import MissionPages from "./MissionPages";
+import EmojiPickerButton from "@/components/ui/emoji-picker-button";
 
 interface MissionDetailDrawerProps {
   mission: Mission | null;
@@ -63,6 +64,7 @@ const MissionDetailDrawer = ({
   const [tags, setTags] = useState<string[]>([]);
   const [newTag, setNewTag] = useState("");
   const [color, setColor] = useState("#6b7280");
+  const [missionEmoji, setMissionEmoji] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("activities");
 
   // Initialize form when mission changes
@@ -80,6 +82,7 @@ const MissionDetailDrawer = ({
       setInitialAmount(mission.initial_amount?.toString() || "");
       setTags(mission.tags || []);
       setColor(mission.color);
+      setMissionEmoji(mission.emoji || null);
     }
   }, [mission]);
 
@@ -101,6 +104,7 @@ const MissionDetailDrawer = ({
         initial_amount: initialAmount ? parseFloat(initialAmount) : null,
         tags,
         color,
+        emoji: missionEmoji,
       },
     });
   };
@@ -202,7 +206,10 @@ const MissionDetailDrawer = ({
             {/* Title */}
             <div>
               <Label>Titre</Label>
-              <Input value={title} onChange={(e) => setTitle(e.target.value)} />
+              <div className="flex items-center gap-2">
+                <EmojiPickerButton emoji={missionEmoji} onEmojiChange={setMissionEmoji} size="md" />
+                <Input value={title} onChange={(e) => setTitle(e.target.value)} className="flex-1" />
+              </div>
             </div>
 
             {/* Description */}

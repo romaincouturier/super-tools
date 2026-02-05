@@ -140,7 +140,10 @@ const CrmCardComponent = ({ card, isDragging, onClick, serviceTypeColors }: CrmC
         </div>
 
         {/* Title */}
-        <div className="font-medium text-sm line-clamp-2">{card.title}</div>
+        <div className="font-medium text-sm line-clamp-2">
+          {card.emoji && <span className="mr-1">{card.emoji}</span>}
+          {card.title}
+        </div>
 
         {/* Tags */}
         {card.tags && card.tags.length > 0 && (

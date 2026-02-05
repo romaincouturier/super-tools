@@ -48,7 +48,10 @@ const MissionCard = ({ mission, isDragging, onClick }: MissionCardProps) => {
       )}
     >
       {/* Title */}
-      <h4 className="font-medium text-sm mb-2 line-clamp-2">{mission.title}</h4>
+      <h4 className="font-medium text-sm mb-2 line-clamp-2">
+        {mission.emoji && <span className="mr-1">{mission.emoji}</span>}
+        {mission.title}
+      </h4>
 
       {/* Client */}
       {mission.client_name && (

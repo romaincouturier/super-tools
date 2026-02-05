@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Send, Loader2, MessageCircle, Check, X, Pencil, Image, FileText, Palette, Trash2 } from "lucide-react";
+import { Send, Loader2, MessageCircle, Check, X, Pencil, Image, FileText, Palette, Trash2, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -205,9 +205,13 @@ const CommentThread = ({
         setUploadingImage(true);
         imageUrl = await uploadImage(imageFile);
         setUploadingImage(false);
+        if (!imageUrl) {
+          // Upload failed, don't submit comment without the intended image
+          return;
+        }
       }
 
-      const { error } = await supabase.from("review_comments").insert({
+      const { error } = await (supabase as any).from("review_comments").insert({
         review_id: reviewId,
         author_id: userId,
         content: newComment.trim(),
@@ -417,8 +421,23 @@ const CommentThread = ({
 
                       {/* Correction proposée (optionnelle) */}
                       {comment.proposed_correction && (
-                        <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded text-sm">
-                          <span className="font-medium text-blue-700">Correction proposée :</span>
+                        <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded text-sm relative group/correction">
+                          <div className="flex items-center justify-between">
+                            <span className="font-medium text-blue-700">Correction proposée :</span>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 opacity-0 group-hover/correction:opacity-100 transition-opacity text-blue-600 hover:text-blue-800 hover:bg-blue-100"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigator.clipboard.writeText(comment.proposed_correction!);
+                                toast.success("Correction copiée");
+                              }}
+                              title="Copier la correction"
+                            >
+                              <Copy className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
                           <p className="text-blue-900 mt-1 whitespace-pre-wrap">{comment.proposed_correction}</p>
                         </div>
                       )}

@@ -72,6 +72,8 @@ export interface CrmCard {
   next_action_done: boolean;
   // Linked mission
   linked_mission_id: string | null;
+  // Emoji
+  emoji?: string | null;
   // Joined data
   tags?: CrmTag[];
 }
@@ -185,6 +187,8 @@ export interface UpdateCardInput {
   next_action_done?: boolean;
   // Linked mission
   linked_mission_id?: string | null;
+  // Emoji
+  emoji?: string | null;
 }
 
 export interface CreateColumnInput {

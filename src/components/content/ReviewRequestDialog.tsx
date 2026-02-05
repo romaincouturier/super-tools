@@ -9,7 +9,6 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -18,7 +17,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 interface ReviewRequestDialogProps {
   open: boolean;
@@ -42,8 +40,6 @@ const ReviewRequestDialog = ({
 }: ReviewRequestDialogProps) => {
   const [users, setUsers] = useState<User[]>([]);
   const [selectedUser, setSelectedUser] = useState("");
-  const [reviewType, setReviewType] = useState<"card" | "external">("card");
-  const [externalUrl, setExternalUrl] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -54,7 +50,6 @@ const ReviewRequestDialog = ({
 
   const fetchUsers = async () => {
     try {
-      // Get users with content access
       const { data, error } = await supabase
         .from("user_module_access")
         .select("user_id")
@@ -62,11 +57,6 @@ const ReviewRequestDialog = ({
 
       if (error) throw error;
 
-      // For now, we'll use a simplified approach
-      // In a real app, you'd fetch user emails from a profiles table
-      const userIds = [...new Set((data || []).map((u) => u.user_id))];
-      
-      // Add default users (Emmanuelle & Romain)
       setUsers([
         { id: "emmanuelle", email: "emmanuelle@supertilt.fr" },
         { id: "romain", email: "romain@supertilt.fr" },
@@ -82,24 +72,18 @@ const ReviewRequestDialog = ({
       return;
     }
 
-    if (reviewType === "external" && !externalUrl) {
-      toast.error("Veuillez entrer l'URL externe");
-      return;
-    }
-
     setLoading(true);
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       const currentUserId = sessionData.session?.user?.id;
 
-      // Use current user as reviewer_id (for RLS purposes) but store the selected email
       const reviewerId = currentUserId;
 
       const { error } = await supabase.from("content_reviews").insert({
         card_id: cardId,
         reviewer_id: reviewerId,
-        reviewer_email: selectedUser, // Store the selected email directly
-        external_url: reviewType === "external" ? externalUrl : null,
+        reviewer_email: selectedUser,
+        external_url: null,
         created_by: currentUserId,
       });
 
@@ -121,14 +105,13 @@ const ReviewRequestDialog = ({
             recipientEmail: selectedUser,
             cardTitle,
             cardId,
-            externalUrl: reviewType === "external" ? externalUrl : null,
           },
         });
       } catch (emailError) {
         console.error("Error sending notification email:", emailError);
       }
 
-      toast.success("Demande de relecture envoyée");
+      toast.success("Relecteur associé");
       onOpenChange(false);
       onCreated();
     } catch (error) {
@@ -143,7 +126,7 @@ const ReviewRequestDialog = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Demander une relecture</DialogTitle>
+          <DialogTitle>Associer un relecteur</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
@@ -162,40 +145,6 @@ const ReviewRequestDialog = ({
               </SelectContent>
             </Select>
           </div>
-
-          <div className="space-y-2">
-            <Label>Type de relecture</Label>
-            <RadioGroup
-              value={reviewType}
-              onValueChange={(v) => setReviewType(v as "card" | "external")}
-            >
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="card" id="card" />
-                <Label htmlFor="card" className="font-normal">
-                  Contenu de la carte
-                </Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="external" id="external" />
-                <Label htmlFor="external" className="font-normal">
-                  Contenu externe (URL)
-                </Label>
-              </div>
-            </RadioGroup>
-          </div>
-
-          {reviewType === "external" && (
-            <div className="space-y-2">
-              <Label htmlFor="external-url">URL externe</Label>
-              <Input
-                id="external-url"
-                type="url"
-                value={externalUrl}
-                onChange={(e) => setExternalUrl(e.target.value)}
-                placeholder="https://..."
-              />
-            </div>
-          )}
         </div>
 
         <DialogFooter>
@@ -203,7 +152,7 @@ const ReviewRequestDialog = ({
             Annuler
           </Button>
           <Button onClick={handleSubmit} disabled={loading}>
-            {loading ? "Envoi..." : "Envoyer la demande"}
+            {loading ? "Association..." : "Associer"}
           </Button>
         </DialogFooter>
       </DialogContent>
