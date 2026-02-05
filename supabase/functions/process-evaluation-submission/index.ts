@@ -345,6 +345,36 @@ const handler = async (req: Request): Promise<Response> => {
     const pdfBytes = new Uint8Array(pdfArrayBuffer);
 
     // ========================================
+    // 1b. Store PDF in Supabase Storage
+    // ========================================
+    let certificateStorageUrl = "";
+    try {
+      const storagePath = `${training.id}/${evaluation.participant_id || evaluationId}.pdf`;
+      const { error: storageError } = await supabase.storage
+        .from("certificates")
+        .upload(storagePath, pdfBytes, { contentType: "application/pdf", upsert: true });
+
+      if (!storageError) {
+        const { data: publicData } = supabase.storage
+          .from("certificates")
+          .getPublicUrl(storagePath);
+        certificateStorageUrl = publicData.publicUrl;
+
+        // Save URL on the evaluation record
+        await supabase
+          .from("training_evaluations")
+          .update({ certificate_url: certificateStorageUrl })
+          .eq("id", evaluationId);
+
+        console.log("Certificate stored in Supabase Storage:", certificateStorageUrl);
+      } else {
+        console.error("Storage upload failed:", storageError);
+      }
+    } catch (storageErr) {
+      console.error("Certificate storage error:", storageErr);
+    }
+
+    // ========================================
     // 2. Upload to Google Drive
     // ========================================
     let driveUrl = "";
