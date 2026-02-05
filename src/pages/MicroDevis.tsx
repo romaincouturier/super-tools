@@ -83,6 +83,9 @@ const MicroDevis = () => {
   const [newDate, setNewDate] = useState<Partial<FormationDate> | null>(null);
   const [jsonPreviewOpen, setJsonPreviewOpen] = useState(false);
 
+  // CRM card link
+  const [crmCardId, setCrmCardId] = useState<string | null>(null);
+
   // SIREN search
   const [siren, setSiren] = useState("");
   const [searchingSiren, setSearchingSiren] = useState(false);
@@ -309,10 +312,12 @@ const MicroDevis = () => {
     const nomClientParam = searchParams.get("nomClient");
     const emailParam = searchParams.get("emailCommanditaire");
     const adresseParam = searchParams.get("adresseCommanditaire");
+    const cardIdParam = searchParams.get("crmCardId");
 
     if (nomClientParam) setNomClient(nomClientParam);
     if (emailParam) setEmailCommanditaire(emailParam);
     if (adresseParam) setAdresseCommanditaire(adresseParam);
+    if (cardIdParam) setCrmCardId(cardIdParam);
 
     // Pre-select "formation" type since coming from CRM with service_type = formation
     setTypeDevis("formation");
@@ -887,6 +892,8 @@ const MicroDevis = () => {
           formationLibre,
           dateFormationLibre,
           lieuAutre,
+          // CRM card link
+          ...(crmCardId && { crmCardId, senderEmail: user?.email }),
         },
       });
 
