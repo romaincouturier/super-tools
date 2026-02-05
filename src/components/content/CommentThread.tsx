@@ -157,7 +157,6 @@ const CommentThread = ({
   };
 
   const uploadImage = async (file: File): Promise<string | null> => {
-    // Safety net: if auth header isn't attached for some reason, Storage will be denied.
     const { data: sessionData } = await supabase.auth.getSession();
     if (!sessionData.session?.user) {
       toast.error("Votre session a expiré — reconnectez-vous puis réessayez");
@@ -165,30 +164,27 @@ const CommentThread = ({
     }
 
     try {
-      // Workaround for persistent Storage RLS insert failures:
-      // request a signed upload token from a backend function (service-role),
-      // then upload directly with that token.
-      const { data: signedData, error: signedError } = await supabase.functions.invoke(
+      // Convert file to base64 data URL
+      const fileBase64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      // Upload via edge function (service-role) to bypass Storage RLS
+      const { data: uploadData, error: invokeError } = await supabase.functions.invoke(
         "create-review-image-upload-url",
-        { body: { originalFileName: file.name, mimeType: file.type, reviewId } }
+        { body: { originalFileName: file.name, mimeType: file.type, reviewId, fileBase64 } }
       );
 
-      if (signedError) throw signedError;
+      if (invokeError) throw invokeError;
 
-      const path = (signedData as any)?.path as string | undefined;
-      const token = (signedData as any)?.token as string | undefined;
-      const publicUrl = (signedData as any)?.publicUrl as string | undefined;
-
-      if (!path || !token || !publicUrl) {
-        console.error("[CommentThread] Invalid signed upload response:", signedData);
+      const publicUrl = (uploadData as any)?.publicUrl as string | undefined;
+      if (!publicUrl) {
+        console.error("[CommentThread] Invalid upload response:", uploadData);
         throw new Error("Réponse d'upload invalide. Veuillez réessayer.");
       }
-
-      const { error: uploadError } = await supabase.storage
-        .from("review-images")
-        .uploadToSignedUrl(path, token, file);
-
-      if (uploadError) throw uploadError;
 
       return publicUrl;
     } catch (error: any) {
@@ -458,14 +454,19 @@ const CommentThread = ({
                             minute: "2-digit",
                           })}
                         </span>
-                        {comment.comment_type && commentTypeConfig[comment.comment_type] && (
-                          <Badge
-                            variant="secondary"
-                            className={cn("text-xs", commentTypeConfig[comment.comment_type].className)}
-                          >
-                            {commentTypeConfig[comment.comment_type].label}
-                          </Badge>
-                        )}
+                        {comment.comment_type && commentTypeConfig[comment.comment_type] && (() => {
+                          const config = commentTypeConfig[comment.comment_type!];
+                          const TypeIcon = config.icon;
+                          return (
+                            <Badge
+                              variant="secondary"
+                              className={cn("text-xs gap-1", config.className)}
+                            >
+                              <TypeIcon className="h-3 w-3" />
+                              {config.label}
+                            </Badge>
+                          );
+                        })()}
                         <Badge
                           variant="secondary"
                           className={cn("text-xs", statusConf.className)}
