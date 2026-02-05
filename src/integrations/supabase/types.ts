@@ -1263,6 +1263,72 @@ export type Database = {
         }
         Relationships: []
       }
+      newsletter_cards: {
+        Row: {
+          card_id: string
+          created_at: string
+          display_order: number
+          id: string
+          newsletter_id: string
+        }
+        Insert: {
+          card_id: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          newsletter_id: string
+        }
+        Update: {
+          card_id?: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          newsletter_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "newsletter_cards_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: false
+            referencedRelation: "content_cards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "newsletter_cards_newsletter_id_fkey"
+            columns: ["newsletter_id"]
+            isOneToOne: false
+            referencedRelation: "newsletters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      newsletters: {
+        Row: {
+          created_at: string
+          id: string
+          scheduled_date: string
+          sent_at: string | null
+          status: string
+          title: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          scheduled_date: string
+          sent_at?: string | null
+          status?: string
+          title?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          scheduled_date?: string
+          sent_at?: string | null
+          status?: string
+          title?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
