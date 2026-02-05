@@ -17,11 +17,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Save, Trash2, Loader2, X, Plus, Clock, FileText, Settings } from "lucide-react";
+import { Save, Trash2, Loader2, X, Plus, Clock, FileText, Settings, ImageIcon } from "lucide-react";
 import { Mission, MissionStatus, missionStatusConfig } from "@/types/missions";
 import { useUpdateMission, useDeleteMission } from "@/hooks/useMissions";
 import MissionActivityTracker from "./MissionActivityTracker";
 import MissionPages from "./MissionPages";
+import MissionGallery from "./MissionGallery";
 import EmojiPickerButton from "@/components/ui/emoji-picker-button";
 
 interface MissionDetailDrawerProps {
@@ -153,7 +154,7 @@ const MissionDetailDrawer = ({
         </SheetHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="activities" className="flex items-center gap-2">
               <Clock className="h-4 w-4" />
               Activités
@@ -161,6 +162,10 @@ const MissionDetailDrawer = ({
             <TabsTrigger value="pages" className="flex items-center gap-2">
               <FileText className="h-4 w-4" />
               Pages
+            </TabsTrigger>
+            <TabsTrigger value="gallery" className="flex items-center gap-2">
+              <ImageIcon className="h-4 w-4" />
+              Galerie
             </TabsTrigger>
             <TabsTrigger value="settings" className="flex items-center gap-2">
               <Settings className="h-4 w-4" />
@@ -176,6 +181,11 @@ const MissionDetailDrawer = ({
           {/* Pages Tab */}
           <TabsContent value="pages" className="mt-4">
             <MissionPages mission={mission} />
+          </TabsContent>
+
+          {/* Gallery Tab */}
+          <TabsContent value="gallery" className="mt-4">
+            <MissionGallery mission={mission} />
           </TabsContent>
 
           {/* Settings Tab */}
