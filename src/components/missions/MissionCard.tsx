@@ -5,14 +5,16 @@ import { fr } from "date-fns/locale";
 import { Calendar, Building2, Euro } from "lucide-react";
 import { Mission } from "@/types/missions";
 import { cn } from "@/lib/utils";
+import EmojiPickerButton from "@/components/ui/emoji-picker-button";
 
 interface MissionCardProps {
   mission: Mission;
   isDragging?: boolean;
   onClick?: () => void;
+  onEmojiChange?: (missionId: string, emoji: string | null) => void;
 }
 
-const MissionCard = ({ mission, isDragging, onClick }: MissionCardProps) => {
+const MissionCard = ({ mission, isDragging, onClick, onEmojiChange }: MissionCardProps) => {
   const {
     attributes,
     listeners,
@@ -34,13 +36,19 @@ const MissionCard = ({ mission, isDragging, onClick }: MissionCardProps) => {
     borderLeftColor: mission.color,
   };
 
+  const handleCardClick = (e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    if (target.closest('[data-emoji-picker]')) return;
+    onClick?.();
+  };
+
   return (
     <div
       ref={setNodeRef}
       style={combinedStyle}
       {...attributes}
       {...listeners}
-      onClick={onClick}
+      onClick={handleCardClick}
       className={cn(
         "p-3 bg-card border rounded-lg cursor-pointer transition-all hover:shadow-md",
         "border-l-4",
@@ -48,10 +56,15 @@ const MissionCard = ({ mission, isDragging, onClick }: MissionCardProps) => {
       )}
     >
       {/* Title */}
-      <h4 className="font-medium text-sm mb-2 line-clamp-2">
-        {mission.emoji && <span className="mr-1">{mission.emoji}</span>}
-        {mission.title}
-      </h4>
+      <div className="flex items-start gap-1 mb-2" data-emoji-picker>
+        <EmojiPickerButton
+          emoji={mission.emoji}
+          onEmojiChange={(emoji) => onEmojiChange?.(mission.id, emoji)}
+          size="sm"
+          className="shrink-0 mt-0.5"
+        />
+        <h4 className="font-medium text-sm line-clamp-2">{mission.title}</h4>
+      </div>
 
       {/* Client */}
       {mission.client_name && (

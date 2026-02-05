@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import type { Card } from "./KanbanBoard";
+import EmojiPickerButton from "@/components/ui/emoji-picker-button";
 
 interface ContentCardProps {
   card: Card;
@@ -19,6 +20,7 @@ interface ContentCardProps {
   onEdit?: () => void;
   onDelete?: () => void;
   onView?: () => void;
+  onEmojiChange?: (cardId: string, emoji: string | null) => void;
 }
 
 const tagColors = [
@@ -35,7 +37,7 @@ const getTagColor = (tag: string) => {
   return tagColors[index % tagColors.length];
 };
 
-const ContentCard = ({ card, isDragging, typeColors, onEdit, onDelete, onView }: ContentCardProps) => {
+const ContentCard = ({ card, isDragging, typeColors, onEdit, onDelete, onView, onEmojiChange }: ContentCardProps) => {
   const {
     attributes,
     listeners,
@@ -54,9 +56,8 @@ const ContentCard = ({ card, isDragging, typeColors, onEdit, onDelete, onView }:
   const borderColor = typeColors?.[card.card_type] || (card.card_type === "post" ? "#a855f7" : "#3b82f6");
 
   const handleCardClick = (e: React.MouseEvent) => {
-    // Only trigger if clicking on the card body, not the dropdown menu
     const target = e.target as HTMLElement;
-    if (target.closest('[data-radix-dropdown-menu-trigger]') || target.closest('[role="menu"]')) {
+    if (target.closest('[data-radix-dropdown-menu-trigger]') || target.closest('[role="menu"]') || target.closest('[data-emoji-picker]')) {
       return;
     }
     if (onView) {
@@ -90,10 +91,15 @@ const ContentCard = ({ card, isDragging, typeColors, onEdit, onDelete, onView }:
 
       <div className="p-3">
         <div className="flex items-start justify-between gap-2">
-          <h4 className="font-medium text-sm line-clamp-2 flex-1 min-w-0">
-            {card.emoji && <span className="mr-1">{card.emoji}</span>}
-            {card.title}
-          </h4>
+          <div className="flex items-start gap-1 flex-1 min-w-0" data-emoji-picker>
+            <EmojiPickerButton
+              emoji={card.emoji}
+              onEmojiChange={(emoji) => onEmojiChange?.(card.id, emoji)}
+              size="sm"
+              className="shrink-0 mt-0.5"
+            />
+            <h4 className="font-medium text-sm line-clamp-2">{card.title}</h4>
+          </div>
 
           {(onEdit || onDelete || onView) && (
             <DropdownMenu>

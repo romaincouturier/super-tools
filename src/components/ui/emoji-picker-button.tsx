@@ -50,7 +50,7 @@ const EmojiPickerButton = ({
   };
 
   return (
-    <div ref={containerRef} className={cn("relative inline-block", className)}>
+    <div ref={containerRef} className={cn("relative inline-block", className)} data-emoji-picker>
       <button
         type="button"
         onClick={() => setOpen(!open)}

@@ -454,6 +454,24 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, onNews
     }
   };
 
+  const handleCardEmojiChange = async (cardId: string, emoji: string | null) => {
+    try {
+      const { error } = await (supabase as any)
+        .from("content_cards")
+        .update({ emoji })
+        .eq("id", cardId);
+
+      if (error) throw error;
+
+      setCards((prev) =>
+        prev.map((c) => (c.id === cardId ? { ...c, emoji } : c))
+      );
+    } catch (error) {
+      console.error("Error updating emoji:", error);
+      toast.error("Erreur lors de la mise à jour de l'emoji");
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -517,6 +535,7 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, onNews
                   onEditCard={setEditingCard}
                   onViewCard={setEditingCard}
                   onDeleteCard={handleDeleteCard}
+                  onEmojiChange={handleCardEmojiChange}
                 />
               );
             })}
