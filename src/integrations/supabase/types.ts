@@ -628,6 +628,7 @@ export type Database = {
           created_at: string
           description_html: string | null
           email: string | null
+          emoji: string | null
           estimated_value: number | null
           first_name: string | null
           id: string
@@ -656,6 +657,7 @@ export type Database = {
           created_at?: string
           description_html?: string | null
           email?: string | null
+          emoji?: string | null
           estimated_value?: number | null
           first_name?: string | null
           id?: string
@@ -684,6 +686,7 @@ export type Database = {
           created_at?: string
           description_html?: string | null
           email?: string | null
+          emoji?: string | null
           estimated_value?: number | null
           first_name?: string | null
           id?: string
