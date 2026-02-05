@@ -15,6 +15,7 @@ import {
   PartyPopper,
   ChevronRight,
   MessageCircle,
+  ExternalLink,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -75,6 +76,26 @@ const NewsletterSection = ({ onCardClick, refreshKey }: NewsletterSectionProps) 
   const [creating, setCreating] = useState(false);
   const [sending, setSending] = useState(false);
   const [justSent, setJustSent] = useState(false);
+  const [newsletterToolUrl, setNewsletterToolUrl] = useState<string | null>(null);
+
+  // Fetch newsletter tool URL from app_settings
+  useEffect(() => {
+    const fetchToolUrl = async () => {
+      try {
+        const { data } = await supabase
+          .from("app_settings")
+          .select("setting_value")
+          .eq("setting_key", "newsletter_tool_url")
+          .single();
+        if (data?.setting_value) {
+          setNewsletterToolUrl(data.setting_value);
+        }
+      } catch {
+        // Setting not configured yet
+      }
+    };
+    fetchToolUrl();
+  }, []);
 
   const fetchNewsletters = useCallback(async () => {
     try {
@@ -318,6 +339,17 @@ const NewsletterSection = ({ onCardClick, refreshKey }: NewsletterSectionProps) 
                   <Badge variant="outline" className="text-xs">Programmée</Badge>
                 </div>
                 <div className="flex items-center gap-2">
+                  {newsletterToolUrl && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => window.open(newsletterToolUrl, "_blank")}
+                      className="gap-1.5"
+                    >
+                      <ExternalLink className="h-3.5 w-3.5" />
+                      Préparer la newsletter
+                    </Button>
+                  )}
                   <Button
                     size="sm"
                     variant="outline"
