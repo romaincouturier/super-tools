@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Slider } from "@/components/ui/slider";
-import { Loader2, ExternalLink, Calendar, Clock, CheckCircle2 } from "lucide-react";
+import { Loader2, ExternalLink, Calendar, Clock, CheckCircle2, MapPin, Video } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -55,6 +55,7 @@ type TrainingRecord = {
   prerequisites: string[] | null;
   program_file_url: string | null;
   format_formation: string | null;
+  location: string | null;
 };
 
 type ScheduleRecord = {
@@ -150,7 +151,7 @@ const Questionnaire = () => {
 
       const { data: t, error: tErr } = await supabase
         .from("trainings")
-        .select("training_name,start_date,end_date,prerequisites,program_file_url,format_formation")
+        .select("training_name,start_date,end_date,prerequisites,program_file_url,format_formation,location")
         .eq("id", qTyped.training_id)
         .single();
 
@@ -680,15 +681,43 @@ const Questionnaire = () => {
                   {training.training_name}
                 </p>
                 {schedules.length > 0 && (
-                  <div className="space-y-1">
-                    {schedules.map((sched, idx) => (
-                      <div key={idx} className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Calendar className="w-4 h-4" />
-                        <span className="capitalize">{formatScheduleDate(sched.day_date)}</span>
-                        <Clock className="w-4 h-4 ml-2" />
-                        <span>{formatTime(sched.start_time)} - {formatTime(sched.end_time)}</span>
-                      </div>
-                    ))}
+                  <div className="space-y-2">
+                    <div className="grid grid-cols-[1fr_auto] gap-x-6 gap-y-1">
+                      {schedules.map((sched, idx) => (
+                        <div key={idx} className="contents">
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Calendar className="w-4 h-4 shrink-0" />
+                            <span className="capitalize">{formatScheduleDate(sched.day_date)}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Clock className="w-4 h-4 shrink-0" />
+                            <span>{formatTime(sched.start_time)} - {formatTime(sched.end_time)}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-xs text-muted-foreground italic">Horaires indiqués en heure de Paris</p>
+                  </div>
+                )}
+                {training.location && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    {(() => {
+                      const loc = training.location.toLowerCase();
+                      const isOnline = loc.includes("visio") || loc.includes("en ligne") || loc.includes("distanciel") || loc.includes("zoom") || loc.includes("teams") || loc.includes("meet");
+                      const urlMatch = training.location.match(/(https?:\/\/[^\s]+)/);
+                      return (
+                        <>
+                          {isOnline ? <Video className="w-4 h-4 shrink-0" /> : <MapPin className="w-4 h-4 shrink-0" />}
+                          {urlMatch ? (
+                            <a href={urlMatch[0]} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                              {training.location}
+                            </a>
+                          ) : (
+                            <span>{training.location}</span>
+                          )}
+                        </>
+                      );
+                    })()}
                   </div>
                 )}
               </CardDescription>

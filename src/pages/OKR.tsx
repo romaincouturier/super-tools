@@ -85,7 +85,7 @@ const OKR = () => {
   const [selectedObjective, setSelectedObjective] = useState<OKRObjective | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  const { data: objectives, isLoading } = useOKRObjectives({ year: selectedYear });
+  const { data: objectives, isLoading, isError } = useOKRObjectives({ year: selectedYear });
   const createObjective = useCreateOKRObjective();
   const updateObjective = useUpdateOKRObjective();
   const deleteObjective = useDeleteOKRObjective();
@@ -295,9 +295,14 @@ const OKR = () => {
       )}
 
       {/* Objectives List */}
-      {isLoading ? (
+      {isLoading && !isError ? (
         <div className="flex justify-center py-12">
           <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+      ) : isError ? (
+        <div className="text-center py-12 text-muted-foreground">
+          <p className="text-lg font-medium mb-1">Module OKR</p>
+          <p className="text-sm">Les tables OKR n'ont pas encore été créées. Appliquez la migration pour activer ce module.</p>
         </div>
       ) : objectives && objectives.length > 0 ? (
         <div className="space-y-6">
