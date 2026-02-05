@@ -160,85 +160,43 @@ const CommentThread = ({
       return null;
     }
 
-    const sanitizeFilePart = (name: string) => {
-      const base = name
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .replace(/\s+/g, "_")
-        .replace(/[^a-zA-Z0-9_.-]/g, "")
-        .slice(0, 80);
-      return base || "image";
-    };
+    try {
+      // Workaround for persistent Storage RLS insert failures:
+      // request a signed upload token from a backend function (service-role),
+      // then upload directly with that token.
+      const { data: signedData, error: signedError } = await supabase.functions.invoke(
+        "create-review-image-upload-url",
+        { body: { originalFileName: file.name, mimeType: file.type, reviewId } }
+      );
 
-    // Infer extension (important for pasted images that sometimes have a generic filename)
-    const mimeToExt: Record<string, string> = {
-      "image/png": "png",
-      "image/jpeg": "jpg",
-      "image/jpg": "jpg",
-      "image/gif": "gif",
-      "image/webp": "webp",
-      "image/heic": "heic",
-      "image/heif": "heif",
-    };
+      if (signedError) throw signedError;
 
-    const extFromName = (() => {
-      const parts = file.name.split(".");
-      const ext = parts.length > 1 ? parts.pop() : null;
-      if (!ext) return null;
-      const cleaned = ext.toLowerCase();
-      // keep it reasonable; prevents weird names like "myfile.backup.png"
-      return cleaned.length <= 5 ? cleaned : null;
-    })();
+      const path = (signedData as any)?.path as string | undefined;
+      const token = (signedData as any)?.token as string | undefined;
+      const publicUrl = (signedData as any)?.publicUrl as string | undefined;
 
-    const fileExt = (extFromName || mimeToExt[file.type] || "png").toLowerCase();
+      if (!path || !token || !publicUrl) {
+        console.error("[CommentThread] Invalid signed upload response:", signedData);
+        throw new Error("Réponse d'upload invalide. Veuillez réessayer.");
+      }
 
-    // Content-Type fallback (some browsers provide an empty string)
-    const extToMime: Record<string, string> = {
-      png: "image/png",
-      jpg: "image/jpeg",
-      jpeg: "image/jpeg",
-      gif: "image/gif",
-      webp: "image/webp",
-      heic: "image/heic",
-      heif: "image/heif",
-    };
-    const contentType = file.type || extToMime[fileExt] || "application/octet-stream";
+      const { error: uploadError } = await supabase.storage
+        .from("review-images")
+        .uploadToSignedUrl(path, token, file);
 
-    const originalBaseName = file.name.replace(/\.[^.]+$/, "");
-    const safeBaseName = sanitizeFilePart(originalBaseName);
-    const unique =
-      typeof crypto !== "undefined" && "randomUUID" in crypto
-        ? (crypto as Crypto).randomUUID()
-        : `${Date.now()}_${Math.random().toString(16).slice(2)}`;
+      if (uploadError) throw uploadError;
 
-    const fileName = `${reviewId}/${Date.now()}_${unique}_${safeBaseName}.${fileExt}`;
-
-    const { error } = await supabase.storage
-      .from("review-images")
-      .upload(fileName, file, {
-        contentType,
-        upsert: false,
-      });
-
-    if (error) {
+      return publicUrl;
+    } catch (error: any) {
       console.error("Upload error:", error);
       const statusCode = (error as any)?.statusCode as number | undefined;
-      const msg = [
-        statusCode ? `HTTP ${statusCode}` : null,
-        error.message || null,
-      ]
+      const message = String(error?.message || "").trim();
+      const msg = [statusCode ? `HTTP ${statusCode}` : null, message || null]
         .filter(Boolean)
         .join(" — ");
-
       toast.error(msg ? `Upload impossible : ${msg}` : "Erreur lors de l'upload de l'image");
       return null;
     }
-
-    const { data: urlData } = supabase.storage
-      .from("review-images")
-      .getPublicUrl(fileName);
-
-    return urlData?.publicUrl || null;
   };
 
   const handleSubmit = async () => {
