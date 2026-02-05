@@ -166,7 +166,7 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false }: Kanb
           display_order: c.display_order,
           tags: Array.isArray(c.tags) ? (c.tags as string[]) : [],
           review_status: cardReviewStatus.get(c.id) || "none",
-          card_type: "article" as ContentCardType,
+          card_type: (c.card_type as ContentCardType) || "article",
         }))
       );
     } catch (error) {
