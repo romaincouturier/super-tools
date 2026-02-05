@@ -1,11 +1,8 @@
 import { useState, useEffect, useRef } from "react";
-import { Upload, X, Plus, Maximize2, Minimize2, RefreshCw, FileText, Linkedin, Instagram, Loader2, ChevronDown, ChevronUp } from "lucide-react";
+import { Upload, X, Plus, Maximize2, Minimize2, RefreshCw, FileText, Linkedin, Instagram, Loader2, Save } from "lucide-react";
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,11 +14,6 @@ import type { Card, ContentCardType } from "./KanbanBoard";
 import ReviewSection from "./ReviewSection";
 import RichTextEditor from "./RichTextEditor";
 import { cn } from "@/lib/utils";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
 
 type AiActionType = "reformulate" | "adapt_blog" | "adapt_linkedin" | "adapt_instagram";
 
@@ -54,7 +46,6 @@ const ContentCardDialog = ({
   const [uploading, setUploading] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [aiLoading, setAiLoading] = useState<AiActionType | null>(null);
-  const [reviewOpen, setReviewOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -77,7 +68,6 @@ const ContentCardDialog = ({
   useEffect(() => {
     if (!open) {
       setIsFullscreen(false);
-      setReviewOpen(false);
       setAiLoading(null);
     }
   }, [open]);
@@ -176,204 +166,190 @@ const ContentCardDialog = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         className={cn(
-          "max-h-[90vh] overflow-y-auto transition-all duration-300",
+          "flex flex-col p-0 gap-0 transition-all duration-300",
           isFullscreen
             ? "max-w-[95vw] w-[95vw] h-[95vh] max-h-[95vh]"
-            : "max-w-3xl"
+            : "max-w-3xl max-h-[90vh]"
         )}
       >
-        <DialogHeader className="flex flex-row items-center justify-between pr-8">
-          <DialogTitle>
-            {card ? "Modifier la carte" : "Nouvelle carte"}
-          </DialogTitle>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleFullscreen}
-            className="h-8 w-8"
-            title={isFullscreen ? "Réduire" : "Plein écran"}
-          >
-            {isFullscreen ? (
-              <Minimize2 className="h-4 w-4" />
-            ) : (
-              <Maximize2 className="h-4 w-4" />
-            )}
-          </Button>
-        </DialogHeader>
-
-        <div className="space-y-4 py-2">
-          {/* Titre */}
-          <div className="space-y-2">
-            <Label htmlFor="title">Titre *</Label>
-            <Input
-              id="title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Titre de la carte"
-            />
-          </div>
-
-          {/* Type de contenu */}
-          <div className="space-y-2">
-            <Label>Type de contenu</Label>
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                variant={cardType === "article" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setCardType("article")}
-                className="flex-1"
-              >
-                Article
-              </Button>
-              <Button
-                type="button"
-                variant={cardType === "post" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setCardType("post")}
-                className="flex-1"
-              >
-                Post réseaux sociaux
-              </Button>
-            </div>
-          </div>
-
-          {/* Description avec boutons IA */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="description">Description</Label>
-              {card && description.trim() && (
-                <div className="flex gap-1">
-                  {aiActions.map((action) => {
-                    const Icon = action.icon;
-                    const isLoading = aiLoading === action.id;
-                    return (
-                      <Button
-                        key={action.id}
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
-                        onClick={() => handleAiAction(action.id)}
-                        disabled={aiLoading !== null}
-                        title={action.label}
-                      >
-                        {isLoading ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        ) : (
-                          <Icon className="h-3.5 w-3.5" />
-                        )}
-                        <span className="ml-1 hidden sm:inline">{action.label}</span>
-                      </Button>
-                    );
-                  })}
-                </div>
+        {/* Sticky header with title and actions */}
+        <div className="sticky top-0 z-10 bg-background border-b px-6 py-3 flex items-center gap-3">
+          <Input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Titre de la carte"
+            className="flex-1 border-none shadow-none text-xl font-semibold h-auto py-1 px-0 focus-visible:ring-0 placeholder:text-muted-foreground/50"
+          />
+          <div className="flex items-center gap-1 shrink-0">
+            <Button
+              variant="default"
+              size="sm"
+              onClick={handleSave}
+              className="gap-1.5"
+            >
+              <Save className="h-4 w-4" />
+              Enregistrer
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleFullscreen}
+              className="h-8 w-8"
+              title={isFullscreen ? "Réduire" : "Plein écran"}
+            >
+              {isFullscreen ? (
+                <Minimize2 className="h-4 w-4" />
+              ) : (
+                <Maximize2 className="h-4 w-4" />
               )}
-            </div>
-            <RichTextEditor
-              content={description}
-              onChange={setDescription}
-              placeholder="Description du contenu..."
-              className={cn(isFullscreen && "min-h-[400px]")}
-            />
+            </Button>
           </div>
-
-          {/* Image */}
-          <div className="space-y-2">
-            <Label>Image</Label>
-            {imageUrl ? (
-              <div className="relative">
-                <img
-                  src={imageUrl}
-                  alt="Preview"
-                  className="w-full max-h-48 object-cover rounded-lg"
-                />
-                <Button
-                  variant="destructive"
-                  size="icon"
-                  className="absolute top-2 right-2 h-8 w-8"
-                  onClick={() => setImageUrl("")}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            ) : (
-              <div
-                className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:border-primary transition-colors"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <Upload className="h-6 w-6 mx-auto text-muted-foreground mb-1" />
-                <p className="text-sm text-muted-foreground">
-                  {uploading ? "Téléchargement..." : "Cliquez pour ajouter une image"}
-                </p>
-              </div>
-            )}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handleImageUpload}
-            />
-          </div>
-
-          {/* Tags */}
-          <div className="space-y-2">
-            <Label>Tags</Label>
-            <div className="flex flex-wrap gap-2 mb-2">
-              {tags.map((tag) => (
-                <Badge
-                  key={tag}
-                  variant="secondary"
-                  className="cursor-pointer hover:bg-destructive hover:text-destructive-foreground"
-                  onClick={() => handleRemoveTag(tag)}
-                >
-                  {tag}
-                  <X className="h-3 w-3 ml-1" />
-                </Badge>
-              ))}
-            </div>
-            <div className="flex gap-2">
-              <Input
-                value={newTag}
-                onChange={(e) => setNewTag(e.target.value)}
-                placeholder="Nouveau tag..."
-                onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleAddTag())}
-              />
-              <Button type="button" variant="outline" onClick={handleAddTag}>
-                <Plus className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-
-          {/* Section Relecture (collapsible, pour cartes existantes) */}
-          {card && (
-            <Collapsible open={reviewOpen} onOpenChange={setReviewOpen}>
-              <CollapsibleTrigger asChild>
-                <Button
-                  variant="ghost"
-                  className="w-full justify-between p-3 h-auto border rounded-lg hover:bg-muted/50"
-                >
-                  <span className="font-medium">Relecture</span>
-                  {reviewOpen ? (
-                    <ChevronUp className="h-4 w-4" />
-                  ) : (
-                    <ChevronDown className="h-4 w-4" />
-                  )}
-                </Button>
-              </CollapsibleTrigger>
-              <CollapsibleContent className="pt-2">
-                <ReviewSection cardId={card.id} cardTitle={card.title} />
-              </CollapsibleContent>
-            </Collapsible>
-          )}
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Annuler
-          </Button>
-          <Button onClick={handleSave}>Enregistrer</Button>
-        </DialogFooter>
+        {/* Scrollable body */}
+        <div className="flex-1 overflow-y-auto px-6 py-4">
+          <div className="space-y-4">
+            {/* Type de contenu */}
+            <div className="space-y-2">
+              <Label>Type de contenu</Label>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant={cardType === "article" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setCardType("article")}
+                  className="flex-1"
+                >
+                  Article
+                </Button>
+                <Button
+                  type="button"
+                  variant={cardType === "post" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setCardType("post")}
+                  className="flex-1"
+                >
+                  Post réseaux sociaux
+                </Button>
+              </div>
+            </div>
+
+            {/* Description avec boutons IA */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="description">Description</Label>
+                {card && description.trim() && (
+                  <div className="flex gap-1">
+                    {aiActions.map((action) => {
+                      const Icon = action.icon;
+                      const isLoading = aiLoading === action.id;
+                      return (
+                        <Button
+                          key={action.id}
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                          onClick={() => handleAiAction(action.id)}
+                          disabled={aiLoading !== null}
+                          title={action.label}
+                        >
+                          {isLoading ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <Icon className="h-3.5 w-3.5" />
+                          )}
+                          <span className="ml-1 hidden sm:inline">{action.label}</span>
+                        </Button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+              <RichTextEditor
+                content={description}
+                onChange={setDescription}
+                placeholder="Description du contenu..."
+                className={cn(isFullscreen && "min-h-[400px]")}
+              />
+            </div>
+
+            {/* Image */}
+            <div className="space-y-2">
+              <Label>Image</Label>
+              {imageUrl ? (
+                <div className="relative">
+                  <img
+                    src={imageUrl}
+                    alt="Preview"
+                    className="w-full max-h-48 object-cover rounded-lg"
+                  />
+                  <Button
+                    variant="destructive"
+                    size="icon"
+                    className="absolute top-2 right-2 h-8 w-8"
+                    onClick={() => setImageUrl("")}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                <div
+                  className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:border-primary transition-colors"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <Upload className="h-6 w-6 mx-auto text-muted-foreground mb-1" />
+                  <p className="text-sm text-muted-foreground">
+                    {uploading ? "Téléchargement..." : "Cliquez pour ajouter une image"}
+                  </p>
+                </div>
+              )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleImageUpload}
+              />
+            </div>
+
+            {/* Tags */}
+            <div className="space-y-2">
+              <Label>Tags</Label>
+              <div className="flex flex-wrap gap-2 mb-2">
+                {tags.map((tag) => (
+                  <Badge
+                    key={tag}
+                    variant="secondary"
+                    className="cursor-pointer hover:bg-destructive hover:text-destructive-foreground"
+                    onClick={() => handleRemoveTag(tag)}
+                  >
+                    {tag}
+                    <X className="h-3 w-3 ml-1" />
+                  </Badge>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <Input
+                  value={newTag}
+                  onChange={(e) => setNewTag(e.target.value)}
+                  placeholder="Nouveau tag..."
+                  onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleAddTag())}
+                />
+                <Button type="button" variant="outline" onClick={handleAddTag}>
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+
+            {/* Section Relecture (flat, pour cartes existantes) */}
+            {card && (
+              <div className="space-y-2 border rounded-lg p-4">
+                <h3 className="font-medium">Relecture</h3>
+                <ReviewSection cardId={card.id} cardTitle={card.title} />
+              </div>
+            )}
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   );

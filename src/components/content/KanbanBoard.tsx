@@ -395,7 +395,7 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false }: Kanb
   const handleSaveCard = async (cardData: Partial<Card>) => {
     try {
       if (editingCard) {
-        const { error } = await supabase
+        const { error } = await (supabase as any)
           .from("content_cards")
           .update({
             title: cardData.title,
@@ -410,7 +410,7 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false }: Kanb
         toast.success("Carte mise à jour");
       } else if (newCardColumnId) {
         const columnCards = cards.filter((c) => c.column_id === newCardColumnId);
-        const { error } = await supabase.from("content_cards").insert({
+        const { error } = await (supabase as any).from("content_cards").insert({
           column_id: newCardColumnId,
           title: cardData.title || "Nouvelle carte",
           description: cardData.description,
