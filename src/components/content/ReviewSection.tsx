@@ -412,6 +412,8 @@ const ReviewSection = ({ cardId, cardTitle }: ReviewSectionProps) => {
                     {/* Commentaires */}
                     <CommentThread
                       reviewId={review.id}
+                      cardId={cardId}
+                      cardTitle={cardTitle}
                       isAuthor={isAuthor(review)}
                       isReviewer={isReviewer(review)}
                       reviewStatus={review.status}

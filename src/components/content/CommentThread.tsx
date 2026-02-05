@@ -20,6 +20,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import MentionTextarea, { MentionUser } from "./MentionTextarea";
 
 interface Comment {
   id: string;
@@ -42,6 +43,8 @@ const commentTypeConfig = {
 
 interface CommentThreadProps {
   reviewId: string;
+  cardId?: string;
+  cardTitle?: string;
   isAuthor?: boolean;
   isReviewer?: boolean;
   reviewStatus: string;
@@ -57,6 +60,8 @@ const commentStatusConfig = {
 
 const CommentThread = ({
   reviewId,
+  cardId,
+  cardTitle,
   reviewStatus,
   onCommentAdded
 }: CommentThreadProps) => {
@@ -71,6 +76,7 @@ const CommentThread = ({
   const [submitting, setSubmitting] = useState(false);
   const [showComments, setShowComments] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [pendingMentions, setPendingMentions] = useState<MentionUser[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -257,9 +263,48 @@ const CommentThread = ({
         }
       }
 
+      // Send notifications to mentioned users
+      if (pendingMentions.length > 0) {
+        const { data: authorProfile } = await supabase
+          .from("profiles")
+          .select("first_name, last_name, email")
+          .eq("user_id", userId)
+          .maybeSingle();
+
+        const authorName = authorProfile?.first_name && authorProfile?.last_name
+          ? `${authorProfile.first_name} ${authorProfile.last_name}`
+          : authorProfile?.email || "Quelqu'un";
+
+        for (const mention of pendingMentions) {
+          // Skip self-mention
+          if (mention.userId === userId) continue;
+
+          // In-app notification
+          await supabase.from("content_notifications").insert({
+            user_id: mention.userId,
+            type: "comment_added",
+            reference_id: reviewId,
+            message: `${authorName} vous a mentionné dans un commentaire`,
+          });
+
+          // Email notification
+          await supabase.functions.invoke("send-content-notification", {
+            body: {
+              type: "mention",
+              recipientEmail: mention.email,
+              cardTitle: cardTitle || "un contenu",
+              cardId: cardId || undefined,
+              authorName,
+              commentText: newComment.trim(),
+            },
+          });
+        }
+      }
+
       setNewComment("");
       setProposedCorrection("");
       setCommentType("");
+      setPendingMentions([]);
       clearImage();
       fetchComments();
       onCommentAdded?.();
@@ -331,6 +376,21 @@ const CommentThread = ({
       .join("")
       .toUpperCase()
       .slice(0, 2);
+  };
+
+  const renderCommentContent = (text: string) => {
+    // Highlight @mentions: match @Name or @First Last (up to 3 words)
+    const parts = text.split(/(@\w+(?:\s\w+){0,2})/g);
+    return parts.map((part, i) => {
+      if (part.startsWith("@") && part.length > 1) {
+        return (
+          <span key={i} className="text-primary font-medium bg-primary/10 rounded px-0.5">
+            {part}
+          </span>
+        );
+      }
+      return part;
+    });
   };
 
   const pendingCount = comments.filter(c => c.status === "pending").length;
@@ -413,7 +473,7 @@ const CommentThread = ({
                           {statusConf.label}
                         </Badge>
                       </div>
-                      <p className="text-sm mt-1 whitespace-pre-wrap">{comment.content}</p>
+                      <p className="text-sm mt-1 whitespace-pre-wrap">{renderCommentContent(comment.content)}</p>
 
                       {/* Image jointe */}
                       {comment.image_url && (
@@ -534,13 +594,13 @@ const CommentThread = ({
                     </SelectItem>
                   </SelectContent>
                 </Select>
-                <Textarea
+                <MentionTextarea
                   value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)}
+                  onChange={setNewComment}
+                  onMentionsChange={setPendingMentions}
                   onPaste={handlePaste}
-                  placeholder="Commentaire... (Ctrl+V pour coller une capture)"
+                  placeholder="Commentaire... (@nom pour mentionner)"
                   rows={2}
-                  className="resize-none flex-1"
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
                       handleSubmit();

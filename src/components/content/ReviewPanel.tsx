@@ -360,6 +360,8 @@ const ReviewPanel = ({ cardId, cardTitle }: ReviewPanelProps) => {
                 {/* Commentaires avec gestion des statuts */}
                 <CommentThread
                   reviewId={review.id}
+                  cardId={cardId}
+                  cardTitle={cardTitle}
                   isAuthor={isAuthor(review)}
                   isReviewer={isReviewer(review)}
                   reviewStatus={review.status}
