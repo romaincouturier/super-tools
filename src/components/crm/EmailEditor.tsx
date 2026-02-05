@@ -62,7 +62,7 @@ const EmailEditor = ({
     editorProps: {
       attributes: {
         class:
-          "prose prose-sm dark:prose-invert max-w-none focus:outline-none min-h-[100px] p-2 text-sm",
+          "prose prose-sm dark:prose-invert max-w-none focus:outline-none min-h-[300px] p-2 text-sm",
       },
     },
     onUpdate: ({ editor }) => {
