@@ -205,9 +205,13 @@ const CommentThread = ({
         setUploadingImage(true);
         imageUrl = await uploadImage(imageFile);
         setUploadingImage(false);
+        if (!imageUrl) {
+          // Upload failed, don't submit comment without the intended image
+          return;
+        }
       }
 
-      const { error } = await supabase.from("review_comments").insert({
+      const { error } = await (supabase as any).from("review_comments").insert({
         review_id: reviewId,
         author_id: userId,
         content: newComment.trim(),

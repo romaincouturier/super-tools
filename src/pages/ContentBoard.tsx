@@ -10,6 +10,7 @@ import KanbanBoard from "@/components/content/KanbanBoard";
 import ContentDashboard from "@/components/content/ContentDashboard";
 import AiIdeasSearch from "@/components/content/AiIdeasSearch";
 import NotificationBell from "@/components/content/NotificationBell";
+import NewsletterSection from "@/components/content/NewsletterSection";
 
 const ContentBoard = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -102,6 +103,8 @@ const ContentBoard = () => {
         </div>
 
         <ContentDashboard />
+
+        <NewsletterSection onCardClick={handleSelectCard} />
 
         <div className="mb-6">
           <AiIdeasSearch onSelectCard={handleSelectCard} />

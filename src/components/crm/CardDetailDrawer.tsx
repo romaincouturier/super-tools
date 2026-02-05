@@ -69,6 +69,7 @@ import { cn } from "@/lib/utils";
 import { format, addDays, isAfter, startOfDay } from "date-fns";
 import { fr } from "date-fns/locale";
 import DOMPurify from "dompurify";
+import EmojiPickerButton from "@/components/ui/emoji-picker-button";
 import {
   CrmCard,
   CrmTag,
@@ -133,6 +134,7 @@ const CardDetailDrawer = ({
 
   // Form state
   const [title, setTitle] = useState("");
+  const [cardEmoji, setCardEmoji] = useState<string | null>(null);
   const [descriptionHtml, setDescriptionHtml] = useState("");
   const [salesStatus, setSalesStatus] = useState<SalesStatus>("OPEN");
   const [estimatedValue, setEstimatedValue] = useState("");
@@ -203,6 +205,7 @@ const CardDetailDrawer = ({
   useEffect(() => {
     if (card) {
       setTitle(card.title);
+      setCardEmoji(card.emoji || null);
       setDescriptionHtml(card.description_html || "");
       setSalesStatus(card.sales_status);
       setEstimatedValue(String(card.estimated_value || 0));
@@ -501,6 +504,7 @@ const CardDetailDrawer = ({
         next_action_text: nextActionText.trim() || null,
         next_action_done: nextActionDone,
         linked_mission_id: linkedMissionId,
+        emoji: cardEmoji,
       },
       actorEmail: user.email,
       oldCard: card,
@@ -1173,7 +1177,10 @@ const CardDetailDrawer = ({
 
             <div>
               <Label>Titre</Label>
-              <Input value={title} onChange={(e) => setTitle(e.target.value)} />
+              <div className="flex items-center gap-2">
+                <EmojiPickerButton emoji={cardEmoji} onEmojiChange={setCardEmoji} size="md" />
+                <Input value={title} onChange={(e) => setTitle(e.target.value)} className="flex-1" />
+              </div>
             </div>
 
             {/* Description with auto-save and AI */}

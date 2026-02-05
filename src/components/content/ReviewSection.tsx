@@ -243,14 +243,14 @@ const ReviewSection = ({ cardId, cardTitle }: ReviewSectionProps) => {
         </span>
         <Button size="sm" variant="outline" onClick={() => setShowRequestDialog(true)}>
           <Plus className="h-3.5 w-3.5 mr-1" />
-          Demander
+          Associer
         </Button>
       </div>
 
       {/* Liste des relectures */}
       {reviews.length === 0 ? (
         <div className="text-center py-4 text-sm text-muted-foreground bg-muted/30 rounded-lg">
-          Demandez à un collègue de relire votre contenu
+          Associez un collègue pour relire votre contenu
         </div>
       ) : (
         <div className="space-y-2">

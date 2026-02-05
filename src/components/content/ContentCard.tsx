@@ -132,6 +132,7 @@ const ContentCard = ({ card, isDragging, typeColors, onEdit, onDelete, onView }:
               return null;
             })()}
             <h4 className="font-medium text-sm line-clamp-2">
+              {card.emoji && <span className="mr-1">{card.emoji}</span>}
               {card.title}
             </h4>
           </div>
