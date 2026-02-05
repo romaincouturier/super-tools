@@ -318,6 +318,7 @@ export type Database = {
           created_by: string | null
           description: string | null
           display_order: number
+          emoji: string | null
           id: string
           image_url: string | null
           tags: Json | null
@@ -331,6 +332,7 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           display_order?: number
+          emoji?: string | null
           id?: string
           image_url?: string | null
           tags?: Json | null
@@ -344,6 +346,7 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           display_order?: number
+          emoji?: string | null
           id?: string
           image_url?: string | null
           tags?: Json | null
