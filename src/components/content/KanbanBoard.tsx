@@ -74,9 +74,10 @@ interface KanbanBoardProps {
   openCardId?: string | null;
   onCloseCard?: () => void;
   filterReviewOnly?: boolean;
+  onNewsletterChange?: () => void;
 }
 
-const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false }: KanbanBoardProps) => {
+const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, onNewsletterChange }: KanbanBoardProps) => {
   const [columns, setColumns] = useState<Column[]>([]);
   const [cards, setCards] = useState<Card[]>([]);
   const [cardIdsInReview, setCardIdsInReview] = useState<Set<string>>(new Set());
@@ -453,6 +454,24 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false }: Kanb
     }
   };
 
+  const handleCardEmojiChange = async (cardId: string, emoji: string | null) => {
+    try {
+      const { error } = await (supabase as any)
+        .from("content_cards")
+        .update({ emoji })
+        .eq("id", cardId);
+
+      if (error) throw error;
+
+      setCards((prev) =>
+        prev.map((c) => (c.id === cardId ? { ...c, emoji } : c))
+      );
+    } catch (error) {
+      console.error("Error updating emoji:", error);
+      toast.error("Erreur lors de la mise à jour de l'emoji");
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -516,6 +535,7 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false }: Kanb
                   onEditCard={setEditingCard}
                   onViewCard={setEditingCard}
                   onDeleteCard={handleDeleteCard}
+                  onEmojiChange={handleCardEmojiChange}
                 />
               );
             })}
@@ -561,6 +581,7 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false }: Kanb
         }}
         card={editingCard}
         onSave={handleSaveCard}
+        onNewsletterChange={onNewsletterChange}
       />
 
       {/* Color Settings Dialog */}

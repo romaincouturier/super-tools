@@ -10,7 +10,7 @@ import {
   DragStartEvent,
 } from "@dnd-kit/core";
 import { Mission, MissionStatus, missionStatusConfig } from "@/types/missions";
-import { useMissions, useMoveMission } from "@/hooks/useMissions";
+import { useMissions, useMoveMission, useUpdateMission } from "@/hooks/useMissions";
 import MissionColumn from "./MissionColumn";
 import MissionCard from "./MissionCard";
 import MissionDetailDrawer from "./MissionDetailDrawer";
@@ -20,6 +20,7 @@ import { Loader2 } from "lucide-react";
 const MissionsKanbanBoard = () => {
   const { data, isLoading, error } = useMissions();
   const moveMission = useMoveMission();
+  const updateMission = useUpdateMission();
 
   const [activeMission, setActiveMission] = useState<Mission | null>(null);
   const [selectedMission, setSelectedMission] = useState<Mission | null>(null);
@@ -100,6 +101,10 @@ const MissionsKanbanBoard = () => {
     setSelectedMission(mission);
   };
 
+  const handleMissionEmojiChange = async (missionId: string, emoji: string | null) => {
+    await updateMission.mutateAsync({ id: missionId, updates: { emoji } });
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -134,6 +139,7 @@ const MissionsKanbanBoard = () => {
               missions={getMissionsByStatus(status)}
               onAddMission={() => handleAddMission(status)}
               onMissionClick={handleMissionClick}
+              onEmojiChange={handleMissionEmojiChange}
             />
           ))}
         </div>

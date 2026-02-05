@@ -532,6 +532,7 @@ const Parametres = () => {
   const [bccEmail, setBccEmail] = useState("romain@supertilt.fr");
   const [googleMyBusinessUrl, setGoogleMyBusinessUrl] = useState("https://g.page/r/CWJ0W_P6C-BJEAE/review");
   const [supertiltSiteUrl, setSupertiltSiteUrl] = useState("https://supertilt.fr");
+  const [newsletterToolUrl, setNewsletterToolUrl] = useState("");
   const [savingSettings, setSavingSettings] = useState(false);
   
   // Working days configuration (Monday to Friday by default)
@@ -593,7 +594,7 @@ const Parametres = () => {
       .from("app_settings")
       .select("setting_key, setting_value")
       .in("setting_key", [
-        "bcc_email", "bcc_enabled", "working_days", "google_my_business_url", "supertilt_site_url",
+        "bcc_email", "bcc_enabled", "working_days", "google_my_business_url", "supertilt_site_url", "newsletter_tool_url",
         "delay_needs_survey_days", "delay_reminder_days", "delay_trainer_summary_days",
         "delay_google_review_days", "delay_video_testimonial_days",
         "delay_cold_evaluation_days", "delay_cold_evaluation_funder_days",
@@ -619,6 +620,9 @@ const Parametres = () => {
           break;
         case "supertilt_site_url":
           setSupertiltSiteUrl(setting.setting_value || "https://supertilt.fr");
+          break;
+        case "newsletter_tool_url":
+          setNewsletterToolUrl(setting.setting_value || "");
           break;
         case "working_days":
           try {
@@ -672,6 +676,7 @@ const Parametres = () => {
         { setting_key: "bcc_enabled", setting_value: bccEnabled.toString(), description: "Activer ou désactiver l'envoi en copie cachée (BCC)" },
         { setting_key: "google_my_business_url", setting_value: googleMyBusinessUrl, description: "URL de la fiche Google My Business pour les demandes d'avis" },
         { setting_key: "supertilt_site_url", setting_value: supertiltSiteUrl, description: "URL du site SuperTilt pour les liens formations" },
+        { setting_key: "newsletter_tool_url", setting_value: newsletterToolUrl, description: "URL de l'outil de newsletter (ex: Brevo, Mailchimp)" },
         { setting_key: "working_days", setting_value: JSON.stringify(workingDays), description: "Jours ouvrables pour l'envoi des emails (tableau de 7 booléens : dim, lun, mar, mer, jeu, ven, sam)" },
         { setting_key: "delay_needs_survey_days", setting_value: delayNeedsSurvey, description: "Délai avant formation pour envoyer le questionnaire de besoins (en jours)" },
         { setting_key: "delay_reminder_days", setting_value: delayReminder, description: "Délai avant formation pour envoyer le rappel logistique (en jours)" },
@@ -1197,7 +1202,7 @@ const Parametres = () => {
                   <p className="text-sm text-muted-foreground">
                     URL du site SuperTilt. Ce lien sera accessible depuis les formulaires de création/édition de formation.
                   </p>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="supertilt-site-url">URL du site</Label>
                     <div className="flex gap-2 max-w-lg">
@@ -1214,6 +1219,38 @@ const Parametres = () => {
                         onClick={() => supertiltSiteUrl && window.open(supertiltSiteUrl, "_blank")}
                         disabled={!supertiltSiteUrl}
                         title="Ouvrir le site"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Newsletter Tool URL */}
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium">Outil de newsletter</h3>
+                  <p className="text-sm text-muted-foreground">
+                    URL de votre outil de newsletter (ex: Brevo, Mailchimp). Un bouton « Préparer la newsletter » apparaîtra dans la section newsletter de la gestion de contenu.
+                  </p>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="newsletter-tool-url">URL de l'outil</Label>
+                    <div className="flex gap-2 max-w-lg">
+                      <Input
+                        id="newsletter-tool-url"
+                        type="url"
+                        value={newsletterToolUrl}
+                        onChange={(e) => setNewsletterToolUrl(e.target.value)}
+                        placeholder="https://app.brevo.com"
+                      />
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => newsletterToolUrl && window.open(newsletterToolUrl, "_blank")}
+                        disabled={!newsletterToolUrl}
+                        title="Ouvrir l'outil"
                       >
                         <ExternalLink className="h-4 w-4" />
                       </Button>

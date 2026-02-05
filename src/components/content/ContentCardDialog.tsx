@@ -39,6 +39,7 @@ interface ContentCardDialogProps {
   onOpenChange: (open: boolean) => void;
   card: Card | null;
   onSave: (card: Partial<Card>) => void;
+  onNewsletterChange?: () => void;
 }
 
 const ContentCardDialog = ({
@@ -46,6 +47,7 @@ const ContentCardDialog = ({
   onOpenChange,
   card,
   onSave,
+  onNewsletterChange,
 }: ContentCardDialogProps) => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -226,6 +228,7 @@ const ContentCardDialog = ({
       if (newsletterId === "none") {
         setAttachedNewsletterId(null);
         toast.success("Carte retirée de la newsletter");
+        onNewsletterChange?.();
       } else {
         // Get max display_order for this newsletter
         const { data: existing } = await (supabase as any)
@@ -249,6 +252,7 @@ const ContentCardDialog = ({
 
         setAttachedNewsletterId(newsletterId);
         toast.success("Carte ajoutée à la newsletter");
+        onNewsletterChange?.();
       }
     } catch (error) {
       console.error("Error updating newsletter attachment:", error);

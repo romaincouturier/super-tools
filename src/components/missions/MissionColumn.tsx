@@ -11,6 +11,7 @@ interface MissionColumnProps {
   missions: Mission[];
   onAddMission: () => void;
   onMissionClick: (mission: Mission) => void;
+  onEmojiChange?: (missionId: string, emoji: string | null) => void;
 }
 
 const MissionColumn = ({
@@ -18,6 +19,7 @@ const MissionColumn = ({
   missions,
   onAddMission,
   onMissionClick,
+  onEmojiChange,
 }: MissionColumnProps) => {
   const { setNodeRef, isOver } = useDroppable({ id: status });
   const config = missionStatusConfig[status];
@@ -58,6 +60,7 @@ const MissionColumn = ({
               key={mission.id}
               mission={mission}
               onClick={() => onMissionClick(mission)}
+              onEmojiChange={onEmojiChange}
             />
           ))}
         </SortableContext>

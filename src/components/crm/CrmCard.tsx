@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { CrmCard, CrmColumn } from "@/types/crm";
 import { useUpdateCard } from "@/hooks/useCrmBoard";
 import { useAuth } from "@/hooks/useAuth";
+import EmojiPickerButton from "@/components/ui/emoji-picker-button";
 
 interface ServiceTypeColors {
   formation: string;
@@ -83,6 +84,22 @@ const CrmCardComponent = ({ card, isDragging, onClick, serviceTypeColors }: CrmC
     }
   };
 
+  const handleEmojiChange = async (emoji: string | null) => {
+    if (!user?.email) return;
+    await updateCard.mutateAsync({
+      id: card.id,
+      updates: { emoji },
+      actorEmail: user.email,
+      oldCard: card,
+    });
+  };
+
+  const handleCardClick = (e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    if (target.closest('[data-emoji-picker]')) return;
+    onClick?.();
+  };
+
   return (
     <Card
       ref={setNodeRef}
@@ -94,7 +111,7 @@ const CrmCardComponent = ({ card, isDragging, onClick, serviceTypeColors }: CrmC
       {...attributes}
       {...listeners}
       className={`cursor-grab active:cursor-grabbing ${isDragging ? "shadow-lg" : ""}`}
-      onClick={onClick}
+      onClick={handleCardClick}
     >
       <CardContent className="p-3 space-y-2">
         {/* Header: Service type + Value */}
@@ -140,9 +157,14 @@ const CrmCardComponent = ({ card, isDragging, onClick, serviceTypeColors }: CrmC
         </div>
 
         {/* Title */}
-        <div className="font-medium text-sm line-clamp-2">
-          {card.emoji && <span className="mr-1">{card.emoji}</span>}
-          {card.title}
+        <div className="flex items-start gap-1" data-emoji-picker>
+          <EmojiPickerButton
+            emoji={card.emoji}
+            onEmojiChange={handleEmojiChange}
+            size="sm"
+            className="shrink-0 mt-0.5"
+          />
+          <div className="font-medium text-sm line-clamp-2">{card.title}</div>
         </div>
 
         {/* Tags */}

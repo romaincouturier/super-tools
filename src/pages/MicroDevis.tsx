@@ -53,6 +53,13 @@ const LIEUX = [
   "Chez le client",
 ];
 
+/** Capitalize each part of a name/city: "JEAN-PIERRE" → "Jean-Pierre", "LYON" → "Lyon" */
+const capitalizeName = (value: string): string =>
+  value
+    .trim()
+    .toLowerCase()
+    .replace(/(^|[\s-])(\S)/g, (_m, sep, ch) => sep + ch.toUpperCase());
+
 const MicroDevis = () => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -75,6 +82,9 @@ const MicroDevis = () => {
   const [datesDialogOpen, setDatesDialogOpen] = useState(false);
   const [newDate, setNewDate] = useState<Partial<FormationDate> | null>(null);
   const [jsonPreviewOpen, setJsonPreviewOpen] = useState(false);
+
+  // CRM card link
+  const [crmCardId, setCrmCardId] = useState<string | null>(null);
 
   // SIREN search
   const [siren, setSiren] = useState("");
@@ -302,10 +312,12 @@ const MicroDevis = () => {
     const nomClientParam = searchParams.get("nomClient");
     const emailParam = searchParams.get("emailCommanditaire");
     const adresseParam = searchParams.get("adresseCommanditaire");
+    const cardIdParam = searchParams.get("crmCardId");
 
     if (nomClientParam) setNomClient(nomClientParam);
     if (emailParam) setEmailCommanditaire(emailParam);
     if (adresseParam) setAdresseCommanditaire(adresseParam);
+    if (cardIdParam) setCrmCardId(cardIdParam);
 
     // Pre-select "formation" type since coming from CRM with service_type = formation
     setTypeDevis("formation");
@@ -529,14 +541,14 @@ const MicroDevis = () => {
         return;
       }
 
-      // Auto-fill fields
-      if (data?.nomClient) setNomClient(data.nomClient);
-      if (data?.adresse) setAdresseClient(data.adresse);
+      // Auto-fill fields (normalize casing from INSEE API which returns ALL CAPS)
+      if (data?.nomClient) setNomClient(capitalizeName(data.nomClient));
+      if (data?.adresse) setAdresseClient(capitalizeName(data.adresse));
       if (data?.codePostal) setCodePostalClient(data.codePostal);
-      if (data?.ville) setVilleClient(data.ville);
+      if (data?.ville) setVilleClient(capitalizeName(data.ville));
       if (data?.pays && data.pays !== "France") {
         setPays("autre");
-        setPaysAutre(data.pays);
+        setPaysAutre(capitalizeName(data.pays));
       } else {
         setPays("france");
       }
@@ -850,6 +862,8 @@ const MicroDevis = () => {
       const finalLieu = lieu === "autre" ? lieuAutre : lieu;
       const finalPays = pays === "autre" ? paysAutre : "France";
 
+      const normalizedEmail = emailCommanditaire.trim().toLowerCase();
+
       const response = await supabase.functions.invoke("generate-micro-devis", {
         body: {
           nomClient,
@@ -857,7 +871,7 @@ const MicroDevis = () => {
           codePostalClient,
           villeClient,
           pays: finalPays,
-          emailCommanditaire,
+          emailCommanditaire: normalizedEmail,
           adresseCommanditaire,
           isAdministration: isAdministration === "oui",
           noteDevis,
@@ -878,6 +892,8 @@ const MicroDevis = () => {
           formationLibre,
           dateFormationLibre,
           lieuAutre,
+          // CRM card link
+          ...(crmCardId && { crmCardId, senderEmail: user?.email }),
         },
       });
 
@@ -886,8 +902,8 @@ const MicroDevis = () => {
       }
 
       const successMessage = typeSubrogation === "les2"
-        ? `Les 2 devis ont été générés et envoyés à ${emailCommanditaire}`
-        : `Le devis a été généré et envoyé à ${emailCommanditaire}`;
+        ? `Les 2 devis ont été générés et envoyés à ${normalizedEmail}`
+        : `Le devis a été généré et envoyé à ${normalizedEmail}`;
 
       toast({
         title: typeSubrogation === "les2" ? "Devis envoyés !" : "Devis envoyé !",

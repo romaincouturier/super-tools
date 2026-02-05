@@ -1069,6 +1069,7 @@ const CardDetailDrawer = ({
                     ...(company && { nomClient: company }),
                     ...(email && { emailCommanditaire: email }),
                     ...((firstName || lastName) && { adresseCommanditaire: [firstName, lastName].filter(Boolean).join(" ") }),
+                    ...(card?.id && { crmCardId: card.id }),
                     source: "crm",
                   }).toString()}`}>
                     <Receipt className="h-4 w-4 mr-2" />

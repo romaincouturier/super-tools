@@ -38,6 +38,9 @@ interface RequestBody {
   formationLibre?: string;
   dateFormationLibre?: string;
   lieuAutre?: string;
+  // CRM card link
+  crmCardId?: string;
+  senderEmail?: string;
 }
 
 const PDFMONKEY_TEMPLATE_ID = "C3BC00C9-232F-4ADD-9D1F-9FD176573E93";
@@ -219,7 +222,7 @@ async function sendEmailWithResend(
   pdfUrlSansSubrogation: string | null,
   pdfUrlAvecSubrogation: string | null,
   typeSubrogation: "sans" | "avec" | "les2"
-): Promise<void> {
+): Promise<{ subject: string; htmlContent: string; attachmentNames: string[] }> {
   const resendApiKey = Deno.env.get("RESEND_API_KEY");
   
   if (!resendApiKey) {
@@ -382,6 +385,12 @@ async function sendEmailWithResend(
   });
 
   console.log("Email sent successfully:", emailResponse);
+
+  return {
+    subject,
+    htmlContent,
+    attachmentNames: attachments.map((a) => a.filename),
+  };
 }
 
 serve(async (req: Request): Promise<Response> => {
@@ -422,7 +431,7 @@ serve(async (req: Request): Promise<Response> => {
     // Send email with PDFs
     console.log("Sending email with PDF(s)...");
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-    await sendEmailWithResend(
+    const emailResult = await sendEmailWithResend(
       supabase,
       body.emailCommanditaire,
       body.adresseCommanditaire,
@@ -432,6 +441,76 @@ serve(async (req: Request): Promise<Response> => {
       pdfAvecSubrogation?.pdfUrl || null,
       typeSubrogation
     );
+
+    // Track email in CRM card if linked
+    if (body.crmCardId) {
+      try {
+        // Build body_html with attachment info
+        const attachmentInfo = emailResult.attachmentNames.length > 0
+          ? `<div style="margin-top:12px;padding:8px 12px;background:#f3f4f6;border-radius:6px;font-size:12px;color:#6b7280;">📎 Pièces jointes : ${emailResult.attachmentNames.join(", ")}</div>`
+          : "";
+        const bodyWithAttachments = emailResult.htmlContent + attachmentInfo;
+
+        // Insert into crm_card_emails
+        await supabase.from("crm_card_emails").insert({
+          card_id: body.crmCardId,
+          sender_email: body.senderEmail || "romain@supertilt.fr",
+          recipient_email: body.emailCommanditaire,
+          subject: emailResult.subject,
+          body_html: bodyWithAttachments,
+        });
+
+        // Log activity
+        await supabase.from("crm_activity_log").insert({
+          card_id: body.crmCardId,
+          action_type: "email_sent",
+          old_value: null,
+          new_value: `To: ${body.emailCommanditaire} - ${emailResult.subject}`,
+          metadata: { source: "micro_devis", attachments: emailResult.attachmentNames },
+          actor_email: body.senderEmail || "romain@supertilt.fr",
+        });
+
+        // Schedule follow-up 3 working days later
+        const defaultWorkingDays = [false, true, true, true, true, true, false];
+        let workingDays = defaultWorkingDays;
+        try {
+          const { data: wdSetting } = await supabase
+            .from("app_settings")
+            .select("setting_value")
+            .eq("setting_key", "working_days")
+            .single();
+          if (wdSetting?.setting_value) {
+            const parsed = JSON.parse(wdSetting.setting_value);
+            if (Array.isArray(parsed) && parsed.length === 7) {
+              workingDays = parsed;
+            }
+          }
+        } catch { /* use default */ }
+
+        // Calculate 3 working days from now
+        let followUpDate = new Date();
+        let remaining = 3;
+        while (remaining > 0) {
+          followUpDate.setDate(followUpDate.getDate() + 1);
+          if (workingDays[followUpDate.getDay()]) {
+            remaining--;
+          }
+        }
+        const followUpDateStr = followUpDate.toISOString().split("T")[0];
+
+        await supabase.from("crm_cards")
+          .update({
+            status_operational: "WAITING",
+            waiting_next_action_date: followUpDateStr,
+            waiting_next_action_text: "Relancer le client suite à l'envoi du devis",
+          })
+          .eq("id", body.crmCardId);
+
+        console.log(`CRM card ${body.crmCardId}: email tracked, follow-up scheduled for ${followUpDateStr}`);
+      } catch (crmError) {
+        console.warn("Failed to track email in CRM:", crmError);
+      }
+    }
 
     // Log activity with all form data for duplication feature
     try {

@@ -19,6 +19,7 @@ const ContentBoard = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const openCardId = searchParams.get("card");
   const [filterReview, setFilterReview] = useState(false);
+  const [newsletterRefreshKey, setNewsletterRefreshKey] = useState(0);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -104,16 +105,17 @@ const ContentBoard = () => {
 
         <ContentDashboard />
 
-        <NewsletterSection onCardClick={handleSelectCard} />
+        <NewsletterSection onCardClick={handleSelectCard} refreshKey={newsletterRefreshKey} />
 
         <div className="mb-6">
           <AiIdeasSearch onSelectCard={handleSelectCard} />
         </div>
 
-        <KanbanBoard 
-          openCardId={openCardId} 
-          onCloseCard={handleCloseCard} 
+        <KanbanBoard
+          openCardId={openCardId}
+          onCloseCard={handleCloseCard}
           filterReviewOnly={filterReview}
+          onNewsletterChange={() => setNewsletterRefreshKey((k) => k + 1)}
         />
       </main>
     </div>

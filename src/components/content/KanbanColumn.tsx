@@ -36,6 +36,7 @@ interface KanbanColumnProps {
   onEditCard: (card: Card) => void;
   onViewCard: (card: Card) => void;
   onDeleteCard: (cardId: string) => void;
+  onEmojiChange?: (cardId: string, emoji: string | null) => void;
 }
 
 const KanbanColumn = ({
@@ -48,6 +49,7 @@ const KanbanColumn = ({
   onEditCard,
   onViewCard,
   onDeleteCard,
+  onEmojiChange,
 }: KanbanColumnProps) => {
   const [showRenameDialog, setShowRenameDialog] = useState(false);
   const [newName, setNewName] = useState(column.name);
@@ -156,6 +158,7 @@ const KanbanColumn = ({
                 onView={() => onViewCard(card)}
                 onEdit={() => onEditCard(card)}
                 onDelete={() => onDeleteCard(card.id)}
+                onEmojiChange={onEmojiChange}
               />
             ))}
           </SortableContext>

@@ -14,6 +14,8 @@ import {
   Loader2,
   PartyPopper,
   ChevronRight,
+  MessageCircle,
+  ExternalLink,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -54,13 +56,15 @@ interface NewsletterCard {
   display_order: number;
   card_title?: string;
   card_type?: string;
+  pending_comments?: number;
 }
 
 interface NewsletterSectionProps {
   onCardClick?: (cardId: string) => void;
+  refreshKey?: number;
 }
 
-const NewsletterSection = ({ onCardClick }: NewsletterSectionProps) => {
+const NewsletterSection = ({ onCardClick, refreshKey }: NewsletterSectionProps) => {
   const [newsletters, setNewsletters] = useState<Newsletter[]>([]);
   const [currentNewsletter, setCurrentNewsletter] = useState<Newsletter | null>(null);
   const [newsletterCards, setNewsletterCards] = useState<NewsletterCard[]>([]);
@@ -72,6 +76,26 @@ const NewsletterSection = ({ onCardClick }: NewsletterSectionProps) => {
   const [creating, setCreating] = useState(false);
   const [sending, setSending] = useState(false);
   const [justSent, setJustSent] = useState(false);
+  const [newsletterToolUrl, setNewsletterToolUrl] = useState<string | null>(null);
+
+  // Fetch newsletter tool URL from app_settings
+  useEffect(() => {
+    const fetchToolUrl = async () => {
+      try {
+        const { data } = await supabase
+          .from("app_settings")
+          .select("setting_value")
+          .eq("setting_key", "newsletter_tool_url")
+          .single();
+        if (data?.setting_value) {
+          setNewsletterToolUrl(data.setting_value);
+        }
+      } catch {
+        // Setting not configured yet
+      }
+    };
+    fetchToolUrl();
+  }, []);
 
   const fetchNewsletters = useCallback(async () => {
     try {
@@ -111,7 +135,7 @@ const NewsletterSection = ({ onCardClick }: NewsletterSectionProps) => {
 
       if (error) throw error;
 
-      // Fetch card titles
+      // Fetch card titles and pending comment counts
       const cardIds = (data || []).map((nc: any) => nc.card_id);
       if (cardIds.length > 0) {
         const { data: cardsData } = await (supabase as any)
@@ -123,11 +147,39 @@ const NewsletterSection = ({ onCardClick }: NewsletterSectionProps) => {
           (cardsData || []).map((c: any) => [c.id, { title: c.title, card_type: c.card_type }])
         );
 
+        // Fetch pending comments per card
+        const pendingMap = new Map<string, number>();
+        try {
+          const { data: reviews } = await supabase
+            .from("content_reviews")
+            .select("id, card_id")
+            .in("card_id", cardIds);
+
+          if (reviews && reviews.length > 0) {
+            const reviewIds = reviews.map((r: any) => r.id);
+            const reviewToCard = new Map(reviews.map((r: any) => [r.id, r.card_id]));
+
+            const { data: pendingComments } = await (supabase as any)
+              .from("review_comments")
+              .select("review_id")
+              .eq("status", "pending")
+              .in("review_id", reviewIds);
+
+            for (const pc of pendingComments || []) {
+              const cid = reviewToCard.get(pc.review_id);
+              if (cid) pendingMap.set(cid, (pendingMap.get(cid) || 0) + 1);
+            }
+          }
+        } catch {
+          // Ignore errors fetching comments
+        }
+
         setNewsletterCards(
           (data || []).map((nc: any) => ({
             ...nc,
             card_title: (cardMap.get(nc.card_id) as any)?.title || "Sans titre",
             card_type: (cardMap.get(nc.card_id) as any)?.card_type || "article",
+            pending_comments: pendingMap.get(nc.card_id) || 0,
           }))
         );
       } else {
@@ -140,7 +192,7 @@ const NewsletterSection = ({ onCardClick }: NewsletterSectionProps) => {
 
   useEffect(() => {
     fetchNewsletters();
-  }, [fetchNewsletters]);
+  }, [fetchNewsletters, refreshKey]);
 
   const handleCreate = async () => {
     if (!newDate) {
@@ -287,6 +339,17 @@ const NewsletterSection = ({ onCardClick }: NewsletterSectionProps) => {
                   <Badge variant="outline" className="text-xs">Programmée</Badge>
                 </div>
                 <div className="flex items-center gap-2">
+                  {newsletterToolUrl && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => window.open(newsletterToolUrl, "_blank")}
+                      className="gap-1.5"
+                    >
+                      <ExternalLink className="h-3.5 w-3.5" />
+                      Préparer la newsletter
+                    </Button>
+                  )}
                   <Button
                     size="sm"
                     variant="outline"
@@ -331,6 +394,12 @@ const NewsletterSection = ({ onCardClick }: NewsletterSectionProps) => {
                       >
                         {nc.card_title}
                       </button>
+                      {(nc.pending_comments ?? 0) > 0 && (
+                        <span className="flex items-center gap-0.5 text-xs text-orange-600 shrink-0" title={`${nc.pending_comments} commentaire${nc.pending_comments! > 1 ? "s" : ""} en attente`}>
+                          <MessageCircle className="h-3 w-3" />
+                          {nc.pending_comments}
+                        </span>
+                      )}
                       <Button
                         variant="ghost"
                         size="icon"

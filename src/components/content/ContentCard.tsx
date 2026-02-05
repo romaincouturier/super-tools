@@ -1,7 +1,7 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { MoreHorizontal, Pencil, Trash2, Eye, Clock, CheckCircle2, AlertCircle } from "lucide-react";
-import type { ReviewStatus, ContentTypeColors } from "./KanbanBoard";
+import { MoreHorizontal, Pencil, Trash2, Eye } from "lucide-react";
+import type { ContentTypeColors } from "./KanbanBoard";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import type { Card } from "./KanbanBoard";
+import EmojiPickerButton from "@/components/ui/emoji-picker-button";
 
 interface ContentCardProps {
   card: Card;
@@ -19,6 +20,7 @@ interface ContentCardProps {
   onEdit?: () => void;
   onDelete?: () => void;
   onView?: () => void;
+  onEmojiChange?: (cardId: string, emoji: string | null) => void;
 }
 
 const tagColors = [
@@ -35,33 +37,7 @@ const getTagColor = (tag: string) => {
   return tagColors[index % tagColors.length];
 };
 
-const getReviewStatusInfo = (status: ReviewStatus | undefined) => {
-  switch (status) {
-    case "pending":
-    case "in_review":
-      return {
-        icon: Clock,
-        color: "text-orange-500",
-        tooltip: "En attente de relecture",
-      };
-    case "approved":
-      return {
-        icon: CheckCircle2,
-        color: "text-green-500",
-        tooltip: "Relecture validée",
-      };
-    case "changes_requested":
-      return {
-        icon: AlertCircle,
-        color: "text-amber-500",
-        tooltip: "Modifications demandées",
-      };
-    default:
-      return null;
-  }
-};
-
-const ContentCard = ({ card, isDragging, typeColors, onEdit, onDelete, onView }: ContentCardProps) => {
+const ContentCard = ({ card, isDragging, typeColors, onEdit, onDelete, onView, onEmojiChange }: ContentCardProps) => {
   const {
     attributes,
     listeners,
@@ -80,9 +56,8 @@ const ContentCard = ({ card, isDragging, typeColors, onEdit, onDelete, onView }:
   const borderColor = typeColors?.[card.card_type] || (card.card_type === "post" ? "#a855f7" : "#3b82f6");
 
   const handleCardClick = (e: React.MouseEvent) => {
-    // Only trigger if clicking on the card body, not the dropdown menu
     const target = e.target as HTMLElement;
-    if (target.closest('[data-radix-dropdown-menu-trigger]') || target.closest('[role="menu"]')) {
+    if (target.closest('[data-radix-dropdown-menu-trigger]') || target.closest('[role="menu"]') || target.closest('[data-emoji-picker]')) {
       return;
     }
     if (onView) {
@@ -116,25 +91,14 @@ const ContentCard = ({ card, isDragging, typeColors, onEdit, onDelete, onView }:
 
       <div className="p-3">
         <div className="flex items-start justify-between gap-2">
-          <div className="flex items-start gap-1.5 flex-1 min-w-0">
-            {(() => {
-              const reviewInfo = getReviewStatusInfo(card.review_status);
-              if (reviewInfo) {
-                const IconComponent = reviewInfo.icon;
-                return (
-                  <span title={reviewInfo.tooltip}>
-                    <IconComponent
-                      className={`h-4 w-4 flex-shrink-0 mt-0.5 ${reviewInfo.color}`}
-                    />
-                  </span>
-                );
-              }
-              return null;
-            })()}
-            <h4 className="font-medium text-sm line-clamp-2">
-              {card.emoji && <span className="mr-1">{card.emoji}</span>}
-              {card.title}
-            </h4>
+          <div className="flex items-start gap-1 flex-1 min-w-0" data-emoji-picker>
+            <EmojiPickerButton
+              emoji={card.emoji}
+              onEmojiChange={(emoji) => onEmojiChange?.(card.id, emoji)}
+              size="sm"
+              className="shrink-0 mt-0.5"
+            />
+            <h4 className="font-medium text-sm line-clamp-2">{card.title}</h4>
           </div>
 
           {(onEdit || onDelete || onView) && (

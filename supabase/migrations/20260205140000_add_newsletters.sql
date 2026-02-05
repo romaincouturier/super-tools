@@ -1,5 +1,5 @@
 -- Newsletters table
-CREATE TABLE newsletters (
+CREATE TABLE IF NOT EXISTS newsletters (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   title text,
   scheduled_date date NOT NULL,
@@ -10,7 +10,7 @@ CREATE TABLE newsletters (
 );
 
 -- Junction table: newsletter <-> content_cards
-CREATE TABLE newsletter_cards (
+CREATE TABLE IF NOT EXISTS newsletter_cards (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   newsletter_id uuid NOT NULL REFERENCES newsletters(id) ON DELETE CASCADE,
   card_id uuid NOT NULL REFERENCES content_cards(id) ON DELETE CASCADE,
@@ -20,17 +20,23 @@ CREATE TABLE newsletter_cards (
 );
 
 -- Indexes
-CREATE INDEX idx_newsletter_cards_newsletter ON newsletter_cards(newsletter_id);
-CREATE INDEX idx_newsletter_cards_card ON newsletter_cards(card_id);
-CREATE INDEX idx_newsletters_status ON newsletters(status);
-CREATE INDEX idx_newsletters_scheduled_date ON newsletters(scheduled_date);
+CREATE INDEX IF NOT EXISTS idx_newsletter_cards_newsletter ON newsletter_cards(newsletter_id);
+CREATE INDEX IF NOT EXISTS idx_newsletter_cards_card ON newsletter_cards(card_id);
+CREATE INDEX IF NOT EXISTS idx_newsletters_status ON newsletters(status);
+CREATE INDEX IF NOT EXISTS idx_newsletters_scheduled_date ON newsletters(scheduled_date);
 
 -- RLS
 ALTER TABLE newsletters ENABLE ROW LEVEL SECURITY;
 ALTER TABLE newsletter_cards ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Authenticated users can manage newsletters"
-  ON newsletters FOR ALL TO authenticated USING (true) WITH CHECK (true);
+DO $$ BEGIN
+  CREATE POLICY "Authenticated users can manage newsletters"
+    ON newsletters FOR ALL TO authenticated USING (true) WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-CREATE POLICY "Authenticated users can manage newsletter_cards"
-  ON newsletter_cards FOR ALL TO authenticated USING (true) WITH CHECK (true);
+DO $$ BEGIN
+  CREATE POLICY "Authenticated users can manage newsletter_cards"
+    ON newsletter_cards FOR ALL TO authenticated USING (true) WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
