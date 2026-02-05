@@ -416,7 +416,8 @@ const CommentThread = ({
             <div className="space-y-3 max-h-80 overflow-y-auto">
               {comments.map((comment) => {
                 const statusConf = commentStatusConfig[comment.status];
-                const canResolve = isAuthor && comment.status === "pending";
+                // Permettre à tout utilisateur authentifié de traiter les commentaires en attente
+                const canResolve = currentUserId && comment.status === "pending";
 
                 return (
                   <div 
