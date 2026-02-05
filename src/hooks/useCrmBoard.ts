@@ -18,6 +18,20 @@ import {
   OpportunityExtraction,
 } from "@/types/crm";
 
+/** Capitalize each part of a name: "jean-pierre" → "Jean-Pierre", "DE LA FONTAINE" → "De La Fontaine" */
+const capitalizeName = (name: string | null | undefined): string | null => {
+  if (!name) return null;
+  return name
+    .trim()
+    .toLowerCase()
+    .replace(/(^|[\s-])(\S)/g, (_m, sep, ch) => sep + ch.toUpperCase());
+};
+
+const normalizeEmail = (email: string | null | undefined): string | null => {
+  if (!email) return null;
+  return email.trim().toLowerCase();
+};
+
 const CRM_QUERY_KEY = "crm-board";
 
 // Fetch all board data
@@ -323,11 +337,11 @@ export const useCreateCard = () => {
         estimated_value: input.estimated_value ?? 0,
         quote_url: input.quote_url || null,
         position: maxPos + 1,
-        first_name: input.first_name || null,
-        last_name: input.last_name || null,
+        first_name: capitalizeName(input.first_name),
+        last_name: capitalizeName(input.last_name),
         phone: input.phone || null,
         company: input.company || null,
-        email: input.email || null,
+        email: normalizeEmail(input.email),
         linkedin_url: input.linkedin_url || null,
         service_type: input.service_type || null,
         brief_questions: (input.brief_questions || null) as unknown as null,
