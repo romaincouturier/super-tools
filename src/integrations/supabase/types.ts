@@ -1335,6 +1335,263 @@ export type Database = {
         }
         Relationships: []
       }
+      okr_check_ins: {
+        Row: {
+          action_items: string | null
+          agenda: string | null
+          check_in_date: string
+          created_at: string
+          created_by_email: string | null
+          id: string
+          new_confidence: number | null
+          new_progress: number | null
+          notes: string | null
+          objective_id: string
+          previous_confidence: number | null
+          previous_progress: number | null
+        }
+        Insert: {
+          action_items?: string | null
+          agenda?: string | null
+          check_in_date?: string
+          created_at?: string
+          created_by_email?: string | null
+          id?: string
+          new_confidence?: number | null
+          new_progress?: number | null
+          notes?: string | null
+          objective_id: string
+          previous_confidence?: number | null
+          previous_progress?: number | null
+        }
+        Update: {
+          action_items?: string | null
+          agenda?: string | null
+          check_in_date?: string
+          created_at?: string
+          created_by_email?: string | null
+          id?: string
+          new_confidence?: number | null
+          new_progress?: number | null
+          notes?: string | null
+          objective_id?: string
+          previous_confidence?: number | null
+          previous_progress?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "okr_check_ins_objective_id_fkey"
+            columns: ["objective_id"]
+            isOneToOne: false
+            referencedRelation: "okr_objectives"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      okr_initiatives: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          key_result_id: string
+          linked_mission_id: string | null
+          linked_training_id: string | null
+          position: number
+          progress_percentage: number
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          key_result_id: string
+          linked_mission_id?: string | null
+          linked_training_id?: string | null
+          position?: number
+          progress_percentage?: number
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          key_result_id?: string
+          linked_mission_id?: string | null
+          linked_training_id?: string | null
+          position?: number
+          progress_percentage?: number
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "okr_initiatives_key_result_id_fkey"
+            columns: ["key_result_id"]
+            isOneToOne: false
+            referencedRelation: "okr_key_results"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      okr_key_results: {
+        Row: {
+          confidence_level: number
+          created_at: string
+          current_value: number
+          description: string | null
+          id: string
+          objective_id: string
+          position: number
+          progress_percentage: number
+          target_value: number | null
+          title: string
+          unit: string | null
+          updated_at: string
+        }
+        Insert: {
+          confidence_level?: number
+          created_at?: string
+          current_value?: number
+          description?: string | null
+          id?: string
+          objective_id: string
+          position?: number
+          progress_percentage?: number
+          target_value?: number | null
+          title: string
+          unit?: string | null
+          updated_at?: string
+        }
+        Update: {
+          confidence_level?: number
+          created_at?: string
+          current_value?: number
+          description?: string | null
+          id?: string
+          objective_id?: string
+          position?: number
+          progress_percentage?: number
+          target_value?: number | null
+          title?: string
+          unit?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "okr_key_results_objective_id_fkey"
+            columns: ["objective_id"]
+            isOneToOne: false
+            referencedRelation: "okr_objectives"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      okr_objectives: {
+        Row: {
+          cadence: string
+          color: string
+          confidence_level: number
+          created_at: string
+          created_by: string | null
+          description: string | null
+          favorite_position: number | null
+          id: string
+          is_favorite: boolean
+          next_review_agenda: string | null
+          next_review_date: string | null
+          owner_email: string | null
+          position: number
+          progress_percentage: number
+          status: string
+          target_year: number
+          time_target: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          cadence?: string
+          color?: string
+          confidence_level?: number
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          favorite_position?: number | null
+          id?: string
+          is_favorite?: boolean
+          next_review_agenda?: string | null
+          next_review_date?: string | null
+          owner_email?: string | null
+          position?: number
+          progress_percentage?: number
+          status?: string
+          target_year?: number
+          time_target?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          cadence?: string
+          color?: string
+          confidence_level?: number
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          favorite_position?: number | null
+          id?: string
+          is_favorite?: boolean
+          next_review_agenda?: string | null
+          next_review_date?: string | null
+          owner_email?: string | null
+          position?: number
+          progress_percentage?: number
+          status?: string
+          target_year?: number
+          time_target?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      okr_participants: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          name: string | null
+          objective_id: string
+          role: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          name?: string | null
+          objective_id: string
+          role?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string | null
+          objective_id?: string
+          role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "okr_participants_objective_id_fkey"
+            columns: ["objective_id"]
+            isOneToOne: false
+            referencedRelation: "okr_objectives"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -1974,6 +2231,7 @@ export type Database = {
         Row: {
           attendance_sheets_urls: string[] | null
           client_name: string
+          convention_file_url: string | null
           created_at: string
           created_by: string
           end_date: string | null
@@ -2007,6 +2265,7 @@ export type Database = {
         Insert: {
           attendance_sheets_urls?: string[] | null
           client_name: string
+          convention_file_url?: string | null
           created_at?: string
           created_by: string
           end_date?: string | null
@@ -2040,6 +2299,7 @@ export type Database = {
         Update: {
           attendance_sheets_urls?: string[] | null
           client_name?: string
+          convention_file_url?: string | null
           created_at?: string
           created_by?: string
           end_date?: string | null
