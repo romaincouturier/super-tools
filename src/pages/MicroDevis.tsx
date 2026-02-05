@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 import { Loader2, FileText, ArrowLeft, Send, Settings, Save, X, Plus, Trash2, Star, Eye, Search, ChevronUp, ChevronDown, History, Mail, Copy } from "lucide-react";
@@ -58,6 +58,7 @@ const MicroDevis = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
 
   // Formation configs from DB
@@ -249,8 +250,13 @@ const MicroDevis = () => {
     }
   }, [user, toast]);
 
-  // Load form data from sessionStorage on mount
+  // Load form data from sessionStorage on mount (only if NOT coming from CRM)
   useEffect(() => {
+    // Skip session storage if coming from CRM with prefill data
+    if (searchParams.get("source") === "crm") {
+      return;
+    }
+    
     try {
       const saved = sessionStorage.getItem(STORAGE_KEY);
       if (saved) {
@@ -269,7 +275,30 @@ const MicroDevis = () => {
     } catch (e) {
       console.error("Failed to load saved form data:", e);
     }
-  }, []);
+  }, [searchParams]);
+
+  // Load form data from CRM URL params
+  useEffect(() => {
+    if (searchParams.get("source") !== "crm") {
+      return;
+    }
+
+    const nomClientParam = searchParams.get("nomClient");
+    const emailParam = searchParams.get("emailCommanditaire");
+    const adresseParam = searchParams.get("adresseCommanditaire");
+
+    if (nomClientParam) setNomClient(nomClientParam);
+    if (emailParam) setEmailCommanditaire(emailParam);
+    if (adresseParam) setAdresseCommanditaire(adresseParam);
+
+    // Pre-select "formation" type since coming from CRM with service_type = formation
+    setTypeDevis("formation");
+
+    toast({
+      title: "Données préremplies",
+      description: "Les informations de l'opportunité CRM ont été importées.",
+    });
+  }, [searchParams, toast]);
 
   // Save form data to sessionStorage when key fields change
   useEffect(() => {

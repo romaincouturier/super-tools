@@ -1065,7 +1065,12 @@ const CardDetailDrawer = ({
             <div className="flex gap-2 flex-wrap">
               {serviceType === "formation" && (
                 <Button asChild variant="outline" size="sm">
-                  <Link to="/micro-devis">
+                  <Link to={`/micro-devis?${new URLSearchParams({
+                    ...(company && { nomClient: company }),
+                    ...(email && { emailCommanditaire: email }),
+                    ...((firstName || lastName) && { adresseCommanditaire: [firstName, lastName].filter(Boolean).join(" ") }),
+                    source: "crm",
+                  }).toString()}`}>
                     <Receipt className="h-4 w-4 mr-2" />
                     Créer un devis formation
                   </Link>
