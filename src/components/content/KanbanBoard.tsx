@@ -66,7 +66,7 @@ export interface Card {
   tags: string[];
   display_order: number;
   review_status?: ReviewStatus;
-  card_type: ContentCardType;
+  card_type?: ContentCardType;
 }
 
 interface KanbanBoardProps {
@@ -166,7 +166,7 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false }: Kanb
           display_order: c.display_order,
           tags: Array.isArray(c.tags) ? (c.tags as string[]) : [],
           review_status: cardReviewStatus.get(c.id) || "none",
-          card_type: (c.card_type as ContentCardType) || "article",
+          card_type: "article" as ContentCardType,
         }))
       );
     } catch (error) {
