@@ -177,6 +177,9 @@ const MicroDevis = () => {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
+  // Track if initial defaults have been applied
+  const [initialDefaultsApplied, setInitialDefaultsApplied] = useState(false);
+
   // Load formation configs from DB
   useEffect(() => {
     const loadFormationConfigs = async () => {
@@ -192,9 +195,12 @@ const MicroDevis = () => {
           const configs = data as FormationConfig[];
           setFormationConfigs(configs);
           
-          const defaultFormation = configs.find(f => f.is_default);
-          if (defaultFormation) {
-            setFormationDemandee(defaultFormation.formation_name);
+          // Only set default if no value is currently selected AND initial defaults haven't been applied yet
+          if (!initialDefaultsApplied && !formationDemandee) {
+            const defaultFormation = configs.find(f => f.is_default);
+            if (defaultFormation) {
+              setFormationDemandee(defaultFormation.formation_name);
+            }
           }
         }
       } catch (error) {
@@ -212,7 +218,7 @@ const MicroDevis = () => {
     if (user) {
       loadFormationConfigs();
     }
-  }, [user, toast]);
+  }, [user, toast, initialDefaultsApplied, formationDemandee]);
 
   // Load formation dates from DB
   useEffect(() => {
@@ -228,9 +234,12 @@ const MicroDevis = () => {
         if (data && data.length > 0) {
           setFormationDates(data as FormationDate[]);
           
-          const defaultDate = data.find((d: FormationDate) => d.is_default);
-          if (defaultDate) {
-            setDateFormation(defaultDate.date_label);
+          // Only set default if no value is currently selected AND initial defaults haven't been applied yet
+          if (!initialDefaultsApplied && !dateFormation) {
+            const defaultDate = data.find((d: FormationDate) => d.is_default);
+            if (defaultDate) {
+              setDateFormation(defaultDate.date_label);
+            }
           }
         }
       } catch (error) {
@@ -248,7 +257,14 @@ const MicroDevis = () => {
     if (user) {
       loadFormationDates();
     }
-  }, [user, toast]);
+  }, [user, toast, initialDefaultsApplied, dateFormation]);
+
+  // Mark initial defaults as applied after first load completes
+  useEffect(() => {
+    if (!loadingConfigs && !loadingDates && !initialDefaultsApplied) {
+      setInitialDefaultsApplied(true);
+    }
+  }, [loadingConfigs, loadingDates, initialDefaultsApplied]);
 
   // Load form data from sessionStorage on mount (only if NOT coming from CRM)
   useEffect(() => {
