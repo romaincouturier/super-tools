@@ -1269,6 +1269,235 @@ export type Database = {
         }
         Relationships: []
       }
+      mission_activities: {
+        Row: {
+          activity_date: string
+          billable_amount: number | null
+          created_at: string | null
+          description: string
+          duration: number
+          duration_type: string
+          id: string
+          invoice_number: string | null
+          invoice_url: string | null
+          is_billed: boolean | null
+          mission_id: string
+          notes: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          activity_date: string
+          billable_amount?: number | null
+          created_at?: string | null
+          description: string
+          duration?: number
+          duration_type?: string
+          id?: string
+          invoice_number?: string | null
+          invoice_url?: string | null
+          is_billed?: boolean | null
+          mission_id: string
+          notes?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          activity_date?: string
+          billable_amount?: number | null
+          created_at?: string | null
+          description?: string
+          duration?: number
+          duration_type?: string
+          id?: string
+          invoice_number?: string | null
+          invoice_url?: string | null
+          is_billed?: boolean | null
+          mission_id?: string
+          notes?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mission_activities_mission_id_fkey"
+            columns: ["mission_id"]
+            isOneToOne: false
+            referencedRelation: "missions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mission_media: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          file_name: string
+          file_size: number | null
+          file_type: string
+          file_url: string
+          id: string
+          mime_type: string | null
+          mission_id: string
+          position: number
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          file_name: string
+          file_size?: number | null
+          file_type: string
+          file_url: string
+          id?: string
+          mime_type?: string | null
+          mission_id: string
+          position?: number
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          file_name?: string
+          file_size?: number | null
+          file_type?: string
+          file_url?: string
+          id?: string
+          mime_type?: string | null
+          mission_id?: string
+          position?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mission_media_mission_id_fkey"
+            columns: ["mission_id"]
+            isOneToOne: false
+            referencedRelation: "missions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mission_pages: {
+        Row: {
+          content: string | null
+          created_at: string | null
+          icon: string | null
+          id: string
+          is_expanded: boolean | null
+          mission_id: string
+          parent_page_id: string | null
+          position: number
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string | null
+          icon?: string | null
+          id?: string
+          is_expanded?: boolean | null
+          mission_id: string
+          parent_page_id?: string | null
+          position?: number
+          title?: string
+          updated_at?: string | null
+        }
+        Update: {
+          content?: string | null
+          created_at?: string | null
+          icon?: string | null
+          id?: string
+          is_expanded?: boolean | null
+          mission_id?: string
+          parent_page_id?: string | null
+          position?: number
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mission_pages_mission_id_fkey"
+            columns: ["mission_id"]
+            isOneToOne: false
+            referencedRelation: "missions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mission_pages_parent_page_id_fkey"
+            columns: ["parent_page_id"]
+            isOneToOne: false
+            referencedRelation: "mission_pages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      missions: {
+        Row: {
+          billed_amount: number | null
+          client_contact: string | null
+          client_name: string | null
+          color: string | null
+          consumed_amount: number | null
+          created_at: string | null
+          created_by: string | null
+          daily_rate: number | null
+          description: string | null
+          emoji: string | null
+          end_date: string | null
+          id: string
+          initial_amount: number | null
+          position: number
+          start_date: string | null
+          status: string
+          tags: string[] | null
+          title: string
+          total_amount: number | null
+          total_days: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          billed_amount?: number | null
+          client_contact?: string | null
+          client_name?: string | null
+          color?: string | null
+          consumed_amount?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          daily_rate?: number | null
+          description?: string | null
+          emoji?: string | null
+          end_date?: string | null
+          id?: string
+          initial_amount?: number | null
+          position?: number
+          start_date?: string | null
+          status?: string
+          tags?: string[] | null
+          title: string
+          total_amount?: number | null
+          total_days?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          billed_amount?: number | null
+          client_contact?: string | null
+          client_name?: string | null
+          color?: string | null
+          consumed_amount?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          daily_rate?: number | null
+          description?: string | null
+          emoji?: string | null
+          end_date?: string | null
+          id?: string
+          initial_amount?: number | null
+          position?: number
+          start_date?: string | null
+          status?: string
+          tags?: string[] | null
+          title?: string
+          total_amount?: number | null
+          total_days?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       newsletter_cards: {
         Row: {
           card_id: string
