@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -16,16 +16,36 @@ interface CreateMissionDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   defaultStatus?: MissionStatus;
+  prefillTitle?: string;
+  prefillClientName?: string;
+  prefillClientContact?: string;
+  prefillTotalAmount?: string;
 }
 
 const CreateMissionDialog = ({
   open,
   onOpenChange,
   defaultStatus = "not_started",
+  prefillTitle,
+  prefillClientName,
+  prefillClientContact,
+  prefillTotalAmount,
 }: CreateMissionDialogProps) => {
   const createMission = useCreateMission();
   const [title, setTitle] = useState("");
   const [clientName, setClientName] = useState("");
+  const [clientContact, setClientContact] = useState("");
+  const [totalAmount, setTotalAmount] = useState("");
+
+  // Apply prefill when dialog opens with prefill data
+  useEffect(() => {
+    if (open) {
+      setTitle(prefillTitle || "");
+      setClientName(prefillClientName || "");
+      setClientContact(prefillClientContact || "");
+      setTotalAmount(prefillTotalAmount || "");
+    }
+  }, [open, prefillTitle, prefillClientName, prefillClientContact, prefillTotalAmount]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,11 +54,15 @@ const CreateMissionDialog = ({
     await createMission.mutateAsync({
       title: title.trim(),
       client_name: clientName.trim() || undefined,
+      client_contact: clientContact.trim() || undefined,
+      initial_amount: totalAmount ? parseFloat(totalAmount) || undefined : undefined,
       status: defaultStatus,
     });
 
     setTitle("");
     setClientName("");
+    setClientContact("");
+    setTotalAmount("");
     onOpenChange(false);
   };
 
@@ -59,11 +83,30 @@ const CreateMissionDialog = ({
             />
           </div>
           <div>
-            <Label>Client (optionnel)</Label>
+            <Label>Client</Label>
             <Input
               value={clientName}
               onChange={(e) => setClientName(e.target.value)}
               placeholder="Nom du client"
+            />
+          </div>
+          <div>
+            <Label>Contact client</Label>
+            <Input
+              value={clientContact}
+              onChange={(e) => setClientContact(e.target.value)}
+              placeholder="Nom du contact"
+            />
+          </div>
+          <div>
+            <Label>Montant initial (€)</Label>
+            <Input
+              type="number"
+              min="0"
+              step="0.01"
+              value={totalAmount}
+              onChange={(e) => setTotalAmount(e.target.value)}
+              placeholder="0"
             />
           </div>
           <div className="flex justify-end gap-2">

@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft, Briefcase } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import AppHeader from "@/components/AppHeader";
@@ -7,6 +7,7 @@ import MissionProfitabilityDashboard from "@/components/missions/MissionProfitab
 
 const Missions = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   return (
     <div className="min-h-screen bg-background">
@@ -42,7 +43,16 @@ const Missions = () => {
 
         {/* Kanban Board */}
         <div className="flex-1 min-h-0">
-          <MissionsKanbanBoard />
+          <MissionsKanbanBoard
+            prefillFromCrm={searchParams.get("title") ? {
+              title: searchParams.get("title") || "",
+              clientName: searchParams.get("clientName") || "",
+              clientContact: searchParams.get("clientContact") || "",
+              totalAmount: searchParams.get("totalAmount") || "",
+              fromCrmCardId: searchParams.get("fromCrmCardId") || "",
+            } : undefined}
+            onPrefillConsumed={() => setSearchParams({})}
+          />
         </div>
       </main>
     </div>

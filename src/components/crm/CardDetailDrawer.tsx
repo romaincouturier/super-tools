@@ -26,6 +26,21 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Save,
@@ -64,6 +79,11 @@ import {
   Wand2,
   ImageIcon,
   ChevronDown,
+  Trophy,
+  XCircle,
+  MoreVertical,
+  Rocket,
+  GraduationCap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format, addDays, isAfter, startOfDay } from "date-fns";
@@ -194,9 +214,11 @@ const CardDetailDrawer = ({
   // Email history state
   const [expandedEmailId, setExpandedEmailId] = useState<string | null>(null);
 
-  // Create training dialog state
+  // Create training/mission dialog state (win choice)
   const [showCreateTrainingDialog, setShowCreateTrainingDialog] = useState(false);
+  const [showWinChoiceDialog, setShowWinChoiceDialog] = useState(false);
   const [pendingTrainingParams, setPendingTrainingParams] = useState<URLSearchParams | null>(null);
+  const [showSchedulePopover, setShowSchedulePopover] = useState(false);
 
   // Get tomorrow's date as minimum for scheduling
   const tomorrow = format(addDays(new Date(), 1), "yyyy-MM-dd");
@@ -462,10 +484,33 @@ const CardDetailDrawer = ({
   const handleConfirmCreateTraining = () => {
     if (pendingTrainingParams) {
       setShowCreateTrainingDialog(false);
+      setShowWinChoiceDialog(false);
       onOpenChange(false);
       navigate(`/formations/new?${pendingTrainingParams.toString()}`);
       setPendingTrainingParams(null);
     }
+  };
+
+  // Called when user chooses to create a mission after winning
+  const handleConfirmCreateMission = () => {
+    setShowWinChoiceDialog(false);
+    onOpenChange(false);
+    const missionTitle = title.replace(/^\([^)]+\)\s*/, "");
+    const params = new URLSearchParams();
+    if (missionTitle) params.set("title", missionTitle);
+    if (company) params.set("clientName", company);
+    if (firstName || lastName) params.set("clientContact", [firstName, lastName].filter(Boolean).join(" "));
+    if (estimatedValue && parseFloat(estimatedValue) > 0) params.set("totalAmount", estimatedValue);
+    if (card?.id) params.set("fromCrmCardId", card.id);
+    navigate(`/missions?${params.toString()}`);
+  };
+
+  // Show win choice dialog (formation or mission)
+  const promptWinChoice = () => {
+    const params = buildTrainingParams();
+    setPendingTrainingParams(params);
+    celebrateWin();
+    setShowWinChoiceDialog(true);
   };
 
   // Show training creation dialog (for formations or when user might want to create one)
@@ -510,15 +555,15 @@ const CardDetailDrawer = ({
       oldCard: card,
     });
 
-    // If opportunity is WON and is a formation (or no type set), ask to create training
-    if (statusChangedToWon && (serviceType === "formation" || !serviceType)) {
-      promptCreateTraining();
+    // If opportunity is WON, prompt win choice (formation or mission)
+    if (statusChangedToWon) {
+      promptWinChoice();
     }
   };
 
   const handleSalesStatusChange = async (newStatus: SalesStatus) => {
     if (!card || !user?.email) return;
-    
+
     // Use local salesStatus state (the CURRENT value before this change) to detect transition
     const previousStatus = salesStatus;
     setSalesStatus(newStatus);
@@ -526,7 +571,7 @@ const CardDetailDrawer = ({
     // When opportunity becomes WON or LOST, reset operational status to TODAY and clear waiting fields
     const isFinalStatus = newStatus === "WON" || newStatus === "LOST";
     const updates: Record<string, unknown> = { sales_status: newStatus };
-    
+
     if (isFinalStatus) {
       updates.status_operational = "TODAY";
       updates.waiting_next_action_date = null;
@@ -547,9 +592,9 @@ const CardDetailDrawer = ({
       oldCard: card,
     });
 
-    // If opportunity is now WON and is a formation (or no type set), ask to create training
-    if (statusChangedToWon && (serviceType === "formation" || !serviceType)) {
-      promptCreateTraining();
+    // If opportunity is WON, prompt win choice (formation or mission)
+    if (statusChangedToWon) {
+      promptWinChoice();
     }
   };
 
@@ -629,14 +674,9 @@ const CardDetailDrawer = ({
       oldCard: card,
     });
 
-    // Celebrate with confetti when deal is won!
+    // If moving to won column, prompt win choice (formation or mission)
     if (movingToWon) {
-      celebrateWin();
-    }
-
-    // If moving to won column and is a formation (or no type), prompt training creation
-    if (movingToWon && (serviceType === "formation" || !serviceType)) {
-      promptCreateTraining();
+      promptWinChoice();
     }
   };
 
@@ -782,24 +822,152 @@ const CardDetailDrawer = ({
           </SheetTitle>
         </SheetHeader>
 
-        {/* Column Buttons - Always visible at top */}
-        <div className="mt-4 mb-4">
-          <Label className="mb-2 block text-sm">État de l'opportunité</Label>
-          <div className="flex gap-2 flex-wrap">
-            {allColumns.map((col) => (
-              <Button
-                key={col.id}
-                size="sm"
-                variant={columnId === col.id ? "default" : "outline"}
-                className={columnId === col.id ? "bg-primary text-white" : ""}
-                onClick={() => handleColumnChange(col.id, col.name)}
-                disabled={updateCard.isPending}
-              >
-                {col.name}
+        {/* Toolbar - Column selector + Value + Actions */}
+        <div className="mt-4 mb-4 flex items-center gap-2">
+          {/* Action menu (left) */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-1">
+                <MoreVertical className="h-4 w-4" />
               </Button>
-            ))}
-          </div>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-56">
+              <DropdownMenuItem onClick={() => setShowSchedulePopover(true)}>
+                <Calendar className="h-4 w-4 mr-2" />
+                Programmer une action
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Column selector (center) */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="default" size="sm" className="gap-1.5">
+                {allColumns.find(c => c.id === columnId)?.name || "Colonne"}
+                <ChevronDown className="h-3.5 w-3.5 opacity-70" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              {allColumns.map((col) => (
+                <DropdownMenuItem
+                  key={col.id}
+                  onClick={() => handleColumnChange(col.id, col.name)}
+                  disabled={updateCard.isPending || col.id === columnId}
+                  className={cn(col.id === columnId && "font-semibold bg-accent")}
+                >
+                  {col.name}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Estimated value */}
+          {estimatedValue && parseFloat(estimatedValue) > 0 && (
+            <Badge variant="secondary" className="text-green-700 bg-green-50 border-green-200 text-sm font-medium">
+              {parseFloat(estimatedValue).toLocaleString("fr-FR")} €
+            </Badge>
+          )}
+
+          {/* Spacer */}
+          <div className="flex-1" />
+
+          {/* Won / Lost icons */}
+          <Button
+            variant="ghost"
+            size="sm"
+            className={cn(
+              "gap-1 text-green-600 hover:text-green-700 hover:bg-green-50",
+              salesStatus === "WON" && "bg-green-100 text-green-700"
+            )}
+            onClick={() => handleSalesStatusChange("WON")}
+            disabled={updateCard.isPending}
+            title="Gagné"
+          >
+            <Trophy className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className={cn(
+              "gap-1 text-red-600 hover:text-red-700 hover:bg-red-50",
+              salesStatus === "LOST" && "bg-red-100 text-red-700"
+            )}
+            onClick={() => handleSalesStatusChange("LOST")}
+            disabled={updateCard.isPending}
+            title="Perdu"
+          >
+            <XCircle className="h-4 w-4" />
+          </Button>
         </div>
+
+        {/* Schedule action popover */}
+        {showSchedulePopover && (
+          <div className="mb-4 p-4 bg-blue-50 rounded-lg space-y-3 border border-blue-200">
+            <div className="flex items-center justify-between">
+              <h4 className="font-medium text-sm flex items-center gap-2">
+                <Calendar className="h-4 w-4" />
+                Programmer une action
+              </h4>
+              <Button variant="ghost" size="sm" onClick={() => setShowSchedulePopover(false)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            {card?.waiting_next_action_date && (
+              <div className="text-sm text-blue-700 flex items-center justify-between">
+                <span>
+                  Action programmée le {format(new Date(card.waiting_next_action_date), "d MMMM yyyy", { locale: fr })}
+                  {card.waiting_next_action_text && ` : ${card.waiting_next_action_text}`}
+                </span>
+                <Button variant="ghost" size="sm" onClick={handleClearSchedule}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+            <div className="flex flex-wrap gap-1">
+              <Button type="button" variant="outline" size="sm" className="text-xs h-7" onClick={() => setScheduledText("Envoyer un devis")}>
+                Envoyer un devis
+              </Button>
+              <Button type="button" variant="outline" size="sm" className="text-xs h-7" onClick={() => setScheduledText("Faire un retour après consultation interne")}>
+                Retour après consultation
+              </Button>
+              <Button type="button" variant="outline" size="sm" className="text-xs h-7" onClick={() => setScheduledText("Relancer le client")}>
+                Relancer le client
+              </Button>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label className="text-xs">Action</Label>
+                <Input
+                  value={scheduledText}
+                  onChange={(e) => setScheduledText(e.target.value)}
+                  placeholder="Relancer le client"
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Date (à partir de demain)</Label>
+                <Input
+                  type="date"
+                  min={tomorrow}
+                  value={scheduledDate}
+                  onChange={(e) => setScheduledDate(e.target.value)}
+                />
+              </div>
+            </div>
+            <Button
+              size="sm"
+              onClick={() => { handleScheduleAction(); setShowSchedulePopover(false); }}
+              disabled={!scheduledDate || !scheduledText.trim() || updateCard.isPending}
+              className="w-full"
+            >
+              {updateCard.isPending ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Calendar className="h-4 w-4 mr-2" />
+              )}
+              Programmer
+            </Button>
+          </div>
+        )}
 
         <Tabs defaultValue="details" className="mt-4">
           <TabsList className="grid grid-cols-5 w-full">
@@ -1098,87 +1266,6 @@ const CardDetailDrawer = ({
                   </a>
                 </Button>
               )}
-            </div>
-
-            {/* Schedule action */}
-            <div className="p-4 bg-blue-50 rounded-lg space-y-3">
-              <h4 className="font-medium text-sm flex items-center gap-2">
-                <Calendar className="h-4 w-4" />
-                Programmer une action
-              </h4>
-              {card.waiting_next_action_date && (
-                <div className="text-sm text-blue-700 flex items-center justify-between">
-                  <span>
-                    Action programmée le {format(new Date(card.waiting_next_action_date), "d MMMM yyyy", { locale: fr })}
-                    {card.waiting_next_action_text && ` : ${card.waiting_next_action_text}`}
-                  </span>
-                  <Button variant="ghost" size="sm" onClick={handleClearSchedule}>
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              )}
-              {/* Default action buttons */}
-              <div className="flex flex-wrap gap-1">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="text-xs h-7"
-                  onClick={() => setScheduledText("Envoyer un devis")}
-                >
-                  Envoyer un devis
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="text-xs h-7"
-                  onClick={() => setScheduledText("Faire un retour après consultation interne")}
-                >
-                  Retour après consultation
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="text-xs h-7"
-                  onClick={() => setScheduledText("Relancer le client")}
-                >
-                  Relancer le client
-                </Button>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <Label className="text-xs">Action</Label>
-                  <Input
-                    value={scheduledText}
-                    onChange={(e) => setScheduledText(e.target.value)}
-                    placeholder="Relancer le client"
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs">Date (à partir de demain)</Label>
-                  <Input
-                    type="date"
-                    min={tomorrow}
-                    value={scheduledDate}
-                    onChange={(e) => setScheduledDate(e.target.value)}
-                  />
-                </div>
-              </div>
-              <Button
-                size="sm"
-                onClick={handleScheduleAction}
-                disabled={!scheduledDate || !scheduledText.trim() || updateCard.isPending}
-                className="w-full"
-              >
-                {updateCard.isPending ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <Calendar className="h-4 w-4 mr-2" />
-                )}
-                Programmer
-              </Button>
             </div>
 
             <div>
@@ -1721,6 +1808,48 @@ const CardDetailDrawer = ({
       onConfirm={handleConfirmCreateTraining}
       opportunityTitle={title}
     />
+
+    {/* Win choice dialog - choose formation or mission */}
+    <AlertDialog open={showWinChoiceDialog} onOpenChange={setShowWinChoiceDialog}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-2 rounded-full bg-green-100 text-green-600">
+              <Trophy className="h-5 w-5" />
+            </div>
+            <AlertDialogTitle>Opportunité gagnée !</AlertDialogTitle>
+          </div>
+          <AlertDialogDescription className="text-left">
+            L'opportunité <strong>"{title}"</strong> a été marquée comme gagnée.
+            <br /><br />
+            Que souhaitez-vous créer à partir de cette opportunité ?
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <div className="grid grid-cols-2 gap-3 py-2">
+          <Button
+            variant="outline"
+            className="h-auto flex flex-col items-center gap-2 p-4 hover:border-primary hover:bg-primary/5"
+            onClick={handleConfirmCreateTraining}
+          >
+            <GraduationCap className="h-8 w-8 text-primary" />
+            <span className="font-medium">Créer une formation</span>
+            <span className="text-xs text-muted-foreground text-center">Préremplir avec les infos de l'opportunité</span>
+          </Button>
+          <Button
+            variant="outline"
+            className="h-auto flex flex-col items-center gap-2 p-4 hover:border-purple-500 hover:bg-purple-50"
+            onClick={handleConfirmCreateMission}
+          >
+            <Rocket className="h-8 w-8 text-purple-600" />
+            <span className="font-medium">Créer une mission</span>
+            <span className="text-xs text-muted-foreground text-center">Préremplir avec les infos de l'opportunité</span>
+          </Button>
+        </div>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Non, plus tard</AlertDialogCancel>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
     </>
   );
 };

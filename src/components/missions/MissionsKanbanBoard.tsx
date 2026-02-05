@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -17,7 +17,20 @@ import MissionDetailDrawer from "./MissionDetailDrawer";
 import CreateMissionDialog from "./CreateMissionDialog";
 import { Loader2 } from "lucide-react";
 
-const MissionsKanbanBoard = () => {
+interface CrmPrefill {
+  title: string;
+  clientName: string;
+  clientContact: string;
+  totalAmount: string;
+  fromCrmCardId: string;
+}
+
+interface MissionsKanbanBoardProps {
+  prefillFromCrm?: CrmPrefill;
+  onPrefillConsumed?: () => void;
+}
+
+const MissionsKanbanBoard = ({ prefillFromCrm, onPrefillConsumed }: MissionsKanbanBoardProps) => {
   const { data, isLoading, error } = useMissions();
   const moveMission = useMoveMission();
   const updateMission = useUpdateMission();
@@ -26,6 +39,17 @@ const MissionsKanbanBoard = () => {
   const [selectedMission, setSelectedMission] = useState<Mission | null>(null);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [createDialogStatus, setCreateDialogStatus] = useState<MissionStatus>("not_started");
+  const [prefillData, setPrefillData] = useState<CrmPrefill | undefined>(undefined);
+
+  // Auto-open create dialog when prefill data from CRM is provided
+  useEffect(() => {
+    if (prefillFromCrm) {
+      setPrefillData(prefillFromCrm);
+      setCreateDialogStatus("not_started");
+      setShowCreateDialog(true);
+      onPrefillConsumed?.();
+    }
+  }, [prefillFromCrm]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -153,8 +177,15 @@ const MissionsKanbanBoard = () => {
 
       <CreateMissionDialog
         open={showCreateDialog}
-        onOpenChange={setShowCreateDialog}
+        onOpenChange={(open) => {
+          setShowCreateDialog(open);
+          if (!open) setPrefillData(undefined);
+        }}
         defaultStatus={createDialogStatus}
+        prefillTitle={prefillData?.title}
+        prefillClientName={prefillData?.clientName}
+        prefillClientContact={prefillData?.clientContact}
+        prefillTotalAmount={prefillData?.totalAmount}
       />
 
       <MissionDetailDrawer
