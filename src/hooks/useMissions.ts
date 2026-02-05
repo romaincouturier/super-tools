@@ -3,6 +3,38 @@ import { supabase } from "@/integrations/supabase/client";
 import { Mission, CreateMissionInput, UpdateMissionInput, MissionStatus } from "@/types/missions";
 
 const MISSIONS_QUERY_KEY = "missions";
+const MISSION_ACTIVITIES_QUERY_KEY = "mission-activities";
+const MISSION_PAGES_QUERY_KEY = "mission-pages";
+
+// Types for activities and pages
+export interface MissionActivity {
+  id: string;
+  mission_id: string;
+  description: string;
+  activity_date: string;
+  duration_type: "hours" | "days";
+  duration: number;
+  billable_amount: number | null;
+  invoice_url: string | null;
+  invoice_number: string | null;
+  is_billed: boolean;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MissionPage {
+  id: string;
+  mission_id: string;
+  parent_page_id: string | null;
+  title: string;
+  content: string | null;
+  icon: string | null;
+  position: number;
+  is_expanded: boolean;
+  created_at: string;
+  updated_at: string;
+}
 
 // Fetch all missions
 export const useMissions = () => {
@@ -138,6 +170,199 @@ export const useMoveMission = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [MISSIONS_QUERY_KEY] });
+    },
+  });
+};
+
+// ===============================
+// Mission Activities Hooks
+// ===============================
+
+// Fetch activities for a mission
+export const useMissionActivities = (missionId: string | null) => {
+  return useQuery({
+    queryKey: [MISSION_ACTIVITIES_QUERY_KEY, missionId],
+    queryFn: async () => {
+      if (!missionId) return [];
+
+      const { data, error } = await (supabase as any)
+        .from("mission_activities")
+        .select("*")
+        .eq("mission_id", missionId)
+        .order("activity_date", { ascending: false });
+
+      if (error) throw error;
+      return (data || []) as MissionActivity[];
+    },
+    enabled: !!missionId,
+  });
+};
+
+// Create activity
+export const useCreateMissionActivity = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (input: Omit<MissionActivity, "id" | "created_at" | "updated_at">) => {
+      const { data, error } = await (supabase as any)
+        .from("mission_activities")
+        .insert(input)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data as MissionActivity;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: [MISSION_ACTIVITIES_QUERY_KEY, data.mission_id] });
+      queryClient.invalidateQueries({ queryKey: [MISSIONS_QUERY_KEY] });
+    },
+  });
+};
+
+// Update activity
+export const useUpdateMissionActivity = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, missionId, updates }: { id: string; missionId: string; updates: Partial<MissionActivity> }) => {
+      const { data, error } = await (supabase as any)
+        .from("mission_activities")
+        .update(updates)
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return { ...data, missionId } as MissionActivity & { missionId: string };
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: [MISSION_ACTIVITIES_QUERY_KEY, data.missionId] });
+      queryClient.invalidateQueries({ queryKey: [MISSIONS_QUERY_KEY] });
+    },
+  });
+};
+
+// Delete activity
+export const useDeleteMissionActivity = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, missionId }: { id: string; missionId: string }) => {
+      const { error } = await (supabase as any)
+        .from("mission_activities")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+      return { missionId };
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: [MISSION_ACTIVITIES_QUERY_KEY, data.missionId] });
+      queryClient.invalidateQueries({ queryKey: [MISSIONS_QUERY_KEY] });
+    },
+  });
+};
+
+// ===============================
+// Mission Pages Hooks
+// ===============================
+
+// Fetch pages for a mission
+export const useMissionPages = (missionId: string | null) => {
+  return useQuery({
+    queryKey: [MISSION_PAGES_QUERY_KEY, missionId],
+    queryFn: async () => {
+      if (!missionId) return [];
+
+      const { data, error } = await (supabase as any)
+        .from("mission_pages")
+        .select("*")
+        .eq("mission_id", missionId)
+        .order("position", { ascending: true });
+
+      if (error) throw error;
+      return (data || []) as MissionPage[];
+    },
+    enabled: !!missionId,
+  });
+};
+
+// Create page
+export const useCreateMissionPage = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (input: { mission_id: string; parent_page_id?: string | null; title?: string }) => {
+      // Get max position
+      const { data: existingPages } = await (supabase as any)
+        .from("mission_pages")
+        .select("position")
+        .eq("mission_id", input.mission_id)
+        .eq("parent_page_id", input.parent_page_id || null)
+        .order("position", { ascending: false })
+        .limit(1);
+
+      const maxPosition = existingPages?.[0]?.position ?? -1;
+
+      const { data, error } = await (supabase as any)
+        .from("mission_pages")
+        .insert({
+          mission_id: input.mission_id,
+          parent_page_id: input.parent_page_id || null,
+          title: input.title || "Sans titre",
+          position: maxPosition + 1,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data as MissionPage;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: [MISSION_PAGES_QUERY_KEY, data.mission_id] });
+    },
+  });
+};
+
+// Update page
+export const useUpdateMissionPage = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, missionId, updates }: { id: string; missionId: string; updates: Partial<MissionPage> }) => {
+      const { data, error } = await (supabase as any)
+        .from("mission_pages")
+        .update(updates)
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return { ...data, missionId } as MissionPage & { missionId: string };
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: [MISSION_PAGES_QUERY_KEY, data.missionId] });
+    },
+  });
+};
+
+// Delete page
+export const useDeleteMissionPage = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, missionId }: { id: string; missionId: string }) => {
+      const { error } = await (supabase as any)
+        .from("mission_pages")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+      return { missionId };
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: [MISSION_PAGES_QUERY_KEY, data.missionId] });
     },
   });
 };

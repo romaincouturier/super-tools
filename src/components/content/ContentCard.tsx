@@ -1,7 +1,7 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { MoreHorizontal, Pencil, Trash2, Eye, Clock, CheckCircle2, AlertCircle } from "lucide-react";
-import type { ReviewStatus } from "./KanbanBoard";
+import type { ReviewStatus, ContentTypeColors } from "./KanbanBoard";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -15,6 +15,7 @@ import type { Card } from "./KanbanBoard";
 interface ContentCardProps {
   card: Card;
   isDragging?: boolean;
+  typeColors?: ContentTypeColors;
   onEdit?: () => void;
   onDelete?: () => void;
   onView?: () => void;
@@ -60,7 +61,7 @@ const getReviewStatusInfo = (status: ReviewStatus | undefined) => {
   }
 };
 
-const ContentCard = ({ card, isDragging, onEdit, onDelete, onView }: ContentCardProps) => {
+const ContentCard = ({ card, isDragging, typeColors, onEdit, onDelete, onView }: ContentCardProps) => {
   const {
     attributes,
     listeners,
@@ -76,6 +77,7 @@ const ContentCard = ({ card, isDragging, onEdit, onDelete, onView }: ContentCard
   };
 
   const dragging = isDragging || isSortableDragging;
+  const borderColor = typeColors?.[card.card_type] || (card.card_type === "post" ? "#a855f7" : "#3b82f6");
 
   const handleCardClick = (e: React.MouseEvent) => {
     // Only trigger if clicking on the card body, not the dropdown menu
@@ -99,6 +101,9 @@ const ContentCard = ({ card, isDragging, onEdit, onDelete, onView }: ContentCard
         dragging ? "opacity-50 shadow-lg rotate-2 cursor-grabbing" : ""
       }`}
     >
+      {/* Color indicator bar */}
+      <div className="h-1 w-full" style={{ backgroundColor: borderColor }} />
+
       {card.image_url && (
         <div className="aspect-video w-full overflow-hidden">
           <img

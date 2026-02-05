@@ -56,6 +56,7 @@ interface DocumentsManagerProps {
   supportsUrl: string | null;
   evaluationLink: string;
   formatFormation?: string | null;
+  conventionFileUrl?: string | null;
   onUpdate?: () => void;
 }
 
@@ -73,12 +74,14 @@ const DocumentsManager = ({
   supportsUrl: initialSupportsUrl,
   evaluationLink,
   formatFormation,
+  conventionFileUrl: initialConventionUrl,
   onUpdate,
 }: DocumentsManagerProps) => {
   const isInterEntreprise = formatFormation === "inter-entreprises";
   const [invoiceFileUrl, setInvoiceFileUrl] = useState<string | null>(initialInvoiceUrl);
   const [attendanceSheetsUrls, setAttendanceSheetsUrls] = useState<string[]>(initialSheetsUrls);
   const [supportsUrl, setSupportsUrl] = useState<string>(initialSupportsUrl || "");
+  const [conventionFileUrl, setConventionFileUrl] = useState<string | null>(initialConventionUrl || null);
   const [documentsSentInfo, setDocumentsSentInfo] = useState<DocumentSentInfo>({ invoice: null, sheets: null, thankYou: null });
   
   const [uploadingInvoice, setUploadingInvoice] = useState(false);
@@ -559,13 +562,21 @@ const DocumentsManager = ({
       }
 
       if (data?.pdfUrl) {
-        // Open PDF in new tab
-        window.open(data.pdfUrl, "_blank");
+        // Download the PDF file
+        const link = document.createElement("a");
+        link.href = data.pdfUrl;
+        link.download = `Convention_${trainingName.replace(/[^a-zA-Z0-9]/g, "_")}.pdf`;
+        link.target = "_blank";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
 
         toast({
           title: "Convention générée",
-          description: "La convention de formation a été générée et ouverte dans un nouvel onglet.",
+          description: "La convention de formation a été générée et le téléchargement a démarré.",
         });
+
+        onUpdate?.();
       }
     } catch (error: any) {
       console.error("Convention generation error:", error);
@@ -651,10 +662,23 @@ const DocumentsManager = ({
                   ) : (
                     <FileDown className="h-4 w-4 mr-2" />
                   )}
-                  Générer
+                  {conventionFileUrl ? "Regénérer" : "Générer"}
                 </Button>
               )}
             </div>
+            {conventionFileUrl && (
+              <div className="flex items-center gap-2 p-2 bg-green-50 border border-green-200 rounded-md">
+                <CheckCircle className="h-4 w-4 text-green-600" />
+                <a
+                  href={conventionFileUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-green-700 hover:underline flex-1 truncate"
+                >
+                  Convention générée - Cliquer pour télécharger
+                </a>
+              </div>
+            )}
             {formatFormation === "intra" ? (
               <p className="text-xs text-muted-foreground">
                 Génère une convention de formation pour l'ensemble des participants (intra-entreprise)

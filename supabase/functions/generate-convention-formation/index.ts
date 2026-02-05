@@ -338,6 +338,19 @@ serve(async (req: Request): Promise<Response> => {
         const pdfUrl = statusData.document.download_url;
         console.log(`PDF ready: ${pdfUrl}`);
 
+        // Save convention URL to training (only for intra/global convention)
+        if (!isIndividualConvention) {
+          try {
+            await supabase
+              .from("trainings")
+              .update({ convention_file_url: pdfUrl })
+              .eq("id", trainingId);
+            console.log("Convention URL saved to training");
+          } catch (saveError) {
+            console.warn("Failed to save convention URL:", saveError);
+          }
+        }
+
         // Log activity
         try {
           await supabase.from("activity_logs").insert({

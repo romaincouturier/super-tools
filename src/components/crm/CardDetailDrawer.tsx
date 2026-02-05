@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import CrmDescriptionEditor from "./CrmDescriptionEditor";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -62,7 +63,9 @@ import {
   Undo2,
   Wand2,
   ImageIcon,
+  ChevronDown,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { format, addDays, isAfter, startOfDay } from "date-fns";
 import { fr } from "date-fns/locale";
 import DOMPurify from "dompurify";
@@ -185,7 +188,9 @@ const CardDetailDrawer = ({
   const [descriptionSaving, setDescriptionSaving] = useState(false);
   const [descriptionSaved, setDescriptionSaved] = useState(false);
   const descriptionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const [imageUploading, setImageUploading] = useState(false);
+
+  // Email history state
+  const [expandedEmailId, setExpandedEmailId] = useState<string | null>(null);
 
   // Create training dialog state
   const [showCreateTrainingDialog, setShowCreateTrainingDialog] = useState(false);
@@ -268,58 +273,6 @@ const CardDetailDrawer = ({
     }, 1500);
   };
 
-  // Handle image paste in description
-  const handleDescriptionPaste = async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
-    const items = e.clipboardData?.items;
-    if (!items || !card) return;
-
-    for (const item of Array.from(items)) {
-      if (item.type.startsWith("image/")) {
-        e.preventDefault();
-        const file = item.getAsFile();
-        if (!file) continue;
-
-        setImageUploading(true);
-        try {
-          // Generate unique filename
-          const ext = file.type.split("/")[1] || "png";
-          const fileName = `${card.id}/${Date.now()}.${ext}`;
-
-          // Upload to storage
-          const { data, error } = await supabase.storage
-            .from("crm-attachments")
-            .upload(fileName, file, {
-              contentType: file.type,
-            });
-
-          if (error) throw error;
-
-          // Get public URL
-          const { data: urlData } = supabase.storage
-            .from("crm-attachments")
-            .getPublicUrl(fileName);
-
-          // Insert markdown image at cursor position
-          const textarea = e.target as HTMLTextAreaElement;
-          const start = textarea.selectionStart;
-          const end = textarea.selectionEnd;
-          const imageMarkdown = `\n![Image](${urlData.publicUrl})\n`;
-          const newValue =
-            descriptionHtml.substring(0, start) +
-            imageMarkdown +
-            descriptionHtml.substring(end);
-
-          handleDescriptionChange(newValue);
-        } catch (error) {
-          console.error("Image upload error:", error);
-          alert("Erreur lors de l'upload de l'image");
-        } finally {
-          setImageUploading(false);
-        }
-        break;
-      }
-    }
-  };
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -1242,28 +1195,11 @@ const CardDetailDrawer = ({
                   )}
                 </Label>
               </div>
-              <div className="relative">
-                <Textarea
-                  value={descriptionHtml}
-                  onChange={(e) => handleDescriptionChange(e.target.value)}
-                  onPaste={handleDescriptionPaste}
-                  rows={12}
-                  placeholder="Notez ici tous les échanges, informations et détails importants de l'opportunité... (Collez des images directement)"
-                  className="text-[10px] leading-relaxed"
-                />
-                {imageUploading && (
-                  <div className="absolute inset-0 bg-background/80 flex items-center justify-center rounded-md">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Upload de l'image...
-                    </div>
-                  </div>
-                )}
-                <p className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1">
-                  <ImageIcon className="h-3 w-3" />
-                  Vous pouvez coller des images (Ctrl+V)
-                </p>
-              </div>
+              <CrmDescriptionEditor
+                content={descriptionHtml}
+                onChange={handleDescriptionChange}
+                cardId={card?.id}
+              />
 
               {/* Next action checkbox */}
               <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
@@ -1398,24 +1334,28 @@ const CardDetailDrawer = ({
                 Envoyer un email
               </h4>
               <div className="space-y-3">
-                <div className="flex gap-2">
+                <div className="flex items-center gap-2">
+                  <Label className="text-xs text-muted-foreground whitespace-nowrap flex items-center gap-1">
+                    Destinataire
+                    {email && email !== emailTo && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setEmailTo(email)}
+                        title={`Utiliser ${email}`}
+                        className="h-5 px-1.5 text-[10px] text-primary"
+                      >
+                        <Copy className="h-3 w-3 mr-0.5" />
+                        Client
+                      </Button>
+                    )}
+                  </Label>
                   <Input
-                    placeholder="Destinataire (email)"
+                    placeholder="email@exemple.com"
                     value={emailTo}
                     onChange={(e) => setEmailTo(e.target.value)}
                     className="flex-1"
                   />
-                  {email && email !== emailTo && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setEmailTo(email)}
-                      title={`Utiliser ${email}`}
-                    >
-                      <Copy className="h-3 w-3 mr-1" />
-                      Client
-                    </Button>
-                  )}
                 </div>
                 <div className="flex gap-2">
                   <Input
@@ -1499,7 +1439,7 @@ const CardDetailDrawer = ({
                   ) : (
                     <Mail className="h-4 w-4 mr-2" />
                   )}
-                  Envoyer (mock)
+                  Envoyer
                 </Button>
               </div>
             </div>
@@ -1698,25 +1638,36 @@ const CardDetailDrawer = ({
               <div className="mt-4 pt-4 border-t">
                 <h4 className="font-medium mb-2 flex items-center gap-2">
                   <Mail className="h-4 w-4" />
-                  Emails envoyés
+                  Emails envoyés ({details.emails.length})
                 </h4>
-                {details.emails.map((email) => (
-                  <div key={email.id} className="p-3 bg-muted rounded mb-2 space-y-2">
-                    <div>
-                      <p className="text-sm font-medium">{email.subject}</p>
-                      <p className="text-xs text-muted-foreground">
-                        À: {email.recipient_email} •{" "}
-                        {format(new Date(email.sent_at), "d MMM yyyy HH:mm", { locale: fr })}
-                      </p>
+                {details.emails.map((email) => {
+                  const isExpanded = expandedEmailId === email.id;
+                  return (
+                    <div
+                      key={email.id}
+                      className="p-3 bg-muted rounded mb-2 cursor-pointer hover:bg-muted/80 transition-colors"
+                      onClick={() => setExpandedEmailId(isExpanded ? null : email.id)}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{email.subject}</p>
+                          <p className="text-xs text-muted-foreground">
+                            À: {email.recipient_email} •{" "}
+                            {format(new Date(email.sent_at), "d MMM yyyy HH:mm", { locale: fr })}
+                          </p>
+                        </div>
+                        <ChevronDown className={cn("h-4 w-4 text-muted-foreground shrink-0 transition-transform", isExpanded && "rotate-180")} />
+                      </div>
+                      {isExpanded && email.body_html && (
+                        <div
+                          className="text-xs border-t pt-2 mt-2 prose prose-xs max-w-none [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1"
+                          dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(email.body_html) }}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      )}
                     </div>
-                    {email.body_html && (
-                      <div
-                        className="text-xs border-t pt-2 mt-2 prose prose-xs max-w-none [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1"
-                        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(email.body_html) }}
-                      />
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </TabsContent>

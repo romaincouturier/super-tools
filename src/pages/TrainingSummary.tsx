@@ -19,6 +19,8 @@ import {
   ChevronDown,
   Linkedin,
   MessageCircle,
+  Video,
+  Globe,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -128,6 +130,28 @@ const TrainingSummary = () => {
     return time.substring(0, 5);
   };
 
+  // Check if location is online (visio/distanciel)
+  const isOnlineLocation = () => {
+    if (!training) return false;
+    const location = training.location.toLowerCase();
+    return (
+      location.includes("visio") ||
+      location.includes("en ligne") ||
+      location.includes("distanciel") ||
+      location.includes("zoom") ||
+      location.includes("teams") ||
+      location.includes("meet") ||
+      training.format_formation === "distanciel"
+    );
+  };
+
+  // Extract URL from location if it's a link
+  const extractUrlFromLocation = () => {
+    if (!training) return null;
+    const urlMatch = training.location.match(/(https?:\/\/[^\s]+)/);
+    return urlMatch ? urlMatch[0] : null;
+  };
+
   const getGoogleMapsUrl = () => {
     if (!training) return "";
     const address = training.location.replace(/ /g, "+");
@@ -140,113 +164,111 @@ const TrainingSummary = () => {
     return `https://www.google.com/maps/dir/?api=1&destination=${address}`;
   };
 
-  // Generate calendar event data
-  const getCalendarEventData = () => {
-    if (!training || schedules.length === 0) return null;
-
-    const firstSchedule = schedules[0];
-    const lastSchedule = schedules[schedules.length - 1];
-    
-    const startDate = firstSchedule.day_date.replace(/-/g, "");
-    const startTime = firstSchedule.start_time.replace(/:/g, "").substring(0, 4) + "00";
-    const endDate = lastSchedule.day_date.replace(/-/g, "");
-    const endTime = lastSchedule.end_time.replace(/:/g, "").substring(0, 4) + "00";
-
-    const description = `Formation ${training.training_name}${trainer ? ` - Formateur: ${trainer.first_name} ${trainer.last_name}` : ""}`;
-
-    return {
-      title: training.training_name,
-      description,
-      location: training.location,
-      startDateTime: `${startDate}T${startTime}`,
-      endDateTime: `${endDate}T${endTime}`,
-    };
+  // Summary page URL to include in calendar invites
+  const getSummaryPageUrl = () => {
+    return `${window.location.origin}/formation-info/${trainingId}`;
   };
 
-  const generateIcsContent = () => {
-    if (!training || schedules.length === 0) return "";
+  // Build description for calendar events including summary page link
+  const getEventDescription = () => {
+    const summaryUrl = getSummaryPageUrl();
+    let desc = `Formation ${training?.training_name || ""}`;
+    if (trainer) {
+      desc += `\nFormateur: ${trainer.first_name} ${trainer.last_name}`;
+    }
+    desc += `\n\nToutes les informations pratiques :\n${summaryUrl}`;
+    return desc;
+  };
 
-    const events = schedules.map((schedule) => {
-      const startDate = schedule.day_date.replace(/-/g, "");
-      const startTime = schedule.start_time.replace(/:/g, "").substring(0, 4) + "00";
-      const endTime = schedule.end_time.replace(/:/g, "").substring(0, 4) + "00";
-
-      return `BEGIN:VEVENT
-DTSTART:${startDate}T${startTime}
-DTEND:${startDate}T${endTime}
-SUMMARY:${training.training_name}
-LOCATION:${training.location}
-DESCRIPTION:Formation ${training.training_name}${trainer ? ` - Formateur: ${trainer.first_name} ${trainer.last_name}` : ""}
-END:VEVENT`;
-    });
+  // Generate ICS for a single day
+  const generateIcsForDay = (schedule: Schedule) => {
+    if (!training) return "";
+    const startDate = schedule.day_date.replace(/-/g, "");
+    const startTime = schedule.start_time.replace(/:/g, "").substring(0, 4) + "00";
+    const endTime = schedule.end_time.replace(/:/g, "").substring(0, 4) + "00";
+    const desc = getEventDescription().replace(/\n/g, "\\n");
+    const dayLabel = format(parseISO(schedule.day_date), "d MMM", { locale: fr });
 
     return `BEGIN:VCALENDAR
 VERSION:2.0
 PRODID:-//SuperTilt//Formation//FR
 CALSCALE:GREGORIAN
 METHOD:PUBLISH
-${events.join("\n")}
+BEGIN:VEVENT
+DTSTART:${startDate}T${startTime}
+DTEND:${startDate}T${endTime}
+SUMMARY:${training.training_name} (${dayLabel})
+LOCATION:${training.location}
+DESCRIPTION:${desc}
+URL:${getSummaryPageUrl()}
+END:VEVENT
 END:VCALENDAR`;
   };
 
-  const handleAddToAppleCalendar = () => {
-    const icsContent = generateIcsContent();
+  const handleAddToAppleCalendar = (schedule: Schedule) => {
+    const icsContent = generateIcsForDay(schedule);
     const blob = new Blob([icsContent], { type: "text/calendar;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `formation-${training?.training_name.replace(/\s+/g, "-").toLowerCase()}.ics`;
+    const daySlug = schedule.day_date;
+    link.download = `formation-${training?.training_name.replace(/\s+/g, "-").toLowerCase()}-${daySlug}.ics`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
   };
 
-  const handleAddToGoogleCalendar = () => {
-    const eventData = getCalendarEventData();
-    if (!eventData) return;
+  const handleAddToGoogleCalendar = (schedule: Schedule) => {
+    if (!training) return;
+    const startDate = schedule.day_date.replace(/-/g, "");
+    const startTime = schedule.start_time.replace(/:/g, "").substring(0, 4) + "00";
+    const endTime = schedule.end_time.replace(/:/g, "").substring(0, 4) + "00";
+    const dayLabel = format(parseISO(schedule.day_date), "d MMM", { locale: fr });
 
     const url = new URL("https://www.google.com/calendar/render");
     url.searchParams.set("action", "TEMPLATE");
-    url.searchParams.set("text", eventData.title);
-    url.searchParams.set("dates", `${eventData.startDateTime}/${eventData.endDateTime}`);
-    url.searchParams.set("details", eventData.description);
-    url.searchParams.set("location", eventData.location);
-    
+    url.searchParams.set("text", `${training.training_name} (${dayLabel})`);
+    url.searchParams.set("dates", `${startDate}T${startTime}/${startDate}T${endTime}`);
+    url.searchParams.set("details", getEventDescription());
+    url.searchParams.set("location", training.location);
+
     window.open(url.toString(), "_blank");
   };
 
-  const handleAddToOutlook = () => {
-    const eventData = getCalendarEventData();
-    if (!eventData) return;
+  const handleAddToOutlook = (schedule: Schedule) => {
+    if (!training) return;
+    const dayLabel = format(parseISO(schedule.day_date), "d MMM", { locale: fr });
 
     const url = new URL("https://outlook.live.com/calendar/0/deeplink/compose");
-    url.searchParams.set("subject", eventData.title);
-    url.searchParams.set("body", eventData.description);
-    url.searchParams.set("location", eventData.location);
-    url.searchParams.set("startdt", `${schedules[0].day_date}T${schedules[0].start_time}`);
-    url.searchParams.set("enddt", `${schedules[schedules.length - 1].day_date}T${schedules[schedules.length - 1].end_time}`);
-    
+    url.searchParams.set("subject", `${training.training_name} (${dayLabel})`);
+    url.searchParams.set("body", getEventDescription());
+    url.searchParams.set("location", training.location);
+    url.searchParams.set("startdt", `${schedule.day_date}T${schedule.start_time}`);
+    url.searchParams.set("enddt", `${schedule.day_date}T${schedule.end_time}`);
+
     window.open(url.toString(), "_blank");
   };
 
-  const handleAddToYahoo = () => {
-    const eventData = getCalendarEventData();
-    if (!eventData) return;
+  const handleAddToYahoo = (schedule: Schedule) => {
+    if (!training) return;
+    const startDate = schedule.day_date.replace(/-/g, "");
+    const startTime = schedule.start_time.replace(/:/g, "").substring(0, 4) + "00";
+    const endTime = schedule.end_time.replace(/:/g, "").substring(0, 4) + "00";
+    const dayLabel = format(parseISO(schedule.day_date), "d MMM", { locale: fr });
 
     const url = new URL("https://calendar.yahoo.com/");
     url.searchParams.set("v", "60");
-    url.searchParams.set("title", eventData.title);
-    url.searchParams.set("st", eventData.startDateTime);
-    url.searchParams.set("et", eventData.endDateTime);
-    url.searchParams.set("desc", eventData.description);
-    url.searchParams.set("in_loc", eventData.location);
-    
+    url.searchParams.set("title", `${training.training_name} (${dayLabel})`);
+    url.searchParams.set("st", `${startDate}T${startTime}`);
+    url.searchParams.set("et", `${startDate}T${endTime}`);
+    url.searchParams.set("desc", getEventDescription());
+    url.searchParams.set("in_loc", training.location);
+
     window.open(url.toString(), "_blank");
   };
 
   const getWhatsAppUrl = (phone: string) => {
-    // Clean phone number and format for WhatsApp
     const cleanPhone = phone.replace(/\s+/g, "").replace(/^0/, "33");
     return `https://wa.me/${cleanPhone}`;
   };
@@ -392,17 +414,64 @@ END:VCALENDAR`;
                 {schedules.map((schedule) => (
                   <div
                     key={schedule.id}
-                    className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
+                    className="flex items-center justify-between p-3 bg-muted/50 rounded-lg gap-3"
                   >
-                    <div className="font-medium capitalize">
-                      {formatScheduleDate(schedule.day_date)}
+                    <div className="flex-1">
+                      <div className="font-medium capitalize">
+                        {formatScheduleDate(schedule.day_date)}
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
+                        <Clock className="h-4 w-4" />
+                        {formatTime(schedule.start_time)} - {formatTime(schedule.end_time)}
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <Clock className="h-4 w-4" />
-                      {formatTime(schedule.start_time)} - {formatTime(schedule.end_time)}
-                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="sm">
+                          <Calendar className="h-4 w-4 mr-2" />
+                          <span className="hidden sm:inline">Ajouter à mon agenda</span>
+                          <span className="sm:hidden">Agenda</span>
+                          <ChevronDown className="h-4 w-4 ml-1" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-56">
+                        <DropdownMenuItem onClick={() => handleAddToGoogleCalendar(schedule)}>
+                          <img src="https://www.google.com/favicon.ico" alt="Google" className="h-4 w-4 mr-2" />
+                          Google Calendar
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleAddToAppleCalendar(schedule)}>
+                          <Calendar className="h-4 w-4 mr-2" />
+                          Apple Calendar (iCal)
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleAddToOutlook(schedule)}>
+                          <img src="https://outlook.live.com/favicon.ico" alt="Outlook" className="h-4 w-4 mr-2" />
+                          Outlook.com
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleAddToAppleCalendar(schedule)}>
+                          <Calendar className="h-4 w-4 mr-2" />
+                          Outlook (Desktop)
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleAddToYahoo(schedule)}>
+                          <img src="https://www.yahoo.com/favicon.ico" alt="Yahoo" className="h-4 w-4 mr-2" />
+                          Yahoo Calendar
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 ))}
+                <div className="flex items-center gap-2 text-sm text-muted-foreground mt-2">
+                  <Globe className="h-4 w-4" />
+                  <span>Horaires de Paris (Europe/Paris)</span>
+                  <span>•</span>
+                  <a
+                    href="https://www.worldtimebuddy.com/?pl=1&lid=2988507&h=2988507"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline"
+                  >
+                    Convertir dans mon fuseau horaire
+                  </a>
+                </div>
               </div>
             ) : (
               <p className="text-muted-foreground">
@@ -410,41 +479,6 @@ END:VCALENDAR`;
                 {training.end_date &&
                   ` - ${format(parseISO(training.end_date), "d MMMM yyyy", { locale: fr })}`}
               </p>
-            )}
-
-            {/* Hide calendar dropdown for e-learning */}
-            {training.format_formation !== "e_learning" && schedules.length > 0 && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button className="mt-4 w-full sm:w-auto">
-                    <Calendar className="h-4 w-4 mr-2" />
-                    Ajouter à mon agenda
-                    <ChevronDown className="h-4 w-4 ml-2" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-56">
-                  <DropdownMenuItem onClick={handleAddToGoogleCalendar}>
-                    <img src="https://www.google.com/favicon.ico" alt="Google" className="h-4 w-4 mr-2" />
-                    Google Calendar
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleAddToAppleCalendar}>
-                    <Calendar className="h-4 w-4 mr-2" />
-                    Apple Calendar (iCal)
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleAddToOutlook}>
-                    <img src="https://outlook.live.com/favicon.ico" alt="Outlook" className="h-4 w-4 mr-2" />
-                    Outlook.com
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleAddToAppleCalendar}>
-                    <Calendar className="h-4 w-4 mr-2" />
-                    Outlook (Desktop)
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleAddToYahoo}>
-                    <img src="https://www.yahoo.com/favicon.ico" alt="Yahoo" className="h-4 w-4 mr-2" />
-                    Yahoo Calendar
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
             )}
           </CardContent>
         </Card>
@@ -454,40 +488,70 @@ END:VCALENDAR`;
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <MapPin className="h-5 w-5 text-primary" />
-                Lieu de formation
+                {isOnlineLocation() ? (
+                  <Video className="h-5 w-5 text-primary" />
+                ) : (
+                  <MapPin className="h-5 w-5 text-primary" />
+                )}
+                {isOnlineLocation() ? "Formation à distance" : "Lieu de formation"}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <p className="text-lg">{training.location}</p>
+              {isOnlineLocation() ? (
+                <>
+                  {extractUrlFromLocation() ? (
+                    <Button size="lg" asChild className="w-full sm:w-auto">
+                      <a
+                        href={extractUrlFromLocation()!}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <Video className="h-5 w-5 mr-2" />
+                        Se connecter à la visio
+                      </a>
+                    </Button>
+                  ) : (
+                    <>
+                      <p className="text-lg">{training.location}</p>
+                      <p className="text-sm text-muted-foreground">
+                        Le lien de connexion vous sera communiqué par email avant la formation.
+                      </p>
+                    </>
+                  )}
+                </>
+              ) : (
+                <>
+                  <p className="text-lg">{training.location}</p>
 
-              {/* Google Maps embed */}
-              <div className="aspect-video w-full rounded-lg overflow-hidden border">
-                <iframe
-                  width="100%"
-                  height="100%"
-                  style={{ border: 0 }}
-                  loading="lazy"
-                  allowFullScreen
-                  referrerPolicy="no-referrer-when-downgrade"
-                  src={`https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${encodeURIComponent(training.location)}`}
-                />
-              </div>
+                  {/* Google Maps embed */}
+                  <div className="aspect-video w-full rounded-lg overflow-hidden border">
+                    <iframe
+                      width="100%"
+                      height="100%"
+                      style={{ border: 0 }}
+                      loading="lazy"
+                      allowFullScreen
+                      referrerPolicy="no-referrer-when-downgrade"
+                      src={`https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${encodeURIComponent(training.location)}`}
+                    />
+                  </div>
 
-              <div className="flex flex-wrap gap-2">
-                <Button variant="outline" asChild>
-                  <a href={getGoogleMapsUrl()} target="_blank" rel="noopener noreferrer">
-                    <MapPin className="h-4 w-4 mr-2" />
-                    Voir sur Google Maps
-                  </a>
-                </Button>
-                <Button asChild>
-                  <a href={getDirectionsUrl()} target="_blank" rel="noopener noreferrer">
-                    <Navigation className="h-4 w-4 mr-2" />
-                    Venir
-                  </a>
-                </Button>
-              </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button variant="outline" asChild>
+                      <a href={getGoogleMapsUrl()} target="_blank" rel="noopener noreferrer">
+                        <MapPin className="h-4 w-4 mr-2" />
+                        Voir sur Google Maps
+                      </a>
+                    </Button>
+                    <Button asChild>
+                      <a href={getDirectionsUrl()} target="_blank" rel="noopener noreferrer">
+                        <Navigation className="h-4 w-4 mr-2" />
+                        Venir
+                      </a>
+                    </Button>
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
         )}

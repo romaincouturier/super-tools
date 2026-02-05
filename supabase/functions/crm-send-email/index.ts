@@ -118,7 +118,7 @@ serve(async (req) => {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 <body style="font-family: Arial, sans-serif; font-size: 14px; line-height: 1.5; color: #333333; margin: 0; padding: 0;">
-  <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="max-width: 600px; padding: 20px;">
     ${styledBodyHtml}
     <div style="margin-top: 20px;">
       ${emailSignature}

@@ -14,6 +14,10 @@ export interface Mission {
   daily_rate: number | null;
   total_days: number | null;
   total_amount: number | null;
+  // Financial tracking
+  initial_amount: number | null;
+  consumed_amount: number | null;
+  billed_amount: number | null;
   tags: string[];
   color: string;
   position: number;
@@ -32,6 +36,7 @@ export interface CreateMissionInput {
   end_date?: string;
   daily_rate?: number;
   total_days?: number;
+  initial_amount?: number;
   tags?: string[];
   color?: string;
 }
@@ -46,6 +51,7 @@ export interface UpdateMissionInput {
   end_date?: string | null;
   daily_rate?: number | null;
   total_days?: number | null;
+  initial_amount?: number | null;
   tags?: string[];
   color?: string;
   position?: number;
