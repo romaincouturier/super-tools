@@ -1,7 +1,7 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { MoreHorizontal, Pencil, Trash2, Eye, Clock, CheckCircle2, AlertCircle } from "lucide-react";
-import type { ReviewStatus, ContentTypeColors } from "./KanbanBoard";
+import { MoreHorizontal, Pencil, Trash2, Eye } from "lucide-react";
+import type { ContentTypeColors } from "./KanbanBoard";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -33,32 +33,6 @@ const tagColors = [
 const getTagColor = (tag: string) => {
   const index = tag.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
   return tagColors[index % tagColors.length];
-};
-
-const getReviewStatusInfo = (status: ReviewStatus | undefined) => {
-  switch (status) {
-    case "pending":
-    case "in_review":
-      return {
-        icon: Clock,
-        color: "text-orange-500",
-        tooltip: "En attente de relecture",
-      };
-    case "approved":
-      return {
-        icon: CheckCircle2,
-        color: "text-green-500",
-        tooltip: "Relecture validée",
-      };
-    case "changes_requested":
-      return {
-        icon: AlertCircle,
-        color: "text-amber-500",
-        tooltip: "Modifications demandées",
-      };
-    default:
-      return null;
-  }
 };
 
 const ContentCard = ({ card, isDragging, typeColors, onEdit, onDelete, onView }: ContentCardProps) => {
@@ -116,26 +90,10 @@ const ContentCard = ({ card, isDragging, typeColors, onEdit, onDelete, onView }:
 
       <div className="p-3">
         <div className="flex items-start justify-between gap-2">
-          <div className="flex items-start gap-1.5 flex-1 min-w-0">
-            {(() => {
-              const reviewInfo = getReviewStatusInfo(card.review_status);
-              if (reviewInfo) {
-                const IconComponent = reviewInfo.icon;
-                return (
-                  <span title={reviewInfo.tooltip}>
-                    <IconComponent
-                      className={`h-4 w-4 flex-shrink-0 mt-0.5 ${reviewInfo.color}`}
-                    />
-                  </span>
-                );
-              }
-              return null;
-            })()}
-            <h4 className="font-medium text-sm line-clamp-2">
-              {card.emoji && <span className="mr-1">{card.emoji}</span>}
-              {card.title}
-            </h4>
-          </div>
+          <h4 className="font-medium text-sm line-clamp-2 flex-1 min-w-0">
+            {card.emoji && <span className="mr-1">{card.emoji}</span>}
+            {card.title}
+          </h4>
 
           {(onEdit || onDelete || onView) && (
             <DropdownMenu>
