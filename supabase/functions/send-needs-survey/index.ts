@@ -52,23 +52,30 @@ serve(async (req) => {
     }
 
     // Check if questionnaire already exists
-    let questionnaire = await supabase
+    const { data: existingQuestionnaire, error: fetchError } = await supabase
       .from("questionnaire_besoins")
       .select("*")
       .eq("participant_id", participantId)
       .eq("training_id", trainingId)
       .single();
 
+    // PGRST116 means no rows returned, which is fine for our use case
+    if (fetchError && fetchError.code !== "PGRST116") {
+      console.error("Error fetching existing questionnaire:", fetchError);
+    }
+
     let token: string;
 
-    if (questionnaire.data) {
+    if (existingQuestionnaire) {
       // Use existing token
-      token = questionnaire.data.token;
+      token = existingQuestionnaire.token;
+      console.log("Using existing questionnaire with token:", token);
     } else {
       // Create new questionnaire with token
       token = crypto.randomUUID();
+      console.log("Creating new questionnaire with token:", token);
 
-      const { error: insertError } = await supabase
+      const { data: insertedData, error: insertError } = await supabase
         .from("questionnaire_besoins")
         .insert({
           participant_id: participantId,
@@ -80,16 +87,25 @@ serve(async (req) => {
           nom: participant.last_name,
           societe: participant.company,
           date_envoi: new Date().toISOString(),
-        });
+        })
+        .select()
+        .single();
 
       if (insertError) {
         console.error("Error creating questionnaire:", insertError);
         throw new Error("Failed to create questionnaire");
       }
+
+      if (!insertedData) {
+        console.error("Questionnaire insert returned no data - possible RLS issue");
+        throw new Error("Failed to create questionnaire - no data returned");
+      }
+
+      console.log("Successfully created questionnaire:", insertedData.id);
     }
 
     // Update participant status
-    await supabase
+    const { error: participantUpdateError } = await supabase
       .from("training_participants")
       .update({
         needs_survey_status: "envoye",
@@ -98,15 +114,23 @@ serve(async (req) => {
       })
       .eq("id", participantId);
 
+    if (participantUpdateError) {
+      console.error("Error updating participant:", participantUpdateError);
+    }
+
     // Update questionnaire status if it already existed
-    if (questionnaire.data) {
-      await supabase
+    if (existingQuestionnaire) {
+      const { error: updateError } = await supabase
         .from("questionnaire_besoins")
         .update({
           etat: "envoye",
           date_envoi: new Date().toISOString(),
         })
-        .eq("id", questionnaire.data.id);
+        .eq("id", existingQuestionnaire.id);
+
+      if (updateError) {
+        console.error("Error updating existing questionnaire:", updateError);
+      }
     }
 
     // Build questionnaire URL - use published domain
