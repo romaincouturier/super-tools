@@ -74,9 +74,10 @@ interface KanbanBoardProps {
   openCardId?: string | null;
   onCloseCard?: () => void;
   filterReviewOnly?: boolean;
+  onNewsletterChange?: () => void;
 }
 
-const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false }: KanbanBoardProps) => {
+const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, onNewsletterChange }: KanbanBoardProps) => {
   const [columns, setColumns] = useState<Column[]>([]);
   const [cards, setCards] = useState<Card[]>([]);
   const [cardIdsInReview, setCardIdsInReview] = useState<Set<string>>(new Set());
@@ -561,6 +562,7 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false }: Kanb
         }}
         card={editingCard}
         onSave={handleSaveCard}
+        onNewsletterChange={onNewsletterChange}
       />
 
       {/* Color Settings Dialog */}
