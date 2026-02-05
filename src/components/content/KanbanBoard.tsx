@@ -74,13 +74,15 @@ interface KanbanBoardProps {
   openCardId?: string | null;
   onCloseCard?: () => void;
   filterReviewOnly?: boolean;
+  showPublished?: boolean;
   onNewsletterChange?: () => void;
 }
 
-const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, onNewsletterChange }: KanbanBoardProps) => {
+const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPublished = false, onNewsletterChange }: KanbanBoardProps) => {
   const [columns, setColumns] = useState<Column[]>([]);
   const [cards, setCards] = useState<Card[]>([]);
   const [cardIdsInReview, setCardIdsInReview] = useState<Set<string>>(new Set());
+  const [cardIdsInSentNewsletter, setCardIdsInSentNewsletter] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [activeCard, setActiveCard] = useState<Card | null>(null);
   const [activeColumn, setActiveColumn] = useState<Column | null>(null);
@@ -122,7 +124,7 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, onNews
 
   const fetchData = async () => {
     try {
-      const [columnsRes, cardsRes, reviewsRes] = await Promise.all([
+      const [columnsRes, cardsRes, reviewsRes, sentNewslettersRes] = await Promise.all([
         supabase
           .from("content_columns")
           .select("*")
@@ -135,6 +137,20 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, onNews
           .from("content_reviews")
           .select("card_id, status")
           .order("created_at", { ascending: false }),
+        // Fetch card IDs belonging to sent newsletters
+        (async () => {
+          const { data: sentNl } = await (supabase as any)
+            .from("newsletters")
+            .select("id")
+            .eq("status", "sent");
+          if (!sentNl || sentNl.length === 0) return { data: [] };
+          const nlIds = sentNl.map((n: any) => n.id);
+          const { data: nlCards } = await (supabase as any)
+            .from("newsletter_cards")
+            .select("card_id")
+            .in("newsletter_id", nlIds);
+          return { data: nlCards || [] };
+        })(),
       ]);
 
       if (columnsRes.error) throw columnsRes.error;
@@ -156,6 +172,12 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, onNews
           .map((r) => r.card_id)
       );
       setCardIdsInReview(reviewCardIds);
+
+      // Build set of card IDs that belong to a sent newsletter
+      const sentNlCardIds = new Set<string>(
+        (sentNewslettersRes.data || []).map((nc: any) => nc.card_id)
+      );
+      setCardIdsInSentNewsletter(sentNlCardIds);
 
       setColumns(columnsRes.data || []);
       setCards(
@@ -517,11 +539,19 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, onNews
             strategy={horizontalListSortingStrategy}
           >
             {columns.map((column) => {
-              // Filter cards: if filterReviewOnly is true, only show cards in review
+              // Skip Archive column when not showing published content
+              if (!showPublished && column.name.toLowerCase() === "archive") return null;
+
               const columnCards = cards.filter((c) => c.column_id === column.id);
-              const filteredCards = filterReviewOnly
-                ? columnCards.filter((c) => cardIdsInReview.has(c.id))
-                : columnCards;
+
+              // Apply filters
+              let filteredCards = columnCards;
+              if (filterReviewOnly) {
+                filteredCards = filteredCards.filter((c) => cardIdsInReview.has(c.id));
+              }
+              if (!showPublished) {
+                filteredCards = filteredCards.filter((c) => !cardIdsInSentNewsletter.has(c.id));
+              }
 
               return (
                 <KanbanColumn

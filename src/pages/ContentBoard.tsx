@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
-import { Loader2, ArrowLeft, Newspaper, Eye } from "lucide-react";
+import { Loader2, ArrowLeft, Newspaper, Eye, EyeOff } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +19,7 @@ const ContentBoard = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const openCardId = searchParams.get("card");
   const [filterReview, setFilterReview] = useState(false);
+  const [showPublished, setShowPublished] = useState(false);
   const [newsletterRefreshKey, setNewsletterRefreshKey] = useState(0);
 
   useEffect(() => {
@@ -90,6 +91,15 @@ const ContentBoard = () => {
           </div>
           <div className="flex items-center gap-3">
             <Button
+              variant={showPublished ? "default" : "outline"}
+              size="sm"
+              onClick={() => setShowPublished(!showPublished)}
+              className="gap-2"
+            >
+              {showPublished ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+              {showPublished ? "Tout affiché" : "Publiés masqués"}
+            </Button>
+            <Button
               variant={filterReview ? "default" : "outline"}
               size="sm"
               onClick={() => setFilterReview(!filterReview)}
@@ -115,6 +125,7 @@ const ContentBoard = () => {
           openCardId={openCardId}
           onCloseCard={handleCloseCard}
           filterReviewOnly={filterReview}
+          showPublished={showPublished}
           onNewsletterChange={() => setNewsletterRefreshKey((k) => k + 1)}
         />
       </main>
