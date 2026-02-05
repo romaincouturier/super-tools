@@ -250,11 +250,16 @@ const CommentThread = ({
             : reviewData.reviewer_id;
 
         if (notifyUserId) {
-          await supabase.from("content_notifications").insert({
+          // First 10 words as preview
+          const preview = newComment.trim().split(/\s+/).slice(0, 10).join(" ");
+          const previewText = newComment.trim().split(/\s+/).length > 10 ? `${preview}…` : preview;
+
+          await (supabase as any).from("content_notifications").insert({
             user_id: notifyUserId,
             type: "comment_added",
             reference_id: reviewId,
-            message: "Nouveau commentaire sur une relecture",
+            card_id: cardId || null,
+            message: previewText,
           });
         }
       }
@@ -271,16 +276,20 @@ const CommentThread = ({
           ? `${authorProfile.first_name} ${authorProfile.last_name}`
           : authorProfile?.email || "Quelqu'un";
 
+        const mentionPreview = newComment.trim().split(/\s+/).slice(0, 10).join(" ");
+        const mentionPreviewText = newComment.trim().split(/\s+/).length > 10 ? `${mentionPreview}…` : mentionPreview;
+
         for (const mention of pendingMentions) {
           // Skip self-mention
           if (mention.userId === userId) continue;
 
           // In-app notification
-          await supabase.from("content_notifications").insert({
+          await (supabase as any).from("content_notifications").insert({
             user_id: mention.userId,
             type: "comment_added",
             reference_id: reviewId,
-            message: `${authorName} vous a mentionné dans un commentaire`,
+            card_id: cardId || null,
+            message: `${authorName} : ${mentionPreviewText}`,
           });
 
           // Email notification
