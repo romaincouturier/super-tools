@@ -54,6 +54,7 @@ interface Training {
   train_booked: boolean;
   hotel_booked: boolean;
   restaurant_booked: boolean;
+  convention_file_url?: string | null;
 }
 
 interface Schedule {
