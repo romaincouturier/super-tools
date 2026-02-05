@@ -19,12 +19,32 @@ import {
 } from "@dnd-kit/sortable";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Loader2 } from "lucide-react";
+import { Plus, Loader2, Settings2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { useUserPreference } from "@/hooks/useUserPreferences";
 import KanbanColumn from "./KanbanColumn";
 import ContentCard from "./ContentCard";
 import ContentCardDialog from "./ContentCardDialog";
 import AddColumnDialog from "./AddColumnDialog";
+
+export interface ContentTypeColors {
+  article: string;
+  post: string;
+}
+
+const DEFAULT_CONTENT_TYPE_COLORS: ContentTypeColors = {
+  article: "#3b82f6",
+  post: "#a855f7",
+};
 
 export interface Column {
   id: string;
@@ -35,6 +55,8 @@ export interface Column {
 
 export type ReviewStatus = "none" | "pending" | "in_review" | "approved" | "changes_requested";
 
+export type ContentCardType = "article" | "post";
+
 export interface Card {
   id: string;
   column_id: string;
@@ -44,6 +66,7 @@ export interface Card {
   tags: string[];
   display_order: number;
   review_status?: ReviewStatus;
+  card_type: ContentCardType;
 }
 
 interface KanbanBoardProps {
@@ -58,9 +81,17 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false }: Kanb
   const [cardIdsInReview, setCardIdsInReview] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [activeCard, setActiveCard] = useState<Card | null>(null);
+  const [activeColumn, setActiveColumn] = useState<Column | null>(null);
   const [showAddColumn, setShowAddColumn] = useState(false);
+  const [showColorSettings, setShowColorSettings] = useState(false);
   const [editingCard, setEditingCard] = useState<Card | null>(null);
   const [newCardColumnId, setNewCardColumnId] = useState<string | null>(null);
+
+  const {
+    value: typeColors,
+    save: saveTypeColors,
+  } = useUserPreference<ContentTypeColors>("content_type_colors", DEFAULT_CONTENT_TYPE_COLORS);
+  const colors = typeColors ?? DEFAULT_CONTENT_TYPE_COLORS;
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -135,6 +166,7 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false }: Kanb
           display_order: c.display_order,
           tags: Array.isArray(c.tags) ? (c.tags as string[]) : [],
           review_status: cardReviewStatus.get(c.id) || "none",
+          card_type: (c.card_type as ContentCardType) || "article",
         }))
       );
     } catch (error) {
@@ -147,6 +179,13 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false }: Kanb
 
   const handleDragStart = (event: DragStartEvent) => {
     const { active } = event;
+    // Check if dragging a column (prefixed with "column-")
+    const activeIdStr = String(active.id);
+    if (activeIdStr.startsWith("column-")) {
+      const col = columns.find((c) => `column-${c.id}` === activeIdStr);
+      if (col) setActiveColumn(col);
+      return;
+    }
     const card = cards.find((c) => c.id === active.id);
     if (card) {
       setActiveCard(card);
@@ -156,6 +195,9 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false }: Kanb
   const handleDragOver = (event: DragOverEvent) => {
     const { active, over } = event;
     if (!over) return;
+
+    // Skip if dragging a column
+    if (String(active.id).startsWith("column-")) return;
 
     const activeCardId = active.id as string;
     const overId = over.id as string;
@@ -191,8 +233,43 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false }: Kanb
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
     setActiveCard(null);
+    setActiveColumn(null);
 
     if (!over) return;
+
+    const activeIdStr = String(active.id);
+    const overIdStr = String(over.id);
+
+    // Handle column reordering
+    if (activeIdStr.startsWith("column-") && overIdStr.startsWith("column-")) {
+      const activeColId = activeIdStr.replace("column-", "");
+      const overColId = overIdStr.replace("column-", "");
+      if (activeColId === overColId) return;
+
+      const oldIndex = columns.findIndex((c) => c.id === activeColId);
+      const newIndex = columns.findIndex((c) => c.id === overColId);
+      if (oldIndex === -1 || newIndex === -1) return;
+
+      const newColumns = arrayMove(columns, oldIndex, newIndex);
+      setColumns(newColumns);
+
+      // Persist new order to database
+      try {
+        await Promise.all(
+          newColumns.map((col, idx) =>
+            supabase
+              .from("content_columns")
+              .update({ display_order: idx })
+              .eq("id", col.id)
+          )
+        );
+      } catch (error) {
+        console.error("Error reordering columns:", error);
+        toast.error("Erreur lors du réordonnancement des colonnes");
+        fetchData();
+      }
+      return;
+    }
 
     const activeCardId = active.id as string;
     const overId = over.id as string;
@@ -325,6 +402,7 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false }: Kanb
             description: cardData.description,
             image_url: cardData.image_url,
             tags: cardData.tags,
+            card_type: cardData.card_type || "article",
           })
           .eq("id", editingCard.id);
 
@@ -338,6 +416,7 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false }: Kanb
           description: cardData.description,
           image_url: cardData.image_url,
           tags: cardData.tags || [],
+          card_type: cardData.card_type || "article",
           display_order: columnCards.length,
         });
 
@@ -380,6 +459,28 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false }: Kanb
 
   return (
     <div className="h-full">
+      {/* Legend & Settings */}
+      <div className="flex items-center gap-4 mb-3">
+        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+          <span className="flex items-center gap-1.5">
+            <span className="w-3 h-3 rounded-sm" style={{ backgroundColor: colors.article }} />
+            Article
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="w-3 h-3 rounded-sm" style={{ backgroundColor: colors.post }} />
+            Post réseaux sociaux
+          </span>
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-7 px-2 text-muted-foreground"
+          onClick={() => setShowColorSettings(true)}
+        >
+          <Settings2 className="h-3.5 w-3.5" />
+        </Button>
+      </div>
+
       <DndContext
         sensors={sensors}
         collisionDetection={closestCorners}
@@ -389,7 +490,7 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false }: Kanb
       >
         <div className="flex gap-4 overflow-x-auto pb-4 h-full">
           <SortableContext
-            items={columns.map((c) => c.id)}
+            items={columns.map((c) => `column-${c.id}`)}
             strategy={horizontalListSortingStrategy}
           >
             {columns.map((column) => {
@@ -399,12 +500,12 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false }: Kanb
                 ? columnCards.filter((c) => cardIdsInReview.has(c.id))
                 : columnCards;
 
-              // If filtering and no cards match, still show empty column
               return (
                 <KanbanColumn
                   key={column.id}
                   column={column}
                   cards={filteredCards}
+                  typeColors={colors}
                   onRename={handleRenameColumn}
                   onDelete={handleDeleteColumn}
                   onAddCard={() => setNewCardColumnId(column.id)}
@@ -430,7 +531,11 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false }: Kanb
 
         <DragOverlay>
           {activeCard ? (
-            <ContentCard card={activeCard} isDragging />
+            <ContentCard card={activeCard} isDragging typeColors={colors} />
+          ) : activeColumn ? (
+            <div className="flex-shrink-0 w-72 bg-muted/50 rounded-lg p-3 opacity-80 shadow-lg rotate-1">
+              <h3 className="font-semibold text-sm">{activeColumn.name}</h3>
+            </div>
           ) : null}
         </DragOverlay>
       </DndContext>
@@ -453,7 +558,84 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false }: Kanb
         card={editingCard}
         onSave={handleSaveCard}
       />
+
+      {/* Color Settings Dialog */}
+      <ColorSettingsDialog
+        open={showColorSettings}
+        onOpenChange={setShowColorSettings}
+        colors={colors}
+        onSave={saveTypeColors}
+      />
     </div>
+  );
+};
+
+/* Color settings dialog for card type colors */
+const ColorSettingsDialog = ({
+  open,
+  onOpenChange,
+  colors,
+  onSave,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  colors: ContentTypeColors;
+  onSave: (colors: ContentTypeColors) => Promise<void>;
+}) => {
+  const [articleColor, setArticleColor] = useState(colors.article);
+  const [postColor, setPostColor] = useState(colors.post);
+
+  useEffect(() => {
+    setArticleColor(colors.article);
+    setPostColor(colors.post);
+  }, [colors, open]);
+
+  const handleSave = async () => {
+    await onSave({ article: articleColor, post: postColor });
+    toast.success("Couleurs enregistrées");
+    onOpenChange(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Couleurs des types de contenu</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          <div className="flex items-center gap-3">
+            <input
+              type="color"
+              value={articleColor}
+              onChange={(e) => setArticleColor(e.target.value)}
+              className="w-10 h-10 rounded cursor-pointer border-0 p-0"
+            />
+            <div>
+              <Label className="font-medium">Article</Label>
+              <p className="text-xs text-muted-foreground">Blog, newsletter, etc.</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <input
+              type="color"
+              value={postColor}
+              onChange={(e) => setPostColor(e.target.value)}
+              className="w-10 h-10 rounded cursor-pointer border-0 p-0"
+            />
+            <div>
+              <Label className="font-medium">Post réseaux sociaux</Label>
+              <p className="text-xs text-muted-foreground">LinkedIn, Instagram, etc.</p>
+            </div>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Annuler
+          </Button>
+          <Button onClick={handleSave}>Enregistrer</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };
 

@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import type { Card } from "./KanbanBoard";
+import type { Card, ContentCardType } from "./KanbanBoard";
 import ReviewSection from "./ReviewSection";
 import RichTextEditor from "./RichTextEditor";
 import { cn } from "@/lib/utils";
@@ -50,6 +50,7 @@ const ContentCardDialog = ({
   const [imageUrl, setImageUrl] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [newTag, setNewTag] = useState("");
+  const [cardType, setCardType] = useState<ContentCardType>("article");
   const [uploading, setUploading] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [aiLoading, setAiLoading] = useState<AiActionType | null>(null);
@@ -62,11 +63,13 @@ const ContentCardDialog = ({
       setDescription(card.description || "");
       setImageUrl(card.image_url || "");
       setTags(card.tags || []);
+      setCardType(card.card_type || "article");
     } else {
       setTitle("");
       setDescription("");
       setImageUrl("");
       setTags([]);
+      setCardType("article");
     }
   }, [card, open]);
 
@@ -161,6 +164,7 @@ const ContentCardDialog = ({
       description: description || null,
       image_url: imageUrl || null,
       tags,
+      card_type: cardType,
     });
   };
 
@@ -207,6 +211,31 @@ const ContentCardDialog = ({
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Titre de la carte"
             />
+          </div>
+
+          {/* Type de contenu */}
+          <div className="space-y-2">
+            <Label>Type de contenu</Label>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant={cardType === "article" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setCardType("article")}
+                className="flex-1"
+              >
+                Article
+              </Button>
+              <Button
+                type="button"
+                variant={cardType === "post" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setCardType("post")}
+                className="flex-1"
+              >
+                Post réseaux sociaux
+              </Button>
+            </div>
           </div>
 
           {/* Description avec boutons IA */}

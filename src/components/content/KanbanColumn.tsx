@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { useDroppable } from "@dnd-kit/core";
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import {
   SortableContext,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { MoreHorizontal, Plus, Pencil, Trash2 } from "lucide-react";
+import { MoreHorizontal, Plus, Pencil, Trash2, GripVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -22,11 +24,12 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import ContentCard from "./ContentCard";
-import type { Column, Card } from "./KanbanBoard";
+import type { Column, Card, ContentTypeColors } from "./KanbanBoard";
 
 interface KanbanColumnProps {
   column: Column;
   cards: Card[];
+  typeColors: ContentTypeColors;
   onRename: (columnId: string, newName: string) => void;
   onDelete: (columnId: string) => void;
   onAddCard: () => void;
@@ -38,6 +41,7 @@ interface KanbanColumnProps {
 const KanbanColumn = ({
   column,
   cards,
+  typeColors,
   onRename,
   onDelete,
   onAddCard,
@@ -48,9 +52,25 @@ const KanbanColumn = ({
   const [showRenameDialog, setShowRenameDialog] = useState(false);
   const [newName, setNewName] = useState(column.name);
 
-  const { setNodeRef, isOver } = useDroppable({
+  // Sortable for column reordering (using column- prefix)
+  const {
+    attributes: sortableAttributes,
+    listeners: sortableListeners,
+    setNodeRef: setSortableRef,
+    transform,
+    transition,
+    isDragging: isColumnDragging,
+  } = useSortable({ id: `column-${column.id}` });
+
+  // Droppable for receiving cards
+  const { setNodeRef: setDroppableRef, isOver } = useDroppable({
     id: column.id,
   });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
 
   const handleRename = () => {
     if (newName.trim()) {
@@ -62,18 +82,31 @@ const KanbanColumn = ({
   return (
     <>
       <div
-        ref={setNodeRef}
+        ref={(node) => {
+          setSortableRef(node);
+          setDroppableRef(node);
+        }}
+        style={style}
         className={`flex-shrink-0 w-72 bg-muted/50 rounded-lg p-3 flex flex-col max-h-[calc(100vh-280px)] ${
           isOver ? "ring-2 ring-primary" : ""
-        }`}
+        } ${isColumnDragging ? "opacity-50" : ""}`}
       >
         <div className="flex items-center justify-between mb-3">
-          <h3 className="font-semibold text-sm flex items-center gap-2">
-            {column.name}
-            <span className="bg-muted text-muted-foreground text-xs px-1.5 py-0.5 rounded-full">
-              {cards.length}
+          <div className="flex items-center gap-1">
+            <span
+              {...sortableAttributes}
+              {...sortableListeners}
+              className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground p-0.5"
+            >
+              <GripVertical className="h-4 w-4" />
             </span>
-          </h3>
+            <h3 className="font-semibold text-sm flex items-center gap-2">
+              {column.name}
+              <span className="bg-muted text-muted-foreground text-xs px-1.5 py-0.5 rounded-full">
+                {cards.length}
+              </span>
+            </h3>
+          </div>
 
           <div className="flex items-center gap-1">
             <Button
@@ -119,6 +152,7 @@ const KanbanColumn = ({
               <ContentCard
                 key={card.id}
                 card={card}
+                typeColors={typeColors}
                 onView={() => onViewCard(card)}
                 onEdit={() => onEditCard(card)}
                 onDelete={() => onDeleteCard(card.id)}
