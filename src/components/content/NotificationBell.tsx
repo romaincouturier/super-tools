@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -16,11 +17,15 @@ interface Notification {
   message: string;
   read_at: string | null;
   created_at: string;
+  card_id?: string | null;
+  reference_id?: string;
 }
 
 const NotificationBell = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [open, setOpen] = useState(false);
+  const [, setSearchParams] = useSearchParams();
 
   useEffect(() => {
     fetchNotifications();
@@ -49,7 +54,7 @@ const NotificationBell = () => {
 
   const fetchNotifications = async () => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("content_notifications")
         .select("*")
         .order("created_at", { ascending: false })
@@ -58,7 +63,7 @@ const NotificationBell = () => {
       if (error) throw error;
 
       setNotifications(data || []);
-      setUnreadCount((data || []).filter((n) => !n.read_at).length);
+      setUnreadCount((data || []).filter((n: Notification) => !n.read_at).length);
     } catch (error) {
       console.error("Error fetching notifications:", error);
     }
@@ -106,6 +111,52 @@ const NotificationBell = () => {
     }
   };
 
+  const handleNotificationClick = async (notification: Notification) => {
+    // Mark as read
+    if (!notification.read_at) {
+      markAsRead(notification.id);
+    }
+
+    // Navigate to card if card_id is available
+    const targetCardId = notification.card_id;
+    if (targetCardId) {
+      setOpen(false);
+      setSearchParams({ card: targetCardId });
+      return;
+    }
+
+    // Fallback: for older notifications, resolve card_id from reference_id (review_id)
+    if (notification.reference_id) {
+      try {
+        const { data: review } = await supabase
+          .from("content_reviews")
+          .select("card_id")
+          .eq("id", notification.reference_id)
+          .maybeSingle();
+
+        if (review?.card_id) {
+          setOpen(false);
+          setSearchParams({ card: review.card_id });
+          return;
+        }
+
+        // reference_id might be a card_id directly (from ReviewRequestDialog)
+        const { data: card } = await supabase
+          .from("content_cards")
+          .select("id")
+          .eq("id", notification.reference_id)
+          .maybeSingle();
+
+        if (card) {
+          setOpen(false);
+          setSearchParams({ card: card.id });
+        }
+      } catch (err) {
+        console.error("Error resolving card from notification:", err);
+      }
+    }
+  };
+
   const getTypeLabel = (type: string) => {
     switch (type) {
       case "review_requested":
@@ -120,7 +171,7 @@ const NotificationBell = () => {
   };
 
   return (
-    <Popover>
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button variant="ghost" size="icon" className="relative">
           <Bell className="h-5 w-5" />
@@ -161,7 +212,7 @@ const NotificationBell = () => {
                   className={`p-3 cursor-pointer hover:bg-muted transition-colors ${
                     !notification.read_at ? "bg-primary/5" : ""
                   }`}
-                  onClick={() => !notification.read_at && markAsRead(notification.id)}
+                  onClick={() => handleNotificationClick(notification)}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1">
