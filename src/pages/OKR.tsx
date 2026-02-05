@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import {
@@ -16,6 +17,7 @@ import {
   TrendingUp,
   Loader2,
   Sparkles,
+  ArrowLeft,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -75,9 +77,11 @@ import {
   getProgressColor,
 } from "@/types/okr";
 import OKRDetailDrawer from "@/components/okr/OKRDetailDrawer";
+import AppHeader from "@/components/AppHeader";
 
 const OKR = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const currentYear = new Date().getFullYear();
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -189,38 +193,52 @@ const OKR = () => {
   const favoriteObjectives = (objectives || []).filter((o) => o.is_favorite);
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Target className="h-8 w-8 text-primary" />
-          <div>
-            <h1 className="text-2xl font-bold">OKR</h1>
-            <p className="text-muted-foreground">Objectifs et Résultats Clés</p>
+    <div className="min-h-screen bg-background">
+      <AppHeader />
+
+      <main className="max-w-[1600px] mx-auto p-6 space-y-6">
+        {/* Header with back navigation */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate("/")}
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <Target className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold">OKR</h1>
+                <p className="text-muted-foreground text-sm">Objectifs et Résultats Clés</p>
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <Select
+              value={selectedYear.toString()}
+              onValueChange={(v) => setSelectedYear(parseInt(v))}
+            >
+              <SelectTrigger className="w-[120px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {[currentYear - 1, currentYear, currentYear + 1].map((year) => (
+                  <SelectItem key={year} value={year.toString()}>
+                    {year}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button onClick={() => setShowCreateDialog(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Nouvel objectif
+            </Button>
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          <Select
-            value={selectedYear.toString()}
-            onValueChange={(v) => setSelectedYear(parseInt(v))}
-          >
-            <SelectTrigger className="w-[120px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {[currentYear - 1, currentYear, currentYear + 1].map((year) => (
-                <SelectItem key={year} value={year.toString()}>
-                  {year}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Button onClick={() => setShowCreateDialog(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Nouvel objectif
-          </Button>
-        </div>
-      </div>
 
       {/* Favorite OKRs */}
       {favoriteObjectives.length > 0 && (
@@ -446,6 +464,7 @@ const OKR = () => {
         open={drawerOpen}
         onOpenChange={setDrawerOpen}
       />
+      </main>
     </div>
   );
 };

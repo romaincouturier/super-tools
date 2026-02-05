@@ -51,6 +51,7 @@ serve(async (req: Request): Promise<Response> => {
     const originalFileName = String(body?.originalFileName ?? "").trim();
     const reviewId = String(body?.reviewId ?? "").trim();
     const mimeType = String(body?.mimeType ?? "").trim();
+    const fileBase64 = String(body?.fileBase64 ?? "").trim();
 
     if (!reviewId) return createErrorResponse("reviewId is required", 400);
     if (!originalFileName) return createErrorResponse("originalFileName is required", 400);
@@ -69,6 +70,43 @@ serve(async (req: Request): Promise<Response> => {
 
     const supabaseAdmin = getSupabaseClient();
 
+    // If fileBase64 is provided, upload directly with service-role (bypasses RLS entirely)
+    if (fileBase64) {
+      // Strip data URL prefix if present (e.g. "data:image/png;base64,...")
+      const base64Content = fileBase64.includes(",")
+        ? fileBase64.split(",")[1]
+        : fileBase64;
+
+      const binaryStr = atob(base64Content);
+      const bytes = new Uint8Array(binaryStr.length);
+      for (let i = 0; i < binaryStr.length; i++) {
+        bytes[i] = binaryStr.charCodeAt(i);
+      }
+
+      const contentType = mimeType || `image/${ext === "jpg" ? "jpeg" : ext}`;
+
+      const { error: uploadError } = await supabaseAdmin.storage
+        .from("review-images")
+        .upload(path, bytes, { contentType, upsert: false });
+
+      if (uploadError) {
+        console.error("[create-review-image-upload-url] direct upload error:", uploadError);
+        return createErrorResponse(uploadError.message, 500);
+      }
+
+      const { data: publicData } = supabaseAdmin.storage
+        .from("review-images")
+        .getPublicUrl(path);
+
+      return createJsonResponse({
+        path,
+        publicUrl: publicData.publicUrl,
+        userId: user.id,
+        reviewId,
+      });
+    }
+
+    // Fallback: create signed upload URL (legacy flow)
     const { data, error } = await supabaseAdmin.storage
       .from("review-images")
       .createSignedUploadUrl(path);

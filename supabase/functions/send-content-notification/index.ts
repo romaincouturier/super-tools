@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 // Bump this when you deploy to confirm the latest code is running.
-const VERSION = "send-content-notification@2026-02-02.3";
+const VERSION = "send-content-notification@2026-02-05.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -98,7 +98,7 @@ serve(async (req) => {
       );
     }
 
-    const { type, recipientEmail, cardTitle, externalUrl, cardId } = body ?? {};
+    const { type, recipientEmail, cardTitle, externalUrl, cardId, authorName, commentText } = body ?? {};
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
     const APP_URL = Deno.env.get("APP_URL") || "https://super-tools.lovable.app";
 
@@ -203,6 +203,28 @@ serve(async (req) => {
           <p style="margin: 20px 0;">
             <a href="${cardLink}" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">
               Voir les détails
+            </a>
+          </p>
+          ${signature}
+        `;
+        break;
+
+      case "mention":
+        subject = `💬 ${authorName || "Quelqu'un"} vous a mentionné — ${cardTitle}`;
+        htmlContent = `
+          <p>Bonjour,</p>
+          <p><strong>${authorName || "Un utilisateur"}</strong> vous a mentionné dans un commentaire sur :</p>
+          <div style="background-color: #f5f5f5; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <strong>${cardTitle}</strong>
+          </div>
+          ${commentText ? `
+          <div style="background-color: #f0f4ff; padding: 15px; border-left: 4px solid #3b82f6; border-radius: 4px; margin: 20px 0;">
+            <p style="margin: 0; color: #1e3a5f; font-style: italic;">"${commentText}"</p>
+          </div>
+          ` : ""}
+          <p style="margin: 20px 0;">
+            <a href="${cardLink}" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">
+              Voir le commentaire
             </a>
           </p>
           ${signature}

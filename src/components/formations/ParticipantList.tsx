@@ -1,5 +1,5 @@
-import { HelpCircle, Mail, MailCheck, Clock, CheckCircle, AlertTriangle, Trash2, Loader2, Send, RefreshCw, Receipt, Building, Scroll } from "lucide-react";
-import { useState } from "react";
+import { HelpCircle, Mail, MailCheck, Clock, CheckCircle, AlertTriangle, Trash2, Loader2, Send, RefreshCw, Receipt, Building, Scroll, Award, Download, Forward, UserCheck } from "lucide-react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { differenceInDays, parseISO } from "date-fns";
@@ -29,6 +29,12 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import ViewQuestionnaireDialog from "./ViewQuestionnaireDialog";
 import ParticipantDocumentsDialog from "./ParticipantDocumentsDialog";
 import EditParticipantDialog from "./EditParticipantDialog";
@@ -138,6 +144,11 @@ const getStatusConfig = (status: string) => {
   }
 };
 
+interface CertificateInfo {
+  evaluationId: string;
+  certificateUrl: string | null;
+}
+
 const ParticipantList = ({
   participants,
   trainingId,
@@ -153,7 +164,70 @@ const ParticipantList = ({
   const [remindingId, setRemindingId] = useState<string | null>(null);
   const [generatingConventionId, setGeneratingConventionId] = useState<string | null>(null);
   const [documentsParticipant, setDocumentsParticipant] = useState<Participant | null>(null);
+  const [certificatesByParticipant, setCertificatesByParticipant] = useState<Map<string, CertificateInfo>>(new Map());
+  const [sendingCertId, setSendingCertId] = useState<string | null>(null);
   const { toast } = useToast();
+
+  // Fetch evaluation certificate URLs for all participants
+  useEffect(() => {
+    const fetchCertificates = async () => {
+      const { data, error } = await (supabase as any)
+        .from("training_evaluations")
+        .select("id, participant_id, certificate_url, etat")
+        .eq("training_id", trainingId)
+        .eq("etat", "soumis");
+
+      if (!error && data) {
+        const map = new Map<string, CertificateInfo>();
+        for (const ev of data) {
+          if (ev.participant_id) {
+            map.set(ev.participant_id, {
+              evaluationId: ev.id,
+              certificateUrl: ev.certificate_url || null,
+            });
+          }
+        }
+        setCertificatesByParticipant(map);
+      }
+    };
+    fetchCertificates();
+  }, [trainingId, participants]);
+
+  const handleSendCertificate = async (
+    participant: Participant,
+    recipientEmail: string,
+    recipientName: string
+  ) => {
+    const cert = certificatesByParticipant.get(participant.id);
+    if (!cert) return;
+
+    setSendingCertId(participant.id);
+    try {
+      const { error } = await supabase.functions.invoke("send-certificate-email", {
+        body: {
+          evaluationId: cert.evaluationId,
+          recipientEmail,
+          recipientName,
+        },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Certificat envoyé",
+        description: `Le certificat a été envoyé à ${recipientEmail}.`,
+      });
+    } catch (error: any) {
+      console.error("Error sending certificate:", error);
+      toast({
+        title: "Erreur",
+        description: error.message || "Impossible d'envoyer le certificat.",
+        variant: "destructive",
+      });
+    } finally {
+      setSendingCertId(null);
+    }
+  };
 
   const isInterEntreprise = formatFormation === "inter-entreprises";
   const isIndividualConvention = formatFormation === "inter-entreprises" || formatFormation === "e_learning";
@@ -498,6 +572,85 @@ const ParticipantList = ({
                         </TooltipContent>
                       </Tooltip>
                     )}
+
+                    {/* Attestation / Certificate button */}
+                    {(() => {
+                      const cert = certificatesByParticipant.get(participant.id);
+                      const hasCert = !!cert?.certificateUrl;
+                      const sponsorEmail = participant.sponsor_email;
+                      const sponsorName = [participant.sponsor_first_name, participant.sponsor_last_name]
+                        .filter(Boolean)
+                        .join(" ");
+
+                      if (!hasCert) {
+                        return (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-muted-foreground/40 cursor-default"
+                                disabled
+                              >
+                                <Award className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Pas d'attestation disponible</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        );
+                      }
+
+                      return (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-primary"
+                              disabled={sendingCertId === participant.id}
+                            >
+                              {sendingCertId === participant.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Award className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={() => window.open(cert!.certificateUrl!, "_blank")}
+                            >
+                              <Download className="h-4 w-4 mr-2" />
+                              Télécharger l'attestation
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => handleSendCertificate(
+                                participant,
+                                participant.email,
+                                participant.first_name || ""
+                              )}
+                            >
+                              <Forward className="h-4 w-4 mr-2" />
+                              Envoyer au participant
+                            </DropdownMenuItem>
+                            {sponsorEmail && (
+                              <DropdownMenuItem
+                                onClick={() => handleSendCertificate(
+                                  participant,
+                                  sponsorEmail,
+                                  sponsorName
+                                )}
+                              >
+                                <UserCheck className="h-4 w-4 mr-2" />
+                                Envoyer au commanditaire
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      );
+                    })()}
 
                     {/* Edit participant button */}
                     <EditParticipantDialog

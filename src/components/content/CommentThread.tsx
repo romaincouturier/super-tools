@@ -20,6 +20,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import MentionTextarea, { MentionUser } from "./MentionTextarea";
 
 interface Comment {
   id: string;
@@ -42,8 +43,10 @@ const commentTypeConfig = {
 
 interface CommentThreadProps {
   reviewId: string;
-  isAuthor: boolean;
-  isReviewer: boolean;
+  cardId?: string;
+  cardTitle?: string;
+  isAuthor?: boolean;
+  isReviewer?: boolean;
   reviewStatus: string;
   onCommentAdded?: () => void;
 }
@@ -57,8 +60,8 @@ const commentStatusConfig = {
 
 const CommentThread = ({
   reviewId,
-  isAuthor,
-  isReviewer,
+  cardId,
+  cardTitle,
   reviewStatus,
   onCommentAdded
 }: CommentThreadProps) => {
@@ -73,6 +76,7 @@ const CommentThread = ({
   const [submitting, setSubmitting] = useState(false);
   const [showComments, setShowComments] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [pendingMentions, setPendingMentions] = useState<MentionUser[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -153,7 +157,6 @@ const CommentThread = ({
   };
 
   const uploadImage = async (file: File): Promise<string | null> => {
-    // Safety net: if auth header isn't attached for some reason, Storage will be denied.
     const { data: sessionData } = await supabase.auth.getSession();
     if (!sessionData.session?.user) {
       toast.error("Votre session a expiré — reconnectez-vous puis réessayez");
@@ -161,30 +164,27 @@ const CommentThread = ({
     }
 
     try {
-      // Workaround for persistent Storage RLS insert failures:
-      // request a signed upload token from a backend function (service-role),
-      // then upload directly with that token.
-      const { data: signedData, error: signedError } = await supabase.functions.invoke(
+      // Convert file to base64 data URL
+      const fileBase64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      // Upload via edge function (service-role) to bypass Storage RLS
+      const { data: uploadData, error: invokeError } = await supabase.functions.invoke(
         "create-review-image-upload-url",
-        { body: { originalFileName: file.name, mimeType: file.type, reviewId } }
+        { body: { originalFileName: file.name, mimeType: file.type, reviewId, fileBase64 } }
       );
 
-      if (signedError) throw signedError;
+      if (invokeError) throw invokeError;
 
-      const path = (signedData as any)?.path as string | undefined;
-      const token = (signedData as any)?.token as string | undefined;
-      const publicUrl = (signedData as any)?.publicUrl as string | undefined;
-
-      if (!path || !token || !publicUrl) {
-        console.error("[CommentThread] Invalid signed upload response:", signedData);
+      const publicUrl = (uploadData as any)?.publicUrl as string | undefined;
+      if (!publicUrl) {
+        console.error("[CommentThread] Invalid upload response:", uploadData);
         throw new Error("Réponse d'upload invalide. Veuillez réessayer.");
       }
-
-      const { error: uploadError } = await supabase.storage
-        .from("review-images")
-        .uploadToSignedUrl(path, token, file);
-
-      if (uploadError) throw uploadError;
 
       return publicUrl;
     } catch (error: any) {
@@ -259,9 +259,48 @@ const CommentThread = ({
         }
       }
 
+      // Send notifications to mentioned users
+      if (pendingMentions.length > 0) {
+        const { data: authorProfile } = await supabase
+          .from("profiles")
+          .select("first_name, last_name, email")
+          .eq("user_id", userId)
+          .maybeSingle();
+
+        const authorName = authorProfile?.first_name && authorProfile?.last_name
+          ? `${authorProfile.first_name} ${authorProfile.last_name}`
+          : authorProfile?.email || "Quelqu'un";
+
+        for (const mention of pendingMentions) {
+          // Skip self-mention
+          if (mention.userId === userId) continue;
+
+          // In-app notification
+          await supabase.from("content_notifications").insert({
+            user_id: mention.userId,
+            type: "comment_added",
+            reference_id: reviewId,
+            message: `${authorName} vous a mentionné dans un commentaire`,
+          });
+
+          // Email notification
+          await supabase.functions.invoke("send-content-notification", {
+            body: {
+              type: "mention",
+              recipientEmail: mention.email,
+              cardTitle: cardTitle || "un contenu",
+              cardId: cardId || undefined,
+              authorName,
+              commentText: newComment.trim(),
+            },
+          });
+        }
+      }
+
       setNewComment("");
       setProposedCorrection("");
       setCommentType("");
+      setPendingMentions([]);
       clearImage();
       fetchComments();
       onCommentAdded?.();
@@ -335,6 +374,21 @@ const CommentThread = ({
       .slice(0, 2);
   };
 
+  const renderCommentContent = (text: string) => {
+    // Highlight @mentions: match @Name or @First Last (up to 3 words)
+    const parts = text.split(/(@\w+(?:\s\w+){0,2})/g);
+    return parts.map((part, i) => {
+      if (part.startsWith("@") && part.length > 1) {
+        return (
+          <span key={i} className="text-primary font-medium bg-primary/10 rounded px-0.5">
+            {part}
+          </span>
+        );
+      }
+      return part;
+    });
+  };
+
   const pendingCount = comments.filter(c => c.status === "pending").length;
 
   return (
@@ -365,10 +419,7 @@ const CommentThread = ({
             </div>
           ) : comments.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-2">
-              {isReviewer 
-                ? "Ajoutez vos commentaires de relecture ci-dessous"
-                : "Aucun commentaire du relecteur pour le moment"
-              }
+              Ajoutez vos commentaires de relecture ci-dessous
             </p>
           ) : (
             <div className="space-y-3 max-h-80 overflow-y-auto">
@@ -382,7 +433,7 @@ const CommentThread = ({
                     key={comment.id} 
                     className={cn(
                       "flex gap-2 p-2 rounded-lg transition-colors",
-                      comment.status === "pending" && isAuthor && "bg-yellow-50 border border-yellow-200"
+                      comment.status === "pending" && "bg-yellow-50 border border-yellow-200"
                     )}
                   >
                     <Avatar className="h-8 w-8 flex-shrink-0">
@@ -403,14 +454,19 @@ const CommentThread = ({
                             minute: "2-digit",
                           })}
                         </span>
-                        {comment.comment_type && commentTypeConfig[comment.comment_type] && (
-                          <Badge
-                            variant="secondary"
-                            className={cn("text-xs", commentTypeConfig[comment.comment_type].className)}
-                          >
-                            {commentTypeConfig[comment.comment_type].label}
-                          </Badge>
-                        )}
+                        {comment.comment_type && commentTypeConfig[comment.comment_type] && (() => {
+                          const config = commentTypeConfig[comment.comment_type!];
+                          const TypeIcon = config.icon;
+                          return (
+                            <Badge
+                              variant="secondary"
+                              className={cn("text-xs gap-1", config.className)}
+                            >
+                              <TypeIcon className="h-3 w-3" />
+                              {config.label}
+                            </Badge>
+                          );
+                        })()}
                         <Badge
                           variant="secondary"
                           className={cn("text-xs", statusConf.className)}
@@ -418,7 +474,7 @@ const CommentThread = ({
                           {statusConf.label}
                         </Badge>
                       </div>
-                      <p className="text-sm mt-1 whitespace-pre-wrap">{comment.content}</p>
+                      <p className="text-sm mt-1 whitespace-pre-wrap">{renderCommentContent(comment.content)}</p>
 
                       {/* Image jointe */}
                       {comment.image_url && (
@@ -496,8 +552,8 @@ const CommentThread = ({
                         </TooltipProvider>
                       )}
 
-                      {/* Bouton supprimer pour l'auteur du commentaire */}
-                      {currentUserId === comment.author_id && (
+                      {/* Bouton supprimer */}
+                      {currentUserId && (
                         <div className="flex justify-end mt-1">
                           <Button
                             size="sm"
@@ -522,36 +578,30 @@ const CommentThread = ({
             <div className="space-y-3 p-3 bg-muted/30 rounded-lg">
               {/* Type de commentaire et textarea sur la même ligne */}
               <div className="flex gap-2">
-                {isReviewer && (
-                  <Select value={commentType} onValueChange={(v) => setCommentType(v as "fond" | "forme" | "")}>
-                    <SelectTrigger className="w-24 h-auto">
-                      <SelectValue placeholder="Type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="fond">
-                        <span className="flex items-center gap-1">
-                          <FileText className="h-3 w-3" /> Fond
-                        </span>
-                      </SelectItem>
-                      <SelectItem value="forme">
-                        <span className="flex items-center gap-1">
-                          <Palette className="h-3 w-3" /> Forme
-                        </span>
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                )}
-                <Textarea
+                <Select value={commentType} onValueChange={(v) => setCommentType(v as "fond" | "forme" | "")}>
+                  <SelectTrigger className="w-24 h-auto">
+                    <SelectValue placeholder="Type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="fond">
+                      <span className="flex items-center gap-1">
+                        <FileText className="h-3 w-3" /> Fond
+                      </span>
+                    </SelectItem>
+                    <SelectItem value="forme">
+                      <span className="flex items-center gap-1">
+                        <Palette className="h-3 w-3" /> Forme
+                      </span>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                <MentionTextarea
                   value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)}
+                  onChange={setNewComment}
+                  onMentionsChange={setPendingMentions}
                   onPaste={handlePaste}
-                  placeholder={
-                    isReviewer
-                      ? "Commentaire... (Ctrl+V pour coller une capture)"
-                      : "Répondre au relecteur..."
-                  }
+                  placeholder="Commentaire... (@nom pour mentionner)"
                   rows={2}
-                  className="resize-none flex-1"
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
                       handleSubmit();
@@ -559,26 +609,22 @@ const CommentThread = ({
                   }}
                 />
                 <div className="flex flex-col gap-1">
-                  {isReviewer && (
-                    <>
-                      <input
-                        type="file"
-                        ref={fileInputRef}
-                        onChange={handleImageSelect}
-                        accept="image/*"
-                        className="hidden"
-                      />
-                      <Button
-                        type="button"
-                        size="icon"
-                        variant="outline"
-                        onClick={() => fileInputRef.current?.click()}
-                        title="Ajouter une capture"
-                      >
-                        <Image className="h-4 w-4" />
-                      </Button>
-                    </>
-                  )}
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleImageSelect}
+                    accept="image/*"
+                    className="hidden"
+                  />
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="outline"
+                    onClick={() => fileInputRef.current?.click()}
+                    title="Ajouter une capture"
+                  >
+                    <Image className="h-4 w-4" />
+                  </Button>
                   <Button
                     size="icon"
                     onClick={handleSubmit}
@@ -610,15 +656,13 @@ const CommentThread = ({
               )}
 
               {/* Correction proposée */}
-              {isReviewer && (
-                <Textarea
-                  value={proposedCorrection}
-                  onChange={(e) => setProposedCorrection(e.target.value)}
-                  placeholder="Correction proposée (optionnel)"
-                  rows={2}
-                  className="resize-none text-sm"
-                />
-              )}
+              <Textarea
+                value={proposedCorrection}
+                onChange={(e) => setProposedCorrection(e.target.value)}
+                placeholder="Correction proposée (optionnel)"
+                rows={2}
+                className="resize-none text-sm"
+              />
             </div>
           )}
         </div>

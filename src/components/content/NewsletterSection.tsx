@@ -14,8 +14,10 @@ import {
   Loader2,
   PartyPopper,
   ChevronRight,
+  ChevronDown,
   MessageCircle,
   ExternalLink,
+  History,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -77,6 +79,9 @@ const NewsletterSection = ({ onCardClick, refreshKey }: NewsletterSectionProps) 
   const [sending, setSending] = useState(false);
   const [justSent, setJustSent] = useState(false);
   const [newsletterToolUrl, setNewsletterToolUrl] = useState<string | null>(null);
+  const [showHistory, setShowHistory] = useState(false);
+  const [expandedNewsletterIds, setExpandedNewsletterIds] = useState<Set<string>>(new Set());
+  const [historyCards, setHistoryCards] = useState<Record<string, NewsletterCard[]>>({});
 
   // Fetch newsletter tool URL from app_settings
   useEffect(() => {
@@ -281,6 +286,57 @@ const NewsletterSection = ({ onCardClick, refreshKey }: NewsletterSectionProps) 
     }
   };
 
+  const toggleHistoryNewsletter = async (newsletterId: string) => {
+    const newSet = new Set(expandedNewsletterIds);
+    if (newSet.has(newsletterId)) {
+      newSet.delete(newsletterId);
+    } else {
+      newSet.add(newsletterId);
+      // Fetch cards if not already loaded
+      if (!historyCards[newsletterId]) {
+        await fetchNewsletterCardsForHistory(newsletterId);
+      }
+    }
+    setExpandedNewsletterIds(newSet);
+  };
+
+  const fetchNewsletterCardsForHistory = async (newsletterId: string) => {
+    try {
+      const { data, error } = await (supabase as any)
+        .from("newsletter_cards")
+        .select("*")
+        .eq("newsletter_id", newsletterId)
+        .order("display_order", { ascending: true });
+
+      if (error) throw error;
+
+      const cardIds = (data || []).map((nc: any) => nc.card_id);
+      if (cardIds.length > 0) {
+        const { data: cardsData } = await (supabase as any)
+          .from("content_cards")
+          .select("id, title, card_type")
+          .in("id", cardIds);
+
+        const cardMap = new Map(
+          (cardsData || []).map((c: any) => [c.id, { title: c.title, card_type: c.card_type }])
+        );
+
+        setHistoryCards((prev) => ({
+          ...prev,
+          [newsletterId]: (data || []).map((nc: any) => ({
+            ...nc,
+            card_title: (cardMap.get(nc.card_id) as any)?.title || "Sans titre",
+            card_type: (cardMap.get(nc.card_id) as any)?.card_type || "article",
+          })),
+        }));
+      } else {
+        setHistoryCards((prev) => ({ ...prev, [newsletterId]: [] }));
+      }
+    } catch (error) {
+      console.error("Error fetching history cards:", error);
+    }
+  };
+
   const handleRemoveCard = async (newsletterCardId: string) => {
     try {
       const { error } = await (supabase as any)
@@ -438,12 +494,77 @@ const NewsletterSection = ({ onCardClick, refreshKey }: NewsletterSectionProps) 
             </div>
           )}
 
-          {/* Sent newsletters summary */}
+          {/* Sent newsletters history */}
           {newsletters.filter((n) => n.status === "sent").length > 0 && (
             <div className="mt-3 pt-3 border-t">
-              <p className="text-xs text-muted-foreground">
-                {newsletters.filter((n) => n.status === "sent").length} newsletter{newsletters.filter((n) => n.status === "sent").length > 1 ? "s" : ""} envoyée{newsletters.filter((n) => n.status === "sent").length > 1 ? "s" : ""}
-              </p>
+              <button
+                className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors w-full"
+                onClick={() => setShowHistory(!showHistory)}
+              >
+                <History className="h-3.5 w-3.5" />
+                <span>
+                  {newsletters.filter((n) => n.status === "sent").length} newsletter{newsletters.filter((n) => n.status === "sent").length > 1 ? "s" : ""} envoyée{newsletters.filter((n) => n.status === "sent").length > 1 ? "s" : ""}
+                </span>
+                {showHistory ? <ChevronDown className="h-3 w-3 ml-auto" /> : <ChevronRight className="h-3 w-3 ml-auto" />}
+              </button>
+
+              {showHistory && (
+                <div className="mt-2 space-y-1">
+                  {newsletters
+                    .filter((n) => n.status === "sent")
+                    .sort((a, b) => new Date(b.sent_at || b.scheduled_date).getTime() - new Date(a.sent_at || a.scheduled_date).getTime())
+                    .map((nl) => (
+                      <div key={nl.id} className="rounded border bg-muted/30">
+                        <button
+                          className="flex items-center gap-2 py-1.5 px-2 w-full text-left hover:bg-muted/50 transition-colors"
+                          onClick={() => toggleHistoryNewsletter(nl.id)}
+                        >
+                          {expandedNewsletterIds.has(nl.id) ? (
+                            <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0" />
+                          ) : (
+                            <ChevronRight className="h-3 w-3 text-muted-foreground shrink-0" />
+                          )}
+                          <span className="text-xs font-medium truncate flex-1">
+                            {nl.title || "Newsletter"} — {format(new Date(nl.scheduled_date), "d MMM yyyy", { locale: fr })}
+                          </span>
+                          <Badge variant="outline" className="text-[10px] h-4 shrink-0">Envoyée</Badge>
+                        </button>
+
+                        {expandedNewsletterIds.has(nl.id) && (
+                          <div className="px-2 pb-2">
+                            {historyCards[nl.id] ? (
+                              historyCards[nl.id].length > 0 ? (
+                                <div className="space-y-0.5">
+                                  {historyCards[nl.id].map((nc) => (
+                                    <button
+                                      key={nc.id}
+                                      className="flex items-center gap-2 py-1 px-2 rounded text-xs hover:bg-muted/50 w-full text-left"
+                                      onClick={() => onCardClick?.(nc.card_id)}
+                                    >
+                                      <div
+                                        className="h-1.5 w-1.5 rounded-full shrink-0"
+                                        style={{
+                                          backgroundColor: nc.card_type === "post" ? "#a855f7" : "#3b82f6",
+                                        }}
+                                      />
+                                      <span className="truncate">{nc.card_title}</span>
+                                    </button>
+                                  ))}
+                                </div>
+                              ) : (
+                                <p className="text-[11px] text-muted-foreground px-2 py-1">Aucun article</p>
+                              )
+                            ) : (
+                              <div className="flex justify-center py-2">
+                                <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                </div>
+              )}
             </div>
           )}
         </CardContent>
