@@ -1066,27 +1066,33 @@ export type Database = {
       google_drive_tokens: {
         Row: {
           access_token: string
+          access_token_encrypted: string | null
           created_at: string
           id: string
           refresh_token: string
+          refresh_token_encrypted: string | null
           token_expires_at: string
           updated_at: string
           user_id: string
         }
         Insert: {
           access_token: string
+          access_token_encrypted?: string | null
           created_at?: string
           id?: string
           refresh_token: string
+          refresh_token_encrypted?: string | null
           token_expires_at: string
           updated_at?: string
           user_id: string
         }
         Update: {
           access_token?: string
+          access_token_encrypted?: string | null
           created_at?: string
           id?: string
           refresh_token?: string
+          refresh_token_encrypted?: string | null
           token_expires_at?: string
           updated_at?: string
           user_id?: string
@@ -2079,6 +2085,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      decrypt_token: {
+        Args: { encrypted_token: string; encryption_key: string }
+        Returns: string
+      }
+      encrypt_token: {
+        Args: { encryption_key: string; plain_token: string }
+        Returns: string
+      }
       has_crm_access: { Args: { _user_id: string }; Returns: boolean }
       has_module_access: {
         Args: { _module: string; _user_id: string }
