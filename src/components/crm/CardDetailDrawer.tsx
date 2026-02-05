@@ -63,7 +63,9 @@ import {
   Undo2,
   Wand2,
   ImageIcon,
+  ChevronDown,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { format, addDays, isAfter, startOfDay } from "date-fns";
 import { fr } from "date-fns/locale";
 import DOMPurify from "dompurify";
@@ -186,6 +188,9 @@ const CardDetailDrawer = ({
   const [descriptionSaving, setDescriptionSaving] = useState(false);
   const [descriptionSaved, setDescriptionSaved] = useState(false);
   const descriptionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Email history state
+  const [expandedEmailId, setExpandedEmailId] = useState<string | null>(null);
 
   // Create training dialog state
   const [showCreateTrainingDialog, setShowCreateTrainingDialog] = useState(false);
@@ -1434,7 +1439,7 @@ const CardDetailDrawer = ({
                   ) : (
                     <Mail className="h-4 w-4 mr-2" />
                   )}
-                  Envoyer (mock)
+                  Envoyer
                 </Button>
               </div>
             </div>
@@ -1633,25 +1638,36 @@ const CardDetailDrawer = ({
               <div className="mt-4 pt-4 border-t">
                 <h4 className="font-medium mb-2 flex items-center gap-2">
                   <Mail className="h-4 w-4" />
-                  Emails envoyés
+                  Emails envoyés ({details.emails.length})
                 </h4>
-                {details.emails.map((email) => (
-                  <div key={email.id} className="p-3 bg-muted rounded mb-2 space-y-2">
-                    <div>
-                      <p className="text-sm font-medium">{email.subject}</p>
-                      <p className="text-xs text-muted-foreground">
-                        À: {email.recipient_email} •{" "}
-                        {format(new Date(email.sent_at), "d MMM yyyy HH:mm", { locale: fr })}
-                      </p>
+                {details.emails.map((email) => {
+                  const isExpanded = expandedEmailId === email.id;
+                  return (
+                    <div
+                      key={email.id}
+                      className="p-3 bg-muted rounded mb-2 cursor-pointer hover:bg-muted/80 transition-colors"
+                      onClick={() => setExpandedEmailId(isExpanded ? null : email.id)}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{email.subject}</p>
+                          <p className="text-xs text-muted-foreground">
+                            À: {email.recipient_email} •{" "}
+                            {format(new Date(email.sent_at), "d MMM yyyy HH:mm", { locale: fr })}
+                          </p>
+                        </div>
+                        <ChevronDown className={cn("h-4 w-4 text-muted-foreground shrink-0 transition-transform", isExpanded && "rotate-180")} />
+                      </div>
+                      {isExpanded && email.body_html && (
+                        <div
+                          className="text-xs border-t pt-2 mt-2 prose prose-xs max-w-none [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1"
+                          dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(email.body_html) }}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      )}
                     </div>
-                    {email.body_html && (
-                      <div
-                        className="text-xs border-t pt-2 mt-2 prose prose-xs max-w-none [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1"
-                        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(email.body_html) }}
-                      />
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </TabsContent>
