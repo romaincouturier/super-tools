@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Plus, Calendar, ArrowLeft, ArrowUpDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { Loader2, Plus, Calendar, ArrowLeft, ArrowUpDown, ChevronLeft, ChevronRight, Search, X } from "lucide-react";
 import { format, parseISO, isPast, differenceInDays } from "date-fns";
 import { fr } from "date-fns/locale";
 import AppHeader from "@/components/AppHeader";
@@ -24,6 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/useAuth";
 
 interface Training {
@@ -43,6 +44,16 @@ interface TrainingAction {
   status: string;
 }
 
+interface ParticipantSearchData {
+  training_id: string;
+  first_name: string | null;
+  last_name: string | null;
+  email: string;
+  sponsor_first_name: string | null;
+  sponsor_last_name: string | null;
+  sponsor_email: string | null;
+}
+
 type SortField = "date" | "title" | "client" | "location";
 type SortOrder = "asc" | "desc";
 
@@ -51,16 +62,18 @@ const Formations = () => {
   const [dataLoading, setDataLoading] = useState(true);
   const [trainings, setTrainings] = useState<Training[]>([]);
   const [trainingActions, setTrainingActions] = useState<TrainingAction[]>([]);
+  const [participantsByTraining, setParticipantsByTraining] = useState<Map<string, ParticipantSearchData[]>>(new Map());
   const [filter, setFilter] = useState<"upcoming" | "past">("upcoming");
-  
+  const [searchQuery, setSearchQuery] = useState("");
+
   // Sorting state (for past trainings only)
   const [sortField, setSortField] = useState<SortField>("date");
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
-  
+
   // Pagination state (for past trainings only)
   const [pageSize, setPageSize] = useState<number>(10);
   const [currentPage, setCurrentPage] = useState(1);
-  
+
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -70,7 +83,7 @@ const Formations = () => {
   }, [user]);
 
   const fetchTrainings = async () => {
-    const [trainingsResult, actionsResult, participantCountsResult] = await Promise.all([
+    const [trainingsResult, actionsResult, participantsResult] = await Promise.all([
       supabase
         .from("trainings")
         .select("*")
@@ -81,18 +94,23 @@ const Formations = () => {
         .eq("status", "pending"),
       supabase
         .from("training_participants")
-        .select("training_id"),
+        .select("training_id, first_name, last_name, email, sponsor_first_name, sponsor_last_name, sponsor_email"),
     ]);
 
     if (trainingsResult.error) {
       console.error("Error fetching trainings:", trainingsResult.error);
     } else {
-      // Count participants per training
+      // Count participants per training & build search index
       const countMap = new Map<string, number>();
-      (participantCountsResult.data || []).forEach((p) => {
+      const pMap = new Map<string, ParticipantSearchData[]>();
+      (participantsResult.data || []).forEach((p) => {
         countMap.set(p.training_id, (countMap.get(p.training_id) || 0) + 1);
+        const arr = pMap.get(p.training_id) || [];
+        arr.push(p as ParticipantSearchData);
+        pMap.set(p.training_id, arr);
       });
-      
+      setParticipantsByTraining(pMap);
+
       const trainingsWithCount = (trainingsResult.data || []).map((t) => ({
         ...t,
         participant_count: countMap.get(t.id) || 0,
@@ -109,15 +127,55 @@ const Formations = () => {
     setDataLoading(false);
   };
 
+  // Search helper: does a training match the query?
+  const matchesSearch = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return () => true;
+
+    return (t: Training) => {
+      // Match on training title or client name
+      if (t.training_name.toLowerCase().includes(q)) return true;
+      if (t.client_name.toLowerCase().includes(q)) return true;
+
+      // Match on training-level sponsor
+      const tSponsor = [
+        (t as any).sponsor_first_name,
+        (t as any).sponsor_last_name,
+        (t as any).sponsor_email,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      if (tSponsor.includes(q)) return true;
+
+      // Match on participants & their sponsors
+      const participants = participantsByTraining.get(t.id) || [];
+      return participants.some((p) => {
+        const haystack = [
+          p.first_name,
+          p.last_name,
+          p.email,
+          p.sponsor_first_name,
+          p.sponsor_last_name,
+          p.sponsor_email,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+        return haystack.includes(q);
+      });
+    };
+  }, [searchQuery, participantsByTraining]);
+
   // Filter trainings
-  const upcomingTrainings = useMemo(() => 
-    trainings.filter((t) => !isPast(parseISO(t.start_date))),
-    [trainings]
+  const upcomingTrainings = useMemo(() =>
+    trainings.filter((t) => !isPast(parseISO(t.start_date)) && matchesSearch(t)),
+    [trainings, matchesSearch]
   );
 
-  const pastTrainings = useMemo(() => 
-    trainings.filter((t) => isPast(parseISO(t.start_date))),
-    [trainings]
+  const pastTrainings = useMemo(() =>
+    trainings.filter((t) => isPast(parseISO(t.start_date)) && matchesSearch(t)),
+    [trainings, matchesSearch]
   );
 
   // Check if a training has pending actions
@@ -160,10 +218,10 @@ const Formations = () => {
 
   const totalPages = Math.ceil(sortedPastTrainings.length / pageSize);
 
-  // Reset to page 1 when filter/sort/pageSize changes
+  // Reset to page 1 when filter/sort/pageSize/search changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [sortField, sortOrder, pageSize]);
+  }, [sortField, sortOrder, pageSize, searchQuery]);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -250,7 +308,7 @@ const Formations = () => {
         {/* Tabs and table */}
         <Card>
           <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-3">
               <Tabs value={filter} onValueChange={(v) => setFilter(v as "upcoming" | "past")}>
                 <TabsList>
                   <TabsTrigger value="upcoming">
@@ -261,10 +319,29 @@ const Formations = () => {
                   </TabsTrigger>
                 </TabsList>
               </Tabs>
-              
-              {/* Pagination controls for past trainings */}
-              {filter === "past" && pastTrainings.length > 0 && (
-                <div className="flex items-center gap-3">
+
+              <div className="flex items-center gap-3">
+                {/* Search input */}
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Rechercher participant, commanditaire, formation…"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9 h-8 w-[340px]"
+                  />
+                  {searchQuery && (
+                    <button
+                      onClick={() => setSearchQuery("")}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Pagination controls for past trainings */}
+                {filter === "past" && pastTrainings.length > 0 && (
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-muted-foreground">Afficher</span>
                     <Select
@@ -281,28 +358,46 @@ const Formations = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </CardHeader>
           <CardContent>
             {filteredTrainings.length === 0 && filter === "upcoming" ? (
               <div className="text-center py-12 text-muted-foreground">
-                <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p className="text-lg">Aucune formation à venir</p>
-                <Button
-                  variant="outline"
-                  className="mt-4"
-                  onClick={() => navigate("/formations/new")}
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Créer votre première formation
-                </Button>
+                {searchQuery ? (
+                  <>
+                    <Search className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p className="text-lg">Aucune formation à venir ne correspond à « {searchQuery} »</p>
+                  </>
+                ) : (
+                  <>
+                    <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p className="text-lg">Aucune formation à venir</p>
+                    <Button
+                      variant="outline"
+                      className="mt-4"
+                      onClick={() => navigate("/formations/new")}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Créer votre première formation
+                    </Button>
+                  </>
+                )}
               </div>
             ) : filteredTrainings.length === 0 && filter === "past" ? (
               <div className="text-center py-12 text-muted-foreground">
-                <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p className="text-lg">Aucune formation passée</p>
+                {searchQuery ? (
+                  <>
+                    <Search className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p className="text-lg">Aucune formation passée ne correspond à « {searchQuery} »</p>
+                  </>
+                ) : (
+                  <>
+                    <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p className="text-lg">Aucune formation passée</p>
+                  </>
+                )}
               </div>
             ) : (
               <>
