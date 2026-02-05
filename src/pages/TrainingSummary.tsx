@@ -18,7 +18,6 @@ import {
   CheckCircle2,
   ChevronDown,
   Linkedin,
-  MessageCircle,
   Video,
   Globe,
 } from "lucide-react";
@@ -268,12 +267,6 @@ END:VCALENDAR`;
     window.open(url.toString(), "_blank");
   };
 
-  const getWhatsAppUrl = (phone: string) => {
-    // Clean phone number and format for WhatsApp
-    const cleanPhone = phone.replace(/\s+/g, "").replace(/^0/, "33");
-    return `https://wa.me/${cleanPhone}`;
-  };
-
   const getInitials = (firstName: string, lastName: string) => {
     return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
   };
@@ -501,21 +494,24 @@ END:VCALENDAR`;
               {isOnlineLocation() ? (
                 <>
                   {extractUrlFromLocation() ? (
-                    <a
-                      href={extractUrlFromLocation()!}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-lg text-primary hover:underline flex items-center gap-2"
-                    >
-                      <ExternalLink className="h-4 w-4" />
-                      {training.location}
-                    </a>
+                    <Button size="lg" asChild className="w-full sm:w-auto">
+                      <a
+                        href={extractUrlFromLocation()!}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <Video className="h-5 w-5 mr-2" />
+                        Se connecter à la visio
+                      </a>
+                    </Button>
                   ) : (
-                    <p className="text-lg">{training.location}</p>
+                    <>
+                      <p className="text-lg">{training.location}</p>
+                      <p className="text-sm text-muted-foreground">
+                        Le lien de connexion vous sera communiqué par email avant la formation.
+                      </p>
+                    </>
                   )}
-                  <p className="text-sm text-muted-foreground">
-                    Le lien de connexion vous sera communiqué par email avant la formation.
-                  </p>
                 </>
               ) : (
                 <>
@@ -589,20 +585,12 @@ END:VCALENDAR`;
                     </Button>
                     
                     {trainer.phone && (
-                      <>
-                        <Button variant="outline" size="sm" asChild>
-                          <a href={`tel:${trainer.phone}`}>
-                            <Phone className="h-4 w-4 mr-2" />
-                            Téléphone
-                          </a>
-                        </Button>
-                        <Button variant="outline" size="sm" asChild>
-                          <a href={getWhatsAppUrl(trainer.phone)} target="_blank" rel="noopener noreferrer">
-                            <MessageCircle className="h-4 w-4 mr-2" />
-                            WhatsApp
-                          </a>
-                        </Button>
-                      </>
+                      <Button variant="outline" size="sm" asChild>
+                        <a href={`tel:${trainer.phone}`}>
+                          <Phone className="h-4 w-4 mr-2" />
+                          Téléphone
+                        </a>
+                      </Button>
                     )}
                     
                     {trainer.linkedin_url && (
