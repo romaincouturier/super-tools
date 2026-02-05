@@ -42,8 +42,8 @@ const commentTypeConfig = {
 
 interface CommentThreadProps {
   reviewId: string;
-  isAuthor: boolean;
-  isReviewer: boolean;
+  isAuthor?: boolean;
+  isReviewer?: boolean;
   reviewStatus: string;
   onCommentAdded?: () => void;
 }
@@ -57,8 +57,6 @@ const commentStatusConfig = {
 
 const CommentThread = ({
   reviewId,
-  isAuthor,
-  isReviewer,
   reviewStatus,
   onCommentAdded
 }: CommentThreadProps) => {
@@ -365,10 +363,7 @@ const CommentThread = ({
             </div>
           ) : comments.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-2">
-              {isReviewer 
-                ? "Ajoutez vos commentaires de relecture ci-dessous"
-                : "Aucun commentaire du relecteur pour le moment"
-              }
+              Ajoutez vos commentaires de relecture ci-dessous
             </p>
           ) : (
             <div className="space-y-3 max-h-80 overflow-y-auto">
@@ -382,7 +377,7 @@ const CommentThread = ({
                     key={comment.id} 
                     className={cn(
                       "flex gap-2 p-2 rounded-lg transition-colors",
-                      comment.status === "pending" && isAuthor && "bg-yellow-50 border border-yellow-200"
+                      comment.status === "pending" && "bg-yellow-50 border border-yellow-200"
                     )}
                   >
                     <Avatar className="h-8 w-8 flex-shrink-0">
@@ -496,8 +491,8 @@ const CommentThread = ({
                         </TooltipProvider>
                       )}
 
-                      {/* Bouton supprimer pour l'auteur du commentaire */}
-                      {currentUserId === comment.author_id && (
+                      {/* Bouton supprimer */}
+                      {currentUserId && (
                         <div className="flex justify-end mt-1">
                           <Button
                             size="sm"
@@ -522,34 +517,28 @@ const CommentThread = ({
             <div className="space-y-3 p-3 bg-muted/30 rounded-lg">
               {/* Type de commentaire et textarea sur la même ligne */}
               <div className="flex gap-2">
-                {isReviewer && (
-                  <Select value={commentType} onValueChange={(v) => setCommentType(v as "fond" | "forme" | "")}>
-                    <SelectTrigger className="w-24 h-auto">
-                      <SelectValue placeholder="Type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="fond">
-                        <span className="flex items-center gap-1">
-                          <FileText className="h-3 w-3" /> Fond
-                        </span>
-                      </SelectItem>
-                      <SelectItem value="forme">
-                        <span className="flex items-center gap-1">
-                          <Palette className="h-3 w-3" /> Forme
-                        </span>
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                )}
+                <Select value={commentType} onValueChange={(v) => setCommentType(v as "fond" | "forme" | "")}>
+                  <SelectTrigger className="w-24 h-auto">
+                    <SelectValue placeholder="Type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="fond">
+                      <span className="flex items-center gap-1">
+                        <FileText className="h-3 w-3" /> Fond
+                      </span>
+                    </SelectItem>
+                    <SelectItem value="forme">
+                      <span className="flex items-center gap-1">
+                        <Palette className="h-3 w-3" /> Forme
+                      </span>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
                 <Textarea
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}
                   onPaste={handlePaste}
-                  placeholder={
-                    isReviewer
-                      ? "Commentaire... (Ctrl+V pour coller une capture)"
-                      : "Répondre au relecteur..."
-                  }
+                  placeholder="Commentaire... (Ctrl+V pour coller une capture)"
                   rows={2}
                   className="resize-none flex-1"
                   onKeyDown={(e) => {
@@ -559,26 +548,22 @@ const CommentThread = ({
                   }}
                 />
                 <div className="flex flex-col gap-1">
-                  {isReviewer && (
-                    <>
-                      <input
-                        type="file"
-                        ref={fileInputRef}
-                        onChange={handleImageSelect}
-                        accept="image/*"
-                        className="hidden"
-                      />
-                      <Button
-                        type="button"
-                        size="icon"
-                        variant="outline"
-                        onClick={() => fileInputRef.current?.click()}
-                        title="Ajouter une capture"
-                      >
-                        <Image className="h-4 w-4" />
-                      </Button>
-                    </>
-                  )}
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleImageSelect}
+                    accept="image/*"
+                    className="hidden"
+                  />
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="outline"
+                    onClick={() => fileInputRef.current?.click()}
+                    title="Ajouter une capture"
+                  >
+                    <Image className="h-4 w-4" />
+                  </Button>
                   <Button
                     size="icon"
                     onClick={handleSubmit}
@@ -610,15 +595,13 @@ const CommentThread = ({
               )}
 
               {/* Correction proposée */}
-              {isReviewer && (
-                <Textarea
-                  value={proposedCorrection}
-                  onChange={(e) => setProposedCorrection(e.target.value)}
-                  placeholder="Correction proposée (optionnel)"
-                  rows={2}
-                  className="resize-none text-sm"
-                />
-              )}
+              <Textarea
+                value={proposedCorrection}
+                onChange={(e) => setProposedCorrection(e.target.value)}
+                placeholder="Correction proposée (optionnel)"
+                rows={2}
+                className="resize-none text-sm"
+              />
             </div>
           )}
         </div>
