@@ -70,14 +70,19 @@ const ContentCard = ({ card, isDragging, typeColors, onEdit, onDelete, onView, o
       ref={setNodeRef}
       style={style}
       {...attributes}
-      {...listeners}
-      onClick={handleCardClick}
       className={`bg-card border rounded-lg overflow-hidden cursor-pointer hover:border-primary/50 transition-colors ${
         dragging ? "opacity-50 shadow-lg rotate-2 cursor-grabbing" : ""
       }`}
     >
-      {/* Color indicator bar */}
-      <div className="h-1 w-full" style={{ backgroundColor: borderColor }} />
+      {/* Drag handle - color indicator bar */}
+      <div 
+        {...listeners}
+        className="h-1 w-full cursor-grab active:cursor-grabbing" 
+        style={{ backgroundColor: borderColor }} 
+      />
+      
+      {/* Clickable content area */}
+      <div onClick={handleCardClick}>
 
       {card.image_url && (
         <div className="aspect-video w-full overflow-hidden">
@@ -164,6 +169,7 @@ const ContentCard = ({ card, isDragging, typeColors, onEdit, onDelete, onView, o
             )}
           </div>
         )}
+        </div>
       </div>
     </div>
   );

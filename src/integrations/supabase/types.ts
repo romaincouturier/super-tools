@@ -392,6 +392,7 @@ export type Database = {
       }
       content_notifications: {
         Row: {
+          card_id: string | null
           created_at: string
           id: string
           message: string
@@ -401,6 +402,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          card_id?: string | null
           created_at?: string
           id?: string
           message: string
@@ -410,6 +412,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          card_id?: string | null
           created_at?: string
           id?: string
           message?: string
