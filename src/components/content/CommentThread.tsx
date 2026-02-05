@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Send, Loader2, MessageCircle, Check, X, Pencil, Image, FileText, Palette, Trash2, Copy } from "lucide-react";
+import { Send, Loader2, MessageCircle, X, Pencil, Image, FileText, Palette, Trash2, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -460,22 +460,6 @@ const CommentThread = ({
                       {canResolve && (
                         <TooltipProvider>
                           <div className="flex gap-1 mt-2">
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  className="h-7 text-xs text-green-600 hover:text-green-700 hover:bg-green-50"
-                                  onClick={() => handleUpdateCommentStatus(comment.id, "approved")}
-                                >
-                                  <Check className="h-3 w-3 mr-1" />
-                                  D'accord
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Je suis d'accord avec ce retour</p>
-                              </TooltipContent>
-                            </Tooltip>
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button
