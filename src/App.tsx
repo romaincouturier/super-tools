@@ -50,6 +50,7 @@ const Events = lazy(() => import("./pages/Events"));
 const EventCreate = lazy(() => import("./pages/EventCreate"));
 const EventDetail = lazy(() => import("./pages/EventDetail"));
 const EventEdit = lazy(() => import("./pages/EventEdit"));
+const Monitoring = lazy(() => import("./pages/Monitoring"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -122,6 +123,8 @@ const App = () => (
               <Route path="/events/new" element={<EventCreate />} />
               <Route path="/events/:id" element={<EventDetail />} />
               <Route path="/events/:id/edit" element={<EventEdit />} />
+              {/* Admin monitoring */}
+              <Route path="/monitoring" element={<Monitoring />} />
               {/* Public needs survey */}
               <Route path="/questionnaire/:token" element={<Questionnaire />} />
               {/* Public evaluation form */}

@@ -5,26 +5,13 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Loader2, Users, Shield } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { AppModule, MODULE_LABELS } from "@/hooks/useModuleAccess";
+import { AppModule, MODULE_LABELS, ALL_MODULES } from "@/hooks/useModuleAccess";
 
 interface UserWithAccess {
   id: string;
   email: string;
   modules: AppModule[];
 }
-
-// Only include modules that exist in the database enum
-const ALL_MODULES: AppModule[] = [
-  "micro_devis",
-  "formations",
-  "evaluations",
-  "certificates",
-  "ameliorations",
-  "historique",
-  "contenu",
-  "besoins",
-  "parametres",
-];
 
 export default function UserAccessManager() {
   const [users, setUsers] = useState<UserWithAccess[]>([]);
@@ -100,28 +87,25 @@ export default function UserAccessManager() {
   };
 
   const toggleModuleAccess = async (userId: string, module: AppModule, currentlyHasAccess: boolean) => {
-    // Don't allow toggling 'emails' module since it doesn't exist in DB enum
-    if (module === "emails") return;
-    
     setUpdating(`${userId}-${module}`);
     try {
       if (currentlyHasAccess) {
         // Remove access
-        const { error } = await supabase
+        const { error } = await (supabase as any)
           .from("user_module_access")
           .delete()
           .eq("user_id", userId)
-          .eq("module", module as "ameliorations" | "besoins" | "certificates" | "contenu" | "evaluations" | "formations" | "historique" | "micro_devis" | "parametres");
+          .eq("module", module);
 
         if (error) throw error;
       } else {
         // Grant access
         const { data: { user } } = await supabase.auth.getUser();
-        const { error } = await supabase
+        const { error } = await (supabase as any)
           .from("user_module_access")
           .insert({
             user_id: userId,
-            module: module as "ameliorations" | "besoins" | "certificates" | "contenu" | "evaluations" | "formations" | "historique" | "micro_devis" | "parametres",
+            module,
             granted_by: user?.id,
           });
 

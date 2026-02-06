@@ -17,9 +17,10 @@ export type AppModule =
   | "okr"
   | "medias"
   | "events"
+  | "monitoring"
   | "parametres";
 
-const ALL_MODULES: AppModule[] = [
+export const ALL_MODULES: AppModule[] = [
   "micro_devis",
   "formations",
   "evaluations",
@@ -35,6 +36,7 @@ const ALL_MODULES: AppModule[] = [
   "okr",
   "medias",
   "events",
+  "monitoring",
   "parametres",
 ];
 
@@ -54,6 +56,7 @@ export const MODULE_LABELS: Record<AppModule, string> = {
   okr: "OKR",
   medias: "Médiathèque",
   events: "Événements",
+  monitoring: "Monitoring",
   parametres: "Paramètres généraux",
 };
 

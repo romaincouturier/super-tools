@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Loader2, Award, FileText, Calendar, ClipboardCheck, TrendingUp, History, Newspaper, ClipboardList, Inbox, BarChart3, Kanban, Briefcase, GripVertical, Target, ImageIcon, CalendarDays } from "lucide-react";
+import { Loader2, Award, FileText, Calendar, ClipboardCheck, TrendingUp, History, Newspaper, ClipboardList, Inbox, BarChart3, Kanban, Briefcase, GripVertical, Target, ImageIcon, CalendarDays, Database } from "lucide-react";
 import {
   DndContext,
   closestCenter,
@@ -154,6 +154,14 @@ const tools: Tool[] = [
     icon: <BarChart3 className="w-10 h-10" />,
     path: "/statistiques",
     module: "statistiques",
+  },
+  {
+    id: "monitoring",
+    name: "Monitoring",
+    description: "Surveiller la taille de la base de données",
+    icon: <Database className="w-10 h-10" />,
+    path: "/monitoring",
+    module: "monitoring",
   },
 ];
 
