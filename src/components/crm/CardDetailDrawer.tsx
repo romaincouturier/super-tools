@@ -1890,7 +1890,10 @@ const CardDetailDrawer = ({
           <Button
             variant="outline"
             className="h-auto flex flex-col items-center gap-2 p-4 hover:border-primary hover:bg-primary/5"
-            onClick={handleConfirmCreateTraining}
+            onClick={() => {
+              setShowWinChoiceDialog(false);
+              setShowCreateTrainingDialog(true);
+            }}
           >
             <GraduationCap className="h-8 w-8 text-primary" />
             <span className="font-medium">Créer une formation</span>

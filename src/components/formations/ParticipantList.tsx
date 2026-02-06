@@ -369,10 +369,48 @@ const ParticipantList = ({
           // Fallback to direct download
           window.location.href = data.pdfUrl;
         }
-        toast({
-          title: "Convention générée",
-          description: `La convention pour ${participant.first_name || participant.email} a été générée.`,
-        });
+
+        // If participant has a sponsor email, send the convention automatically
+        if (participant.sponsor_email) {
+          try {
+            const sponsorName = [participant.sponsor_first_name, participant.sponsor_last_name]
+              .filter(Boolean)
+              .join(" ") || null;
+
+            const { data: sendData, error: sendError } = await supabase.functions.invoke("send-convention-email", {
+              body: {
+                trainingId,
+                conventionUrl: data.pdfUrl,
+                recipientEmail: participant.sponsor_email,
+                recipientName: sponsorName,
+                recipientFirstName: participant.sponsor_first_name || null,
+                formalAddress: true,
+                conventionFileName: data.fileName || null,
+                enableOnlineSignature: true,
+              },
+            });
+
+            if (sendError) throw sendError;
+            if (sendData?.error) throw new Error(sendData.error);
+
+            toast({
+              title: "Convention générée et envoyée",
+              description: `La convention pour ${participant.first_name || participant.email} a été envoyée à ${participant.sponsor_email}.`,
+            });
+          } catch (sendErr: any) {
+            console.error("Error sending convention:", sendErr);
+            toast({
+              title: "Convention générée",
+              description: `Convention générée mais erreur à l'envoi : ${sendErr.message || "erreur inconnue"}`,
+              variant: "destructive",
+            });
+          }
+        } else {
+          toast({
+            title: "Convention générée",
+            description: `La convention pour ${participant.first_name || participant.email} a été générée. Aucun commanditaire défini pour l'envoi.`,
+          });
+        }
       }
     } catch (error: any) {
       console.error("Error generating convention:", error);

@@ -17,6 +17,7 @@ export interface SendEmailOptions {
   subject: string;
   html: string;
   from?: string;
+  cc?: string[];
   bcc?: string[];
   replyTo?: string;
   attachments?: EmailAttachment[];
@@ -54,6 +55,7 @@ export async function sendEmail(options: SendEmailOptions): Promise<SendEmailRes
       body: JSON.stringify({
         from: options.from || DEFAULT_FROM,
         to: toArray,
+        cc: options.cc,
         bcc: options.bcc,
         reply_to: options.replyTo,
         subject: options.subject,
