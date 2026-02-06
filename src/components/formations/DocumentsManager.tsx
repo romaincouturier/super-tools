@@ -562,14 +562,9 @@ const DocumentsManager = ({
       }
 
       if (data?.pdfUrl) {
-        // Download the PDF file
-        const link = document.createElement("a");
-        link.href = data.pdfUrl;
-        link.download = `Convention_${trainingName.replace(/[^a-zA-Z0-9]/g, "_")}.pdf`;
-        link.target = "_blank";
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        // Use window.location.href — S3 URL has response-content-disposition=attachment
+        // so browser will download without navigating away
+        window.location.href = data.pdfUrl;
 
         toast({
           title: "Convention générée",

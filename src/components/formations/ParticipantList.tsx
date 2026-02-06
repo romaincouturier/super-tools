@@ -353,7 +353,8 @@ const ParticipantList = ({
       }
 
       if (data?.pdfUrl) {
-        window.open(data.pdfUrl, "_blank");
+        // Use window.location.href — S3 URL has response-content-disposition=attachment
+        window.location.href = data.pdfUrl;
         toast({
           title: "Convention générée",
           description: `La convention pour ${participant.first_name || participant.email} a été générée.`,
