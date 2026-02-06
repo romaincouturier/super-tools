@@ -760,7 +760,7 @@ const FormationDetail = () => {
                   (() => {
                     const totalCA = participants.reduce((sum, p) => sum + (p.sold_price_ht || 0), 0);
                     const resteAFacturer = participants
-                      .filter(p => !p.invoice_file_url)
+                      .filter(p => p.payment_mode === "invoice" && !p.invoice_file_url)
                       .reduce((sum, p) => sum + (p.sold_price_ht || 0), 0);
                     return (
                       <>
