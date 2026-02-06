@@ -213,16 +213,17 @@ serve(async (req) => {
     console.log("Subject:", subject);
     console.log("Is inter-entreprise:", isInterEntreprise);
 
-    // Build CC list for inter-enterprise (sponsor of the participant)
+    // Build CC list for inter-enterprise (sponsor of the participant, only if different from participant)
     const ccList: string[] = [];
-    if (isInterEntreprise && participant.sponsor_email) {
+    if (isInterEntreprise && participant.sponsor_email && participant.sponsor_email.toLowerCase() !== participant.email.toLowerCase()) {
       ccList.push(participant.sponsor_email);
       console.log("CC to participant sponsor:", participant.sponsor_email);
     }
 
     const result = await sendEmail({
       to: [participant.email],
-      bcc: [...bccList, ...(ccList.length > 0 ? ccList : [])],
+      cc: ccList.length > 0 ? ccList : undefined,
+      bcc: bccList,
       subject,
       html: htmlContent,
     });
