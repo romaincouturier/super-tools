@@ -178,7 +178,7 @@ const ParticipantList = ({
   const [downloadingConventionId, setDownloadingConventionId] = useState<string | null>(null);
   const { toast } = useToast();
 
-  const isInterEntreprise = formatFormation === "inter-entreprises";
+  const isInterEntreprise = formatFormation === "inter-entreprises" || formatFormation === "e_learning";
   const isIndividualConvention = formatFormation === "inter-entreprises" || formatFormation === "e_learning";
 
   // Fetch evaluation certificate URLs for all participants

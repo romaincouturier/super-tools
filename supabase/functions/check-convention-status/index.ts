@@ -91,7 +91,7 @@ serve(async (req: Request): Promise<Response> => {
     // For inter-entreprises, also check per-participant convention emails
     // Fetch participants for inter trainings
     const interTrainingIds = trainings
-      .filter((t) => t.format_formation === "inter-entreprises")
+      .filter((t) => t.format_formation === "inter-entreprises" || t.format_formation === "e_learning")
       .map((t) => t.id);
 
     let participantsByTraining: Record<string, number> = {};
@@ -127,7 +127,7 @@ serve(async (req: Request): Promise<Response> => {
     for (const training of trainings) {
       const issues: string[] = [];
       const isIntra = training.format_formation === "intra";
-      const isInter = training.format_formation === "inter-entreprises";
+      const isInter = training.format_formation === "inter-entreprises" || training.format_formation === "e_learning";
       const days = daysUntil(training.start_date);
 
       // Check convention generated

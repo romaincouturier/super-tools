@@ -756,7 +756,7 @@ const FormationDetail = () => {
                     {calculateTotalDuration()}h
                   </Badge>
                 )}
-                {training.format_formation === "inter-entreprises" ? (
+                {(training.format_formation === "inter-entreprises" || training.format_formation === "e_learning") ? (
                   (() => {
                     const totalCA = participants.reduce((sum, p) => sum + (p.sold_price_ht || 0), 0);
                     const resteAFacturer = participants
@@ -974,7 +974,7 @@ const FormationDetail = () => {
                       trainingId={training.id}
                       trainingStartDate={training.start_date}
                       onParticipantsAdded={fetchParticipants}
-                      isInterEntreprise={training.format_formation === "inter-entreprises"}
+                      isInterEntreprise={training.format_formation === "inter-entreprises" || training.format_formation === "e_learning"}
                     />
                     <AddParticipantDialog
                       trainingId={training.id}

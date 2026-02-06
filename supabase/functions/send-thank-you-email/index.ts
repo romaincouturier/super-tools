@@ -385,7 +385,7 @@ serve(async (req) => {
 
     // For inter-enterprise trainings, schedule cold_evaluation per participant with a sponsor
     // For intra-enterprise trainings, schedule cold_evaluation once for the training sponsor
-    const isInterEntreprise = training.format_formation === "inter-entreprises";
+    const isInterEntreprise = training.format_formation === "inter-entreprises" || training.format_formation === "e_learning";
 
     if (isInterEntreprise) {
       // Inter-enterprise: schedule per participant with sponsor_email
