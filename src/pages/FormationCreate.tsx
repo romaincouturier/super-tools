@@ -244,10 +244,18 @@ const FormationCreate = () => {
       ? (elearningStartDate && elearningEndDate)
       : (selectedDates.length > 0);
 
-    if (!hasValidDates || !trainingName || !finalLocation || !clientName || !maxParticipants || parseInt(maxParticipants, 10) < 1 || !user) {
+    // Build specific missing fields list
+    const missingFields: string[] = [];
+    if (!trainingName) missingFields.push("nom de la formation");
+    if (!hasValidDates) missingFields.push(isElearning ? "dates de début et fin" : "jours de formation");
+    if (!finalLocation) missingFields.push("lieu de la formation");
+    if (!clientName) missingFields.push("client");
+    if (!maxParticipants || parseInt(maxParticipants, 10) < 1) missingFields.push("nombre maximum de participants (minimum 1)");
+
+    if (missingFields.length > 0 || !user) {
       toast({
         title: "Champs requis",
-        description: "Veuillez remplir tous les champs obligatoires, y compris le nombre maximum de participants (minimum 1).",
+        description: `Veuillez remplir : ${missingFields.join(", ")}.`,
         variant: "destructive",
       });
       return;
@@ -474,6 +482,27 @@ const FormationCreate = () => {
                 />
               </div>
 
+              {/* Format - placed before dates so user picks format first */}
+              <div className="space-y-2">
+                <Label htmlFor="format">Format de formation</Label>
+                <Select value={formatFormation} onValueChange={(val) => {
+                  setFormatFormation(val);
+                  // Auto-set location to online for e-learning
+                  if (val === "e_learning" && locationType !== "en_ligne") {
+                    setLocationType("en_ligne");
+                  }
+                }}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner un format" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="intra">Intra-entreprise</SelectItem>
+                    <SelectItem value="inter-entreprises">Inter-entreprises</SelectItem>
+                    <SelectItem value="e_learning">E-learning</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
               {/* Dates - different UI for e-learning vs regular training */}
               {formatFormation === "e_learning" ? (
                 /* E-learning: simple start/end dates + duration */
@@ -644,21 +673,6 @@ const FormationCreate = () => {
                 <p className="text-xs text-muted-foreground">
                   Utilisée dans la convention de formation
                 </p>
-              </div>
-
-              {/* Format */}
-              <div className="space-y-2">
-                <Label htmlFor="format">Format de formation</Label>
-                <Select value={formatFormation} onValueChange={setFormatFormation}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sélectionner un format" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="intra">Intra-entreprise</SelectItem>
-                    <SelectItem value="inter-entreprises">Inter-entreprises</SelectItem>
-                    <SelectItem value="e_learning">E-learning</SelectItem>
-                  </SelectContent>
-                </Select>
               </div>
 
               {/* Sold price HT */}
