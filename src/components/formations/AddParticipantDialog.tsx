@@ -42,10 +42,21 @@ interface AddParticipantDialogProps {
   formatFormation?: string | null;
   onParticipantAdded: () => void;
   onScheduledEmailsRefresh?: () => void;
+  initialFirstName?: string;
+  initialLastName?: string;
+  initialEmail?: string;
+  initialCompany?: string;
+  externalOpen?: boolean;
+  onExternalOpenChange?: (open: boolean) => void;
 }
 
-const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, formatFormation, onParticipantAdded, onScheduledEmailsRefresh }: AddParticipantDialogProps) => {
-  const [open, setOpen] = useState(false);
+const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, formatFormation, onParticipantAdded, onScheduledEmailsRefresh, initialFirstName, initialLastName, initialEmail, initialCompany, externalOpen, onExternalOpenChange }: AddParticipantDialogProps) => {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = externalOpen !== undefined ? externalOpen : internalOpen;
+  const setOpen = (v: boolean) => {
+    if (onExternalOpenChange) onExternalOpenChange(v);
+    setInternalOpen(v);
+  };
   const [saving, setSaving] = useState(false);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -64,7 +75,17 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
   const { toast } = useToast();
   
   const isInterEntreprise = formatFormation === "inter-entreprises";
-  
+
+  // Populate initial values when dialog opens with prefill data
+  useEffect(() => {
+    if (open && (initialFirstName || initialLastName || initialEmail || initialCompany)) {
+      if (initialFirstName) setFirstName(initialFirstName);
+      if (initialLastName) setLastName(initialLastName);
+      if (initialEmail) setEmail(initialEmail);
+      if (initialCompany) setCompany(initialCompany);
+    }
+  }, [open, initialFirstName, initialLastName, initialEmail, initialCompany]);
+
   // Fetch existing funders when dialog opens
   useEffect(() => {
     const fetchFinanceurs = async () => {

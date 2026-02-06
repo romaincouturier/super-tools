@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Upload, FileText, Trash2, Loader2, Send, Receipt, ClipboardList, Mail, Link, Heart, CheckCircle, FileDown, Scroll, PenLine } from "lucide-react";
+import { Upload, FileText, Trash2, Loader2, Send, Receipt, ClipboardList, Mail, Link, Heart, CheckCircle, FileDown, Scroll, PenLine, Shield, ChevronDown, ChevronUp, Eye } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -49,6 +49,36 @@ interface ConventionSignatureStatus {
   status: string;
   signed_at: string | null;
   signer_name: string | null;
+  signer_function: string | null;
+  ip_address: string | null;
+  signature_hash: string | null;
+  pdf_hash: string | null;
+  proof_file_url: string | null;
+  proof_hash: string | null;
+  signed_pdf_url: string | null;
+  journey_events: JourneyEvent[] | null;
+  consent_timestamp: string | null;
+}
+
+interface JourneyEvent {
+  event: string;
+  timestamp: string;
+  details?: Record<string, unknown>;
+}
+
+interface VerificationResult {
+  signature_id: string;
+  status: string;
+  signed_at: string | null;
+  signer_name: string | null;
+  checks: Record<string, { status: string; detail: string }>;
+  summary: {
+    total_checks: number;
+    conforme: number;
+    non_conforme: number;
+    partiel_ou_absent: number;
+    overall: string;
+  };
 }
 
 interface DocumentsManagerProps {
@@ -123,6 +153,9 @@ const DocumentsManager = ({
   const [pendingDocumentType, setPendingDocumentType] = useState<"invoice" | "sheets" | "all" | null>(null);
   const [sendToSponsorWithOptions, setSendToSponsorWithOptions] = useState(false);
   const [showThankYouPreview, setShowThankYouPreview] = useState(false);
+  const [showAuditPanel, setShowAuditPanel] = useState(false);
+  const [verificationResult, setVerificationResult] = useState<VerificationResult | null>(null);
+  const [verifying, setVerifying] = useState(false);
   const { toast } = useToast();
 
   // Fetch document send dates from activity logs
@@ -178,18 +211,27 @@ const DocumentsManager = ({
     const fetchConventionSignatureStatus = async () => {
       const { data, error } = await supabase
         .from("convention_signatures")
-        .select("status, signed_at, audit_metadata")
+        .select("status, signed_at, audit_metadata, ip_address, proof_file_url, proof_hash, signed_pdf_url, journey_events, pdf_hash")
         .eq("training_id", trainingId)
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
 
       if (!error && data) {
-        const signerName = (data.audit_metadata as any)?.signer_name || null;
+        const audit = data.audit_metadata as Record<string, any> | null;
         setConventionSignatureStatus({
           status: data.status,
           signed_at: data.signed_at,
-          signer_name: signerName,
+          signer_name: audit?.signer_name || null,
+          signer_function: audit?.signer_function || null,
+          ip_address: data.ip_address,
+          signature_hash: audit?.signature_hash || null,
+          pdf_hash: data.pdf_hash,
+          proof_file_url: data.proof_file_url,
+          proof_hash: data.proof_hash,
+          signed_pdf_url: data.signed_pdf_url,
+          journey_events: data.journey_events as JourneyEvent[] | null,
+          consent_timestamp: audit?.consent_timestamp || null,
         });
       }
     };
@@ -199,6 +241,58 @@ const DocumentsManager = ({
 
   const formatSentDate = (dateStr: string): string => {
     return format(parseISO(dateStr), "d MMM à HH:mm", { locale: fr });
+  };
+
+  const formatFullDate = (dateStr: string): string => {
+    return format(parseISO(dateStr), "d MMMM yyyy 'à' HH:mm:ss", { locale: fr });
+  };
+
+  const journeyEventLabels: Record<string, string> = {
+    page_loaded: "Page ouverte",
+    first_link_opened: "Premier accès au lien",
+    link_reopened: "Lien réouvert",
+    pdf_consulted: "PDF consulté",
+    signer_name_entered: "Nom saisi",
+    signature_drawing_started: "Début de signature",
+    signature_cleared: "Signature effacée",
+    consent_checkbox_checked: "Consentement coché",
+    consent_checkbox_unchecked: "Consentement décoché",
+    submit_button_clicked: "Bouton signer cliqué",
+    signature_submitted_server: "Signature enregistrée (serveur)",
+  };
+
+  const handleVerifySignature = async () => {
+    setVerifying(true);
+    try {
+      const { data: sigData } = await supabase
+        .from("convention_signatures")
+        .select("id")
+        .eq("training_id", trainingId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (!sigData) {
+        toast({ title: "Erreur", description: "Aucune signature trouvée", variant: "destructive" });
+        return;
+      }
+
+      const response = await supabase.functions.invoke("verify-convention-signature", {
+        body: { signatureId: sigData.id },
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message);
+      }
+
+      setVerificationResult(response.data as VerificationResult);
+      toast({ title: "Vérification terminée", description: `Résultat : ${(response.data as VerificationResult).summary?.overall || "OK"}` });
+    } catch (err) {
+      console.error("Verification error:", err);
+      toast({ title: "Erreur de vérification", description: err instanceof Error ? err.message : "Erreur inconnue", variant: "destructive" });
+    } finally {
+      setVerifying(false);
+    }
   };
 
   // Upload signed convention files
@@ -926,25 +1020,148 @@ const DocumentsManager = ({
                   </span>
                 )}
 
-                {/* Convention signature status */}
+                {/* Convention signature status + audit panel */}
                 {conventionSignatureStatus?.status === "signed" && (
-                  <div className="flex items-center gap-2 p-2 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-md">
-                    <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
-                    <div className="flex-1">
-                      <span className="text-sm font-medium text-green-700 dark:text-green-300">
-                        Convention signée en ligne
-                      </span>
-                      {conventionSignatureStatus.signer_name && (
-                        <span className="text-xs text-green-600 dark:text-green-400 ml-1">
-                          par {conventionSignatureStatus.signer_name}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 p-2 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-md">
+                      <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400 shrink-0" />
+                      <div className="flex-1">
+                        <span className="text-sm font-medium text-green-700 dark:text-green-300">
+                          Convention signée en ligne
                         </span>
+                        {conventionSignatureStatus.signer_name && (
+                          <span className="text-xs text-green-600 dark:text-green-400 ml-1">
+                            par {conventionSignatureStatus.signer_name}
+                          </span>
+                        )}
+                        {conventionSignatureStatus.signed_at && (
+                          <span className="text-xs text-green-600 dark:text-green-400 ml-1">
+                            le {formatSentDate(conventionSignatureStatus.signed_at)}
+                          </span>
+                        )}
+                      </div>
+                      {conventionSignatureStatus.signed_pdf_url && (
+                        <a href={conventionSignatureStatus.signed_pdf_url} target="_blank" rel="noopener noreferrer">
+                          <Button type="button" variant="ghost" size="sm" className="h-7 text-xs gap-1">
+                            <FileDown className="h-3 w-3" /> PDF signé
+                          </Button>
+                        </a>
                       )}
-                      {conventionSignatureStatus.signed_at && (
-                        <span className="text-xs text-green-600 dark:text-green-400 ml-1">
-                          le {formatSentDate(conventionSignatureStatus.signed_at)}
-                        </span>
-                      )}
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 text-xs gap-1"
+                        onClick={() => setShowAuditPanel(!showAuditPanel)}
+                      >
+                        <Shield className="h-3 w-3" />
+                        Preuve
+                        {showAuditPanel ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                      </Button>
                     </div>
+
+                    {/* Audit / Proof Panel */}
+                    {showAuditPanel && (
+                      <div className="p-3 bg-muted/30 border border-border rounded-md space-y-3 text-xs">
+                        <div className="flex items-center justify-between">
+                          <span className="font-semibold text-sm">Dossier de preuve</span>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-7 text-xs gap-1"
+                            onClick={handleVerifySignature}
+                            disabled={verifying}
+                          >
+                            {verifying ? <Loader2 className="h-3 w-3 animate-spin" /> : <Shield className="h-3 w-3" />}
+                            Vérifier l'intégrité
+                          </Button>
+                        </div>
+
+                        {/* Signer info */}
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                          <span className="text-muted-foreground">Signataire</span>
+                          <span className="font-medium">{conventionSignatureStatus.signer_name || "—"}</span>
+                          {conventionSignatureStatus.signer_function && (
+                            <>
+                              <span className="text-muted-foreground">Fonction</span>
+                              <span>{conventionSignatureStatus.signer_function}</span>
+                            </>
+                          )}
+                          <span className="text-muted-foreground">Date de signature</span>
+                          <span>{conventionSignatureStatus.signed_at ? formatFullDate(conventionSignatureStatus.signed_at) : "—"}</span>
+                          <span className="text-muted-foreground">Adresse IP</span>
+                          <span className="font-mono">{conventionSignatureStatus.ip_address || "—"}</span>
+                          <span className="text-muted-foreground">Consentement donné</span>
+                          <span>{conventionSignatureStatus.consent_timestamp ? formatFullDate(conventionSignatureStatus.consent_timestamp) : "—"}</span>
+                        </div>
+
+                        {/* Hashes */}
+                        <div className="space-y-1">
+                          <span className="font-semibold">Empreintes numériques</span>
+                          <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                            <span className="text-muted-foreground">Signature (SHA-256)</span>
+                            <span className="font-mono truncate" title={conventionSignatureStatus.signature_hash || undefined}>
+                              {conventionSignatureStatus.signature_hash ? conventionSignatureStatus.signature_hash.substring(0, 24) + "..." : "—"}
+                            </span>
+                            <span className="text-muted-foreground">Document PDF</span>
+                            <span className="font-mono truncate" title={conventionSignatureStatus.pdf_hash || undefined}>
+                              {conventionSignatureStatus.pdf_hash ? conventionSignatureStatus.pdf_hash.substring(0, 24) + "..." : "—"}
+                            </span>
+                            <span className="text-muted-foreground">Dossier de preuve</span>
+                            <span className="font-mono truncate" title={conventionSignatureStatus.proof_hash || undefined}>
+                              {conventionSignatureStatus.proof_hash ? conventionSignatureStatus.proof_hash.substring(0, 24) + "..." : "—"}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Journey timeline */}
+                        {conventionSignatureStatus.journey_events && conventionSignatureStatus.journey_events.length > 0 && (
+                          <div className="space-y-1">
+                            <span className="font-semibold">Parcours du signataire ({conventionSignatureStatus.journey_events.length} événements)</span>
+                            <div className="max-h-40 overflow-y-auto space-y-0.5">
+                              {conventionSignatureStatus.journey_events.map((evt, i) => (
+                                <div key={i} className="flex items-center gap-2 py-0.5">
+                                  <span className="text-muted-foreground font-mono w-32 shrink-0">
+                                    {format(parseISO(evt.timestamp), "HH:mm:ss", { locale: fr })}
+                                  </span>
+                                  <span>{journeyEventLabels[evt.event] || evt.event}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Verification results */}
+                        {verificationResult && (
+                          <div className="space-y-2 border-t pt-2">
+                            <div className="flex items-center justify-between">
+                              <span className="font-semibold">Résultat de vérification</span>
+                              <span className={`font-semibold ${
+                                verificationResult.summary.overall === "CONFORME" ? "text-green-600" :
+                                verificationResult.summary.overall === "NON CONFORME" ? "text-red-600" :
+                                "text-yellow-600"
+                              }`}>
+                                {verificationResult.summary.overall}
+                              </span>
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {verificationResult.summary.conforme}/{verificationResult.summary.total_checks} conformes
+                              {verificationResult.summary.non_conforme > 0 && `, ${verificationResult.summary.non_conforme} non conformes`}
+                              {verificationResult.summary.partiel_ou_absent > 0 && `, ${verificationResult.summary.partiel_ou_absent} partiels`}
+                            </div>
+                            <div className="space-y-0.5">
+                              {Object.entries(verificationResult.checks).map(([key, check]) => (
+                                <div key={key} className="flex items-start gap-2">
+                                  <span className="shrink-0">{check.status.split(" ")[0]}</span>
+                                  <span className="text-muted-foreground">{check.detail}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
 
