@@ -1,7 +1,8 @@
 import { MediaItemWithMission } from "@/hooks/useMediaLibrary";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { X, Briefcase, ChevronLeft, ChevronRight } from "lucide-react";
+import { X, Briefcase, ChevronLeft, ChevronRight, Download } from "lucide-react";
+import { toast } from "sonner";
 import { useEffect, useCallback } from "react";
 
 interface MediaLightboxProps {
@@ -22,6 +23,23 @@ const MediaLightbox = ({ item, items, onClose, onNavigate }: MediaLightboxProps)
   const currentIndex = items.findIndex((i) => i.id === item.id);
   const hasPrev = currentIndex > 0;
   const hasNext = currentIndex < items.length - 1;
+
+  const downloadFile = async () => {
+    try {
+      const response = await fetch(item.file_url);
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = item.file_name;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(blobUrl);
+    } catch {
+      toast.error("Erreur lors du téléchargement");
+    }
+  };
 
   const goPrev = useCallback(() => {
     if (hasPrev) onNavigate(items[currentIndex - 1]);
@@ -112,6 +130,14 @@ const MediaLightbox = ({ item, items, onClose, onNavigate }: MediaLightboxProps)
         {item.file_size && (
           <span className="text-white/60 text-sm">{formatFileSize(item.file_size)}</span>
         )}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7 text-white hover:bg-white/20"
+          onClick={(e) => { e.stopPropagation(); downloadFile(); }}
+        >
+          <Download className="h-4 w-4" />
+        </Button>
         <span className="text-white/40 text-xs">
           {currentIndex + 1} / {items.length}
         </span>

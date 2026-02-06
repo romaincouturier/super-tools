@@ -17,6 +17,7 @@ import {
   X,
   Loader2,
   ExternalLink,
+  Download,
 } from "lucide-react";
 import ShareEventDialog from "@/components/events/ShareEventDialog";
 import AppHeader from "@/components/AppHeader";
@@ -70,6 +71,23 @@ const EventDetail = () => {
   const [videoName, setVideoName] = useState("");
   const [lightboxImage, setLightboxImage] = useState<EventMedia | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const downloadFile = async (url: string, fileName: string) => {
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(blobUrl);
+    } catch {
+      toast({ title: "Erreur lors du téléchargement", variant: "destructive" });
+    }
+  };
 
   const handleDelete = async () => {
     if (!id) return;
@@ -353,15 +371,26 @@ const EventDetail = () => {
                       className="w-full h-full object-cover"
                     />
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors" />
-                    <button
-                      className="absolute top-1 right-1 p-1 rounded-full bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteMedia(img);
-                      }}
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </button>
+                    <div className="absolute top-1 right-1 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        className="p-1 rounded-full bg-black/50 text-white hover:bg-black/70"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          downloadFile(img.file_url, img.file_name);
+                        }}
+                      >
+                        <Download className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        className="p-1 rounded-full bg-black/50 text-white hover:bg-black/70"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteMedia(img);
+                        }}
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -463,12 +492,23 @@ const EventDetail = () => {
           className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
           onClick={() => setLightboxImage(null)}
         >
-          <button
-            className="absolute top-4 right-4 text-white hover:text-white/80"
-            onClick={() => setLightboxImage(null)}
-          >
-            <X className="h-6 w-6" />
-          </button>
+          <div className="absolute top-4 right-4 flex items-center gap-2">
+            <button
+              className="text-white hover:text-white/80 p-1"
+              onClick={(e) => {
+                e.stopPropagation();
+                downloadFile(lightboxImage.file_url, lightboxImage.file_name);
+              }}
+            >
+              <Download className="h-5 w-5" />
+            </button>
+            <button
+              className="text-white hover:text-white/80 p-1"
+              onClick={() => setLightboxImage(null)}
+            >
+              <X className="h-6 w-6" />
+            </button>
+          </div>
           <img
             src={lightboxImage.file_url}
             alt={lightboxImage.file_name}
