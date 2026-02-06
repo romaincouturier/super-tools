@@ -80,13 +80,18 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
 
   // Populate initial values when dialog opens with prefill data
   useEffect(() => {
-    if (open && (initialFirstName || initialLastName || initialEmail || initialCompany)) {
+    if (open) {
       if (initialFirstName) setFirstName(initialFirstName);
       if (initialLastName) setLastName(initialLastName);
       if (initialEmail) setEmail(initialEmail);
-      if (initialCompany) setCompany(initialCompany);
+      if (initialCompany) {
+        setCompany(initialCompany);
+      } else if (!isInterEntreprise && clientName) {
+        // For intra trainings, prefill company with the training's client name
+        setCompany(clientName);
+      }
     }
-  }, [open, initialFirstName, initialLastName, initialEmail, initialCompany]);
+  }, [open, initialFirstName, initialLastName, initialEmail, initialCompany, clientName, isInterEntreprise]);
 
   // Fetch existing funders when dialog opens
   useEffect(() => {
