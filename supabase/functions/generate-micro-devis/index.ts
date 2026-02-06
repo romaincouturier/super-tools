@@ -543,6 +543,8 @@ serve(async (req: Request): Promise<Response> => {
           client_name: body.nomClient,
           type_subrogation: typeSubrogation,
           nb_participants: body.nbParticipants,
+          pdf_sans_subrogation_url: pdfSansSubrogation?.pdfUrl || null,
+          pdf_avec_subrogation_url: pdfAvecSubrogation?.pdfUrl || null,
           // Store all form data for duplication
           form_data: {
             nomClient: body.nomClient,
