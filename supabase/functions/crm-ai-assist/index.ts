@@ -9,10 +9,10 @@ import {
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
 
 interface CrmAiRequest {
-  action: "analyze_exchanges" | "generate_quote_description";
+  action: "analyze_exchanges" | "generate_quote_description" | "improve_email_subject" | "improve_email_body";
   card_data: {
-    title: string;
-    description: string;
+    title?: string;
+    description?: string;
     company?: string;
     first_name?: string;
     last_name?: string;
@@ -20,6 +20,10 @@ interface CrmAiRequest {
     estimated_value?: number;
     comments?: Array<{ content: string; author_email: string; created_at: string }>;
     brief_questions?: Array<{ question: string; answered: boolean }>;
+    // Email improvement fields
+    subject?: string;
+    body?: string;
+    context?: string;
   };
 }
 
@@ -168,6 +172,69 @@ Adapte le vocabulaire selon qu'il s'agit d'une formation ou d'une mission.
 ${context}
 
 Génère uniquement la description, sans titre ni en-tête.`;
+
+        result = await callAnthropic(systemPrompt, userPrompt);
+        break;
+      }
+
+      case "improve_email_subject": {
+        const systemPrompt = `Tu es un expert en communication commerciale pour SuperTilt, organisme de formation professionnelle.
+Tu améliores les objets d'emails pour les rendre plus percutants, professionnels et engageants.
+Tu réponds UNIQUEMENT avec l'objet amélioré, sans explication ni guillemets.`;
+
+        const subject = card_data.subject || "";
+        const company = card_data.company || "";
+        const firstName = card_data.first_name || "";
+
+        const userPrompt = `Améliore cet objet d'email commercial :
+Objet actuel : "${subject}"
+${company ? `Entreprise : ${company}` : ""}
+${firstName ? `Prénom du contact : ${firstName}` : ""}
+
+Règles :
+- Garde un ton professionnel mais engageant
+- Maximum 60 caractères
+- Pas de majuscules excessives ni de ponctuation agressive
+- Adapte au contexte commercial (formation/mission)
+
+Réponds uniquement avec l'objet amélioré.`;
+
+        result = await callAnthropic(systemPrompt, userPrompt);
+        break;
+      }
+
+      case "improve_email_body": {
+        const systemPrompt = `Tu es un expert en rédaction commerciale pour SuperTilt, organisme de formation professionnelle.
+Tu améliores les emails commerciaux pour les rendre plus professionnels, clairs et engageants.
+Tu conserves le sens et les informations clés du message original.
+Tu réponds UNIQUEMENT avec le contenu HTML amélioré de l'email, sans explication.`;
+
+        const body = card_data.body || "";
+        const subject = card_data.subject || "";
+        const company = card_data.company || "";
+        const firstName = card_data.first_name || "";
+        const emailContext = card_data.context || "";
+
+        const userPrompt = `Améliore ce corps d'email commercial :
+
+Objet de l'email : "${subject}"
+${company ? `Entreprise : ${company}` : ""}
+${firstName ? `Prénom du contact : ${firstName}` : ""}
+
+Corps actuel (HTML) :
+${body}
+
+${emailContext ? `Contexte de l'opportunité :\n${emailContext}` : ""}
+
+Règles :
+- Conserve le format HTML avec des balises <p> et <br>
+- Garde le tutoiement/vouvoiement du message original
+- Améliore la clarté, le professionnalisme et l'impact
+- Conserve toutes les informations clés
+- Ne pas ajouter de signature ni de formule de politesse si absente
+- Pas de "Objet :" dans le corps
+
+Réponds uniquement avec le HTML amélioré du corps de l'email.`;
 
         result = await callAnthropic(systemPrompt, userPrompt);
         break;
