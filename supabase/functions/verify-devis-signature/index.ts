@@ -1,0 +1,233 @@
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+};
+
+interface JourneyEvent {
+  event: string;
+  timestamp: string;
+  details?: Record<string, unknown>;
+}
+
+async function hashArrayBuffer(buffer: ArrayBuffer): Promise<string> {
+  const hashBuffer = await crypto.subtle.digest("SHA-256", buffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+serve(async (req: Request): Promise<Response> => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const { signatureId, token } = await req.json();
+
+    if (!signatureId && !token) {
+      return new Response(
+        JSON.stringify({ error: "signatureId ou token requis" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+    let query = supabase.from("devis_signatures").select("*");
+    if (signatureId) {
+      query = query.eq("id", signatureId);
+    } else {
+      query = query.eq("token", token);
+    }
+
+    const { data: sig, error: fetchError } = await query.single();
+
+    if (fetchError || !sig) {
+      return new Response(
+        JSON.stringify({ error: "Signature introuvable" }),
+        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const verificationResults: Record<string, unknown> = {
+      signature_id: sig.id,
+      document_type: "devis",
+      status: sig.status,
+      signed_at: sig.signed_at,
+      signer_name: (sig.audit_metadata as Record<string, unknown>)?.signer_name || sig.recipient_name,
+      checks: {},
+    };
+
+    const checks: Record<string, { status: string; detail: string }> = {};
+
+    // 1. Check if signed
+    if (sig.status === "signed" && sig.signed_at) {
+      checks["signature_status"] = { status: "✅ CONFORME", detail: "Devis signé électroniquement" };
+    } else {
+      checks["signature_status"] = { status: "⚠️ EN ATTENTE", detail: `Statut: ${sig.status}` };
+    }
+
+    // 2. Verify PDF integrity
+    const audit = sig.audit_metadata as Record<string, unknown> | null;
+    const pdfHashAtSignature = audit?.pdf_hash_at_signature as string | null;
+    if (pdfHashAtSignature && sig.pdf_url) {
+      try {
+        const pdfResponse = await fetch(sig.pdf_url);
+        if (pdfResponse.ok) {
+          const pdfBuffer = await pdfResponse.arrayBuffer();
+          const currentPdfHash = await hashArrayBuffer(pdfBuffer);
+
+          if (currentPdfHash === pdfHashAtSignature) {
+            checks["pdf_integrity"] = {
+              status: "✅ CONFORME",
+              detail: `Hash SHA-256 vérifié : ${pdfHashAtSignature.substring(0, 16)}...`,
+            };
+          } else {
+            checks["pdf_integrity"] = {
+              status: "❌ NON CONFORME",
+              detail: `Le PDF a été modifié après signature. Hash original: ${pdfHashAtSignature.substring(0, 16)}... / Hash actuel: ${currentPdfHash.substring(0, 16)}...`,
+            };
+          }
+        } else {
+          checks["pdf_integrity"] = { status: "⚠️ IMPOSSIBLE", detail: "Le PDF n'est plus accessible" };
+        }
+      } catch {
+        checks["pdf_integrity"] = { status: "⚠️ ERREUR", detail: "Impossible de télécharger le PDF" };
+      }
+    } else {
+      checks["pdf_integrity"] = { status: "⚠️ PARTIEL", detail: "Pas de hash PDF enregistré" };
+    }
+
+    // 3. Verify proof file integrity
+    if (sig.proof_file_url && sig.proof_hash) {
+      try {
+        let proofContent: ArrayBuffer | null = null;
+
+        if (sig.proof_file_url.startsWith("signature-proofs/")) {
+          const fileName = sig.proof_file_url.replace("signature-proofs/", "");
+          const { data, error } = await supabase.storage.from("signature-proofs").download(fileName);
+          if (!error && data) {
+            proofContent = await data.arrayBuffer();
+          }
+        } else {
+          const proofResponse = await fetch(sig.proof_file_url);
+          if (proofResponse.ok) {
+            proofContent = await proofResponse.arrayBuffer();
+          }
+        }
+
+        if (proofContent) {
+          const currentProofHash = await hashArrayBuffer(proofContent);
+          if (currentProofHash === sig.proof_hash) {
+            checks["proof_integrity"] = {
+              status: "✅ CONFORME",
+              detail: `Dossier de preuve intact. Hash: ${sig.proof_hash.substring(0, 16)}...`,
+            };
+          } else {
+            checks["proof_integrity"] = {
+              status: "❌ NON CONFORME",
+              detail: `Le dossier de preuve a été altéré !`,
+            };
+          }
+        } else {
+          checks["proof_integrity"] = { status: "⚠️ IMPOSSIBLE", detail: "Impossible de télécharger le dossier de preuve" };
+        }
+      } catch {
+        checks["proof_integrity"] = { status: "⚠️ ERREUR", detail: "Erreur lors de la vérification du dossier de preuve" };
+      }
+    } else {
+      checks["proof_integrity"] = { status: "⚠️ ABSENT", detail: "Pas de dossier de preuve enregistré" };
+    }
+
+    // 4. Check audit metadata completeness
+    if (audit) {
+      const requiredFields = [
+        "consent_given", "consent_timestamp", "consent_text", "signer_name",
+        "signature_hash", "legal_reference", "signature_level",
+      ];
+      const missingFields = requiredFields.filter((f) => !(f in audit));
+
+      if (missingFields.length === 0) {
+        checks["audit_completeness"] = { status: "✅ CONFORME", detail: "Toutes les métadonnées d'audit présentes" };
+      } else {
+        checks["audit_completeness"] = {
+          status: "⚠️ PARTIEL",
+          detail: `Champs manquants: ${missingFields.join(", ")}`,
+        };
+      }
+    } else {
+      checks["audit_completeness"] = { status: "❌ NON CONFORME", detail: "Pas de métadonnées d'audit" };
+    }
+
+    // 5. Check IP and user-agent
+    if (sig.ip_address && sig.ip_address !== "unknown") {
+      checks["ip_address"] = { status: "✅ CONFORME", detail: `IP enregistrée: ${sig.ip_address}` };
+    } else {
+      checks["ip_address"] = { status: "⚠️ PARTIEL", detail: "Adresse IP non capturée" };
+    }
+
+    if (sig.user_agent) {
+      checks["user_agent"] = { status: "✅ CONFORME", detail: "User-agent enregistré" };
+    } else {
+      checks["user_agent"] = { status: "⚠️ PARTIEL", detail: "User-agent non capturé" };
+    }
+
+    // 6. Check journey timeline
+    const journeyEvents = sig.journey_events as JourneyEvent[] | null;
+    if (journeyEvents && Array.isArray(journeyEvents) && journeyEvents.length > 0) {
+      const eventTypes = journeyEvents.map((e: JourneyEvent) => e.event);
+      const criticalEvents = ["page_loaded", "consent_checkbox_checked", "submit_button_clicked"];
+      const hasCritical = criticalEvents.every((ce) => eventTypes.includes(ce));
+
+      checks["journey_timeline"] = {
+        status: hasCritical ? "✅ CONFORME" : "⚠️ PARTIEL",
+        detail: `${journeyEvents.length} événements tracés. ${hasCritical ? "Parcours complet." : "Certains événements critiques manquent."}`,
+      };
+    } else {
+      checks["journey_timeline"] = { status: "⚠️ ABSENT", detail: "Pas de timeline de parcours enregistrée" };
+    }
+
+    // 7. Check link expiration
+    if (sig.expires_at) {
+      checks["link_expiration"] = {
+        status: "✅ CONFORME",
+        detail: `Lien avec expiration au ${sig.expires_at}`,
+      };
+    } else {
+      checks["link_expiration"] = { status: "⚠️ ABSENT", detail: "Pas de date d'expiration définie" };
+    }
+
+    verificationResults.checks = checks;
+
+    // Summary
+    const allChecks = Object.values(checks);
+    const conformCount = allChecks.filter((c) => c.status.includes("CONFORME") && !c.status.includes("NON")).length;
+    const nonConformCount = allChecks.filter((c) => c.status.includes("NON CONFORME")).length;
+
+    verificationResults.summary = {
+      total_checks: allChecks.length,
+      conforme: conformCount,
+      non_conforme: nonConformCount,
+      partiel_ou_absent: allChecks.length - conformCount - nonConformCount,
+      overall: nonConformCount > 0 ? "NON CONFORME" : conformCount === allChecks.length ? "CONFORME" : "ACCEPTABLE AVEC RÉSERVES",
+    };
+
+    return new Response(
+      JSON.stringify(verificationResults),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  } catch (error: unknown) {
+    console.error("Error:", error);
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    return new Response(
+      JSON.stringify({ error: errorMessage }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+});

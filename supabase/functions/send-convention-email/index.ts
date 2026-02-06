@@ -173,7 +173,7 @@ serve(async (req: Request): Promise<Response> => {
 
     const fullHtml = `${htmlBody}${signature}`;
 
-    // Download the PDF to attach it
+    // Download the PDF to attach it and compute its hash for integrity
     console.log("Downloading convention PDF from:", conventionUrl);
     const pdfResponse = await fetch(conventionUrl);
     if (!pdfResponse.ok) {
@@ -182,6 +182,20 @@ serve(async (req: Request): Promise<Response> => {
 
     const pdfBuffer = await pdfResponse.arrayBuffer();
     const pdfBytes = new Uint8Array(pdfBuffer);
+
+    // Compute SHA-256 hash of the PDF for document integrity
+    const pdfHashBuffer = await crypto.subtle.digest("SHA-256", pdfBuffer);
+    const pdfHashArray = Array.from(new Uint8Array(pdfHashBuffer));
+    const pdfHash = pdfHashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+    console.log("PDF SHA-256 hash:", pdfHash);
+
+    // Store the PDF hash in the signature record for later verification
+    if (enableOnlineSignature && signatureToken) {
+      await supabase
+        .from("convention_signatures")
+        .update({ pdf_hash: pdfHash })
+        .eq("token", signatureToken);
+    }
 
     // Convert to base64 in chunks to avoid stack overflow
     const CHUNK_SIZE = 8192;
