@@ -99,6 +99,9 @@ const DocumentsManager = ({
   const [sendingThankYou, setSendingThankYou] = useState(false);
   const [savingSupportsUrl, setSavingSupportsUrl] = useState(false);
   const [generatingConvention, setGeneratingConvention] = useState(false);
+  const [sendingConvention, setSendingConvention] = useState(false);
+  const [conventionSentAt, setConventionSentAt] = useState<string | null>(null);
+  const [lastGeneratedConventionFileName, setLastGeneratedConventionFileName] = useState<string | null>(null);
   const [customRecipientEmail, setCustomRecipientEmail] = useState("");
   const [ccEmail, setCcEmail] = useState("");
   const [showCustomRecipientDialog, setShowCustomRecipientDialog] = useState(false);
@@ -110,47 +113,46 @@ const DocumentsManager = ({
   // Fetch document send dates from activity logs
   useEffect(() => {
     const fetchDocumentsSentInfo = async () => {
-      // Fetch both training_documents_sent and thank_you_email_sent logs
       const { data, error } = await supabase
         .from("activity_logs")
         .select("created_at, action_type, details")
-        .in("action_type", ["training_documents_sent", "thank_you_email_sent"])
+        .in("action_type", ["training_documents_sent", "thank_you_email_sent", "convention_email_sent"])
         .order("created_at", { ascending: false });
 
       if (error || !data) return;
 
-      // Filter logs for this training and find latest send dates
       let invoiceSentAt: string | null = null;
       let sheetsSentAt: string | null = null;
       let thankYouSentAt: string | null = null;
+      let conventionSent: string | null = null;
 
       for (const log of data) {
         const details = log.details as { training_id?: string; document_type?: string } | null;
         if (details?.training_id !== trainingId) continue;
         
-        if (log.action_type === "thank_you_email_sent") {
+        if (log.action_type === "convention_email_sent") {
+          if (!conventionSent) {
+            conventionSent = log.created_at;
+          }
+        } else if (log.action_type === "thank_you_email_sent") {
           if (!thankYouSentAt) {
             thankYouSentAt = log.created_at;
           }
         } else if (log.action_type === "training_documents_sent") {
           const docType = details?.document_type;
-          
-          // Invoice sent (either "invoice" or "all")
           if (!invoiceSentAt && (docType === "invoice" || docType === "all")) {
             invoiceSentAt = log.created_at;
           }
-          
-          // Sheets sent (either "sheets" or "all")
           if (!sheetsSentAt && (docType === "sheets" || docType === "all")) {
             sheetsSentAt = log.created_at;
           }
         }
         
-        // Stop once we have all three
-        if (invoiceSentAt && sheetsSentAt && thankYouSentAt) break;
+        if (invoiceSentAt && sheetsSentAt && thankYouSentAt && conventionSent) break;
       }
 
       setDocumentsSentInfo({ invoice: invoiceSentAt, sheets: sheetsSentAt, thankYou: thankYouSentAt });
+      setConventionSentAt(conventionSent);
     };
 
     fetchDocumentsSentInfo();
@@ -571,9 +573,26 @@ const DocumentsManager = ({
       }
 
       if (data?.pdfUrl) {
-        // Use window.location.href — S3 URL has response-content-disposition=attachment
-        // so browser will download without navigating away
-        window.location.href = data.pdfUrl;
+        // Update convention URL immediately in local state
+        setConventionFileUrl(data.pdfUrl);
+        setLastGeneratedConventionFileName(data.fileName || null);
+
+        // Download with custom filename via blob
+        try {
+          const response = await fetch(data.pdfUrl);
+          const blob = await response.blob();
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = data.fileName || "Convention.pdf";
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          window.URL.revokeObjectURL(url);
+        } catch {
+          // Fallback to direct download
+          window.location.href = data.pdfUrl;
+        }
 
         toast({
           title: "Convention générée",
@@ -591,6 +610,55 @@ const DocumentsManager = ({
       });
     } finally {
       setGeneratingConvention(false);
+    }
+  };
+
+  // Send convention to sponsor
+  const handleSendConvention = async () => {
+    if (!conventionFileUrl || !sponsorEmail) {
+      toast({
+        title: "Impossible",
+        description: !conventionFileUrl
+          ? "Aucune convention générée."
+          : "Aucun email de commanditaire défini.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSendingConvention(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("send-convention-email", {
+        body: {
+          trainingId,
+          conventionUrl: conventionFileUrl,
+          recipientEmail: sponsorEmail,
+          recipientName: sponsorName,
+          recipientFirstName: sponsorFirstName,
+          formalAddress: sponsorFormalAddress,
+          conventionFileName: lastGeneratedConventionFileName,
+        },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      setConventionSentAt(new Date().toISOString());
+
+      toast({
+        title: "Convention envoyée",
+        description: `La convention a été envoyée à ${sponsorEmail}.`,
+      });
+    } catch (error: any) {
+      console.error("Send convention error:", error);
+      toast({
+        title: "Erreur d'envoi",
+        description: error.message || "Impossible d'envoyer la convention.",
+        variant: "destructive",
+      });
+    } finally {
+      setSendingConvention(false);
     }
   };
 
@@ -652,16 +720,41 @@ const DocumentsManager = ({
               )}
             </div>
             {conventionFileUrl && (
-              <div className="flex items-center gap-2 p-2 bg-green-50 border border-green-200 rounded-md">
-                <CheckCircle className="h-4 w-4 text-green-600" />
-                <a
-                  href={conventionFileUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm text-green-700 hover:underline flex-1 truncate"
-                >
-                  Convention générée - Cliquer pour télécharger
-                </a>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 p-2 bg-muted/50 border border-border rounded-md">
+                  <CheckCircle className="h-4 w-4 text-primary" />
+                  <a
+                    href={conventionFileUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-foreground hover:underline flex-1 truncate"
+                  >
+                    Convention générée - Cliquer pour télécharger
+                  </a>
+                  {sponsorEmail && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleSendConvention}
+                      disabled={sendingConvention}
+                      className="shrink-0"
+                    >
+                      {sendingConvention ? (
+                        <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                      ) : (
+                        <Send className="h-4 w-4 mr-1" />
+                      )}
+                      Envoyer
+                    </Button>
+                  )}
+                </div>
+                {conventionSentAt && (
+                  <span className="text-xs text-muted-foreground flex items-center gap-1">
+                    <CheckCircle className="h-3 w-3 text-primary" />
+                    Envoyée le {formatSentDate(conventionSentAt)} à {sponsorEmail}
+                  </span>
+                )}
               </div>
             )}
             {formatFormation === "intra" ? (

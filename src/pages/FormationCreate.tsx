@@ -55,6 +55,8 @@ const FormationCreate = () => {
   const [locationType, setLocationType] = useState<string>("");
   const [locationCustom, setLocationCustom] = useState("");
   const [clientName, setClientName] = useState("");
+  const [clientAddress, setClientAddress] = useState("");
+  const [soldPriceHt, setSoldPriceHt] = useState<string>("");
   const [formatFormation, setFormatFormation] = useState<string>("");
   const [prerequisites, setPrerequisites] = useState<string[]>([]);
   const [objectives, setObjectives] = useState<string[]>([]);
@@ -264,6 +266,8 @@ const FormationCreate = () => {
           training_name: trainingName,
           location: finalLocation,
           client_name: clientName,
+          client_address: clientAddress || null,
+          sold_price_ht: soldPriceHt ? Math.round(parseFloat(soldPriceHt) * 100) / 100 : null,
           evaluation_link: "", // Field hidden from UI but required by schema
           format_formation: formatFormation || null,
           prerequisites,
@@ -628,6 +632,20 @@ const FormationCreate = () => {
                 />
               </div>
 
+              {/* Client address */}
+              <div className="space-y-2">
+                <Label htmlFor="clientAddress">Adresse du client</Label>
+                <Input
+                  id="clientAddress"
+                  value={clientAddress}
+                  onChange={(e) => setClientAddress(e.target.value)}
+                  placeholder="Ex: 12 rue de la Paix, 75002 Paris"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Utilisée dans la convention de formation
+                </p>
+              </div>
+
               {/* Format */}
               <div className="space-y-2">
                 <Label htmlFor="format">Format de formation</Label>
@@ -641,6 +659,29 @@ const FormationCreate = () => {
                     <SelectItem value="e_learning">E-learning</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+
+              {/* Sold price HT */}
+              <div className="space-y-2">
+                <Label htmlFor="soldPriceHt">
+                  {formatFormation === "inter-entreprises"
+                    ? "Prix HT par participant (€)"
+                    : "Prix HT global (€)"}
+                </Label>
+                <Input
+                  id="soldPriceHt"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={soldPriceHt}
+                  onChange={(e) => setSoldPriceHt(e.target.value)}
+                  placeholder={formatFormation === "inter-entreprises" ? "Ex: 1250" : "Ex: 3500"}
+                />
+                <p className="text-xs text-muted-foreground">
+                  {formatFormation === "inter-entreprises"
+                    ? "Prix par participant, utilisé dans les conventions individuelles"
+                    : "Montant total HT, utilisé dans la convention de formation"}
+                </p>
               </div>
 
               {/* SuperTilt Link */}

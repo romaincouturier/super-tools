@@ -113,6 +113,16 @@ function formatParticipants(participants: Participant[]): string[] {
   });
 }
 
+// Sanitize string for use in filename
+function sanitizeForFilename(str: string): string {
+  return str
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // remove accents
+    .replace(/[^a-zA-Z0-9_\- ]/g, "") // remove special chars
+    .replace(/\s+/g, "_") // spaces to underscores
+    .replace(/_+/g, "_") // collapse multiple underscores
+    .trim();
+}
+
 // Get format label
 function getFormatLabel(formatFormation: string | null, location: string): string {
   if (formatFormation === "e_learning") return "E-learning";
@@ -228,12 +238,21 @@ serve(async (req: Request): Promise<Response> => {
 
     const scheduleList = schedules || [];
 
-    // Calculate price
-    const pricePerParticipant = inputPrice || 1250; // Default price
+    // Fetch TVA rate from app_settings
+    const { data: tvaSetting } = await supabase
+      .from("app_settings")
+      .select("setting_value")
+      .eq("setting_key", "tva_rate")
+      .maybeSingle();
+
+    const tvaRate = tvaSetting?.setting_value ? parseFloat(tvaSetting.setting_value) : 20;
+
+    // Calculate price - use sold_price_ht from training, then input override, then default
+    const priceHt = inputPrice || training.sold_price_ht || 1250;
 
     // Build client name and address
     let clientName = training.client_name;
-    let clientAddress = training.location || "";
+    let clientAddress = training.client_address || "";
 
     // For inter-entreprises individual convention, use participant's company if available
     if (isIndividualConvention && singleParticipant) {
@@ -250,6 +269,9 @@ serve(async (req: Request): Promise<Response> => {
     if (mandatairePayeur) {
       clientAddress += ` – Mandataire Payeur : ${mandatairePayeur}`;
     }
+
+    // Calculate TTC
+    const prixTtc = priceHt * (1 + tvaRate / 100);
 
     // Build the payload for PDFMonkey
     const payload = {
@@ -272,7 +294,9 @@ serve(async (req: Request): Promise<Response> => {
         ? "En ligne (plateforme e-learning)"
         : training.location,
       STAGIAIRES: formatParticipants(participantList),
-      PRIX: pricePerParticipant.toString(),
+      PRIX: priceHt.toString(),
+      TVA: tvaRate.toString(),
+      PRIX_TTC: prixTtc.toFixed(2),
       FRAIS: "0",
       AFFICHE_FRAIS: "Non",
       SUBROGATION: subrogation ? "Oui" : "Non",
@@ -375,11 +399,20 @@ serve(async (req: Request): Promise<Response> => {
           console.warn("Failed to log activity:", logError);
         }
 
+        // Build filename: Convention_CLIENT_FORMATION.pdf
+        const clientPart = sanitizeForFilename(clientName || "Client");
+        const formationPart = sanitizeForFilename(training.training_name || "Formation");
+        const participantPart = singleParticipant
+          ? `_${sanitizeForFilename(`${singleParticipant.first_name || ""} ${singleParticipant.last_name || ""}`.trim() || "Participant")}`
+          : "";
+        const fileName = `Convention_${clientPart}_${formationPart}${participantPart}.pdf`;
+
         return new Response(
           JSON.stringify({
             success: true,
             pdfUrl,
             documentId,
+            fileName,
             conventionType: isIndividualConvention ? "individual" : "global",
             participantId: participantId || null,
             message: "Convention de formation generee avec succes",

@@ -42,6 +42,8 @@ const FormationEdit = () => {
   const [elearningEndDate, setElearningEndDate] = useState<Date | null>(null);
   const [elearningDuration, setElearningDuration] = useState<string>("");
   const [clientName, setClientName] = useState("");
+  const [clientAddress, setClientAddress] = useState("");
+  const [soldPriceHt, setSoldPriceHt] = useState<string>("");
   const [formatFormation, setFormatFormation] = useState<string>("");
   const [prerequisites, setPrerequisites] = useState<string[]>([]);
   const [objectives, setObjectives] = useState<string[]>([]);
@@ -110,6 +112,8 @@ const FormationEdit = () => {
       setTrainingName(training.training_name);
       setLocation(training.location);
       setClientName(training.client_name);
+      setClientAddress(training.client_address || "");
+      setSoldPriceHt(training.sold_price_ht != null ? String(training.sold_price_ht) : "");
       setFormatFormation(training.format_formation || "");
       setPrerequisites(training.prerequisites || []);
       setObjectives(training.objectives || []);
@@ -298,6 +302,8 @@ const FormationEdit = () => {
           training_name: trainingName,
           location,
           client_name: clientName,
+          client_address: clientAddress || null,
+          sold_price_ht: soldPriceHt ? Math.round(parseFloat(soldPriceHt) * 100) / 100 : null,
           format_formation: formatFormation || null,
           prerequisites,
           objectives,
@@ -594,6 +600,20 @@ const FormationEdit = () => {
                     </div>
                   </div>
 
+                  {/* Client address - full width for visibility */}
+                  <div className="space-y-2">
+                    <Label htmlFor="clientAddress">Adresse du client</Label>
+                    <Input
+                      id="clientAddress"
+                      value={clientAddress}
+                      onChange={(e) => setClientAddress(e.target.value)}
+                      placeholder="Ex: 12 rue de la Paix, 75002 Paris"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Utilisée dans la convention de formation
+                    </p>
+                  </div>
+
                   {/* Format */}
                   <div className="space-y-2">
                     <Label htmlFor="format">Format de formation</Label>
@@ -607,6 +627,29 @@ const FormationEdit = () => {
                         <SelectItem value="e_learning">E-learning</SelectItem>
                       </SelectContent>
                     </Select>
+                  </div>
+
+                  {/* Sold price HT */}
+                  <div className="space-y-2">
+                    <Label htmlFor="soldPriceHt">
+                      {formatFormation === "inter-entreprises"
+                        ? "Prix HT par participant (€)"
+                        : "Prix HT global (€)"}
+                    </Label>
+                    <Input
+                      id="soldPriceHt"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={soldPriceHt}
+                      onChange={(e) => setSoldPriceHt(e.target.value)}
+                      placeholder={formatFormation === "inter-entreprises" ? "Ex: 1250" : "Ex: 3500"}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      {formatFormation === "inter-entreprises"
+                        ? "Prix par participant, utilisé dans les conventions individuelles"
+                        : "Montant total HT, utilisé dans la convention de formation"}
+                    </p>
                   </div>
 
                   {/* Trainer selector */}

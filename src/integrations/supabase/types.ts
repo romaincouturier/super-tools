@@ -2462,6 +2462,7 @@ export type Database = {
       trainings: {
         Row: {
           attendance_sheets_urls: string[] | null
+          client_address: string | null
           client_name: string
           convention_file_url: string | null
           created_at: string
@@ -2481,6 +2482,7 @@ export type Database = {
           prerequisites: string[] | null
           program_file_url: string | null
           restaurant_booked: boolean | null
+          sold_price_ht: number | null
           sponsor_email: string | null
           sponsor_first_name: string | null
           sponsor_formal_address: boolean
@@ -2496,6 +2498,7 @@ export type Database = {
         }
         Insert: {
           attendance_sheets_urls?: string[] | null
+          client_address?: string | null
           client_name: string
           convention_file_url?: string | null
           created_at?: string
@@ -2515,6 +2518,7 @@ export type Database = {
           prerequisites?: string[] | null
           program_file_url?: string | null
           restaurant_booked?: boolean | null
+          sold_price_ht?: number | null
           sponsor_email?: string | null
           sponsor_first_name?: string | null
           sponsor_formal_address?: boolean
@@ -2530,6 +2534,7 @@ export type Database = {
         }
         Update: {
           attendance_sheets_urls?: string[] | null
+          client_address?: string | null
           client_name?: string
           convention_file_url?: string | null
           created_at?: string
@@ -2549,6 +2554,7 @@ export type Database = {
           prerequisites?: string[] | null
           program_file_url?: string | null
           restaurant_booked?: boolean | null
+          sold_price_ht?: number | null
           sponsor_email?: string | null
           sponsor_first_name?: string | null
           sponsor_formal_address?: boolean
