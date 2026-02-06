@@ -1,5 +1,27 @@
-import { useState, useEffect, useMemo } from "react";
-import { Loader2, Award, FileText, Calendar, ClipboardCheck, TrendingUp, History, Newspaper, ClipboardList, Inbox, BarChart3, Kanban, Briefcase, GripVertical, Target, ImageIcon, CalendarDays, Database } from "lucide-react";
+import { useState, useEffect, useMemo, useCallback } from "react";
+import {
+  Loader2,
+  Award,
+  FileText,
+  Calendar,
+  ClipboardCheck,
+  TrendingUp,
+  History,
+  Newspaper,
+  ClipboardList,
+  Inbox,
+  BarChart3,
+  Kanban,
+  Briefcase,
+  GripVertical,
+  Target,
+  ImageIcon,
+  CalendarDays,
+  Database,
+  Maximize2,
+  Square,
+  LayoutGrid,
+} from "lucide-react";
 import {
   DndContext,
   closestCenter,
@@ -19,11 +41,21 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import AppHeader from "@/components/AppHeader";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useModuleAccess, AppModule } from "@/hooks/useModuleAccess";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { useUserPreference } from "@/hooks/useUserPreferences";
 import { cn } from "@/lib/utils";
+
+// ---------- types ----------
+
+type ModuleSize = "full" | "normal" | "mini";
 
 interface Tool {
   id: string;
@@ -34,12 +66,19 @@ interface Tool {
   module: AppModule;
 }
 
+interface ModuleLayout {
+  order: string[];
+  sizes: Record<string, ModuleSize>;
+}
+
+// ---------- tool definitions ----------
+
 const tools: Tool[] = [
   {
     id: "crm",
     name: "CRM",
     description: "Gérer le pipeline commercial et les opportunités",
-    icon: <Kanban className="w-10 h-10" />,
+    icon: <Kanban />,
     path: "/crm",
     module: "crm",
   },
@@ -47,7 +86,7 @@ const tools: Tool[] = [
     id: "missions",
     name: "Missions",
     description: "Suivi des missions de conseil",
-    icon: <Briefcase className="w-10 h-10" />,
+    icon: <Briefcase />,
     path: "/missions",
     module: "missions",
   },
@@ -55,7 +94,7 @@ const tools: Tool[] = [
     id: "okr",
     name: "OKR",
     description: "Objectifs et Résultats Clés",
-    icon: <Target className="w-10 h-10" />,
+    icon: <Target />,
     path: "/okr",
     module: "okr",
   },
@@ -63,7 +102,7 @@ const tools: Tool[] = [
     id: "medias",
     name: "Médiathèque",
     description: "Images et vidéos de toutes les missions",
-    icon: <ImageIcon className="w-10 h-10" />,
+    icon: <ImageIcon />,
     path: "/medias",
     module: "medias",
   },
@@ -71,7 +110,7 @@ const tools: Tool[] = [
     id: "events",
     name: "Événements",
     description: "Gérer les événements, images et vidéos",
-    icon: <CalendarDays className="w-10 h-10" />,
+    icon: <CalendarDays />,
     path: "/events",
     module: "events",
   },
@@ -79,7 +118,7 @@ const tools: Tool[] = [
     id: "contenu",
     name: "Contenu",
     description: "Gérer le marketing de contenu",
-    icon: <Newspaper className="w-10 h-10" />,
+    icon: <Newspaper />,
     path: "/contenu",
     module: "contenu",
   },
@@ -87,7 +126,7 @@ const tools: Tool[] = [
     id: "micro-devis",
     name: "Micro-devis",
     description: "Créer des devis rapides et simplifiés",
-    icon: <FileText className="w-10 h-10" />,
+    icon: <FileText />,
     path: "/micro-devis",
     module: "micro_devis",
   },
@@ -95,7 +134,7 @@ const tools: Tool[] = [
     id: "formations",
     name: "Formations",
     description: "Gérer les formations et les participants",
-    icon: <Calendar className="w-10 h-10" />,
+    icon: <Calendar />,
     path: "/formations",
     module: "formations",
   },
@@ -103,7 +142,7 @@ const tools: Tool[] = [
     id: "evaluations",
     name: "Évaluations",
     description: "Analyser les retours des participants",
-    icon: <ClipboardCheck className="w-10 h-10" />,
+    icon: <ClipboardCheck />,
     path: "/evaluations",
     module: "evaluations",
   },
@@ -111,7 +150,7 @@ const tools: Tool[] = [
     id: "certificates",
     name: "Certificats",
     description: "Générer et envoyer des certificats de formation",
-    icon: <Award className="w-10 h-10" />,
+    icon: <Award />,
     path: "/certificates",
     module: "certificates",
   },
@@ -119,7 +158,7 @@ const tools: Tool[] = [
     id: "ameliorations",
     name: "Améliorations",
     description: "Suivre les axes d'amélioration identifiés",
-    icon: <TrendingUp className="w-10 h-10" />,
+    icon: <TrendingUp />,
     path: "/ameliorations",
     module: "ameliorations",
   },
@@ -127,7 +166,7 @@ const tools: Tool[] = [
     id: "besoins",
     name: "Besoins",
     description: "Consulter les besoins exprimés par les participants",
-    icon: <ClipboardList className="w-10 h-10" />,
+    icon: <ClipboardList />,
     path: "/besoins",
     module: "besoins",
   },
@@ -135,7 +174,7 @@ const tools: Tool[] = [
     id: "historique",
     name: "Historique",
     description: "Consulter l'historique des actions",
-    icon: <History className="w-10 h-10" />,
+    icon: <History />,
     path: "/historique",
     module: "historique",
   },
@@ -143,7 +182,7 @@ const tools: Tool[] = [
     id: "emails",
     name: "Emails reçus",
     description: "Consulter les emails entrants",
-    icon: <Inbox className="w-10 h-10" />,
+    icon: <Inbox />,
     path: "/emails",
     module: "emails",
   },
@@ -151,7 +190,7 @@ const tools: Tool[] = [
     id: "statistiques",
     name: "Statistiques",
     description: "Visualiser les statistiques et indicateurs",
-    icon: <BarChart3 className="w-10 h-10" />,
+    icon: <BarChart3 />,
     path: "/statistiques",
     module: "statistiques",
   },
@@ -159,19 +198,84 @@ const tools: Tool[] = [
     id: "monitoring",
     name: "Monitoring",
     description: "Surveiller la taille de la base de données",
-    icon: <Database className="w-10 h-10" />,
+    icon: <Database />,
     path: "/monitoring",
     module: "monitoring",
   },
 ];
 
-// Sortable card component
-interface SortableToolCardProps {
-  tool: Tool;
-  onClick: () => void;
+// ---------- size helpers ----------
+
+const SIZE_COL_SPAN: Record<ModuleSize, string> = {
+  full: "md:col-span-12",
+  normal: "md:col-span-4",
+  mini: "md:col-span-1",
+};
+
+const SIZE_LABELS: Record<ModuleSize, string> = {
+  full: "Pleine largeur",
+  normal: "Normal",
+  mini: "Mini",
+};
+
+const SIZES: ModuleSize[] = ["full", "normal", "mini"];
+
+// ---------- size selector button ----------
+
+interface SizeSelectorProps {
+  currentSize: ModuleSize;
+  onSizeChange: (size: ModuleSize) => void;
 }
 
-const SortableToolCard = ({ tool, onClick }: SortableToolCardProps) => {
+const SizeSelector = ({ currentSize, onSizeChange }: SizeSelectorProps) => (
+  <TooltipProvider delayDuration={200}>
+    <div className="flex items-center gap-0.5 bg-background/90 backdrop-blur border rounded-md p-0.5 shadow-sm">
+      {SIZES.map((size) => {
+        const Icon =
+          size === "full" ? Maximize2 : size === "normal" ? Square : LayoutGrid;
+        return (
+          <Tooltip key={size}>
+            <TooltipTrigger asChild>
+              <button
+                className={cn(
+                  "p-1 rounded transition-colors",
+                  currentSize === size
+                    ? "bg-primary text-primary-foreground"
+                    : "hover:bg-muted text-muted-foreground"
+                )}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onSizeChange(size);
+                }}
+              >
+                <Icon className="h-3 w-3" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="text-xs">
+              {SIZE_LABELS[size]}
+            </TooltipContent>
+          </Tooltip>
+        );
+      })}
+    </div>
+  </TooltipProvider>
+);
+
+// ---------- card components per size ----------
+
+interface SortableToolCardProps {
+  tool: Tool;
+  size: ModuleSize;
+  onClick: () => void;
+  onSizeChange: (size: ModuleSize) => void;
+}
+
+const SortableToolCard = ({
+  tool,
+  size,
+  onClick,
+  onSizeChange,
+}: SortableToolCardProps) => {
   const {
     attributes,
     listeners,
@@ -186,17 +290,99 @@ const SortableToolCard = ({ tool, onClick }: SortableToolCardProps) => {
     transition,
   };
 
+  if (size === "mini") {
+    return (
+      <Card
+        ref={setNodeRef}
+        style={style}
+        className={cn(
+          "border-2 shadow-sm hover:shadow-md hover:border-primary/50 transition-all cursor-pointer group relative p-2",
+          SIZE_COL_SPAN.mini,
+          isDragging && "opacity-50 shadow-xl z-50"
+        )}
+        onClick={onClick}
+      >
+        {/* Controls — appear on hover */}
+        <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+          <SizeSelector currentSize={size} onSizeChange={onSizeChange} />
+        </div>
+        <div
+          {...attributes}
+          {...listeners}
+          className="absolute top-1 right-1 p-0.5 rounded hover:bg-muted cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <GripVertical className="h-3 w-3 text-muted-foreground" />
+        </div>
+
+        <div className="flex flex-col items-center gap-1 text-center">
+          <div className="p-2 rounded-full bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+            <span className="[&>svg]:w-5 [&>svg]:h-5">{tool.icon}</span>
+          </div>
+          <span className="text-xs font-medium leading-tight truncate w-full">
+            {tool.name}
+          </span>
+        </div>
+      </Card>
+    );
+  }
+
+  if (size === "full") {
+    return (
+      <Card
+        ref={setNodeRef}
+        style={style}
+        className={cn(
+          "border-2 shadow-md hover:shadow-lg hover:border-primary/50 transition-all cursor-pointer group relative p-5",
+          SIZE_COL_SPAN.full,
+          isDragging && "opacity-50 shadow-xl z-50"
+        )}
+        onClick={onClick}
+      >
+        {/* Controls — appear on hover */}
+        <div className="absolute top-2 right-10 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+          <SizeSelector currentSize={size} onSizeChange={onSizeChange} />
+        </div>
+        <div
+          {...attributes}
+          {...listeners}
+          className="absolute top-2 right-2 p-1 rounded hover:bg-muted cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <GripVertical className="h-4 w-4 text-muted-foreground" />
+        </div>
+
+        <div className="flex items-center gap-6">
+          <div className="p-4 rounded-full bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors shrink-0">
+            <span className="[&>svg]:w-12 [&>svg]:h-12">{tool.icon}</span>
+          </div>
+          <div className="min-w-0">
+            <CardTitle className="text-xl">{tool.name}</CardTitle>
+            <CardDescription className="text-sm mt-1">
+              {tool.description}
+            </CardDescription>
+          </div>
+        </div>
+      </Card>
+    );
+  }
+
+  // Normal (default)
   return (
     <Card
       ref={setNodeRef}
       style={style}
       className={cn(
         "border-2 shadow-md hover:shadow-lg hover:border-primary/50 transition-all cursor-pointer group p-5 relative",
+        SIZE_COL_SPAN.normal,
         isDragging && "opacity-50 shadow-xl z-50"
       )}
       onClick={onClick}
     >
-      {/* Drag handle */}
+      {/* Controls — appear on hover */}
+      <div className="absolute top-2 right-10 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+        <SizeSelector currentSize={size} onSizeChange={onSizeChange} />
+      </div>
       <div
         {...attributes}
         {...listeners}
@@ -208,9 +394,9 @@ const SortableToolCard = ({ tool, onClick }: SortableToolCardProps) => {
 
       <div className="flex items-center gap-4">
         <div className="p-3 rounded-full bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-          {tool.icon}
+          <span className="[&>svg]:w-10 [&>svg]:h-10">{tool.icon}</span>
         </div>
-        <div>
+        <div className="min-w-0">
           <CardTitle className="text-lg">{tool.name}</CardTitle>
           <CardDescription className="text-sm">
             {tool.description}
@@ -221,36 +407,100 @@ const SortableToolCard = ({ tool, onClick }: SortableToolCardProps) => {
   );
 };
 
+// ---------- Dashboard ----------
+
+const DEFAULT_SIZE: ModuleSize = "normal";
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
   const { hasAccess, loading: accessLoading } = useModuleAccess();
 
-  // Default order is the order defined in the tools array
   const defaultOrder = tools.map((t) => t.id);
+  const defaultLayout: ModuleLayout = {
+    order: defaultOrder,
+    sizes: {},
+  };
 
-  // Load saved module order from user preferences
+  // Load saved layout (order + sizes) from user preferences
   const {
-    value: savedOrder,
+    value: savedLayout,
     loading: prefsLoading,
-    save: saveOrder,
-  } = useUserPreference<string[]>("module_order", defaultOrder);
+    save: saveLayout,
+  } = useUserPreference<ModuleLayout>("module_layout", defaultLayout);
 
-  // Local state for the current order (for immediate UI feedback)
+  // Local state for immediate UI feedback
   const [moduleOrder, setModuleOrder] = useState<string[]>(defaultOrder);
+  const [moduleSizes, setModuleSizes] = useState<Record<string, ModuleSize>>(
+    {}
+  );
 
-  // Update local order when saved order loads
+  // Migrate from old "module_order" preference — read once
+  const { value: legacyOrder } = useUserPreference<string[]>(
+    "module_order",
+    []
+  );
+
+  // Restore layout on load
   useEffect(() => {
-    if (savedOrder && savedOrder.length > 0) {
-      // Ensure all current modules are included (in case new modules were added)
+    if (savedLayout) {
       const currentModuleIds = tools.map((t) => t.id);
-      const validSavedOrder = savedOrder.filter((id) => currentModuleIds.includes(id));
-      const newModules = currentModuleIds.filter((id) => !savedOrder.includes(id));
-      setModuleOrder([...validSavedOrder, ...newModules]);
-    }
-  }, [savedOrder]);
 
-  // Filter tools based on user access and sort by saved order
+      // If savedLayout has an order, use it
+      if (savedLayout.order && savedLayout.order.length > 0) {
+        const validSavedOrder = savedLayout.order.filter((id) =>
+          currentModuleIds.includes(id)
+        );
+        const newModules = currentModuleIds.filter(
+          (id) => !savedLayout.order.includes(id)
+        );
+        setModuleOrder([...validSavedOrder, ...newModules]);
+      } else if (legacyOrder && legacyOrder.length > 0) {
+        // Fall back to legacy order
+        const validLegacy = legacyOrder.filter((id) =>
+          currentModuleIds.includes(id)
+        );
+        const newModules = currentModuleIds.filter(
+          (id) => !legacyOrder.includes(id)
+        );
+        setModuleOrder([...validLegacy, ...newModules]);
+      }
+
+      if (savedLayout.sizes) {
+        setModuleSizes(savedLayout.sizes);
+      }
+    }
+  }, [savedLayout, legacyOrder]);
+
+  // Persist layout helper
+  const persistLayout = useCallback(
+    async (order: string[], sizes: Record<string, ModuleSize>) => {
+      try {
+        await saveLayout({ order, sizes });
+      } catch (error) {
+        console.error("Failed to save layout:", error);
+      }
+    },
+    [saveLayout]
+  );
+
+  // Get size for a module
+  const getSize = useCallback(
+    (id: string): ModuleSize => moduleSizes[id] || DEFAULT_SIZE,
+    [moduleSizes]
+  );
+
+  // Change size for a module
+  const handleSizeChange = useCallback(
+    (id: string, newSize: ModuleSize) => {
+      const updated = { ...moduleSizes, [id]: newSize };
+      setModuleSizes(updated);
+      persistLayout(moduleOrder, updated);
+    },
+    [moduleSizes, moduleOrder, persistLayout]
+  );
+
+  // Filter & sort tools
   const accessibleTools = useMemo(() => {
     const filtered = tools.filter((tool) => hasAccess(tool.module));
     return filtered.sort((a, b) => {
@@ -279,14 +529,12 @@ const Dashboard = () => {
     if (over && active.id !== over.id) {
       const oldIndex = accessibleTools.findIndex((t) => t.id === active.id);
       const newIndex = accessibleTools.findIndex((t) => t.id === over.id);
-
       const newAccessibleOrder = arrayMove(accessibleTools, oldIndex, newIndex);
 
-      // Update the full order (including non-accessible modules)
+      // Rebuild full order
       const newFullOrder = [...moduleOrder];
       const accessibleIds = newAccessibleOrder.map((t) => t.id);
 
-      // Replace accessible module positions in the full order
       let accessibleIndex = 0;
       for (let i = 0; i < newFullOrder.length; i++) {
         if (accessibleIds.includes(newFullOrder[i])) {
@@ -296,13 +544,7 @@ const Dashboard = () => {
       }
 
       setModuleOrder(newFullOrder);
-
-      // Save to database
-      try {
-        await saveOrder(newFullOrder);
-      } catch (error) {
-        console.error("Failed to save module order:", error);
-      }
+      persistLayout(newFullOrder, moduleSizes);
     }
   };
 
@@ -318,15 +560,15 @@ const Dashboard = () => {
     <div className="min-h-screen bg-background">
       <AppHeader showOnboarding />
 
-      {/* Main content */}
       <main className="max-w-7xl mx-auto p-6 space-y-8">
-        {/* Tools Section */}
         <section>
           <h1 className="text-2xl font-bold mb-6">Tableau de bord</h1>
           {accessibleTools.length === 0 ? (
             <Card className="p-8 text-center text-muted-foreground">
               <p>Aucun module disponible.</p>
-              <p className="text-sm mt-2">Contactez l'administrateur pour obtenir des accès.</p>
+              <p className="text-sm mt-2">
+                Contactez l'administrateur pour obtenir des accès.
+              </p>
             </Card>
           ) : (
             <DndContext
@@ -338,12 +580,14 @@ const Dashboard = () => {
                 items={accessibleTools.map((t) => t.id)}
                 strategy={rectSortingStrategy}
               >
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
                   {accessibleTools.map((tool) => (
                     <SortableToolCard
                       key={tool.id}
                       tool={tool}
+                      size={getSize(tool.id)}
                       onClick={() => navigate(tool.path)}
+                      onSizeChange={(s) => handleSizeChange(tool.id, s)}
                     />
                   ))}
                 </div>
