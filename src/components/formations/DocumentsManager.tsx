@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
-import { Upload, FileText, Trash2, Loader2, Send, Receipt, ClipboardList, Mail, Link, Heart, CheckCircle, FileDown, Scroll } from "lucide-react";
+import { Upload, FileText, Trash2, Loader2, Send, Receipt, ClipboardList, Mail, Link, Heart, CheckCircle, FileDown, Scroll, PenLine } from "lucide-react";
+
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -93,6 +95,8 @@ const DocumentsManager = ({
   const [sendingConvention, setSendingConvention] = useState(false);
   const [conventionSentAt, setConventionSentAt] = useState<string | null>(null);
   const [lastGeneratedConventionFileName, setLastGeneratedConventionFileName] = useState<string | null>(null);
+  const [enableOnlineSignature, setEnableOnlineSignature] = useState(true);
+  const [conventionSignatureUrl, setConventionSignatureUrl] = useState<string | null>(null);
   const [customRecipientEmail, setCustomRecipientEmail] = useState("");
   const [ccEmail, setCcEmail] = useState("");
   const [showCustomRecipientDialog, setShowCustomRecipientDialog] = useState(false);
@@ -629,6 +633,7 @@ const DocumentsManager = ({
           recipientFirstName: sponsorFirstName,
           formalAddress: sponsorFormalAddress,
           conventionFileName: lastGeneratedConventionFileName,
+          enableOnlineSignature,
         },
       });
 
@@ -637,9 +642,15 @@ const DocumentsManager = ({
 
       setConventionSentAt(new Date().toISOString());
 
+      if (data?.signatureUrl) {
+        setConventionSignatureUrl(data.signatureUrl);
+      }
+
       toast({
         title: "Convention envoyée",
-        description: `La convention a été envoyée à ${sponsorEmail}.`,
+        description: enableOnlineSignature
+          ? `Convention envoyée à ${sponsorEmail} avec lien de signature en ligne.`
+          : `La convention a été envoyée à ${sponsorEmail}.`,
       });
     } catch (error: any) {
       console.error("Send convention error:", error);
@@ -759,10 +770,32 @@ const DocumentsManager = ({
                     </Button>
                   )}
                 </div>
+
+                {/* Online signature option */}
+                {sponsorEmail && (
+                  <div className="flex items-center space-x-2 pl-1">
+                    <Checkbox
+                      id="enableOnlineSignature"
+                      checked={enableOnlineSignature}
+                      onCheckedChange={(checked) => setEnableOnlineSignature(checked === true)}
+                    />
+                    <Label htmlFor="enableOnlineSignature" className="text-xs text-muted-foreground cursor-pointer flex items-center gap-1">
+                      <PenLine className="h-3 w-3" />
+                      Proposer la signature en ligne (en plus du PDF joint)
+                    </Label>
+                  </div>
+                )}
+
                 {conventionSentAt && (
                   <span className="text-xs text-muted-foreground flex items-center gap-1">
                     <CheckCircle className="h-3 w-3 text-primary" />
                     Envoyée le {formatSentDate(conventionSentAt)} à {sponsorEmail}
+                  </span>
+                )}
+                {conventionSignatureUrl && (
+                  <span className="text-xs text-muted-foreground flex items-center gap-1">
+                    <PenLine className="h-3 w-3 text-primary" />
+                    Lien de signature en ligne envoyé
                   </span>
                 )}
               </div>

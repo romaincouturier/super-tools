@@ -21,6 +21,7 @@ interface RequestBody {
   recipientFirstName?: string;
   formalAddress?: boolean;
   conventionFileName?: string;
+  enableOnlineSignature?: boolean;
 }
 
 function formatDateFr(dateStr: string): string {
@@ -47,6 +48,7 @@ serve(async (req: Request): Promise<Response> => {
       recipientFirstName,
       formalAddress = true,
       conventionFileName,
+      enableOnlineSignature = false,
     } = body;
 
     if (!trainingId || !conventionUrl || !recipientEmail) {
@@ -61,7 +63,7 @@ serve(async (req: Request): Promise<Response> => {
     // Fetch training details
     const { data: training, error: trainingError } = await supabase
       .from("trainings")
-      .select("training_name, start_date, end_date")
+      .select("training_name, start_date, end_date, client_name")
       .eq("id", trainingId)
       .single();
 
@@ -70,6 +72,41 @@ serve(async (req: Request): Promise<Response> => {
         JSON.stringify({ error: "Formation introuvable" }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
+    }
+
+    // If online signature is enabled, create a signature token
+    let signatureUrl = "";
+    let signatureToken = "";
+    if (enableOnlineSignature) {
+      signatureToken = crypto.randomUUID();
+
+      // Build the public URL for the signature page
+      const origin = req.headers.get("origin") || req.headers.get("referer")?.replace(/\/+$/, "") || "";
+      signatureUrl = `${origin}/signature-convention/${signatureToken}`;
+
+      // Set expiry to 30 days
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 30);
+
+      const { error: insertError } = await supabase
+        .from("convention_signatures")
+        .insert({
+          token: signatureToken,
+          training_id: trainingId,
+          recipient_email: recipientEmail,
+          recipient_name: recipientName || null,
+          client_name: training.client_name || recipientName || "",
+          formation_name: training.training_name,
+          pdf_url: conventionUrl,
+          status: "pending",
+          email_sent_at: new Date().toISOString(),
+          expires_at: expiresAt.toISOString(),
+        });
+
+      if (insertError) {
+        console.error("Error creating convention signature record:", insertError);
+        throw new Error("Impossible de créer le lien de signature");
+      }
     }
 
     // Determine template type based on formal address
@@ -99,11 +136,33 @@ serve(async (req: Request): Promise<Response> => {
       "{{training_name}}": training.training_name,
       "{{start_date}}": startDateFormatted,
       "{{end_date}}": endDateFormatted,
+      "{{signature_link}}": signatureUrl,
     };
 
     for (const [key, value] of Object.entries(replacements)) {
       subject = subject.replaceAll(key, value);
       htmlBody = htmlBody.replaceAll(key, value);
+    }
+
+    // If online signature is enabled, add the signature button block
+    if (enableOnlineSignature && signatureUrl) {
+      // Process conditional block {{#signature_link}} ... {{/signature_link}}
+      const signatureLinkRegex = /\{\{#signature_link\}\}([\s\S]*?)\{\{\/signature_link\}\}/g;
+      if (signatureLinkRegex.test(htmlBody)) {
+        htmlBody = htmlBody.replace(signatureLinkRegex, "$1");
+      } else {
+        // If no conditional block found, append the signature button
+        htmlBody += `
+<p style="margin-top: 20px;">
+  <a href="${signatureUrl}" style="display: inline-block; padding: 12px 24px; background-color: #e6bc00; color: #000; text-decoration: none; border-radius: 6px; font-weight: bold;">
+    ✍️ Signer la convention en ligne
+  </a>
+</p>`;
+      }
+    } else {
+      // Remove conditional signature block if present
+      const signatureLinkRegex = /\{\{#signature_link\}\}[\s\S]*?\{\{\/signature_link\}\}/g;
+      htmlBody = htmlBody.replace(signatureLinkRegex, "");
     }
 
     // Get signature and BCC
@@ -164,16 +223,23 @@ serve(async (req: Request): Promise<Response> => {
           convention_url: conventionUrl,
           recipient_name: recipientName,
           email_id: result.id,
+          online_signature_enabled: enableOnlineSignature,
+          signature_token: signatureToken || undefined,
         },
       });
     } catch (logError) {
       console.warn("Failed to log activity:", logError);
     }
 
-    console.log(`Convention email sent to ${recipientEmail}`);
+    console.log(`Convention email sent to ${recipientEmail}${enableOnlineSignature ? " (with online signature)" : ""}`);
 
     return new Response(
-      JSON.stringify({ success: true, emailId: result.id }),
+      JSON.stringify({
+        success: true,
+        emailId: result.id,
+        signatureUrl: signatureUrl || undefined,
+        signatureToken: signatureToken || undefined,
+      }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error: unknown) {
