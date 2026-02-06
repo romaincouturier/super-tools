@@ -30,6 +30,7 @@ const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const ForcePasswordChange = lazy(() => import("./pages/ForcePasswordChange"));
 const Emargement = lazy(() => import("./pages/Emargement"));
 const SignatureDevis = lazy(() => import("./pages/SignatureDevis"));
+const SignatureConvention = lazy(() => import("./pages/SignatureConvention"));
 const ContentBoard = lazy(() => import("./pages/ContentBoard"));
 const BesoinsParticipants = lazy(() => import("./pages/BesoinsParticipants"));
 const TrainingSummary = lazy(() => import("./pages/TrainingSummary"));
@@ -107,6 +108,8 @@ const App = () => (
               <Route path="/emargement/:token" element={<Emargement />} />
               {/* Public devis signature */}
               <Route path="/signature-devis/:token" element={<SignatureDevis />} />
+              {/* Public convention signature */}
+              <Route path="/signature-convention/:token" element={<SignatureConvention />} />
               {/* Public training summary for participants */}
               <Route path="/formation-info/:trainingId" element={<TrainingSummary />} />
               {/* Privacy policy */}
