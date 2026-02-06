@@ -267,7 +267,7 @@ const FormationCreate = () => {
           location: finalLocation,
           client_name: clientName,
           client_address: clientAddress || null,
-          sold_price_ht: soldPriceHt ? parseFloat(soldPriceHt) : null,
+          sold_price_ht: soldPriceHt ? Math.round(parseFloat(soldPriceHt) * 100) / 100 : null,
           evaluation_link: "", // Field hidden from UI but required by schema
           format_formation: formatFormation || null,
           prerequisites,
