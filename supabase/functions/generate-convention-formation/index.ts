@@ -233,7 +233,7 @@ serve(async (req: Request): Promise<Response> => {
 
     // Build client name and address
     let clientName = training.client_name;
-    let clientAddress = training.location || "";
+    let clientAddress = training.client_address || "";
 
     // For inter-entreprises individual convention, use participant's company if available
     if (isIndividualConvention && singleParticipant) {

@@ -42,6 +42,7 @@ const FormationEdit = () => {
   const [elearningEndDate, setElearningEndDate] = useState<Date | null>(null);
   const [elearningDuration, setElearningDuration] = useState<string>("");
   const [clientName, setClientName] = useState("");
+  const [clientAddress, setClientAddress] = useState("");
   const [formatFormation, setFormatFormation] = useState<string>("");
   const [prerequisites, setPrerequisites] = useState<string[]>([]);
   const [objectives, setObjectives] = useState<string[]>([]);
@@ -110,6 +111,7 @@ const FormationEdit = () => {
       setTrainingName(training.training_name);
       setLocation(training.location);
       setClientName(training.client_name);
+      setClientAddress(training.client_address || "");
       setFormatFormation(training.format_formation || "");
       setPrerequisites(training.prerequisites || []);
       setObjectives(training.objectives || []);
@@ -298,6 +300,7 @@ const FormationEdit = () => {
           training_name: trainingName,
           location,
           client_name: clientName,
+          client_address: clientAddress || null,
           format_formation: formatFormation || null,
           prerequisites,
           objectives,
@@ -591,6 +594,20 @@ const FormationEdit = () => {
                         placeholder="Ex: ACME Corp"
                         required
                       />
+                    </div>
+
+                    {/* Client address */}
+                    <div className="space-y-2">
+                      <Label htmlFor="clientAddress">Adresse du client</Label>
+                      <Input
+                        id="clientAddress"
+                        value={clientAddress}
+                        onChange={(e) => setClientAddress(e.target.value)}
+                        placeholder="Ex: 12 rue de la Paix, 75002 Paris"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Utilisée dans la convention de formation
+                      </p>
                     </div>
                   </div>
 

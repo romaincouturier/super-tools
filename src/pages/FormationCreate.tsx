@@ -55,6 +55,7 @@ const FormationCreate = () => {
   const [locationType, setLocationType] = useState<string>("");
   const [locationCustom, setLocationCustom] = useState("");
   const [clientName, setClientName] = useState("");
+  const [clientAddress, setClientAddress] = useState("");
   const [formatFormation, setFormatFormation] = useState<string>("");
   const [prerequisites, setPrerequisites] = useState<string[]>([]);
   const [objectives, setObjectives] = useState<string[]>([]);
@@ -264,6 +265,7 @@ const FormationCreate = () => {
           training_name: trainingName,
           location: finalLocation,
           client_name: clientName,
+          client_address: clientAddress || null,
           evaluation_link: "", // Field hidden from UI but required by schema
           format_formation: formatFormation || null,
           prerequisites,
@@ -626,6 +628,20 @@ const FormationCreate = () => {
                   placeholder="Ex: ACME Corp"
                   required
                 />
+              </div>
+
+              {/* Client address */}
+              <div className="space-y-2">
+                <Label htmlFor="clientAddress">Adresse du client</Label>
+                <Input
+                  id="clientAddress"
+                  value={clientAddress}
+                  onChange={(e) => setClientAddress(e.target.value)}
+                  placeholder="Ex: 12 rue de la Paix, 75002 Paris"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Utilisée dans la convention de formation
+                </p>
               </div>
 
               {/* Format */}
