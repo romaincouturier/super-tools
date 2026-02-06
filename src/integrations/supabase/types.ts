@@ -1125,6 +1125,92 @@ export type Database = {
           },
         ]
       }
+      event_media: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          event_id: string
+          file_name: string
+          file_size: number | null
+          file_type: string
+          file_url: string
+          id: string
+          mime_type: string | null
+          position: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          event_id: string
+          file_name: string
+          file_size?: number | null
+          file_type: string
+          file_url: string
+          id?: string
+          mime_type?: string | null
+          position?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          event_id?: string
+          file_name?: string
+          file_size?: number | null
+          file_type?: string
+          file_url?: string
+          id?: string
+          mime_type?: string | null
+          position?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_media_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      events: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          event_date: string
+          event_time: string | null
+          id: string
+          location: string | null
+          location_type: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          event_date: string
+          event_time?: string | null
+          id?: string
+          location?: string | null
+          location_type?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          event_date?: string
+          event_time?: string | null
+          id?: string
+          location?: string | null
+          location_type?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       formation_configs: {
         Row: {
           created_at: string
@@ -2587,6 +2673,7 @@ export type Database = {
           id: string
           invoice_file_url: string | null
           location: string
+          max_participants: number | null
           objectives: string[] | null
           participants_formal_address: boolean
           prerequisites: string[] | null
@@ -2624,6 +2711,7 @@ export type Database = {
           id?: string
           invoice_file_url?: string | null
           location: string
+          max_participants?: number | null
           objectives?: string[] | null
           participants_formal_address?: boolean
           prerequisites?: string[] | null
@@ -2661,6 +2749,7 @@ export type Database = {
           id?: string
           invoice_file_url?: string | null
           location?: string
+          max_participants?: number | null
           objectives?: string[] | null
           participants_formal_address?: boolean
           prerequisites?: string[] | null
@@ -2802,6 +2891,7 @@ export type Database = {
         | "contenu"
         | "besoins"
         | "parametres"
+        | "events"
       notification_type:
         | "review_requested"
         | "comment_added"
@@ -2944,6 +3034,7 @@ export const Constants = {
         "contenu",
         "besoins",
         "parametres",
+        "events",
       ],
       notification_type: [
         "review_requested",
