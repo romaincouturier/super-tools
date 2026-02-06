@@ -1,7 +1,7 @@
 import { MediaItemWithMission } from "@/hooks/useMediaLibrary";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ImageIcon, Video, Play, Trash2, Briefcase } from "lucide-react";
+import { ImageIcon, Video, Play, Trash2, Briefcase, Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -20,6 +20,23 @@ const formatFileSize = (bytes: number | null) => {
 
 const MediaGrid = ({ items, onOpenLightbox }: MediaGridProps) => {
   const queryClient = useQueryClient();
+
+  const downloadFile = async (url: string, fileName: string) => {
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(blobUrl);
+    } catch {
+      toast.error("Erreur lors du téléchargement");
+    }
+  };
 
   const handleDelete = async (e: React.MouseEvent, item: MediaItemWithMission) => {
     e.stopPropagation();
@@ -98,14 +115,27 @@ const MediaGrid = ({ items, onOpenLightbox }: MediaGridProps) => {
                 )}
                 <span className="truncate">{item.file_name}</span>
               </div>
-              <Button
-                variant="destructive"
-                size="icon"
-                className="h-6 w-6 flex-shrink-0"
-                onClick={(e) => handleDelete(e, item)}
-              >
-                <Trash2 className="h-3 w-3" />
-              </Button>
+              <div className="flex items-center gap-1 flex-shrink-0">
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  className="h-6 w-6"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    downloadFile(item.file_url, item.file_name);
+                  }}
+                >
+                  <Download className="h-3 w-3" />
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="icon"
+                  className="h-6 w-6"
+                  onClick={(e) => handleDelete(e, item)}
+                >
+                  <Trash2 className="h-3 w-3" />
+                </Button>
+              </div>
             </div>
             <div className="flex items-center gap-1 text-white/80 text-xs truncate">
               <Briefcase className="h-3 w-3 flex-shrink-0" />
