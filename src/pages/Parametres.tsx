@@ -517,6 +517,39 @@ N'hésitez pas à revenir vers nous si vous avez la moindre question. Nous somme
     },
     variables: ["recipient_name", "formation_name", "devis_description", "programme_link"],
   },
+  convention: {
+    name: "Envoi de convention de formation",
+    timing: "manual",
+    subject: {
+      tu: "Convention de formation - {{training_name}}",
+      vous: "Convention de formation - {{training_name}}",
+    },
+    content: {
+      tu: `Bonjour {{first_name}},
+
+Merci pour ta confiance !
+
+Tu trouveras ci-joint la convention de formation pour <strong>{{training_name}}</strong> qui se déroulera du <strong>{{start_date}}</strong> au <strong>{{end_date}}</strong>.
+
+Merci de bien vouloir la retourner signée à l'adresse suivante : romain@supertilt.fr
+
+Je reste disponible si tu as la moindre question.
+
+À très bientôt,`,
+      vous: `Bonjour {{first_name}},
+
+Merci pour votre confiance.
+
+Vous trouverez ci-joint la convention de formation pour <strong>{{training_name}}</strong> qui se déroulera du <strong>{{start_date}}</strong> au <strong>{{end_date}}</strong>.
+
+Merci de bien vouloir la retourner signée à l'adresse suivante : romain@supertilt.fr
+
+Je reste à votre disposition pour toute question.
+
+Cordialement,`,
+    },
+    variables: ["first_name", "training_name", "start_date", "end_date"],
+  },
 };
 const Parametres = () => {
   const [user, setUser] = useState<User | null>(null);
