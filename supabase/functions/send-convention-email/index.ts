@@ -175,7 +175,50 @@ serve(async (req: Request): Promise<Response> => {
 
     // Download the PDF to attach it and compute its hash for integrity
     console.log("Downloading convention PDF from:", conventionUrl);
-    const pdfResponse = await fetch(conventionUrl);
+    let pdfResponse = await fetch(conventionUrl);
+
+    // If 403 (expired pre-signed URL), try to get a fresh URL from PdfMonkey
+    if (pdfResponse.status === 403) {
+      console.warn("PDF download returned 403 – attempting to refresh URL via PdfMonkey API");
+      const pdfMonkeyApiKey = Deno.env.get("PDFMONKEY_API_KEY");
+      // Extract document ID from PdfMonkey S3 URL pattern: .../document/{uuid}/...
+      const docIdMatch = conventionUrl.match(/\/document\/([0-9a-f-]{36})\//i);
+
+      if (pdfMonkeyApiKey && docIdMatch) {
+        const documentId = docIdMatch[1];
+        console.log("Refreshing download URL for PdfMonkey document:", documentId);
+
+        const pmResponse = await fetch(
+          `https://api.pdfmonkey.io/api/v1/documents/${documentId}`,
+          { headers: { Authorization: `Bearer ${pdfMonkeyApiKey}` } }
+        );
+
+        if (pmResponse.ok) {
+          const pmData = await pmResponse.json();
+          const freshUrl = pmData?.document?.download_url;
+          if (freshUrl) {
+            console.log("Got fresh download URL, retrying download");
+            pdfResponse = await fetch(freshUrl);
+
+            // Update the stored URL so future calls don't hit the same issue
+            if (pdfResponse.ok) {
+              try {
+                await supabase
+                  .from("trainings")
+                  .update({ convention_file_url: freshUrl })
+                  .eq("id", trainingId);
+                console.log("Updated training with fresh convention URL");
+              } catch (updateErr) {
+                console.warn("Could not update training URL:", updateErr);
+              }
+            }
+          }
+        } else {
+          console.warn("PdfMonkey API call failed:", pmResponse.status);
+        }
+      }
+    }
+
     if (!pdfResponse.ok) {
       throw new Error(`Impossible de télécharger la convention: ${pdfResponse.status}`);
     }
