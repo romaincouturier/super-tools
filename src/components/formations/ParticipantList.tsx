@@ -69,6 +69,8 @@ interface ParticipantListProps {
   trainingEndDate: string | null;
   formatFormation: string | null;
   attendanceSheetsUrls: string[];
+  clientName: string;
+  trainingDuree: string;
   onParticipantUpdated: () => void;
 }
 
@@ -165,6 +167,8 @@ const ParticipantList = ({
   trainingEndDate,
   formatFormation,
   attendanceSheetsUrls,
+  clientName,
+  trainingDuree,
   onParticipantUpdated
 }: ParticipantListProps) => {
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -175,6 +179,7 @@ const ParticipantList = ({
   const [certificatesByParticipant, setCertificatesByParticipant] = useState<Map<string, CertificateInfo>>(new Map());
   const [conventionSignatures, setConventionSignatures] = useState<Map<string, ConventionSignatureInfo>>(new Map());
   const [sendingCertId, setSendingCertId] = useState<string | null>(null);
+  const [generatingCertId, setGeneratingCertId] = useState<string | null>(null);
   const [downloadingConventionId, setDownloadingConventionId] = useState<string | null>(null);
   const { toast } = useToast();
 
@@ -317,6 +322,84 @@ const ParticipantList = ({
     }
   };
 
+  const handleGenerateCertificate = async (participant: Participant) => {
+    setGeneratingCertId(participant.id);
+    try {
+      const session = await supabase.auth.getSession();
+      const accessToken = session.data.session?.access_token;
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-certificates`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${accessToken}`,
+            "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({
+            formationName: trainingName,
+            entreprise: clientName || "",
+            duree: trainingDuree,
+            dateDebut: trainingStartDate,
+            dateFin: trainingEndDate || trainingStartDate,
+            emailDestinataire: "romain@supertilt.fr",
+            participants: [{
+              prenom: participant.first_name || "",
+              nom: participant.last_name || "",
+              email: participant.email,
+            }],
+            userId: session.data.session?.user?.id,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Erreur serveur: ${response.status}`);
+      }
+
+      // Read the stream to completion
+      const reader = response.body?.getReader();
+      if (reader) {
+        const decoder = new TextDecoder();
+        let buffer = "";
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+        }
+        // Check for errors in the stream
+        const lines = buffer.split("\n").filter(l => l.trim());
+        for (const line of lines) {
+          try {
+            const event = JSON.parse(line);
+            if (event.type === "complete" && event.data.successCount === 0) {
+              throw new Error("La génération du certificat a échoué.");
+            }
+          } catch (parseErr) {
+            // ignore parse errors
+          }
+        }
+      }
+
+      toast({
+        title: "Attestation générée",
+        description: `L'attestation a été générée et envoyée à ${participant.email}.`,
+      });
+
+      // Refresh certificates list
+      onParticipantUpdated();
+    } catch (error: any) {
+      console.error("Error generating certificate:", error);
+      toast({
+        title: "Erreur",
+        description: error.message || "Impossible de générer l'attestation.",
+        variant: "destructive",
+      });
+    } finally {
+      setGeneratingCertId(null);
+    }
+  };
 
   // Check if we're at J-2 or later
   const daysUntilTraining = differenceInDays(parseISO(trainingStartDate), new Date());
@@ -773,14 +856,19 @@ const ParticipantList = ({
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-8 w-8 text-muted-foreground/40 cursor-default"
-                                disabled
+                                className="h-8 w-8 text-muted-foreground hover:text-primary"
+                                disabled={generatingCertId === participant.id}
+                                onClick={() => handleGenerateCertificate(participant)}
                               >
-                                <Award className="h-4 w-4" />
+                                {generatingCertId === participant.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Award className="h-4 w-4" />
+                                )}
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>
-                              <p>Pas d'attestation disponible</p>
+                              <p>Générer et envoyer l'attestation</p>
                             </TooltipContent>
                           </Tooltip>
                         );

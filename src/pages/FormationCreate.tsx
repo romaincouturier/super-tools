@@ -30,6 +30,7 @@ const PREDEFINED_LOCATIONS = [
   { value: "en_ligne", label: "En ligne en accédant à son compte sur supertilt.fr" },
   { value: "lyon", label: "Espace Gailleton, 2 Pl. Gailleton, 69002 Lyon" },
   { value: "paris", label: "Agile Tribu, 4ter Pass. de la Main d'Or, 75011 Paris" },
+  { value: "chez_client", label: "Chez le client (adresse du client)" },
   { value: "autre", label: "Autre" },
 ];
 
@@ -96,6 +97,9 @@ const FormationCreate = () => {
   const getFinalLocation = (): string => {
     if (locationType === "autre") {
       return locationCustom;
+    }
+    if (locationType === "chez_client") {
+      return clientAddress || "Chez le client";
     }
     const predefined = PREDEFINED_LOCATIONS.find((l) => l.value === locationType);
     return predefined?.label || "";
@@ -475,9 +479,32 @@ const FormationCreate = () => {
                 <TrainingNameCombobox
                   value={trainingName}
                   onChange={setTrainingName}
-                  onFormationSelect={(formation) => {
+                  onFormationSelect={async (formation) => {
                     if (formation?.programme_url) {
                       setProgramFileUrl(formation.programme_url);
+                    }
+                    // Prefill prerequisites & objectives from the most recent training with same name
+                    if (formation?.formation_name) {
+                      try {
+                        const { data: prevTraining } = await (supabase as any)
+                          .from("trainings")
+                          .select("prerequisites, objectives")
+                          .eq("training_name", formation.formation_name)
+                          .not("prerequisites", "is", null)
+                          .order("created_at", { ascending: false })
+                          .limit(1)
+                          .maybeSingle();
+                        if (prevTraining) {
+                          if (prevTraining.prerequisites?.length && prerequisites.length === 0) {
+                            setPrerequisites(prevTraining.prerequisites);
+                          }
+                          if (prevTraining.objectives?.length && objectives.length === 0) {
+                            setObjectives(prevTraining.objectives);
+                          }
+                        }
+                      } catch (err) {
+                        console.error("Failed to prefill prerequisites/objectives:", err);
+                      }
                     }
                   }}
                 />
@@ -623,33 +650,6 @@ const FormationCreate = () => {
                 </div>
               )}
 
-              {/* Location */}
-              <div className="space-y-3">
-                <Label>Lieu de la formation *</Label>
-                <RadioGroup value={locationType} onValueChange={setLocationType} className="space-y-2">
-                  {PREDEFINED_LOCATIONS.map((loc) => (
-                    <div key={loc.value} className="flex items-center space-x-2">
-                      <RadioGroupItem value={loc.value} id={`location-${loc.value}`} />
-                      <Label
-                        htmlFor={`location-${loc.value}`}
-                        className="font-normal cursor-pointer text-sm"
-                      >
-                        {loc.label}
-                      </Label>
-                    </div>
-                  ))}
-                </RadioGroup>
-                {locationType === "autre" && (
-                  <Input
-                    placeholder="Adresse personnalisée"
-                    value={locationCustom}
-                    onChange={(e) => setLocationCustom(e.target.value)}
-                    className="mt-2"
-                    required
-                  />
-                )}
-              </div>
-
               {/* Client */}
               <div className="space-y-2">
                 <Label htmlFor="clientName">Client *</Label>
@@ -674,6 +674,35 @@ const FormationCreate = () => {
                 <p className="text-xs text-muted-foreground">
                   Utilisée dans la convention de formation
                 </p>
+              </div>
+
+              {/* Location */}
+              <div className="space-y-3">
+                <Label>Lieu de la formation *</Label>
+                <RadioGroup value={locationType} onValueChange={setLocationType} className="space-y-2">
+                  {PREDEFINED_LOCATIONS.map((loc) => (
+                    <div key={loc.value} className="flex items-center space-x-2">
+                      <RadioGroupItem value={loc.value} id={`location-${loc.value}`} />
+                      <Label
+                        htmlFor={`location-${loc.value}`}
+                        className="font-normal cursor-pointer text-sm"
+                      >
+                        {loc.value === "chez_client" && clientAddress
+                          ? `Chez le client (${clientAddress})`
+                          : loc.label}
+                      </Label>
+                    </div>
+                  ))}
+                </RadioGroup>
+                {locationType === "autre" && (
+                  <Input
+                    placeholder="Adresse personnalisée"
+                    value={locationCustom}
+                    onChange={(e) => setLocationCustom(e.target.value)}
+                    className="mt-2"
+                    required
+                  />
+                )}
               </div>
 
               {/* Sold price HT */}
