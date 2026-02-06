@@ -230,7 +230,7 @@ const DocumentsManager = ({
           proof_file_url: data.proof_file_url,
           proof_hash: data.proof_hash,
           signed_pdf_url: data.signed_pdf_url,
-          journey_events: data.journey_events as JourneyEvent[] | null,
+          journey_events: data.journey_events as unknown as JourneyEvent[] | null,
           consent_timestamp: audit?.consent_timestamp || null,
         });
       }

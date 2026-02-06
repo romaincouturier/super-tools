@@ -113,6 +113,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useSearchMissions } from "@/hooks/useMissions";
 import { missionStatusConfig } from "@/types/missions";
 import EmailEditor from "./EmailEditor";
+import SentDevisSection from "./SentDevisSection";
 import { CreateTrainingDialog } from "./CreateTrainingDialog";
 import confetti from "canvas-confetti";
 
@@ -1268,6 +1269,9 @@ const CardDetailDrawer = ({
               )}
             </div>
 
+            {/* Sent devis list */}
+            <SentDevisSection email={email || null} cardId={card?.id || null} />
+
             <div>
               <Label>Titre</Label>
               <div className="flex items-center gap-2">
@@ -1805,8 +1809,14 @@ const CardDetailDrawer = ({
     <CreateTrainingDialog
       open={showCreateTrainingDialog}
       onOpenChange={setShowCreateTrainingDialog}
-      onConfirm={handleConfirmCreateTraining}
+      onConfirmCreate={handleConfirmCreateTraining}
+      onConfirmAddParticipant={(trainingId) => {
+        setShowCreateTrainingDialog(false);
+        onOpenChange(false);
+        navigate(`/formations/${trainingId}`);
+      }}
       opportunityTitle={title}
+      isFormation={serviceType === "formation" || !serviceType}
     />
 
     {/* Win choice dialog - choose formation or mission */}

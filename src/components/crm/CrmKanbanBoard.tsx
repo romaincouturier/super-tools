@@ -121,13 +121,14 @@ const CrmKanbanBoard = () => {
     return !isAfter(scheduledDate, today);
   };
 
-  // Sync local cards with server data, filtering out hidden cards
+  // Sync local cards with server data, filtering out hidden cards and applying search
   useEffect(() => {
     if (boardData?.cards) {
       const visibleCards = boardData.cards.filter(isCardVisible);
       setLocalCards(visibleCards);
     }
   }, [boardData?.cards]);
+
 
   const handleDragStart = (event: DragStartEvent) => {
     const card = localCards.find((c) => c.id === event.active.id);
