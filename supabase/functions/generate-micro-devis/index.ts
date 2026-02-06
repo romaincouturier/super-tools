@@ -442,8 +442,29 @@ serve(async (req: Request): Promise<Response> => {
       typeSubrogation
     );
 
+    // Auto-resolve crmCardId by matching email if not explicitly provided
+    let resolvedCrmCardId = body.crmCardId || null;
+    if (!resolvedCrmCardId && body.emailCommanditaire) {
+      try {
+        const { data: matchingCard } = await supabase
+          .from("crm_cards")
+          .select("id")
+          .eq("email", body.emailCommanditaire)
+          .eq("sales_status", "OPEN")
+          .order("updated_at", { ascending: false })
+          .limit(1)
+          .single();
+        if (matchingCard) {
+          resolvedCrmCardId = matchingCard.id;
+          console.log(`Auto-linked micro-devis to CRM card ${resolvedCrmCardId} via email match`);
+        }
+      } catch {
+        // No matching card found, that's fine
+      }
+    }
+
     // Track email in CRM card if linked
-    if (body.crmCardId) {
+    if (resolvedCrmCardId) {
       try {
         // Build body_html with attachment info
         const attachmentInfo = emailResult.attachmentNames.length > 0
@@ -453,7 +474,7 @@ serve(async (req: Request): Promise<Response> => {
 
         // Insert into crm_card_emails
         await supabase.from("crm_card_emails").insert({
-          card_id: body.crmCardId,
+          card_id: resolvedCrmCardId,
           sender_email: body.senderEmail || "romain@supertilt.fr",
           recipient_email: body.emailCommanditaire,
           subject: emailResult.subject,
@@ -462,7 +483,7 @@ serve(async (req: Request): Promise<Response> => {
 
         // Log activity
         await supabase.from("crm_activity_log").insert({
-          card_id: body.crmCardId,
+          card_id: resolvedCrmCardId,
           action_type: "email_sent",
           old_value: null,
           new_value: `To: ${body.emailCommanditaire} - ${emailResult.subject}`,
@@ -504,9 +525,9 @@ serve(async (req: Request): Promise<Response> => {
             waiting_next_action_date: followUpDateStr,
             waiting_next_action_text: "Relancer le client suite à l'envoi du devis",
           })
-          .eq("id", body.crmCardId);
+          .eq("id", resolvedCrmCardId);
 
-        console.log(`CRM card ${body.crmCardId}: email tracked, follow-up scheduled for ${followUpDateStr}`);
+        console.log(`CRM card ${resolvedCrmCardId}: email tracked, follow-up scheduled for ${followUpDateStr}`);
       } catch (crmError) {
         console.warn("Failed to track email in CRM:", crmError);
       }

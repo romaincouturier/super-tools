@@ -113,6 +113,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useSearchMissions } from "@/hooks/useMissions";
 import { missionStatusConfig } from "@/types/missions";
 import EmailEditor from "./EmailEditor";
+import SentDevisSection from "./SentDevisSection";
 import { CreateTrainingDialog } from "./CreateTrainingDialog";
 import confetti from "canvas-confetti";
 
@@ -1267,6 +1268,9 @@ const CardDetailDrawer = ({
                 </Button>
               )}
             </div>
+
+            {/* Sent devis list */}
+            <SentDevisSection email={email || null} cardId={card?.id || null} />
 
             <div>
               <Label>Titre</Label>
