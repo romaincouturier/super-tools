@@ -371,16 +371,19 @@ const EventDetail = () => {
                       className="w-full h-full object-cover"
                     />
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors" />
-                    <div className="absolute top-1 right-1 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button
-                        className="p-1 rounded-full bg-black/50 text-white hover:bg-black/70"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          downloadFile(img.file_url, img.file_name);
-                        }}
-                      >
-                        <Download className="h-3.5 w-3.5" />
-                      </button>
+                    {/* Download button – always visible */}
+                    <button
+                      className="absolute bottom-1 right-1 p-1.5 rounded-full bg-black/50 text-white hover:bg-black/70 transition-opacity z-10"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        downloadFile(img.file_url, img.file_name);
+                      }}
+                      title="Télécharger"
+                    >
+                      <Download className="h-3.5 w-3.5" />
+                    </button>
+                    {/* Delete button – visible on hover only */}
+                    <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button
                         className="p-1 rounded-full bg-black/50 text-white hover:bg-black/70"
                         onClick={(e) => {
