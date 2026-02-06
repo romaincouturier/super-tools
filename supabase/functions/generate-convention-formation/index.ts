@@ -228,8 +228,17 @@ serve(async (req: Request): Promise<Response> => {
 
     const scheduleList = schedules || [];
 
-    // Calculate price
-    const pricePerParticipant = inputPrice || 1250; // Default price
+    // Fetch TVA rate from app_settings
+    const { data: tvaSetting } = await supabase
+      .from("app_settings")
+      .select("setting_value")
+      .eq("setting_key", "tva_rate")
+      .maybeSingle();
+
+    const tvaRate = tvaSetting?.setting_value ? parseFloat(tvaSetting.setting_value) : 20;
+
+    // Calculate price - use sold_price_ht from training, then input override, then default
+    const priceHt = inputPrice || training.sold_price_ht || 1250;
 
     // Build client name and address
     let clientName = training.client_name;
@@ -250,6 +259,9 @@ serve(async (req: Request): Promise<Response> => {
     if (mandatairePayeur) {
       clientAddress += ` – Mandataire Payeur : ${mandatairePayeur}`;
     }
+
+    // Calculate TTC
+    const prixTtc = priceHt * (1 + tvaRate / 100);
 
     // Build the payload for PDFMonkey
     const payload = {
@@ -272,7 +284,9 @@ serve(async (req: Request): Promise<Response> => {
         ? "En ligne (plateforme e-learning)"
         : training.location,
       STAGIAIRES: formatParticipants(participantList),
-      PRIX: pricePerParticipant.toString(),
+      PRIX: priceHt.toString(),
+      TVA: tvaRate.toString(),
+      PRIX_TTC: prixTtc.toFixed(2),
       FRAIS: "0",
       AFFICHE_FRAIS: "Non",
       SUBROGATION: subrogation ? "Oui" : "Non",
