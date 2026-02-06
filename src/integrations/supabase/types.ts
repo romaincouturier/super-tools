@@ -2805,6 +2805,7 @@ export type Database = {
         | "contenu"
         | "besoins"
         | "parametres"
+        | "events"
       notification_type:
         | "review_requested"
         | "comment_added"
@@ -2947,6 +2948,7 @@ export const Constants = {
         "contenu",
         "besoins",
         "parametres",
+        "events",
       ],
       notification_type: [
         "review_requested",
