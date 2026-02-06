@@ -475,9 +475,32 @@ const FormationCreate = () => {
                 <TrainingNameCombobox
                   value={trainingName}
                   onChange={setTrainingName}
-                  onFormationSelect={(formation) => {
+                  onFormationSelect={async (formation) => {
                     if (formation?.programme_url) {
                       setProgramFileUrl(formation.programme_url);
+                    }
+                    // Prefill prerequisites & objectives from the most recent training with same name
+                    if (formation?.formation_name) {
+                      try {
+                        const { data: prevTraining } = await (supabase as any)
+                          .from("trainings")
+                          .select("prerequisites, objectives")
+                          .eq("training_name", formation.formation_name)
+                          .not("prerequisites", "is", null)
+                          .order("created_at", { ascending: false })
+                          .limit(1)
+                          .maybeSingle();
+                        if (prevTraining) {
+                          if (prevTraining.prerequisites?.length && prerequisites.length === 0) {
+                            setPrerequisites(prevTraining.prerequisites);
+                          }
+                          if (prevTraining.objectives?.length && objectives.length === 0) {
+                            setObjectives(prevTraining.objectives);
+                          }
+                        }
+                      } catch (err) {
+                        console.error("Failed to prefill prerequisites/objectives:", err);
+                      }
                     }
                   }}
                 />
