@@ -62,6 +62,7 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [company, setCompany] = useState("");
+  const [sponsorSameAsParticipant, setSponsorSameAsParticipant] = useState(false);
   const [sponsorFirstName, setSponsorFirstName] = useState("");
   const [sponsorLastName, setSponsorLastName] = useState("");
   const [sponsorEmail, setSponsorEmail] = useState("");
@@ -142,11 +143,21 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
     }
   }, [trainingStartDate]);
 
+  // Sync sponsor fields when "same as participant" is checked
+  useEffect(() => {
+    if (sponsorSameAsParticipant) {
+      setSponsorFirstName(firstName);
+      setSponsorLastName(lastName);
+      setSponsorEmail(email);
+    }
+  }, [sponsorSameAsParticipant, firstName, lastName, email]);
+
   const resetForm = () => {
     setFirstName("");
     setLastName("");
     setEmail("");
     setCompany("");
+    setSponsorSameAsParticipant(false);
     setSponsorFirstName("");
     setSponsorLastName("");
     setSponsorEmail("");
@@ -372,36 +383,50 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
                 <div className="pt-4 border-t">
                   <Label className="text-sm font-medium text-muted-foreground">Commanditaire (facturation)</Label>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="sponsorFirstName">Prénom</Label>
-                    <Input
-                      id="sponsorFirstName"
-                      value={sponsorFirstName}
-                      onChange={(e) => setSponsorFirstName(e.target.value)}
-                      placeholder="Marie"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="sponsorLastName">Nom</Label>
-                    <Input
-                      id="sponsorLastName"
-                      value={sponsorLastName}
-                      onChange={(e) => setSponsorLastName(e.target.value)}
-                      placeholder="Martin"
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="sponsorEmail">Email du commanditaire</Label>
-                  <Input
-                    id="sponsorEmail"
-                    type="email"
-                    value={sponsorEmail}
-                    onChange={(e) => setSponsorEmail(e.target.value)}
-                    placeholder="marie.martin@example.com"
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="sponsorSameAsParticipant"
+                    checked={sponsorSameAsParticipant}
+                    onCheckedChange={(checked) => setSponsorSameAsParticipant(checked === true)}
                   />
+                  <Label htmlFor="sponsorSameAsParticipant" className="text-sm font-normal cursor-pointer">
+                    Le commanditaire est le participant
+                  </Label>
                 </div>
+                {!sponsorSameAsParticipant && (
+                  <>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="sponsorFirstName">Prénom</Label>
+                        <Input
+                          id="sponsorFirstName"
+                          value={sponsorFirstName}
+                          onChange={(e) => setSponsorFirstName(e.target.value)}
+                          placeholder="Marie"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="sponsorLastName">Nom</Label>
+                        <Input
+                          id="sponsorLastName"
+                          value={sponsorLastName}
+                          onChange={(e) => setSponsorLastName(e.target.value)}
+                          placeholder="Martin"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="sponsorEmail">Email du commanditaire</Label>
+                      <Input
+                        id="sponsorEmail"
+                        type="email"
+                        value={sponsorEmail}
+                        onChange={(e) => setSponsorEmail(e.target.value)}
+                        placeholder="marie.martin@example.com"
+                      />
+                    </div>
+                  </>
+                )}
 
                 {/* Funder section for inter-enterprise */}
                 <div className="pt-4 border-t">
