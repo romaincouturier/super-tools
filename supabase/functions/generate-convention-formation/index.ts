@@ -105,12 +105,22 @@ function getTimeRange(schedules: Schedule[]): string {
   return "Horaires variables (voir planning)";
 }
 
-// Format participant list
-function formatParticipants(participants: Participant[]): string[] {
-  return participants.map(p => {
+// Format participant list with placeholders for remaining slots
+function formatParticipants(participants: Participant[], maxParticipants: number): string[] {
+  const formatted = participants.map(p => {
     const name = `${p.first_name || ""} ${p.last_name || ""}`.trim() || "Participant";
     return `${name} ${p.email}`;
   });
+
+  // Fill remaining slots with placeholder text
+  if (maxParticipants > 0) {
+    const remaining = maxParticipants - participants.length;
+    for (let i = 0; i < remaining; i++) {
+      formatted.push("Prénom, nom, e-mail");
+    }
+  }
+
+  return formatted;
 }
 
 // Sanitize string for use in filename
@@ -180,6 +190,17 @@ serve(async (req: Request): Promise<Response> => {
       return new Response(
         JSON.stringify({ error: "Formation introuvable" }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Check max_participants is set
+    const maxParticipants: number = training.max_participants || 0;
+    if (maxParticipants < 1) {
+      return new Response(
+        JSON.stringify({
+          error: "Le nombre maximum de participants doit être configuré (minimum 1) avant de générer la convention. Modifiez la formation pour définir ce champ.",
+        }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -279,7 +300,7 @@ serve(async (req: Request): Promise<Response> => {
       ADRESSE: clientAddress,
       TITRE_FORMATION: training.training_name,
       FORMAT: getFormatLabel(training.format_formation, training.location),
-      PARTICIPANTS: participantList.length.toString(),
+      PARTICIPANTS: maxParticipants.toString(),
       URL_PROGRAMME_FORMATION: training.program_file_url || "",
       DATES: training.format_formation === "e_learning"
         ? `Du ${formatDateFrench(training.start_date)} au ${formatDateFrench(training.end_date || training.start_date)}`
@@ -293,7 +314,7 @@ serve(async (req: Request): Promise<Response> => {
       LIEU: training.format_formation === "e_learning"
         ? "En ligne (plateforme e-learning)"
         : training.location,
-      STAGIAIRES: formatParticipants(participantList),
+      STAGIAIRES: formatParticipants(participantList, maxParticipants),
       PRIX: priceHt.toString(),
       TVA: tvaRate.toString(),
       PRIX_TTC: prixTtc.toFixed(2),
