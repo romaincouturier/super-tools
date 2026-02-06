@@ -262,7 +262,14 @@ const CardDetailDrawer = ({
   const handleAttachToTraining = (trainingId: string) => {
     setShowWinChoiceDialog(false);
     onOpenChange(false);
-    navigate(`/formations/${trainingId}`);
+    const params = new URLSearchParams();
+    if (firstName) params.set("addParticipantFirstName", firstName);
+    if (lastName) params.set("addParticipantLastName", lastName);
+    if (email) params.set("addParticipantEmail", email);
+    if (company) params.set("addParticipantCompany", company);
+    if (card?.id) params.set("fromCrmCardId", card.id);
+    const qs = params.toString();
+    navigate(`/formations/${trainingId}${qs ? `?${qs}` : ""}`);
   };
 
   // Get tomorrow's date as minimum for scheduling
