@@ -2556,6 +2556,7 @@ export type Database = {
           prerequisites: string[] | null
           program_file_url: string | null
           restaurant_booked: boolean | null
+          signed_convention_urls: string[] | null
           sold_price_ht: number | null
           sponsor_email: string | null
           sponsor_first_name: string | null
@@ -2592,6 +2593,7 @@ export type Database = {
           prerequisites?: string[] | null
           program_file_url?: string | null
           restaurant_booked?: boolean | null
+          signed_convention_urls?: string[] | null
           sold_price_ht?: number | null
           sponsor_email?: string | null
           sponsor_first_name?: string | null
@@ -2628,6 +2630,7 @@ export type Database = {
           prerequisites?: string[] | null
           program_file_url?: string | null
           restaurant_booked?: boolean | null
+          signed_convention_urls?: string[] | null
           sold_price_ht?: number | null
           sponsor_email?: string | null
           sponsor_first_name?: string | null

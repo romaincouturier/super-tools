@@ -44,6 +44,12 @@ interface DocumentSentInfo {
   thankYou: string | null;
 }
 
+interface ConventionSignatureStatus {
+  status: string;
+  signed_at: string | null;
+  signer_name: string | null;
+}
+
 interface DocumentsManagerProps {
   trainingId: string;
   trainingName: string;
@@ -59,6 +65,7 @@ interface DocumentsManagerProps {
   evaluationLink: string;
   formatFormation?: string | null;
   conventionFileUrl?: string | null;
+  signedConventionUrls?: string[];
   onUpdate?: () => void;
 }
 
@@ -77,6 +84,7 @@ const DocumentsManager = ({
   evaluationLink,
   formatFormation,
   conventionFileUrl: initialConventionUrl,
+  signedConventionUrls: initialSignedConventionUrls,
   onUpdate,
 }: DocumentsManagerProps) => {
   const isInterEntreprise = formatFormation === "inter-entreprises";
@@ -97,6 +105,9 @@ const DocumentsManager = ({
   const [lastGeneratedConventionFileName, setLastGeneratedConventionFileName] = useState<string | null>(null);
   const [enableOnlineSignature, setEnableOnlineSignature] = useState(true);
   const [conventionSignatureUrl, setConventionSignatureUrl] = useState<string | null>(null);
+  const [conventionSignatureStatus, setConventionSignatureStatus] = useState<ConventionSignatureStatus | null>(null);
+  const [signedConventionUrls, setSignedConventionUrls] = useState<string[]>(initialSignedConventionUrls || []);
+  const [uploadingSignedConvention, setUploadingSignedConvention] = useState(false);
   const [customRecipientEmail, setCustomRecipientEmail] = useState("");
   const [ccEmail, setCcEmail] = useState("");
   const [showCustomRecipientDialog, setShowCustomRecipientDialog] = useState(false);
@@ -153,8 +164,134 @@ const DocumentsManager = ({
     fetchDocumentsSentInfo();
   }, [trainingId]);
 
+  // Fetch convention signature status
+  useEffect(() => {
+    const fetchConventionSignatureStatus = async () => {
+      const { data, error } = await supabase
+        .from("convention_signatures")
+        .select("status, signed_at, audit_metadata")
+        .eq("training_id", trainingId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (!error && data) {
+        const signerName = (data.audit_metadata as any)?.signer_name || null;
+        setConventionSignatureStatus({
+          status: data.status,
+          signed_at: data.signed_at,
+          signer_name: signerName,
+        });
+      }
+    };
+
+    fetchConventionSignatureStatus();
+  }, [trainingId]);
+
   const formatSentDate = (dateStr: string): string => {
     return format(parseISO(dateStr), "d MMM à HH:mm", { locale: fr });
+  };
+
+  // Upload signed convention files
+  const handleSignedConventionUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setUploadingSignedConvention(true);
+
+    try {
+      const newUrls: string[] = [];
+
+      for (const file of Array.from(files)) {
+        if (!file.type.includes("pdf") && !file.type.includes("image")) {
+          toast({
+            title: "Format non supporté",
+            description: "Seuls les fichiers PDF et images sont acceptés.",
+            variant: "destructive",
+          });
+          continue;
+        }
+
+        const fileExt = file.name.split(".").pop();
+        const baseName = file.name.replace(`.${fileExt}`, "");
+        const sanitizedName = sanitizeFileName(baseName);
+        const fileName = `${trainingId}/convention_signee_${Date.now()}_${sanitizedName}.${fileExt}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from("training-documents")
+          .upload(fileName, file);
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from("training-documents")
+          .getPublicUrl(fileName);
+
+        newUrls.push(publicUrl);
+      }
+
+      if (newUrls.length > 0) {
+        const allUrls = [...signedConventionUrls, ...newUrls];
+
+        const { error: updateError } = await supabase
+          .from("trainings")
+          .update({ signed_convention_urls: allUrls })
+          .eq("id", trainingId);
+
+        if (updateError) throw updateError;
+
+        setSignedConventionUrls(allUrls);
+        onUpdate?.();
+
+        toast({
+          title: "Convention signée uploadée",
+          description: `${newUrls.length} fichier(s) ajouté(s).`,
+        });
+      }
+    } catch (error: any) {
+      console.error("Upload error:", error);
+      toast({
+        title: "Erreur d'upload",
+        description: error.message || "Une erreur est survenue.",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingSignedConvention(false);
+      e.target.value = "";
+    }
+  };
+
+  const handleDeleteSignedConvention = async (urlToDelete: string) => {
+    try {
+      const updatedUrls = signedConventionUrls.filter(url => url !== urlToDelete);
+
+      const { error: updateError } = await supabase
+        .from("trainings")
+        .update({ signed_convention_urls: updatedUrls })
+        .eq("id", trainingId);
+
+      if (updateError) throw updateError;
+
+      const path = urlToDelete.split("/training-documents/")[1];
+      if (path) {
+        await supabase.storage.from("training-documents").remove([path]);
+      }
+
+      setSignedConventionUrls(updatedUrls);
+      onUpdate?.();
+
+      toast({
+        title: "Fichier supprimé",
+        description: "La convention signée a été retirée.",
+      });
+    } catch (error: any) {
+      console.error("Delete error:", error);
+      toast({
+        title: "Erreur",
+        description: error.message || "Impossible de supprimer le fichier.",
+        variant: "destructive",
+      });
+    }
   };
 
   const sanitizeFileName = (name: string): string => {
@@ -797,6 +934,93 @@ const DocumentsManager = ({
                     <PenLine className="h-3 w-3 text-primary" />
                     Lien de signature en ligne envoyé
                   </span>
+                )}
+
+                {/* Convention signature status */}
+                {conventionSignatureStatus?.status === "signed" && (
+                  <div className="flex items-center gap-2 p-2 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-md">
+                    <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+                    <div className="flex-1">
+                      <span className="text-sm font-medium text-green-700 dark:text-green-300">
+                        Convention signée en ligne
+                      </span>
+                      {conventionSignatureStatus.signer_name && (
+                        <span className="text-xs text-green-600 dark:text-green-400 ml-1">
+                          par {conventionSignatureStatus.signer_name}
+                        </span>
+                      )}
+                      {conventionSignatureStatus.signed_at && (
+                        <span className="text-xs text-green-600 dark:text-green-400 ml-1">
+                          le {formatSentDate(conventionSignatureStatus.signed_at)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Upload signed convention (manual) - only if not signed online */}
+                {conventionSignatureStatus?.status !== "signed" && (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="file"
+                        accept=".pdf,image/*"
+                        multiple
+                        onChange={handleSignedConventionUpload}
+                        disabled={uploadingSignedConvention}
+                        className="hidden"
+                        id="signed-convention-upload"
+                      />
+                      <Label htmlFor="signed-convention-upload" className="cursor-pointer">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          disabled={uploadingSignedConvention}
+                          asChild
+                        >
+                          <span>
+                            {uploadingSignedConvention ? (
+                              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                            ) : (
+                              <Upload className="h-4 w-4 mr-1" />
+                            )}
+                            Uploader la convention signée
+                          </span>
+                        </Button>
+                      </Label>
+                    </div>
+
+                    {signedConventionUrls.length > 0 && (
+                      <div className="space-y-1">
+                        {signedConventionUrls.map((url, index) => {
+                          const fileName = decodeURIComponent(url.split("/").pop() || `Fichier ${index + 1}`);
+                          return (
+                            <div key={index} className="flex items-center gap-2 p-1.5 bg-muted/50 border border-border rounded text-xs">
+                              <CheckCircle className="h-3 w-3 text-green-600 shrink-0" />
+                              <a
+                                href={url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-foreground hover:underline flex-1 truncate"
+                              >
+                                {fileName}
+                              </a>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-5 w-5 shrink-0"
+                                onClick={() => handleDeleteSignedConvention(url)}
+                              >
+                                <Trash2 className="h-3 w-3 text-destructive" />
+                              </Button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
             )}
