@@ -353,8 +353,22 @@ const ParticipantList = ({
       }
 
       if (data?.pdfUrl) {
-        // Use window.location.href — S3 URL has response-content-disposition=attachment
-        window.location.href = data.pdfUrl;
+        // Download with custom filename via blob
+        try {
+          const response = await fetch(data.pdfUrl);
+          const blob = await response.blob();
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = data.fileName || "Convention.pdf";
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          window.URL.revokeObjectURL(url);
+        } catch {
+          // Fallback to direct download
+          window.location.href = data.pdfUrl;
+        }
         toast({
           title: "Convention générée",
           description: `La convention pour ${participant.first_name || participant.email} a été générée.`,

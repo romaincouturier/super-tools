@@ -113,6 +113,16 @@ function formatParticipants(participants: Participant[]): string[] {
   });
 }
 
+// Sanitize string for use in filename
+function sanitizeForFilename(str: string): string {
+  return str
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // remove accents
+    .replace(/[^a-zA-Z0-9_\- ]/g, "") // remove special chars
+    .replace(/\s+/g, "_") // spaces to underscores
+    .replace(/_+/g, "_") // collapse multiple underscores
+    .trim();
+}
+
 // Get format label
 function getFormatLabel(formatFormation: string | null, location: string): string {
   if (formatFormation === "e_learning") return "E-learning";
@@ -389,11 +399,20 @@ serve(async (req: Request): Promise<Response> => {
           console.warn("Failed to log activity:", logError);
         }
 
+        // Build filename: Convention_CLIENT_FORMATION.pdf
+        const clientPart = sanitizeForFilename(clientName || "Client");
+        const formationPart = sanitizeForFilename(training.training_name || "Formation");
+        const participantPart = singleParticipant
+          ? `_${sanitizeForFilename(`${singleParticipant.first_name || ""} ${singleParticipant.last_name || ""}`.trim() || "Participant")}`
+          : "";
+        const fileName = `Convention_${clientPart}_${formationPart}${participantPart}.pdf`;
+
         return new Response(
           JSON.stringify({
             success: true,
             pdfUrl,
             documentId,
+            fileName,
             conventionType: isIndividualConvention ? "individual" : "global",
             participantId: participantId || null,
             message: "Convention de formation generee avec succes",
