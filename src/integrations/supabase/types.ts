@@ -932,6 +932,30 @@ export type Database = {
         }
         Relationships: []
       }
+      db_size_snapshots: {
+        Row: {
+          created_at: string
+          id: string
+          snapshot_date: string
+          table_sizes: Json | null
+          total_size_bytes: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          snapshot_date?: string
+          table_sizes?: Json | null
+          total_size_bytes: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          snapshot_date?: string
+          table_sizes?: Json | null
+          total_size_bytes?: number
+        }
+        Relationships: []
+      }
       devis_signatures: {
         Row: {
           activity_log_id: string
@@ -2868,6 +2892,7 @@ export type Database = {
         Args: { encryption_key: string; plain_token: string }
         Returns: string
       }
+      get_db_size: { Args: never; Returns: Json }
       has_crm_access: { Args: { _user_id: string }; Returns: boolean }
       has_module_access: {
         Args: { _module: string; _user_id: string }
@@ -2892,6 +2917,13 @@ export type Database = {
         | "besoins"
         | "parametres"
         | "events"
+        | "emails"
+        | "statistiques"
+        | "crm"
+        | "missions"
+        | "okr"
+        | "medias"
+        | "monitoring"
       notification_type:
         | "review_requested"
         | "comment_added"
@@ -3035,6 +3067,13 @@ export const Constants = {
         "besoins",
         "parametres",
         "events",
+        "emails",
+        "statistiques",
+        "crm",
+        "missions",
+        "okr",
+        "medias",
+        "monitoring",
       ],
       notification_type: [
         "review_requested",
