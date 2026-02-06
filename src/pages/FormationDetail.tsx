@@ -609,8 +609,8 @@ const FormationDetail = () => {
               </div>
             )}
 
-            {/* Room rental button with checkbox - only for inter-entreprises */}
-            {training.format_formation === "inter-entreprises" && (
+            {/* Room rental button with checkbox - for inter-entreprises and intra */}
+            {(training.format_formation === "inter-entreprises" || training.format_formation === "intra") && (
               <div className="flex items-center gap-1">
                 <Button
                   variant="outline"
