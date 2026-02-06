@@ -56,6 +56,7 @@ interface Participant {
   financeur_url?: string | null;
   invoice_file_url?: string | null;
   payment_mode?: string;
+  sold_price_ht?: number | null;
 }
 
 interface ParticipantListProps {
@@ -456,6 +457,7 @@ const ParticipantList = ({
             <TableHead>Email</TableHead>
             <TableHead>Société</TableHead>
             {isInterEntreprise && <TableHead>Commanditaire</TableHead>}
+            {isInterEntreprise && <TableHead>Montant HT</TableHead>}
             <TableHead>Recueil des besoins</TableHead>
             <TableHead className="w-28"></TableHead>
           </TableRow>
@@ -507,6 +509,13 @@ const ParticipantList = ({
                     ) : (
                       "—"
                     )}
+                  </TableCell>
+                )}
+                {isInterEntreprise && (
+                  <TableCell>
+                    {participant.sold_price_ht != null
+                      ? `${participant.sold_price_ht.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`
+                      : "—"}
                   </TableCell>
                 )}
                 <TableCell>

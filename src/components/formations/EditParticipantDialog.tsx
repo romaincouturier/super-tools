@@ -50,6 +50,7 @@ interface Participant {
   financeur_name?: string | null;
   financeur_url?: string | null;
   payment_mode?: string;
+  sold_price_ht?: number | null;
 }
 
 interface EditParticipantDialogProps {
@@ -82,6 +83,9 @@ const EditParticipantDialog = ({
   const [paymentMode, setPaymentMode] = useState<"online" | "invoice">(
     (participant.payment_mode as "online" | "invoice") || "invoice"
   );
+  const [soldPriceHt, setSoldPriceHt] = useState(
+    participant.sold_price_ht != null ? String(participant.sold_price_ht) : ""
+  );
   const [financeurPopoverOpen, setFinanceurPopoverOpen] = useState(false);
   const [existingFinanceurs, setExistingFinanceurs] = useState<string[]>([]);
   const { toast } = useToast();
@@ -101,6 +105,7 @@ const EditParticipantDialog = ({
     setFinanceurName(participant.financeur_name || "");
     setFinanceurUrl(participant.financeur_url || "");
     setPaymentMode((participant.payment_mode as "online" | "invoice") || "invoice");
+    setSoldPriceHt(participant.sold_price_ht != null ? String(participant.sold_price_ht) : "");
   }, [participant]);
 
   // Fetch existing funders when dialog opens
@@ -161,6 +166,7 @@ const EditParticipantDialog = ({
         updateData.financeur_name = !financeurSameAsSponsor ? (financeurName.trim() || null) : null;
         updateData.financeur_url = !financeurSameAsSponsor ? (financeurUrl.trim() || null) : null;
         updateData.payment_mode = paymentMode;
+        updateData.sold_price_ht = soldPriceHt ? parseFloat(soldPriceHt) : null;
       }
 
       const { error } = await supabase
@@ -296,9 +302,23 @@ const EditParticipantDialog = ({
               />
             </div>
 
-            {/* Sponsor/Commanditaire fields for inter-enterprise trainings */}
+            {/* Inter-enterprise specific fields */}
             {isInterEntreprise && (
               <>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-soldPriceHt">Montant vendu HT (€)</Label>
+                  <Input
+                    id="edit-soldPriceHt"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={soldPriceHt}
+                    onChange={(e) => setSoldPriceHt(e.target.value)}
+                    placeholder="1500.00"
+                  />
+                </div>
+
+                {/* Sponsor/Commanditaire fields */}
                 <div className="pt-4 border-t">
                   <Label className="text-sm font-medium text-muted-foreground">
                     Commanditaire (facturation)
