@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Loader2, Award, FileText, Calendar, ClipboardCheck, TrendingUp, History, Newspaper, ClipboardList, Inbox, BarChart3, Kanban, Briefcase, GripVertical, Target, ImageIcon } from "lucide-react";
+import { Loader2, Award, FileText, Calendar, ClipboardCheck, TrendingUp, History, Newspaper, ClipboardList, Inbox, BarChart3, Kanban, Briefcase, GripVertical, Target, ImageIcon, CalendarHeart } from "lucide-react";
 import {
   DndContext,
   closestCenter,
@@ -66,6 +66,14 @@ const tools: Tool[] = [
     icon: <ImageIcon className="w-10 h-10" />,
     path: "/medias",
     module: "medias",
+  },
+  {
+    id: "events",
+    name: "Événements",
+    description: "Gérer les événements et rencontres",
+    icon: <CalendarHeart className="w-10 h-10" />,
+    path: "/events",
+    module: "events",
   },
   {
     id: "contenu",
