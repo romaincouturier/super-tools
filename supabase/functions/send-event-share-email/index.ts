@@ -22,39 +22,35 @@ serve(async (req) => {
   if (corsResponse) return corsResponse;
 
   try {
-    // ── Auth verification (inline, no shared helper) ──
+    // ── Inline auth verification ──
     const authHeader = req.headers.get("Authorization");
-    console.log("Auth header present:", !!authHeader);
+    console.log("[share-email] Auth header present:", !!authHeader);
 
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      console.warn("Missing or malformed Authorization header");
+      console.warn("[share-email] Missing or malformed Authorization header");
       return createErrorResponse("Non autorisé", 401);
     }
 
     const token = authHeader.replace("Bearer ", "");
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    // Verify user token via Auth API directly (avoids supabase-js getUser quirks in Deno)
-    const authResponse = await fetch(`${supabaseUrl}/auth/v1/user`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        apikey: serviceKey,
-      },
+    console.log("[share-email] Env check - URL:", !!supabaseUrl, "ANON:", !!anonKey);
+
+    // Use anon key client + explicit token for getUser (Lovable Cloud ES256 compat)
+    const authClient = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: `Bearer ${token}` } },
     });
 
-    if (!authResponse.ok) {
-      console.warn("Auth verification failed:", authResponse.status);
+    const { data: { user }, error: authError } = await authClient.auth.getUser(token);
+
+    if (authError || !user?.id) {
+      console.warn("[share-email] Auth failed:", authError?.message || "no user");
       return createErrorResponse("Non autorisé", 401);
     }
 
-    const user = await authResponse.json();
-    if (!user?.id) {
-      console.warn("Auth verification failed: no user id");
-      return createErrorResponse("Non autorisé", 401);
-    }
-
-    console.log("Authenticated user:", user.id);
+    console.log("[share-email] Authenticated user:", user.id);
 
     // ── Parse request body ──
     const { event_id, recipient_email, recipient_name } = await req.json() as ShareEventRequest;

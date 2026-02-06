@@ -58,46 +58,45 @@ export function createSupabaseClient(): SupabaseClient {
  * @returns User object or null
  */
 export async function verifyAuth(authHeader: string | null): Promise<{ id: string; email?: string } | null> {
+  console.log("verifyAuth called, authHeader present:", !!authHeader);
+
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    console.warn("verifyAuth: missing or malformed auth header");
     return null;
   }
 
   const token = authHeader.replace("Bearer ", "");
   if (!token) {
+    console.warn("verifyAuth: empty token");
     return null;
   }
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
 
-  if (!supabaseUrl || !serviceKey) {
-    console.error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY for auth verification");
+  console.log("verifyAuth env check - URL:", !!supabaseUrl, "ANON_KEY:", !!anonKey);
+
+  if (!supabaseUrl || !anonKey) {
+    console.error("Missing SUPABASE_URL or SUPABASE_ANON_KEY for auth verification");
     return null;
   }
 
   try {
-    // Verify token via Auth REST API directly (avoids supabase-js getUser quirks in Deno edge runtime)
-    const response = await fetch(`${supabaseUrl}/auth/v1/user`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        apikey: serviceKey,
-      },
+    const supabase = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: `Bearer ${token}` } },
     });
 
-    if (!response.ok) {
-      console.warn("Auth verification failed:", response.status);
+    const { data: { user }, error } = await supabase.auth.getUser(token);
+
+    if (error || !user?.id) {
+      console.warn("verifyAuth failed:", error?.message || "no user in response");
       return null;
     }
 
-    const user = await response.json();
-    if (!user?.id) {
-      console.warn("Auth verification failed: no user id in response");
-      return null;
-    }
-
+    console.log("verifyAuth success, user:", user.id);
     return { id: user.id, email: user.email };
   } catch (error) {
-    console.error("Error verifying auth:", error);
+    console.error("verifyAuth exception:", error);
     return null;
   }
 }
