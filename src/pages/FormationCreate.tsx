@@ -22,6 +22,7 @@ import ProgramSelector from "@/components/formations/ProgramSelector";
 import ObjectivesEditor from "@/components/formations/ObjectivesEditor";
 import TrainingNameCombobox from "@/components/formations/TrainingNameCombobox";
 import TrainerSelector from "@/components/formations/TrainerSelector";
+import SupertiltLinkCombobox from "@/components/formations/SupertiltLinkCombobox";
 import ScheduledActionsEditor, { ScheduledAction } from "@/components/formations/ScheduledActionsEditor";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
@@ -719,12 +720,9 @@ const FormationCreate = () => {
                     </a>
                   )}
                 </div>
-                <Input
-                  id="supertiltLink"
-                  type="url"
+                <SupertiltLinkCombobox
                   value={supertiltLink}
-                  onChange={(e) => setSupertiltLink(e.target.value)}
-                  placeholder="https://supertilt.fr/formations/..."
+                  onChange={setSupertiltLink}
                 />
               </div>
 
