@@ -84,9 +84,10 @@ import {
   MoreVertical,
   Rocket,
   GraduationCap,
+  UserPlus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { format, addDays, isAfter, startOfDay } from "date-fns";
+import { format, addDays, isAfter, startOfDay, parseISO, isFuture } from "date-fns";
 import { fr } from "date-fns/locale";
 import DOMPurify from "dompurify";
 import EmojiPickerButton from "@/components/ui/emoji-picker-button";
@@ -220,6 +221,49 @@ const CardDetailDrawer = ({
   const [showWinChoiceDialog, setShowWinChoiceDialog] = useState(false);
   const [pendingTrainingParams, setPendingTrainingParams] = useState<URLSearchParams | null>(null);
   const [showSchedulePopover, setShowSchedulePopover] = useState(false);
+
+  // Attach to existing inter-entreprise training state
+  const [interTrainings, setInterTrainings] = useState<Array<{
+    id: string;
+    training_name: string;
+    start_date: string;
+    client_name: string;
+    format_formation: string | null;
+  }>>([]);
+  const [interTrainingsLoading, setInterTrainingsLoading] = useState(false);
+  const [showAttachTraining, setShowAttachTraining] = useState(false);
+
+  // Fetch upcoming inter-entreprise trainings when win dialog opens
+  useEffect(() => {
+    if (!showWinChoiceDialog) {
+      setShowAttachTraining(false);
+      return;
+    }
+    const fetchInterTrainings = async () => {
+      setInterTrainingsLoading(true);
+      const today = format(new Date(), "yyyy-MM-dd");
+      const { data, error } = await supabase
+        .from("trainings")
+        .select("id, training_name, start_date, client_name, format_formation")
+        .eq("format_formation", "inter-entreprises")
+        .gte("start_date", today)
+        .order("start_date", { ascending: true })
+        .limit(50);
+
+      if (!error && data) {
+        setInterTrainings(data);
+      }
+      setInterTrainingsLoading(false);
+    };
+    fetchInterTrainings();
+  }, [showWinChoiceDialog]);
+
+  // Handle attach to existing inter-entreprise training
+  const handleAttachToTraining = (trainingId: string) => {
+    setShowWinChoiceDialog(false);
+    onOpenChange(false);
+    navigate(`/formations/${trainingId}`);
+  };
 
   // Get tomorrow's date as minimum for scheduling
   const tomorrow = format(addDays(new Date(), 1), "yyyy-MM-dd");
@@ -1821,7 +1865,7 @@ const CardDetailDrawer = ({
 
     {/* Win choice dialog - choose formation or mission */}
     <AlertDialog open={showWinChoiceDialog} onOpenChange={setShowWinChoiceDialog}>
-      <AlertDialogContent>
+      <AlertDialogContent className="max-w-lg max-h-[85vh] flex flex-col">
         <AlertDialogHeader>
           <div className="flex items-center gap-3 mb-2">
             <div className="p-2 rounded-full bg-green-100 text-green-600">
@@ -1855,6 +1899,59 @@ const CardDetailDrawer = ({
             <span className="text-xs text-muted-foreground text-center">Préremplir avec les infos de l'opportunité</span>
           </Button>
         </div>
+
+        {/* Attach to existing inter-entreprise training */}
+        <div className="border-t pt-3">
+          <button
+            className="w-full flex items-center justify-between text-sm font-medium text-left px-1 py-1 hover:text-primary transition-colors"
+            onClick={() => setShowAttachTraining(!showAttachTraining)}
+          >
+            <span className="flex items-center gap-2">
+              <UserPlus className="h-4 w-4" />
+              Attacher à une formation inter-entreprise existante
+            </span>
+            <ChevronDown className={cn("h-4 w-4 transition-transform", showAttachTraining && "rotate-180")} />
+          </button>
+
+          {showAttachTraining && (
+            <div className="mt-2 space-y-2">
+              {interTrainingsLoading ? (
+                <div className="flex items-center justify-center py-4">
+                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                </div>
+              ) : interTrainings.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-3">
+                  Aucune formation inter-entreprise à venir
+                </p>
+              ) : (
+                <div className="max-h-48 overflow-y-auto space-y-1 border rounded-md p-1">
+                  {interTrainings.map((training) => (
+                    <button
+                      key={training.id}
+                      onClick={() => handleAttachToTraining(training.id)}
+                      className="w-full text-left px-3 py-2.5 rounded-md hover:bg-muted/50 transition-colors flex items-start gap-3"
+                    >
+                      <GraduationCap className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium truncate">{training.training_name}</div>
+                        <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
+                          <span className="flex items-center gap-1">
+                            <Calendar className="h-3 w-3" />
+                            {format(parseISO(training.start_date), "d MMM yyyy", { locale: fr })}
+                          </span>
+                          <Badge variant="secondary" className="text-[10px] h-4 px-1.5">
+                            Inter-entreprises
+                          </Badge>
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
         <AlertDialogFooter>
           <AlertDialogCancel>Non, plus tard</AlertDialogCancel>
         </AlertDialogFooter>
