@@ -1516,10 +1516,7 @@ const CardDetailDrawer = ({
                   <Input
                     placeholder="Sujet"
                     value={emailSubject}
-                    onChange={(e) => {
-                      setEmailSubject(e.target.value);
-                      setEmailSubjectBeforeAi(null);
-                    }}
+                    onChange={(e) => setEmailSubject(e.target.value)}
                     className="flex-1"
                   />
                   {emailSubjectBeforeAi ? (
@@ -1550,10 +1547,7 @@ const CardDetailDrawer = ({
                 <div className="space-y-2">
                   <EmailEditor
                     content={emailBody}
-                    onChange={(content) => {
-                      setEmailBody(content);
-                      setEmailBodyBeforeAi(null);
-                    }}
+                    onChange={(content) => setEmailBody(content)}
                     placeholder="Corps du message..."
                   />
                   <div className="flex justify-end gap-2">
