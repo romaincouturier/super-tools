@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -16,8 +16,10 @@ import {
   sortableKeyboardCoordinates,
   horizontalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { Plus, Loader2 } from "lucide-react";
+import { Plus, Loader2, Search, X, Building, User, Tag, GraduationCap, Briefcase } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { useCrmBoard, useMoveCard, useCreateColumn, useCrmSettings, useUpdateCard } from "@/hooks/useCrmBoard";
 import { useAuth } from "@/hooks/useAuth";
 import { CrmCard } from "@/types/crm";
@@ -49,6 +51,57 @@ const CrmKanbanBoard = () => {
   // Training creation dialog state
   const [showCreateTrainingDialog, setShowCreateTrainingDialog] = useState(false);
   const [pendingTrainingCard, setPendingTrainingCard] = useState<CrmCard | null>(null);
+
+  // Search state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  const searchRef = useRef<HTMLDivElement>(null);
+
+  // Search across all card fields (including hidden/scheduled cards)
+  const allCards = boardData?.cards || [];
+  const searchResults = useMemo(() => {
+    if (!searchQuery.trim() || searchQuery.trim().length < 2) return [];
+    const q = searchQuery.toLowerCase().trim();
+    return allCards.filter((card) => {
+      const fields = [
+        card.title,
+        card.company,
+        card.first_name,
+        card.last_name,
+        card.email,
+        card.phone,
+        card.description_html?.replace(/<[^>]*>/g, ""),
+        card.next_action_text,
+        card.waiting_next_action_text,
+        card.raw_input,
+        card.linkedin_url,
+        card.website_url,
+        ...(card.tags?.map((t) => t.name) || []),
+      ];
+      return fields.some((f) => f && f.toLowerCase().includes(q));
+    }).slice(0, 10);
+  }, [searchQuery, allCards]);
+
+  // Close search results on click outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+        setShowSearchResults(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleSearchSelect = useCallback((card: CrmCard) => {
+    setSelectedCard(card);
+    setShowSearchResults(false);
+    setSearchQuery("");
+  }, []);
+
+  const getColumnName = useCallback((columnId: string) => {
+    return boardData?.columns.find((c) => c.id === columnId)?.name || "";
+  }, [boardData?.columns]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -288,7 +341,106 @@ const CrmKanbanBoard = () => {
   const tags = boardData?.tags || [];
 
   return (
-    <div className="h-full">
+    <div className="h-full flex flex-col gap-3">
+      {/* Search bar */}
+      <div ref={searchRef} className="relative w-full max-w-md">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Rechercher une opportunité..."
+            value={searchQuery}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setShowSearchResults(true);
+            }}
+            onFocus={() => searchQuery.trim().length >= 2 && setShowSearchResults(true)}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") {
+                setSearchQuery("");
+                setShowSearchResults(false);
+              }
+            }}
+            className="pl-9 pr-8 h-9"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => { setSearchQuery(""); setShowSearchResults(false); }}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+
+        {/* Search results dropdown */}
+        {showSearchResults && searchQuery.trim().length >= 2 && (
+          <div className="absolute z-50 top-full mt-1 w-full max-w-lg bg-background border border-border rounded-lg shadow-lg overflow-hidden">
+            {searchResults.length === 0 ? (
+              <div className="p-3 text-sm text-muted-foreground text-center">
+                Aucun résultat pour "{searchQuery}"
+              </div>
+            ) : (
+              <div className="max-h-80 overflow-y-auto divide-y divide-border">
+                {searchResults.map((card) => (
+                  <button
+                    key={card.id}
+                    onClick={() => handleSearchSelect(card)}
+                    className="w-full text-left px-3 py-2.5 hover:bg-muted/50 transition-colors flex items-start gap-3"
+                  >
+                    <div
+                      className="w-1 self-stretch rounded-full shrink-0 mt-0.5"
+                      style={{
+                        backgroundColor: card.service_type === "formation" ? "#3b82f6" : card.service_type === "mission" ? "#8b5cf6" : "#6b7280",
+                      }}
+                    />
+                    <div className="flex-1 min-w-0 space-y-0.5">
+                      <div className="flex items-center gap-2">
+                        {card.emoji && <span className="text-sm">{card.emoji}</span>}
+                        <span className="text-sm font-medium truncate">{card.title}</span>
+                      </div>
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                        {card.company && (
+                          <span className="flex items-center gap-1">
+                            <Building className="h-3 w-3" />
+                            {card.company}
+                          </span>
+                        )}
+                        {(card.first_name || card.last_name) && (
+                          <span className="flex items-center gap-1">
+                            <User className="h-3 w-3" />
+                            {[card.first_name, card.last_name].filter(Boolean).join(" ")}
+                          </span>
+                        )}
+                        {card.estimated_value > 0 && (
+                          <span className="font-semibold text-green-700">
+                            {card.estimated_value.toLocaleString("fr-FR")} €
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                          {getColumnName(card.column_id)}
+                        </span>
+                        {card.tags && card.tags.slice(0, 2).map((tag) => (
+                          <Badge
+                            key={tag.id}
+                            variant="secondary"
+                            className="text-xs py-0 h-4"
+                            style={{ backgroundColor: tag.color + "20", color: tag.color }}
+                          >
+                            {tag.name}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
       <DndContext
         sensors={sensors}
         collisionDetection={closestCorners}
