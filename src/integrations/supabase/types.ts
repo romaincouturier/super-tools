@@ -477,6 +477,7 @@ export type Database = {
         Row: {
           audit_metadata: Json | null
           client_name: string
+          confirmation_email_sent_at: string | null
           created_at: string
           email_opened_at: string | null
           email_sent_at: string | null
@@ -484,7 +485,9 @@ export type Database = {
           formation_name: string
           id: string
           ip_address: string | null
+          pdf_hash: string | null
           pdf_url: string
+          proof_file_url: string | null
           recipient_email: string
           recipient_name: string | null
           signature_data: string | null
@@ -498,6 +501,7 @@ export type Database = {
         Insert: {
           audit_metadata?: Json | null
           client_name: string
+          confirmation_email_sent_at?: string | null
           created_at?: string
           email_opened_at?: string | null
           email_sent_at?: string | null
@@ -505,7 +509,9 @@ export type Database = {
           formation_name: string
           id?: string
           ip_address?: string | null
+          pdf_hash?: string | null
           pdf_url: string
+          proof_file_url?: string | null
           recipient_email: string
           recipient_name?: string | null
           signature_data?: string | null
@@ -519,6 +525,7 @@ export type Database = {
         Update: {
           audit_metadata?: Json | null
           client_name?: string
+          confirmation_email_sent_at?: string | null
           created_at?: string
           email_opened_at?: string | null
           email_sent_at?: string | null
@@ -526,7 +533,9 @@ export type Database = {
           formation_name?: string
           id?: string
           ip_address?: string | null
+          pdf_hash?: string | null
           pdf_url?: string
+          proof_file_url?: string | null
           recipient_email?: string
           recipient_name?: string | null
           signature_data?: string | null
