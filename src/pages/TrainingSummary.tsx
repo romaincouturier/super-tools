@@ -62,6 +62,7 @@ interface Trainer {
   phone: string | null;
   photo_url: string | null;
   linkedin_url: string | null;
+  cv_url: string | null;
 }
 
 const TrainingSummary = () => {
@@ -521,7 +522,15 @@ END:VCALENDAR`;
                 </>
               ) : (
                 <>
-                  <p className="text-lg">{training.location}</p>
+                  <div className="flex items-center gap-3">
+                    <p className="text-lg">{training.location}</p>
+                    <Button size="sm" asChild>
+                      <a href={getDirectionsUrl()} target="_blank" rel="noopener noreferrer">
+                        <Navigation className="h-4 w-4 mr-2" />
+                        Venir
+                      </a>
+                    </Button>
+                  </div>
 
                   {/* Google Maps embed */}
                   <div className="aspect-video w-full rounded-lg overflow-hidden border">
@@ -534,21 +543,6 @@ END:VCALENDAR`;
                       referrerPolicy="no-referrer-when-downgrade"
                       src={`https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${encodeURIComponent(training.location)}`}
                     />
-                  </div>
-
-                  <div className="flex flex-wrap gap-2">
-                    <Button variant="outline" asChild>
-                      <a href={getGoogleMapsUrl()} target="_blank" rel="noopener noreferrer">
-                        <MapPin className="h-4 w-4 mr-2" />
-                        Voir sur Google Maps
-                      </a>
-                    </Button>
-                    <Button asChild>
-                      <a href={getDirectionsUrl()} target="_blank" rel="noopener noreferrer">
-                        <Navigation className="h-4 w-4 mr-2" />
-                        Venir
-                      </a>
-                    </Button>
                   </div>
                 </>
               )}
@@ -612,6 +606,15 @@ END:VCALENDAR`;
                         <a href={trainer.linkedin_url} target="_blank" rel="noopener noreferrer">
                           <Linkedin className="h-4 w-4 mr-2" />
                           LinkedIn
+                        </a>
+                      </Button>
+                    )}
+
+                    {trainer.cv_url && (
+                      <Button variant="outline" size="sm" asChild>
+                        <a href={trainer.cv_url} target="_blank" rel="noopener noreferrer">
+                          <FileText className="h-4 w-4 mr-2" />
+                          CV
                         </a>
                       </Button>
                     )}

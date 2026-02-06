@@ -429,30 +429,6 @@ const ProgramSelector = ({
               </ScrollArea>
             )}
 
-            {/* Show extract button when a program is selected from library */}
-            {programFileUrl && programFiles.some(f => f.file_url === programFileUrl) && onPrerequisitesExtracted && (
-              <div className="mt-4 pt-4 border-t">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => extractPrerequisitesFromPdf(programFileUrl)}
-                  disabled={extractingPrerequisites}
-                >
-                  {extractingPrerequisites ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Extraction des prérequis...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="h-4 w-4 mr-2" />
-                      Extraire les prérequis avec l'IA
-                    </>
-                  )}
-                </Button>
-              </div>
-            )}
           </TabsContent>
         </Tabs>
       </CardContent>
