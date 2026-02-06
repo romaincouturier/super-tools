@@ -353,7 +353,22 @@ const ParticipantList = ({
       }
 
       if (data?.pdfUrl) {
-        window.open(data.pdfUrl, "_blank");
+        // Download via fetch to avoid cross-origin issues
+        try {
+          const pdfResponse = await fetch(data.pdfUrl);
+          const blob = await pdfResponse.blob();
+          const blobUrl = URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.href = blobUrl;
+          link.download = `Convention_${(participant.first_name || participant.email).replace(/[^a-zA-Z0-9]/g, "_")}.pdf`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(blobUrl);
+        } catch (downloadErr) {
+          console.warn("Blob download failed, opening in new tab:", downloadErr);
+          window.open(data.pdfUrl, "_blank");
+        }
         toast({
           title: "Convention générée",
           description: `La convention pour ${participant.first_name || participant.email} a été générée.`,
