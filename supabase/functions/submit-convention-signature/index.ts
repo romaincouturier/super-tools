@@ -1,9 +1,9 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
-import { PDFDocument, rgb, StandardFonts } from "https://esm.sh/pdf-lib@1.17.1";
 import { getSigniticSignature } from "../_shared/signitic.ts";
 import { getBccSettings } from "../_shared/bcc-settings.ts";
 import { sendEmail } from "../_shared/resend.ts";
+import { generateSignedPdf } from "../_shared/generate-signed-pdf.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -75,179 +75,6 @@ function formatDateFr(dateStr: string): string {
     minute: "2-digit",
     timeZone: "Europe/Paris",
   }).format(date);
-}
-
-const JOURNEY_LABELS: Record<string, string> = {
-  page_loaded: "Page de signature ouverte",
-  first_link_opened: "Premier accès au lien",
-  link_reopened: "Lien réouvert",
-  pdf_consulted: "Convention PDF consultée",
-  signer_name_entered: "Nom du signataire saisi",
-  signature_drawing_started: "Début du tracé de signature",
-  signature_cleared: "Signature effacée et recommencée",
-  consent_checkbox_checked: "Consentement coché",
-  consent_checkbox_unchecked: "Consentement décoché",
-  submit_button_clicked: "Bouton « Signer » cliqué",
-  signature_submitted_server: "Signature enregistrée côté serveur",
-};
-
-function formatTimeFr(dateStr: string): string {
-  const date = new Date(dateStr);
-  return new Intl.DateTimeFormat("fr-FR", {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    timeZone: "Europe/Paris",
-  }).format(date);
-}
-
-async function generateSignedPdf(
-  pdfBuffer: ArrayBuffer,
-  signatureDataUrl: string,
-  signerName: string,
-  signerFunction: string | undefined,
-  signedAt: string,
-  formationName: string,
-  clientName: string,
-  signatureHash: string,
-  ipAddress: string,
-  journeyEvents: JourneyEvent[],
-  pdfHashAtSignature: string | null,
-): Promise<Uint8Array> {
-  // Load the original convention PDF — all its pages stay in the document
-  const pdfDoc = await PDFDocument.load(pdfBuffer);
-  const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
-  const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-
-  // Decode the signature PNG from base64 data URL
-  const base64Data = signatureDataUrl.replace(/^data:image\/png;base64,/, "");
-  const signatureBytes = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
-  const signatureImage = await pdfDoc.embedPng(signatureBytes);
-
-  // ── Attestation page (appended after the original convention) ──
-  const page = pdfDoc.addPage([595.28, 841.89]); // A4
-  const { width, height } = page.getSize();
-  const margin = 50;
-  let y = height - margin;
-
-  // Helper: draw a label/value pair
-  const drawLabelValue = (label: string, value: string, fontSize = 9) => {
-    page.drawText(label, { x: margin, y, size: fontSize, font: helveticaBold, color: rgb(0.3, 0.3, 0.3) });
-    page.drawText(value, { x: margin + 150, y, size: fontSize, font: helvetica, color: rgb(0.1, 0.1, 0.1) });
-    y -= 16;
-  };
-
-  // Helper: draw a long monospace value that might wrap
-  const drawHashLine = (label: string, hash: string) => {
-    page.drawText(label, { x: margin, y, size: 8, font: helveticaBold, color: rgb(0.3, 0.3, 0.3) });
-    y -= 13;
-    // Split hash into chunks of 64 chars for readability
-    const chunkSize = 64;
-    for (let i = 0; i < hash.length; i += chunkSize) {
-      page.drawText(hash.substring(i, i + chunkSize), { x: margin + 10, y, size: 7, font: helvetica, color: rgb(0.2, 0.2, 0.2) });
-      y -= 11;
-    }
-    y -= 4;
-  };
-
-  // ── Title ──
-  page.drawText("ATTESTATION DE SIGNATURE ÉLECTRONIQUE", {
-    x: margin, y, size: 15, font: helveticaBold, color: rgb(0.1, 0.1, 0.1),
-  });
-  y -= 8;
-  page.drawText("Convention de formation", {
-    x: margin, y, size: 10, font: helvetica, color: rgb(0.4, 0.4, 0.4),
-  });
-  y -= 20;
-
-  page.drawLine({ start: { x: margin, y }, end: { x: width - margin, y }, thickness: 1, color: rgb(0.8, 0.8, 0.8) });
-  y -= 20;
-
-  // ── 1. Document info ──
-  drawLabelValue("Formation :", formationName);
-  drawLabelValue("Client :", clientName);
-  drawLabelValue("Signataire :", signerName);
-  if (signerFunction) {
-    drawLabelValue("Fonction :", signerFunction);
-  }
-  drawLabelValue("Date de signature :", formatDateFr(signedAt));
-  drawLabelValue("Adresse IP :", ipAddress);
-  drawLabelValue("Niveau de signature :", "SES – Signature Électronique Simple");
-
-  y -= 8;
-  page.drawLine({ start: { x: margin, y }, end: { x: width - margin, y }, thickness: 0.5, color: rgb(0.85, 0.85, 0.85) });
-  y -= 16;
-
-  // ── 2. Signature image ──
-  page.drawText("Signature manuscrite :", { x: margin, y, size: 9, font: helveticaBold, color: rgb(0.3, 0.3, 0.3) });
-  y -= 10;
-
-  const maxSigWidth = 220;
-  const maxSigHeight = 80;
-  const sigAspect = signatureImage.width / signatureImage.height;
-  let sigW = maxSigWidth;
-  let sigH = sigW / sigAspect;
-  if (sigH > maxSigHeight) { sigH = maxSigHeight; sigW = sigH * sigAspect; }
-
-  page.drawRectangle({
-    x: margin, y: y - sigH - 10, width: sigW + 20, height: sigH + 20,
-    borderColor: rgb(0.85, 0.85, 0.85), borderWidth: 0.5, color: rgb(0.98, 0.98, 0.98),
-  });
-  page.drawImage(signatureImage, { x: margin + 10, y: y - sigH, width: sigW, height: sigH });
-
-  y -= sigH + 30;
-  page.drawLine({ start: { x: margin, y }, end: { x: width - margin, y }, thickness: 0.5, color: rgb(0.85, 0.85, 0.85) });
-  y -= 16;
-
-  // ── 3. Empreintes numériques (full SHA-256) ──
-  page.drawText("Empreintes numériques (SHA-256) :", { x: margin, y, size: 9, font: helveticaBold, color: rgb(0.3, 0.3, 0.3) });
-  y -= 16;
-
-  drawHashLine("Signature :", signatureHash);
-  if (pdfHashAtSignature) {
-    drawHashLine("Document PDF original :", pdfHashAtSignature);
-  }
-
-  page.drawLine({ start: { x: margin, y }, end: { x: width - margin, y }, thickness: 0.5, color: rgb(0.85, 0.85, 0.85) });
-  y -= 16;
-
-  // ── 4. Parcours de signature ──
-  page.drawText("Parcours de signature :", { x: margin, y, size: 9, font: helveticaBold, color: rgb(0.3, 0.3, 0.3) });
-  y -= 14;
-
-  if (journeyEvents.length > 0) {
-    for (const evt of journeyEvents) {
-      if (y < margin + 60) break; // safety: don't overflow
-      const time = formatTimeFr(evt.timestamp);
-      const label = JOURNEY_LABELS[evt.event] || evt.event;
-      page.drawText(`${time}`, { x: margin + 10, y, size: 7.5, font: helvetica, color: rgb(0.4, 0.4, 0.4) });
-      page.drawText(label, { x: margin + 70, y, size: 7.5, font: helvetica, color: rgb(0.2, 0.2, 0.2) });
-      y -= 12;
-    }
-  } else {
-    page.drawText("(parcours non disponible)", { x: margin + 10, y, size: 7.5, font: helvetica, color: rgb(0.5, 0.5, 0.5) });
-    y -= 12;
-  }
-
-  y -= 8;
-  page.drawLine({ start: { x: margin, y }, end: { x: width - margin, y }, thickness: 0.5, color: rgb(0.85, 0.85, 0.85) });
-  y -= 14;
-
-  // ── 5. Legal mention ──
-  const legalLines = [
-    "Ce document scellé (convention originale + attestation de signature) a été généré automatiquement.",
-    "La signature électronique simple (SES) a valeur juridique conformément au règlement européen eIDAS",
-    "(UE n° 910/2014) et aux articles 1366 et 1367 du Code civil français.",
-    "",
-    "Un dossier de preuve complet (métadonnées, parcours, consentement) est conservé séparément.",
-  ];
-  for (const line of legalLines) {
-    if (line === "") { y -= 6; continue; }
-    page.drawText(line, { x: margin, y, size: 7, font: helvetica, color: rgb(0.45, 0.45, 0.45) });
-    y -= 11;
-  }
-
-  return await pdfDoc.save();
 }
 
 serve(async (req: Request): Promise<Response> => {
@@ -520,19 +347,20 @@ serve(async (req: Request): Promise<Response> => {
     let signedPdfUrl: string | null = null;
     try {
       if (pdfBuffer) {
-        const signedPdfBytes = await generateSignedPdf(
+        const signedPdfBytes = await generateSignedPdf({
           pdfBuffer,
-          signatureData,
+          signatureDataUrl: signatureData,
           signerName,
           signerFunction,
           signedAt,
-          conventionSig.formation_name,
-          conventionSig.client_name,
+          documentType: "Convention de formation",
+          documentTitle: conventionSig.formation_name,
+          clientName: conventionSig.client_name,
           signatureHash,
           ipAddress,
-          serverJourneyEvents,
+          journeyEvents: serverJourneyEvents,
           pdfHashAtSignature,
-        );
+        });
 
         const signedFileName = `signed-conventions/${conventionSig.training_id}/convention_signee_${conventionSig.id}.pdf`;
 
