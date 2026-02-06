@@ -1,9 +1,9 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
-import { PDFDocument, rgb, StandardFonts } from "https://esm.sh/pdf-lib@1.17.1";
 import { getSigniticSignature } from "../_shared/signitic.ts";
 import { getBccSettings } from "../_shared/bcc-settings.ts";
 import { sendEmail } from "../_shared/resend.ts";
+import { generateSignedPdf } from "../_shared/generate-signed-pdf.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -75,135 +75,6 @@ function formatDateFr(dateStr: string): string {
     minute: "2-digit",
     timeZone: "Europe/Paris",
   }).format(date);
-}
-
-async function generateSignedPdf(
-  pdfBuffer: ArrayBuffer,
-  signatureDataUrl: string,
-  signerName: string,
-  signerFunction: string | undefined,
-  signedAt: string,
-  formationName: string,
-  clientName: string,
-  signatureHash: string,
-): Promise<Uint8Array> {
-  const pdfDoc = await PDFDocument.load(pdfBuffer);
-  const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
-  const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-
-  // Decode the signature PNG from base64 data URL
-  const base64Data = signatureDataUrl.replace(/^data:image\/png;base64,/, "");
-  const signatureBytes = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
-  const signatureImage = await pdfDoc.embedPng(signatureBytes);
-
-  // Add a signature page at the end
-  const page = pdfDoc.addPage([595.28, 841.89]); // A4
-  const { width, height } = page.getSize();
-  const margin = 60;
-  let y = height - margin;
-
-  // Title
-  page.drawText("ATTESTATION DE SIGNATURE ÉLECTRONIQUE", {
-    x: margin,
-    y,
-    size: 16,
-    font: helveticaBold,
-    color: rgb(0.1, 0.1, 0.1),
-  });
-  y -= 30;
-
-  // Separator line
-  page.drawLine({
-    start: { x: margin, y },
-    end: { x: width - margin, y },
-    thickness: 1,
-    color: rgb(0.8, 0.8, 0.8),
-  });
-  y -= 30;
-
-  // Document info
-  const drawLabelValue = (label: string, value: string) => {
-    page.drawText(label, { x: margin, y, size: 10, font: helveticaBold, color: rgb(0.3, 0.3, 0.3) });
-    page.drawText(value, { x: margin + 160, y, size: 10, font: helvetica, color: rgb(0.1, 0.1, 0.1) });
-    y -= 20;
-  };
-
-  drawLabelValue("Formation :", formationName);
-  drawLabelValue("Client :", clientName);
-  drawLabelValue("Signataire :", signerName);
-  if (signerFunction) {
-    drawLabelValue("Fonction :", signerFunction);
-  }
-  drawLabelValue("Date de signature :", formatDateFr(signedAt));
-  drawLabelValue("Empreinte numérique :", signatureHash.substring(0, 32) + "...");
-  drawLabelValue("Niveau de signature :", "SES (Signature Électronique Simple)");
-
-  y -= 20;
-
-  // Signature image
-  page.drawText("Signature :", { x: margin, y, size: 10, font: helveticaBold, color: rgb(0.3, 0.3, 0.3) });
-  y -= 10;
-
-  // Scale signature to fit within a reasonable area
-  const maxSigWidth = 250;
-  const maxSigHeight = 100;
-  const sigAspect = signatureImage.width / signatureImage.height;
-  let sigW = maxSigWidth;
-  let sigH = sigW / sigAspect;
-  if (sigH > maxSigHeight) {
-    sigH = maxSigHeight;
-    sigW = sigH * sigAspect;
-  }
-
-  // Draw a light border around the signature area
-  page.drawRectangle({
-    x: margin,
-    y: y - sigH - 10,
-    width: sigW + 20,
-    height: sigH + 20,
-    borderColor: rgb(0.85, 0.85, 0.85),
-    borderWidth: 0.5,
-    color: rgb(0.98, 0.98, 0.98),
-  });
-
-  page.drawImage(signatureImage, {
-    x: margin + 10,
-    y: y - sigH,
-    width: sigW,
-    height: sigH,
-  });
-
-  y -= sigH + 40;
-
-  // Separator
-  page.drawLine({
-    start: { x: margin, y },
-    end: { x: width - margin, y },
-    thickness: 0.5,
-    color: rgb(0.8, 0.8, 0.8),
-  });
-  y -= 20;
-
-  // Legal mention
-  const legalLines = [
-    "Ce document a été signé électroniquement conformément au règlement européen",
-    "eIDAS (UE n° 910/2014) et aux articles 1366 et 1367 du Code civil français.",
-    "",
-    "Cette signature électronique simple (SES) a valeur juridique et engage le signataire.",
-    "Un dossier de preuve complet incluant les métadonnées techniques, le parcours",
-    "de signature et le consentement explicite est conservé séparément.",
-  ];
-
-  for (const line of legalLines) {
-    if (line === "") {
-      y -= 8;
-      continue;
-    }
-    page.drawText(line, { x: margin, y, size: 8, font: helvetica, color: rgb(0.45, 0.45, 0.45) });
-    y -= 14;
-  }
-
-  return await pdfDoc.save();
 }
 
 serve(async (req: Request): Promise<Response> => {
@@ -476,16 +347,20 @@ serve(async (req: Request): Promise<Response> => {
     let signedPdfUrl: string | null = null;
     try {
       if (pdfBuffer) {
-        const signedPdfBytes = await generateSignedPdf(
+        const signedPdfBytes = await generateSignedPdf({
           pdfBuffer,
-          signatureData,
+          signatureDataUrl: signatureData,
           signerName,
           signerFunction,
           signedAt,
-          conventionSig.formation_name,
-          conventionSig.client_name,
+          documentType: "Convention de formation",
+          documentTitle: conventionSig.formation_name,
+          clientName: conventionSig.client_name,
           signatureHash,
-        );
+          ipAddress,
+          journeyEvents: serverJourneyEvents,
+          pdfHashAtSignature,
+        });
 
         const signedFileName = `signed-conventions/${conventionSig.training_id}/convention_signee_${conventionSig.id}.pdf`;
 

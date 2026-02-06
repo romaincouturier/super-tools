@@ -57,6 +57,7 @@ const FormationCreate = () => {
   const [clientName, setClientName] = useState("");
   const [clientAddress, setClientAddress] = useState("");
   const [soldPriceHt, setSoldPriceHt] = useState<string>("");
+  const [maxParticipants, setMaxParticipants] = useState<string>("");
   const [formatFormation, setFormatFormation] = useState<string>("");
   const [prerequisites, setPrerequisites] = useState<string[]>([]);
   const [objectives, setObjectives] = useState<string[]>([]);
@@ -243,12 +244,10 @@ const FormationCreate = () => {
       ? (elearningStartDate && elearningEndDate)
       : (selectedDates.length > 0);
 
-    if (!hasValidDates || !trainingName || !finalLocation || !clientName || !user) {
+    if (!hasValidDates || !trainingName || !finalLocation || !clientName || !maxParticipants || parseInt(maxParticipants, 10) < 1 || !user) {
       toast({
         title: "Champs requis",
-        description: isElearning
-          ? "Veuillez remplir tous les champs obligatoires (dates de début et fin, nom, lieu, client)."
-          : "Veuillez remplir tous les champs obligatoires (dates, nom, lieu, client).",
+        description: "Veuillez remplir tous les champs obligatoires, y compris le nombre maximum de participants (minimum 1).",
         variant: "destructive",
       });
       return;
@@ -268,6 +267,7 @@ const FormationCreate = () => {
           client_name: clientName,
           client_address: clientAddress || null,
           sold_price_ht: soldPriceHt ? Math.round(parseFloat(soldPriceHt) * 100) / 100 : null,
+          max_participants: maxParticipants ? parseInt(maxParticipants, 10) : 0,
           evaluation_link: "", // Field hidden from UI but required by schema
           format_formation: formatFormation || null,
           prerequisites,
@@ -681,6 +681,25 @@ const FormationCreate = () => {
                   {formatFormation === "inter-entreprises"
                     ? "Prix par participant, utilisé dans les conventions individuelles"
                     : "Montant total HT, utilisé dans la convention de formation"}
+                </p>
+              </div>
+
+              {/* Max Participants */}
+              <div className="space-y-2">
+                <Label htmlFor="maxParticipants">
+                  Nombre maximum de participants <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="maxParticipants"
+                  type="number"
+                  min="1"
+                  value={maxParticipants}
+                  onChange={(e) => setMaxParticipants(e.target.value)}
+                  placeholder="Ex: 12"
+                  required
+                />
+                <p className="text-xs text-muted-foreground">
+                  Obligatoire pour la génération de la convention. Les places restantes seront indiquées comme "Prénom, nom, e-mail".
                 </p>
               </div>
 

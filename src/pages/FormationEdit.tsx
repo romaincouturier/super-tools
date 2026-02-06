@@ -44,6 +44,7 @@ const FormationEdit = () => {
   const [clientName, setClientName] = useState("");
   const [clientAddress, setClientAddress] = useState("");
   const [soldPriceHt, setSoldPriceHt] = useState<string>("");
+  const [maxParticipants, setMaxParticipants] = useState<string>("");
   const [formatFormation, setFormatFormation] = useState<string>("");
   const [prerequisites, setPrerequisites] = useState<string[]>([]);
   const [objectives, setObjectives] = useState<string[]>([]);
@@ -114,6 +115,7 @@ const FormationEdit = () => {
       setClientName(training.client_name);
       setClientAddress(training.client_address || "");
       setSoldPriceHt(training.sold_price_ht != null ? String(training.sold_price_ht) : "");
+      setMaxParticipants(training.max_participants != null ? String(training.max_participants) : "");
       setFormatFormation(training.format_formation || "");
       setPrerequisites(training.prerequisites || []);
       setObjectives(training.objectives || []);
@@ -304,6 +306,7 @@ const FormationEdit = () => {
           client_name: clientName,
           client_address: clientAddress || null,
           sold_price_ht: soldPriceHt ? Math.round(parseFloat(soldPriceHt) * 100) / 100 : null,
+          max_participants: maxParticipants ? parseInt(maxParticipants, 10) : 0,
           format_formation: formatFormation || null,
           prerequisites,
           objectives,
@@ -649,6 +652,25 @@ const FormationEdit = () => {
                       {formatFormation === "inter-entreprises"
                         ? "Prix par participant, utilisé dans les conventions individuelles"
                         : "Montant total HT, utilisé dans la convention de formation"}
+                    </p>
+                  </div>
+
+                  {/* Max Participants */}
+                  <div className="space-y-2">
+                    <Label htmlFor="maxParticipants">
+                      Nombre maximum de participants <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      id="maxParticipants"
+                      type="number"
+                      min="1"
+                      value={maxParticipants}
+                      onChange={(e) => setMaxParticipants(e.target.value)}
+                      placeholder="Ex: 12"
+                      required
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Obligatoire pour la génération de la convention.
                     </p>
                   </div>
 
