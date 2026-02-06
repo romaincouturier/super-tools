@@ -287,6 +287,7 @@ const BulkAddParticipantsDialog = ({
       }
 
       // If status is "programme", create scheduled emails for needs survey
+      let needsSurveySkipped = false;
       if (status === "programme" && data && data.length > 0 && trainingStartDate) {
         try {
           const [workingDays, needsSurveyDelay] = await Promise.all([
@@ -296,7 +297,7 @@ const BulkAddParticipantsDialog = ({
 
           const startDate = parseISO(trainingStartDate);
           const scheduledDate = subtractWorkingDays(startDate, needsSurveyDelay, workingDays);
-          
+
           // Only schedule if the date is in the future
           if (scheduledDate > new Date()) {
             const scheduledEmails = data.map((participant) => ({
@@ -308,6 +309,8 @@ const BulkAddParticipantsDialog = ({
             }));
 
             await supabase.from("scheduled_emails").insert(scheduledEmails);
+          } else {
+            needsSurveySkipped = true;
           }
         } catch (scheduleError) {
           console.error("Failed to schedule needs survey emails:", scheduleError);
@@ -333,18 +336,23 @@ const BulkAddParticipantsDialog = ({
       const insertedCount = data?.length || 0;
       let statusMessage = "";
       if (status === "non_envoye") {
-        statusMessage = "Formation passée - pas d'envoi programmé.";
+        statusMessage = "Formation passée — aucun email programmé.";
       } else if (status === "manuel") {
         statusMessage = "Mode manuel activé (formation proche).";
+      } else if ((status === "accueil_envoye" || sendWelcomeNow) && needsSurveySkipped) {
+        statusMessage = "Mails d'accueil envoyés. ⚠️ Le recueil des besoins n'a pas été programmé car la date d'envoi est dépassée.";
       } else if (status === "accueil_envoye" || sendWelcomeNow) {
-        statusMessage = "Mails d'accueil envoyés.";
+        statusMessage = "Mails d'accueil envoyés, recueil des besoins programmé.";
+      } else if (needsSurveySkipped) {
+        statusMessage = "⚠️ Le recueil des besoins n'a pas été programmé car la date d'envoi est dépassée.";
       } else {
         statusMessage = "Recueil des besoins programmé.";
       }
-      
+
       toast({
         title: "Participants ajoutés",
         description: `${insertedCount} participant${insertedCount !== 1 ? "s" : ""} ajouté${insertedCount !== 1 ? "s" : ""}. ${statusMessage}`,
+        ...(needsSurveySkipped && { duration: 8000 }),
       });
 
       setBulkText("");
