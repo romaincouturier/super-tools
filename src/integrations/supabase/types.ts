@@ -2462,6 +2462,7 @@ export type Database = {
       trainings: {
         Row: {
           attendance_sheets_urls: string[] | null
+          client_address: string | null
           client_name: string
           convention_file_url: string | null
           created_at: string
@@ -2496,6 +2497,7 @@ export type Database = {
         }
         Insert: {
           attendance_sheets_urls?: string[] | null
+          client_address?: string | null
           client_name: string
           convention_file_url?: string | null
           created_at?: string
@@ -2530,6 +2532,7 @@ export type Database = {
         }
         Update: {
           attendance_sheets_urls?: string[] | null
+          client_address?: string | null
           client_name?: string
           convention_file_url?: string | null
           created_at?: string

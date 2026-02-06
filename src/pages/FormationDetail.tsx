@@ -36,6 +36,7 @@ interface Training {
   training_name: string;
   location: string;
   client_name: string;
+  client_address: string | null;
   evaluation_link: string;
   program_file_url: string | null;
   prerequisites: string[];
@@ -605,6 +606,25 @@ const FormationDetail = () => {
                   <Building className="h-3.5 w-3.5" />
                   {training.client_name}
                 </Badge>
+                {training.client_address && (
+                  <Badge variant="outline" className="flex items-center gap-1.5 group">
+                    <MapPin className="h-3.5 w-3.5" />
+                    {training.client_address}
+                    <button
+                      type="button"
+                      className="ml-1 p-0.5 rounded hover:bg-muted transition-colors"
+                      onClick={() => {
+                        navigator.clipboard.writeText(training.client_address!);
+                        toast({
+                          title: "Adresse copiée",
+                          description: "L'adresse du client a été copiée.",
+                        });
+                      }}
+                    >
+                      <Copy className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
+                    </button>
+                  </Badge>
+                )}
                 <Badge variant="outline" className="flex items-center gap-1.5 group">
                   <MapPin className="h-3.5 w-3.5" />
                   {training.location}
