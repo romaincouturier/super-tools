@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 import { Loader2, ArrowLeft, Calendar, Users, FileText, ExternalLink, Edit2, User as UserIcon, Mail, MapPin, Building, Map, Train, Hotel, UtensilsCrossed, Clock, Copy, Check, AlertCircle, Share2, CheckCircle2, Euro } from "lucide-react";
@@ -83,6 +83,7 @@ interface Participant {
 
 const FormationDetail = () => {
   const { id } = useParams<{ id: string }>();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [training, setTraining] = useState<Training | null>(null);
@@ -94,8 +95,30 @@ const FormationDetail = () => {
   const [savingActions, setSavingActions] = useState(false);
   const [mapDialogOpen, setMapDialogOpen] = useState(false);
   const [emailsRefreshTrigger, setEmailsRefreshTrigger] = useState(0);
+  const [autoAddParticipantOpen, setAutoAddParticipantOpen] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  // Auto-open add participant dialog from URL params (CRM integration)
+  const addParticipantFirstName = searchParams.get("addParticipantFirstName") || undefined;
+  const addParticipantLastName = searchParams.get("addParticipantLastName") || undefined;
+  const addParticipantEmail = searchParams.get("addParticipantEmail") || undefined;
+  const addParticipantCompany = searchParams.get("addParticipantCompany") || undefined;
+  const hasAddParticipantParams = !!(addParticipantFirstName || addParticipantLastName || addParticipantEmail);
+
+  useEffect(() => {
+    if (hasAddParticipantParams && !loading && training) {
+      setAutoAddParticipantOpen(true);
+      // Clean up URL params
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete("addParticipantFirstName");
+      newParams.delete("addParticipantLastName");
+      newParams.delete("addParticipantEmail");
+      newParams.delete("addParticipantCompany");
+      newParams.delete("fromCrmCardId");
+      setSearchParams(newParams, { replace: true });
+    }
+  }, [hasAddParticipantParams, loading, training]);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -885,6 +908,12 @@ const FormationDetail = () => {
                       formatFormation={training.format_formation}
                       onParticipantAdded={fetchParticipants}
                       onScheduledEmailsRefresh={() => setEmailsRefreshTrigger(prev => prev + 1)}
+                      initialFirstName={addParticipantFirstName}
+                      initialLastName={addParticipantLastName}
+                      initialEmail={addParticipantEmail}
+                      initialCompany={addParticipantCompany}
+                      externalOpen={autoAddParticipantOpen}
+                      onExternalOpenChange={setAutoAddParticipantOpen}
                     />
                   </div>
                 </div>

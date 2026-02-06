@@ -320,6 +320,20 @@ const CrmKanbanBoard = () => {
     }
   };
 
+  const handleConfirmAddParticipant = (trainingId: string) => {
+    if (pendingTrainingCard) {
+      const params = new URLSearchParams();
+      if (pendingTrainingCard.first_name) params.set("addParticipantFirstName", pendingTrainingCard.first_name);
+      if (pendingTrainingCard.last_name) params.set("addParticipantLastName", pendingTrainingCard.last_name);
+      if (pendingTrainingCard.email) params.set("addParticipantEmail", pendingTrainingCard.email);
+      if (pendingTrainingCard.company) params.set("addParticipantCompany", pendingTrainingCard.company);
+      params.set("fromCrmCardId", pendingTrainingCard.id);
+      setShowCreateTrainingDialog(false);
+      navigate(`/formations/${trainingId}?${params.toString()}`);
+      setPendingTrainingCard(null);
+    }
+  };
+
   const handleAddColumn = async (name: string) => {
     createColumn.mutate({ name });
     setShowAddColumn(false);
@@ -515,8 +529,10 @@ const CrmKanbanBoard = () => {
           setShowCreateTrainingDialog(open);
           if (!open) setPendingTrainingCard(null);
         }}
-        onConfirm={handleConfirmCreateTraining}
+        onConfirmCreate={handleConfirmCreateTraining}
+        onConfirmAddParticipant={handleConfirmAddParticipant}
         opportunityTitle={pendingTrainingCard?.title || ""}
+        isFormation={pendingTrainingCard?.service_type === "formation" || !pendingTrainingCard?.service_type}
       />
     </div>
   );
