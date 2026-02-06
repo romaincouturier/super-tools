@@ -25,7 +25,6 @@ import BulkAddParticipantsDialog from "@/components/formations/BulkAddParticipan
 import DocumentsManager from "@/components/formations/DocumentsManager";
 import ScheduledEmailsSummary from "@/components/formations/ScheduledEmailsSummary";
 import NeedsSurveySummaryDialog from "@/components/formations/NeedsSurveySummaryDialog";
-import AttendanceSheetGenerator from "@/components/formations/AttendanceSheetGenerator";
 import AttendanceSignatureBlock from "@/components/formations/AttendanceSignatureBlock";
 import ScheduledActionsEditor, { ScheduledAction } from "@/components/formations/ScheduledActionsEditor";
 
@@ -175,6 +174,7 @@ const FormationDetail = () => {
         dueDate: new Date(action.due_date),
         assignedEmail: action.assigned_user_email,
         assignedName: action.assigned_user_name || "",
+        completed: action.status === "completed",
       })));
     }
   };
@@ -251,6 +251,32 @@ const FormationDetail = () => {
       });
     } finally {
       setSavingActions(false);
+    }
+  };
+
+  const handleToggleActionComplete = async (actionId: string, completed: boolean) => {
+    if (!id) return;
+    try {
+      const { error } = await supabase
+        .from("training_actions")
+        .update({
+          status: completed ? "completed" : "pending",
+          completed_at: completed ? new Date().toISOString() : null,
+        })
+        .eq("id", actionId);
+
+      if (error) throw error;
+
+      setScheduledActions((prev) =>
+        prev.map((a) => (a.id === actionId ? { ...a, completed } : a))
+      );
+    } catch (error) {
+      console.error("Error toggling action:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de mettre à jour l'action.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -557,15 +583,6 @@ const FormationDetail = () => {
               </div>
             )}
             
-            <AttendanceSheetGenerator
-              trainingName={training.training_name}
-              trainerName={training.trainer_name}
-              location={training.location}
-              startDate={training.start_date}
-              endDate={training.end_date}
-              schedules={schedules}
-              participants={participants}
-            />
             <Button
               variant="outline"
               size="sm"
@@ -913,6 +930,10 @@ const FormationDetail = () => {
             evaluationLink={training.evaluation_link}
             formatFormation={training.format_formation}
             conventionFileUrl={training.convention_file_url}
+            trainerName={training.trainer_name}
+            location={training.location}
+            schedules={schedules}
+            participants={participants}
             signedConventionUrls={training.signed_convention_urls || []}
             onUpdate={fetchTrainingData}
           />
@@ -933,6 +954,7 @@ const FormationDetail = () => {
             onActionsChange={setScheduledActions}
             onSave={() => handleSaveActions(scheduledActions)}
             saving={savingActions}
+            onToggleComplete={handleToggleActionComplete}
           />
 
           {/* Attendance Signature */}

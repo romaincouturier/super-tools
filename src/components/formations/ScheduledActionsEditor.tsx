@@ -1,4 +1,4 @@
-import { Plus, Trash2, Calendar, User, AlertCircle, Loader2, Check, Pencil } from "lucide-react";
+import { Plus, Trash2, Calendar, User, AlertCircle, Loader2, Check, Pencil, CheckCircle2 } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import UserEmailCombobox from "./UserEmailCombobox";
 
@@ -16,6 +17,7 @@ export interface ScheduledAction {
   dueDate: Date | undefined;
   assignedEmail: string;
   assignedName: string;
+  completed?: boolean;
 }
 
 interface ScheduledActionsEditorProps {
@@ -23,6 +25,7 @@ interface ScheduledActionsEditorProps {
   onActionsChange: (actions: ScheduledAction[]) => void;
   onSave?: () => void;
   saving?: boolean;
+  onToggleComplete?: (actionId: string, completed: boolean) => void;
 }
 
 // Check if an ID is a database UUID (saved) or a temporary ID (unsaved)
@@ -31,7 +34,7 @@ const isSavedAction = (id: string) => {
   return !id.startsWith("action_");
 };
 
-const ScheduledActionsEditor = ({ actions, onActionsChange, onSave, saving }: ScheduledActionsEditorProps) => {
+const ScheduledActionsEditor = ({ actions, onActionsChange, onSave, saving, onToggleComplete }: ScheduledActionsEditorProps) => {
   const generateId = () => `action_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
   const addAction = () => {
@@ -90,10 +93,21 @@ const ScheduledActionsEditor = ({ actions, onActionsChange, onSave, saving }: Sc
             {savedActions.map((action) => (
               <div
                 key={action.id}
-                className="border rounded-lg p-3 bg-muted/20 flex items-start justify-between gap-3"
+                className={cn(
+                  "border rounded-lg p-3 flex items-start gap-3",
+                  action.completed ? "bg-muted/40 opacity-70" : "bg-muted/20"
+                )}
               >
-                <div className="flex-1 space-y-1">
-                  <p className="font-medium">{action.description}</p>
+                <Checkbox
+                  checked={action.completed ?? false}
+                  onCheckedChange={(checked) => {
+                    onToggleComplete?.(action.id, checked === true);
+                  }}
+                  className="mt-1"
+                  title={action.completed ? "Marquer comme à faire" : "Marquer comme terminée"}
+                />
+                <div className="flex-1 space-y-1 min-w-0">
+                  <p className={cn("font-medium", action.completed && "line-through text-muted-foreground")}>{action.description}</p>
                   <div className="flex items-center gap-4 text-sm text-muted-foreground">
                     <span className="flex items-center gap-1">
                       <Calendar className="h-3.5 w-3.5" />
@@ -105,6 +119,12 @@ const ScheduledActionsEditor = ({ actions, onActionsChange, onSave, saving }: Sc
                       <User className="h-3.5 w-3.5" />
                       {action.assignedName || action.assignedEmail}
                     </span>
+                    {action.completed && (
+                      <span className="flex items-center gap-1 text-primary">
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                        Terminée
+                      </span>
+                    )}
                   </div>
                 </div>
                 <Button
@@ -193,33 +213,18 @@ const ScheduledActionsEditor = ({ actions, onActionsChange, onSave, saving }: Sc
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor={`name-${action.id}`}>Nom de la personne</Label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id={`name-${action.id}`}
-                    value={action.assignedName}
-                    onChange={(e) => updateAction(action.id, "assignedName", e.target.value)}
-                    placeholder="Ex: Marie Martin"
-                    className="pl-9"
-                  />
-                </div>
+                <Label>En charge de l'action *</Label>
+                <UserEmailCombobox
+                  value={action.assignedEmail}
+                  onChange={(email, name) => {
+                    updateAction(action.id, "assignedEmail", email);
+                    if (name) {
+                      updateAction(action.id, "assignedName", name);
+                    }
+                  }}
+                  placeholder="Sélectionner un utilisateur ou saisir un email"
+                />
               </div>
-            </div>
-
-            {/* Email */}
-            <div className="space-y-2">
-              <Label>Email de la personne concernée *</Label>
-              <UserEmailCombobox
-                value={action.assignedEmail}
-                onChange={(email, name) => {
-                  updateAction(action.id, "assignedEmail", email);
-                  if (name && !action.assignedName) {
-                    updateAction(action.id, "assignedName", name);
-                  }
-                }}
-                placeholder="Sélectionner un utilisateur ou saisir un email"
-              />
             </div>
 
             {/* Save button per action */}

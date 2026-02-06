@@ -578,21 +578,30 @@ romain@supertilt.fr`;
     return participant.email;
   };
 
-  // Group emails by type
-  const groupedEmails = emails.reduce((acc, email) => {
-    const type = email.email_type;
-    if (!acc[type]) {
-      acc[type] = [];
-    }
-    acc[type].push(email);
-    return acc;
-  }, {} as Record<string, ScheduledEmail[]>);
+  // Split emails into pending vs sent
+  const pendingEmailsList = emails.filter(e => e.status === "pending" && !e.sent_at);
+  const sentEmailsList = emails.filter(e => e.status === "sent" || e.sent_at);
+  const errorEmailsList = emails.filter(e => e.status === "error" && !e.sent_at);
+  // Errors go in the scheduled section
+  const scheduledEmails = [...pendingEmailsList, ...errorEmailsList];
+
+  // Group each section by type
+  const groupByType = (list: ScheduledEmail[]) =>
+    list.reduce((acc, email) => {
+      const type = email.email_type;
+      if (!acc[type]) acc[type] = [];
+      acc[type].push(email);
+      return acc;
+    }, {} as Record<string, ScheduledEmail[]>);
+
+  const groupedScheduled = groupByType(scheduledEmails);
+  const groupedSent = groupByType(sentEmailsList);
 
   // Calculate summary stats
   const totalEmails = emails.length;
-  const sentEmails = emails.filter(e => e.status === "sent" || e.sent_at).length;
-  const pendingEmails = emails.filter(e => e.status === "pending" && !e.sent_at).length;
-  const errorEmails = emails.filter(e => e.status === "error" || e.error_message).length;
+  const sentEmails = sentEmailsList.length;
+  const pendingEmails = pendingEmailsList.length;
+  const errorEmails = errorEmailsList.length;
 
   if (loading) {
     return (
@@ -712,117 +721,112 @@ romain@supertilt.fr`;
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {Object.entries(groupedEmails).map(([type, typeEmails]) => {
-            const sentCount = typeEmails.filter(e => e.status === "sent" || e.sent_at).length;
-            const pendingCount = typeEmails.filter(e => e.status === "pending" && !e.sent_at).length;
-            const errorCount = typeEmails.filter(e => e.status === "error" || e.error_message).length;
-            
-            return (
-              <Collapsible key={type} defaultOpen={false}>
-                <CollapsibleTrigger asChild>
-                  <Button 
-                    variant="ghost" 
-                    className="w-full justify-between h-auto py-2 px-3 hover:bg-muted/50"
-                  >
-                    <span className="flex items-center gap-2 text-sm font-medium">
-                      {getEmailTypeLabel(type)}
-                      <Badge variant="outline" className="text-xs">
-                        {typeEmails.length}
-                      </Badge>
-                    </span>
-                    <span className="flex items-center gap-2">
-                      {sentCount > 0 && (
-                        <Badge className="text-xs bg-primary/10 text-primary">
-                          {sentCount} envoyé{sentCount > 1 ? "s" : ""}
-                        </Badge>
-                      )}
-                      {pendingCount > 0 && (
-                        <Badge variant="secondary" className="text-xs">
-                          {pendingCount} en attente
-                        </Badge>
-                      )}
-                      {errorCount > 0 && (
-                        <Badge variant="destructive" className="text-xs">
-                          {errorCount} erreur{errorCount > 1 ? "s" : ""}
-                        </Badge>
-                      )}
+          {/* Sub-section: Programmés */}
+          {scheduledEmails.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-sm font-medium flex items-center gap-2">
+                <Clock className="h-4 w-4" />
+                Programmés ({scheduledEmails.length})
+              </p>
+              {Object.entries(groupedScheduled).map(([type, typeEmails]) => (
+                <Collapsible key={`scheduled-${type}`} defaultOpen={false}>
+                  <CollapsibleTrigger asChild>
+                    <Button variant="ghost" className="w-full justify-between h-auto py-2 px-3 hover:bg-muted/50">
+                      <span className="flex items-center gap-2 text-sm font-medium">
+                        {getEmailTypeLabel(type)}
+                        <Badge variant="outline" className="text-xs">{typeEmails.length}</Badge>
+                      </span>
                       <ChevronDown className="h-4 w-4 transition-transform [[data-state=open]>&]:rotate-180" />
-                    </span>
-                  </Button>
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                  <div className="space-y-1.5 mt-2 ml-3">
-                    {typeEmails.map((email) => (
-                      <div
-                        key={email.id}
-                        className="flex items-center justify-between gap-2 text-sm p-2 rounded-md bg-muted/50 hover:bg-muted cursor-pointer transition-colors"
-                        onClick={() => setSelectedEmail(email)}
-                      >
-                        <div className="flex-1 min-w-0">
-                          <span className="truncate block">
-                            {getParticipantName(email.participant_id)}
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            {email.sent_at 
-                              ? `Envoyé le ${format(parseISO(email.sent_at), "d MMM à HH:mm", { locale: fr })}`
-                              : `Prévu le ${format(parseISO(email.scheduled_for), "d MMM à HH:mm", { locale: fr })}`
-                            }
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {getStatusBadge(email)}
-                          {email.status !== "sent" && !email.sent_at && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7 text-primary hover:text-primary/80"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleForceSend(email);
-                              }}
-                              disabled={forceSending === email.id}
-                              title="Forcer l'envoi"
-                            >
-                              {forceSending === email.id ? (
-                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                              ) : (
-                                <Send className="h-3.5 w-3.5" />
-                              )}
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <div className="space-y-1.5 mt-2 ml-3">
+                      {typeEmails.map((email) => (
+                        <div
+                          key={email.id}
+                          className="flex items-center justify-between gap-2 text-sm p-2 rounded-md bg-muted/50 hover:bg-muted cursor-pointer transition-colors"
+                          onClick={() => setSelectedEmail(email)}
+                        >
+                          <div className="flex-1 min-w-0">
+                            <span className="truncate block">{getParticipantName(email.participant_id)}</span>
+                            <span className="text-xs text-muted-foreground">
+                              Prévu le {format(parseISO(email.scheduled_for), "d MMM à HH:mm", { locale: fr })}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {getStatusBadge(email)}
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-primary hover:text-primary/80"
+                              onClick={(e) => { e.stopPropagation(); handleForceSend(email); }}
+                              disabled={forceSending === email.id} title="Forcer l'envoi">
+                              {forceSending === email.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
                             </Button>
-                          )}
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedEmail(email);
-                            }}
-                          >
-                            <Eye className="h-3.5 w-3.5" />
-                          </Button>
-                          {email.status !== "sent" && !email.sent_at && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setEmailToDelete(email);
-                              }}
-                            >
+                            <Button variant="ghost" size="icon" className="h-7 w-7"
+                              onClick={(e) => { e.stopPropagation(); setSelectedEmail(email); }}>
+                              <Eye className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                              onClick={(e) => { e.stopPropagation(); setEmailToDelete(email); }}>
                               <Trash2 className="h-3.5 w-3.5" />
                             </Button>
-                          )}
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                </CollapsibleContent>
-              </Collapsible>
-            );
-          })}
-          
+                      ))}
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
+              ))}
+            </div>
+          )}
+
+          {/* Sub-section: Envoyés */}
+          {sentEmailsList.length > 0 && (
+            <div className="space-y-2">
+              {scheduledEmails.length > 0 && <div className="border-t pt-4" />}
+              <p className="text-sm font-medium flex items-center gap-2">
+                <CheckCircle className="h-4 w-4 text-primary" />
+                Envoyés ({sentEmailsList.length})
+              </p>
+              {Object.entries(groupedSent).map(([type, typeEmails]) => (
+                <Collapsible key={`sent-${type}`} defaultOpen={false}>
+                  <CollapsibleTrigger asChild>
+                    <Button variant="ghost" className="w-full justify-between h-auto py-2 px-3 hover:bg-muted/50">
+                      <span className="flex items-center gap-2 text-sm font-medium">
+                        {getEmailTypeLabel(type)}
+                        <Badge className="text-xs bg-primary/10 text-primary">{typeEmails.length}</Badge>
+                      </span>
+                      <ChevronDown className="h-4 w-4 transition-transform [[data-state=open]>&]:rotate-180" />
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <div className="space-y-1.5 mt-2 ml-3">
+                      {typeEmails.map((email) => (
+                        <div
+                          key={email.id}
+                          className="flex items-center justify-between gap-2 text-sm p-2 rounded-md bg-muted/50 hover:bg-muted cursor-pointer transition-colors"
+                          onClick={() => setSelectedEmail(email)}
+                        >
+                          <div className="flex-1 min-w-0">
+                            <span className="truncate block">{getParticipantName(email.participant_id)}</span>
+                            <span className="text-xs text-muted-foreground">
+                              Envoyé le {format(parseISO(email.sent_at!), "d MMM à HH:mm", { locale: fr })}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {getStatusBadge(email)}
+                            <Button variant="ghost" size="icon" className="h-7 w-7"
+                              onClick={(e) => { e.stopPropagation(); setSelectedEmail(email); }}>
+                              <Eye className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
+              ))}
+            </div>
+          )}
+
           {/* Scheduling rules info */}
           <SchedulingRulesInfo />
         </CardContent>

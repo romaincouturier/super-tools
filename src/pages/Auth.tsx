@@ -218,11 +218,11 @@ const Auth = () => {
           <CardTitle className="text-2xl font-bold">
             SuperTools
           </CardTitle>
-          <CardDescription>
-            {isLogin
-              ? "Connectez-vous pour accéder au générateur"
-              : "Créez votre compte"}
-          </CardDescription>
+          {!isLogin && (
+            <CardDescription>
+              Créez votre compte
+            </CardDescription>
+          )}
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Feedback anti-brute force */}

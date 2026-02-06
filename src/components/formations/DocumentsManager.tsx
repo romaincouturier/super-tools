@@ -37,6 +37,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import ThankYouEmailPreviewDialog from "@/components/formations/ThankYouEmailPreviewDialog";
+import AttendanceSheetGenerator from "@/components/formations/AttendanceSheetGenerator";
 
 interface DocumentSentInfo {
   invoice: string | null;
@@ -65,6 +66,10 @@ interface DocumentsManagerProps {
   evaluationLink: string;
   formatFormation?: string | null;
   conventionFileUrl?: string | null;
+  trainerName: string;
+  location: string;
+  schedules: { day_date: string; start_time: string; end_time: string }[];
+  participants: { id: string; first_name: string | null; last_name: string | null; email: string }[];
   signedConventionUrls?: string[];
   onUpdate?: () => void;
 }
@@ -84,6 +89,10 @@ const DocumentsManager = ({
   evaluationLink,
   formatFormation,
   conventionFileUrl: initialConventionUrl,
+  trainerName,
+  location,
+  schedules,
+  participants,
   signedConventionUrls: initialSignedConventionUrls,
   onUpdate,
 }: DocumentsManagerProps) => {
@@ -834,26 +843,7 @@ const DocumentsManager = ({
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Supports URL */}
-          <div className="space-y-2">
-            <Label className="flex items-center gap-2">
-              <Link className="h-4 w-4" />
-              Lien vers les supports de formation
-            </Label>
-            <div className="flex items-center gap-2">
-              <Input
-                type="url"
-                value={supportsUrl}
-                onChange={(e) => setSupportsUrl(e.target.value)}
-                onBlur={handleSupportsUrlBlur}
-                placeholder="https://drive.google.com/..."
-                disabled={savingSupportsUrl}
-              />
-              {savingSupportsUrl && <Loader2 className="h-4 w-4 animate-spin" />}
-            </div>
-          </div>
-
-          {/* Convention de Formation Section */}
+          {/* 1. Convention de Formation Section */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <Label className="flex items-center gap-2">
@@ -1036,7 +1026,129 @@ const DocumentsManager = ({
             )}
           </div>
 
-          {/* Invoice Section - Hidden for inter-entreprise (invoices managed per participant) */}
+          {/* 2. Supports URL */}
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <Link className="h-4 w-4" />
+              Lien vers les supports de formation
+            </Label>
+            <div className="flex items-center gap-2">
+              <Input
+                type="url"
+                value={supportsUrl}
+                onChange={(e) => setSupportsUrl(e.target.value)}
+                onBlur={handleSupportsUrlBlur}
+                placeholder="https://drive.google.com/..."
+                disabled={savingSupportsUrl}
+              />
+              {savingSupportsUrl && <Loader2 className="h-4 w-4 animate-spin" />}
+            </div>
+          </div>
+
+          {/* 3. Attendance Sheets Section (with generator + manual upload) */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-1">
+                <Label className="flex items-center gap-2">
+                  <ClipboardList className="h-4 w-4" />
+                  Feuilles d'émargement ({attendanceSheetsUrls.length})
+                </Label>
+                {documentsSentInfo.sheets && (
+                  <span className="text-xs text-muted-foreground flex items-center gap-1">
+                    <CheckCircle className="h-3 w-3 text-primary" />
+                    Envoyées le {formatSentDate(documentsSentInfo.sheets)}
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <AttendanceSheetGenerator
+                  trainingName={trainingName}
+                  trainerName={trainerName}
+                  location={location}
+                  startDate={startDate}
+                  endDate={endDate}
+                  schedules={schedules}
+                  participants={participants}
+                />
+                <div>
+                  <Input
+                    type="file"
+                    accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,image/*"
+                    multiple
+                    onChange={handleSheetUpload}
+                    disabled={uploadingSheet}
+                    className="hidden"
+                    id="sheet-upload"
+                  />
+                  <Label htmlFor="sheet-upload" className="cursor-pointer">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={uploadingSheet}
+                      asChild
+                    >
+                      <span>
+                        {uploadingSheet ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <Upload className="h-4 w-4 mr-2" />
+                        )}
+                        Ajouter
+                      </span>
+                    </Button>
+                  </Label>
+                </div>
+              </div>
+            </div>
+
+            {attendanceSheetsUrls.length > 0 && (
+              <div className="space-y-2">
+                {attendanceSheetsUrls.map((url, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg"
+                  >
+                    <FileText className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                    <a
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-1 text-sm text-primary hover:underline truncate"
+                    >
+                      Feuille {index + 1} - {getFileNameFromUrl(url)}
+                    </a>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Supprimer cette feuille ?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Cette action est irréversible.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Annuler</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => handleDeleteSheet(url)}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          >
+                            Supprimer
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* 4. Invoice Section - Hidden for inter-entreprise (invoices managed per participant) */}
           {isInterEntreprise ? (
             <div className="p-3 bg-muted/50 rounded-lg">
               <p className="text-sm text-muted-foreground flex items-center gap-2">
@@ -1130,98 +1242,6 @@ const DocumentsManager = ({
               )}
             </div>
           )}
-
-          {/* Attendance Sheets Section */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex flex-col gap-1">
-                <Label className="flex items-center gap-2">
-                  <ClipboardList className="h-4 w-4" />
-                  Feuilles d'émargement ({attendanceSheetsUrls.length})
-                </Label>
-                {documentsSentInfo.sheets && (
-                  <span className="text-xs text-muted-foreground flex items-center gap-1">
-                    <CheckCircle className="h-3 w-3 text-primary" />
-                    Envoyées le {formatSentDate(documentsSentInfo.sheets)}
-                  </span>
-                )}
-              </div>
-              <div>
-                <Input
-                  type="file"
-                  accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,image/*"
-                  multiple
-                  onChange={handleSheetUpload}
-                  disabled={uploadingSheet}
-                  className="hidden"
-                  id="sheet-upload"
-                />
-                <Label htmlFor="sheet-upload" className="cursor-pointer">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    disabled={uploadingSheet}
-                    asChild
-                  >
-                    <span>
-                      {uploadingSheet ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      ) : (
-                        <Upload className="h-4 w-4 mr-2" />
-                      )}
-                      Ajouter
-                    </span>
-                  </Button>
-                </Label>
-              </div>
-            </div>
-
-            {attendanceSheetsUrls.length > 0 && (
-              <div className="space-y-2">
-                {attendanceSheetsUrls.map((url, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg"
-                  >
-                    <FileText className="h-5 w-5 text-muted-foreground flex-shrink-0" />
-                    <a
-                      href={url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex-1 text-sm text-primary hover:underline truncate"
-                    >
-                      Feuille {index + 1} - {getFileNameFromUrl(url)}
-                    </a>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Supprimer cette feuille ?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Cette action est irréversible.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Annuler</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={() => handleDeleteSheet(url)}
-                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                          >
-                            Supprimer
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
 
           {/* Send Documents Section - For inter-entreprise, only show sheets (invoices managed per participant) */}
           <div className="pt-4 border-t space-y-3">

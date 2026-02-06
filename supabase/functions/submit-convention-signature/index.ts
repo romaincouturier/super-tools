@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import { PDFDocument, rgb, StandardFonts } from "https://esm.sh/pdf-lib@1.17.1";
 import { getSigniticSignature } from "../_shared/signitic.ts";
 import { getBccSettings } from "../_shared/bcc-settings.ts";
 import { sendEmail } from "../_shared/resend.ts";
@@ -74,6 +75,135 @@ function formatDateFr(dateStr: string): string {
     minute: "2-digit",
     timeZone: "Europe/Paris",
   }).format(date);
+}
+
+async function generateSignedPdf(
+  pdfBuffer: ArrayBuffer,
+  signatureDataUrl: string,
+  signerName: string,
+  signerFunction: string | undefined,
+  signedAt: string,
+  formationName: string,
+  clientName: string,
+  signatureHash: string,
+): Promise<Uint8Array> {
+  const pdfDoc = await PDFDocument.load(pdfBuffer);
+  const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+  // Decode the signature PNG from base64 data URL
+  const base64Data = signatureDataUrl.replace(/^data:image\/png;base64,/, "");
+  const signatureBytes = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
+  const signatureImage = await pdfDoc.embedPng(signatureBytes);
+
+  // Add a signature page at the end
+  const page = pdfDoc.addPage([595.28, 841.89]); // A4
+  const { width, height } = page.getSize();
+  const margin = 60;
+  let y = height - margin;
+
+  // Title
+  page.drawText("ATTESTATION DE SIGNATURE ÉLECTRONIQUE", {
+    x: margin,
+    y,
+    size: 16,
+    font: helveticaBold,
+    color: rgb(0.1, 0.1, 0.1),
+  });
+  y -= 30;
+
+  // Separator line
+  page.drawLine({
+    start: { x: margin, y },
+    end: { x: width - margin, y },
+    thickness: 1,
+    color: rgb(0.8, 0.8, 0.8),
+  });
+  y -= 30;
+
+  // Document info
+  const drawLabelValue = (label: string, value: string) => {
+    page.drawText(label, { x: margin, y, size: 10, font: helveticaBold, color: rgb(0.3, 0.3, 0.3) });
+    page.drawText(value, { x: margin + 160, y, size: 10, font: helvetica, color: rgb(0.1, 0.1, 0.1) });
+    y -= 20;
+  };
+
+  drawLabelValue("Formation :", formationName);
+  drawLabelValue("Client :", clientName);
+  drawLabelValue("Signataire :", signerName);
+  if (signerFunction) {
+    drawLabelValue("Fonction :", signerFunction);
+  }
+  drawLabelValue("Date de signature :", formatDateFr(signedAt));
+  drawLabelValue("Empreinte numérique :", signatureHash.substring(0, 32) + "...");
+  drawLabelValue("Niveau de signature :", "SES (Signature Électronique Simple)");
+
+  y -= 20;
+
+  // Signature image
+  page.drawText("Signature :", { x: margin, y, size: 10, font: helveticaBold, color: rgb(0.3, 0.3, 0.3) });
+  y -= 10;
+
+  // Scale signature to fit within a reasonable area
+  const maxSigWidth = 250;
+  const maxSigHeight = 100;
+  const sigAspect = signatureImage.width / signatureImage.height;
+  let sigW = maxSigWidth;
+  let sigH = sigW / sigAspect;
+  if (sigH > maxSigHeight) {
+    sigH = maxSigHeight;
+    sigW = sigH * sigAspect;
+  }
+
+  // Draw a light border around the signature area
+  page.drawRectangle({
+    x: margin,
+    y: y - sigH - 10,
+    width: sigW + 20,
+    height: sigH + 20,
+    borderColor: rgb(0.85, 0.85, 0.85),
+    borderWidth: 0.5,
+    color: rgb(0.98, 0.98, 0.98),
+  });
+
+  page.drawImage(signatureImage, {
+    x: margin + 10,
+    y: y - sigH,
+    width: sigW,
+    height: sigH,
+  });
+
+  y -= sigH + 40;
+
+  // Separator
+  page.drawLine({
+    start: { x: margin, y },
+    end: { x: width - margin, y },
+    thickness: 0.5,
+    color: rgb(0.8, 0.8, 0.8),
+  });
+  y -= 20;
+
+  // Legal mention
+  const legalLines = [
+    "Ce document a été signé électroniquement conformément au règlement européen",
+    "eIDAS (UE n° 910/2014) et aux articles 1366 et 1367 du Code civil français.",
+    "",
+    "Cette signature électronique simple (SES) a valeur juridique et engage le signataire.",
+    "Un dossier de preuve complet incluant les métadonnées techniques, le parcours",
+    "de signature et le consentement explicite est conservé séparément.",
+  ];
+
+  for (const line of legalLines) {
+    if (line === "") {
+      y -= 8;
+      continue;
+    }
+    page.drawText(line, { x: margin, y, size: 8, font: helvetica, color: rgb(0.45, 0.45, 0.45) });
+    y -= 14;
+  }
+
+  return await pdfDoc.save();
 }
 
 serve(async (req: Request): Promise<Response> => {
@@ -342,6 +472,66 @@ serve(async (req: Request): Promise<Response> => {
       console.warn("Failed to generate proof file:", proofErr);
     }
 
+    // Generate signed PDF (original + signature page) and upload to storage
+    let signedPdfUrl: string | null = null;
+    try {
+      if (pdfBuffer) {
+        const signedPdfBytes = await generateSignedPdf(
+          pdfBuffer,
+          signatureData,
+          signerName,
+          signerFunction,
+          signedAt,
+          conventionSig.formation_name,
+          conventionSig.client_name,
+          signatureHash,
+        );
+
+        const signedFileName = `signed-conventions/${conventionSig.training_id}/convention_signee_${conventionSig.id}.pdf`;
+
+        const { error: signedUploadError } = await supabase.storage
+          .from("training-documents")
+          .upload(signedFileName, signedPdfBytes, {
+            contentType: "application/pdf",
+            upsert: true,
+          });
+
+        if (signedUploadError) {
+          console.warn("Failed to upload signed PDF:", signedUploadError);
+        } else {
+          const { data: { publicUrl } } = supabase.storage
+            .from("training-documents")
+            .getPublicUrl(signedFileName);
+          signedPdfUrl = publicUrl;
+
+          // Store signed PDF URL in convention_signatures
+          await supabase
+            .from("convention_signatures")
+            .update({ signed_pdf_url: signedPdfUrl })
+            .eq("id", conventionSig.id);
+
+          // Append to trainings.signed_convention_urls
+          const { data: trainingData } = await supabase
+            .from("trainings")
+            .select("signed_convention_urls")
+            .eq("id", conventionSig.training_id)
+            .single();
+
+          const existingUrls = trainingData?.signed_convention_urls || [];
+          await supabase
+            .from("trainings")
+            .update({ signed_convention_urls: [...existingUrls, signedPdfUrl] })
+            .eq("id", conventionSig.training_id);
+
+          console.log("Signed PDF uploaded:", signedPdfUrl);
+        }
+      } else {
+        console.warn("No PDF buffer available, skipping signed PDF generation");
+      }
+    } catch (signedPdfErr) {
+      console.warn("Failed to generate signed PDF:", signedPdfErr);
+    }
+
     // Log the signature event
     try {
       await supabase.from("activity_logs").insert({
@@ -358,6 +548,7 @@ serve(async (req: Request): Promise<Response> => {
           pdf_hash_at_signature: pdfHashAtSignature,
           proof_file_url: proofFileUrl,
           proof_hash: proofHash,
+          signed_pdf_url: signedPdfUrl,
           journey_events_count: serverJourneyEvents.length,
         },
       });
@@ -380,10 +571,10 @@ serve(async (req: Request): Promise<Response> => {
   <li><strong>Client :</strong> ${conventionSig.client_name}</li>
   <li><strong>Signée le :</strong> ${formatDateFr(signedAt)}</li>
 </ul>
-<p>Vous pouvez consulter la convention en cliquant sur le lien ci-dessous :</p>
+<p>Vous pouvez consulter la convention signée en cliquant sur le lien ci-dessous :</p>
 <p>
-  <a href="${conventionSig.pdf_url}" style="display: inline-block; padding: 10px 20px; background-color: #e6bc00; color: #000; text-decoration: none; border-radius: 6px; font-weight: bold;">
-    📄 Télécharger la convention
+  <a href="${signedPdfUrl || conventionSig.pdf_url}" style="display: inline-block; padding: 10px 20px; background-color: #e6bc00; color: #000; text-decoration: none; border-radius: 6px; font-weight: bold;">
+    📄 Télécharger la convention signée
   </a>
 </p>
 <p style="margin-top: 16px; font-size: 12px; color: #666;">

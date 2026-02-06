@@ -3,12 +3,15 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { ChatbotProvider } from "@/components/chatbot/ChatbotProvider";
 import { GlobalChunkErrorHandler } from "@/components/GlobalChunkErrorHandler";
 import { RouteErrorBoundary } from "@/components/RouteErrorBoundary";
 import { lazyWithRetry } from "@/lib/lazyWithRetry";
+import { createIDBPersister } from "@/lib/queryPersister";
+import OfflineBanner from "@/components/OfflineBanner";
 
 // Lazy load all pages for better code splitting
 const Dashboard = lazy(() => import("./pages/Dashboard"));
@@ -42,16 +45,23 @@ const Crm = lazyWithRetry(() => import("./pages/Crm"));
 const CrmReports = lazyWithRetry(() => import("./pages/CrmReports"));
 const Missions = lazy(() => import("./pages/Missions"));
 const OKR = lazy(() => import("./pages/OKR"));
+const MediaLibrary = lazy(() => import("./pages/MediaLibrary"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 1000 * 60 * 5, // 5 minutes
-      gcTime: 1000 * 60 * 30, // 30 minutes (formerly cacheTime)
+      gcTime: 1000 * 60 * 60 * 24, // 24 hours — kept longer for offline support
     },
   },
 });
+
+const persister = createIDBPersister();
+const persistOptions = {
+  persister,
+  maxAge: 1000 * 60 * 60 * 24, // 24 hours
+};
 
 // Loading fallback component
 const PageLoader = () => (
@@ -61,11 +71,12 @@ const PageLoader = () => (
 );
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
+  <PersistQueryClientProvider client={queryClient} persistOptions={persistOptions}>
     <TooltipProvider>
       <Toaster />
       <Sonner />
       <GlobalChunkErrorHandler />
+      <OfflineBanner />
       <BrowserRouter>
         <Suspense fallback={<PageLoader />}>
           <RouteErrorBoundary>
@@ -100,6 +111,8 @@ const App = () => (
               <Route path="/missions" element={<Missions />} />
               {/* OKR Management */}
               <Route path="/okr" element={<OKR />} />
+              {/* Media library */}
+              <Route path="/medias" element={<MediaLibrary />} />
               {/* Public needs survey */}
               <Route path="/questionnaire/:token" element={<Questionnaire />} />
               {/* Public evaluation form */}
@@ -125,7 +138,7 @@ const App = () => (
         <ChatbotProvider />
       </BrowserRouter>
     </TooltipProvider>
-  </QueryClientProvider>
+  </PersistQueryClientProvider>
 );
 
 export default App;
