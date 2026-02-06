@@ -15,6 +15,7 @@ export interface MediaItemWithMission {
   mission_tags: string[];
   mission_emoji: string | null;
   mission_color: string | null;
+  source: "mission" | "event";
 }
 
 const MEDIA_LIBRARY_KEY = "media-library";
@@ -23,14 +24,15 @@ export const useMediaLibrary = () => {
   return useQuery({
     queryKey: [MEDIA_LIBRARY_KEY],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      // Fetch mission media
+      const { data: missionData, error: missionError } = await (supabase as any)
         .from("mission_media")
         .select("*, missions!inner(title, tags, emoji, color)")
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
+      if (missionError) throw missionError;
 
-      return ((data || []) as any[]).map((item): MediaItemWithMission => ({
+      const missionItems: MediaItemWithMission[] = ((missionData || []) as any[]).map((item) => ({
         id: item.id,
         mission_id: item.mission_id,
         file_url: item.file_url,
@@ -44,7 +46,43 @@ export const useMediaLibrary = () => {
         mission_tags: item.missions?.tags || [],
         mission_emoji: item.missions?.emoji || null,
         mission_color: item.missions?.color || null,
+        source: "mission" as const,
       }));
+
+      // Fetch event media (images only — video_link entries are just URLs, not actual media files)
+      const { data: eventData, error: eventError } = await (supabase as any)
+        .from("event_media")
+        .select("*, events!inner(title, event_date)")
+        .eq("file_type", "image")
+        .order("created_at", { ascending: false });
+
+      if (eventError) {
+        // If events table doesn't exist yet (migration not run), just return mission items
+        console.warn("Could not fetch event media:", eventError.message);
+        return missionItems;
+      }
+
+      const eventItems: MediaItemWithMission[] = ((eventData || []) as any[]).map((item) => ({
+        id: item.id,
+        mission_id: item.event_id, // reuse field for filtering
+        file_url: item.file_url,
+        file_name: item.file_name,
+        file_type: "image" as const,
+        mime_type: item.mime_type,
+        file_size: item.file_size,
+        position: item.position,
+        created_at: item.created_at,
+        mission_title: item.events?.title || "Événement",
+        mission_tags: ["événement"],
+        mission_emoji: null,
+        mission_color: null,
+        source: "event" as const,
+      }));
+
+      // Merge and sort by created_at descending
+      return [...missionItems, ...eventItems].sort(
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
     },
   });
 };
