@@ -186,9 +186,9 @@ serve(async (req: Request): Promise<Response> => {
     // Send email
     const resend = new Resend(resendApiKey);
     const emailResponse = await resend.emails.send({
-      from: "Supertilt <romain@supertilt.fr>",
+      from: "Romain Couturier <romain@supertilt.fr>",
       to: [recipientEmail],
-      bcc: ["supertilt@bcc.nocrm.io"],
+      bcc: ["romain@supertilt.fr", "supertilt@bcc.nocrm.io"],
       subject: `Signature de devis - Formation "${formationName}"`,
       html: htmlContent,
     });

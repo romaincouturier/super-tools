@@ -191,9 +191,10 @@ serve(async (req) => {
 
     const emailResult = await sendEmail({
       to: [recipient_email],
-      from: `Romain Couturier <romain@supertilt.fr>`,
+      from: "Romain Couturier <romain@supertilt.fr>",
       subject: `📌 Événement partagé : ${event.title}`,
       html: completeHtml,
+      bcc: ["romain@supertilt.fr", "supertilt@bcc.nocrm.io"],
     });
 
     if (!emailResult.success) {

@@ -134,7 +134,7 @@ serve(async (req) => {
       from: "Romain Couturier <romain@supertilt.fr>",
       subject: subject,
       html: completeHtml,
-      bcc: ["supertilt@bcc.nocrm.io"],
+      bcc: ["romain@supertilt.fr", "supertilt@bcc.nocrm.io"],
     });
 
     if (!emailResult.success) {

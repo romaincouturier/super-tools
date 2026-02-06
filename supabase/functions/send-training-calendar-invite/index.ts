@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { encode as base64Encode } from "https://deno.land/std@0.190.0/encoding/base64.ts";
+import { getSigniticSignature } from "../_shared/signitic.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -133,14 +134,17 @@ serve(async (req: Request): Promise<Response> => {
 
     const resend = new Resend(resendApiKey);
 
-    // Generate ICS file
-    const icsContent = generateICS(
-      trainingName,
-      clientName,
-      location,
-      schedules,
-      trainerEmail
-    );
+    // Generate ICS file and fetch signature in parallel
+    const [icsContent, emailSignature] = await Promise.all([
+      Promise.resolve(generateICS(
+        trainingName,
+        clientName,
+        location,
+        schedules,
+        trainerEmail
+      )),
+      getSigniticSignature(),
+    ]);
 
     // Build schedule list for email
     const scheduleList = schedules
@@ -175,10 +179,7 @@ serve(async (req: Request): Promise<Response> => {
           </a>
         </p>
 
-        <p style="margin-top: 24px; color: #666;">
-          A bientot !<br/>
-          L'equipe Supertilt
-        </p>
+        ${emailSignature}
       </div>
     `;
 
@@ -187,8 +188,9 @@ serve(async (req: Request): Promise<Response> => {
 
     // Send email with ICS attachment
     const emailResponse = await resend.emails.send({
-      from: "Supertilt <romain@supertilt.fr>",
+      from: "Romain Couturier <romain@supertilt.fr>",
       to: [trainerEmail],
+      bcc: ["romain@supertilt.fr", "supertilt@bcc.nocrm.io"],
       subject: `Nouvelle formation : ${trainingName} - ${clientName}`,
       html: htmlContent,
       attachments: [
