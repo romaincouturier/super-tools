@@ -1084,13 +1084,26 @@ const CardDetailDrawer = ({
                     <Mail className="h-3 w-3" />
                     Email
                   </Label>
-                  <Input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="email@exemple.com"
-                    className="h-8"
-                  />
+                  <div className="flex gap-1">
+                    <Input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="email@exemple.com"
+                      className="h-8 flex-1"
+                    />
+                    {email.trim() && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 shrink-0"
+                        onClick={() => copyToClipboard(email)}
+                        title="Copier l'email"
+                      >
+                        <Copy className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
+                  </div>
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs flex items-center gap-1">
