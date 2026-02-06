@@ -92,3 +92,6 @@ verify_jwt = false
 
 [functions.generate-convention-formation]
 verify_jwt = false
+
+[functions.refresh-convention-pdf-url]
+verify_jwt = false
