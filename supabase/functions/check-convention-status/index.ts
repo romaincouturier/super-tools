@@ -8,7 +8,7 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 const ALERT_EMAIL = "romain@supertilt.fr";
@@ -91,7 +91,7 @@ serve(async (req: Request): Promise<Response> => {
     // For inter-entreprises, also check per-participant convention emails
     // Fetch participants for inter trainings
     const interTrainingIds = trainings
-      .filter((t) => t.format_formation === "inter-entreprises")
+      .filter((t) => t.format_formation === "inter-entreprises" || t.format_formation === "e_learning")
       .map((t) => t.id);
 
     let participantsByTraining: Record<string, number> = {};
@@ -127,7 +127,7 @@ serve(async (req: Request): Promise<Response> => {
     for (const training of trainings) {
       const issues: string[] = [];
       const isIntra = training.format_formation === "intra";
-      const isInter = training.format_formation === "inter-entreprises";
+      const isInter = training.format_formation === "inter-entreprises" || training.format_formation === "e_learning";
       const days = daysUntil(training.start_date);
 
       // Check convention generated

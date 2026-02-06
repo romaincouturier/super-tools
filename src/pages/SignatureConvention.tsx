@@ -38,6 +38,11 @@ interface ConventionSignatureData {
   expires_at: string | null;
 }
 
+// Check if a URL is an S3 presigned URL that may expire
+function isS3PresignedUrl(url: string): boolean {
+  return url.includes("X-Amz-Signature");
+}
+
 interface JourneyEvent {
   event: string;
   timestamp: string;
@@ -140,6 +145,23 @@ const SignatureConvention = () => {
 
         if (signature.recipient_name) {
           setSignerName(signature.recipient_name);
+        }
+
+        // If the PDF URL is an S3 presigned URL, refresh it to get a permanent URL
+        if (isS3PresignedUrl(signature.pdf_url)) {
+          try {
+            const refreshResult = await supabase.functions.invoke("refresh-convention-pdf-url", {
+              body: { token },
+            });
+            if (refreshResult.data?.pdf_url && refreshResult.data.pdf_url !== signature.pdf_url) {
+              setConventionData((prev) =>
+                prev ? { ...prev, pdf_url: refreshResult.data.pdf_url } : prev
+              );
+              console.log("PDF URL refreshed to permanent storage");
+            }
+          } catch (refreshErr) {
+            console.warn("Could not refresh PDF URL:", refreshErr);
+          }
         }
       } catch (err) {
         console.error("Error:", err);

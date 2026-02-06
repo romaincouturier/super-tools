@@ -2373,6 +2373,7 @@ export type Database = {
       trainers: {
         Row: {
           created_at: string
+          cv_url: string | null
           email: string
           first_name: string
           id: string
@@ -2385,6 +2386,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          cv_url?: string | null
           email: string
           first_name: string
           id?: string
@@ -2397,6 +2399,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          cv_url?: string | null
           email?: string
           first_name?: string
           id?: string
@@ -2577,6 +2580,8 @@ export type Database = {
         Row: {
           added_at: string
           company: string | null
+          convention_document_id: string | null
+          convention_file_url: string | null
           email: string
           financeur_name: string | null
           financeur_same_as_sponsor: boolean | null
@@ -2589,6 +2594,7 @@ export type Database = {
           needs_survey_status: string
           needs_survey_token: string | null
           payment_mode: string
+          sold_price_ht: number | null
           sponsor_email: string | null
           sponsor_first_name: string | null
           sponsor_last_name: string | null
@@ -2597,6 +2603,8 @@ export type Database = {
         Insert: {
           added_at?: string
           company?: string | null
+          convention_document_id?: string | null
+          convention_file_url?: string | null
           email: string
           financeur_name?: string | null
           financeur_same_as_sponsor?: boolean | null
@@ -2609,6 +2617,7 @@ export type Database = {
           needs_survey_status?: string
           needs_survey_token?: string | null
           payment_mode?: string
+          sold_price_ht?: number | null
           sponsor_email?: string | null
           sponsor_first_name?: string | null
           sponsor_last_name?: string | null
@@ -2617,6 +2626,8 @@ export type Database = {
         Update: {
           added_at?: string
           company?: string | null
+          convention_document_id?: string | null
+          convention_file_url?: string | null
           email?: string
           financeur_name?: string | null
           financeur_same_as_sponsor?: boolean | null
@@ -2629,6 +2640,7 @@ export type Database = {
           needs_survey_status?: string
           needs_survey_token?: string | null
           payment_mode?: string
+          sold_price_ht?: number | null
           sponsor_email?: string | null
           sponsor_first_name?: string | null
           sponsor_last_name?: string | null
@@ -2703,6 +2715,7 @@ export type Database = {
           prerequisites: string[] | null
           program_file_url: string | null
           restaurant_booked: boolean | null
+          room_rental_booked: boolean | null
           signed_convention_urls: string[] | null
           sold_price_ht: number | null
           sponsor_email: string | null
@@ -2741,6 +2754,7 @@ export type Database = {
           prerequisites?: string[] | null
           program_file_url?: string | null
           restaurant_booked?: boolean | null
+          room_rental_booked?: boolean | null
           signed_convention_urls?: string[] | null
           sold_price_ht?: number | null
           sponsor_email?: string | null
@@ -2779,6 +2793,7 @@ export type Database = {
           prerequisites?: string[] | null
           program_file_url?: string | null
           restaurant_booked?: boolean | null
+          room_rental_booked?: boolean | null
           signed_convention_urls?: string[] | null
           sold_price_ht?: number | null
           sponsor_email?: string | null

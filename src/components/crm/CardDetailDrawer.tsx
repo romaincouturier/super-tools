@@ -245,7 +245,7 @@ const CardDetailDrawer = ({
       const { data, error } = await supabase
         .from("trainings")
         .select("id, training_name, start_date, client_name, format_formation")
-        .eq("format_formation", "inter-entreprises")
+        .in("format_formation", ["inter-entreprises", "e_learning"])
         .gte("start_date", today)
         .order("start_date", { ascending: true })
         .limit(50);

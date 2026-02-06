@@ -60,6 +60,7 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
   const [saving, setSaving] = useState(false);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
+  const [soldPriceHt, setSoldPriceHt] = useState("");
   const [email, setEmail] = useState("");
   const [company, setCompany] = useState("");
   const [sponsorSameAsParticipant, setSponsorSameAsParticipant] = useState(false);
@@ -75,7 +76,7 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
   const [isManualMode, setIsManualMode] = useState(false);
   const { toast } = useToast();
   
-  const isInterEntreprise = formatFormation === "inter-entreprises";
+  const isInterEntreprise = formatFormation === "inter-entreprises" || formatFormation === "e_learning";
 
   // Populate initial values when dialog opens with prefill data
   useEffect(() => {
@@ -157,6 +158,7 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
     setLastName("");
     setEmail("");
     setCompany("");
+    setSoldPriceHt("");
     setSponsorSameAsParticipant(false);
     setSponsorFirstName("");
     setSponsorLastName("");
@@ -207,6 +209,7 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
           financeur_name: !financeurSameAsSponsor ? (financeurName.trim() || null) : null,
           financeur_url: !financeurSameAsSponsor ? (financeurUrl.trim() || null) : null,
           payment_mode: paymentMode,
+          sold_price_ht: soldPriceHt ? parseFloat(soldPriceHt) : null,
         }),
       };
 
@@ -382,6 +385,22 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
                 placeholder="ACME Corp"
               />
             </div>
+
+            {/* Sale amount for inter-enterprise trainings */}
+            {isInterEntreprise && (
+              <div className="space-y-2">
+                <Label htmlFor="soldPriceHt">Montant vendu HT (€)</Label>
+                <Input
+                  id="soldPriceHt"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={soldPriceHt}
+                  onChange={(e) => setSoldPriceHt(e.target.value)}
+                  placeholder="1500.00"
+                />
+              </div>
+            )}
 
             {/* Sponsor/Commanditaire fields for inter-enterprise trainings */}
             {isInterEntreprise && (

@@ -1,4 +1,4 @@
-import { HelpCircle, Mail, MailCheck, Clock, CheckCircle, AlertTriangle, Trash2, Loader2, Send, RefreshCw, Receipt, Building, Scroll, Award, Download, Forward, UserCheck } from "lucide-react";
+import { HelpCircle, Mail, MailCheck, Clock, CheckCircle, AlertTriangle, Trash2, Loader2, Send, RefreshCw, Receipt, Building, Scroll, Award, Download, Forward, UserCheck, RotateCw, FileSignature, Eye } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -56,6 +56,9 @@ interface Participant {
   financeur_url?: string | null;
   invoice_file_url?: string | null;
   payment_mode?: string;
+  sold_price_ht?: number | null;
+  convention_file_url?: string | null;
+  convention_document_id?: string | null;
 }
 
 interface ParticipantListProps {
@@ -149,6 +152,11 @@ interface CertificateInfo {
   certificateUrl: string | null;
 }
 
+interface ConventionSignatureInfo {
+  status: string;
+  signed_at: string | null;
+}
+
 const ParticipantList = ({
   participants,
   trainingId,
@@ -165,8 +173,13 @@ const ParticipantList = ({
   const [generatingConventionId, setGeneratingConventionId] = useState<string | null>(null);
   const [documentsParticipant, setDocumentsParticipant] = useState<Participant | null>(null);
   const [certificatesByParticipant, setCertificatesByParticipant] = useState<Map<string, CertificateInfo>>(new Map());
+  const [conventionSignatures, setConventionSignatures] = useState<Map<string, ConventionSignatureInfo>>(new Map());
   const [sendingCertId, setSendingCertId] = useState<string | null>(null);
+  const [downloadingConventionId, setDownloadingConventionId] = useState<string | null>(null);
   const { toast } = useToast();
+
+  const isInterEntreprise = formatFormation === "inter-entreprises" || formatFormation === "e_learning";
+  const isIndividualConvention = formatFormation === "inter-entreprises" || formatFormation === "e_learning";
 
   // Fetch evaluation certificate URLs for all participants
   useEffect(() => {
@@ -192,6 +205,81 @@ const ParticipantList = ({
     };
     fetchCertificates();
   }, [trainingId, participants]);
+
+  // Fetch convention signature statuses for inter/e-learning participants
+  useEffect(() => {
+    if (!isIndividualConvention) return;
+    
+    const fetchConventionSignatures = async () => {
+      const sponsorEmails = participants
+        .filter(p => p.sponsor_email)
+        .map(p => p.sponsor_email!);
+      
+      if (sponsorEmails.length === 0) return;
+
+      const { data, error } = await (supabase as any)
+        .from("convention_signatures")
+        .select("recipient_email, status, signed_at")
+        .eq("training_id", trainingId)
+        .in("recipient_email", sponsorEmails);
+
+      if (!error && data) {
+        const map = new Map<string, ConventionSignatureInfo>();
+        // Map signature status back to participant via sponsor_email
+        for (const sig of data) {
+          // Find participant(s) with this sponsor email
+          for (const p of participants) {
+            if (p.sponsor_email === sig.recipient_email) {
+              map.set(p.id, {
+                status: sig.status,
+                signed_at: sig.signed_at,
+              });
+            }
+          }
+        }
+        setConventionSignatures(map);
+      }
+    };
+    fetchConventionSignatures();
+  }, [trainingId, participants, isIndividualConvention]);
+
+  // Download convention with URL refresh fallback
+  const handleDownloadConvention = async (participant: Participant) => {
+    if (!participant.convention_file_url) return;
+    setDownloadingConventionId(participant.id);
+    try {
+      const response = await fetch(participant.convention_file_url);
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `Convention_${(participant.company || "").replace(/\s+/g, "_")}_${(participant.first_name || "").replace(/\s+/g, "_")}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+      } else if (response.status === 403 && participant.convention_document_id) {
+        // URL expired, refresh via PDFMonkey
+        toast({
+          title: "URL expirée",
+          description: "Veuillez ré-générer la convention pour obtenir un nouveau lien.",
+          variant: "destructive",
+        });
+      } else {
+        throw new Error(`Erreur ${response.status}`);
+      }
+    } catch (error: any) {
+      console.error("Error downloading convention:", error);
+      toast({
+        title: "Erreur de téléchargement",
+        description: "Impossible de télécharger la convention. Essayez de la ré-générer.",
+        variant: "destructive",
+      });
+    } finally {
+      setDownloadingConventionId(null);
+    }
+  };
 
   const handleSendCertificate = async (
     participant: Participant,
@@ -229,8 +317,6 @@ const ParticipantList = ({
     }
   };
 
-  const isInterEntreprise = formatFormation === "inter-entreprises";
-  const isIndividualConvention = formatFormation === "inter-entreprises" || formatFormation === "e_learning";
 
   // Check if we're at J-2 or later
   const daysUntilTraining = differenceInDays(parseISO(trainingStartDate), new Date());
@@ -353,23 +439,6 @@ const ParticipantList = ({
       }
 
       if (data?.pdfUrl) {
-        // Download with custom filename via blob
-        try {
-          const response = await fetch(data.pdfUrl);
-          const blob = await response.blob();
-          const url = window.URL.createObjectURL(blob);
-          const a = document.createElement("a");
-          a.href = url;
-          a.download = data.fileName || "Convention.pdf";
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          window.URL.revokeObjectURL(url);
-        } catch {
-          // Fallback to direct download
-          window.location.href = data.pdfUrl;
-        }
-
         // If participant has a sponsor email, send the convention automatically
         if (participant.sponsor_email) {
           try {
@@ -412,6 +481,9 @@ const ParticipantList = ({
           });
         }
       }
+
+      // Refresh participant data so convention URL is reflected in UI
+      onParticipantUpdated();
     } catch (error: any) {
       console.error("Error generating convention:", error);
       toast({
@@ -456,6 +528,7 @@ const ParticipantList = ({
             <TableHead>Email</TableHead>
             <TableHead>Société</TableHead>
             {isInterEntreprise && <TableHead>Commanditaire</TableHead>}
+            {isInterEntreprise && <TableHead>Montant HT</TableHead>}
             <TableHead>Recueil des besoins</TableHead>
             <TableHead className="w-28"></TableHead>
           </TableRow>
@@ -509,6 +582,13 @@ const ParticipantList = ({
                     )}
                   </TableCell>
                 )}
+                {isInterEntreprise && (
+                  <TableCell>
+                    {participant.sold_price_ht != null
+                      ? `${participant.sold_price_ht.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`
+                      : "—"}
+                  </TableCell>
+                )}
                 <TableCell>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -547,28 +627,79 @@ const ParticipantList = ({
                     )}
 
                     {/* Convention button - for inter-enterprise and e-learning */}
-                    {isIndividualConvention && (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-muted-foreground hover:text-primary"
-                            onClick={() => handleGenerateConvention(participant)}
-                            disabled={generatingConventionId === participant.id}
-                          >
-                            {generatingConventionId === participant.id ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <Scroll className="h-4 w-4" />
+                    {isIndividualConvention && (() => {
+                      const hasConvention = !!participant.convention_file_url;
+                      const sigInfo = conventionSignatures.get(participant.id);
+                      const isLoading = generatingConventionId === participant.id || downloadingConventionId === participant.id;
+
+                      if (!hasConvention) {
+                        return (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-muted-foreground hover:text-primary"
+                                onClick={() => handleGenerateConvention(participant)}
+                                disabled={isLoading}
+                              >
+                                {isLoading ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Scroll className="h-4 w-4" />
+                                )}
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Générer la convention de formation</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        );
+                      }
+
+                      return (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-primary"
+                              disabled={isLoading}
+                            >
+                              {isLoading ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Scroll className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={() => handleDownloadConvention(participant)}
+                            >
+                              <Download className="h-4 w-4 mr-2" />
+                              Télécharger la convention
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => handleGenerateConvention(participant)}
+                            >
+                              <RotateCw className="h-4 w-4 mr-2" />
+                              Ré-générer la convention
+                            </DropdownMenuItem>
+                            {sigInfo && (
+                              <DropdownMenuItem disabled className="text-xs opacity-70">
+                                <FileSignature className="h-4 w-4 mr-2" />
+                                {sigInfo.status === "signed"
+                                  ? `Signée le ${new Date(sigInfo.signed_at!).toLocaleDateString("fr-FR")}`
+                                  : sigInfo.status === "pending"
+                                    ? "En attente de signature"
+                                    : `Signature : ${sigInfo.status}`}
+                              </DropdownMenuItem>
                             )}
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Générer la convention de formation</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      );
+                    })()}
 
                     {/* View questionnaire button - only for completed status */}
                     {(participant.needs_survey_status === "complete" || participant.needs_survey_status === "valide_formateur") && (

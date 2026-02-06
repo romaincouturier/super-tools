@@ -147,8 +147,46 @@ serve(async (req: Request): Promise<Response> => {
     // Download the PDF and compute its hash for integrity verification
     let pdfHashAtSignature = conventionSig.pdf_hash || null;
     let pdfBuffer: ArrayBuffer | null = null;
+    let currentPdfUrl = conventionSig.pdf_url;
     try {
-      const pdfResponse = await fetch(conventionSig.pdf_url);
+      let pdfResponse = await fetch(currentPdfUrl);
+
+      // If 403 (expired pre-signed URL), try to refresh via PdfMonkey API
+      if (!pdfResponse.ok && (pdfResponse.status === 403 || pdfResponse.status === 400)) {
+        console.warn(`PDF download returned ${pdfResponse.status} – attempting to refresh URL via PdfMonkey API`);
+        const pdfMonkeyApiKey = Deno.env.get("PDFMONKEY_API_KEY");
+        const docIdMatch = currentPdfUrl.match(/\/document\/([0-9a-f-]{36})\//i);
+
+        if (pdfMonkeyApiKey && docIdMatch) {
+          const documentId = docIdMatch[1];
+          console.log("Refreshing download URL for PdfMonkey document:", documentId);
+
+          const pmResponse = await fetch(
+            `https://api.pdfmonkey.io/api/v1/documents/${documentId}`,
+            { headers: { Authorization: `Bearer ${pdfMonkeyApiKey}` } }
+          );
+
+          if (pmResponse.ok) {
+            const pmData = await pmResponse.json();
+            const freshUrl = pmData?.document?.download_url;
+            if (freshUrl) {
+              console.log("Got fresh download URL, retrying download");
+              pdfResponse = await fetch(freshUrl);
+              if (pdfResponse.ok) {
+                currentPdfUrl = freshUrl;
+                // Update stored URL for future use
+                await supabase
+                  .from("convention_signatures")
+                  .update({ pdf_url: freshUrl })
+                  .eq("id", conventionSig.id);
+              }
+            }
+          } else {
+            console.warn("PdfMonkey API call failed:", pmResponse.status);
+          }
+        }
+      }
+
       if (pdfResponse.ok) {
         pdfBuffer = await pdfResponse.arrayBuffer();
         pdfHashAtSignature = await hashArrayBuffer(pdfBuffer);
@@ -161,6 +199,8 @@ serve(async (req: Request): Promise<Response> => {
             { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
         }
+      } else {
+        console.warn("PDF download failed with status:", pdfResponse.status);
       }
     } catch (pdfErr) {
       console.warn("Could not download PDF for hash verification:", pdfErr);
@@ -451,14 +491,6 @@ serve(async (req: Request): Promise<Response> => {
   <a href="${signedPdfUrl || conventionSig.pdf_url}" style="display: inline-block; padding: 10px 20px; background-color: #e6bc00; color: #000; text-decoration: none; border-radius: 6px; font-weight: bold;">
     📄 Télécharger la convention signée
   </a>
-</p>
-<p style="margin-top: 16px; font-size: 12px; color: #666;">
-  <strong>Informations de traçabilité :</strong><br>
-  Empreinte de signature : <code>${signatureHash.substring(0, 16)}...</code><br>
-  ${pdfHashAtSignature ? `Empreinte du document : <code>${pdfHashAtSignature.substring(0, 16)}...</code><br>` : ""}
-  ${proofHash ? `Empreinte du dossier de preuve : <code>${proofHash.substring(0, 16)}...</code><br>` : ""}
-  Niveau de signature : SES (Signature Électronique Simple) - eIDAS (UE n° 910/2014)<br>
-  Cet email fait office de confirmation de votre engagement électronique.
 </p>
 ${signature}`;
 
