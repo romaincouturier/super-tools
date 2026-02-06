@@ -492,14 +492,6 @@ serve(async (req: Request): Promise<Response> => {
     📄 Télécharger la convention signée
   </a>
 </p>
-<p style="margin-top: 16px; font-size: 12px; color: #666;">
-  <strong>Informations de traçabilité :</strong><br>
-  Empreinte de signature : <code>${signatureHash.substring(0, 16)}...</code><br>
-  ${pdfHashAtSignature ? `Empreinte du document : <code>${pdfHashAtSignature.substring(0, 16)}...</code><br>` : ""}
-  ${proofHash ? `Empreinte du dossier de preuve : <code>${proofHash.substring(0, 16)}...</code><br>` : ""}
-  Niveau de signature : SES (Signature Électronique Simple) - eIDAS (UE n° 910/2014)<br>
-  Cet email fait office de confirmation de votre engagement électronique.
-</p>
 ${signature}`;
 
       const confirmResult = await sendEmail({
