@@ -71,3 +71,15 @@ verify_jwt = false
 
 [functions.send-convention-email]
 verify_jwt = false
+
+[functions.process-logistics-reminders]
+verify_jwt = false
+
+[functions.verify-convention-signature]
+verify_jwt = false
+
+[functions.verify-devis-signature]
+verify_jwt = false
+
+[functions.verify-attendance-signature]
+verify_jwt = false

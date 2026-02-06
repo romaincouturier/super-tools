@@ -4,8 +4,6 @@
  * Fetches BCC email settings from app_settings table
  */
 
-import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
-
 const NOCRM_BCC = "supertilt@bcc.nocrm.io";
 
 interface BccSetting {
@@ -19,7 +17,8 @@ interface BccSetting {
  * @param supabase - Supabase client instance
  * @returns Promise<string[]> - Array of BCC email addresses
  */
-export async function getBccSettings(supabase: SupabaseClient): Promise<string[]> {
+// deno-lint-ignore no-explicit-any
+export async function getBccSettings(supabase: any): Promise<string[]> {
   try {
     const { data: bccSettings } = await supabase
       .from("app_settings")

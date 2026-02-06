@@ -503,6 +503,7 @@ export type Database = {
           recipient_name: string | null
           signature_data: string | null
           signed_at: string | null
+          signed_pdf_url: string | null
           status: string
           token: string
           training_id: string
@@ -529,6 +530,7 @@ export type Database = {
           recipient_name?: string | null
           signature_data?: string | null
           signed_at?: string | null
+          signed_pdf_url?: string | null
           status?: string
           token: string
           training_id: string
@@ -555,6 +557,7 @@ export type Database = {
           recipient_name?: string | null
           signature_data?: string | null
           signed_at?: string | null
+          signed_pdf_url?: string | null
           status?: string
           token?: string
           training_id?: string
