@@ -562,23 +562,9 @@ const DocumentsManager = ({
       }
 
       if (data?.pdfUrl) {
-        // Download the PDF via fetch to avoid cross-origin download issues
-        try {
-          const pdfResponse = await fetch(data.pdfUrl);
-          const blob = await pdfResponse.blob();
-          const blobUrl = URL.createObjectURL(blob);
-          const link = document.createElement("a");
-          link.href = blobUrl;
-          link.download = `Convention_${trainingName.replace(/[^a-zA-Z0-9]/g, "_")}.pdf`;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          URL.revokeObjectURL(blobUrl);
-        } catch (downloadErr) {
-          // Fallback: open in new tab
-          console.warn("Blob download failed, opening in new tab:", downloadErr);
-          window.open(data.pdfUrl, "_blank");
-        }
+        // Use window.location.href — S3 URL has response-content-disposition=attachment
+        // so browser will download without navigating away
+        window.location.href = data.pdfUrl;
 
         toast({
           title: "Convention générée",
