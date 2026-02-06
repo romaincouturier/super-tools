@@ -595,20 +595,20 @@ const FormationEdit = () => {
                         required
                       />
                     </div>
+                  </div>
 
-                    {/* Client address */}
-                    <div className="space-y-2">
-                      <Label htmlFor="clientAddress">Adresse du client</Label>
-                      <Input
-                        id="clientAddress"
-                        value={clientAddress}
-                        onChange={(e) => setClientAddress(e.target.value)}
-                        placeholder="Ex: 12 rue de la Paix, 75002 Paris"
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Utilisée dans la convention de formation
-                      </p>
-                    </div>
+                  {/* Client address - full width for visibility */}
+                  <div className="space-y-2">
+                    <Label htmlFor="clientAddress">Adresse du client</Label>
+                    <Input
+                      id="clientAddress"
+                      value={clientAddress}
+                      onChange={(e) => setClientAddress(e.target.value)}
+                      placeholder="Ex: 12 rue de la Paix, 75002 Paris"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Utilisée dans la convention de formation
+                    </p>
                   </div>
 
                   {/* Format */}
