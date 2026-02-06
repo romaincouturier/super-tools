@@ -17,9 +17,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Save, Trash2, Loader2, X, Plus, Clock, FileText, Settings, ImageIcon } from "lucide-react";
+import { Save, Trash2, Loader2, X, Plus, Clock, FileText, Settings, ImageIcon, Share2, Copy, Check } from "lucide-react";
 import { Mission, MissionStatus, missionStatusConfig } from "@/types/missions";
 import { useUpdateMission, useDeleteMission } from "@/hooks/useMissions";
+import { useToast } from "@/hooks/use-toast";
 import MissionActivityTracker from "./MissionActivityTracker";
 import MissionPages from "./MissionPages";
 import MissionGallery from "./MissionGallery";
@@ -50,6 +51,17 @@ const MissionDetailDrawer = ({
 }: MissionDetailDrawerProps) => {
   const updateMission = useUpdateMission();
   const deleteMission = useDeleteMission();
+  const { toast } = useToast();
+  const [copied, setCopied] = useState(false);
+
+  const handleShareLink = () => {
+    if (!mission) return;
+    const url = `${window.location.origin}/mission-info/${mission.id}`;
+    navigator.clipboard.writeText(url);
+    setCopied(true);
+    toast({ title: "Lien copié", description: "Le lien de la page résumé a été copié." });
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   // Form state
   const [title, setTitle] = useState("");
@@ -143,13 +155,18 @@ const MissionDetailDrawer = ({
         <SheetHeader>
           <SheetTitle className="flex items-center justify-between gap-2">
             <span className="truncate flex-1">{mission.title}</span>
-            <Button size="sm" onClick={handleSave} disabled={updateMission.isPending}>
-              {updateMission.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Save className="h-4 w-4" />
-              )}
-            </Button>
+            <div className="flex items-center gap-1">
+              <Button size="sm" variant="outline" onClick={handleShareLink} title="Copier le lien de partage">
+                {copied ? <Check className="h-4 w-4 text-green-600" /> : <Share2 className="h-4 w-4" />}
+              </Button>
+              <Button size="sm" onClick={handleSave} disabled={updateMission.isPending}>
+                {updateMission.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
           </SheetTitle>
         </SheetHeader>
 
