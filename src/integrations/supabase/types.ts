@@ -186,8 +186,11 @@ export type Database = {
           email_sent_at: string | null
           id: string
           ip_address: string | null
+          journey_events: Json | null
           participant_id: string
           period: string
+          proof_file_url: string | null
+          proof_hash: string | null
           schedule_date: string
           signature_data: string | null
           signed_at: string | null
@@ -202,8 +205,11 @@ export type Database = {
           email_sent_at?: string | null
           id?: string
           ip_address?: string | null
+          journey_events?: Json | null
           participant_id: string
           period: string
+          proof_file_url?: string | null
+          proof_hash?: string | null
           schedule_date: string
           signature_data?: string | null
           signed_at?: string | null
@@ -218,8 +224,11 @@ export type Database = {
           email_sent_at?: string | null
           id?: string
           ip_address?: string | null
+          journey_events?: Json | null
           participant_id?: string
           period?: string
+          proof_file_url?: string | null
+          proof_hash?: string | null
           schedule_date?: string
           signature_data?: string | null
           signed_at?: string | null
@@ -933,7 +942,10 @@ export type Database = {
           formation_name: string
           id: string
           ip_address: string | null
+          journey_events: Json | null
           pdf_url: string
+          proof_file_url: string | null
+          proof_hash: string | null
           recipient_email: string
           recipient_name: string | null
           signature_data: string | null
@@ -955,7 +967,10 @@ export type Database = {
           formation_name: string
           id?: string
           ip_address?: string | null
+          journey_events?: Json | null
           pdf_url: string
+          proof_file_url?: string | null
+          proof_hash?: string | null
           recipient_email: string
           recipient_name?: string | null
           signature_data?: string | null
@@ -977,7 +992,10 @@ export type Database = {
           formation_name?: string
           id?: string
           ip_address?: string | null
+          journey_events?: Json | null
           pdf_url?: string
+          proof_file_url?: string | null
+          proof_hash?: string | null
           recipient_email?: string
           recipient_name?: string | null
           signature_data?: string | null

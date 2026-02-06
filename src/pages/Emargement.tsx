@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, CheckCircle2, MapPin, Calendar, Clock, User, PenLine, Shield } from "lucide-react";
@@ -34,6 +34,12 @@ interface AttendanceData {
   } | null;
 }
 
+interface JourneyEvent {
+  event: string;
+  timestamp: string;
+  details?: Record<string, unknown>;
+}
+
 const Emargement = () => {
   const { token } = useParams<{ token: string }>();
   const [loading, setLoading] = useState(true);
@@ -47,7 +53,18 @@ const Emargement = () => {
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const signaturePadRef = useRef<SignaturePad | null>(null);
+  const journeyEventsRef = useRef<JourneyEvent[]>([]);
+  const hasTrackedSignatureDrawn = useRef(false);
   const { toast } = useToast();
+
+  // Journey event tracker
+  const trackEvent = useCallback((event: string, details?: Record<string, unknown>) => {
+    journeyEventsRef.current.push({
+      event,
+      timestamp: new Date().toISOString(),
+      details,
+    });
+  }, []);
 
   useEffect(() => {
     const fetchAttendanceData = async () => {
@@ -58,7 +75,6 @@ const Emargement = () => {
       }
 
       try {
-        // Fetch attendance signature record
         const { data: signature, error: sigError } = await supabase
           .from("attendance_signatures")
           .select("*")
@@ -78,10 +94,18 @@ const Emargement = () => {
           return;
         }
 
-        // Check if already signed
         if (signature.signed_at) {
           setAlreadySigned(true);
         }
+
+        // Track page loaded
+        trackEvent("page_loaded", {
+          user_agent: navigator.userAgent,
+          screen_width: window.screen.width,
+          screen_height: window.screen.height,
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          language: navigator.language,
+        });
 
         // Fetch training info
         const { data: training } = await supabase
@@ -105,12 +129,15 @@ const Emargement = () => {
           .eq("day_date", signature.schedule_date)
           .maybeSingle();
 
-        // Record first open if not already opened
+        // Record first open
         if (!signature.email_opened_at) {
           await supabase
             .from("attendance_signatures")
             .update({ email_opened_at: new Date().toISOString() })
             .eq("id", signature.id);
+          trackEvent("first_link_opened");
+        } else {
+          trackEvent("link_reopened");
         }
 
         setAttendanceData({
@@ -128,14 +155,12 @@ const Emargement = () => {
     };
 
     fetchAttendanceData();
-  }, [token]);
+  }, [token, trackEvent]);
 
   // Initialize signature pad
   useEffect(() => {
     if (canvasRef.current && !alreadySigned && attendanceData) {
       const canvas = canvasRef.current;
-      
-      // Set canvas size
       const ratio = Math.max(window.devicePixelRatio || 1, 1);
       canvas.width = canvas.offsetWidth * ratio;
       canvas.height = canvas.offsetHeight * ratio;
@@ -144,10 +169,20 @@ const Emargement = () => {
         ctx.scale(ratio, ratio);
       }
 
-      signaturePadRef.current = new SignaturePad(canvas, {
+      const pad = new SignaturePad(canvas, {
         backgroundColor: "rgb(255, 255, 255)",
         penColor: "rgb(0, 0, 0)",
       });
+
+      // Track first stroke
+      pad.addEventListener("beginStroke", () => {
+        if (!hasTrackedSignatureDrawn.current) {
+          trackEvent("signature_drawing_started");
+          hasTrackedSignatureDrawn.current = true;
+        }
+      });
+
+      signaturePadRef.current = pad;
     }
 
     return () => {
@@ -155,11 +190,18 @@ const Emargement = () => {
         signaturePadRef.current.off();
       }
     };
-  }, [attendanceData, alreadySigned]);
+  }, [attendanceData, alreadySigned, trackEvent]);
+
+  const handleConsentChange = (checked: boolean) => {
+    setConsentGiven(checked);
+    trackEvent(checked ? "consent_checkbox_checked" : "consent_checkbox_unchecked");
+  };
 
   const handleClear = () => {
     if (signaturePadRef.current) {
       signaturePadRef.current.clear();
+      trackEvent("signature_cleared");
+      hasTrackedSignatureDrawn.current = false;
     }
   };
 
@@ -184,20 +226,26 @@ const Emargement = () => {
 
     if (!attendanceData || !token) return;
 
+    // Track submit click
+    trackEvent("submit_button_clicked");
+
     setSubmitting(true);
 
     try {
       const signatureData = signaturePadRef.current.toDataURL("image/png");
 
-      // Collect device info for audit trail
       const deviceInfo = {
         screenWidth: window.screen.width,
         screenHeight: window.screen.height,
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         language: navigator.language,
+        colorDepth: window.screen.colorDepth,
+        pixelRatio: window.devicePixelRatio,
+        platform: navigator.platform,
+        cookiesEnabled: navigator.cookieEnabled,
+        onLine: navigator.onLine,
       };
 
-      // Call edge function for proper IP capture and legal compliance
       const response = await supabase.functions.invoke("submit-attendance-signature", {
         body: {
           token,
@@ -205,6 +253,7 @@ const Emargement = () => {
           userAgent: navigator.userAgent,
           consent: consentGiven,
           deviceInfo,
+          journeyEvents: journeyEventsRef.current,
         },
       });
 
@@ -249,14 +298,12 @@ const Emargement = () => {
 
   const getTimeRange = () => {
     if (!attendanceData?.schedule) {
-      // Default times if no schedule
       return attendanceData?.period === "AM" ? "9h00 - 12h30" : "14h00 - 17h30";
     }
     
     const startTime = attendanceData.schedule.start_time.slice(0, 5).replace(":", "h");
     const endTime = attendanceData.schedule.end_time.slice(0, 5).replace(":", "h");
     
-    // For half-day, we need to split the full day
     if (attendanceData.period === "AM") {
       return `${startTime} - 12h30`;
     } else {
@@ -372,7 +419,7 @@ const Emargement = () => {
               <Checkbox
                 id="consent"
                 checked={consentGiven}
-                onCheckedChange={(checked) => setConsentGiven(checked === true)}
+                onCheckedChange={(checked) => handleConsentChange(checked === true)}
                 className="mt-0.5"
               />
               <Label htmlFor="consent" className="text-sm leading-relaxed cursor-pointer">
@@ -383,11 +430,7 @@ const Emargement = () => {
             </div>
 
             <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={handleClear}
-                className="flex-1"
-              >
+              <Button variant="outline" onClick={handleClear} className="flex-1">
                 Effacer
               </Button>
               <Button
@@ -421,8 +464,9 @@ const Emargement = () => {
                 </p>
                 <p>
                   Données enregistrées : votre signature, la date et l'heure, votre adresse IP,
-                  les informations de votre appareil. Ces données constituent la preuve de votre présence
-                  et sont conservées pour les besoins de traçabilité de la formation.
+                  les informations de votre appareil, et l'intégralité de votre parcours de signature.
+                  Ces données constituent le dossier de preuve de votre présence
+                  et sont conservées dans un espace sécurisé séparé pour les besoins de traçabilité.
                 </p>
               </div>
             </div>
