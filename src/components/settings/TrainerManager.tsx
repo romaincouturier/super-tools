@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
-import { Loader2, Users, Plus, Pencil, Trash2, Save, X, Upload } from "lucide-react";
+import { Loader2, Users, Plus, Pencil, Trash2, Save, X, Upload, FileText, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
@@ -34,6 +34,7 @@ interface Trainer {
   email: string;
   phone: string | null;
   photo_url: string | null;
+  cv_url: string | null;
   is_default: boolean;
 }
 
@@ -53,6 +54,7 @@ export default function TrainerManager() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [photoUrl, setPhotoUrl] = useState("");
+  const [cvUrl, setCvUrl] = useState("");
   const [isDefault, setIsDefault] = useState(false);
   
   const { toast } = useToast();
@@ -89,6 +91,7 @@ export default function TrainerManager() {
     setEmail("");
     setPhone("");
     setPhotoUrl("");
+    setCvUrl("");
     setIsDefault(false);
     setEditingTrainer(null);
   };
@@ -101,6 +104,7 @@ export default function TrainerManager() {
       setEmail(trainer.email);
       setPhone(trainer.phone || "");
       setPhotoUrl(trainer.photo_url || "");
+      setCvUrl(trainer.cv_url || "");
       setIsDefault(trainer.is_default);
     } else {
       resetForm();
@@ -175,8 +179,9 @@ export default function TrainerManager() {
             email: email.trim(),
             phone: phone.trim() || null,
             photo_url: photoUrl || null,
+            cv_url: cvUrl.trim() || null,
             is_default: isDefault,
-          })
+          } as any)
           .eq("id", editingTrainer.id);
 
         if (error) throw error;
@@ -186,12 +191,13 @@ export default function TrainerManager() {
         });
       } else {
         // Create new trainer
-        const { error } = await supabase.from("trainers").insert({
+        const { error } = await (supabase as any).from("trainers").insert({
           first_name: firstName.trim(),
           last_name: lastName.trim(),
           email: email.trim(),
           phone: phone.trim() || null,
           photo_url: photoUrl || null,
+          cv_url: cvUrl.trim() || null,
           is_default: isDefault,
         });
 
@@ -336,6 +342,17 @@ export default function TrainerManager() {
                   <div className="text-sm text-muted-foreground space-y-1">
                     <div>{trainer.email}</div>
                     {trainer.phone && <div>{trainer.phone}</div>}
+                    {trainer.cv_url && (
+                      <a
+                        href={trainer.cv_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 text-primary hover:underline"
+                      >
+                        <FileText className="h-3 w-3" />
+                        CV du formateur
+                      </a>
+                    )}
                   </div>
                 </div>
               ))}
@@ -431,6 +448,17 @@ export default function TrainerManager() {
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="Ex: 06 12 34 56 78"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="cvUrl">Lien vers le CV</Label>
+              <Input
+                id="cvUrl"
+                type="url"
+                value={cvUrl}
+                onChange={(e) => setCvUrl(e.target.value)}
+                placeholder="https://..."
               />
             </div>
 
