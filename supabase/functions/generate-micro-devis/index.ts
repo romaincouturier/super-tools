@@ -376,9 +376,9 @@ async function sendEmailWithResend(
   }
   
   const emailResponse = await resend.emails.send({
-    from: "Supertilt <romain@supertilt.fr>",
+    from: "Romain Couturier <romain@supertilt.fr>",
     to: [emailCommanditaire],
-    bcc: ["supertilt@bcc.nocrm.io"],
+    bcc: ["romain@supertilt.fr", "supertilt@bcc.nocrm.io"],
     subject,
     html: htmlContent,
     attachments,

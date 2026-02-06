@@ -10,19 +10,9 @@ import { getSupabaseClient, verifyAuth } from "../_shared/supabase-client.ts";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
-// Get Signitic signature
-const getSignature = async (): Promise<string> => {
-  try {
-    const response = await fetch(
-      "https://api.signitic.com/v1/signatures/26ef8e56-f3df-11ef-b723-42010a40000c/html",
-      { headers: { "X-API-KEY": Deno.env.get("SIGNITIC_API_KEY") || "" } }
-    );
-    if (response.ok) return await response.text();
-  } catch (e) {
-    console.log("Could not fetch Signitic signature:", e);
-  }
-  return "";
-};
+// Get Signitic signature using shared module
+import { getSigniticSignature } from "../_shared/signitic.ts";
+const getSignature = getSigniticSignature;
 
 serve(async (req: Request): Promise<Response> => {
   const preflight = handleCorsPreflightIfNeeded(req);
@@ -98,7 +88,7 @@ serve(async (req: Request): Promise<Response> => {
     await resend.emails.send({
       from: "Romain Couturier <romain@supertilt.fr>",
       to: [recipientEmail],
-      bcc: ["romain@supertilt.fr"],
+      bcc: ["romain@supertilt.fr", "supertilt@bcc.nocrm.io"],
       subject: `Certificat de réalisation - ${training.training_name} - ${participantName}`,
       html: emailHtml,
       attachments: [{ filename: fileName, content: pdfBase64 }],
