@@ -534,6 +534,7 @@ const Parametres = () => {
   const [supertiltSiteUrl, setSupertiltSiteUrl] = useState("https://supertilt.fr");
   const [newsletterToolUrl, setNewsletterToolUrl] = useState("");
   const [savingSettings, setSavingSettings] = useState(false);
+  const [tvaRate, setTvaRate] = useState("20");
   
   // Working days configuration (Monday to Friday by default)
   const [workingDays, setWorkingDays] = useState<boolean[]>([false, true, true, true, true, true, false]); // Sun, Mon, Tue, Wed, Thu, Fri, Sat
@@ -595,6 +596,7 @@ const Parametres = () => {
       .select("setting_key, setting_value")
       .in("setting_key", [
         "bcc_email", "bcc_enabled", "working_days", "google_my_business_url", "supertilt_site_url", "newsletter_tool_url",
+        "tva_rate",
         "delay_needs_survey_days", "delay_reminder_days", "delay_trainer_summary_days",
         "delay_google_review_days", "delay_video_testimonial_days",
         "delay_cold_evaluation_days", "delay_cold_evaluation_funder_days",
@@ -623,6 +625,9 @@ const Parametres = () => {
           break;
         case "newsletter_tool_url":
           setNewsletterToolUrl(setting.setting_value || "");
+          break;
+        case "tva_rate":
+          setTvaRate(setting.setting_value || "20");
           break;
         case "working_days":
           try {
@@ -677,6 +682,7 @@ const Parametres = () => {
         { setting_key: "google_my_business_url", setting_value: googleMyBusinessUrl, description: "URL de la fiche Google My Business pour les demandes d'avis" },
         { setting_key: "supertilt_site_url", setting_value: supertiltSiteUrl, description: "URL du site SuperTilt pour les liens formations" },
         { setting_key: "newsletter_tool_url", setting_value: newsletterToolUrl, description: "URL de l'outil de newsletter (ex: Brevo, Mailchimp)" },
+        { setting_key: "tva_rate", setting_value: tvaRate, description: "Taux de TVA par défaut en pourcentage (ex: 20 pour 20%)" },
         { setting_key: "working_days", setting_value: JSON.stringify(workingDays), description: "Jours ouvrables pour l'envoi des emails (tableau de 7 booléens : dim, lun, mar, mer, jeu, ven, sam)" },
         { setting_key: "delay_needs_survey_days", setting_value: delayNeedsSurvey, description: "Délai avant formation pour envoyer le questionnaire de besoins (en jours)" },
         { setting_key: "delay_reminder_days", setting_value: delayReminder, description: "Délai avant formation pour envoyer le rappel logistique (en jours)" },
@@ -1255,6 +1261,29 @@ const Parametres = () => {
                         <ExternalLink className="h-4 w-4" />
                       </Button>
                     </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* TVA Rate */}
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium">Taux de TVA</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Taux de TVA par défaut appliqué dans les conventions de formation.
+                  </p>
+                  <div className="space-y-2">
+                    <Label htmlFor="tva-rate">Taux de TVA (%)</Label>
+                    <Input
+                      id="tva-rate"
+                      type="number"
+                      min="0"
+                      step="0.1"
+                      value={tvaRate}
+                      onChange={(e) => setTvaRate(e.target.value)}
+                      placeholder="20"
+                      className="max-w-[120px]"
+                    />
                   </div>
                 </div>
 
