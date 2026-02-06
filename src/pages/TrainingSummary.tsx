@@ -537,12 +537,6 @@ END:VCALENDAR`;
                   </div>
 
                   <div className="flex flex-wrap gap-2">
-                    <Button variant="outline" asChild>
-                      <a href={getGoogleMapsUrl()} target="_blank" rel="noopener noreferrer">
-                        <MapPin className="h-4 w-4 mr-2" />
-                        Voir sur Google Maps
-                      </a>
-                    </Button>
                     <Button asChild>
                       <a href={getDirectionsUrl()} target="_blank" rel="noopener noreferrer">
                         <Navigation className="h-4 w-4 mr-2" />
