@@ -1003,6 +1003,8 @@ const FormationDetail = () => {
                 trainingEndDate={training.end_date}
                 formatFormation={training.format_formation}
                 attendanceSheetsUrls={training.attendance_sheets_urls}
+                clientName={training.client_name}
+                trainingDuree={`${calculateTotalDuration()}h`}
                 onParticipantUpdated={fetchParticipants}
               />
               
