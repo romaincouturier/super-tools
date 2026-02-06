@@ -37,6 +37,7 @@ import SupertiltLogo from "@/components/SupertiltLogo";
 interface Training {
   id: string;
   training_name: string;
+  client_name: string;
   start_date: string;
   end_date: string | null;
   location: string;
@@ -84,7 +85,7 @@ const TrainingSummary = () => {
       // Fetch training
       const { data: trainingData, error: trainingError } = await supabase
         .from("trainings")
-        .select("id, training_name, start_date, end_date, location, program_file_url, trainer_id, objectives, prerequisites, format_formation")
+        .select("id, training_name, client_name, start_date, end_date, location, program_file_url, trainer_id, objectives, prerequisites, format_formation")
         .eq("id", trainingId)
         .single();
 
@@ -165,6 +166,12 @@ const TrainingSummary = () => {
     return `https://www.google.com/maps/dir/?api=1&destination=${address}`;
   };
 
+  // Build calendar event title: (ENTREPRISE) NOM_DE_LA_FORMATION
+  const getEventTitle = () => {
+    if (!training) return "";
+    return `(${training.client_name}) ${training.training_name}`;
+  };
+
   // Summary page URL to include in calendar invites
   const getSummaryPageUrl = () => {
     return `${window.location.origin}/formation-info/${trainingId}`;
@@ -198,7 +205,7 @@ METHOD:PUBLISH
 BEGIN:VEVENT
 DTSTART:${startDate}T${startTime}
 DTEND:${startDate}T${endTime}
-SUMMARY:${training.training_name} (${dayLabel})
+SUMMARY:${getEventTitle()} (${dayLabel})
 LOCATION:${training.location}
 DESCRIPTION:${desc}
 URL:${getSummaryPageUrl()}
@@ -229,7 +236,7 @@ END:VCALENDAR`;
 
     const url = new URL("https://www.google.com/calendar/render");
     url.searchParams.set("action", "TEMPLATE");
-    url.searchParams.set("text", `${training.training_name} (${dayLabel})`);
+    url.searchParams.set("text", `${getEventTitle()} (${dayLabel})`);
     url.searchParams.set("dates", `${startDate}T${startTime}/${startDate}T${endTime}`);
     url.searchParams.set("details", getEventDescription());
     url.searchParams.set("location", training.location);
@@ -242,7 +249,7 @@ END:VCALENDAR`;
     const dayLabel = format(parseISO(schedule.day_date), "d MMM", { locale: fr });
 
     const url = new URL("https://outlook.live.com/calendar/0/deeplink/compose");
-    url.searchParams.set("subject", `${training.training_name} (${dayLabel})`);
+    url.searchParams.set("subject", `${getEventTitle()} (${dayLabel})`);
     url.searchParams.set("body", getEventDescription());
     url.searchParams.set("location", training.location);
     url.searchParams.set("startdt", `${schedule.day_date}T${schedule.start_time}`);
@@ -260,7 +267,7 @@ END:VCALENDAR`;
 
     const url = new URL("https://calendar.yahoo.com/");
     url.searchParams.set("v", "60");
-    url.searchParams.set("title", `${training.training_name} (${dayLabel})`);
+    url.searchParams.set("title", `${getEventTitle()} (${dayLabel})`);
     url.searchParams.set("st", `${startDate}T${startTime}`);
     url.searchParams.set("et", `${startDate}T${endTime}`);
     url.searchParams.set("desc", getEventDescription());
