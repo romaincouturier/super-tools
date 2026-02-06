@@ -1,16 +1,15 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import {
   handleCorsPreflightIfNeeded,
   createErrorResponse,
   createJsonResponse,
-  verifyAuth,
   sendEmail,
   getSigniticSignature,
   escapeHtml,
   formatDateWithDayFr,
   formatTime,
 } from "../_shared/mod.ts";
-import { getSupabaseClient } from "../_shared/supabase-client.ts";
 
 interface ShareEventRequest {
   event_id: string;
@@ -23,19 +22,49 @@ serve(async (req) => {
   if (corsResponse) return corsResponse;
 
   try {
+    // ── Auth verification (inline, no shared helper) ──
     const authHeader = req.headers.get("Authorization");
-    const authResult = await verifyAuth(authHeader);
-    if (!authResult) {
+    console.log("Auth header present:", !!authHeader);
+
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      console.warn("Missing or malformed Authorization header");
       return createErrorResponse("Non autorisé", 401);
     }
 
+    const token = authHeader.replace("Bearer ", "");
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+    // Verify user token via Auth API directly (avoids supabase-js getUser quirks in Deno)
+    const authResponse = await fetch(`${supabaseUrl}/auth/v1/user`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        apikey: serviceKey,
+      },
+    });
+
+    if (!authResponse.ok) {
+      console.warn("Auth verification failed:", authResponse.status);
+      return createErrorResponse("Non autorisé", 401);
+    }
+
+    const user = await authResponse.json();
+    if (!user?.id) {
+      console.warn("Auth verification failed: no user id");
+      return createErrorResponse("Non autorisé", 401);
+    }
+
+    console.log("Authenticated user:", user.id);
+
+    // ── Parse request body ──
     const { event_id, recipient_email, recipient_name } = await req.json() as ShareEventRequest;
 
     if (!event_id || !recipient_email) {
       return createErrorResponse("event_id et recipient_email sont requis", 400);
     }
 
-    const supabase = getSupabaseClient();
+    // Use service role client for data queries
+    const supabase = createClient(supabaseUrl, serviceKey);
 
     // Fetch event details
     const { data: event, error: eventError } = await supabase
@@ -61,14 +90,12 @@ serve(async (req) => {
     const { data: senderProfile } = await supabase
       .from("profiles")
       .select("first_name, last_name, display_name, email")
-      .eq("user_id", authResult.id)
+      .eq("user_id", user.id)
       .single();
 
     const senderName = senderProfile?.first_name && senderProfile?.last_name
       ? `${senderProfile.first_name} ${senderProfile.last_name}`
-      : senderProfile?.display_name || authResult.email || "Un collaborateur";
-
-    const senderEmail = authResult.email || "romain@supertilt.fr";
+      : senderProfile?.display_name || user.email || "Un collaborateur";
 
     // Format event date
     const eventDate = formatDateWithDayFr(event.event_date);
