@@ -485,9 +485,11 @@ export type Database = {
           formation_name: string
           id: string
           ip_address: string | null
+          journey_events: Json | null
           pdf_hash: string | null
           pdf_url: string
           proof_file_url: string | null
+          proof_hash: string | null
           recipient_email: string
           recipient_name: string | null
           signature_data: string | null
@@ -509,9 +511,11 @@ export type Database = {
           formation_name: string
           id?: string
           ip_address?: string | null
+          journey_events?: Json | null
           pdf_hash?: string | null
           pdf_url: string
           proof_file_url?: string | null
+          proof_hash?: string | null
           recipient_email: string
           recipient_name?: string | null
           signature_data?: string | null
@@ -533,9 +537,11 @@ export type Database = {
           formation_name?: string
           id?: string
           ip_address?: string | null
+          journey_events?: Json | null
           pdf_hash?: string | null
           pdf_url?: string
           proof_file_url?: string | null
+          proof_hash?: string | null
           recipient_email?: string
           recipient_name?: string | null
           signature_data?: string | null

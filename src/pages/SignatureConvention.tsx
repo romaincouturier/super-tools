@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -38,6 +38,12 @@ interface ConventionSignatureData {
   expires_at: string | null;
 }
 
+interface JourneyEvent {
+  event: string;
+  timestamp: string;
+  details?: Record<string, unknown>;
+}
+
 const SignatureConvention = () => {
   const { token } = useParams<{ token: string }>();
   const [loading, setLoading] = useState(true);
@@ -53,7 +59,19 @@ const SignatureConvention = () => {
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const signaturePadRef = useRef<SignaturePad | null>(null);
+  const journeyEventsRef = useRef<JourneyEvent[]>([]);
+  const hasTrackedSignatureDrawn = useRef(false);
+  const hasTrackedNameEntered = useRef(false);
   const { toast } = useToast();
+
+  // Journey event tracker
+  const trackEvent = useCallback((event: string, details?: Record<string, unknown>) => {
+    journeyEventsRef.current.push({
+      event,
+      timestamp: new Date().toISOString(),
+      details,
+    });
+  }, []);
 
   useEffect(() => {
     const fetchConventionData = async () => {
@@ -98,12 +116,24 @@ const SignatureConvention = () => {
           return;
         }
 
+        // Track page loaded
+        trackEvent("page_loaded", {
+          user_agent: navigator.userAgent,
+          screen_width: window.screen.width,
+          screen_height: window.screen.height,
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          language: navigator.language,
+        });
+
         // Record first open
         if (!signature.email_opened_at) {
           await supabase
             .from("convention_signatures")
             .update({ email_opened_at: new Date().toISOString() })
             .eq("id", signature.id);
+          trackEvent("first_link_opened");
+        } else {
+          trackEvent("link_reopened");
         }
 
         setConventionData(signature);
@@ -120,7 +150,7 @@ const SignatureConvention = () => {
     };
 
     fetchConventionData();
-  }, [token]);
+  }, [token, trackEvent]);
 
   // Initialize signature pad
   useEffect(() => {
@@ -134,10 +164,20 @@ const SignatureConvention = () => {
         ctx.scale(ratio, ratio);
       }
 
-      signaturePadRef.current = new SignaturePad(canvas, {
+      const pad = new SignaturePad(canvas, {
         backgroundColor: "rgb(255, 255, 255)",
         penColor: "rgb(0, 0, 0)",
       });
+
+      // Track first stroke
+      pad.addEventListener("beginStroke", () => {
+        if (!hasTrackedSignatureDrawn.current) {
+          trackEvent("signature_drawing_started");
+          hasTrackedSignatureDrawn.current = true;
+        }
+      });
+
+      signaturePadRef.current = pad;
     }
 
     return () => {
@@ -145,11 +185,30 @@ const SignatureConvention = () => {
         signaturePadRef.current.off();
       }
     };
-  }, [conventionData, alreadySigned]);
+  }, [conventionData, alreadySigned, trackEvent]);
+
+  const handlePdfConsulted = () => {
+    trackEvent("pdf_consulted", { pdf_url: conventionData?.pdf_url });
+  };
+
+  const handleNameChange = (value: string) => {
+    setSignerName(value);
+    if (value.trim().length > 0 && !hasTrackedNameEntered.current) {
+      trackEvent("signer_name_entered");
+      hasTrackedNameEntered.current = true;
+    }
+  };
+
+  const handleConsentChange = (checked: boolean) => {
+    setConsentGiven(checked);
+    trackEvent(checked ? "consent_checkbox_checked" : "consent_checkbox_unchecked");
+  };
 
   const handleClear = () => {
     if (signaturePadRef.current) {
       signaturePadRef.current.clear();
+      trackEvent("signature_cleared");
+      hasTrackedSignatureDrawn.current = false;
     }
   };
 
@@ -183,6 +242,9 @@ const SignatureConvention = () => {
 
     if (!conventionData || !token) return;
 
+    // Track submit click
+    trackEvent("submit_button_clicked");
+
     setSubmitting(true);
 
     try {
@@ -193,6 +255,11 @@ const SignatureConvention = () => {
         screenHeight: window.screen.height,
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         language: navigator.language,
+        colorDepth: window.screen.colorDepth,
+        pixelRatio: window.devicePixelRatio,
+        platform: navigator.platform,
+        cookiesEnabled: navigator.cookieEnabled,
+        onLine: navigator.onLine,
       };
 
       const response = await supabase.functions.invoke("submit-convention-signature", {
@@ -204,6 +271,7 @@ const SignatureConvention = () => {
           signerName: signerName.trim(),
           signerFunction: signerFunction.trim() || undefined,
           deviceInfo,
+          journeyEvents: journeyEventsRef.current,
         },
       });
 
@@ -317,7 +385,7 @@ const SignatureConvention = () => {
             {/* View PDF button */}
             {conventionData?.pdf_url && (
               <div className="pt-2">
-                <Button variant="outline" asChild className="w-full sm:w-auto">
+                <Button variant="outline" asChild className="w-full sm:w-auto" onClick={handlePdfConsulted}>
                   <a href={conventionData.pdf_url} target="_blank" rel="noopener noreferrer">
                     <ExternalLink className="h-4 w-4 mr-2" />
                     Consulter la convention PDF
@@ -342,7 +410,7 @@ const SignatureConvention = () => {
               <Input
                 id="signerName"
                 value={signerName}
-                onChange={(e) => setSignerName(e.target.value)}
+                onChange={(e) => handleNameChange(e.target.value)}
                 placeholder="Prénom Nom"
               />
             </div>
@@ -379,7 +447,7 @@ const SignatureConvention = () => {
               <Checkbox
                 id="consent"
                 checked={consentGiven}
-                onCheckedChange={(checked) => setConsentGiven(checked === true)}
+                onCheckedChange={(checked) => handleConsentChange(checked === true)}
                 className="mt-0.5"
               />
               <Label htmlFor="consent" className="text-sm leading-relaxed cursor-pointer">
@@ -424,8 +492,9 @@ const SignatureConvention = () => {
                 </p>
                 <p>
                   Données enregistrées : votre signature, votre nom, la date et l'heure, votre adresse IP,
-                  les informations de votre appareil. Ces données constituent la preuve de votre engagement
-                  et sont conservées pour les besoins de traçabilité.
+                  les informations de votre appareil, et l'intégralité de votre parcours de signature.
+                  Ces données constituent le dossier de preuve de votre engagement
+                  et sont conservées dans un espace sécurisé séparé pour les besoins de traçabilité.
                 </p>
               </div>
             </div>

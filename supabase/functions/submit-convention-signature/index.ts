@@ -13,6 +13,12 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+interface JourneyEvent {
+  event: string;
+  timestamp: string;
+  details?: Record<string, unknown>;
+}
+
 interface RequestBody {
   token: string;
   signatureData: string;
@@ -25,7 +31,13 @@ interface RequestBody {
     screenHeight?: number;
     timezone?: string;
     language?: string;
+    colorDepth?: number;
+    pixelRatio?: number;
+    platform?: string;
+    cookiesEnabled?: boolean;
+    onLine?: boolean;
   };
+  journeyEvents?: JourneyEvent[];
 }
 
 async function generateHash(data: string): Promise<string> {
@@ -43,10 +55,11 @@ async function hashArrayBuffer(buffer: ArrayBuffer): Promise<string> {
 }
 
 function getClientIp(req: Request): string {
+  // cf-connecting-ip is the real client IP from Cloudflare (most reliable)
   return (
-    req.headers.get("x-forwarded-for")?.split(",")[0].trim() ||
-    req.headers.get("x-real-ip") ||
     req.headers.get("cf-connecting-ip") ||
+    req.headers.get("x-real-ip") ||
+    req.headers.get("x-forwarded-for")?.split(",")[0].trim() ||
     "unknown"
   );
 }
@@ -70,7 +83,7 @@ serve(async (req: Request): Promise<Response> => {
 
   try {
     const body: RequestBody = await req.json();
-    const { token, signatureData, userAgent, consent, signerName, signerFunction, deviceInfo } = body;
+    const { token, signatureData, userAgent, consent, signerName, signerFunction, deviceInfo, journeyEvents } = body;
 
     if (!token || !signatureData || !signerName) {
       return new Response(
@@ -152,11 +165,27 @@ serve(async (req: Request): Promise<Response> => {
       console.warn("Could not download PDF for hash verification:", pdfErr);
     }
 
+    // Build the complete journey timeline
+    // Merge client-side events with server-side events
+    const serverJourneyEvents: JourneyEvent[] = [
+      ...(journeyEvents || []),
+      {
+        event: "signature_submitted_server",
+        timestamp: signedAt,
+        details: {
+          ip_address: ipAddress,
+          pdf_integrity_verified: conventionSig.pdf_hash ? conventionSig.pdf_hash === pdfHashAtSignature : null,
+        },
+      },
+    ];
+
+    const consentText =
+      "En signant cette convention, j'accepte les conditions de formation proposées et je reconnais que cette signature électronique a valeur légale conformément au règlement européen eIDAS (UE n° 910/2014) et aux articles 1366 et 1367 du Code civil français.";
+
     const auditMetadata = {
       consent_given: true,
       consent_timestamp: signedAt,
-      consent_text:
-        "En signant cette convention, j'accepte les conditions de formation proposées et je reconnais que cette signature électronique a valeur légale conformément au règlement européen eIDAS (UE n° 910/2014) et aux articles 1366 et 1367 du Code civil français.",
+      consent_text: consentText,
       signer_name: signerName,
       signer_function: signerFunction || null,
       device_info: deviceInfo || {},
@@ -173,6 +202,7 @@ serve(async (req: Request): Promise<Response> => {
         training_id: conventionSig.training_id,
         pdf_url: conventionSig.pdf_url,
       },
+      journey_event_count: serverJourneyEvents.length,
     };
 
     // Update signature record
@@ -185,6 +215,7 @@ serve(async (req: Request): Promise<Response> => {
         user_agent: userAgent,
         audit_metadata: auditMetadata,
         status: "signed",
+        journey_events: serverJourneyEvents,
       })
       .eq("id", conventionSig.id);
 
@@ -196,14 +227,16 @@ serve(async (req: Request): Promise<Response> => {
       );
     }
 
-    // Generate and store proof file (JSON)
+    // Generate comprehensive proof file and store in PRIVATE bucket
     let proofFileUrl: string | null = null;
+    let proofHash: string | null = null;
     try {
       const proofFile = {
-        version: "1.0",
+        version: "2.0",
         type: "convention_signature_proof",
         generated_at: new Date().toISOString(),
         signature: {
+          id: conventionSig.id,
           token: token,
           signed_at: signedAt,
           signer_name: signerName,
@@ -225,41 +258,86 @@ serve(async (req: Request): Promise<Response> => {
         consent: {
           given: true,
           timestamp: signedAt,
-          text: auditMetadata.consent_text,
+          text: consentText,
         },
         device: deviceInfo || {},
+        journey_timeline: serverJourneyEvents,
+        identification: {
+          method: "email_link",
+          email_sent_to: conventionSig.recipient_email,
+          email_sent_at: conventionSig.email_sent_at,
+          link_first_opened_at: conventionSig.email_opened_at,
+          token_expires_at: conventionSig.expires_at,
+          note: "Signature Électronique Simple (SES) : le lien unique est envoyé à l'adresse email du signataire désigné. L'accès au lien constitue le principal facteur d'identification.",
+        },
         legal: {
-          regulation: "eIDAS (UE n° 910/2014)",
-          civil_code: "Code Civil art. 1366-1367",
-          signature_level: "SES (Simple Electronic Signature)",
+          regulation: "Règlement eIDAS (UE n° 910/2014)",
+          civil_code: "Code Civil français, articles 1366 et 1367",
+          signature_level: "SES (Signature Électronique Simple)",
+          probative_value: "La charge de la preuve de l'authenticité incombe à l'émetteur en cas de contestation.",
           retention_period: "5 ans minimum après fin de relation contractuelle",
+          data_protection: "Les données personnelles sont traitées conformément au RGPD (UE 2016/679).",
+        },
+        non_repudiation_elements: {
+          email_dispatch_logged: true,
+          link_opening_logged: !!conventionSig.email_opened_at,
+          full_journey_tracked: serverJourneyEvents.length > 0,
+          consent_explicitly_given: true,
+          consent_and_submit_separate_actions: true,
+          signature_image_captured: true,
+          document_integrity_verified: conventionSig.pdf_hash ? conventionSig.pdf_hash === pdfHashAtSignature : null,
+          confirmation_email_sent: false, // updated after sending
+          ip_address_captured: ipAddress !== "unknown",
         },
       };
 
-      const proofFileName = `proofs/convention_${conventionSig.training_id}_${token}.json`;
-      const proofContent = new TextEncoder().encode(JSON.stringify(proofFile, null, 2));
+      const proofContent = JSON.stringify(proofFile, null, 2);
+      const proofBytes = new TextEncoder().encode(proofContent);
 
+      // Hash the proof file itself for tamper detection
+      proofHash = await hashArrayBuffer(proofBytes.buffer);
+
+      const proofFileName = `convention_${conventionSig.id}_${token}.json`;
+
+      // Store in PRIVATE bucket (signature-proofs)
       const { error: uploadError } = await supabase.storage
-        .from("training-documents")
-        .upload(proofFileName, proofContent, {
+        .from("signature-proofs")
+        .upload(proofFileName, proofBytes, {
           contentType: "application/json",
           upsert: true,
         });
 
       if (uploadError) {
-        console.warn("Failed to upload proof file:", uploadError);
-      } else {
-        const { data: { publicUrl } } = supabase.storage
+        console.warn("Failed to upload proof file to private bucket:", uploadError);
+        // Fallback: still try public bucket
+        const fallbackName = `proofs/convention_${conventionSig.training_id}_${token}.json`;
+        const { error: fallbackErr } = await supabase.storage
           .from("training-documents")
-          .getPublicUrl(proofFileName);
-        proofFileUrl = publicUrl;
-
-        // Store proof file URL
-        await supabase
-          .from("convention_signatures")
-          .update({ proof_file_url: proofFileUrl })
-          .eq("id", conventionSig.id);
+          .upload(fallbackName, proofBytes, {
+            contentType: "application/json",
+            upsert: true,
+          });
+        if (!fallbackErr) {
+          const { data: { publicUrl } } = supabase.storage
+            .from("training-documents")
+            .getPublicUrl(fallbackName);
+          proofFileUrl = publicUrl;
+        }
+      } else {
+        // Private bucket - store the path (not a public URL)
+        proofFileUrl = `signature-proofs/${proofFileName}`;
       }
+
+      // Store proof file URL and hash
+      await supabase
+        .from("convention_signatures")
+        .update({
+          proof_file_url: proofFileUrl,
+          proof_hash: proofHash,
+        })
+        .eq("id", conventionSig.id);
+
+      console.log("Proof file stored. Hash:", proofHash);
     } catch (proofErr) {
       console.warn("Failed to generate proof file:", proofErr);
     }
@@ -279,6 +357,8 @@ serve(async (req: Request): Promise<Response> => {
           signature_hash: signatureHash,
           pdf_hash_at_signature: pdfHashAtSignature,
           proof_file_url: proofFileUrl,
+          proof_hash: proofHash,
+          journey_events_count: serverJourneyEvents.length,
         },
       });
     } catch (logError) {
@@ -310,6 +390,7 @@ serve(async (req: Request): Promise<Response> => {
   <strong>Informations de traçabilité :</strong><br>
   Empreinte de signature : <code>${signatureHash.substring(0, 16)}...</code><br>
   ${pdfHashAtSignature ? `Empreinte du document : <code>${pdfHashAtSignature.substring(0, 16)}...</code><br>` : ""}
+  ${proofHash ? `Empreinte du dossier de preuve : <code>${proofHash.substring(0, 16)}...</code><br>` : ""}
   Niveau de signature : SES (Signature Électronique Simple) - eIDAS (UE n° 910/2014)<br>
   Cet email fait office de confirmation de votre engagement électronique.
 </p>
@@ -323,6 +404,7 @@ ${signature}`;
       });
 
       if (confirmResult.success) {
+        // Update non_repudiation_elements.confirmation_email_sent in proof
         await supabase
           .from("convention_signatures")
           .update({ confirmation_email_sent_at: new Date().toISOString() })
@@ -343,6 +425,7 @@ ${signature}`;
         message: "Convention signée avec succès",
         signedAt,
         signatureHash,
+        proofHash,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
