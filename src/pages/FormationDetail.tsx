@@ -56,6 +56,7 @@ interface Training {
   hotel_booked: boolean;
   restaurant_booked: boolean;
   convention_file_url?: string | null;
+  signed_convention_urls?: string[];
 }
 
 interface Schedule {
@@ -933,6 +934,7 @@ const FormationDetail = () => {
             location={training.location}
             schedules={schedules}
             participants={participants}
+            signedConventionUrls={training.signed_convention_urls || []}
             onUpdate={fetchTrainingData}
           />
 

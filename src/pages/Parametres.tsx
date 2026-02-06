@@ -531,7 +531,11 @@ Merci pour ta confiance !
 
 Tu trouveras ci-joint la convention de formation pour <strong>{{training_name}}</strong> qui se déroulera du <strong>{{start_date}}</strong> au <strong>{{end_date}}</strong>.
 
-Merci de bien vouloir la retourner signée à l'adresse suivante : romain@supertilt.fr
+{{#signature_link}}
+<p style="margin: 20px 0;"><a href="{{signature_link}}" style="display: inline-block; padding: 12px 24px; background-color: #e6bc00; color: #000; text-decoration: none; border-radius: 6px; font-weight: bold;">✍️ Signer la convention en ligne</a></p>
+
+Tu peux aussi la retourner signée par email à romain@supertilt.fr
+{{/signature_link}}
 
 Je reste disponible si tu as la moindre question.
 
@@ -542,13 +546,17 @@ Merci pour votre confiance.
 
 Vous trouverez ci-joint la convention de formation pour <strong>{{training_name}}</strong> qui se déroulera du <strong>{{start_date}}</strong> au <strong>{{end_date}}</strong>.
 
-Merci de bien vouloir la retourner signée à l'adresse suivante : romain@supertilt.fr
+{{#signature_link}}
+<p style="margin: 20px 0;"><a href="{{signature_link}}" style="display: inline-block; padding: 12px 24px; background-color: #e6bc00; color: #000; text-decoration: none; border-radius: 6px; font-weight: bold;">✍️ Signer la convention en ligne</a></p>
+
+Vous pouvez également la retourner signée par email à romain@supertilt.fr
+{{/signature_link}}
 
 Je reste à votre disposition pour toute question.
 
 Cordialement,`,
     },
-    variables: ["first_name", "training_name", "start_date", "end_date"],
+    variables: ["first_name", "training_name", "start_date", "end_date", "signature_link"],
   },
 };
 const Parametres = () => {

@@ -473,6 +473,80 @@ export type Database = {
           },
         ]
       }
+      convention_signatures: {
+        Row: {
+          audit_metadata: Json | null
+          client_name: string
+          created_at: string
+          email_opened_at: string | null
+          email_sent_at: string | null
+          expires_at: string | null
+          formation_name: string
+          id: string
+          ip_address: string | null
+          pdf_url: string
+          recipient_email: string
+          recipient_name: string | null
+          signature_data: string | null
+          signed_at: string | null
+          status: string
+          token: string
+          training_id: string
+          updated_at: string
+          user_agent: string | null
+        }
+        Insert: {
+          audit_metadata?: Json | null
+          client_name: string
+          created_at?: string
+          email_opened_at?: string | null
+          email_sent_at?: string | null
+          expires_at?: string | null
+          formation_name: string
+          id?: string
+          ip_address?: string | null
+          pdf_url: string
+          recipient_email: string
+          recipient_name?: string | null
+          signature_data?: string | null
+          signed_at?: string | null
+          status?: string
+          token: string
+          training_id: string
+          updated_at?: string
+          user_agent?: string | null
+        }
+        Update: {
+          audit_metadata?: Json | null
+          client_name?: string
+          created_at?: string
+          email_opened_at?: string | null
+          email_sent_at?: string | null
+          expires_at?: string | null
+          formation_name?: string
+          id?: string
+          ip_address?: string | null
+          pdf_url?: string
+          recipient_email?: string
+          recipient_name?: string | null
+          signature_data?: string | null
+          signed_at?: string | null
+          status?: string
+          token?: string
+          training_id?: string
+          updated_at?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "convention_signatures_training_id_fkey"
+            columns: ["training_id"]
+            isOneToOne: false
+            referencedRelation: "trainings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       crm_activity_log: {
         Row: {
           action_type: string
@@ -2482,6 +2556,7 @@ export type Database = {
           prerequisites: string[] | null
           program_file_url: string | null
           restaurant_booked: boolean | null
+          signed_convention_urls: string[] | null
           sold_price_ht: number | null
           sponsor_email: string | null
           sponsor_first_name: string | null
@@ -2518,6 +2593,7 @@ export type Database = {
           prerequisites?: string[] | null
           program_file_url?: string | null
           restaurant_booked?: boolean | null
+          signed_convention_urls?: string[] | null
           sold_price_ht?: number | null
           sponsor_email?: string | null
           sponsor_first_name?: string | null
@@ -2554,6 +2630,7 @@ export type Database = {
           prerequisites?: string[] | null
           program_file_url?: string | null
           restaurant_booked?: boolean | null
+          signed_convention_urls?: string[] | null
           sold_price_ht?: number | null
           sponsor_email?: string | null
           sponsor_first_name?: string | null
