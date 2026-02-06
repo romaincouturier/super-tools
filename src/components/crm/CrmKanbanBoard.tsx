@@ -16,7 +16,7 @@ import {
   sortableKeyboardCoordinates,
   horizontalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { Plus, Loader2, Search, X, Building, User, Tag, GraduationCap, Briefcase } from "lucide-react";
+import { Plus, Loader2, Search, X, Building, User, Tag, GraduationCap, Briefcase, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -56,6 +56,10 @@ const CrmKanbanBoard = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [showSearchResults, setShowSearchResults] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
+
+  // Filter state: all (default board), en_cours, gagne, a_venir
+  type FilterMode = "all" | "en_cours" | "gagne" | "a_venir";
+  const [filterMode, setFilterMode] = useState<FilterMode>("all");
 
   // Search across all card fields (including hidden/scheduled cards)
   const allCards = boardData?.cards || [];
@@ -112,22 +116,39 @@ const CrmKanbanBoard = () => {
     })
   );
 
-  // Filter function to hide cards with scheduled action in the future
-  const isCardVisible = (card: CrmCard): boolean => {
-    if (!card.waiting_next_action_date) return true;
+  // Filter helpers
+  const isScheduledInFuture = (card: CrmCard): boolean => {
+    if (!card.waiting_next_action_date) return false;
     const scheduledDate = startOfDay(new Date(card.waiting_next_action_date));
     const today = startOfDay(new Date());
-    // Show card if scheduled date is today or in the past
-    return !isAfter(scheduledDate, today);
+    return isAfter(scheduledDate, today);
   };
 
-  // Sync local cards with server data, filtering out hidden cards and applying search
+  const isWonCard = (card: CrmCard): boolean => {
+    return card.sales_status === "WON";
+  };
+
+  // Sync local cards with server data, applying filter mode
   useEffect(() => {
     if (boardData?.cards) {
-      const visibleCards = boardData.cards.filter(isCardVisible);
-      setLocalCards(visibleCards);
+      let filtered: CrmCard[];
+      switch (filterMode) {
+        case "gagne":
+          filtered = boardData.cards.filter(isWonCard);
+          break;
+        case "a_venir":
+          filtered = boardData.cards.filter(isScheduledInFuture);
+          break;
+        case "en_cours":
+          filtered = boardData.cards.filter((c) => !isWonCard(c) && !isScheduledInFuture(c));
+          break;
+        default: // "all" — default board behavior: hide future scheduled
+          filtered = boardData.cards.filter((c) => !isScheduledInFuture(c));
+          break;
+      }
+      setLocalCards(filtered);
     }
-  }, [boardData?.cards]);
+  }, [boardData?.cards, filterMode]);
 
 
   const handleDragStart = (event: DragStartEvent) => {
@@ -357,7 +378,8 @@ const CrmKanbanBoard = () => {
 
   return (
     <div className="h-full flex flex-col gap-3">
-      {/* Search bar */}
+      {/* Search bar + filters */}
+      <div className="flex items-center gap-3 flex-wrap">
       <div ref={searchRef} className="relative w-full max-w-md">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -454,6 +476,43 @@ const CrmKanbanBoard = () => {
             )}
           </div>
         )}
+      </div>
+
+      {/* Filter buttons */}
+      <div className="flex items-center gap-1 border rounded-lg p-1">
+        <Button
+          variant={filterMode === "all" ? "default" : "ghost"}
+          size="sm"
+          className="h-7 text-xs"
+          onClick={() => setFilterMode("all")}
+        >
+          Tout
+        </Button>
+        <Button
+          variant={filterMode === "en_cours" ? "default" : "ghost"}
+          size="sm"
+          className="h-7 text-xs"
+          onClick={() => setFilterMode("en_cours")}
+        >
+          En cours
+        </Button>
+        <Button
+          variant={filterMode === "gagne" ? "default" : "ghost"}
+          size="sm"
+          className="h-7 text-xs"
+          onClick={() => setFilterMode("gagne")}
+        >
+          Gagné
+        </Button>
+        <Button
+          variant={filterMode === "a_venir" ? "default" : "ghost"}
+          size="sm"
+          className="h-7 text-xs"
+          onClick={() => setFilterMode("a_venir")}
+        >
+          À venir
+        </Button>
+      </div>
       </div>
 
       <DndContext

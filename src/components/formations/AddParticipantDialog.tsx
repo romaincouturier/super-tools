@@ -243,6 +243,7 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
       }
 
       // Schedule needs survey email for future trainings (after welcome email is sent)
+      let needsSurveySkipped = false;
       if (sendWelcomeNow && insertedParticipant && trainingStartDate) {
         try {
           const [workingDays, needsSurveyDelay] = await Promise.all([
@@ -252,7 +253,7 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
 
           const startDate = parseISO(trainingStartDate);
           const scheduledDate = subtractWorkingDays(startDate, needsSurveyDelay, workingDays);
-          
+
           // Only schedule if the date is in the future
           if (scheduledDate > new Date()) {
             await supabase.from("scheduled_emails").insert({
@@ -262,6 +263,8 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
               scheduled_for: format(scheduledDate, "yyyy-MM-dd'T'09:00:00"),
               status: "pending",
             });
+          } else {
+            needsSurveySkipped = true;
           }
         } catch (scheduleError) {
           console.error("Failed to schedule needs survey email:", scheduleError);
@@ -281,7 +284,9 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
 
       let statusMessage = "";
       if (status === "non_envoye") {
-        statusMessage = "Formation passée - pas d'envoi programmé.";
+        statusMessage = "Formation passée — aucun email programmé.";
+      } else if (sendWelcomeNow && needsSurveySkipped) {
+        statusMessage = "Mail de convocation envoyé. ⚠️ Le recueil des besoins n'a pas été programmé car la date d'envoi est dépassée.";
       } else if (sendWelcomeNow) {
         statusMessage = "Mail de convocation envoyé, recueil des besoins programmé.";
       }
@@ -289,6 +294,7 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
       toast({
         title: "Participant ajouté",
         description: `${email} a été ajouté. ${statusMessage}`,
+        ...(needsSurveySkipped && { variant: "default" as const, duration: 8000 }),
       });
 
       resetForm();

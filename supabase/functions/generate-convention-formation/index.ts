@@ -300,7 +300,7 @@ serve(async (req: Request): Promise<Response> => {
       ADRESSE: clientAddress,
       TITRE_FORMATION: training.training_name,
       FORMAT: getFormatLabel(training.format_formation, training.location),
-      PARTICIPANTS: maxParticipants.toString(),
+      PARTICIPANTS: isIndividualConvention ? "1" : maxParticipants.toString(),
       URL_PROGRAMME_FORMATION: training.program_file_url || "",
       DATES: training.format_formation === "e_learning"
         ? `Du ${formatDateFrench(training.start_date)} au ${formatDateFrench(training.end_date || training.start_date)}`
@@ -314,7 +314,9 @@ serve(async (req: Request): Promise<Response> => {
       LIEU: training.format_formation === "e_learning"
         ? "En ligne (plateforme e-learning)"
         : training.location,
-      STAGIAIRES: formatParticipants(participantList, maxParticipants),
+      STAGIAIRES: isIndividualConvention
+        ? formatParticipants(participantList, participantList.length)
+        : formatParticipants(participantList, maxParticipants),
       PRIX: priceHt.toString(),
       TVA: tvaRate.toString(),
       PRIX_TTC: prixTtc.toFixed(2),

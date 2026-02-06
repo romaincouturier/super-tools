@@ -44,6 +44,7 @@ const Statistiques = lazy(() => import("./pages/Statistiques"));
 const Crm = lazyWithRetry(() => import("./pages/Crm"));
 const CrmReports = lazyWithRetry(() => import("./pages/CrmReports"));
 const Missions = lazy(() => import("./pages/Missions"));
+const MissionSummary = lazy(() => import("./pages/MissionSummary"));
 const OKR = lazy(() => import("./pages/OKR"));
 const MediaLibrary = lazy(() => import("./pages/MediaLibrary"));
 const Events = lazy(() => import("./pages/Events"));
@@ -137,6 +138,7 @@ const App = () => (
               <Route path="/signature-convention/:token" element={<SignatureConvention />} />
               {/* Public training summary for participants */}
               <Route path="/formation-info/:trainingId" element={<TrainingSummary />} />
+              <Route path="/mission-info/:missionId" element={<MissionSummary />} />
               {/* Privacy policy */}
               <Route path="/politique-confidentialite" element={<PolitiqueConfidentialite />} />
               <Route path="/auth" element={<Auth />} />

@@ -129,3 +129,57 @@ All colors MUST be HSL.
   }
 }
 
+/* TipTap editor styles */
+.ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: hsl(var(--muted-foreground));
+  opacity: 0.4;
+  pointer-events: none;
+  height: 0;
+}
+
+.ProseMirror ul[data-type="taskList"] {
+  list-style: none;
+  padding-left: 0;
+}
+
+.ProseMirror ul[data-type="taskList"] li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.ProseMirror ul[data-type="taskList"] li > label {
+  margin-top: 0.15rem;
+}
+
+.ProseMirror ul[data-type="taskList"] li > label input[type="checkbox"] {
+  cursor: pointer;
+  width: 1rem;
+  height: 1rem;
+  accent-color: hsl(var(--primary));
+}
+
+.ProseMirror ul[data-type="taskList"] li > div {
+  flex: 1;
+}
+
+.ProseMirror ul[data-type="taskList"] li[data-checked="true"] > div p {
+  text-decoration: line-through;
+  opacity: 0.5;
+}
+
+.ProseMirror img {
+  max-width: 100%;
+  border-radius: 0.5rem;
+  margin: 1rem auto;
+  display: block;
+}
+
+.ProseMirror img.ProseMirror-selectednode {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 2px;
+}
+

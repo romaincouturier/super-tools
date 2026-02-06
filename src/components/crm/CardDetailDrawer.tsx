@@ -1084,13 +1084,26 @@ const CardDetailDrawer = ({
                     <Mail className="h-3 w-3" />
                     Email
                   </Label>
-                  <Input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="email@exemple.com"
-                    className="h-8"
-                  />
+                  <div className="flex gap-1">
+                    <Input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="email@exemple.com"
+                      className="h-8 flex-1"
+                    />
+                    {email.trim() && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 shrink-0"
+                        onClick={() => copyToClipboard(email)}
+                        title="Copier l'email"
+                      >
+                        <Copy className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
+                  </div>
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs flex items-center gap-1">
@@ -1516,10 +1529,7 @@ const CardDetailDrawer = ({
                   <Input
                     placeholder="Sujet"
                     value={emailSubject}
-                    onChange={(e) => {
-                      setEmailSubject(e.target.value);
-                      setEmailSubjectBeforeAi(null);
-                    }}
+                    onChange={(e) => setEmailSubject(e.target.value)}
                     className="flex-1"
                   />
                   {emailSubjectBeforeAi ? (
@@ -1550,10 +1560,7 @@ const CardDetailDrawer = ({
                 <div className="space-y-2">
                   <EmailEditor
                     content={emailBody}
-                    onChange={(content) => {
-                      setEmailBody(content);
-                      setEmailBodyBeforeAi(null);
-                    }}
+                    onChange={(content) => setEmailBody(content)}
                     placeholder="Corps du message..."
                   />
                   <div className="flex justify-end gap-2">
@@ -1800,10 +1807,12 @@ const CardDetailDrawer = ({
                   return (
                     <div
                       key={email.id}
-                      className="p-3 bg-muted rounded mb-2 cursor-pointer hover:bg-muted/80 transition-colors"
-                      onClick={() => setExpandedEmailId(isExpanded ? null : email.id)}
+                      className="border rounded-lg mb-2 overflow-hidden"
                     >
-                      <div className="flex items-start justify-between gap-2">
+                      <div
+                        className="flex items-start justify-between gap-2 p-3 cursor-pointer hover:bg-muted/50 transition-colors"
+                        onClick={() => setExpandedEmailId(isExpanded ? null : email.id)}
+                      >
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium truncate">{email.subject}</p>
                           <p className="text-xs text-muted-foreground">
@@ -1811,13 +1820,21 @@ const CardDetailDrawer = ({
                             {format(new Date(email.sent_at), "d MMM yyyy HH:mm", { locale: fr })}
                           </p>
                         </div>
-                        <ChevronDown className={cn("h-4 w-4 text-muted-foreground shrink-0 transition-transform", isExpanded && "rotate-180")} />
+                        <ChevronDown className={cn("h-4 w-4 text-muted-foreground shrink-0 transition-transform mt-0.5", isExpanded && "rotate-180")} />
                       </div>
                       {isExpanded && email.body_html && (
                         <div
-                          className="text-xs border-t pt-2 mt-2 prose prose-xs max-w-none [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1"
-                          dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(email.body_html) }}
-                          onClick={(e) => e.stopPropagation()}
+                          className="px-4 pb-4 pt-2 border-t bg-background prose prose-sm dark:prose-invert max-w-none [&_a]:text-primary [&_a]:underline"
+                          dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(email.body_html, { ADD_ATTR: ["target"], ALLOW_DATA_ATTR: false }) }}
+                          onClick={(e) => {
+                            const target = e.target as HTMLElement;
+                            if (target.tagName === "A") {
+                              e.stopPropagation();
+                              const href = target.getAttribute("href");
+                              if (href) window.open(href, "_blank", "noopener");
+                              e.preventDefault();
+                            }
+                          }}
                         />
                       )}
                     </div>

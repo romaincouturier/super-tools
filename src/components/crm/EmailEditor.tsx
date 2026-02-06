@@ -72,7 +72,7 @@ const EmailEditor = ({
 
   useEffect(() => {
     if (editor && content !== editor.getHTML()) {
-      editor.commands.setContent(content);
+      editor.commands.setContent(content, false);
     }
   }, [content, editor]);
 
