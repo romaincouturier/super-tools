@@ -232,11 +232,34 @@ serve(async (req: Request): Promise<Response> => {
     const pdfHash = pdfHashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
     console.log("PDF SHA-256 hash:", pdfHash);
 
-    // Store the PDF hash in the signature record for later verification
+    // Upload the PDF to permanent storage so the URL never expires
+    let permanentPdfUrl = conventionUrl;
+    try {
+      const storagePath = `conventions/${trainingId}/${fileName || "convention.pdf"}`;
+      const { error: uploadErr } = await supabase.storage
+        .from("training-documents")
+        .upload(storagePath, pdfBytes, {
+          contentType: "application/pdf",
+          upsert: true,
+        });
+      if (!uploadErr) {
+        const { data: { publicUrl } } = supabase.storage
+          .from("training-documents")
+          .getPublicUrl(storagePath);
+        permanentPdfUrl = publicUrl;
+        console.log("PDF uploaded to permanent storage:", permanentPdfUrl);
+      } else {
+        console.warn("Failed to upload PDF to storage, keeping original URL:", uploadErr);
+      }
+    } catch (storageErr) {
+      console.warn("Storage upload error:", storageErr);
+    }
+
+    // Store the PDF hash and permanent URL in the signature record
     if (enableOnlineSignature && signatureToken) {
       await supabase
         .from("convention_signatures")
-        .update({ pdf_hash: pdfHash })
+        .update({ pdf_hash: pdfHash, pdf_url: permanentPdfUrl })
         .eq("token", signatureToken);
     }
 
