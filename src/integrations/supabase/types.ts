@@ -2587,6 +2587,7 @@ export type Database = {
           id: string
           invoice_file_url: string | null
           location: string
+          max_participants: number | null
           objectives: string[] | null
           participants_formal_address: boolean
           prerequisites: string[] | null
@@ -2624,6 +2625,7 @@ export type Database = {
           id?: string
           invoice_file_url?: string | null
           location: string
+          max_participants?: number | null
           objectives?: string[] | null
           participants_formal_address?: boolean
           prerequisites?: string[] | null
@@ -2661,6 +2663,7 @@ export type Database = {
           id?: string
           invoice_file_url?: string | null
           location?: string
+          max_participants?: number | null
           objectives?: string[] | null
           participants_formal_address?: boolean
           prerequisites?: string[] | null
