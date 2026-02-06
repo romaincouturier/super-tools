@@ -1805,8 +1805,14 @@ const CardDetailDrawer = ({
     <CreateTrainingDialog
       open={showCreateTrainingDialog}
       onOpenChange={setShowCreateTrainingDialog}
-      onConfirm={handleConfirmCreateTraining}
+      onConfirmCreate={handleConfirmCreateTraining}
+      onConfirmAddParticipant={(trainingId) => {
+        setShowCreateTrainingDialog(false);
+        onOpenChange(false);
+        navigate(`/formations/${trainingId}`);
+      }}
       opportunityTitle={title}
+      isFormation={serviceType === "formation" || !serviceType}
     />
 
     {/* Win choice dialog - choose formation or mission */}
