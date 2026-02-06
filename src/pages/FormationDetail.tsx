@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
-import { Loader2, ArrowLeft, Calendar, Users, FileText, ExternalLink, Edit2, User as UserIcon, Mail, MapPin, Building, Map, Train, Hotel, UtensilsCrossed, Clock, Copy, Check, AlertCircle, Share2, CheckCircle2, Euro } from "lucide-react";
+import { Loader2, ArrowLeft, Calendar, Users, FileText, ExternalLink, Edit2, User as UserIcon, Mail, MapPin, Building, Map, Train, Hotel, UtensilsCrossed, DoorOpen, Clock, Copy, Check, AlertCircle, Share2, CheckCircle2, Euro } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { format, parseISO } from "date-fns";
@@ -55,6 +55,7 @@ interface Training {
   train_booked: boolean;
   hotel_booked: boolean;
   restaurant_booked: boolean;
+  room_rental_booked: boolean;
   convention_file_url?: string | null;
   signed_convention_urls?: string[];
 }
@@ -574,9 +575,9 @@ const FormationDetail = () => {
                       Restaurant
                     </span>
                   ) : (
-                    <a 
-                      href={`https://www.google.com/maps/search/restaurants+near+${encodeURIComponent(training.location)}`} 
-                      target="_blank" 
+                    <a
+                      href={`https://www.google.com/maps/search/restaurants+near+${encodeURIComponent(training.location)}`}
+                      target="_blank"
                       rel="noopener noreferrer"
                     >
                       <UtensilsCrossed className="h-4 w-4 mr-2" />
@@ -602,6 +603,54 @@ const FormationDetail = () => {
                   }}
                   className="ml-1"
                   title="Marquer la réservation comme effectuée"
+                />
+              </div>
+            )}
+
+            {/* Room rental button with checkbox - only for inter-entreprises */}
+            {training.format_formation === "inter-entreprises" && (
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={training.room_rental_booked}
+                  title={training.room_rental_booked ? "Location déjà effectuée" : "Rechercher une salle"}
+                  asChild={!training.room_rental_booked}
+                >
+                  {training.room_rental_booked ? (
+                    <span className="flex items-center">
+                      <DoorOpen className="h-4 w-4 mr-2" />
+                      Salle
+                    </span>
+                  ) : (
+                    <a
+                      href={`https://www.google.com/maps/search/location+salle+reunion+near+${encodeURIComponent(training.location)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <DoorOpen className="h-4 w-4 mr-2" />
+                      Salle
+                    </a>
+                  )}
+                </Button>
+                <Checkbox
+                  checked={training.room_rental_booked}
+                  onCheckedChange={async (checked) => {
+                    const newValue = checked === true;
+                    const { error } = await supabase
+                      .from("trainings")
+                      .update({ room_rental_booked: newValue } as any)
+                      .eq("id", training.id);
+                    if (!error) {
+                      setTraining({ ...training, room_rental_booked: newValue });
+                      toast({
+                        title: newValue ? "Salle réservée" : "Réservation salle annulée",
+                        description: newValue ? "La location de salle a été marquée comme effectuée." : "Le statut de location a été réinitialisé.",
+                      });
+                    }
+                  }}
+                  className="ml-1"
+                  title="Marquer la location comme effectuée"
                 />
               </div>
             )}
