@@ -58,18 +58,40 @@ export function createSupabaseClient(): SupabaseClient {
  * @returns User object or null
  */
 export async function verifyAuth(authHeader: string | null): Promise<{ id: string; email?: string } | null> {
-  if (!authHeader) {
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
     return null;
   }
 
   const token = authHeader.replace("Bearer ", "");
-  const supabase = getSupabaseClient();
+  if (!token) {
+    return null;
+  }
+
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+
+  if (!supabaseUrl || !serviceKey) {
+    console.error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY for auth verification");
+    return null;
+  }
 
   try {
-    const { data: { user }, error } = await supabase.auth.getUser(token);
+    // Verify token via Auth REST API directly (avoids supabase-js getUser quirks in Deno edge runtime)
+    const response = await fetch(`${supabaseUrl}/auth/v1/user`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        apikey: serviceKey,
+      },
+    });
 
-    if (error || !user) {
-      console.warn("Auth verification failed:", error?.message);
+    if (!response.ok) {
+      console.warn("Auth verification failed:", response.status);
+      return null;
+    }
+
+    const user = await response.json();
+    if (!user?.id) {
+      console.warn("Auth verification failed: no user id in response");
       return null;
     }
 
