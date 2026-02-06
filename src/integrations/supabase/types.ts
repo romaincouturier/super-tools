@@ -2580,6 +2580,8 @@ export type Database = {
         Row: {
           added_at: string
           company: string | null
+          convention_document_id: string | null
+          convention_file_url: string | null
           email: string
           financeur_name: string | null
           financeur_same_as_sponsor: boolean | null
@@ -2601,6 +2603,8 @@ export type Database = {
         Insert: {
           added_at?: string
           company?: string | null
+          convention_document_id?: string | null
+          convention_file_url?: string | null
           email: string
           financeur_name?: string | null
           financeur_same_as_sponsor?: boolean | null
@@ -2622,6 +2626,8 @@ export type Database = {
         Update: {
           added_at?: string
           company?: string | null
+          convention_document_id?: string | null
+          convention_file_url?: string | null
           email?: string
           financeur_name?: string | null
           financeur_same_as_sponsor?: boolean | null
