@@ -32,6 +32,8 @@ export const useEvent = (id: string | undefined) => {
       return data as Event;
     },
     enabled: !!id,
+    staleTime: 30_000,
+    refetchOnWindowFocus: true,
   });
 };
 
@@ -48,6 +50,8 @@ export const useEventMedia = (eventId: string | undefined) => {
       return (data || []) as EventMedia[];
     },
     enabled: !!eventId,
+    staleTime: 30_000,
+    refetchOnWindowFocus: true,
   });
 };
 
