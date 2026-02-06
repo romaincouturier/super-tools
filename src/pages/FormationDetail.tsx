@@ -80,6 +80,7 @@ interface Participant {
   sponsor_last_name?: string | null;
   sponsor_email?: string | null;
   invoice_file_url?: string | null;
+  sold_price_ht?: number | null;
 }
 
 const FormationDetail = () => {
@@ -754,12 +755,23 @@ const FormationDetail = () => {
                     {calculateTotalDuration()}h
                   </Badge>
                 )}
-                {training.sold_price_ht != null && (
-                  <Badge variant="outline" className="flex items-center gap-1.5">
-                    <Euro className="h-3.5 w-3.5" />
-                    {training.sold_price_ht.toLocaleString("fr-FR")} € HT
-                    {training.format_formation === "inter-entreprises" && " /pers."}
-                  </Badge>
+                {training.format_formation === "inter-entreprises" ? (
+                  (() => {
+                    const totalCA = participants.reduce((sum, p) => sum + (p.sold_price_ht || 0), 0);
+                    return totalCA > 0 ? (
+                      <Badge variant="outline" className="flex items-center gap-1.5">
+                        <Euro className="h-3.5 w-3.5" />
+                        CA : {totalCA.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} € HT
+                      </Badge>
+                    ) : null;
+                  })()
+                ) : (
+                  training.sold_price_ht != null && (
+                    <Badge variant="outline" className="flex items-center gap-1.5">
+                      <Euro className="h-3.5 w-3.5" />
+                      {training.sold_price_ht.toLocaleString("fr-FR")} € HT
+                    </Badge>
+                  )
                 )}
               </div>
 
