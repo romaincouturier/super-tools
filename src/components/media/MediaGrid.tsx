@@ -1,0 +1,138 @@
+import { MediaItemWithMission } from "@/hooks/useMediaLibrary";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { ImageIcon, Video, Play, Trash2, Briefcase } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
+
+interface MediaGridProps {
+  items: MediaItemWithMission[];
+  onOpenLightbox: (item: MediaItemWithMission) => void;
+}
+
+const formatFileSize = (bytes: number | null) => {
+  if (!bytes) return "";
+  if (bytes < 1024) return `${bytes} o`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} Ko`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`;
+};
+
+const MediaGrid = ({ items, onOpenLightbox }: MediaGridProps) => {
+  const queryClient = useQueryClient();
+
+  const handleDelete = async (e: React.MouseEvent, item: MediaItemWithMission) => {
+    e.stopPropagation();
+    if (!confirm(`Supprimer ${item.file_name} ?`)) return;
+
+    try {
+      const url = new URL(item.file_url);
+      const pathParts = url.pathname.split("/mission-media/");
+      if (pathParts.length > 1) {
+        await supabase.storage
+          .from("mission-media")
+          .remove([decodeURIComponent(pathParts[1])]);
+      }
+
+      const { error } = await (supabase as any)
+        .from("mission_media")
+        .delete()
+        .eq("id", item.id);
+
+      if (error) throw error;
+
+      toast.success("Fichier supprimé");
+      queryClient.invalidateQueries({ queryKey: ["media-library"] });
+    } catch (error) {
+      console.error("Delete error:", error);
+      toast.error("Erreur lors de la suppression");
+    }
+  };
+
+  if (items.length === 0) {
+    return (
+      <div className="text-center py-16 text-muted-foreground">
+        <ImageIcon className="h-12 w-12 mx-auto mb-3 opacity-50" />
+        <p className="text-sm">Aucun média trouvé</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+      {items.map((item) => (
+        <div
+          key={item.id}
+          className="group relative aspect-square rounded-lg overflow-hidden border bg-muted cursor-pointer"
+          onClick={() => onOpenLightbox(item)}
+        >
+          {item.file_type === "image" ? (
+            <img
+              src={item.file_url}
+              alt={item.file_name}
+              className="w-full h-full object-cover"
+              loading="lazy"
+            />
+          ) : (
+            <div className="w-full h-full relative">
+              <video
+                src={item.file_url}
+                className="w-full h-full object-cover"
+                preload="metadata"
+                muted
+              />
+              <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                <Play className="h-10 w-10 text-white drop-shadow" />
+              </div>
+            </div>
+          )}
+
+          {/* Overlay */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-2">
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center gap-1 text-white text-xs truncate">
+                {item.file_type === "image" ? (
+                  <ImageIcon className="h-3 w-3 flex-shrink-0" />
+                ) : (
+                  <Video className="h-3 w-3 flex-shrink-0" />
+                )}
+                <span className="truncate">{item.file_name}</span>
+              </div>
+              <Button
+                variant="destructive"
+                size="icon"
+                className="h-6 w-6 flex-shrink-0"
+                onClick={(e) => handleDelete(e, item)}
+              >
+                <Trash2 className="h-3 w-3" />
+              </Button>
+            </div>
+            <div className="flex items-center gap-1 text-white/80 text-xs truncate">
+              <Briefcase className="h-3 w-3 flex-shrink-0" />
+              <span className="truncate">
+                {item.mission_emoji ? `${item.mission_emoji} ` : ""}
+                {item.mission_title}
+              </span>
+            </div>
+            {item.file_size && (
+              <span className="text-white/60 text-xs">{formatFileSize(item.file_size)}</span>
+            )}
+          </div>
+
+          {/* Mission tag (always visible) */}
+          <div className="absolute top-2 left-2">
+            <Badge
+              variant="secondary"
+              className="text-[10px] px-1.5 py-0 bg-black/50 text-white border-0 backdrop-blur-sm"
+            >
+              {item.mission_emoji || <Briefcase className="h-2.5 w-2.5" />}
+              <span className="ml-1 max-w-[80px] truncate">{item.mission_title}</span>
+            </Badge>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+export default MediaGrid;
