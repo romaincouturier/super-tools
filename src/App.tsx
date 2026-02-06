@@ -46,6 +46,7 @@ const CrmReports = lazyWithRetry(() => import("./pages/CrmReports"));
 const Missions = lazy(() => import("./pages/Missions"));
 const OKR = lazy(() => import("./pages/OKR"));
 const MediaLibrary = lazy(() => import("./pages/MediaLibrary"));
+const Events = lazy(() => import("./pages/Events"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -113,6 +114,8 @@ const App = () => (
               <Route path="/okr" element={<OKR />} />
               {/* Media library */}
               <Route path="/medias" element={<MediaLibrary />} />
+              {/* Events */}
+              <Route path="/events" element={<Events />} />
               {/* Public needs survey */}
               <Route path="/questionnaire/:token" element={<Questionnaire />} />
               {/* Public evaluation form */}
