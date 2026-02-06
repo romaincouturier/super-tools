@@ -18,6 +18,7 @@ import {
   Loader2,
   ExternalLink,
 } from "lucide-react";
+import ShareEventDialog from "@/components/events/ShareEventDialog";
 import AppHeader from "@/components/AppHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -224,6 +225,7 @@ const EventDetail = () => {
           </div>
 
           <div className="flex items-center gap-2">
+            <ShareEventDialog event={event} />
             <Button variant="outline" size="sm" onClick={() => navigate(`/events/${id}/edit`)}>
               <Edit className="h-4 w-4 mr-1" />
               Modifier
