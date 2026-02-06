@@ -76,7 +76,7 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
   const [isManualMode, setIsManualMode] = useState(false);
   const { toast } = useToast();
   
-  const isInterEntreprise = formatFormation === "inter-entreprises";
+  const isInterEntreprise = formatFormation === "inter-entreprises" || formatFormation === "e_learning";
 
   // Populate initial values when dialog opens with prefill data
   useEffect(() => {

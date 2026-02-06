@@ -96,7 +96,7 @@ serve(async (req) => {
       throw new Error("Training not found");
     }
 
-    const isInterEntreprise = training.format_formation === "inter-entreprises";
+    const isInterEntreprise = training.format_formation === "inter-entreprises" || training.format_formation === "e_learning";
 
     // Fetch schedules for the training
     const { data: schedules } = await supabase

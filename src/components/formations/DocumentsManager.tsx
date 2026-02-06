@@ -126,7 +126,7 @@ const DocumentsManager = ({
   signedConventionUrls: initialSignedConventionUrls,
   onUpdate,
 }: DocumentsManagerProps) => {
-  const isInterEntreprise = formatFormation === "inter-entreprises";
+  const isInterEntreprise = formatFormation === "inter-entreprises" || formatFormation === "e_learning";
   const [invoiceFileUrl, setInvoiceFileUrl] = useState<string | null>(initialInvoiceUrl);
   const [attendanceSheetsUrls, setAttendanceSheetsUrls] = useState<string[]>(initialSheetsUrls);
   const [supportsUrl, setSupportsUrl] = useState<string>(initialSupportsUrl || "");

@@ -90,7 +90,7 @@ const EditParticipantDialog = ({
   const [existingFinanceurs, setExistingFinanceurs] = useState<string[]>([]);
   const { toast } = useToast();
 
-  const isInterEntreprise = formatFormation === "inter-entreprises";
+  const isInterEntreprise = formatFormation === "inter-entreprises" || formatFormation === "e_learning";
 
   // Reset form values when participant changes
   useEffect(() => {
