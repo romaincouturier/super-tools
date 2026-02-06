@@ -303,7 +303,7 @@ const FormationEdit = () => {
           location,
           client_name: clientName,
           client_address: clientAddress || null,
-          sold_price_ht: soldPriceHt ? parseFloat(soldPriceHt) : null,
+          sold_price_ht: soldPriceHt ? Math.round(parseFloat(soldPriceHt) * 100) / 100 : null,
           format_formation: formatFormation || null,
           prerequisites,
           objectives,
