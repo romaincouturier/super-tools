@@ -439,23 +439,6 @@ const ParticipantList = ({
       }
 
       if (data?.pdfUrl) {
-        // Download with custom filename via blob
-        try {
-          const response = await fetch(data.pdfUrl);
-          const blob = await response.blob();
-          const url = window.URL.createObjectURL(blob);
-          const a = document.createElement("a");
-          a.href = url;
-          a.download = data.fileName || "Convention.pdf";
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          window.URL.revokeObjectURL(url);
-        } catch {
-          // Fallback to direct download
-          window.location.href = data.pdfUrl;
-        }
-
         // If participant has a sponsor email, send the convention automatically
         if (participant.sponsor_email) {
           try {
@@ -497,10 +480,10 @@ const ParticipantList = ({
             description: `La convention pour ${participant.first_name || participant.email} a été générée. Aucun commanditaire défini pour l'envoi.`,
           });
         }
-        }
+      }
 
-        // Refresh participant data so convention URL is reflected in UI
-        onParticipantUpdated();
+      // Refresh participant data so convention URL is reflected in UI
+      onParticipantUpdated();
     } catch (error: any) {
       console.error("Error generating convention:", error);
       toast({
