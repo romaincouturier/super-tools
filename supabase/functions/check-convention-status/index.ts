@@ -98,10 +98,12 @@ serve(async (req: Request): Promise<Response> => {
     let conventionsSentByTraining: Record<string, number> = {};
 
     if (interTrainingIds.length > 0) {
+      // Exclude participants with "online" payment status (convention handled externally)
       const { data: participants } = await supabase
         .from("training_participants")
-        .select("id, training_id")
-        .in("training_id", interTrainingIds);
+        .select("id, training_id, payment_status")
+        .in("training_id", interTrainingIds)
+        .neq("payment_status", "online");
 
       if (participants) {
         for (const p of participants) {
