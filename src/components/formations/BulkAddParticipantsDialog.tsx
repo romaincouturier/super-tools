@@ -267,6 +267,25 @@ const BulkAddParticipantsDialog = ({
         }
       }
 
+      // Create questionnaire_besoins records immediately so links work from day 1
+      if (data && data.length > 0) {
+        try {
+          const questionnaireRecords = data.map((p: any) => ({
+            participant_id: p.id,
+            training_id: trainingId,
+            token: p.needs_survey_token,
+            etat: "non_envoye",
+            email: p.email,
+            prenom: p.first_name,
+            nom: p.last_name,
+            societe: p.company,
+          }));
+          await supabase.from("questionnaire_besoins").insert(questionnaireRecords);
+        } catch (qErr) {
+          console.warn("Failed to pre-create questionnaire records:", qErr);
+        }
+      }
+
       // If we need to send welcome emails now (J-7 to J-2 window), trigger for each participant
       if (sendWelcomeNow && data && data.length > 0) {
         // Send welcome emails with a small delay between each to respect rate limits
