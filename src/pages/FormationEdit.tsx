@@ -137,6 +137,7 @@ const FormationEdit = () => {
         if (training.end_date) {
           setElearningEndDate(parseISO(training.end_date));
         }
+        setElearningDuration(training.elearning_duration != null ? String(training.elearning_duration) : "");
         // E-learning has no schedules
         setSchedules([]);
         setSelectedDates([]);
@@ -321,6 +322,7 @@ const FormationEdit = () => {
           financeur_same_as_sponsor: financeurSameAsSponsor,
           financeur_name: financeurSameAsSponsor ? null : (financeurName || null),
           financeur_url: financeurSameAsSponsor ? null : (financeurUrl || null),
+          elearning_duration: formatFormation === "e_learning" && elearningDuration ? parseFloat(elearningDuration) : null,
         })
         .eq("id", id);
 
