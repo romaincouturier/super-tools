@@ -232,6 +232,24 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
         }
         return;
       }
+
+      // Create questionnaire_besoins record immediately so the link works from day 1
+      if (insertedParticipant) {
+        try {
+          await supabase.from("questionnaire_besoins").insert({
+            participant_id: insertedParticipant.id,
+            training_id: trainingId,
+            token,
+            etat: "non_envoye",
+            email: email.trim().toLowerCase(),
+            prenom: firstName.trim() || null,
+            nom: lastName.trim() || null,
+            societe: company.trim() || null,
+          });
+        } catch (qErr) {
+          console.warn("Failed to pre-create questionnaire record:", qErr);
+        }
+      }
       // If we need to send welcome email now (J-7 to J-2 window), trigger the edge function
       if (sendWelcomeNow && insertedParticipant) {
         try {
