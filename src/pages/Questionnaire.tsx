@@ -180,17 +180,21 @@ const Questionnaire = () => {
         setSchedules(sched as ScheduleRecord[]);
       }
 
-      // First open tracking
+      // First open tracking - non-blocking to avoid preventing access
       if (!qTyped.date_premiere_ouverture) {
         const nowIso = new Date().toISOString();
-        await supabase
-          .from("questionnaire_besoins")
-          .update({
-            date_premiere_ouverture: nowIso,
-            etat: qTyped.etat === "envoye" ? "accueil_envoye" : qTyped.etat,
-          })
-          .eq("id", qTyped.id);
-        await insertEvent(qTyped.id, "opened", { source: "public_link" });
+        try {
+          await supabase
+            .from("questionnaire_besoins")
+            .update({
+              date_premiere_ouverture: nowIso,
+              etat: qTyped.etat === "envoye" ? "accueil_envoye" : qTyped.etat,
+            })
+            .eq("id", qTyped.id);
+          await insertEvent(qTyped.id, "opened", { source: "public_link" });
+        } catch (trackingErr) {
+          console.warn("First open tracking failed (non-blocking):", trackingErr);
+        }
       }
     } catch (e: any) {
       console.error("Failed to load questionnaire", e);

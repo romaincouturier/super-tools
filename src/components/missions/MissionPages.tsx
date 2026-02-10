@@ -348,7 +348,7 @@ const PageEditor = ({
       const currentHtml = editor.getHTML();
       const newContent = page.content || "";
       if (currentHtml !== newContent) {
-        editor.commands.setContent(newContent, false);
+        editor.commands.setContent(newContent, { emitUpdate: false });
       }
     }
     setTitleValue(page.title);
