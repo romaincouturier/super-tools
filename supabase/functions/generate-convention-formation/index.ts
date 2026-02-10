@@ -75,7 +75,7 @@ function formatDateRange(schedules: Schedule[]): string {
   return `Du ${formatDateFrench(schedules[0].day_date)} au ${formatDateFrench(schedules[schedules.length - 1].day_date)}`;
 }
 
-// Calculate total hours from schedules
+// Calculate total hours from schedules (normalized: <= 4h = 3.5h, > 4h = 7h)
 function calculateTotalHours(schedules: Schedule[]): number {
   return schedules.reduce((total, schedule) => {
     const [startH, startM] = schedule.start_time.split(":").map(Number);
@@ -83,6 +83,16 @@ function calculateTotalHours(schedules: Schedule[]): number {
     const hours = (endH * 60 + endM - startH * 60 - startM) / 60;
     // Normalized: <= 4h = 3.5h (half day), > 4h = 7h (full day)
     return total + (hours <= 4 ? 3.5 : 7);
+  }, 0);
+}
+
+// Calculate total days from schedules (normalized: <= 4h = 0.5 day, > 4h = 1 day)
+function calculateTotalDays(schedules: Schedule[]): number {
+  return schedules.reduce((total, schedule) => {
+    const [startH, startM] = schedule.start_time.split(":").map(Number);
+    const [endH, endM] = schedule.end_time.split(":").map(Number);
+    const hours = (endH * 60 + endM - startH * 60 - startM) / 60;
+    return total + (hours <= 4 ? 0.5 : 1);
   }, 0);
 }
 
@@ -233,7 +243,7 @@ serve(async (req: Request): Promise<Response> => {
       // Fetch single participant for inter/e-learning
       const { data: participant } = await supabase
         .from("training_participants")
-        .select("first_name, last_name, email, company, sponsor_email, sponsor_first_name, sponsor_last_name")
+        .select("first_name, last_name, email, company, sponsor_email, sponsor_first_name, sponsor_last_name, sold_price_ht")
         .eq("id", participantId)
         .single();
 
@@ -268,8 +278,11 @@ serve(async (req: Request): Promise<Response> => {
 
     const tvaRate = tvaSetting?.setting_value ? parseFloat(tvaSetting.setting_value) : 20;
 
-    // Calculate price - use sold_price_ht from training, then input override, then default
-    const priceHt = inputPrice || training.sold_price_ht || 1250;
+    // Calculate price - for inter/e-learning use participant's sold_price_ht first, then training's, then input, then default
+    const participantPrice = isIndividualConvention && singleParticipant
+      ? (singleParticipant as any).sold_price_ht
+      : null;
+    const priceHt = participantPrice || inputPrice || training.sold_price_ht || 1250;
 
     // Build client name and address
     let clientName = training.client_name;
@@ -308,6 +321,9 @@ serve(async (req: Request): Promise<Response> => {
       JOURS: training.format_formation === "e_learning"
         ? (training.elearning_duration || 7).toString()
         : calculateTotalHours(scheduleList).toString(),
+      NOMBRE_JOURS: training.format_formation === "e_learning"
+        ? (training.elearning_duration || 7).toString()
+        : calculateTotalDays(scheduleList).toString(),
       HORAIRES: training.format_formation === "e_learning"
         ? "Formation accessible en ligne a votre rythme"
         : getTimeRange(scheduleList),
