@@ -295,6 +295,7 @@ const FormationCreate = () => {
           financeur_name: financeurSameAsSponsor ? null : (financeurName || null),
           financeur_url: financeurSameAsSponsor ? null : (financeurUrl || null),
           trainer_id: trainerId || null,
+          elearning_duration: formatFormation === "e_learning" && elearningDuration ? parseFloat(elearningDuration) : null,
           created_by: user.id,
         })
         .select()
