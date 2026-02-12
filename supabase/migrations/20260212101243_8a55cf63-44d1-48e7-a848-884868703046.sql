@@ -1,0 +1,1 @@
+ALTER TABLE public.training_participants ADD COLUMN elearning_duration numeric NULL;

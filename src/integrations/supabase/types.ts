@@ -2582,6 +2582,7 @@ export type Database = {
           company: string | null
           convention_document_id: string | null
           convention_file_url: string | null
+          elearning_duration: number | null
           email: string
           financeur_name: string | null
           financeur_same_as_sponsor: boolean | null
@@ -2606,6 +2607,7 @@ export type Database = {
           company?: string | null
           convention_document_id?: string | null
           convention_file_url?: string | null
+          elearning_duration?: number | null
           email: string
           financeur_name?: string | null
           financeur_same_as_sponsor?: boolean | null
@@ -2630,6 +2632,7 @@ export type Database = {
           company?: string | null
           convention_document_id?: string | null
           convention_file_url?: string | null
+          elearning_duration?: number | null
           email?: string
           financeur_name?: string | null
           financeur_same_as_sponsor?: boolean | null

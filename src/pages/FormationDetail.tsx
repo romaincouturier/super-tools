@@ -58,6 +58,7 @@ interface Training {
   room_rental_booked: boolean;
   convention_file_url?: string | null;
   signed_convention_urls?: string[];
+  elearning_duration?: number | null;
 }
 
 interface Schedule {
@@ -1002,6 +1003,7 @@ const FormationDetail = () => {
                 trainingStartDate={training.start_date}
                 trainingEndDate={training.end_date}
                 formatFormation={training.format_formation}
+                elearningDuration={training.elearning_duration}
                 attendanceSheetsUrls={training.attendance_sheets_urls}
                 clientName={training.client_name}
                 trainingDuree={`${calculateTotalDuration()}h`}

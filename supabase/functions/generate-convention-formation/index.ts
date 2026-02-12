@@ -243,7 +243,7 @@ serve(async (req: Request): Promise<Response> => {
       // Fetch single participant for inter/e-learning
       const { data: participant } = await supabase
         .from("training_participants")
-        .select("first_name, last_name, email, company, sponsor_email, sponsor_first_name, sponsor_last_name, sold_price_ht")
+        .select("first_name, last_name, email, company, sponsor_email, sponsor_first_name, sponsor_last_name, sold_price_ht, elearning_duration")
         .eq("id", participantId)
         .single();
 
@@ -319,10 +319,10 @@ serve(async (req: Request): Promise<Response> => {
         ? `Du ${formatDateFrench(training.start_date)} au ${formatDateFrench(training.end_date || training.start_date)}`
         : formatDateRange(scheduleList),
       JOURS: training.format_formation === "e_learning"
-        ? (training.elearning_duration || 7).toString()
+        ? ((singleParticipant as any)?.elearning_duration || training.elearning_duration || 7).toString()
         : calculateTotalHours(scheduleList).toString(),
       NOMBRE_JOURS: training.format_formation === "e_learning"
-        ? (training.elearning_duration || 7).toString()
+        ? ((singleParticipant as any)?.elearning_duration || training.elearning_duration || 7).toString()
         : calculateTotalDays(scheduleList).toString(),
       HORAIRES: training.format_formation === "e_learning"
         ? "Formation accessible en ligne a votre rythme"
