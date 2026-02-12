@@ -63,6 +63,7 @@ interface Participant {
   payment_mode?: string;
   sold_price_ht?: number | null;
   signed_convention_url?: string | null;
+  elearning_duration?: number | null;
 }
 
 interface ConventionSignatureStatus {
@@ -75,6 +76,7 @@ interface EditParticipantDialogProps {
   participant: Participant;
   trainingId: string;
   formatFormation?: string | null;
+  trainingElearningDuration?: number | null;
   onParticipantUpdated: () => void;
 }
 
@@ -82,6 +84,7 @@ const EditParticipantDialog = ({
   participant,
   trainingId,
   formatFormation,
+  trainingElearningDuration,
   onParticipantUpdated,
 }: EditParticipantDialogProps) => {
   const [open, setOpen] = useState(false);
@@ -103,6 +106,9 @@ const EditParticipantDialog = ({
   );
   const [soldPriceHt, setSoldPriceHt] = useState(
     participant.sold_price_ht != null ? String(participant.sold_price_ht) : ""
+  );
+  const [elearningDuration, setElearningDuration] = useState(
+    participant.elearning_duration != null ? String(participant.elearning_duration) : (trainingElearningDuration != null ? String(trainingElearningDuration) : "")
   );
   const [financeurPopoverOpen, setFinanceurPopoverOpen] = useState(false);
   const [existingFinanceurs, setExistingFinanceurs] = useState<string[]>([]);
@@ -127,8 +133,9 @@ const EditParticipantDialog = ({
     setFinanceurUrl(participant.financeur_url || "");
     setPaymentMode((participant.payment_mode as "online" | "invoice") || "invoice");
     setSoldPriceHt(participant.sold_price_ht != null ? String(participant.sold_price_ht) : "");
+    setElearningDuration(participant.elearning_duration != null ? String(participant.elearning_duration) : (trainingElearningDuration != null ? String(trainingElearningDuration) : ""));
     setSignedConventionUrl(participant.signed_convention_url || null);
-  }, [participant]);
+  }, [participant, trainingElearningDuration]);
 
   // Fetch electronic convention signature status
   useEffect(() => {
@@ -213,6 +220,9 @@ const EditParticipantDialog = ({
         updateData.financeur_url = !financeurSameAsSponsor ? (financeurUrl.trim() || null) : null;
         updateData.payment_mode = paymentMode;
         updateData.sold_price_ht = soldPriceHt ? parseFloat(soldPriceHt) : null;
+        if (formatFormation === "e_learning") {
+          updateData.elearning_duration = elearningDuration ? parseFloat(elearningDuration) : null;
+        }
       }
 
       const { error } = await supabase
@@ -363,6 +373,24 @@ const EditParticipantDialog = ({
                     placeholder="1500.00"
                   />
                 </div>
+
+                {formatFormation === "e_learning" && (
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-elearningDuration">Durée e-learning (heures)</Label>
+                    <Input
+                      id="edit-elearningDuration"
+                      type="number"
+                      step="0.5"
+                      min="0"
+                      value={elearningDuration}
+                      onChange={(e) => setElearningDuration(e.target.value)}
+                      placeholder={trainingElearningDuration != null ? String(trainingElearningDuration) : "7"}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Par défaut : {trainingElearningDuration ?? 7}h (durée de la formation)
+                    </p>
+                  </div>
+                )}
 
                 {/* Sponsor/Commanditaire fields */}
                 <div className="pt-4 border-t">

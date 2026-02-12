@@ -60,6 +60,7 @@ interface Participant {
   convention_file_url?: string | null;
   convention_document_id?: string | null;
   signed_convention_url?: string | null;
+  elearning_duration?: number | null;
 }
 
 interface ParticipantListProps {
@@ -69,6 +70,7 @@ interface ParticipantListProps {
   trainingStartDate: string;
   trainingEndDate: string | null;
   formatFormation: string | null;
+  elearningDuration?: number | null;
   attendanceSheetsUrls: string[];
   clientName: string;
   trainingDuree: string;
@@ -167,6 +169,7 @@ const ParticipantList = ({
   trainingStartDate,
   trainingEndDate,
   formatFormation,
+  elearningDuration,
   attendanceSheetsUrls,
   clientName,
   trainingDuree,
@@ -930,6 +933,7 @@ const ParticipantList = ({
                       participant={participant}
                       trainingId={trainingId}
                       formatFormation={formatFormation}
+                      trainingElearningDuration={elearningDuration}
                       onParticipantUpdated={onParticipantUpdated}
                     />
 
