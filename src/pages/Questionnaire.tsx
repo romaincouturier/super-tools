@@ -653,12 +653,20 @@ const Questionnaire = () => {
             <p className="text-muted-foreground">
               Vos réponses ont bien été enregistrées et seront utilisées pour adapter la formation à vos attentes.
             </p>
-            <Button
-              variant="outline"
-              onClick={() => setEditingAfterSubmit(true)}
-            >
-              Modifier mes réponses
-            </Button>
+            {questionnaire.date_soumission && (
+              <p className="text-xs text-muted-foreground">
+                Soumis le {format(new Date(questionnaire.date_soumission), "d MMMM yyyy 'à' HH:mm", { locale: fr })}
+              </p>
+            )}
+            <div className="space-y-2 pt-2">
+              <p className="text-sm font-medium">Vous pouvez modifier vos réponses :</p>
+              <Button
+                className="w-full"
+                onClick={() => setEditingAfterSubmit(true)}
+              >
+                Modifier mes réponses
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
