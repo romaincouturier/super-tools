@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -9,11 +9,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Slider } from "@/components/ui/slider";
-import { Loader2, ExternalLink, Calendar, Clock, CheckCircle2, MapPin, Video } from "lucide-react";
+import { Loader2, ExternalLink, Calendar, Clock, CheckCircle2, MapPin, Video, WifiOff, RefreshCw, Save, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import supertiltLogo from "@/assets/supertilt-logo-anthracite-transparent.png";
+
+type SaveStatus = "idle" | "saving" | "saved" | "error";
 
 type QuestionnaireRecord = {
   id: string;
@@ -77,6 +79,9 @@ const Questionnaire = () => {
   const [schedules, setSchedules] = useState<ScheduleRecord[]>([]);
   const [prerequisValidations, setPrerequisValidations] = useState<Record<string, string>>({});
   const [editingAfterSubmit, setEditingAfterSubmit] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [retryCount, setRetryCount] = useState(0);
 
   const dirtyRef = useRef(false);
   const autosaveTimerRef = useRef<number | null>(null);
@@ -84,6 +89,7 @@ const Questionnaire = () => {
   const localStorageRestoredRef = useRef(false);
   const questionnaireRef = useRef<QuestionnaireRecord | null>(null);
   const prerequisValidationsRef = useRef<Record<string, string>>({});
+  const saveStatusTimerRef = useRef<number | null>(null);
 
   const displayName = useMemo(() => {
     if (!questionnaire) return "";
@@ -104,7 +110,40 @@ const Questionnaire = () => {
 
   const markDirty = () => {
     dirtyRef.current = true;
+    setSaveStatus("idle");
   };
+
+  // Online/offline detection
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true);
+      // Auto-retry save when coming back online
+      if (dirtyRef.current) {
+        void saveDraft({ silent: true });
+      }
+    };
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
+
+  // Save on field blur - debounced
+  const handleFieldBlur = useCallback(() => {
+    if (dirtyRef.current && initialLoadCompleteRef.current) {
+      // Small delay to batch rapid blur events
+      if (autosaveTimerRef.current) {
+        window.clearTimeout(autosaveTimerRef.current);
+      }
+      autosaveTimerRef.current = window.setTimeout(() => {
+        void saveDraft({ silent: true });
+      }, 1500);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const insertEvent = async (questionnaireId: string, type_evenement: string, metadata?: Record<string, unknown>) => {
     try {
@@ -218,6 +257,7 @@ const Questionnaire = () => {
 
     const nowIso = new Date().toISOString();
     setSaving(true);
+    setSaveStatus("saving");
     try {
       const payload = {
         prenom: currentQuestionnaire.prenom,
@@ -252,13 +292,6 @@ const Questionnaire = () => {
         .eq("id", currentQuestionnaire.id)
         .select();
 
-      console.log("Questionnaire save result:", { 
-        questionnaire_id: currentQuestionnaire.id, 
-        rows_affected: updateData?.length || 0,
-        error: upErr,
-        payload_keys: Object.keys(payload)
-      });
-
       if (upErr) throw upErr;
       
       if (!updateData || updateData.length === 0) {
@@ -266,7 +299,12 @@ const Questionnaire = () => {
       }
 
       dirtyRef.current = false;
+      setSaveStatus("saved");
       setQuestionnaire((prev) => (prev ? { ...prev, ...payload } : prev));
+
+      // Clear "saved" indicator after 3s
+      if (saveStatusTimerRef.current) window.clearTimeout(saveStatusTimerRef.current);
+      saveStatusTimerRef.current = window.setTimeout(() => setSaveStatus("idle"), 3000);
 
       if (!opts?.silent) {
         toast({
@@ -276,10 +314,41 @@ const Questionnaire = () => {
       }
     } catch (e: any) {
       console.error("Autosave failed", e);
+      setSaveStatus("error");
+      
+      // Save to localStorage as emergency backup on failure
+      try {
+        localStorage.setItem(`questionnaire_draft_${currentQuestionnaire.id}`, JSON.stringify({
+          prenom: currentQuestionnaire.prenom,
+          nom: currentQuestionnaire.nom,
+          societe: currentQuestionnaire.societe,
+          fonction: currentQuestionnaire.fonction,
+          experience_sujet: currentQuestionnaire.experience_sujet,
+          experience_details: currentQuestionnaire.experience_details,
+          lecture_programme: currentQuestionnaire.lecture_programme,
+          prerequis_validation: currentQuestionnaire.prerequis_validation,
+          prerequis_details: currentQuestionnaire.prerequis_details,
+          competences_actuelles: currentQuestionnaire.competences_actuelles,
+          competences_visees: currentQuestionnaire.competences_visees,
+          lien_mission: currentQuestionnaire.lien_mission,
+          niveau_actuel: currentQuestionnaire.niveau_actuel,
+          niveau_motivation: currentQuestionnaire.niveau_motivation,
+          modalites_preferences: currentPrerequisValidations,
+          contraintes_orga: currentQuestionnaire.contraintes_orga,
+          besoins_accessibilite: currentQuestionnaire.besoins_accessibilite,
+          necessite_amenagement: currentQuestionnaire.necessite_amenagement,
+          commentaires_libres: currentQuestionnaire.commentaires_libres,
+          consentement_rgpd: currentQuestionnaire.consentement_rgpd,
+          _savedAt: nowIso,
+        }));
+      } catch (lsErr) {
+        console.warn("Failed to save emergency backup to localStorage", lsErr);
+      }
+
       if (!opts?.silent) {
         toast({
-          title: "Erreur",
-          description: "Impossible de sauvegarger. Réessayez.",
+          title: "Erreur de sauvegarde",
+          description: "Vos réponses sont conservées localement. Elles seront synchronisées dès que possible.",
           variant: "destructive",
         });
       }
@@ -624,13 +693,33 @@ const Questionnaire = () => {
       <div className="min-h-screen flex items-center justify-center bg-background p-6">
         <Card className="w-full max-w-lg">
           <CardHeader>
-            <CardTitle>Questionnaire</CardTitle>
+            <AlertTriangle className="w-12 h-12 text-destructive mx-auto mb-2" />
+            <CardTitle className="text-center">Questionnaire</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-4 text-center">
             <p className="text-muted-foreground">{error || "Questionnaire introuvable."}</p>
-            <Button asChild variant="outline">
-              <a href="/">Retour à l'accueil</a>
-            </Button>
+            <div className="flex flex-col gap-2">
+              <Button
+                onClick={() => {
+                  setRetryCount((c) => c + 1);
+                  setError(null);
+                  setLoading(true);
+                  fetchData();
+                }}
+              >
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Réessayer
+              </Button>
+              <Button asChild variant="outline">
+                <a href="/">Retour à l'accueil</a>
+              </Button>
+            </div>
+            {retryCount > 0 && (
+              <p className="text-xs text-muted-foreground mt-2">
+                Si le problème persiste, vérifiez votre connexion internet ou contactez-nous à{" "}
+                <a href="mailto:romain@supertilt.fr" className="text-primary hover:underline">romain@supertilt.fr</a>
+              </p>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -675,7 +764,38 @@ const Questionnaire = () => {
 
   return (
     <div className="min-h-screen bg-background p-4 md:p-6">
-      <div className="mx-auto w-full max-w-3xl space-y-6">
+      {/* Offline banner */}
+      {!isOnline && (
+        <div className="fixed top-0 left-0 right-0 z-50 bg-destructive text-destructive-foreground px-4 py-2 text-center text-sm flex items-center justify-center gap-2">
+          <WifiOff className="w-4 h-4" />
+          Vous êtes hors connexion. Vos réponses seront sauvegardées dès le retour du réseau.
+        </div>
+      )}
+
+      {/* Floating save status indicator */}
+      {saveStatus !== "idle" && (
+        <div className={`fixed bottom-4 right-4 z-50 px-3 py-2 rounded-lg shadow-lg text-sm flex items-center gap-2 transition-all ${
+          saveStatus === "saving" ? "bg-muted text-muted-foreground" :
+          saveStatus === "saved" ? "bg-primary/10 text-primary" :
+          "bg-destructive/10 text-destructive"
+        }`}>
+          {saveStatus === "saving" && <><Loader2 className="w-3 h-3 animate-spin" /> Sauvegarde...</>}
+          {saveStatus === "saved" && <><CheckCircle2 className="w-3 h-3" /> Sauvegardé</>}
+          {saveStatus === "error" && (
+            <>
+              <AlertTriangle className="w-3 h-3" /> 
+              Erreur de sauvegarde
+              <button 
+                onClick={() => saveDraft({ silent: false })} 
+                className="underline ml-1 font-medium"
+              >
+                Réessayer
+              </button>
+            </>
+          )}
+        </div>
+      )}
+      <div className="mx-auto w-full max-w-3xl space-y-6" onBlur={handleFieldBlur}>
         {/* Logo */}
         <div className="flex justify-center">
           <a href="https://www.supertilt.fr" target="_blank" rel="noopener noreferrer">
