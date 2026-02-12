@@ -120,14 +120,21 @@ const handler = async (req: Request): Promise<Response> => {
       .eq("training_id", training.id)
       .order("day_date", { ascending: true });
 
-    // Get Google My Business URL from settings
+    // Get Google My Business URL and Cold Evaluation Form URL from settings
     const { data: gmbSetting } = await supabase
       .from("app_settings")
       .select("setting_value")
       .eq("setting_key", "google_my_business_url")
       .single();
     
+    const { data: coldEvalSetting } = await supabase
+      .from("app_settings")
+      .select("setting_value")
+      .eq("setting_key", "cold_evaluation_form_url")
+      .single();
+    
     const googleReviewLink = gmbSetting?.setting_value || "https://g.page/r/CWJ0W_P6C-BJEAE/review";
+    const coldEvaluationFormUrl = coldEvalSetting?.setting_value || "";
 
     // Get Signitic signature using correct API URL with fallback
     const signatureHtml = await getSigniticSignature();
@@ -334,12 +341,17 @@ const handler = async (req: Request): Promise<Response> => {
       case "cold_evaluation": {
         recipientEmail = participant?.email || "";
         subject = `🫶🏻 Évaluation à froid de la formation ${training.training_name}`;
+        
+        if (!coldEvaluationFormUrl) {
+          throw new Error("Cold evaluation form URL not configured in app settings");
+        }
+        
         htmlContent = `
           <p>${greeting}</p>
           <p>Comment vas-tu ?</p>
           <p>Dans le cadre de mon processus qualité (Qualiopi), je propose désormais des évaluations à froid de mes formations.</p>
           <p>❓ Pourrais-tu prendre 2 minutes pour remplir ce questionnaire en ligne ?</p>
-          <p><a href="https://forms.gle/EXAMPLE" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Remplir le questionnaire</a></p>
+          <p><a href="${coldEvaluationFormUrl}" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Remplir le questionnaire</a></p>
           <p>Merci énormément pour ton soutien :-)</p>
           <p>À bientôt</p>
           <p><em>PS : on peut continuer à rester en contact sur <a href="https://www.linkedin.com/in/romaincouturier/">LinkedIn</a> et sur <a href="https://www.instagram.com/supertilt.fr/">Instagram</a> pour d'autres contenus sur le sujet de la formation.</em></p>
