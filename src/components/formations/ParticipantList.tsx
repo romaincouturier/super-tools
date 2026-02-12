@@ -59,6 +59,7 @@ interface Participant {
   sold_price_ht?: number | null;
   convention_file_url?: string | null;
   convention_document_id?: string | null;
+  signed_convention_url?: string | null;
 }
 
 interface ParticipantListProps {

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Pencil, Loader2 } from "lucide-react";
+import { Pencil, Loader2, FileText, Upload, Trash2, ExternalLink, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
@@ -35,6 +35,17 @@ import {
 } from "@/components/ui/tooltip";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 
 interface Participant {
@@ -51,6 +62,13 @@ interface Participant {
   financeur_url?: string | null;
   payment_mode?: string;
   sold_price_ht?: number | null;
+  signed_convention_url?: string | null;
+}
+
+interface ConventionSignatureStatus {
+  signed_pdf_url: string | null;
+  signed_at: string | null;
+  status: string;
 }
 
 interface EditParticipantDialogProps {
@@ -88,6 +106,9 @@ const EditParticipantDialog = ({
   );
   const [financeurPopoverOpen, setFinanceurPopoverOpen] = useState(false);
   const [existingFinanceurs, setExistingFinanceurs] = useState<string[]>([]);
+  const [signedConventionUrl, setSignedConventionUrl] = useState(participant.signed_convention_url || null);
+  const [uploadingConvention, setUploadingConvention] = useState(false);
+  const [conventionSignature, setConventionSignature] = useState<ConventionSignatureStatus | null>(null);
   const { toast } = useToast();
 
   const isInterEntreprise = formatFormation === "inter-entreprises" || formatFormation === "e_learning";
@@ -106,7 +127,32 @@ const EditParticipantDialog = ({
     setFinanceurUrl(participant.financeur_url || "");
     setPaymentMode((participant.payment_mode as "online" | "invoice") || "invoice");
     setSoldPriceHt(participant.sold_price_ht != null ? String(participant.sold_price_ht) : "");
+    setSignedConventionUrl(participant.signed_convention_url || null);
   }, [participant]);
+
+  // Fetch electronic convention signature status
+  useEffect(() => {
+    const fetchConventionSignature = async () => {
+      if (!participant.sponsor_email) return;
+      
+      const { data } = await supabase
+        .from("convention_signatures")
+        .select("signed_pdf_url, signed_at, status")
+        .eq("training_id", trainingId)
+        .eq("recipient_email", participant.sponsor_email)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      
+      if (data) {
+        setConventionSignature(data);
+      }
+    };
+
+    if (open && isInterEntreprise) {
+      fetchConventionSignature();
+    }
+  }, [open, isInterEntreprise, trainingId, participant.sponsor_email]);
 
   // Fetch existing funders when dialog opens
   useEffect(() => {
@@ -463,6 +509,152 @@ const EditParticipantDialog = ({
                     </Label>
                   </div>
                 </RadioGroup>
+
+                {/* Convention signée section */}
+                <div className="pt-4 border-t">
+                  <Label className="text-sm font-medium text-muted-foreground">
+                    Convention signée
+                  </Label>
+                </div>
+
+                {/* Electronic signature status */}
+                {conventionSignature?.status === "signed" && conventionSignature.signed_pdf_url && (
+                  <div className="flex items-center gap-3 p-3 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800">
+                    <CheckCircle2 className="h-5 w-5 text-green-600 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-green-800 dark:text-green-200">Signée électroniquement</p>
+                      {conventionSignature.signed_at && (
+                        <p className="text-xs text-green-600 dark:text-green-400">
+                          le {new Date(conventionSignature.signed_at).toLocaleDateString("fr-FR")}
+                        </p>
+                      )}
+                    </div>
+                    <a
+                      href={conventionSignature.signed_pdf_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <Button type="button" variant="outline" size="sm">
+                        <ExternalLink className="h-4 w-4 mr-1" />
+                        Voir
+                      </Button>
+                    </a>
+                  </div>
+                )}
+
+                {conventionSignature?.status === "pending" && (
+                  <div className="flex items-center gap-3 p-3 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200 dark:border-amber-800">
+                    <Loader2 className="h-5 w-5 text-amber-600 animate-spin flex-shrink-0" />
+                    <p className="text-sm text-amber-800 dark:text-amber-200">En attente de signature électronique</p>
+                  </div>
+                )}
+
+                {/* Manual upload for signed convention */}
+                <div className="space-y-2">
+                  <Label className="text-sm flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    Convention signée (upload manuel)
+                  </Label>
+                  
+                  {signedConventionUrl ? (
+                    <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+                      <FileText className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                      <a
+                        href={signedConventionUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-1 text-sm text-primary hover:underline truncate"
+                      >
+                        Convention signée
+                      </a>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Supprimer la convention signée ?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Cette action est irréversible.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Annuler</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={async () => {
+                                try {
+                                  const urlParts = signedConventionUrl.split("/training-documents/");
+                                  if (urlParts.length > 1) {
+                                    await supabase.storage.from("training-documents").remove([urlParts[1]]);
+                                  }
+                                  await supabase
+                                    .from("training_participants")
+                                    .update({ signed_convention_url: null } as Record<string, unknown>)
+                                    .eq("id", participant.id);
+                                  setSignedConventionUrl(null);
+                                  onParticipantUpdated();
+                                  toast({ title: "Convention supprimée" });
+                                } catch (err) {
+                                  console.error(err);
+                                  toast({ title: "Erreur", description: "Impossible de supprimer.", variant: "destructive" });
+                                }
+                              }}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                              Supprimer
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  ) : (
+                    <Label htmlFor={`signed-convention-${participant.id}`} className="cursor-pointer">
+                      <input
+                        id={`signed-convention-${participant.id}`}
+                        type="file"
+                        accept=".pdf"
+                        className="hidden"
+                        disabled={uploadingConvention}
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          if (!file.type.includes("pdf")) {
+                            toast({ title: "Format non supporté", description: "Seuls les fichiers PDF sont acceptés.", variant: "destructive" });
+                            return;
+                          }
+                          setUploadingConvention(true);
+                          try {
+                            const sanitized = file.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9_.-]/g, "_");
+                            const path = `${trainingId}/participant_${participant.id}/convention_signee_${Date.now()}_${sanitized}`;
+                            const { error: uploadErr } = await supabase.storage.from("training-documents").upload(path, file);
+                            if (uploadErr) throw uploadErr;
+                            const { data: { publicUrl } } = supabase.storage.from("training-documents").getPublicUrl(path);
+                            await supabase
+                              .from("training_participants")
+                              .update({ signed_convention_url: publicUrl } as Record<string, unknown>)
+                              .eq("id", participant.id);
+                            setSignedConventionUrl(publicUrl);
+                            onParticipantUpdated();
+                            toast({ title: "Convention uploadée" });
+                          } catch (err) {
+                            console.error(err);
+                            toast({ title: "Erreur d'upload", description: err instanceof Error ? err.message : "Erreur.", variant: "destructive" });
+                          } finally {
+                            setUploadingConvention(false);
+                          }
+                        }}
+                      />
+                      <Button type="button" variant="outline" size="sm" disabled={uploadingConvention} asChild>
+                        <span>
+                          {uploadingConvention ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
+                          Uploader une convention signée
+                        </span>
+                      </Button>
+                    </Label>
+                  )}
+                </div>
               </>
             )}
           </div>

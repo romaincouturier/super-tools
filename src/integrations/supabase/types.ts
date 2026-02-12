@@ -2594,6 +2594,7 @@ export type Database = {
           needs_survey_status: string
           needs_survey_token: string | null
           payment_mode: string
+          signed_convention_url: string | null
           sold_price_ht: number | null
           sponsor_email: string | null
           sponsor_first_name: string | null
@@ -2617,6 +2618,7 @@ export type Database = {
           needs_survey_status?: string
           needs_survey_token?: string | null
           payment_mode?: string
+          signed_convention_url?: string | null
           sold_price_ht?: number | null
           sponsor_email?: string | null
           sponsor_first_name?: string | null
@@ -2640,6 +2642,7 @@ export type Database = {
           needs_survey_status?: string
           needs_survey_token?: string | null
           payment_mode?: string
+          signed_convention_url?: string | null
           sold_price_ht?: number | null
           sponsor_email?: string | null
           sponsor_first_name?: string | null
