@@ -89,64 +89,62 @@ function formatDateForCalendar(dateStr: string, timeStr: string): string {
   return `${year}${String(month).padStart(2, '0')}${String(day).padStart(2, '0')}T${String(hours).padStart(2, '0')}${String(minutes).padStart(2, '0')}00`;
 }
 
-// Generate calendar links for the training event
-function generateCalendarLinks(
+// Generate calendar links per day for each schedule entry
+function generatePerDayCalendarLinks(
   trainingName: string,
   location: string,
   startDate: string,
   endDate: string,
-  startTime: string,
-  endTime: string,
-  isMultiDay: boolean,
   schedules: Array<{ day_date: string; start_time: string; end_time: string }>
-): { google: string; outlook: string } {
+): Array<{ label: string; google: string; outlook: string }> {
   const description = `Formation Supertilt: ${trainingName}\n\nContact: Romain Couturier\nTéléphone: 06 66 98 76 35\nEmail: romain@supertilt.fr`;
   
-  let calendarStart: string;
-  let calendarEnd: string;
-  
-  if (schedules && schedules.length > 0) {
-    // Use first schedule for start time
-    const firstSchedule = schedules.sort((a, b) => 
-      new Date(a.day_date).getTime() - new Date(b.day_date).getTime()
-    )[0];
-    const lastSchedule = schedules[schedules.length - 1];
-    
-    calendarStart = formatDateForCalendar(firstSchedule.day_date, firstSchedule.start_time);
-    calendarEnd = formatDateForCalendar(lastSchedule.day_date, lastSchedule.end_time);
-  } else {
-    // Fallback to training dates with default times
-    calendarStart = formatDateForCalendar(startDate, startTime || "09:00");
-    calendarEnd = formatDateForCalendar(endDate || startDate, endTime || "17:00");
-  }
-  
-  // Google Calendar link
-  const googleParams = new URLSearchParams({
-    action: 'TEMPLATE',
-    text: `Formation: ${trainingName}`,
-    dates: `${calendarStart}/${calendarEnd}`,
-    details: description,
-    location: location || '',
-    ctz: 'Europe/Paris',
+  const sortedSchedules = schedules && schedules.length > 0
+    ? [...schedules].sort((a, b) => a.day_date.localeCompare(b.day_date))
+    : [{ day_date: startDate, start_time: "09:00", end_time: "17:00" }];
+
+  return sortedSchedules.map((sched, index) => {
+    const calStart = formatDateForCalendar(sched.day_date, sched.start_time);
+    const calEnd = formatDateForCalendar(sched.day_date, sched.end_time);
+
+    // Format label like "Jour 1 – lun. 16 mars"
+    const d = new Date(sched.day_date + "T12:00:00"); // noon to avoid TZ shift
+    const dayNames = ["dim.", "lun.", "mar.", "mer.", "jeu.", "ven.", "sam."];
+    const monthNames = ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."];
+    const label = sortedSchedules.length > 1
+      ? `Jour ${index + 1} – ${dayNames[d.getDay()]} ${d.getDate()} ${monthNames[d.getMonth()]}`
+      : `${dayNames[d.getDay()]} ${d.getDate()} ${monthNames[d.getMonth()]} ${d.getFullYear()}`;
+
+    const titleSuffix = sortedSchedules.length > 1 ? ` (Jour ${index + 1}/${sortedSchedules.length})` : "";
+
+    const googleParams = new URLSearchParams({
+      action: 'TEMPLATE',
+      text: `Formation: ${trainingName}${titleSuffix}`,
+      dates: `${calStart}/${calEnd}`,
+      details: description,
+      location: location || '',
+      ctz: 'Europe/Paris',
+    });
+
+    const outlookStart = calStart.replace(/(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})/, '$1-$2-$3T$4:$5:$6');
+    const outlookEnd = calEnd.replace(/(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})/, '$1-$2-$3T$4:$5:$6');
+
+    const outlookParams = new URLSearchParams({
+      path: '/calendar/action/compose',
+      rru: 'addevent',
+      subject: `Formation: ${trainingName}${titleSuffix}`,
+      startdt: outlookStart,
+      enddt: outlookEnd,
+      body: description,
+      location: location || '',
+    });
+
+    return {
+      label,
+      google: `https://calendar.google.com/calendar/render?${googleParams.toString()}`,
+      outlook: `https://outlook.live.com/calendar/0/deeplink/compose?${outlookParams.toString()}`,
+    };
   });
-  const googleUrl = `https://calendar.google.com/calendar/render?${googleParams.toString()}`;
-  
-  // Outlook.com link
-  const outlookStart = calendarStart.replace(/(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})/, '$1-$2-$3T$4:$5:$6');
-  const outlookEnd = calendarEnd.replace(/(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})/, '$1-$2-$3T$4:$5:$6');
-  
-  const outlookParams = new URLSearchParams({
-    path: '/calendar/action/compose',
-    rru: 'addevent',
-    subject: `Formation: ${trainingName}`,
-    startdt: outlookStart,
-    enddt: outlookEnd,
-    body: description,
-    location: location || '',
-  });
-  const outlookUrl = `https://outlook.live.com/calendar/0/deeplink/compose?${outlookParams.toString()}`;
-  
-  return { google: googleUrl, outlook: outlookUrl };
 }
 
 serve(async (req) => {
@@ -207,15 +205,12 @@ serve(async (req) => {
       .eq("training_id", trainingId)
       .order("day_date", { ascending: true });
 
-    // Generate calendar links
-    const calendarLinks = generateCalendarLinks(
+    // Generate per-day calendar links
+    const calendarDays = generatePerDayCalendarLinks(
       trainingName,
       location,
       startDate,
       endDate,
-      "09:00",
-      "17:00",
-      startDate !== endDate,
       schedules || []
     );
 
@@ -238,23 +233,30 @@ serve(async (req) => {
       `;
     }
 
-    // Calendar section HTML - styled for email clients
+    // Calendar section HTML - one row per day
+    const calendarRows = calendarDays.map((day) => `
+      <tr>
+        <td style="padding: 6px 12px 6px 0; font-size: 14px; font-weight: 600; color: #1a1a1a; white-space: nowrap;">
+          ${day.label}
+        </td>
+        <td style="padding: 6px 8px 6px 0;">
+          <a href="${day.google}" target="_blank" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 6px 14px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 13px;">
+            Google
+          </a>
+        </td>
+        <td style="padding: 6px 0;">
+          <a href="${day.outlook}" target="_blank" style="display: inline-block; background-color: #0078d4; color: #ffffff; padding: 6px 14px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 13px;">
+            Outlook
+          </a>
+        </td>
+      </tr>
+    `).join("");
+
     const calendarSection = `
       <div style="margin: 25px 0; padding: 20px; background-color: #f8f9fa; border-radius: 8px; border-left: 4px solid #e6bc00;">
         <p style="margin: 0 0 15px 0; font-weight: bold; color: #1a1a1a;">📅 Ajoute la formation à ton agenda :</p>
         <table role="presentation" cellspacing="0" cellpadding="0" border="0">
-          <tr>
-            <td style="padding-right: 10px;">
-              <a href="${calendarLinks.google}" target="_blank" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 10px 18px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 14px;">
-                📅 Google Agenda
-              </a>
-            </td>
-            <td>
-              <a href="${calendarLinks.outlook}" target="_blank" style="display: inline-block; background-color: #0078d4; color: #ffffff; padding: 10px 18px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 14px;">
-                📅 Outlook
-              </a>
-            </td>
-          </tr>
+          ${calendarRows}
         </table>
         <p style="margin: 12px 0 0 0; font-size: 12px; color: #666;">
           Apple Calendar : ouvre le lien Google depuis Safari, puis "Ajouter à Calendrier"
