@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Pencil, Loader2, FileText, Upload, Trash2, ExternalLink, CheckCircle2 } from "lucide-react";
+import { Pencil, Loader2, FileText, Upload, Trash2, ExternalLink, CheckCircle2, Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
@@ -559,14 +559,29 @@ const EditParticipantDialog = ({
                   {signedConventionUrl ? (
                     <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
                       <FileText className="h-5 w-5 text-muted-foreground flex-shrink-0" />
-                      <a
-                        href={signedConventionUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex-1 text-sm text-primary hover:underline truncate"
+                      <button
+                        type="button"
+                        className="flex-1 text-sm text-primary hover:underline truncate text-left"
+                        onClick={async () => {
+                          try {
+                            const response = await fetch(signedConventionUrl);
+                            const blob = await response.blob();
+                            const url = window.URL.createObjectURL(blob);
+                            const a = document.createElement("a");
+                            a.href = url;
+                            a.download = "convention_signee.pdf";
+                            document.body.appendChild(a);
+                            a.click();
+                            document.body.removeChild(a);
+                            window.URL.revokeObjectURL(url);
+                          } catch {
+                            window.open(signedConventionUrl, "_blank");
+                          }
+                        }}
                       >
-                        Convention signée
-                      </a>
+                        <Download className="h-3 w-3 inline mr-1" />
+                        Télécharger la convention signée
+                      </button>
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
                           <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive">
