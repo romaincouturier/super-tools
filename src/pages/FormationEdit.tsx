@@ -8,6 +8,7 @@ import { fr } from "date-fns/locale";
 import AppHeader from "@/components/AppHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
@@ -42,6 +43,7 @@ const FormationEdit = () => {
   const [elearningStartDate, setElearningStartDate] = useState<Date | null>(null);
   const [elearningEndDate, setElearningEndDate] = useState<Date | null>(null);
   const [elearningDuration, setElearningDuration] = useState<string>("");
+  const [elearningAccessEmailContent, setElearningAccessEmailContent] = useState<string>("");
   const [clientName, setClientName] = useState("");
   const [clientAddress, setClientAddress] = useState("");
   const [soldPriceHt, setSoldPriceHt] = useState<string>("");
@@ -138,6 +140,7 @@ const FormationEdit = () => {
           setElearningEndDate(parseISO(training.end_date));
         }
         setElearningDuration(training.elearning_duration != null ? String(training.elearning_duration) : "");
+        setElearningAccessEmailContent(training.elearning_access_email_content || "");
         // E-learning has no schedules
         setSchedules([]);
         setSelectedDates([]);
@@ -323,6 +326,7 @@ const FormationEdit = () => {
           financeur_name: financeurSameAsSponsor ? null : (financeurName || null),
           financeur_url: financeurSameAsSponsor ? null : (financeurUrl || null),
           elearning_duration: formatFormation === "e_learning" && elearningDuration ? parseFloat(elearningDuration) : null,
+          elearning_access_email_content: formatFormation === "e_learning" && elearningAccessEmailContent ? elearningAccessEmailContent : null,
         })
         .eq("id", id);
 
@@ -531,6 +535,19 @@ const FormationEdit = () => {
                         />
                         <p className="text-xs text-muted-foreground">
                           Durée estimée du parcours e-learning
+                        </p>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="elearningAccessEmail">Email d'accès e-learning</Label>
+                        <Textarea
+                          id="elearningAccessEmail"
+                          rows={8}
+                          value={elearningAccessEmailContent}
+                          onChange={(e) => setElearningAccessEmailContent(e.target.value)}
+                          placeholder="Contenu de l'email envoyé au participant pour lui donner accès à la formation..."
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Variables : {"{{first_name}}"}, {"{{training_name}}"}, {"{{access_link}}"}, {"{{start_date}}"}, {"{{end_date}}"}
                         </p>
                       </div>
                     </div>

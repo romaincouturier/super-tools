@@ -23,6 +23,7 @@ interface BulkAddParticipantsDialogProps {
   trainingStartDate?: string;
   onParticipantsAdded: () => void;
   isInterEntreprise?: boolean;
+  formatFormation?: string | null;
 }
 
 interface ParsedParticipant {
@@ -40,7 +41,8 @@ const BulkAddParticipantsDialog = ({
   trainingId, 
   trainingStartDate, 
   onParticipantsAdded,
-  isInterEntreprise = false 
+  isInterEntreprise = false,
+  formatFormation,
 }: BulkAddParticipantsDialogProps) => {
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -301,6 +303,23 @@ const BulkAddParticipantsDialog = ({
             await new Promise(resolve => setTimeout(resolve, 500));
           } catch (emailError) {
             console.error("Failed to send welcome email to:", participant.email, emailError);
+          }
+        }
+      }
+
+      // For e-learning: send access email to each participant (bulk doesn't have payment_mode, default is invoice)
+      if (formatFormation === "e_learning" && data && data.length > 0) {
+        for (const participant of data) {
+          try {
+            await supabase.functions.invoke("send-elearning-access", {
+              body: {
+                participantId: participant.id,
+                trainingId,
+              },
+            });
+            await new Promise(resolve => setTimeout(resolve, 500));
+          } catch (emailError) {
+            console.error("Failed to send e-learning access email to:", participant.email, emailError);
           }
         }
       }

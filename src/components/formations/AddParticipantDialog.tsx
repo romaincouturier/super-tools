@@ -265,6 +265,20 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
         }
       }
 
+      // For e-learning: send access email if participant didn't pay online
+      if (formatFormation === "e_learning" && paymentMode !== "online" && insertedParticipant) {
+        try {
+          await supabase.functions.invoke("send-elearning-access", {
+            body: {
+              participantId: insertedParticipant.id,
+              trainingId,
+            },
+          });
+        } catch (emailError) {
+          console.error("Failed to send e-learning access email:", emailError);
+        }
+      }
+
       // Schedule needs survey email for future trainings (after welcome email is sent)
       let needsSurveySkipped = false;
       if (sendWelcomeNow && insertedParticipant && trainingStartDate) {
