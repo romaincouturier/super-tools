@@ -82,17 +82,11 @@ async function getBccSettings(supabase: any): Promise<string[]> {
 
 // Format date to Google Calendar format: YYYYMMDDTHHMMSS
 function formatDateForCalendar(dateStr: string, timeStr: string): string {
-  const date = new Date(dateStr);
+  // Parse date string directly to avoid timezone issues with new Date()
+  const [year, month, day] = dateStr.split('-').map(Number);
   const [hours, minutes] = timeStr.split(':').map(Number);
-  date.setHours(hours, minutes, 0, 0);
   
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  const hour = String(date.getHours()).padStart(2, '0');
-  const minute = String(date.getMinutes()).padStart(2, '0');
-  
-  return `${year}${month}${day}T${hour}${minute}00`;
+  return `${year}${String(month).padStart(2, '0')}${String(day).padStart(2, '0')}T${String(hours).padStart(2, '0')}${String(minutes).padStart(2, '0')}00`;
 }
 
 // Generate calendar links for the training event
