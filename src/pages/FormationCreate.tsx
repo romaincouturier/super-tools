@@ -8,6 +8,7 @@ import { fr } from "date-fns/locale";
 import AppHeader from "@/components/AppHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
@@ -54,6 +55,7 @@ const FormationCreate = () => {
   const [elearningStartDate, setElearningStartDate] = useState<Date | null>(null);
   const [elearningEndDate, setElearningEndDate] = useState<Date | null>(null);
   const [elearningDuration, setElearningDuration] = useState<string>("");
+  const [elearningAccessEmailContent, setElearningAccessEmailContent] = useState<string>("");
   const [locationType, setLocationType] = useState<string>("");
   const [locationCustom, setLocationCustom] = useState("");
   const [clientName, setClientName] = useState("");
@@ -296,6 +298,7 @@ const FormationCreate = () => {
           financeur_url: financeurSameAsSponsor ? null : (financeurUrl || null),
           trainer_id: trainerId || null,
           elearning_duration: formatFormation === "e_learning" && elearningDuration ? parseFloat(elearningDuration) : null,
+          elearning_access_email_content: formatFormation === "e_learning" && elearningAccessEmailContent ? elearningAccessEmailContent : null,
           created_by: user.id,
         })
         .select()
@@ -514,11 +517,25 @@ const FormationCreate = () => {
               {/* Format - placed before dates so user picks format first */}
               <div className="space-y-2">
                 <Label htmlFor="format">Format de formation</Label>
-                <Select value={formatFormation} onValueChange={(val) => {
+                <Select value={formatFormation} onValueChange={async (val) => {
                   setFormatFormation(val);
                   // Auto-set location to online for e-learning
                   if (val === "e_learning" && locationType !== "en_ligne") {
                     setLocationType("en_ligne");
+                  }
+                  // Pre-fill e-learning access email content from template
+                  if (val === "e_learning" && !elearningAccessEmailContent) {
+                    const templateType = sponsorFormalAddress ? "elearning_access_vous" : "elearning_access_tu";
+                    const { data: template } = await supabase
+                      .from("email_templates")
+                      .select("html_content")
+                      .eq("template_type", templateType)
+                      .order("is_default", { ascending: false })
+                      .limit(1)
+                      .maybeSingle();
+                    if (template?.html_content) {
+                      setElearningAccessEmailContent(template.html_content);
+                    }
                   }
                 }}>
                   <SelectTrigger>
@@ -601,6 +618,20 @@ const FormationCreate = () => {
                     />
                     <p className="text-xs text-muted-foreground">
                       Durée estimée du parcours e-learning
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="elearningAccessEmail">Email d'accès e-learning</Label>
+                    <Textarea
+                      id="elearningAccessEmail"
+                      rows={8}
+                      value={elearningAccessEmailContent}
+                      onChange={(e) => setElearningAccessEmailContent(e.target.value)}
+                      placeholder="Contenu de l'email envoyé au participant pour lui donner accès à la formation..."
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Variables disponibles : {"{{first_name}}"}, {"{{training_name}}"}, {"{{access_link}}"}, {"{{start_date}}"}, {"{{end_date}}"}. 
+                      Envoyé automatiquement à chaque participant ajouté (hors paiement en ligne).
                     </p>
                   </div>
                 </div>

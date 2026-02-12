@@ -558,6 +558,41 @@ Cordialement,`,
     },
     variables: ["first_name", "training_name", "start_date", "end_date", "signature_link"],
   },
+  elearning_access: {
+    name: "Email d'accès e-learning",
+    timing: "manual",
+    subject: {
+      tu: "Accès à ta formation e-learning \"{{training_name}}\"",
+      vous: "Accès à votre formation e-learning \"{{training_name}}\"",
+    },
+    content: {
+      tu: `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
+
+Tu es inscrit(e) à la formation e-learning "<strong>{{training_name}}</strong>".
+
+Tu peux accéder à la formation en ligne à l'adresse suivante :
+<p style="margin: 20px 0;"><a href="{{access_link}}" style="display: inline-block; padding: 12px 24px; background-color: #e6bc00; color: #000; text-decoration: none; border-radius: 6px; font-weight: bold;">🎓 Accéder à la formation</a></p>
+
+La formation est accessible du <strong>{{start_date}}</strong> au <strong>{{end_date}}</strong>.
+
+Si tu as la moindre question, n'hésite pas à me contacter.
+
+Bonne formation !`,
+      vous: `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
+
+Vous êtes inscrit(e) à la formation e-learning "<strong>{{training_name}}</strong>".
+
+Vous pouvez accéder à la formation en ligne à l'adresse suivante :
+<p style="margin: 20px 0;"><a href="{{access_link}}" style="display: inline-block; padding: 12px 24px; background-color: #e6bc00; color: #000; text-decoration: none; border-radius: 6px; font-weight: bold;">🎓 Accéder à la formation</a></p>
+
+La formation est accessible du <strong>{{start_date}}</strong> au <strong>{{end_date}}</strong>.
+
+Si vous avez la moindre question, n'hésitez pas à me contacter.
+
+Bonne formation !`,
+    },
+    variables: ["first_name", "training_name", "access_link", "start_date", "end_date"],
+  },
 };
 const Parametres = () => {
   const [user, setUser] = useState<User | null>(null);

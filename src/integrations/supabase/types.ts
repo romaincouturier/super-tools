@@ -2705,6 +2705,7 @@ export type Database = {
           convention_file_url: string | null
           created_at: string
           created_by: string
+          elearning_access_email_content: string | null
           elearning_duration: number | null
           end_date: string | null
           evaluation_link: string
@@ -2745,6 +2746,7 @@ export type Database = {
           convention_file_url?: string | null
           created_at?: string
           created_by: string
+          elearning_access_email_content?: string | null
           elearning_duration?: number | null
           end_date?: string | null
           evaluation_link: string
@@ -2785,6 +2787,7 @@ export type Database = {
           convention_file_url?: string | null
           created_at?: string
           created_by?: string
+          elearning_access_email_content?: string | null
           elearning_duration?: number | null
           end_date?: string | null
           evaluation_link?: string
