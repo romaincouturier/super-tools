@@ -148,6 +148,18 @@ const AttendanceSignatureBlock = ({
   };
 
   const handleExportPdf = async (participantId?: string) => {
+    // Open window synchronously BEFORE await to avoid popup blocker
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) {
+      toast({
+        title: "Popup bloquée",
+        description: "Autorisez les popups pour ce site puis réessayez.",
+        variant: "destructive",
+      });
+      return;
+    }
+    printWindow.document.write("<html><body><p>Chargement en cours…</p></body></html>");
+
     setExporting(true);
 
     try {
@@ -161,25 +173,29 @@ const AttendanceSignatureBlock = ({
       if (error) throw error;
 
       if (data?.html) {
-        // Open HTML in new window for printing
-        const printWindow = window.open("", "_blank");
-        if (printWindow) {
-          printWindow.document.write(data.html);
-          printWindow.document.close();
-          
-          // Auto-trigger print dialog after a short delay
-          setTimeout(() => {
-            printWindow.print();
-          }, 500);
-        }
+        printWindow.document.open();
+        printWindow.document.write(data.html);
+        printWindow.document.close();
+
+        setTimeout(() => {
+          printWindow.print();
+        }, 500);
 
         toast({
           title: "Export prêt",
           description: "La feuille d'émargement s'ouvre dans un nouvel onglet.",
         });
+      } else {
+        printWindow.close();
+        toast({
+          title: "Erreur",
+          description: "Aucune donnée d'émargement trouvée.",
+          variant: "destructive",
+        });
       }
     } catch (err) {
       console.error("Error exporting attendance PDF:", err);
+      printWindow.close();
       toast({
         title: "Erreur",
         description: "Une erreur est survenue lors de l'export.",
