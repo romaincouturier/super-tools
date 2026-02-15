@@ -132,25 +132,37 @@ serve(async (req: Request): Promise<Response> => {
       const isInter = training.format_formation === "inter-entreprises" || training.format_formation === "e_learning";
       const days = daysUntil(training.start_date);
 
-      // Check convention generated
-      if (!training.convention_file_url) {
-        issues.push(`Convention NON GÉNÉRÉE (formation dans ${days} jour${days > 1 ? "s" : ""})`);
-      }
-
-      // Check convention sent
       if (isIntra) {
-        // For intra: check if at least one convention email was sent
-        if (!sentTrainingIds.has(training.id)) {
-          if (training.convention_file_url) {
-            issues.push("Convention générée mais NON ENVOYÉE au client");
-          }
+        // For intra: convention is at the training level
+        if (!training.convention_file_url) {
+          issues.push(`Convention NON GÉNÉRÉE (formation dans ${days} jour${days > 1 ? "s" : ""})`);
+        } else if (!sentTrainingIds.has(training.id)) {
+          issues.push("Convention générée mais NON ENVOYÉE au client");
         }
       } else if (isInter) {
-        // For inter: check per participant
+        // For inter/e-learning: convention is per participant, skip if no participants
         const nbParticipants = participantsByTraining[training.id] || 0;
-        const nbSent = conventionsSentByTraining[training.id] || 0;
+        if (nbParticipants === 0) continue; // No eligible participants, nothing to check
 
-        if (nbParticipants > 0 && nbSent < nbParticipants) {
+        // Count participants who have a convention_file_url
+        const { data: pWithConvention } = await supabase
+          .from("training_participants")
+          .select("id")
+          .eq("training_id", training.id)
+          .neq("payment_status", "online")
+          .not("convention_file_url", "is", null);
+
+        const nbWithConvention = pWithConvention?.length || 0;
+
+        if (nbWithConvention < nbParticipants) {
+          issues.push(
+            `Convention générée pour ${nbWithConvention}/${nbParticipants} participant${nbParticipants > 1 ? "s" : ""}`
+          );
+        }
+
+        // Check if convention emails were sent
+        const nbSent = conventionsSentByTraining[training.id] || 0;
+        if (nbWithConvention > 0 && nbSent < nbParticipants) {
           issues.push(
             `Convention envoyée à ${nbSent}/${nbParticipants} participant${nbParticipants > 1 ? "s" : ""}`
           );
