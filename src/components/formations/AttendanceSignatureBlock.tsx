@@ -55,17 +55,9 @@ const AttendanceSignatureBlock = ({
   const [exporting, setExporting] = useState(false);
   const { toast } = useToast();
 
-  // Check if we should show this block (training is today or in the past week)
+  // Show this block for any training that has schedules
   const shouldShowBlock = () => {
-    if (schedules.length === 0) return false;
-    
-    const today = startOfDay(new Date());
-    const weekAgo = addDays(today, -7);
-    
-    return schedules.some(schedule => {
-      const scheduleDate = startOfDay(parseISO(schedule.day_date));
-      return !isBefore(scheduleDate, weekAgo) && !isAfter(scheduleDate, addDays(today, 1));
-    });
+    return schedules.length > 0;
   };
 
   useEffect(() => {
@@ -87,18 +79,9 @@ const AttendanceSignatureBlock = ({
       if (error) throw error;
 
       // Build status for each schedule date (AM + PM)
-      const today = startOfDay(new Date());
-      const weekAgo = addDays(today, -7);
-      
       const statuses: SignatureStatus[] = [];
 
       schedules.forEach(schedule => {
-        const scheduleDate = startOfDay(parseISO(schedule.day_date));
-        
-        // Only show dates from past week up to today
-        if (isBefore(scheduleDate, weekAgo) || isAfter(scheduleDate, today)) {
-          return;
-        }
 
         ["AM", "PM"].forEach(period => {
           const slotSignatures = signatures?.filter(
