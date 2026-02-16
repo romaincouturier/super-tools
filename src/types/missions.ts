@@ -27,6 +27,9 @@ export interface Mission {
   color: string;
   position: number;
   emoji?: string | null;
+  language: string;
+  testimonial_status: string;
+  testimonial_last_sent_at: string | null;
   created_at: string;
   updated_at: string;
   created_by: string | null;
@@ -72,6 +75,7 @@ export interface UpdateMissionInput {
   color?: string;
   position?: number;
   emoji?: string | null;
+  language?: string;
 }
 
 // Status configuration for Kanban columns

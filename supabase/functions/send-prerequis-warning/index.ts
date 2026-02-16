@@ -44,7 +44,7 @@ async function getSigniticSignature(): Promise<string> {
 function getDefaultSignature(): string {
   return `<p style="margin-top: 20px; color: #666; font-size: 14px;">
     <strong>Romain Couturier</strong><br/>
-    Supertilt - Formation professionnelle<br/>
+    <a href="https://www.supertilt.fr" style="color: #1a1a2e; text-decoration: underline;">SuperTilt Formation</a><br/>
     <a href="mailto:romain@supertilt.fr">romain@supertilt.fr</a>
   </p>`;
 }

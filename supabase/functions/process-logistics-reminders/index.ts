@@ -246,6 +246,54 @@ serve(async (req) => {
       `);
     }
 
+    // ── 4. FAILED EMAILS ──
+    const failedEmailAlerts: string[] = [];
+
+    // Check scheduled_emails with failed status
+    const { data: failedScheduled } = await supabase
+      .from("scheduled_emails")
+      .select("id, email_type, training_id, created_at, error_message, trainings(training_name)")
+      .eq("status", "failed")
+      .order("created_at", { ascending: false })
+      .limit(20);
+
+    if (failedScheduled && failedScheduled.length > 0) {
+      for (const fe of failedScheduled) {
+        const trainingName = (fe as any).trainings?.training_name || "—";
+        const date = new Date(fe.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+        failedEmailAlerts.push(
+          `<li><strong>${fe.email_type}</strong> — ${trainingName} (${date})<br/><span style="color: #999; font-size: 12px;">${fe.error_message || "Erreur inconnue"}</span></li>`
+        );
+      }
+    }
+
+    // Check failed_emails table
+    const { data: failedAdhoc } = await supabase
+      .from("failed_emails")
+      .select("id, recipient_email, subject, error_message, email_type, created_at")
+      .eq("status", "failed")
+      .order("created_at", { ascending: false })
+      .limit(20);
+
+    if (failedAdhoc && failedAdhoc.length > 0) {
+      for (const fe of failedAdhoc) {
+        const date = new Date(fe.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+        failedEmailAlerts.push(
+          `<li><strong>${fe.subject}</strong> → ${fe.recipient_email} (${date})<br/><span style="color: #999; font-size: 12px;">${fe.error_message || "Erreur inconnue"}</span></li>`
+        );
+      }
+    }
+
+    if (failedEmailAlerts.length > 0) {
+      alertSections.push(`
+        <div style="margin-bottom: 24px;">
+          <h3 style="color: #DC2626; margin: 0 0 8px 0; font-size: 16px;">❌ Emails en erreur (${failedEmailAlerts.length})</h3>
+          <ul style="margin: 0; padding-left: 20px;">${failedEmailAlerts.join("")}</ul>
+          <p style="margin-top: 8px;"><a href="${appUrl}/emails-erreur" style="color: #1a1a2e; text-decoration: underline; font-size: 14px;">Voir le détail →</a></p>
+        </div>
+      `);
+    }
+
     // ── SEND DIGEST EMAIL ──
     if (alertSections.length === 0) {
       console.log(`[${VERSION}] No alerts to send`);
@@ -255,7 +303,7 @@ serve(async (req) => {
       );
     }
 
-    const totalAlerts = logisticsAlerts.length + conventionNotGenerated.length + conventionNotSigned.length;
+    const totalAlerts = logisticsAlerts.length + conventionNotGenerated.length + conventionNotSigned.length + failedEmailAlerts.length;
 
     const htmlContent = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -306,6 +354,7 @@ serve(async (req) => {
         logistics: logisticsAlerts.length,
         conventionNotGenerated: conventionNotGenerated.length,
         conventionNotSigned: conventionNotSigned.length,
+        failedEmails: failedEmailAlerts.length,
         total: totalAlerts,
         _version: VERSION,
       }),

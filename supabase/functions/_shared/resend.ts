@@ -1,8 +1,11 @@
 /**
  * Resend Email API Module
  *
- * Provides a clean interface for sending emails via Resend API
+ * Provides a clean interface for sending emails via Resend API.
+ * Automatically logs failed emails to the failed_emails table for admin notification.
  */
+
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const RESEND_API_URL = "https://api.resend.com/emails";
 const DEFAULT_FROM = "Romain Couturier <romain@supertilt.fr>";
@@ -21,6 +24,10 @@ export interface SendEmailOptions {
   bcc?: string[];
   replyTo?: string;
   attachments?: EmailAttachment[];
+  /** Optional context for error logging */
+  _trainingId?: string;
+  _participantId?: string;
+  _emailType?: string;
 }
 
 export interface SendEmailResult {
@@ -30,7 +37,37 @@ export interface SendEmailResult {
 }
 
 /**
+ * Log a failed email to the failed_emails table so the admin is notified.
+ * Silently catches its own errors to never break the calling function.
+ */
+async function logFailure(options: SendEmailOptions, errorMessage: string): Promise<void> {
+  try {
+    const url = Deno.env.get("SUPABASE_URL");
+    const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    if (!url || !key) return;
+
+    const supabase = createClient(url, key);
+    const toArray = Array.isArray(options.to) ? options.to : [options.to];
+
+    await supabase.from("failed_emails").insert({
+      recipient_email: toArray.join(", "),
+      subject: options.subject,
+      html_content: options.html,
+      error_message: errorMessage,
+      email_type: options._emailType || null,
+      training_id: options._trainingId || null,
+      participant_id: options._participantId || null,
+    });
+  } catch (e) {
+    console.warn("Could not log failed email:", e);
+  }
+}
+
+/**
  * Send an email via Resend API
+ *
+ * On failure, automatically logs the error to the failed_emails table
+ * so the admin sees a notification badge in the app header.
  *
  * @param options - Email options
  * @returns Promise<SendEmailResult>
@@ -40,6 +77,7 @@ export async function sendEmail(options: SendEmailOptions): Promise<SendEmailRes
 
   if (!resendApiKey) {
     console.error("RESEND_API_KEY not configured");
+    await logFailure(options, "RESEND_API_KEY not configured");
     return { success: false, error: "RESEND_API_KEY not configured" };
   }
 
@@ -66,7 +104,9 @@ export async function sendEmail(options: SendEmailOptions): Promise<SendEmailRes
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("Resend API error:", errorText);
+      const errorMessage = `Resend API error: ${response.status} — ${errorText}`;
+      console.error(errorMessage);
+      await logFailure(options, errorMessage);
       return { success: false, error: `Resend API error: ${response.status}` };
     }
 
@@ -76,6 +116,7 @@ export async function sendEmail(options: SendEmailOptions): Promise<SendEmailRes
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
     console.error("Error sending email:", errorMessage);
+    await logFailure(options, errorMessage);
     return { success: false, error: errorMessage };
   }
 }

@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/accordion";
 import UserAccessManager from "@/components/settings/UserAccessManager";
 import TrainerManager from "@/components/settings/TrainerManager";
+import PageTemplateManager from "@/components/missions/PageTemplateManager";
 import BackupManager from "@/components/settings/BackupManager";
 import { ApiKeyManager } from "@/components/settings/ApiKeyManager";
 import CrmTagManager from "@/components/settings/CrmTagManager";
@@ -1723,6 +1724,11 @@ const Parametres = () => {
                 </Button>
               </CardContent>
             </Card>
+
+            {/* Mission Page Templates */}
+            <div className="mt-6">
+              <PageTemplateManager />
+            </div>
           </TabsContent>
 
           <TabsContent value="trainers">

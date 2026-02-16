@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from "react";
-import { useEditor, EditorContent } from "@tiptap/react";
+import { useEditor, EditorContent, Node, mergeAttributes } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import LinkExtension from "@tiptap/extension-link";
 import Underline from "@tiptap/extension-underline";
@@ -9,6 +9,7 @@ import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
 import Highlight from "@tiptap/extension-highlight";
 import Typography from "@tiptap/extension-typography";
+import TextAlign from "@tiptap/extension-text-align";
 import {
   ChevronRight,
   ChevronDown,
@@ -29,25 +30,29 @@ import {
   Heading1,
   Heading2,
   Heading3,
+  Heading4,
   Quote,
   Code,
   Minus,
   ImageIcon,
   Paperclip,
-  Upload,
-  FileUp,
-  X,
+  Video,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+  PanelLeftClose,
+  PanelLeftOpen,
+  ChevronDownSquare,
   Undo,
   Redo,
+  LayoutTemplate,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -55,7 +60,9 @@ import {
   useCreateMissionPage,
   useUpdateMissionPage,
   useDeleteMissionPage,
+  useMissionPageTemplates,
   MissionPage,
+  MissionPageTemplate,
 } from "@/hooks/useMissions";
 import { Mission } from "@/types/missions";
 import { cn } from "@/lib/utils";
@@ -63,6 +70,8 @@ import { supabase } from "@/integrations/supabase/client";
 
 interface MissionPagesProps {
   mission: Mission;
+  initialActivityPageRequest?: { activityId: string; description: string } | null;
+  onActivityPageCreated?: () => void;
 }
 
 interface PageTreeItemProps {
@@ -81,6 +90,54 @@ const EMOJI_OPTIONS = [
   "🔧", "📊", "🚀", "💰", "📞", "📧", "🗓️", "👤", "🏢", "📦",
   "🔗", "💻", "🎨", "📐", "🔍", "📈", "🗂️", "✏️", "🏷️", "⚡",
 ];
+
+// ─── Custom TipTap Extensions ────────────────────────────
+
+const DetailsNode = Node.create({
+  name: "details",
+  group: "block",
+  content: "block+",
+  defining: true,
+  parseHTML() {
+    return [{ tag: "details" }];
+  },
+  renderHTML({ HTMLAttributes }) {
+    return ["details", mergeAttributes(HTMLAttributes, { open: "", class: "my-2 border rounded-lg p-3" }), 0];
+  },
+});
+
+const SummaryNode = Node.create({
+  name: "summary",
+  group: "block",
+  content: "inline*",
+  defining: true,
+  parseHTML() {
+    return [{ tag: "summary" }];
+  },
+  renderHTML({ HTMLAttributes }) {
+    return ["summary", mergeAttributes(HTMLAttributes, { class: "cursor-pointer font-semibold text-lg select-none" }), 0];
+  },
+});
+
+const VideoNode = Node.create({
+  name: "video",
+  group: "block",
+  atom: true,
+  addAttributes() {
+    return {
+      src: { default: null },
+      controls: { default: true },
+    };
+  },
+  parseHTML() {
+    return [{ tag: "video[src]" }];
+  },
+  renderHTML({ HTMLAttributes }) {
+    return ["video", mergeAttributes(HTMLAttributes, { controls: "", class: "w-full rounded-lg my-4 max-h-[500px]" })];
+  },
+});
+
+// ─── Page Tree Item ──────────────────────────────────────
 
 const PageTreeItem = ({
   page,
@@ -101,7 +158,7 @@ const PageTreeItem = ({
     <div>
       <div
         className={cn(
-          "group flex items-center gap-1 py-1 px-1.5 rounded-md cursor-pointer transition-colors text-sm",
+          "group flex items-center gap-1 py-1.5 px-1.5 rounded-md cursor-pointer transition-colors",
           selectedPageId === page.id
             ? "bg-primary/10 text-primary font-medium"
             : "hover:bg-muted/60 text-muted-foreground hover:text-foreground"
@@ -128,7 +185,9 @@ const PageTreeItem = ({
         </button>
 
         <span className="text-sm shrink-0">{page.icon || "📄"}</span>
-        <span className="truncate flex-1 text-[13px]">{page.title || "Sans titre"}</span>
+        <span className="flex-1 text-sm overflow-x-auto whitespace-nowrap scrollbar-hide">
+          {page.title || "Sans titre"}
+        </span>
 
         <div className="opacity-0 group-hover:opacity-100 flex items-center shrink-0">
           <button
@@ -183,7 +242,8 @@ const PageTreeItem = ({
   );
 };
 
-// Notion-like page editor
+// ─── Page Editor ─────────────────────────────────────────
+
 const PageEditor = ({
   page,
   missionId,
@@ -195,16 +255,14 @@ const PageEditor = ({
 }) => {
   const { toast } = useToast();
   const updatePage = useUpdateMissionPage();
-  const [titleValue, setTitleValue] = useState(page.title);
   const [iconValue, setIconValue] = useState(page.icon || "📄");
   const [imageUploading, setImageUploading] = useState(false);
   const [fileUploading, setFileUploading] = useState(false);
-  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
-  const titleRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
 
-  // Upload image to Supabase storage
   const uploadImage = useCallback(
     async (file: File): Promise<string | null> => {
       try {
@@ -219,14 +277,13 @@ const PageEditor = ({
           .getPublicUrl(fileName);
         return urlData.publicUrl;
       } catch (err) {
-        console.error("Image upload error:", err);
+        console.error("Upload error:", err);
         return null;
       }
     },
     [page.id]
   );
 
-  // Upload document attachment
   const uploadDocument = useCallback(
     async (file: File): Promise<string | null> => {
       try {
@@ -240,7 +297,7 @@ const PageEditor = ({
           .getPublicUrl(fileName);
         return urlData.publicUrl;
       } catch (err) {
-        console.error("Document upload error:", err);
+        console.error("Upload error:", err);
         return null;
       }
     },
@@ -252,57 +309,50 @@ const PageEditor = ({
       StarterKit.configure({
         bulletList: { keepMarks: true, keepAttributes: false },
         orderedList: { keepMarks: true, keepAttributes: false },
-        heading: { levels: [1, 2, 3] },
+        heading: { levels: [1, 2, 3, 4] },
         codeBlock: { HTMLAttributes: { class: "bg-muted/50 rounded-md p-4 font-mono text-sm" } },
         blockquote: { HTMLAttributes: { class: "border-l-4 border-primary/30 pl-4 italic text-muted-foreground" } },
-        horizontalRule: { HTMLAttributes: { class: "my-6 border-muted" } },
+        horizontalRule: { HTMLAttributes: { class: "my-6 border-muted-foreground/30 border-t-2" } },
       }),
       LinkExtension.configure({
         openOnClick: true,
         HTMLAttributes: { class: "text-primary underline cursor-pointer" },
       }),
       Underline,
+      TextAlign.configure({ types: ["heading", "paragraph"] }),
       ImageExtension.configure({
         inline: false,
         HTMLAttributes: { class: "rounded-lg max-w-full mx-auto my-4" },
       }),
       Placeholder.configure({
-        placeholder: "Écrivez ici... Tapez '/' pour les commandes",
+        placeholder: "Écrivez ici... Tapez '---' pour un séparateur",
         emptyEditorClass: "is-editor-empty",
       }),
-      TaskList.configure({
-        HTMLAttributes: { class: "not-prose" },
-      }),
-      TaskItem.configure({
-        nested: true,
-        HTMLAttributes: { class: "flex items-start gap-2" },
-      }),
-      Highlight.configure({
-        HTMLAttributes: { class: "bg-yellow-200 dark:bg-yellow-800/50 rounded px-1" },
-      }),
+      TaskList.configure({ HTMLAttributes: { class: "not-prose" } }),
+      TaskItem.configure({ nested: true, HTMLAttributes: { class: "flex items-start gap-2" } }),
+      Highlight.configure({ HTMLAttributes: { class: "bg-yellow-200 dark:bg-yellow-800/50 rounded px-1" } }),
       Typography,
+      DetailsNode,
+      SummaryNode,
+      VideoNode,
     ],
     content: page.content || "",
     editorProps: {
       attributes: {
-        class: "prose prose-base dark:prose-invert max-w-none focus:outline-none min-h-[500px] px-1 py-2 text-[15px] leading-relaxed",
+        class: "prose prose-base dark:prose-invert max-w-none focus:outline-none min-h-[calc(100vh-280px)] py-2 text-[15px] leading-relaxed",
       },
       handlePaste: (_view, event) => {
         const items = event.clipboardData?.items;
         if (!items) return false;
-
         for (const item of Array.from(items)) {
           if (item.type.startsWith("image/")) {
             event.preventDefault();
             const file = item.getAsFile();
             if (!file) continue;
-
             setImageUploading(true);
             uploadImage(file).then((url) => {
               setImageUploading(false);
-              if (url && editor) {
-                editor.chain().focus().setImage({ src: url }).run();
-              }
+              if (url && editor) editor.chain().focus().setImage({ src: url }).run();
             });
             return true;
           }
@@ -312,15 +362,23 @@ const PageEditor = ({
       handleDrop: (_view, event) => {
         const files = event.dataTransfer?.files;
         if (!files || files.length === 0) return false;
-
         const file = files[0];
         if (file.type.startsWith("image/")) {
           event.preventDefault();
           setImageUploading(true);
           uploadImage(file).then((url) => {
             setImageUploading(false);
+            if (url && editor) editor.chain().focus().setImage({ src: url }).run();
+          });
+          return true;
+        }
+        if (file.type.startsWith("video/")) {
+          event.preventDefault();
+          setImageUploading(true);
+          uploadImage(file).then((url) => {
+            setImageUploading(false);
             if (url && editor) {
-              editor.chain().focus().setImage({ src: url }).run();
+              editor.chain().focus().insertContent({ type: "video", attrs: { src: url } }).run();
             }
           });
           return true;
@@ -329,20 +387,17 @@ const PageEditor = ({
       },
     },
     onUpdate: ({ editor: ed }) => {
-      // Auto-save with debounce
       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
       saveTimeoutRef.current = setTimeout(() => {
-        const html = ed.getHTML();
         updatePage.mutate({
           id: page.id,
           missionId,
-          updates: { content: html },
+          updates: { content: ed.getHTML() },
         });
       }, 800);
     },
   });
 
-  // Sync editor content when page changes
   useEffect(() => {
     if (editor && page.content !== undefined) {
       const currentHtml = editor.getHTML();
@@ -351,38 +406,16 @@ const PageEditor = ({
         editor.commands.setContent(newContent, { emitUpdate: false });
       }
     }
-    setTitleValue(page.title);
     setIconValue(page.icon || "📄");
   }, [page.id]);
 
-  // Cleanup timeout on unmount
   useEffect(() => {
-    return () => {
-      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
-    };
+    return () => { if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current); };
   }, []);
-
-  const handleTitleChange = (newTitle: string) => {
-    setTitleValue(newTitle);
-    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
-    saveTimeoutRef.current = setTimeout(() => {
-      const trimmed = newTitle.trim() || "Sans titre";
-      updatePage.mutate({
-        id: page.id,
-        missionId,
-        updates: { title: trimmed },
-      });
-      onPageUpdated({ ...page, title: trimmed });
-    }, 600);
-  };
 
   const handleIconChange = (emoji: string) => {
     setIconValue(emoji);
-    updatePage.mutate({
-      id: page.id,
-      missionId,
-      updates: { icon: emoji },
-    });
+    updatePage.mutate({ id: page.id, missionId, updates: { icon: emoji } });
     onPageUpdated({ ...page, icon: emoji });
   };
 
@@ -392,9 +425,19 @@ const PageEditor = ({
     for (const file of Array.from(files)) {
       if (file.type.startsWith("image/")) {
         const url = await uploadImage(file);
-        if (url) {
-          editor.chain().focus().setImage({ src: url }).run();
-        }
+        if (url) editor.chain().focus().setImage({ src: url }).run();
+      }
+    }
+    setImageUploading(false);
+  };
+
+  const handleVideoUpload = async (files: FileList) => {
+    if (!editor) return;
+    setImageUploading(true);
+    for (const file of Array.from(files)) {
+      if (file.type.startsWith("video/")) {
+        const url = await uploadImage(file);
+        if (url) editor.chain().focus().insertContent({ type: "video", attrs: { src: url } }).run();
       }
     }
     setImageUploading(false);
@@ -406,16 +449,11 @@ const PageEditor = ({
     for (const file of Array.from(files)) {
       const url = await uploadDocument(file);
       if (url) {
-        // Insert as a styled link block
         const icon = getFileIcon(file.name);
         const size = formatFileSize(file.size);
-        editor
-          .chain()
-          .focus()
-          .insertContent(
-            `<p><a href="${url}" target="_blank" rel="noopener">${icon} ${file.name} <em>(${size})</em></a></p>`
-          )
-          .run();
+        editor.chain().focus().insertContent(
+          `<p><a href="${url}" target="_blank" rel="noopener">${icon} ${file.name} <em>(${size})</em></a></p>`
+        ).run();
       }
     }
     setFileUploading(false);
@@ -424,225 +462,102 @@ const PageEditor = ({
 
   const setLink = useCallback(() => {
     if (!editor) return;
-    const previousUrl = editor.getAttributes("link").href;
-    const url = window.prompt("URL du lien:", previousUrl);
+    const prev = editor.getAttributes("link").href;
+    const url = window.prompt("URL du lien:", prev);
     if (url === null) return;
-    if (url === "") {
-      editor.chain().focus().extendMarkRange("link").unsetLink().run();
-      return;
-    }
+    if (url === "") { editor.chain().focus().extendMarkRange("link").unsetLink().run(); return; }
     editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
   }, [editor]);
+
+  const insertToggleBlock = () => {
+    if (!editor) return;
+    editor.chain().focus().insertContent({
+      type: "details",
+      content: [
+        { type: "summary", content: [{ type: "text", text: "Cliquez pour déplier" }] },
+        { type: "paragraph", content: [{ type: "text", text: "Contenu masquable..." }] },
+      ],
+    }).run();
+  };
 
   if (!editor) return null;
 
   return (
     <div className="flex flex-col h-full">
-      {/* Hidden file inputs */}
-      <input
-        ref={imageInputRef}
-        type="file"
-        accept="image/*"
-        multiple
-        className="hidden"
-        onChange={(e) => e.target.files && handleImageUpload(e.target.files)}
-      />
-      <input
-        ref={fileInputRef}
-        type="file"
-        multiple
-        className="hidden"
-        onChange={(e) => e.target.files && handleDocumentUpload(e.target.files)}
-      />
+      <input ref={imageInputRef} type="file" accept="image/*" multiple className="hidden"
+        onChange={(e) => e.target.files && handleImageUpload(e.target.files)} />
+      <input ref={videoInputRef} type="file" accept="video/*" className="hidden"
+        onChange={(e) => e.target.files && handleVideoUpload(e.target.files)} />
+      <input ref={fileInputRef} type="file" multiple className="hidden"
+        onChange={(e) => e.target.files && handleDocumentUpload(e.target.files)} />
 
-      {/* Page header - Notion style */}
-      <div className="pb-4 mb-2">
-        {/* Icon picker */}
+      {/* Icon only - title not repeated (shown in sidebar) */}
+      <div className="pb-2 mb-1">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="text-4xl hover:bg-muted/50 rounded-lg p-2 transition-colors mb-1">
+            <button className="text-3xl hover:bg-muted/50 rounded-lg p-1.5 transition-colors">
               {iconValue}
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-auto p-2">
             <div className="grid grid-cols-10 gap-0.5">
               {EMOJI_OPTIONS.map((emoji) => (
-                <button
-                  key={emoji}
-                  className="text-xl hover:bg-muted rounded p-1.5 transition-colors"
-                  onClick={() => handleIconChange(emoji)}
-                >
+                <button key={emoji} className="text-xl hover:bg-muted rounded p-1.5 transition-colors"
+                  onClick={() => handleIconChange(emoji)}>
                   {emoji}
                 </button>
               ))}
             </div>
           </DropdownMenuContent>
         </DropdownMenu>
-
-        {/* Title - large, borderless, like Notion */}
-        <input
-          ref={titleRef}
-          value={titleValue}
-          onChange={(e) => handleTitleChange(e.target.value)}
-          placeholder="Sans titre"
-          className="w-full text-3xl font-bold bg-transparent border-none outline-none placeholder:text-muted-foreground/40 py-1"
-        />
       </div>
 
-      {/* Floating toolbar */}
-      <div className="flex items-center gap-0.5 pb-3 mb-1 border-b overflow-x-auto flex-wrap">
-        <ToolbarButton
-          active={editor.isActive("bold")}
-          onClick={() => editor.chain().focus().toggleBold().run()}
-          title="Gras"
-        >
-          <Bold className="h-3.5 w-3.5" />
-        </ToolbarButton>
-        <ToolbarButton
-          active={editor.isActive("italic")}
-          onClick={() => editor.chain().focus().toggleItalic().run()}
-          title="Italique"
-        >
-          <Italic className="h-3.5 w-3.5" />
-        </ToolbarButton>
-        <ToolbarButton
-          active={editor.isActive("underline")}
-          onClick={() => editor.chain().focus().toggleUnderline().run()}
-          title="Souligné"
-        >
-          <UnderlineIcon className="h-3.5 w-3.5" />
-        </ToolbarButton>
-        <ToolbarButton
-          active={editor.isActive("strike")}
-          onClick={() => editor.chain().focus().toggleStrike().run()}
-          title="Barré"
-        >
-          <Strikethrough className="h-3.5 w-3.5" />
-        </ToolbarButton>
-        <ToolbarButton
-          active={editor.isActive("highlight")}
-          onClick={() => editor.chain().focus().toggleHighlight().run()}
-          title="Surligné"
-        >
-          <Highlighter className="h-3.5 w-3.5" />
-        </ToolbarButton>
+      {/* Toolbar */}
+      <div className="flex items-center gap-0.5 pb-2 mb-1 border-b overflow-x-auto flex-nowrap">
+        <TB active={editor.isActive("bold")} onClick={() => editor.chain().focus().toggleBold().run()} t="Gras"><Bold className="h-3.5 w-3.5" /></TB>
+        <TB active={editor.isActive("italic")} onClick={() => editor.chain().focus().toggleItalic().run()} t="Italique"><Italic className="h-3.5 w-3.5" /></TB>
+        <TB active={editor.isActive("underline")} onClick={() => editor.chain().focus().toggleUnderline().run()} t="Souligné"><UnderlineIcon className="h-3.5 w-3.5" /></TB>
+        <TB active={editor.isActive("strike")} onClick={() => editor.chain().focus().toggleStrike().run()} t="Barré"><Strikethrough className="h-3.5 w-3.5" /></TB>
+        <TB active={editor.isActive("highlight")} onClick={() => editor.chain().focus().toggleHighlight().run()} t="Surligné"><Highlighter className="h-3.5 w-3.5" /></TB>
 
-        <ToolbarSep />
+        <TSep />
 
-        <ToolbarButton
-          active={editor.isActive("heading", { level: 1 })}
-          onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-          title="Titre 1"
-        >
-          <Heading1 className="h-3.5 w-3.5" />
-        </ToolbarButton>
-        <ToolbarButton
-          active={editor.isActive("heading", { level: 2 })}
-          onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-          title="Titre 2"
-        >
-          <Heading2 className="h-3.5 w-3.5" />
-        </ToolbarButton>
-        <ToolbarButton
-          active={editor.isActive("heading", { level: 3 })}
-          onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-          title="Titre 3"
-        >
-          <Heading3 className="h-3.5 w-3.5" />
-        </ToolbarButton>
+        <TB active={editor.isActive("heading", { level: 1 })} onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} t="Titre 1"><Heading1 className="h-3.5 w-3.5" /></TB>
+        <TB active={editor.isActive("heading", { level: 2 })} onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} t="Titre 2"><Heading2 className="h-3.5 w-3.5" /></TB>
+        <TB active={editor.isActive("heading", { level: 3 })} onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()} t="Titre 3"><Heading3 className="h-3.5 w-3.5" /></TB>
+        <TB active={editor.isActive("heading", { level: 4 })} onClick={() => editor.chain().focus().toggleHeading({ level: 4 }).run()} t="Titre 4"><Heading4 className="h-3.5 w-3.5" /></TB>
 
-        <ToolbarSep />
+        <TSep />
 
-        <ToolbarButton
-          active={editor.isActive("bulletList")}
-          onClick={() => editor.chain().focus().toggleBulletList().run()}
-          title="Liste à puces"
-        >
-          <List className="h-3.5 w-3.5" />
-        </ToolbarButton>
-        <ToolbarButton
-          active={editor.isActive("orderedList")}
-          onClick={() => editor.chain().focus().toggleOrderedList().run()}
-          title="Liste numérotée"
-        >
-          <ListOrdered className="h-3.5 w-3.5" />
-        </ToolbarButton>
-        <ToolbarButton
-          active={editor.isActive("taskList")}
-          onClick={() => editor.chain().focus().toggleTaskList().run()}
-          title="Liste de tâches"
-        >
-          <CheckSquare className="h-3.5 w-3.5" />
-        </ToolbarButton>
+        <TB active={editor.isActive({ textAlign: "left" })} onClick={() => editor.chain().focus().setTextAlign("left").run()} t="Gauche"><AlignLeft className="h-3.5 w-3.5" /></TB>
+        <TB active={editor.isActive({ textAlign: "center" })} onClick={() => editor.chain().focus().setTextAlign("center").run()} t="Centrer"><AlignCenter className="h-3.5 w-3.5" /></TB>
+        <TB active={editor.isActive({ textAlign: "right" })} onClick={() => editor.chain().focus().setTextAlign("right").run()} t="Droite"><AlignRight className="h-3.5 w-3.5" /></TB>
 
-        <ToolbarSep />
+        <TSep />
 
-        <ToolbarButton
-          active={editor.isActive("blockquote")}
-          onClick={() => editor.chain().focus().toggleBlockquote().run()}
-          title="Citation"
-        >
-          <Quote className="h-3.5 w-3.5" />
-        </ToolbarButton>
-        <ToolbarButton
-          active={editor.isActive("codeBlock")}
-          onClick={() => editor.chain().focus().toggleCodeBlock().run()}
-          title="Bloc de code"
-        >
-          <Code className="h-3.5 w-3.5" />
-        </ToolbarButton>
-        <ToolbarButton
-          active={false}
-          onClick={() => editor.chain().focus().setHorizontalRule().run()}
-          title="Séparateur"
-        >
-          <Minus className="h-3.5 w-3.5" />
-        </ToolbarButton>
-        <ToolbarButton
-          active={editor.isActive("link")}
-          onClick={setLink}
-          title="Lien"
-        >
-          <LinkIcon className="h-3.5 w-3.5" />
-        </ToolbarButton>
+        <TB active={editor.isActive("bulletList")} onClick={() => editor.chain().focus().toggleBulletList().run()} t="Puces"><List className="h-3.5 w-3.5" /></TB>
+        <TB active={editor.isActive("orderedList")} onClick={() => editor.chain().focus().toggleOrderedList().run()} t="Numérotée"><ListOrdered className="h-3.5 w-3.5" /></TB>
+        <TB active={editor.isActive("taskList")} onClick={() => editor.chain().focus().toggleTaskList().run()} t="Checklist"><CheckSquare className="h-3.5 w-3.5" /></TB>
 
-        <ToolbarSep />
+        <TSep />
 
-        <ToolbarButton
-          active={false}
-          onClick={() => imageInputRef.current?.click()}
-          title="Ajouter une image"
-        >
-          <ImageIcon className="h-3.5 w-3.5" />
-        </ToolbarButton>
-        <ToolbarButton
-          active={false}
-          onClick={() => fileInputRef.current?.click()}
-          title="Joindre un document"
-        >
-          <Paperclip className="h-3.5 w-3.5" />
-        </ToolbarButton>
+        <TB active={editor.isActive("blockquote")} onClick={() => editor.chain().focus().toggleBlockquote().run()} t="Citation"><Quote className="h-3.5 w-3.5" /></TB>
+        <TB active={editor.isActive("codeBlock")} onClick={() => editor.chain().focus().toggleCodeBlock().run()} t="Code"><Code className="h-3.5 w-3.5" /></TB>
+        <TB active={false} onClick={() => editor.chain().focus().setHorizontalRule().run()} t="Séparateur"><Minus className="h-3.5 w-3.5" /></TB>
+        <TB active={false} onClick={insertToggleBlock} t="Dépliable"><ChevronDownSquare className="h-3.5 w-3.5" /></TB>
+        <TB active={editor.isActive("link")} onClick={setLink} t="Lien"><LinkIcon className="h-3.5 w-3.5" /></TB>
+
+        <TSep />
+
+        <TB active={false} onClick={() => imageInputRef.current?.click()} t="Image"><ImageIcon className="h-3.5 w-3.5" /></TB>
+        <TB active={false} onClick={() => videoInputRef.current?.click()} t="Vidéo"><Video className="h-3.5 w-3.5" /></TB>
+        <TB active={false} onClick={() => fileInputRef.current?.click()} t="Document"><Paperclip className="h-3.5 w-3.5" /></TB>
 
         <div className="flex-1" />
 
-        <ToolbarButton
-          active={false}
-          onClick={() => editor.chain().focus().undo().run()}
-          title="Annuler"
-          disabled={!editor.can().undo()}
-        >
-          <Undo className="h-3.5 w-3.5" />
-        </ToolbarButton>
-        <ToolbarButton
-          active={false}
-          onClick={() => editor.chain().focus().redo().run()}
-          title="Rétablir"
-          disabled={!editor.can().redo()}
-        >
-          <Redo className="h-3.5 w-3.5" />
-        </ToolbarButton>
+        <TB active={false} onClick={() => editor.chain().focus().undo().run()} t="Annuler" disabled={!editor.can().undo()}><Undo className="h-3.5 w-3.5" /></TB>
+        <TB active={false} onClick={() => editor.chain().focus().redo().run()} t="Rétablir" disabled={!editor.can().redo()}><Redo className="h-3.5 w-3.5" /></TB>
 
-        {/* Save indicator */}
         {updatePage.isPending && (
           <span className="text-xs text-muted-foreground flex items-center gap-1 ml-2">
             <Loader2 className="h-3 w-3 animate-spin" />
@@ -650,16 +565,14 @@ const PageEditor = ({
         )}
       </div>
 
-      {/* Editor content - maximum space */}
-      <div className="flex-1 relative">
+      {/* Editor */}
+      <div className="flex-1 relative overflow-y-auto">
         <EditorContent editor={editor} />
-
-        {/* Image upload overlay */}
         {(imageUploading || fileUploading) && (
           <div className="absolute inset-0 bg-background/80 flex items-center justify-center rounded-md z-10">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
-              {imageUploading ? "Upload de l'image..." : "Upload du document..."}
+              Upload en cours...
             </div>
           </div>
         )}
@@ -668,29 +581,17 @@ const PageEditor = ({
   );
 };
 
-// Toolbar button component
-const ToolbarButton = ({
-  children,
-  active,
-  onClick,
-  title,
-  disabled,
+// ─── Toolbar Components ──────────────────────────────────
+
+const TB = ({
+  children, active, onClick, t, disabled,
 }: {
-  children: React.ReactNode;
-  active: boolean;
-  onClick: () => void;
-  title: string;
-  disabled?: boolean;
+  children: React.ReactNode; active: boolean; onClick: () => void; t: string; disabled?: boolean;
 }) => (
-  <button
-    onClick={onClick}
-    disabled={disabled}
-    title={title}
+  <button onClick={onClick} disabled={disabled} title={t}
     className={cn(
-      "h-7 w-7 flex items-center justify-center rounded transition-colors",
-      active
-        ? "bg-primary/15 text-primary"
-        : "text-muted-foreground hover:bg-muted hover:text-foreground",
+      "h-7 w-7 flex items-center justify-center rounded transition-colors shrink-0",
+      active ? "bg-primary/15 text-primary" : "text-muted-foreground hover:bg-muted hover:text-foreground",
       disabled && "opacity-30 pointer-events-none"
     )}
   >
@@ -698,9 +599,10 @@ const ToolbarButton = ({
   </button>
 );
 
-const ToolbarSep = () => <div className="w-px h-5 bg-border mx-0.5" />;
+const TSep = () => <div className="w-px h-5 bg-border mx-0.5 shrink-0" />;
 
-// File helpers
+// ─── Helpers ─────────────────────────────────────────────
+
 const getFileIcon = (name: string) => {
   const ext = name.split(".").pop()?.toLowerCase();
   if (["pdf"].includes(ext || "")) return "📕";
@@ -717,10 +619,12 @@ const formatFileSize = (bytes: number) => {
   return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`;
 };
 
-// Main component
-const MissionPages = ({ mission }: MissionPagesProps) => {
+// ─── Main Component ─────────────────────────────────────
+
+const MissionPages = ({ mission, initialActivityPageRequest, onActivityPageCreated }: MissionPagesProps) => {
   const { toast } = useToast();
   const { data: pages, isLoading } = useMissionPages(mission.id);
+  const { data: pageTemplates } = useMissionPageTemplates();
   const createPage = useCreateMissionPage();
   const updatePage = useUpdateMissionPage();
   const deletePage = useDeleteMissionPage();
@@ -732,14 +636,12 @@ const MissionPages = ({ mission }: MissionPagesProps) => {
     .filter((p) => !p.parent_page_id)
     .sort((a, b) => a.position - b.position);
 
-  // Auto-select first page
   useEffect(() => {
     if (pages && pages.length > 0 && !selectedPage) {
       setSelectedPage(rootPages[0] || pages[0]);
     }
   }, [pages]);
 
-  // Keep selectedPage in sync with fresh data
   useEffect(() => {
     if (selectedPage && pages) {
       const fresh = pages.find((p) => p.id === selectedPage.id);
@@ -749,15 +651,38 @@ const MissionPages = ({ mission }: MissionPagesProps) => {
     }
   }, [pages]);
 
-  const handleCreatePage = async (parentId?: string | null) => {
+  useEffect(() => {
+    if (initialActivityPageRequest && pages !== undefined) {
+      handleCreatePage(null, initialActivityPageRequest.description, undefined, initialActivityPageRequest.activityId);
+      onActivityPageCreated?.();
+    }
+  }, [initialActivityPageRequest]);
+
+  const handleCreatePage = async (parentId?: string | null, title?: string, templateContent?: string, activityId?: string) => {
     try {
       const newPage = await createPage.mutateAsync({
         mission_id: mission.id,
         parent_page_id: parentId,
-        title: "Sans titre",
+        title: title || "Sans titre",
+        content: templateContent || undefined,
+        activity_id: activityId || undefined,
       });
       setSelectedPage(newPage);
-      toast({ title: "Page créée" });
+    } catch (error: any) {
+      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+    }
+  };
+
+  const handleCreateFromTemplate = async (template: MissionPageTemplate) => {
+    try {
+      const newPage = await createPage.mutateAsync({
+        mission_id: mission.id,
+        title: template.name,
+        content: template.content,
+        icon: template.icon,
+      });
+      setSelectedPage(newPage);
+      toast({ title: "Page créée à partir du modèle" });
     } catch (error: any) {
       toast({ title: "Erreur", description: error.message, variant: "destructive" });
     }
@@ -765,11 +690,7 @@ const MissionPages = ({ mission }: MissionPagesProps) => {
 
   const handleToggleExpand = async (page: MissionPage) => {
     try {
-      await updatePage.mutateAsync({
-        id: page.id,
-        missionId: mission.id,
-        updates: { is_expanded: !page.is_expanded },
-      });
+      await updatePage.mutateAsync({ id: page.id, missionId: mission.id, updates: { is_expanded: !page.is_expanded } });
     } catch {}
   };
 
@@ -799,7 +720,6 @@ const MissionPages = ({ mission }: MissionPagesProps) => {
     );
   }
 
-  // Empty state
   if (!pages || pages.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -808,38 +728,83 @@ const MissionPages = ({ mission }: MissionPagesProps) => {
         </div>
         <h3 className="font-medium text-lg mb-1">Aucune page</h3>
         <p className="text-sm text-muted-foreground mb-6 max-w-sm">
-          Créez des pages pour documenter votre mission. Images, fichiers, listes de tâches...
+          Créez des pages pour documenter votre mission.
         </p>
-        <Button onClick={() => handleCreatePage(null)} disabled={createPage.isPending}>
-          {createPage.isPending ? (
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-          ) : (
-            <Plus className="h-4 w-4 mr-2" />
+        <div className="flex items-center gap-2">
+          <Button onClick={() => handleCreatePage(null)} disabled={createPage.isPending}>
+            {createPage.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Plus className="h-4 w-4 mr-2" />}
+            Page vierge
+          </Button>
+          {pageTemplates && pageTemplates.length > 0 && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" disabled={createPage.isPending}>
+                  <LayoutTemplate className="h-4 w-4 mr-2" />
+                  Depuis un modèle
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                {pageTemplates.map((t) => (
+                  <DropdownMenuItem key={t.id} onClick={() => handleCreateFromTemplate(t)}>
+                    <span className="mr-2">{t.icon}</span>
+                    {t.name}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
-          Créer une page
-        </Button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="flex gap-0 min-h-[500px] -mx-6 -mb-6">
+    <div className="flex gap-0 -mx-6 -mb-6" style={{ height: "calc(100vh - 180px)" }}>
+      {/* Sidebar toggle when collapsed */}
+      {sidebarCollapsed && (
+        <button
+          onClick={() => setSidebarCollapsed(false)}
+          className="w-8 shrink-0 flex items-start justify-center pt-3 border-r bg-muted/10 hover:bg-muted/30 transition-colors"
+          title="Afficher les pages"
+        >
+          <PanelLeftOpen className="h-4 w-4 text-muted-foreground" />
+        </button>
+      )}
+
       {/* Sidebar */}
-      <div
-        className={cn(
-          "border-r bg-muted/20 flex flex-col transition-all",
-          sidebarCollapsed ? "w-0 overflow-hidden" : "w-56 shrink-0"
-        )}
-      >
+      <div className={cn(
+        "border-r bg-muted/20 flex flex-col transition-all overflow-hidden",
+        sidebarCollapsed ? "w-0" : "w-64 shrink-0"
+      )}>
         <div className="p-2 border-b flex items-center justify-between">
           <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-1">Pages</span>
-          <button
-            onClick={() => handleCreatePage(null)}
-            className="h-6 w-6 flex items-center justify-center rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-            title="Nouvelle page"
-          >
-            <Plus className="h-3.5 w-3.5" />
-          </button>
+          <div className="flex items-center gap-0.5">
+            {pageTemplates && pageTemplates.length > 0 && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="h-6 w-6 flex items-center justify-center rounded hover:bg-muted text-muted-foreground hover:text-foreground" title="Modèle">
+                    <LayoutTemplate className="h-3.5 w-3.5" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {pageTemplates.map((t) => (
+                    <DropdownMenuItem key={t.id} onClick={() => handleCreateFromTemplate(t)}>
+                      <span className="mr-2">{t.icon}</span>
+                      {t.name}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+            <button onClick={() => handleCreatePage(null)}
+              className="h-6 w-6 flex items-center justify-center rounded hover:bg-muted text-muted-foreground hover:text-foreground" title="Nouvelle page">
+              <Plus className="h-3.5 w-3.5" />
+            </button>
+            <button onClick={() => setSidebarCollapsed(true)}
+              className="h-6 w-6 flex items-center justify-center rounded hover:bg-muted text-muted-foreground hover:text-foreground" title="Masquer">
+              <PanelLeftClose className="h-3.5 w-3.5" />
+            </button>
+          </div>
         </div>
         <div className="flex-1 overflow-y-auto py-1 px-1">
           {rootPages.map((page) => (
@@ -858,10 +823,10 @@ const MissionPages = ({ mission }: MissionPagesProps) => {
         </div>
       </div>
 
-      {/* Editor area - maximum space */}
-      <div className="flex-1 min-w-0">
+      {/* Editor */}
+      <div className="flex-1 min-w-0 overflow-hidden">
         {selectedPage ? (
-          <div className="h-full px-8 py-4">
+          <div className="h-full px-4 py-3 overflow-y-auto">
             <PageEditor
               key={selectedPage.id}
               page={selectedPage}

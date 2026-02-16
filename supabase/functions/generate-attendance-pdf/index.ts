@@ -434,7 +434,7 @@ function generatePdfHtml(
   </div>
 
   <div class="footer">
-    Document généré le ${new Date().toLocaleString("fr-FR")} - SuperTilt Formation
+    Document généré le ${new Date().toLocaleString("fr-FR")} - <a href="https://www.supertilt.fr" style="color: #1a1a2e; text-decoration: underline;">SuperTilt Formation</a>
   </div>
 </body>
 </html>

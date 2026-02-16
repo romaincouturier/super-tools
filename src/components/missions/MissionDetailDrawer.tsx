@@ -83,7 +83,9 @@ const MissionDetailDrawer = ({
   const [newTag, setNewTag] = useState("");
   const [color, setColor] = useState("#6b7280");
   const [missionEmoji, setMissionEmoji] = useState<string | null>(null);
+  const [language, setLanguage] = useState("fr");
   const [activeTab, setActiveTab] = useState("activities");
+  const [activityPageRequest, setActivityPageRequest] = useState<{ activityId: string; description: string } | null>(null);
 
   // Initialize form when mission changes
   useEffect(() => {
@@ -106,6 +108,7 @@ const MissionDetailDrawer = ({
       setTags(mission.tags || []);
       setColor(mission.color);
       setMissionEmoji(mission.emoji || null);
+      setLanguage(mission.language || "fr");
     }
   }, [mission]);
 
@@ -133,6 +136,7 @@ const MissionDetailDrawer = ({
         tags,
         color,
         emoji: missionEmoji,
+        language,
       },
     });
   };
@@ -207,12 +211,22 @@ const MissionDetailDrawer = ({
 
           {/* Activities Tab */}
           <TabsContent value="activities" className="mt-4">
-            <MissionActivityTracker mission={mission} />
+            <MissionActivityTracker
+              mission={mission}
+              onCreatePageForActivity={(activityId, description) => {
+                setActivityPageRequest({ activityId, description });
+                setActiveTab("pages");
+              }}
+            />
           </TabsContent>
 
           {/* Pages Tab */}
           <TabsContent value="pages" className="mt-4">
-            <MissionPages mission={mission} />
+            <MissionPages
+              mission={mission}
+              initialActivityPageRequest={activityPageRequest}
+              onActivityPageCreated={() => setActivityPageRequest(null)}
+            />
           </TabsContent>
 
           {/* Gallery Tab */}
@@ -344,6 +358,25 @@ const MissionDetailDrawer = ({
                   onChange={(e) => setEndDate(e.target.value)}
                 />
               </div>
+            </div>
+
+            {/* Language */}
+            <div>
+              <Label>Langue de la mission</Label>
+              <Select value={language} onValueChange={setLanguage}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="fr">Français</SelectItem>
+                  <SelectItem value="en">English</SelectItem>
+                  <SelectItem value="es">Español</SelectItem>
+                  <SelectItem value="de">Deutsch</SelectItem>
+                  <SelectItem value="it">Italiano</SelectItem>
+                  <SelectItem value="pt">Português</SelectItem>
+                  <SelectItem value="zh">中文</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Financials */}
