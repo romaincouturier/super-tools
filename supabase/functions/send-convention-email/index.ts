@@ -232,10 +232,12 @@ serve(async (req: Request): Promise<Response> => {
     const pdfHash = pdfHashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
     console.log("PDF SHA-256 hash:", pdfHash);
 
+    const fileName = conventionFileName || "Convention_de_formation.pdf";
+
     // Upload the PDF to permanent storage so the URL never expires
     let permanentPdfUrl = conventionUrl;
     try {
-      const storagePath = `conventions/${trainingId}/${fileName || "convention.pdf"}`;
+      const storagePath = `conventions/${trainingId}/${fileName}`;
       const { error: uploadErr } = await supabase.storage
         .from("training-documents")
         .upload(storagePath, pdfBytes, {
@@ -271,8 +273,6 @@ serve(async (req: Request): Promise<Response> => {
       binaryStr += String.fromCharCode(...chunk);
     }
     const pdfBase64 = btoa(binaryStr);
-
-    const fileName = conventionFileName || "Convention_de_formation.pdf";
 
     // Send email with attachment
     const result = await sendEmail({
