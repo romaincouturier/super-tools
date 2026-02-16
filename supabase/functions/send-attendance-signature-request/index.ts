@@ -199,14 +199,8 @@ serve(async (req) => {
             continue;
           }
           token = existingSignature.token;
-          
-          // Update email_sent_at
-          await supabase
-            .from("attendance_signatures")
-            .update({ email_sent_at: new Date().toISOString() })
-            .eq("id", existingSignature.id);
         } else {
-          // Create new signature record
+          // Create new signature record (without email_sent_at yet)
           token = crypto.randomUUID();
           
           const { error: insertError } = await supabase
@@ -217,7 +211,6 @@ serve(async (req) => {
               schedule_date: scheduleDate,
               period,
               token,
-              email_sent_at: new Date().toISOString(),
             });
 
           if (insertError) {
@@ -276,6 +269,15 @@ serve(async (req) => {
 
         console.log(`Signature request email sent to: ${participant.email}`);
         successCount++;
+
+        // Update email_sent_at AFTER successful send
+        await supabase
+          .from("attendance_signatures")
+          .update({ email_sent_at: new Date().toISOString() })
+          .eq("training_id", trainingId)
+          .eq("participant_id", participant.id)
+          .eq("schedule_date", scheduleDate)
+          .eq("period", period);
 
         // Log activity
         const emailSubject = `✍️ Émargement – ${training.training_name} – ${formattedDate} ${periodLabel}`;

@@ -78,19 +78,31 @@ const AttendanceSignatureBlock = ({
 
       if (error) throw error;
 
-      // Build status for each schedule date (AM + PM)
+      // Build status for each schedule date, determining periods from actual times
       const statuses: SignatureStatus[] = [];
 
       schedules.forEach(schedule => {
+        // Determine which periods apply based on start_time and end_time
+        const startHour = parseInt(schedule.start_time.split(":")[0], 10);
+        const endHour = parseInt(schedule.end_time.split(":")[0], 10);
+        const endMin = parseInt(schedule.end_time.split(":")[1], 10);
 
-        ["AM", "PM"].forEach(period => {
+        const periods: ("AM" | "PM")[] = [];
+        // AM if the session starts before 13:00
+        if (startHour < 13) periods.push("AM");
+        // PM if the session ends after 13:30 (and spans the afternoon)
+        if (endHour > 13 || (endHour === 13 && endMin > 30)) periods.push("PM");
+        // Fallback: if no period matched, default to AM
+        if (periods.length === 0) periods.push("AM");
+
+        periods.forEach(period => {
           const slotSignatures = signatures?.filter(
             s => s.schedule_date === schedule.day_date && s.period === period
           ) || [];
 
           statuses.push({
             date: schedule.day_date,
-            period: period as "AM" | "PM",
+            period,
             totalSent: slotSignatures.filter(s => s.email_sent_at).length,
             totalSigned: slotSignatures.filter(s => s.signed_at).length,
             hasSent: slotSignatures.some(s => s.email_sent_at),
