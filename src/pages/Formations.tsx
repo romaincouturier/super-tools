@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Plus, Calendar, ArrowLeft, ArrowUpDown, ChevronLeft, ChevronRight, Search, X } from "lucide-react";
-import { format, parseISO, isPast, differenceInDays } from "date-fns";
+import { format, parseISO, isPast, isFuture, isToday, differenceInDays } from "date-fns";
 import { fr } from "date-fns/locale";
 import AppHeader from "@/components/AppHeader";
 import { Button } from "@/components/ui/button";
@@ -63,7 +63,7 @@ const Formations = () => {
   const [trainings, setTrainings] = useState<Training[]>([]);
   const [trainingActions, setTrainingActions] = useState<TrainingAction[]>([]);
   const [participantsByTraining, setParticipantsByTraining] = useState<Map<string, ParticipantSearchData[]>>(new Map());
-  const [filter, setFilter] = useState<"upcoming" | "past">("upcoming");
+  const [filter, setFilter] = useState<"upcoming" | "ongoing" | "past">("upcoming");
   const [searchQuery, setSearchQuery] = useState("");
 
   // Sorting state (for past trainings only)
@@ -168,13 +168,42 @@ const Formations = () => {
   }, [searchQuery, participantsByTraining]);
 
   // Filter trainings
+  const isOngoing = (t: Training) => {
+    const startDate = parseISO(t.start_date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    // Training has started (start_date <= today)
+    if (isFuture(startDate) && !isToday(startDate)) return false;
+    // Training has not yet ended
+    if (t.end_date) {
+      const endDate = parseISO(t.end_date);
+      endDate.setHours(23, 59, 59, 999);
+      return endDate >= today;
+    }
+    // No end_date: ongoing only on start_date itself
+    return isToday(startDate);
+  };
+
   const upcomingTrainings = useMemo(() =>
-    trainings.filter((t) => !isPast(parseISO(t.start_date)) && matchesSearch(t)),
+    trainings.filter((t) => {
+      const startDate = parseISO(t.start_date);
+      return (isFuture(startDate) && !isToday(startDate)) && matchesSearch(t);
+    }),
+    [trainings, matchesSearch]
+  );
+
+  const ongoingTrainings = useMemo(() =>
+    trainings.filter((t) => isOngoing(t) && matchesSearch(t)),
     [trainings, matchesSearch]
   );
 
   const pastTrainings = useMemo(() =>
-    trainings.filter((t) => isPast(parseISO(t.start_date)) && matchesSearch(t)),
+    trainings.filter((t) => {
+      if (isOngoing(t)) return false;
+      const startDate = parseISO(t.start_date);
+      if (isFuture(startDate) && !isToday(startDate)) return false;
+      return matchesSearch(t);
+    }),
     [trainings, matchesSearch]
   );
 
@@ -232,7 +261,7 @@ const Formations = () => {
     }
   };
 
-  const filteredTrainings = filter === "upcoming" ? upcomingTrainings : paginatedPastTrainings;
+  const filteredTrainings = filter === "upcoming" ? upcomingTrainings : filter === "ongoing" ? ongoingTrainings : paginatedPastTrainings;
 
   const formatDateRange = (startDate: string, endDate: string | null) => {
     const start = parseISO(startDate);
@@ -309,10 +338,13 @@ const Formations = () => {
         <Card>
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between gap-3">
-              <Tabs value={filter} onValueChange={(v) => setFilter(v as "upcoming" | "past")}>
+              <Tabs value={filter} onValueChange={(v) => setFilter(v as "upcoming" | "ongoing" | "past")}>
                 <TabsList>
                   <TabsTrigger value="upcoming">
                     À venir ({upcomingTrainings.length})
+                  </TabsTrigger>
+                  <TabsTrigger value="ongoing">
+                    En cours ({ongoingTrainings.length})
                   </TabsTrigger>
                   <TabsTrigger value="past">
                     Passées ({pastTrainings.length})
@@ -382,6 +414,20 @@ const Formations = () => {
                       <Plus className="h-4 w-4 mr-2" />
                       Créer votre première formation
                     </Button>
+                  </>
+                )}
+              </div>
+            ) : filteredTrainings.length === 0 && filter === "ongoing" ? (
+              <div className="text-center py-12 text-muted-foreground">
+                {searchQuery ? (
+                  <>
+                    <Search className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p className="text-lg">Aucune formation en cours ne correspond à « {searchQuery} »</p>
+                  </>
+                ) : (
+                  <>
+                    <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p className="text-lg">Aucune formation en cours</p>
                   </>
                 )}
               </div>

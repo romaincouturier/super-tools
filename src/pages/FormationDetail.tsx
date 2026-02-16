@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
-import { Loader2, ArrowLeft, Calendar, Users, FileText, ExternalLink, Edit2, User as UserIcon, Mail, MapPin, Building, Map, Train, Hotel, UtensilsCrossed, DoorOpen, Clock, Copy, Check, AlertCircle, Share2, CheckCircle2, Euro } from "lucide-react";
+import { Loader2, ArrowLeft, Calendar, Users, FileText, ExternalLink, Edit2, User as UserIcon, Mail, MapPin, Building, Map, Train, Hotel, UtensilsCrossed, DoorOpen, Clock, Copy, Check, AlertCircle, Share2, CheckCircle2, Euro, StickyNote, Save } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { format, parseISO } from "date-fns";
@@ -19,6 +19,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
 import ParticipantList from "@/components/formations/ParticipantList";
 import AddParticipantDialog from "@/components/formations/AddParticipantDialog";
 import BulkAddParticipantsDialog from "@/components/formations/BulkAddParticipantsDialog";
@@ -59,6 +60,7 @@ interface Training {
   convention_file_url?: string | null;
   signed_convention_urls?: string[];
   elearning_duration?: number | null;
+  notes?: string | null;
 }
 
 interface Schedule {
@@ -100,6 +102,9 @@ const FormationDetail = () => {
   const [mapDialogOpen, setMapDialogOpen] = useState(false);
   const [emailsRefreshTrigger, setEmailsRefreshTrigger] = useState(0);
   const [autoAddParticipantOpen, setAutoAddParticipantOpen] = useState(false);
+  const [notes, setNotes] = useState("");
+  const [savingNotes, setSavingNotes] = useState(false);
+  const [notesChanged, setNotesChanged] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -168,6 +173,8 @@ const FormationDetail = () => {
     }
 
     setTraining(trainingData);
+    setNotes(trainingData.notes || "");
+    setNotesChanged(false);
 
     // Fetch schedules
     const { data: schedulesData } = await supabase
@@ -304,6 +311,33 @@ const FormationDetail = () => {
         description: "Impossible de mettre à jour l'action.",
         variant: "destructive",
       });
+    }
+  };
+
+  const handleSaveNotes = async () => {
+    if (!id) return;
+    setSavingNotes(true);
+    try {
+      const { error } = await supabase
+        .from("trainings")
+        .update({ notes: notes.trim() || null } as any)
+        .eq("id", id);
+
+      if (error) throw error;
+
+      setNotesChanged(false);
+      toast({
+        title: "Notes enregistrées",
+      });
+    } catch (error) {
+      console.error("Error saving notes:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de sauvegarder les notes.",
+        variant: "destructive",
+      });
+    } finally {
+      setSavingNotes(false);
     }
   };
 
@@ -1074,6 +1108,48 @@ const FormationDetail = () => {
             participantsCount={participants.length}
             participants={participants}
           />
+        </div>
+
+        {/* Row 4: Notes */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <StickyNote className="h-5 w-5" />
+                  Notes
+                </CardTitle>
+                {notesChanged && (
+                  <Button
+                    size="sm"
+                    onClick={handleSaveNotes}
+                    disabled={savingNotes}
+                  >
+                    {savingNotes ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Save className="h-4 w-4 mr-2" />
+                    )}
+                    Enregistrer
+                  </Button>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent>
+              <Textarea
+                placeholder="Ajoutez des notes libres sur cette formation..."
+                value={notes}
+                onChange={(e) => {
+                  setNotes(e.target.value);
+                  setNotesChanged(true);
+                }}
+                onBlur={() => {
+                  if (notesChanged) handleSaveNotes();
+                }}
+                className="min-h-[120px] resize-y"
+              />
+            </CardContent>
+          </Card>
         </div>
       </main>
 

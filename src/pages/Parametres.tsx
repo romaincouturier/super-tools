@@ -593,6 +593,44 @@ Bonne formation !`,
     },
     variables: ["first_name", "training_name", "access_link", "start_date", "end_date"],
   },
+  convention_reminder: {
+    name: "Relance convention de formation",
+    timing: "before",
+    delayKey: "delay_convention_reminder_1_days",
+    subject: {
+      tu: "Rappel : convention de formation \"{{training_name}}\"",
+      vous: "Rappel : convention de formation \"{{training_name}}\"",
+    },
+    content: {
+      tu: `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
+
+Je me permets de te relancer au sujet de la convention de formation pour "{{training_name}}" prévue le {{training_date}}.
+
+Peux-tu nous retourner la convention signée dès que possible afin que nous puissions finaliser l'inscription ?
+
+{{#signature_link}}
+<p style="margin: 20px 0;"><a href="{{signature_link}}" style="display: inline-block; padding: 12px 24px; background-color: #e6bc00; color: #000; text-decoration: none; border-radius: 6px; font-weight: bold;">✍️ Signer la convention en ligne</a></p>
+{{/signature_link}}
+
+N'hésite pas si tu as des questions !
+
+À bientôt,`,
+      vous: `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
+
+Je me permets de vous relancer au sujet de la convention de formation pour "{{training_name}}" prévue le {{training_date}}.
+
+Pourriez-vous nous retourner la convention signée dès que possible afin que nous puissions finaliser l'inscription ?
+
+{{#signature_link}}
+<p style="margin: 20px 0;"><a href="{{signature_link}}" style="display: inline-block; padding: 12px 24px; background-color: #e6bc00; color: #000; text-decoration: none; border-radius: 6px; font-weight: bold;">✍️ Signer la convention en ligne</a></p>
+{{/signature_link}}
+
+Je reste à votre disposition pour toute question.
+
+Cordialement,`,
+    },
+    variables: ["first_name", "training_name", "training_date", "signature_link"],
+  },
 };
 const Parametres = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -626,6 +664,8 @@ const Parametres = () => {
   const [delayColdEvaluationFunder, setDelayColdEvaluationFunder] = useState("15");
   const [delayEvaluationReminder1, setDelayEvaluationReminder1] = useState("2");
   const [delayEvaluationReminder2, setDelayEvaluationReminder2] = useState("5");
+  const [delayConventionReminder1, setDelayConventionReminder1] = useState("3");
+  const [delayConventionReminder2, setDelayConventionReminder2] = useState("7");
 
   // Permissions
   const [canDeleteEvaluationsEmails, setCanDeleteEvaluationsEmails] = useState("");
@@ -677,6 +717,7 @@ const Parametres = () => {
         "delay_google_review_days", "delay_video_testimonial_days",
         "delay_cold_evaluation_days", "delay_cold_evaluation_funder_days",
         "delay_evaluation_reminder_1_days", "delay_evaluation_reminder_2_days",
+        "delay_convention_reminder_1_days", "delay_convention_reminder_2_days",
         "can_delete_evaluations_emails"
       ]);
     
@@ -742,6 +783,12 @@ const Parametres = () => {
         case "delay_evaluation_reminder_2_days":
           setDelayEvaluationReminder2(setting.setting_value || "5");
           break;
+        case "delay_convention_reminder_1_days":
+          setDelayConventionReminder1(setting.setting_value || "3");
+          break;
+        case "delay_convention_reminder_2_days":
+          setDelayConventionReminder2(setting.setting_value || "7");
+          break;
         case "can_delete_evaluations_emails":
           setCanDeleteEvaluationsEmails(setting.setting_value || "");
           break;
@@ -770,6 +817,8 @@ const Parametres = () => {
         { setting_key: "delay_cold_evaluation_funder_days", setting_value: delayColdEvaluationFunder, description: "Délai après formation pour rappeler de contacter le financeur (en jours ouvrables)" },
         { setting_key: "delay_evaluation_reminder_1_days", setting_value: delayEvaluationReminder1, description: "Délai pour la 1ère relance d'évaluation (en jours ouvrables après le mail de remerciement)" },
         { setting_key: "delay_evaluation_reminder_2_days", setting_value: delayEvaluationReminder2, description: "Délai pour la 2ème relance d'évaluation (en jours ouvrables après le mail de remerciement)" },
+        { setting_key: "delay_convention_reminder_1_days", setting_value: delayConventionReminder1, description: "Délai en jours ouvrés pour la 1ère relance convention de formation" },
+        { setting_key: "delay_convention_reminder_2_days", setting_value: delayConventionReminder2, description: "Délai en jours ouvrés pour la 2ème relance convention de formation" },
         { setting_key: "can_delete_evaluations_emails", setting_value: canDeleteEvaluationsEmails, description: "Emails des utilisateurs autorisés à supprimer des évaluations (séparés par des virgules)" },
       ];
 
@@ -1449,6 +1498,52 @@ const Parametres = () => {
                           className="w-20"
                         />
                         <span className="text-sm text-muted-foreground">jours</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Convention reminder delays */}
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium">Relances convention de formation</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Configurez les délais de relance pour la récupération de la convention de formation signée (en jours ouvrés après l'envoi).
+                  </p>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="delay-convention-reminder-1">1ère relance</Label>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground">J +</span>
+                        <Input
+                          id="delay-convention-reminder-1"
+                          type="number"
+                          min="1"
+                          max="30"
+                          value={delayConventionReminder1}
+                          onChange={(e) => setDelayConventionReminder1(e.target.value)}
+                          className="w-20"
+                        />
+                        <span className="text-sm text-muted-foreground">jours ouvrés</span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="delay-convention-reminder-2">2ème relance</Label>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground">J +</span>
+                        <Input
+                          id="delay-convention-reminder-2"
+                          type="number"
+                          min="1"
+                          max="30"
+                          value={delayConventionReminder2}
+                          onChange={(e) => setDelayConventionReminder2(e.target.value)}
+                          className="w-20"
+                        />
+                        <span className="text-sm text-muted-foreground">jours ouvrés</span>
                       </div>
                     </div>
                   </div>

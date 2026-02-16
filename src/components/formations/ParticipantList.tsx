@@ -1,4 +1,4 @@
-import { HelpCircle, Mail, MailCheck, Clock, CheckCircle, AlertTriangle, Trash2, Loader2, Send, RefreshCw, Receipt, Building, Scroll, Award, Download, Forward, UserCheck, RotateCw, FileSignature, Eye } from "lucide-react";
+import { HelpCircle, Mail, MailCheck, Clock, CheckCircle, AlertTriangle, Trash2, Loader2, Send, RefreshCw, Receipt, Building, Scroll, Award, Download, Forward, UserCheck, RotateCw, FileSignature, Eye, BellRing } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -185,6 +185,7 @@ const ParticipantList = ({
   const [sendingCertId, setSendingCertId] = useState<string | null>(null);
   const [generatingCertId, setGeneratingCertId] = useState<string | null>(null);
   const [downloadingConventionId, setDownloadingConventionId] = useState<string | null>(null);
+  const [conventionRemindingId, setConventionRemindingId] = useState<string | null>(null);
   const { toast } = useToast();
 
   const isInterEntreprise = formatFormation === "inter-entreprises" || formatFormation === "e_learning";
@@ -583,6 +584,44 @@ const ParticipantList = ({
     }
   };
 
+  const handleSendConventionReminder = async (participant: Participant) => {
+    setConventionRemindingId(participant.id);
+    try {
+      const { error } = await supabase.functions.invoke("send-convention-reminder", {
+        body: { trainingId, participantId: participant.id },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Relance envoyée",
+        description: `Une relance convention a été envoyée pour ${participant.first_name || participant.email}.`,
+      });
+    } catch (error: any) {
+      console.error("Error sending convention reminder:", error);
+      toast({
+        title: "Erreur",
+        description: error.message || "Impossible d'envoyer la relance convention.",
+        variant: "destructive",
+      });
+    } finally {
+      setConventionRemindingId(null);
+    }
+  };
+
+  // Check if convention reminder can be sent for a participant
+  const canSendConventionReminderFor = (participant: Participant) => {
+    if (!isIndividualConvention) return false;
+    if (!participant.convention_file_url) return false; // Convention not generated
+    if (participant.signed_convention_url) return false; // Already signed (manual upload)
+    if (participant.payment_mode === "online") return false; // Already paid
+
+    const sigInfo = conventionSignatures.get(participant.id);
+    if (sigInfo?.status === "signed") return false; // Already signed electronically
+
+    return true; // Convention generated but not signed
+  };
+
   // Check if survey can be sent for a participant
   const canSendSurveyFor = (participant: Participant) => {
     const status = participant.needs_survey_status;
@@ -773,7 +812,7 @@ const ParticipantList = ({
                               <RotateCw className="h-4 w-4 mr-2" />
                               Ré-générer la convention
                             </DropdownMenuItem>
-                            {sigInfo && (
+                            {sigInfo && !participant.signed_convention_url && (
                               <DropdownMenuItem disabled className="text-xs opacity-70">
                                 <FileSignature className="h-4 w-4 mr-2" />
                                 {sigInfo.status === "signed"
@@ -781,6 +820,25 @@ const ParticipantList = ({
                                   : sigInfo.status === "pending"
                                     ? "En attente de signature"
                                     : `Signature : ${sigInfo.status}`}
+                              </DropdownMenuItem>
+                            )}
+                            {participant.signed_convention_url && (
+                              <DropdownMenuItem disabled className="text-xs opacity-70">
+                                <FileSignature className="h-4 w-4 mr-2" />
+                                Convention signée (upload manuel)
+                              </DropdownMenuItem>
+                            )}
+                            {canSendConventionReminderFor(participant) && (
+                              <DropdownMenuItem
+                                onClick={() => handleSendConventionReminder(participant)}
+                                disabled={conventionRemindingId === participant.id}
+                              >
+                                {conventionRemindingId === participant.id ? (
+                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                ) : (
+                                  <BellRing className="h-4 w-4 mr-2" />
+                                )}
+                                Relancer pour la convention
                               </DropdownMenuItem>
                             )}
                           </DropdownMenuContent>
