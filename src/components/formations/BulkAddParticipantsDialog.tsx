@@ -26,6 +26,18 @@ interface BulkAddParticipantsDialogProps {
   formatFormation?: string | null;
 }
 
+const capitalizeName = (name: string): string => {
+  const trimmed = name.trim();
+  if (!trimmed) return "";
+  return trimmed
+    .split(/(\s+|-)/g)
+    .map((part) => {
+      if (part === "-" || /^\s+$/.test(part)) return part;
+      return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase();
+    })
+    .join("");
+};
+
 interface ParsedParticipant {
   email: string;
   firstName?: string;
@@ -241,14 +253,14 @@ const BulkAddParticipantsDialog = ({
       const toInsert = parsedParticipants.map((p) => ({
         training_id: trainingId,
         email: p.email,
-        first_name: p.firstName || null,
-        last_name: p.lastName || null,
+        first_name: capitalizeName(p.firstName || "") || null,
+        last_name: capitalizeName(p.lastName || "") || null,
         company: p.company || null,
         needs_survey_token: crypto.randomUUID(),
         needs_survey_status: status,
         // Sponsor fields for inter-entreprise
-        sponsor_first_name: p.sponsorFirstName || null,
-        sponsor_last_name: p.sponsorLastName || null,
+        sponsor_first_name: capitalizeName(p.sponsorFirstName || "") || null,
+        sponsor_last_name: capitalizeName(p.sponsorLastName || "") || null,
         sponsor_email: p.sponsorEmail || null,
       }));
 

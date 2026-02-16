@@ -2,11 +2,13 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 /**
- * Process Logistics Reminders
+ * Process Logistics & Convention Reminders
  *
  * Called daily at 7:00 AM by a cron job.
- * Finds trainings where train_booked or hotel_booked is false
- * and start_date is in the future, then sends a reminder email.
+ * 1. Finds trainings where train_booked or hotel_booked is false (logistics)
+ * 2. Finds trainings/participants without generated convention (except already-paid)
+ * 3. Finds intra trainings waiting for signed convention / participants without signed convention
+ * Sends a single digest email to admin.
  */
 
 const corsHeaders = {
@@ -15,7 +17,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-const VERSION = "process-logistics-reminders@1.0.0";
+const VERSION = "process-logistics-reminders@2.0.0";
 
 serve(async (req) => {
   console.log(`[${VERSION}] Starting...`);
@@ -32,37 +34,56 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const today = new Date().toISOString().split("T")[0];
-    console.log(`[${VERSION}] Checking logistics for trainings starting after ${today}`);
+    console.log(`[${VERSION}] Checking for trainings starting after ${today}`);
 
-    // Find trainings starting in the future where train or hotel is not booked
-    // and format is not e-learning
-    const { data: trainings, error: fetchError } = await supabase
+    // Fetch all future trainings
+    const { data: allTrainings, error: fetchError } = await supabase
       .from("trainings")
-      .select("id, training_name, start_date, location, train_booked, hotel_booked, format_formation")
-      .gt("start_date", today)
-      .neq("format_formation", "e_learning");
+      .select("id, training_name, start_date, location, train_booked, hotel_booked, format_formation, convention_file_url, signed_convention_urls, sponsor_email")
+      .gt("start_date", today);
 
     if (fetchError) {
       console.error(`[${VERSION}] Error fetching trainings:`, fetchError);
       throw fetchError;
     }
 
-    // Filter to trainings with at least one unchecked logistics item
-    const pendingTrainings = (trainings || []).filter(
-      (t) => t.train_booked === false || t.hotel_booked === false
-    );
+    const trainings = allTrainings || [];
 
-    if (pendingTrainings.length === 0) {
-      console.log(`[${VERSION}] No trainings with pending logistics`);
-      return new Response(
-        JSON.stringify({ success: true, message: "No pending logistics", _version: VERSION }),
-        { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
-      );
+    // Fetch all participants for future trainings
+    const trainingIds = trainings.map((t) => t.id);
+    const { data: allParticipants } = trainingIds.length > 0
+      ? await supabase
+          .from("training_participants")
+          .select("id, training_id, first_name, last_name, email, company, convention_file_url, signed_convention_url, sponsor_email, payment_mode")
+          .in("training_id", trainingIds)
+      : { data: [] };
+
+    const participants = allParticipants || [];
+
+    // Fetch convention signatures for future trainings
+    const { data: allSignatures } = trainingIds.length > 0
+      ? await supabase
+          .from("convention_signatures")
+          .select("training_id, recipient_email, status")
+          .in("training_id", trainingIds)
+      : { data: [] };
+
+    const signatures = allSignatures || [];
+
+    // Group participants and signatures by training
+    const participantsByTraining = new Map<string, typeof participants>();
+    for (const p of participants) {
+      const list = participantsByTraining.get(p.training_id) || [];
+      list.push(p);
+      participantsByTraining.set(p.training_id, list);
     }
 
-    console.log(`[${VERSION}] Found ${pendingTrainings.length} training(s) with pending logistics`);
+    const signaturesByKey = new Map<string, string>();
+    for (const sig of signatures) {
+      signaturesByKey.set(`${sig.training_id}:${sig.recipient_email}`, sig.status);
+    }
 
-    // Get admin email from profiles (first admin user)
+    // Get admin email
     const { data: adminProfiles } = await supabase
       .from("profiles")
       .select("email")
@@ -71,79 +92,221 @@ serve(async (req) => {
 
     const adminEmail = adminProfiles?.[0]?.email || "romain@supertilt.fr";
 
-    let sentCount = 0;
+    // Build alerts
+    const alertSections: string[] = [];
 
-    for (const training of pendingTrainings) {
+    // ── 1. LOGISTICS ALERTS ──
+    const logisticsAlerts: string[] = [];
+    for (const t of trainings) {
+      if (t.format_formation === "e_learning") continue;
       const missing: string[] = [];
-      if (!training.train_booked) missing.push("Train");
-      if (!training.hotel_booked) missing.push("Hôtel");
+      if (!t.train_booked) missing.push("Train");
+      if (!t.hotel_booked) missing.push("Hôtel");
+      if (missing.length === 0) continue;
 
-      const missingList = missing.join(" et ");
-      const trainingDate = new Date(training.start_date).toLocaleDateString("fr-FR", {
+      const trainingDate = new Date(t.start_date).toLocaleDateString("fr-FR", {
         weekday: "long",
         day: "numeric",
         month: "long",
-        year: "numeric",
       });
 
-      const htmlContent = `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <p>Bonjour,</p>
-          <p>La formation <strong>${training.training_name}</strong> prévue le <strong>${trainingDate}</strong> à <strong>${training.location}</strong> a encore des réservations en attente :</p>
-          <div style="background-color: #FEF3C7; border-left: 4px solid #F59E0B; padding: 12px 16px; margin: 16px 0; border-radius: 4px;">
-            <p style="margin: 0; font-weight: bold;">${missingList} non réservé${missing.length > 1 ? "s" : ""}</p>
-          </div>
-          <p>
-            <a href="${appUrl}/formations/${training.id}" style="display: inline-block; background-color: #1a1a2e; color: white; padding: 10px 20px; text-decoration: none; border-radius: 6px;">
-              Voir la formation
-            </a>
-          </p>
-          <p style="color: #666; font-size: 14px; margin-top: 20px;">
-            <strong>Romain Couturier</strong><br/>
-            Supertilt - Formation professionnelle
-          </p>
+      logisticsAlerts.push(
+        `<li><a href="${appUrl}/formations/${t.id}" style="color: #1a1a2e; text-decoration: underline;">${t.training_name}</a> (${trainingDate}, ${t.location}) — <strong>${missing.join(" et ")}</strong> non réservé${missing.length > 1 ? "s" : ""}</li>`
+      );
+    }
+
+    if (logisticsAlerts.length > 0) {
+      alertSections.push(`
+        <div style="margin-bottom: 24px;">
+          <h3 style="color: #F59E0B; margin: 0 0 8px 0; font-size: 16px;">🚆 Réservations en attente</h3>
+          <ul style="margin: 0; padding-left: 20px;">${logisticsAlerts.join("")}</ul>
         </div>
-      `;
+      `);
+    }
 
-      try {
-        const emailResponse = await fetch("https://api.resend.com/emails", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${resendApiKey}`,
-          },
-          body: JSON.stringify({
-            from: "Romain Couturier <romain@supertilt.fr>",
-            to: [adminEmail],
-            subject: `🔔 Réservation en attente : ${missingList} — ${training.training_name}`,
-            html: htmlContent,
-          }),
-        });
+    // ── 2. CONVENTION NOT GENERATED ──
+    const conventionNotGenerated: string[] = [];
 
-        if (!emailResponse.ok) {
-          const errorText = await emailResponse.text();
-          console.error(`[${VERSION}] Email failed for training ${training.id}:`, errorText);
-        } else {
-          sentCount++;
-          console.log(`[${VERSION}] Reminder sent for training ${training.id}: ${missingList}`);
+    for (const t of trainings) {
+      const isIntra = t.format_formation === "intra";
+      const isInterOrElearning = t.format_formation === "inter-entreprises" || t.format_formation === "e_learning";
+
+      if (isIntra) {
+        // For intra: check if training-level convention is generated
+        if (!t.convention_file_url) {
+          const trainingDate = new Date(t.start_date).toLocaleDateString("fr-FR", {
+            day: "numeric",
+            month: "long",
+          });
+          conventionNotGenerated.push(
+            `<li><a href="${appUrl}/formations/${t.id}" style="color: #1a1a2e; text-decoration: underline;">${t.training_name}</a> (${trainingDate}) — Convention de formation non générée</li>`
+          );
         }
-      } catch (error) {
-        console.error(`[${VERSION}] Error sending email for ${training.id}:`, error);
-      }
+      } else if (isInterOrElearning) {
+        // For inter/e-learning: check per-participant conventions (except already paid online)
+        const tParticipants = participantsByTraining.get(t.id) || [];
+        const missingParticipants = tParticipants.filter(
+          (p) => !p.convention_file_url && p.payment_mode !== "online"
+        );
 
-      // Rate limit: 600ms between emails
-      if (pendingTrainings.indexOf(training) < pendingTrainings.length - 1) {
-        await new Promise((resolve) => setTimeout(resolve, 600));
+        if (missingParticipants.length > 0) {
+          const names = missingParticipants.map(
+            (p) => `${p.first_name || ""} ${p.last_name || ""}`.trim() || p.email
+          );
+          const trainingDate = new Date(t.start_date).toLocaleDateString("fr-FR", {
+            day: "numeric",
+            month: "long",
+          });
+          conventionNotGenerated.push(
+            `<li><a href="${appUrl}/formations/${t.id}" style="color: #1a1a2e; text-decoration: underline;">${t.training_name}</a> (${trainingDate}) — Convention non générée pour : ${names.join(", ")}</li>`
+          );
+        }
       }
     }
 
-    console.log(`[${VERSION}] Completed: ${sentCount} reminder(s) sent`);
+    if (conventionNotGenerated.length > 0) {
+      alertSections.push(`
+        <div style="margin-bottom: 24px;">
+          <h3 style="color: #EF4444; margin: 0 0 8px 0; font-size: 16px;">📄 Conventions non générées</h3>
+          <ul style="margin: 0; padding-left: 20px;">${conventionNotGenerated.join("")}</ul>
+        </div>
+      `);
+    }
+
+    // ── 3. CONVENTION NOT SIGNED ──
+    const conventionNotSigned: string[] = [];
+
+    for (const t of trainings) {
+      const isIntra = t.format_formation === "intra";
+      const isInterOrElearning = t.format_formation === "inter-entreprises" || t.format_formation === "e_learning";
+
+      if (isIntra) {
+        // For intra: convention generated but not signed
+        if (t.convention_file_url) {
+          const signedUrls = t.signed_convention_urls || [];
+          if (signedUrls.length === 0) {
+            // Check if there's a pending electronic signature
+            const sigKey = `${t.id}:${t.sponsor_email}`;
+            const sigStatus = signaturesByKey.get(sigKey);
+            const label = sigStatus === "signed"
+              ? null // Already signed electronically
+              : sigStatus === "pending"
+                ? "En attente de signature électronique"
+                : "Convention non signée (aucun retour)";
+
+            if (label) {
+              const trainingDate = new Date(t.start_date).toLocaleDateString("fr-FR", {
+                day: "numeric",
+                month: "long",
+              });
+              conventionNotSigned.push(
+                `<li><a href="${appUrl}/formations/${t.id}" style="color: #1a1a2e; text-decoration: underline;">${t.training_name}</a> (${trainingDate}) — ${label}</li>`
+              );
+            }
+          }
+        }
+      } else if (isInterOrElearning) {
+        // For inter/e-learning: per-participant convention signed status
+        const tParticipants = participantsByTraining.get(t.id) || [];
+        const unsignedParticipants: string[] = [];
+
+        for (const p of tParticipants) {
+          if (p.payment_mode === "online") continue; // Skip already-paid
+          if (!p.convention_file_url) continue; // Convention not generated yet (handled above)
+          if (p.signed_convention_url) continue; // Manually uploaded signed version
+
+          // Check electronic signature
+          const sigKey = `${t.id}:${p.sponsor_email}`;
+          const sigStatus = signaturesByKey.get(sigKey);
+          if (sigStatus === "signed") continue; // Signed electronically
+
+          unsignedParticipants.push(
+            `${p.first_name || ""} ${p.last_name || ""}`.trim() || p.email
+          );
+        }
+
+        if (unsignedParticipants.length > 0) {
+          const trainingDate = new Date(t.start_date).toLocaleDateString("fr-FR", {
+            day: "numeric",
+            month: "long",
+          });
+          conventionNotSigned.push(
+            `<li><a href="${appUrl}/formations/${t.id}" style="color: #1a1a2e; text-decoration: underline;">${t.training_name}</a> (${trainingDate}) — Convention non signée pour : ${unsignedParticipants.join(", ")}</li>`
+          );
+        }
+      }
+    }
+
+    if (conventionNotSigned.length > 0) {
+      alertSections.push(`
+        <div style="margin-bottom: 24px;">
+          <h3 style="color: #F97316; margin: 0 0 8px 0; font-size: 16px;">✍️ Conventions en attente de signature</h3>
+          <ul style="margin: 0; padding-left: 20px;">${conventionNotSigned.join("")}</ul>
+        </div>
+      `);
+    }
+
+    // ── SEND DIGEST EMAIL ──
+    if (alertSections.length === 0) {
+      console.log(`[${VERSION}] No alerts to send`);
+      return new Response(
+        JSON.stringify({ success: true, message: "No alerts", _version: VERSION }),
+        { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    const totalAlerts = logisticsAlerts.length + conventionNotGenerated.length + conventionNotSigned.length;
+
+    const htmlContent = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <p>Bonjour,</p>
+        <p>Voici le récapitulatif des alertes pour vos formations à venir :</p>
+        ${alertSections.join("")}
+        <p>
+          <a href="${appUrl}/formations" style="display: inline-block; background-color: #1a1a2e; color: white; padding: 10px 20px; text-decoration: none; border-radius: 6px;">
+            Voir toutes les formations
+          </a>
+        </p>
+        <p style="color: #666; font-size: 14px; margin-top: 20px;">
+          <strong>SuperTools</strong> — Alertes automatiques
+        </p>
+      </div>
+    `;
+
+    try {
+      const emailResponse = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${resendApiKey}`,
+        },
+        body: JSON.stringify({
+          from: "Romain Couturier <romain@supertilt.fr>",
+          to: [adminEmail],
+          subject: `🔔 ${totalAlerts} alerte${totalAlerts > 1 ? "s" : ""} formation${totalAlerts > 1 ? "s" : ""}`,
+          html: htmlContent,
+        }),
+      });
+
+      if (!emailResponse.ok) {
+        const errorText = await emailResponse.text();
+        console.error(`[${VERSION}] Email failed:`, errorText);
+      } else {
+        console.log(`[${VERSION}] Digest email sent with ${totalAlerts} alerts`);
+      }
+    } catch (error) {
+      console.error(`[${VERSION}] Error sending digest email:`, error);
+    }
+
+    console.log(`[${VERSION}] Completed: ${totalAlerts} alert(s) in digest`);
 
     return new Response(
       JSON.stringify({
         success: true,
-        checked: pendingTrainings.length,
-        sent: sentCount,
+        logistics: logisticsAlerts.length,
+        conventionNotGenerated: conventionNotGenerated.length,
+        conventionNotSigned: conventionNotSigned.length,
+        total: totalAlerts,
         _version: VERSION,
       }),
       { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }

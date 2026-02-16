@@ -47,6 +47,9 @@ export {
   verifyAuth,
 } from "./supabase-client.ts";
 
+// Failed emails logger
+export { logFailedEmail } from "./failed-emails.ts";
+
 // Templates
 export {
   processTemplate,

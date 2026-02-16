@@ -80,6 +80,18 @@ interface EditParticipantDialogProps {
   onParticipantUpdated: () => void;
 }
 
+const capitalizeName = (name: string): string => {
+  const trimmed = name.trim();
+  if (!trimmed) return "";
+  return trimmed
+    .split(/(\s+|-)/g)
+    .map((part) => {
+      if (part === "-" || /^\s+$/.test(part)) return part;
+      return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase();
+    })
+    .join("");
+};
+
 const EditParticipantDialog = ({
   participant,
   trainingId,
@@ -204,8 +216,8 @@ const EditParticipantDialog = ({
 
     try {
       const updateData: Record<string, unknown> = {
-        first_name: firstName.trim() || null,
-        last_name: lastName.trim() || null,
+        first_name: capitalizeName(firstName) || null,
+        last_name: capitalizeName(lastName) || null,
         email: email.trim().toLowerCase(),
         company: company.trim() || null,
       };
@@ -248,8 +260,8 @@ const EditParticipantDialog = ({
         .from("training_evaluations")
         .update({
           email: email.trim().toLowerCase(),
-          first_name: firstName.trim() || null,
-          last_name: lastName.trim() || null,
+          first_name: capitalizeName(firstName) || null,
+          last_name: capitalizeName(lastName) || null,
           company: company.trim() || null,
         })
         .eq("participant_id", participant.id);
@@ -570,7 +582,7 @@ const EditParticipantDialog = ({
                   </div>
                 )}
 
-                {conventionSignature?.status === "pending" && (
+                {conventionSignature?.status === "pending" && !signedConventionUrl && (
                   <div className="flex items-center gap-3 p-3 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200 dark:border-amber-800">
                     <Loader2 className="h-5 w-5 text-amber-600 animate-spin flex-shrink-0" />
                     <p className="text-sm text-amber-800 dark:text-amber-200">En attente de signature électronique</p>

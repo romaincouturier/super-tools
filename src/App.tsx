@@ -52,6 +52,7 @@ const EventCreate = lazy(() => import("./pages/EventCreate"));
 const EventDetail = lazy(() => import("./pages/EventDetail"));
 const EventEdit = lazy(() => import("./pages/EventEdit"));
 const Monitoring = lazy(() => import("./pages/Monitoring"));
+const FailedEmails = lazy(() => import("./pages/FailedEmails"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -126,6 +127,8 @@ const App = () => (
               <Route path="/events/:id/edit" element={<EventEdit />} />
               {/* Admin monitoring */}
               <Route path="/monitoring" element={<Monitoring />} />
+              {/* Failed emails */}
+              <Route path="/emails-erreur" element={<FailedEmails />} />
               {/* Public needs survey */}
               <Route path="/questionnaire/:token" element={<Questionnaire />} />
               {/* Public evaluation form */}

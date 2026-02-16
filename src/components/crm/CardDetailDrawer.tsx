@@ -41,7 +41,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
   Save,
   Trash2,
@@ -1297,17 +1297,22 @@ const CardDetailDrawer = ({
             {/* Quote buttons */}
             <div className="flex gap-2 flex-wrap">
               {serviceType === "formation" && (
-                <Button asChild variant="outline" size="sm">
-                  <Link to={`/micro-devis?${new URLSearchParams({
-                    ...(company && { nomClient: company }),
-                    ...(email && { emailCommanditaire: email }),
-                    ...((firstName || lastName) && { adresseCommanditaire: [firstName, lastName].filter(Boolean).join(" ") }),
-                    ...(card?.id && { crmCardId: card.id }),
-                    source: "crm",
-                  }).toString()}`}>
-                    <Receipt className="h-4 w-4 mr-2" />
-                    Créer un devis formation
-                  </Link>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const params = new URLSearchParams({
+                      ...(company && { nomClient: company }),
+                      ...(email && { emailCommanditaire: email }),
+                      ...((firstName || lastName) && { adresseCommanditaire: [firstName, lastName].filter(Boolean).join(" ") }),
+                      ...(card?.id && { crmCardId: card.id }),
+                      source: "crm",
+                    });
+                    window.open(`/micro-devis?${params.toString()}`, "_blank");
+                  }}
+                >
+                  <Receipt className="h-4 w-4 mr-2" />
+                  Créer un devis formation
                 </Button>
               )}
               <Button
@@ -1738,19 +1743,33 @@ const CardDetailDrawer = ({
                   key={att.id}
                   className="flex items-center justify-between p-2 bg-muted rounded"
                 >
-                  <div className="flex items-center gap-2">
-                    <Paperclip className="h-4 w-4" />
-                    <span className="text-sm truncate">{att.file_name}</span>
+                  <button
+                    className="flex items-center gap-2 hover:text-primary transition-colors text-left min-w-0"
+                    onClick={async () => {
+                      try {
+                        const { data } = await supabase.storage
+                          .from("crm-attachments")
+                          .createSignedUrl(att.file_path, 3600);
+                        if (data?.signedUrl) {
+                          window.open(data.signedUrl, "_blank", "noopener");
+                        }
+                      } catch (e) {
+                        console.error("Error opening attachment:", e);
+                      }
+                    }}
+                  >
+                    <Paperclip className="h-4 w-4 shrink-0" />
+                    <span className="text-sm truncate underline">{att.file_name}</span>
                     {att.file_size && (
                       <span className="text-xs text-muted-foreground">
                         ({Math.round(att.file_size / 1024)} KB)
                       </span>
                     )}
-                  </div>
+                  </button>
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-6 w-6"
+                    className="h-6 w-6 shrink-0"
                     onClick={() =>
                       deleteAttachment.mutate({
                         id: att.id,

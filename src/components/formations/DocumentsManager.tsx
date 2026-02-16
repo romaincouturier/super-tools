@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Upload, FileText, Trash2, Loader2, Send, Receipt, ClipboardList, Mail, Link, Heart, CheckCircle, FileDown, Scroll, PenLine, Shield, ChevronDown, ChevronUp, Eye } from "lucide-react";
+import { Upload, FileText, Trash2, Loader2, Send, Receipt, ClipboardList, Mail, Link, Heart, CheckCircle, FileDown, Scroll, PenLine, Shield, ChevronDown, ChevronUp, Eye, BellRing } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -150,6 +150,7 @@ const DocumentsManager = ({
   const [customRecipientEmail, setCustomRecipientEmail] = useState("");
   const [ccEmail, setCcEmail] = useState("");
   const [showCustomRecipientDialog, setShowCustomRecipientDialog] = useState(false);
+  const [sendingConventionReminder, setSendingConventionReminder] = useState(false);
   const [pendingDocumentType, setPendingDocumentType] = useState<"invoice" | "sheets" | "all" | null>(null);
   const [sendToSponsorWithOptions, setSendToSponsorWithOptions] = useState(false);
   const [showThankYouPreview, setShowThankYouPreview] = useState(false);
@@ -394,6 +395,31 @@ const DocumentsManager = ({
         description: error.message || "Impossible de supprimer le fichier.",
         variant: "destructive",
       });
+    }
+  };
+
+  const handleSendConventionReminder = async () => {
+    setSendingConventionReminder(true);
+    try {
+      const { error } = await supabase.functions.invoke("send-convention-reminder", {
+        body: { trainingId },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Relance envoyée",
+        description: `Une relance convention a été envoyée à ${sponsorEmail}.`,
+      });
+    } catch (error: any) {
+      console.error("Error sending convention reminder:", error);
+      toast({
+        title: "Erreur",
+        description: error.message || "Impossible d'envoyer la relance.",
+        variant: "destructive",
+      });
+    } finally {
+      setSendingConventionReminder(false);
     }
   };
 
@@ -1018,6 +1044,24 @@ const DocumentsManager = ({
                     <PenLine className="h-3 w-3 text-primary" />
                     Lien de signature en ligne envoyé
                   </span>
+                )}
+
+                {/* Convention reminder button - show when sent but not signed */}
+                {conventionSentAt && conventionSignatureStatus?.status !== "signed" && signedConventionUrls.length === 0 && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleSendConventionReminder}
+                    disabled={sendingConventionReminder}
+                    className="w-fit"
+                  >
+                    {sendingConventionReminder ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <BellRing className="h-4 w-4 mr-2" />
+                    )}
+                    Relancer pour la convention signée
+                  </Button>
                 )}
 
                 {/* Convention signature status + audit panel */}

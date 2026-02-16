@@ -57,8 +57,8 @@ const CrmKanbanBoard = () => {
   const [showSearchResults, setShowSearchResults] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
 
-  // Filter state: all (default board), en_cours, gagne, a_venir
-  type FilterMode = "all" | "en_cours" | "gagne" | "a_venir";
+  // Filter state: all (default board), en_cours, gagne, perdu, a_venir
+  type FilterMode = "all" | "en_cours" | "gagne" | "perdu" | "a_venir";
   const [filterMode, setFilterMode] = useState<FilterMode>("all");
 
   // Search across all card fields (including hidden/scheduled cards)
@@ -128,6 +128,10 @@ const CrmKanbanBoard = () => {
     return card.sales_status === "WON";
   };
 
+  const isLostCard = (card: CrmCard): boolean => {
+    return card.sales_status === "LOST";
+  };
+
   // Sync local cards with server data, applying filter mode
   useEffect(() => {
     if (boardData?.cards) {
@@ -136,11 +140,14 @@ const CrmKanbanBoard = () => {
         case "gagne":
           filtered = boardData.cards.filter(isWonCard);
           break;
+        case "perdu":
+          filtered = boardData.cards.filter(isLostCard);
+          break;
         case "a_venir":
           filtered = boardData.cards.filter(isScheduledInFuture);
           break;
         case "en_cours":
-          filtered = boardData.cards.filter((c) => !isWonCard(c) && !isScheduledInFuture(c));
+          filtered = boardData.cards.filter((c) => !isWonCard(c) && !isLostCard(c) && !isScheduledInFuture(c));
           break;
         default: // "all" — default board behavior: hide future scheduled
           filtered = boardData.cards.filter((c) => !isScheduledInFuture(c));
@@ -503,6 +510,14 @@ const CrmKanbanBoard = () => {
           onClick={() => setFilterMode("gagne")}
         >
           Gagné
+        </Button>
+        <Button
+          variant={filterMode === "perdu" ? "default" : "ghost"}
+          size="sm"
+          className="h-7 text-xs"
+          onClick={() => setFilterMode("perdu")}
+        >
+          Perdu
         </Button>
         <Button
           variant={filterMode === "a_venir" ? "default" : "ghost"}
