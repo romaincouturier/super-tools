@@ -191,8 +191,20 @@ function processTemplate(
 function textToHtml(text: string): string {
   return text
     .split("\n")
-    .map(line => line.trim() === "" ? "<br/>" : `<p>${line}</p>`)
+    .map(line => {
+      const trimmed = line.trim();
+      if (trimmed === "") return "<br/>";
+      // Convert markdown-style list items to HTML
+      if (trimmed.startsWith("- ")) return `<p>${trimmed.substring(2)}</p>`;
+      if (trimmed.startsWith("* ")) return `<p style="padding-left:16px;">${trimmed.substring(2)}</p>`;
+      return `<p>${trimmed}</p>`;
+    })
     .join("\n");
+}
+
+// Check if a string looks like HTML content
+function isHtmlContent(text: string): boolean {
+  return /<[a-z][\s\S]*>/i.test(text);
 }
 
 // Default template content
@@ -305,35 +317,46 @@ async function sendEmailWithResend(
     console.warn("Error fetching Qualiopi certificate:", error);
   }
 
-  // Build devis description based on type
-  let devisDescription = "";
-  if (typeSubrogation === "les2") {
-    devisDescription = `- Deux versions de notre devis :
-  * Sans subrogation de paiement : vous réglez directement la formation
-  * Avec subrogation de paiement : votre OPCO règle directement la formation
-- Notre certificat Qualiopi, attestant de la qualité de nos formations`;
-  } else if (typeSubrogation === "sans") {
-    devisDescription = `- Notre devis sans subrogation de paiement : vous réglez directement la formation
-- Notre certificat Qualiopi, attestant de la qualité de nos formations`;
-  } else {
-    devisDescription = `- Notre devis avec subrogation de paiement : votre OPCO règle directement la formation
-- Notre certificat Qualiopi, attestant de la qualité de nos formations`;
-  }
+    // Build devis description based on type (as HTML for proper rendering)
+    let devisDescription = "";
+    if (typeSubrogation === "les2") {
+      devisDescription = `<ul style="margin:8px 0;padding-left:20px;">
+        <li>Deux versions de notre devis :
+          <ul style="margin:4px 0;padding-left:20px;">
+            <li>Sans subrogation de paiement : vous réglez directement la formation</li>
+            <li>Avec subrogation de paiement : votre OPCO règle directement la formation</li>
+          </ul>
+        </li>
+        <li>Notre certificat Qualiopi, attestant de la qualité de nos formations</li>
+      </ul>`;
+    } else if (typeSubrogation === "sans") {
+      devisDescription = `<ul style="margin:8px 0;padding-left:20px;">
+        <li>Notre devis sans subrogation de paiement : vous réglez directement la formation</li>
+        <li>Notre certificat Qualiopi, attestant de la qualité de nos formations</li>
+      </ul>`;
+    } else {
+      devisDescription = `<ul style="margin:8px 0;padding-left:20px;">
+        <li>Notre devis avec subrogation de paiement : votre OPCO règle directement la formation</li>
+        <li>Notre certificat Qualiopi, attestant de la qualité de nos formations</li>
+      </ul>`;
+    }
 
-  // Remove duplicate "formation" from formation name for subject
-  const formationName = formationDemandee.replace(/^formation\s+/i, "");
+    // Remove duplicate "formation" from formation name for subject
+    const formationName = formationDemandee.replace(/^formation\s+/i, "");
 
-  // Process templates with variables
-  const variables = {
-    recipient_name: adresseCommanditaire,
-    formation_name: formationName,
-    devis_description: devisDescription,
-    programme_link: programmeUrl,
-  };
+    // Process templates with variables
+    const variables = {
+      recipient_name: adresseCommanditaire,
+      formation_name: formationName,
+      devis_description: devisDescription,
+      programme_link: programmeUrl,
+    };
 
-  const subject = processTemplate(subjectTemplate, variables);
-  const contentText = processTemplate(contentTemplate, variables);
-  const contentHtml = textToHtml(contentText);
+    const subject = processTemplate(subjectTemplate, variables);
+    const contentProcessed = processTemplate(contentTemplate, variables);
+    // Only convert to HTML if the content is plain text (default template)
+    // Custom templates from DB (html_content) are already HTML
+    const contentHtml = isHtmlContent(contentProcessed) ? contentProcessed : textToHtml(contentProcessed);
 
   // Fallback signature if Signitic fails
   const fallbackSignature = `
