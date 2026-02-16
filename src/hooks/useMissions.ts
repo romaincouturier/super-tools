@@ -5,6 +5,7 @@ import { Mission, CreateMissionInput, UpdateMissionInput, MissionStatus } from "
 const MISSIONS_QUERY_KEY = "missions";
 const MISSION_ACTIVITIES_QUERY_KEY = "mission-activities";
 const MISSION_PAGES_QUERY_KEY = "mission-pages";
+const MISSION_PAGE_TEMPLATES_QUERY_KEY = "mission-page-templates";
 
 // Types for activities and pages
 export interface MissionActivity {
@@ -27,11 +28,23 @@ export interface MissionPage {
   id: string;
   mission_id: string;
   parent_page_id: string | null;
+  activity_id: string | null;
   title: string;
   content: string | null;
   icon: string | null;
   position: number;
   is_expanded: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MissionPageTemplate {
+  id: string;
+  name: string;
+  description: string | null;
+  content: string;
+  icon: string;
+  position: number;
   created_at: string;
   updated_at: string;
 }
@@ -293,7 +306,7 @@ export const useCreateMissionPage = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (input: { mission_id: string; parent_page_id?: string | null; title?: string }) => {
+    mutationFn: async (input: { mission_id: string; parent_page_id?: string | null; title?: string; content?: string; activity_id?: string | null; icon?: string }) => {
       // Get max position
       const { data: existingPages } = await (supabase as any)
         .from("mission_pages")
@@ -311,6 +324,9 @@ export const useCreateMissionPage = () => {
           mission_id: input.mission_id,
           parent_page_id: input.parent_page_id || null,
           title: input.title || "Sans titre",
+          content: input.content || null,
+          activity_id: input.activity_id || null,
+          icon: input.icon || null,
           position: maxPosition + 1,
         })
         .select()
@@ -363,6 +379,92 @@ export const useDeleteMissionPage = () => {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: [MISSION_PAGES_QUERY_KEY, data.missionId] });
+    },
+  });
+};
+
+// ===============================
+// Mission Page Templates Hooks
+// ===============================
+
+export const useMissionPageTemplates = () => {
+  return useQuery({
+    queryKey: [MISSION_PAGE_TEMPLATES_QUERY_KEY],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("mission_page_templates")
+        .select("*")
+        .order("position", { ascending: true });
+
+      if (error) throw error;
+      return (data || []) as MissionPageTemplate[];
+    },
+  });
+};
+
+export const useCreateMissionPageTemplate = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (input: { name: string; description?: string; content: string; icon?: string }) => {
+      const { data: existing } = await (supabase as any)
+        .from("mission_page_templates")
+        .select("position")
+        .order("position", { ascending: false })
+        .limit(1);
+
+      const maxPos = existing?.[0]?.position ?? -1;
+
+      const { data, error } = await (supabase as any)
+        .from("mission_page_templates")
+        .insert({ ...input, position: maxPos + 1 })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data as MissionPageTemplate;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [MISSION_PAGE_TEMPLATES_QUERY_KEY] });
+    },
+  });
+};
+
+export const useUpdateMissionPageTemplate = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, updates }: { id: string; updates: Partial<MissionPageTemplate> }) => {
+      const { data, error } = await (supabase as any)
+        .from("mission_page_templates")
+        .update({ ...updates, updated_at: new Date().toISOString() })
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data as MissionPageTemplate;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [MISSION_PAGE_TEMPLATES_QUERY_KEY] });
+    },
+  });
+};
+
+export const useDeleteMissionPageTemplate = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await (supabase as any)
+        .from("mission_page_templates")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [MISSION_PAGE_TEMPLATES_QUERY_KEY] });
     },
   });
 };

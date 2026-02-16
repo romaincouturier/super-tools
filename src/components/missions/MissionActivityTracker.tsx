@@ -1,18 +1,17 @@
 import { useState } from "react";
 import { format, parseISO } from "date-fns";
-import { fr } from "date-fns/locale";
 import {
   Plus,
   Clock,
   Calendar,
-  Euro,
   FileText,
   Trash2,
   Edit2,
-  Check,
-  X,
   Receipt,
   Loader2,
+  ExternalLink,
+  Share2,
+  Check,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,6 +40,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import {
   useMissionActivities,
@@ -50,12 +50,14 @@ import {
   MissionActivity,
 } from "@/hooks/useMissions";
 import { Mission } from "@/types/missions";
+import GenerateInvoiceDialog from "./GenerateInvoiceDialog";
 
 interface MissionActivityTrackerProps {
   mission: Mission;
+  onCreatePageForActivity?: (activityId: string, description: string) => void;
 }
 
-const MissionActivityTracker = ({ mission }: MissionActivityTrackerProps) => {
+const MissionActivityTracker = ({ mission, onCreatePageForActivity }: MissionActivityTrackerProps) => {
   const { toast } = useToast();
   const { data: activities, isLoading } = useMissionActivities(mission.id);
   const createActivity = useCreateMissionActivity();
@@ -63,7 +65,9 @@ const MissionActivityTracker = ({ mission }: MissionActivityTrackerProps) => {
   const deleteActivity = useDeleteMissionActivity();
 
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [showInvoiceDialog, setShowInvoiceDialog] = useState(false);
   const [editingActivity, setEditingActivity] = useState<MissionActivity | null>(null);
+  const [copiedLink, setCopiedLink] = useState(false);
 
   // Form state
   const [description, setDescription] = useState("");
@@ -169,12 +173,21 @@ const MissionActivityTracker = ({ mission }: MissionActivityTrackerProps) => {
     }
   };
 
+  const handleCopyShareLink = () => {
+    const url = `${window.location.origin}/mission-info/${mission.id}`;
+    navigator.clipboard.writeText(url);
+    setCopiedLink(true);
+    toast({ title: "Lien copié", description: "Le lien récapitulatif de la mission a été copié." });
+    setTimeout(() => setCopiedLink(false), 2000);
+  };
+
   // Calculate totals
   const totalConsumed = activities?.reduce((sum, a) => sum + (a.billable_amount || 0), 0) || 0;
   const totalBilled = activities?.reduce((sum, a) => a.is_billed ? sum + (a.billable_amount || 0) : sum, 0) || 0;
   const remainingToBill = (mission.initial_amount || 0) - totalBilled;
   const totalHours = activities?.filter(a => a.duration_type === "hours").reduce((sum, a) => sum + a.duration, 0) || 0;
   const totalDays = activities?.filter(a => a.duration_type === "days").reduce((sum, a) => sum + a.duration, 0) || 0;
+  const unbilledCount = activities?.filter(a => !a.is_billed && !a.invoice_number).length || 0;
 
   return (
     <div className="space-y-4">
@@ -206,25 +219,40 @@ const MissionActivityTracker = ({ mission }: MissionActivityTrackerProps) => {
         </div>
       </div>
 
-      {/* Time Summary */}
-      <div className="flex items-center gap-4 text-sm text-muted-foreground">
-        <span className="flex items-center gap-1">
-          <Clock className="h-4 w-4" />
-          {totalHours}h
-        </span>
-        <span className="flex items-center gap-1">
-          <Calendar className="h-4 w-4" />
-          {totalDays}j
-        </span>
+      {/* Time Summary + Share Link */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+          <span className="flex items-center gap-1">
+            <Clock className="h-4 w-4" />
+            {totalHours}h
+          </span>
+          <span className="flex items-center gap-1">
+            <Calendar className="h-4 w-4" />
+            {totalDays}j
+          </span>
+        </div>
+        <Button variant="ghost" size="sm" onClick={handleCopyShareLink} className="text-muted-foreground">
+          {copiedLink ? <Check className="h-4 w-4 mr-1 text-green-600" /> : <Share2 className="h-4 w-4 mr-1" />}
+          Lien récapitulatif client
+        </Button>
       </div>
 
-      {/* Activity List */}
+      {/* Activity List Header */}
       <div className="flex items-center justify-between">
         <h4 className="font-medium">Activités ({activities?.length || 0})</h4>
-        <Button size="sm" onClick={openAddDialog}>
-          <Plus className="h-4 w-4 mr-1" />
-          Ajouter
-        </Button>
+        <div className="flex items-center gap-2">
+          {unbilledCount > 0 && (
+            <Button size="sm" variant="outline" onClick={() => setShowInvoiceDialog(true)}>
+              <Receipt className="h-4 w-4 mr-1" />
+              Générer une facture
+              <Badge variant="secondary" className="ml-1 text-xs">{unbilledCount}</Badge>
+            </Button>
+          )}
+          <Button size="sm" onClick={openAddDialog}>
+            <Plus className="h-4 w-4 mr-1" />
+            Ajouter
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (
@@ -257,7 +285,19 @@ const MissionActivityTracker = ({ mission }: MissionActivityTrackerProps) => {
                     {activity.invoice_number && (
                       <div className="text-xs text-muted-foreground flex items-center gap-1">
                         <Receipt className="h-3 w-3" />
-                        {activity.invoice_number}
+                        {activity.invoice_url ? (
+                          <a
+                            href={activity.invoice_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-primary hover:underline flex items-center gap-0.5"
+                          >
+                            {activity.invoice_number}
+                            <ExternalLink className="h-2.5 w-2.5" />
+                          </a>
+                        ) : (
+                          activity.invoice_number
+                        )}
                       </div>
                     )}
                   </TableCell>
@@ -275,6 +315,17 @@ const MissionActivityTracker = ({ mission }: MissionActivityTrackerProps) => {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1">
+                      {onCreatePageForActivity && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          title="Créer une page pour cette activité"
+                          onClick={() => onCreatePageForActivity(activity.id, activity.description)}
+                        >
+                          <FileText className="h-4 w-4" />
+                        </Button>
+                      )}
                       <Button
                         variant="ghost"
                         size="icon"
@@ -303,6 +354,15 @@ const MissionActivityTracker = ({ mission }: MissionActivityTrackerProps) => {
           Aucune activité enregistrée
         </div>
       )}
+
+      {/* Generate Invoice Dialog */}
+      <GenerateInvoiceDialog
+        open={showInvoiceDialog}
+        onOpenChange={setShowInvoiceDialog}
+        activities={activities || []}
+        missionId={mission.id}
+        missionTitle={mission.title}
+      />
 
       {/* Add/Edit Dialog */}
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
