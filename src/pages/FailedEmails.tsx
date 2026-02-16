@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { User } from "@supabase/supabase-js";
-import { Loader2, ArrowLeft, Mail, RotateCw, CheckCircle, AlertTriangle, Trash2, Eye, X } from "lucide-react";
+import { Loader2, ArrowLeft, Mail, CheckCircle, AlertTriangle, Trash2, Eye } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,6 +21,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 interface FailedEmail {
   id: string;
@@ -40,29 +40,19 @@ interface FailedEmail {
 }
 
 const FailedEmails = () => {
-  const [user, setUser] = useState<User | null>(null);
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [failedEmails, setFailedEmails] = useState<FailedEmail[]>([]);
   const [scheduledFailed, setScheduledFailed] = useState<any[]>([]);
-  const [retryingId, setRetryingId] = useState<string | null>(null);
   const [previewEmail, setPreviewEmail] = useState<FailedEmail | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (!session) {
-          navigate("/auth");
-          return;
-        }
-        setUser(session.user);
-        fetchFailedEmails();
-        fetchScheduledFailed();
-      }
-    );
-    return () => subscription.unsubscribe();
-  }, [navigate]);
+    if (!user) return;
+    fetchFailedEmails();
+    fetchScheduledFailed();
+  }, [user]);
 
   const fetchFailedEmails = async () => {
     setLoading(true);
@@ -93,62 +83,6 @@ const FailedEmails = () => {
       setScheduledFailed(data || []);
     } catch (error) {
       console.error("Error fetching failed scheduled emails:", error);
-    }
-  };
-
-  const handleRetry = async (failedEmailId: string) => {
-    setRetryingId(failedEmailId);
-    try {
-      const { error } = await supabase.functions.invoke("retry-failed-email", {
-        body: { failedEmailId },
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: "Email renvoyé",
-        description: "L'email a été renvoyé avec succès.",
-      });
-
-      fetchFailedEmails();
-    } catch (error: any) {
-      console.error("Retry error:", error);
-      toast({
-        title: "Erreur",
-        description: error.message || "Impossible de renvoyer l'email.",
-        variant: "destructive",
-      });
-      fetchFailedEmails();
-    } finally {
-      setRetryingId(null);
-    }
-  };
-
-  const handleRetryScheduled = async (scheduledEmailId: string) => {
-    setRetryingId(scheduledEmailId);
-    try {
-      const { error } = await supabase.functions.invoke("force-send-scheduled-email", {
-        body: { scheduledEmailId },
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: "Email renvoyé",
-        description: "L'email programmé a été renvoyé avec succès.",
-      });
-
-      fetchScheduledFailed();
-    } catch (error: any) {
-      console.error("Retry error:", error);
-      toast({
-        title: "Erreur",
-        description: error.message || "Impossible de renvoyer l'email programmé.",
-        variant: "destructive",
-      });
-      fetchScheduledFailed();
-    } finally {
-      setRetryingId(null);
     }
   };
 
@@ -185,7 +119,7 @@ const FailedEmails = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <AppHeader user={user} />
+      <AppHeader />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
         <div className="flex items-center gap-4 mb-6">
           <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
@@ -200,7 +134,7 @@ const FailedEmails = () => {
               )}
             </h1>
             <p className="text-muted-foreground text-sm">
-              Visualisez et renvoyez les emails qui n'ont pas pu être envoyés
+              Visualisez les emails qui n'ont pas pu être envoyés
             </p>
           </div>
         </div>
@@ -229,7 +163,6 @@ const FailedEmails = () => {
                         <TableHead>Formation</TableHead>
                         <TableHead>Destinataire</TableHead>
                         <TableHead>Erreur</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -249,20 +182,6 @@ const FailedEmails = () => {
                           </TableCell>
                           <TableCell className="text-sm text-destructive max-w-[200px] truncate">
                             {email.error_message || "Erreur inconnue"}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleRetryScheduled(email.id)}
-                              disabled={retryingId === email.id}
-                            >
-                              {retryingId === email.id ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <RotateCw className="h-4 w-4" />
-                              )}
-                            </Button>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -297,7 +216,6 @@ const FailedEmails = () => {
                         <TableHead>Destinataire</TableHead>
                         <TableHead>Objet</TableHead>
                         <TableHead>Erreur</TableHead>
-                        <TableHead>Tentatives</TableHead>
                         <TableHead>Statut</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
@@ -315,9 +233,6 @@ const FailedEmails = () => {
                           <TableCell className="text-sm text-destructive max-w-[200px] truncate">
                             {email.error_message || "—"}
                           </TableCell>
-                          <TableCell className="text-sm">
-                            {email.retry_count}
-                          </TableCell>
                           <TableCell>
                             {email.status === "sent" ? (
                               <Badge className="bg-green-100 text-green-800">Envoyé</Badge>
@@ -334,20 +249,6 @@ const FailedEmails = () => {
                               >
                                 <Eye className="h-4 w-4" />
                               </Button>
-                              {email.status === "failed" && (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleRetry(email.id)}
-                                  disabled={retryingId === email.id}
-                                >
-                                  {retryingId === email.id ? (
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                  ) : (
-                                    <RotateCw className="h-4 w-4" />
-                                  )}
-                                </Button>
-                              )}
                               <Button
                                 size="sm"
                                 variant="ghost"
