@@ -24,6 +24,7 @@ import { useToast } from "@/hooks/use-toast";
 import MissionActivityTracker from "./MissionActivityTracker";
 import MissionPages from "./MissionPages";
 import MissionGallery from "./MissionGallery";
+import MissionContacts from "./MissionContacts";
 import EmojiPickerButton from "@/components/ui/emoji-picker-button";
 
 interface MissionDetailDrawerProps {
@@ -67,12 +68,6 @@ const MissionDetailDrawer = ({
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [clientName, setClientName] = useState("");
-  const [clientContact, setClientContact] = useState("");
-  const [clientFirstName, setClientFirstName] = useState("");
-  const [clientLastName, setClientLastName] = useState("");
-  const [clientEmail, setClientEmail] = useState("");
-  const [billingContactName, setBillingContactName] = useState("");
-  const [billingContactEmail, setBillingContactEmail] = useState("");
   const [status, setStatus] = useState<MissionStatus>("not_started");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -83,7 +78,6 @@ const MissionDetailDrawer = ({
   const [newTag, setNewTag] = useState("");
   const [color, setColor] = useState("#6b7280");
   const [missionEmoji, setMissionEmoji] = useState<string | null>(null);
-  const [language, setLanguage] = useState("fr");
   const [activeTab, setActiveTab] = useState("activities");
   const [activityPageRequest, setActivityPageRequest] = useState<{ activityId: string; description: string } | null>(null);
 
@@ -93,12 +87,6 @@ const MissionDetailDrawer = ({
       setTitle(mission.title);
       setDescription(mission.description || "");
       setClientName(mission.client_name || "");
-      setClientContact(mission.client_contact || "");
-      setClientFirstName(mission.client_first_name || "");
-      setClientLastName(mission.client_last_name || "");
-      setClientEmail(mission.client_email || "");
-      setBillingContactName(mission.billing_contact_name || "");
-      setBillingContactEmail(mission.billing_contact_email || "");
       setStatus(mission.status);
       setStartDate(mission.start_date || "");
       setEndDate(mission.end_date || "");
@@ -108,7 +96,6 @@ const MissionDetailDrawer = ({
       setTags(mission.tags || []);
       setColor(mission.color);
       setMissionEmoji(mission.emoji || null);
-      setLanguage(mission.language || "fr");
     }
   }, [mission]);
 
@@ -121,12 +108,6 @@ const MissionDetailDrawer = ({
         title: title.trim(),
         description: description.trim() || null,
         client_name: clientName.trim() || null,
-        client_contact: clientContact.trim() || null,
-        client_first_name: clientFirstName.trim() || null,
-        client_last_name: clientLastName.trim() || null,
-        client_email: clientEmail.trim() || null,
-        billing_contact_name: billingContactName.trim() || null,
-        billing_contact_email: billingContactEmail.trim() || null,
         status,
         start_date: startDate || null,
         end_date: endDate || null,
@@ -136,7 +117,6 @@ const MissionDetailDrawer = ({
         tags,
         color,
         emoji: missionEmoji,
-        language,
       },
     });
   };
@@ -288,57 +268,9 @@ const MissionDetailDrawer = ({
                 placeholder="Nom de l'entreprise"
               />
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label>Prénom du contact</Label>
-                <Input
-                  value={clientFirstName}
-                  onChange={(e) => setClientFirstName(e.target.value)}
-                  placeholder="Prénom"
-                />
-              </div>
-              <div>
-                <Label>Nom du contact</Label>
-                <Input
-                  value={clientLastName}
-                  onChange={(e) => setClientLastName(e.target.value)}
-                  placeholder="Nom"
-                />
-              </div>
-            </div>
-            <div>
-              <Label>Email du contact</Label>
-              <Input
-                type="email"
-                value={clientEmail}
-                onChange={(e) => setClientEmail(e.target.value)}
-                placeholder="email@exemple.com"
-              />
-            </div>
 
-            {/* Billing contact */}
-            <div className="p-4 bg-muted/50 rounded-lg space-y-3">
-              <h4 className="font-medium text-sm">Contact de facturation</h4>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label className="text-xs">Nom</Label>
-                  <Input
-                    value={billingContactName}
-                    onChange={(e) => setBillingContactName(e.target.value)}
-                    placeholder="Nom du contact facturation"
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs">Email</Label>
-                  <Input
-                    type="email"
-                    value={billingContactEmail}
-                    onChange={(e) => setBillingContactEmail(e.target.value)}
-                    placeholder="facturation@exemple.com"
-                  />
-                </div>
-              </div>
-            </div>
+            {/* Multi-contact management */}
+            <MissionContacts missionId={mission.id} />
 
             {/* Dates */}
             <div className="grid grid-cols-2 gap-3">
@@ -358,25 +290,6 @@ const MissionDetailDrawer = ({
                   onChange={(e) => setEndDate(e.target.value)}
                 />
               </div>
-            </div>
-
-            {/* Language */}
-            <div>
-              <Label>Langue de la mission</Label>
-              <Select value={language} onValueChange={setLanguage}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="fr">Français</SelectItem>
-                  <SelectItem value="en">English</SelectItem>
-                  <SelectItem value="es">Español</SelectItem>
-                  <SelectItem value="de">Deutsch</SelectItem>
-                  <SelectItem value="it">Italiano</SelectItem>
-                  <SelectItem value="pt">Português</SelectItem>
-                  <SelectItem value="zh">中文</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
 
             {/* Financials */}

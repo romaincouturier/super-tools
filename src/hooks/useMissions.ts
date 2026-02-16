@@ -1,11 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Mission, CreateMissionInput, UpdateMissionInput, MissionStatus } from "@/types/missions";
+import { Mission, CreateMissionInput, UpdateMissionInput, MissionStatus, MissionContact } from "@/types/missions";
 
 const MISSIONS_QUERY_KEY = "missions";
 const MISSION_ACTIVITIES_QUERY_KEY = "mission-activities";
 const MISSION_PAGES_QUERY_KEY = "mission-pages";
 const MISSION_PAGE_TEMPLATES_QUERY_KEY = "mission-page-templates";
+const MISSION_CONTACTS_QUERY_KEY = "mission-contacts";
 
 // Types for activities and pages
 export interface MissionActivity {
@@ -465,6 +466,116 @@ export const useDeleteMissionPageTemplate = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [MISSION_PAGE_TEMPLATES_QUERY_KEY] });
+    },
+  });
+};
+
+// ===============================
+// Mission Contacts Hooks
+// ===============================
+
+export const useMissionContacts = (missionId: string | null) => {
+  return useQuery({
+    queryKey: [MISSION_CONTACTS_QUERY_KEY, missionId],
+    queryFn: async () => {
+      if (!missionId) return [];
+
+      const { data, error } = await (supabase as any)
+        .from("mission_contacts")
+        .select("*")
+        .eq("mission_id", missionId)
+        .order("is_primary", { ascending: false })
+        .order("position", { ascending: true });
+
+      if (error) throw error;
+      return (data || []) as MissionContact[];
+    },
+    enabled: !!missionId,
+  });
+};
+
+export const useCreateMissionContact = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (input: { mission_id: string; first_name?: string; last_name?: string; email?: string; phone?: string; role?: string; language?: string; is_primary?: boolean }) => {
+      // Get max position
+      const { data: existing } = await (supabase as any)
+        .from("mission_contacts")
+        .select("position")
+        .eq("mission_id", input.mission_id)
+        .order("position", { ascending: false })
+        .limit(1);
+
+      const maxPos = existing?.[0]?.position ?? -1;
+
+      // If setting as primary, unset other primaries first
+      if (input.is_primary) {
+        await (supabase as any)
+          .from("mission_contacts")
+          .update({ is_primary: false })
+          .eq("mission_id", input.mission_id);
+      }
+
+      const { data, error } = await (supabase as any)
+        .from("mission_contacts")
+        .insert({ ...input, position: maxPos + 1 })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data as MissionContact;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: [MISSION_CONTACTS_QUERY_KEY, data.mission_id] });
+    },
+  });
+};
+
+export const useUpdateMissionContact = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, missionId, updates }: { id: string; missionId: string; updates: Partial<MissionContact> }) => {
+      // If setting as primary, unset other primaries first
+      if (updates.is_primary) {
+        await (supabase as any)
+          .from("mission_contacts")
+          .update({ is_primary: false })
+          .eq("mission_id", missionId);
+      }
+
+      const { data, error } = await (supabase as any)
+        .from("mission_contacts")
+        .update({ ...updates, updated_at: new Date().toISOString() })
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return { ...data, missionId } as MissionContact & { missionId: string };
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: [MISSION_CONTACTS_QUERY_KEY, data.missionId] });
+    },
+  });
+};
+
+export const useDeleteMissionContact = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, missionId }: { id: string; missionId: string }) => {
+      const { error } = await (supabase as any)
+        .from("mission_contacts")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+      return { missionId };
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: [MISSION_CONTACTS_QUERY_KEY, data.missionId] });
     },
   });
 };
