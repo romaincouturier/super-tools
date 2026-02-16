@@ -95,3 +95,9 @@ verify_jwt = false
 
 [functions.refresh-convention-pdf-url]
 verify_jwt = false
+
+[functions.send-convention-reminder]
+verify_jwt = false
+
+[functions.retry-failed-email]
+verify_jwt = false
