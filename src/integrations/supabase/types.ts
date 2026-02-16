@@ -1658,8 +1658,45 @@ export type Database = {
           },
         ]
       }
+      mission_page_templates: {
+        Row: {
+          content: string
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          icon: string | null
+          id: string
+          name: string
+          position: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          content?: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          name: string
+          position?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          name?: string
+          position?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       mission_pages: {
         Row: {
+          activity_id: string | null
           content: string | null
           created_at: string | null
           icon: string | null
@@ -1672,6 +1709,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          activity_id?: string | null
           content?: string | null
           created_at?: string | null
           icon?: string | null
@@ -1684,6 +1722,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          activity_id?: string | null
           content?: string | null
           created_at?: string | null
           icon?: string | null
@@ -1696,6 +1735,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "mission_pages_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "mission_activities"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "mission_pages_mission_id_fkey"
             columns: ["mission_id"]
@@ -1727,10 +1773,13 @@ export type Database = {
           end_date: string | null
           id: string
           initial_amount: number | null
+          language: string | null
           position: number
           start_date: string | null
           status: string
           tags: string[] | null
+          testimonial_last_sent_at: string | null
+          testimonial_status: string | null
           title: string
           total_amount: number | null
           total_days: number | null
@@ -1750,10 +1799,13 @@ export type Database = {
           end_date?: string | null
           id?: string
           initial_amount?: number | null
+          language?: string | null
           position?: number
           start_date?: string | null
           status?: string
           tags?: string[] | null
+          testimonial_last_sent_at?: string | null
+          testimonial_status?: string | null
           title: string
           total_amount?: number | null
           total_days?: number | null
@@ -1773,10 +1825,13 @@ export type Database = {
           end_date?: string | null
           id?: string
           initial_amount?: number | null
+          language?: string | null
           position?: number
           start_date?: string | null
           status?: string
           tags?: string[] | null
+          testimonial_last_sent_at?: string | null
+          testimonial_status?: string | null
           title?: string
           total_amount?: number | null
           total_days?: number | null

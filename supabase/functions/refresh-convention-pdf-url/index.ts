@@ -170,7 +170,7 @@ serve(async (req: Request): Promise<Response> => {
 });
 
 async function uploadToPermanentStorage(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   pdfBuffer: ArrayBuffer,
   trainingId: string,
   signatureId: string
