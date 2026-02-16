@@ -339,7 +339,7 @@ async function sendEmailWithResend(
   const fallbackSignature = `
     <p style="margin-top: 20px;">
       <strong>Romain</strong><br>
-      <span style="color: #666;">Supertilt - Formation & Innovation Pédagogique</span>
+      <a href="https://www.supertilt.fr" style="color: #666; text-decoration: underline;">SuperTilt Formation</a>
     </p>
   `;
 
