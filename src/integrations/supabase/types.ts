@@ -1235,6 +1235,69 @@ export type Database = {
         }
         Relationships: []
       }
+      failed_emails: {
+        Row: {
+          created_at: string | null
+          email_type: string | null
+          error_message: string | null
+          html_content: string
+          id: string
+          last_retry_at: string | null
+          original_sent_at: string | null
+          participant_id: string | null
+          recipient_email: string
+          retry_count: number | null
+          status: string | null
+          subject: string
+          training_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email_type?: string | null
+          error_message?: string | null
+          html_content: string
+          id?: string
+          last_retry_at?: string | null
+          original_sent_at?: string | null
+          participant_id?: string | null
+          recipient_email: string
+          retry_count?: number | null
+          status?: string | null
+          subject: string
+          training_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email_type?: string | null
+          error_message?: string | null
+          html_content?: string
+          id?: string
+          last_retry_at?: string | null
+          original_sent_at?: string | null
+          participant_id?: string | null
+          recipient_email?: string
+          retry_count?: number | null
+          status?: string | null
+          subject?: string
+          training_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "failed_emails_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "training_participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "failed_emails_training_id_fkey"
+            columns: ["training_id"]
+            isOneToOne: false
+            referencedRelation: "trainings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       formation_configs: {
         Row: {
           created_at: string
@@ -2718,6 +2781,7 @@ export type Database = {
           invoice_file_url: string | null
           location: string
           max_participants: number | null
+          notes: string | null
           objectives: string[] | null
           participants_formal_address: boolean
           prerequisites: string[] | null
@@ -2759,6 +2823,7 @@ export type Database = {
           invoice_file_url?: string | null
           location: string
           max_participants?: number | null
+          notes?: string | null
           objectives?: string[] | null
           participants_formal_address?: boolean
           prerequisites?: string[] | null
@@ -2800,6 +2865,7 @@ export type Database = {
           invoice_file_url?: string | null
           location?: string
           max_participants?: number | null
+          notes?: string | null
           objectives?: string[] | null
           participants_formal_address?: boolean
           prerequisites?: string[] | null
