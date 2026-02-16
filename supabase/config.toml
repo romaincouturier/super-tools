@@ -101,3 +101,87 @@ verify_jwt = false
 
 [functions.retry-failed-email]
 verify_jwt = false
+
+[functions.process-crm-reminders]
+verify_jwt = false
+
+[functions.check-convention-status]
+verify_jwt = false
+
+[functions.submit-devis-signature]
+verify_jwt = false
+
+[functions.submit-attendance-signature]
+verify_jwt = false
+
+[functions.send-devis-signature-request]
+verify_jwt = false
+
+[functions.send-password-reset]
+verify_jwt = false
+
+[functions.send-welcome-email]
+verify_jwt = false
+
+[functions.send-needs-survey]
+verify_jwt = false
+
+[functions.send-needs-survey-reminder]
+verify_jwt = false
+
+[functions.send-evaluation-reminder]
+verify_jwt = false
+
+[functions.send-thank-you-email]
+verify_jwt = false
+
+[functions.send-training-documents]
+verify_jwt = false
+
+[functions.send-training-calendar-invite]
+verify_jwt = false
+
+[functions.send-elearning-access]
+verify_jwt = false
+
+[functions.send-certificate-email]
+verify_jwt = false
+
+[functions.send-action-reminder]
+verify_jwt = false
+
+[functions.send-accessibility-needs]
+verify_jwt = false
+
+[functions.send-prerequis-warning]
+verify_jwt = false
+
+[functions.send-questionnaire-confirmation]
+verify_jwt = false
+
+[functions.summarize-needs-survey]
+verify_jwt = false
+
+[functions.search-siren]
+verify_jwt = false
+
+[functions.extract-objectives-from-pdf]
+verify_jwt = false
+
+[functions.improve-email-content]
+verify_jwt = false
+
+[functions.onboard-collaborator]
+verify_jwt = false
+
+[functions.create-program-upload-url]
+verify_jwt = false
+
+[functions.create-review-image-upload-url]
+verify_jwt = false
+
+[functions.backup-export]
+verify_jwt = false
+
+[functions.backup-import]
+verify_jwt = false
