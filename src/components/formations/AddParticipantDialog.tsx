@@ -50,6 +50,22 @@ interface AddParticipantDialogProps {
   onExternalOpenChange?: (open: boolean) => void;
 }
 
+/**
+ * Capitalize the first letter of each word in a name, handling compound names (hyphen, space).
+ * "jean-pierre" → "Jean-Pierre", "DUPONT" → "Dupont", "marie claire" → "Marie Claire"
+ */
+const capitalizeName = (name: string): string => {
+  const trimmed = name.trim();
+  if (!trimmed) return "";
+  return trimmed
+    .split(/(\s+|-)/g) // split keeping delimiters (spaces & hyphens)
+    .map((part) => {
+      if (part === "-" || /^\s+$/.test(part)) return part;
+      return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase();
+    })
+    .join("");
+};
+
 const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, formatFormation, onParticipantAdded, onScheduledEmailsRefresh, initialFirstName, initialLastName, initialEmail, initialCompany, externalOpen, onExternalOpenChange }: AddParticipantDialogProps) => {
   const [internalOpen, setInternalOpen] = useState(false);
   const open = externalOpen !== undefined ? externalOpen : internalOpen;
@@ -199,16 +215,16 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
 
       const participantData = {
         training_id: trainingId,
-        first_name: firstName.trim() || null,
-        last_name: lastName.trim() || null,
+        first_name: capitalizeName(firstName) || null,
+        last_name: capitalizeName(lastName) || null,
         email: email.trim().toLowerCase(),
         company: company.trim() || null,
         needs_survey_token: token,
         needs_survey_status: status,
         // For inter-enterprise trainings, add sponsor, funder and payment fields
         ...(isInterEntreprise && {
-          sponsor_first_name: sponsorFirstName.trim() || null,
-          sponsor_last_name: sponsorLastName.trim() || null,
+          sponsor_first_name: capitalizeName(sponsorFirstName) || null,
+          sponsor_last_name: capitalizeName(sponsorLastName) || null,
           sponsor_email: sponsorEmail.trim().toLowerCase() || null,
           financeur_same_as_sponsor: financeurSameAsSponsor,
           financeur_name: !financeurSameAsSponsor ? (financeurName.trim() || null) : null,

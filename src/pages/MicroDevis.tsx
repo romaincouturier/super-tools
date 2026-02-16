@@ -910,6 +910,14 @@ const MicroDevis = () => {
         description: successMessage,
       });
 
+      // If opened from CRM, close this tab after a short delay to return to CRM
+      if (searchParams.get("source") === "crm") {
+        setTimeout(() => {
+          window.close();
+        }, 1500);
+        return;
+      }
+
       // Reset form
       setNomClient("");
       setAdresseClient("");

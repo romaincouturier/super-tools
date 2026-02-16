@@ -90,6 +90,7 @@ const Questionnaire = () => {
   const questionnaireRef = useRef<QuestionnaireRecord | null>(null);
   const prerequisValidationsRef = useRef<Record<string, string>>({});
   const saveStatusTimerRef = useRef<number | null>(null);
+  const [accessibiliteChoice, setAccessibiliteChoice] = useState<"" | "oui" | "non">("");
 
   const displayName = useMemo(() => {
     if (!questionnaire) return "";
@@ -182,6 +183,13 @@ const Questionnaire = () => {
 
       const qTyped = q as unknown as QuestionnaireRecord;
       setQuestionnaire(qTyped);
+
+      // Initialize accessibility choice based on existing data
+      if (qTyped.besoins_accessibilite && qTyped.besoins_accessibilite.trim()) {
+        setAccessibiliteChoice("oui");
+      } else if (qTyped.besoins_accessibilite !== null && qTyped.besoins_accessibilite !== undefined) {
+        setAccessibiliteChoice("non");
+      }
 
       // Parse existing prerequis validations
       if (qTyped.modalites_preferences) {
@@ -1175,20 +1183,45 @@ const Questionnaire = () => {
             <CardDescription>Optionnel</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="accessibilite">
+            <div className="space-y-3">
+              <Label>
                 Avez-vous besoin d'aménagements spécifiques (liés à une situation de handicap moteur, visuel ou auditif, trouble dys, autisme, difficulté d'attention, autre) ?
               </Label>
-              <Textarea
-                id="accessibilite"
-                value={questionnaire.besoins_accessibilite || ""}
-                onChange={(e) => {
+              <RadioGroup
+                value={accessibiliteChoice}
+                onValueChange={(value: string) => {
                   markDirty();
-                  setQuestionnaire((p) => (p ? { ...p, besoins_accessibilite: e.target.value } : p));
+                  const choice = value as "oui" | "non";
+                  setAccessibiliteChoice(choice);
+                  if (choice === "non") {
+                    setQuestionnaire((p) => (p ? { ...p, besoins_accessibilite: "" } : p));
+                  }
                 }}
-                rows={3}
-                placeholder="Décrivez vos besoins..."
-              />
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="non" id="access-non" />
+                  <Label htmlFor="access-non" className="cursor-pointer">Non</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="oui" id="access-oui" />
+                  <Label htmlFor="access-oui" className="cursor-pointer">Oui</Label>
+                </div>
+              </RadioGroup>
+              {accessibiliteChoice === "oui" && (
+                <div className="space-y-2 pl-6 border-l-2 border-primary/30">
+                  <Label htmlFor="accessibilite">Décrivez vos besoins :</Label>
+                  <Textarea
+                    id="accessibilite"
+                    value={questionnaire.besoins_accessibilite || ""}
+                    onChange={(e) => {
+                      markDirty();
+                      setQuestionnaire((p) => (p ? { ...p, besoins_accessibilite: e.target.value } : p));
+                    }}
+                    rows={3}
+                    placeholder="Décrivez vos besoins..."
+                  />
+                </div>
+              )}
             </div>
             <p className="text-sm text-muted-foreground border-l-2 border-primary pl-3">
               Notre référent handicap : <strong>Romain Couturier</strong> -{" "}
