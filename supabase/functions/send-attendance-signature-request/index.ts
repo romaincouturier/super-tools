@@ -178,7 +178,13 @@ serve(async (req) => {
     let successCount = 0;
     let errorCount = 0;
 
-    for (const participant of participants) {
+    for (let i = 0; i < participants.length; i++) {
+      const participant = participants[i];
+
+      // Rate-limit: 300ms delay between emails (except before the first)
+      if (i > 0) {
+        await new Promise((resolve) => setTimeout(resolve, 300));
+      }
       try {
         // Check if signature record already exists
         const { data: existingSignature } = await supabase
