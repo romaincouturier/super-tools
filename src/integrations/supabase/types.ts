@@ -2712,6 +2712,7 @@ export type Database = {
           needs_survey_sent_at: string | null
           needs_survey_status: string
           needs_survey_token: string | null
+          notes: string | null
           payment_mode: string
           signed_convention_url: string | null
           sold_price_ht: number | null
@@ -2737,6 +2738,7 @@ export type Database = {
           needs_survey_sent_at?: string | null
           needs_survey_status?: string
           needs_survey_token?: string | null
+          notes?: string | null
           payment_mode?: string
           signed_convention_url?: string | null
           sold_price_ht?: number | null
@@ -2762,6 +2764,7 @@ export type Database = {
           needs_survey_sent_at?: string | null
           needs_survey_status?: string
           needs_survey_token?: string | null
+          notes?: string | null
           payment_mode?: string
           signed_convention_url?: string | null
           sold_price_ht?: number | null
