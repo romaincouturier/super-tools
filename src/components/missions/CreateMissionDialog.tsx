@@ -34,18 +34,14 @@ const CreateMissionDialog = ({
   const createMission = useCreateMission();
   const [title, setTitle] = useState("");
   const [clientName, setClientName] = useState("");
-  const [clientFirstName, setClientFirstName] = useState("");
-  const [clientLastName, setClientLastName] = useState("");
-  const [clientEmail, setClientEmail] = useState("");
+  const [clientContact, setClientContact] = useState("");
   const [totalAmount, setTotalAmount] = useState("");
 
   useEffect(() => {
     if (open) {
       setTitle(prefillTitle || "");
       setClientName(prefillClientName || "");
-      setClientFirstName("");
-      setClientLastName("");
-      setClientEmail(prefillClientContact || "");
+      setClientContact(prefillClientContact || "");
       setTotalAmount(prefillTotalAmount || "");
     }
   }, [open, prefillTitle, prefillClientName, prefillClientContact, prefillTotalAmount]);
@@ -57,19 +53,14 @@ const CreateMissionDialog = ({
     await createMission.mutateAsync({
       title: title.trim(),
       client_name: clientName.trim() || undefined,
-      client_first_name: clientFirstName.trim() || undefined,
-      client_last_name: clientLastName.trim() || undefined,
-      client_email: clientEmail.trim() || undefined,
-      client_contact: [clientFirstName, clientLastName].filter(Boolean).join(" ").trim() || undefined,
+      client_contact: clientContact.trim() || undefined,
       initial_amount: totalAmount ? parseFloat(totalAmount) || undefined : undefined,
       status: defaultStatus,
     });
 
     setTitle("");
     setClientName("");
-    setClientFirstName("");
-    setClientLastName("");
-    setClientEmail("");
+    setClientContact("");
     setTotalAmount("");
     onOpenChange(false);
   };
@@ -98,31 +89,12 @@ const CreateMissionDialog = ({
               placeholder="Nom de l'entreprise"
             />
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label>Prénom du contact</Label>
-              <Input
-                value={clientFirstName}
-                onChange={(e) => setClientFirstName(e.target.value)}
-                placeholder="Prénom"
-              />
-            </div>
-            <div>
-              <Label>Nom du contact</Label>
-              <Input
-                value={clientLastName}
-                onChange={(e) => setClientLastName(e.target.value)}
-                placeholder="Nom"
-              />
-            </div>
-          </div>
           <div>
-            <Label>Email du contact</Label>
+            <Label>Contact (nom, email...)</Label>
             <Input
-              type="email"
-              value={clientEmail}
-              onChange={(e) => setClientEmail(e.target.value)}
-              placeholder="email@exemple.com"
+              value={clientContact}
+              onChange={(e) => setClientContact(e.target.value)}
+              placeholder="Ex: Jean Dupont jean@exemple.com"
             />
           </div>
           <div>

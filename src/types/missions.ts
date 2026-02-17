@@ -8,18 +8,12 @@ export interface Mission {
   description: string | null;
   client_name: string | null;
   client_contact: string | null;
-  client_first_name: string | null;
-  client_last_name: string | null;
-  client_email: string | null;
-  billing_contact_name: string | null;
-  billing_contact_email: string | null;
   status: MissionStatus;
   start_date: string | null;
   end_date: string | null;
   daily_rate: number | null;
   total_days: number | null;
   total_amount: number | null;
-  // Financial tracking
   initial_amount: number | null;
   consumed_amount: number | null;
   billed_amount: number | null;
@@ -40,11 +34,6 @@ export interface CreateMissionInput {
   description?: string;
   client_name?: string;
   client_contact?: string;
-  client_first_name?: string;
-  client_last_name?: string;
-  client_email?: string;
-  billing_contact_name?: string;
-  billing_contact_email?: string;
   status?: MissionStatus;
   start_date?: string;
   end_date?: string;
@@ -60,11 +49,6 @@ export interface UpdateMissionInput {
   description?: string | null;
   client_name?: string | null;
   client_contact?: string | null;
-  client_first_name?: string | null;
-  client_last_name?: string | null;
-  client_email?: string | null;
-  billing_contact_name?: string | null;
-  billing_contact_email?: string | null;
   status?: MissionStatus;
   start_date?: string | null;
   end_date?: string | null;
