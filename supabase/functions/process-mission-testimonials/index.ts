@@ -51,16 +51,16 @@ serve(async (req: Request) => {
 
     // Find missions needing testimonial processing:
     // - end_date is set and in the past
-    // - client_email is set
+    // - client_contact is set (contains name + email)
     // - testimonial_status is not 'completed'
     const today = new Date();
     const todayStr = today.toISOString().split("T")[0];
 
     const { data: missions, error } = await (supabase as any)
       .from("missions")
-      .select("id, title, client_name, client_first_name, client_last_name, client_email, end_date, testimonial_status, testimonial_last_sent_at, language")
-      .not("client_email", "is", null)
-      .neq("client_email", "")
+      .select("id, title, client_name, client_contact, end_date, testimonial_status, testimonial_last_sent_at, language")
+      .not("client_contact", "is", null)
+      .neq("client_contact", "")
       .not("end_date", "is", null)
       .lte("end_date", todayStr)
       .neq("testimonial_status", "completed");
@@ -73,7 +73,23 @@ serve(async (req: Request) => {
       });
     }
 
-    if (!missions || missions.length === 0) {
+    // Helper: extract email from client_contact string (e.g. "Jean Dupont jean@example.com")
+    const extractEmail = (contact: string): string | null => {
+      const match = contact.match(/[\w.+-]+@[\w.-]+\.\w+/);
+      return match ? match[0] : null;
+    };
+
+    // Helper: extract name from client_contact (everything before the email)
+    const extractName = (contact: string): string => {
+      const email = extractEmail(contact);
+      if (!email) return contact.trim();
+      return contact.replace(email, "").trim();
+    };
+
+    // Filter missions that have a valid email in client_contact
+    const missionsWithEmail = (missions || []).filter((m: any) => extractEmail(m.client_contact));
+
+    if (missionsWithEmail.length === 0) {
       return new Response(JSON.stringify({ message: "No missions to process" }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -83,11 +99,11 @@ serve(async (req: Request) => {
     let googleReviewsSent = 0;
     let testimonialsSent = 0;
 
-    for (const mission of missions) {
+    for (const mission of missionsWithEmail) {
       const endDate = new Date(mission.end_date);
       const daysSinceEnd = Math.floor((today.getTime() - endDate.getTime()) / (1000 * 60 * 60 * 24));
-      const clientName = mission.client_first_name || mission.client_name || "";
-      const clientEmail = mission.client_email;
+      const clientName = extractName(mission.client_contact) || mission.client_name || "";
+      const clientEmail = extractEmail(mission.client_contact)!;
 
       // Determine formal/informal based on language (default: vous for missions)
       const isFrench = mission.language === "fr" || !mission.language;
@@ -250,7 +266,7 @@ Best regards,`;
     return new Response(
       JSON.stringify({
         message: "Mission testimonials processed",
-        processed: missions.length,
+        processed: missionsWithEmail.length,
         googleReviewsSent,
         testimonialsSent,
       }),
