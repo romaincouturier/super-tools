@@ -37,6 +37,7 @@ import {
 } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import DOMPurify from "dompurify";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -343,7 +344,13 @@ export default function InboundEmails() {
                 {selectedEmail?.html_body ? (
                   <div
                     className="prose prose-sm max-w-none dark:prose-invert"
-                    dangerouslySetInnerHTML={{ __html: selectedEmail.html_body }}
+                    dangerouslySetInnerHTML={{ 
+                      __html: DOMPurify.sanitize(selectedEmail.html_body, {
+                        ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'a', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'pre', 'code', 'span', 'div', 'table', 'thead', 'tbody', 'tr', 'td', 'th', 'img', 'hr', 'sub', 'sup'],
+                        ALLOWED_ATTR: ['href', 'target', 'rel', 'src', 'alt', 'width', 'height', 'style', 'class', 'colspan', 'rowspan'],
+                        ALLOW_DATA_ATTR: false,
+                      })
+                    }}
                   />
                 ) : (
                   <pre className="whitespace-pre-wrap text-sm font-sans">
