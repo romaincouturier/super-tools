@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GraduationCap, Briefcase } from "lucide-react";
+import { GraduationCap, Briefcase, GripVertical } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -97,6 +97,7 @@ const CrmCardComponent = ({ card, isDragging, onClick, serviceTypeColors }: CrmC
   const handleCardClick = (e: React.MouseEvent) => {
     const target = e.target as HTMLElement;
     if (target.closest('[data-emoji-picker]')) return;
+    if (target.closest('[data-drag-handle]')) return;
     onClick?.();
   };
 
@@ -109,29 +110,36 @@ const CrmCardComponent = ({ card, isDragging, onClick, serviceTypeColors }: CrmC
         borderLeftColor: cardColor,
       }}
       {...attributes}
-      {...listeners}
-      className={`cursor-grab active:cursor-grabbing ${isDragging ? "shadow-lg" : ""}`}
+      className={`cursor-pointer hover:shadow-md transition-shadow ${isDragging ? "shadow-lg" : ""}`}
       onClick={handleCardClick}
     >
       <CardContent className="p-3 space-y-2">
-        {/* Header: Service type + Value */}
+        {/* Header: Drag handle + Service type + Value */}
         <div className="flex items-center justify-between gap-2">
-          {/* Service type indicator */}
-          {card.service_type ? (
+          <div className="flex items-center gap-1.5">
+            {/* Drag handle */}
             <div
-              className="flex items-center gap-1 text-xs font-medium"
-              style={{ color: cardColor }}
+              data-drag-handle
+              {...listeners}
+              className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground touch-none"
             >
-              {card.service_type === "formation" ? (
-                <GraduationCap className="h-3 w-3" />
-              ) : (
-                <Briefcase className="h-3 w-3" />
-              )}
-              {card.service_type === "formation" ? "Formation" : "Mission"}
+              <GripVertical className="h-4 w-4" />
             </div>
-          ) : (
-            <div />
-          )}
+            {/* Service type indicator */}
+            {card.service_type ? (
+              <div
+                className="flex items-center gap-1 text-xs font-medium"
+                style={{ color: cardColor }}
+              >
+                {card.service_type === "formation" ? (
+                  <GraduationCap className="h-3 w-3" />
+                ) : (
+                  <Briefcase className="h-3 w-3" />
+                )}
+                {card.service_type === "formation" ? "Formation" : "Mission"}
+              </div>
+            ) : null}
+          </div>
 
           {/* Estimated value - clickable to edit */}
           {isEditingValue ? (

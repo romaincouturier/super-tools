@@ -237,7 +237,7 @@ const MicroDevis = () => {
         const { data, error } = await supabase
           .from("formation_dates")
           .select("*")
-          .order("date_label");
+          .order("created_at", { ascending: true });
 
         if (error) throw error;
 
@@ -1654,9 +1654,7 @@ const MicroDevis = () => {
                                         .select()
                                         .single();
                                       if (error) throw error;
-                                      setFormationDates(prev => [...prev, data as FormationDate].sort((a, b) => 
-                                        a.date_label.localeCompare(b.date_label)
-                                      ));
+                                      setFormationDates(prev => [...prev, data as FormationDate]);
                                       toast({
                                         title: "Date ajoutée",
                                         description: `"${newDate.date_label}" a été ajoutée.`,
