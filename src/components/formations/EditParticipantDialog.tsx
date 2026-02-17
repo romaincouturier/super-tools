@@ -233,50 +233,60 @@ const EditParticipantDialog = ({
   }, [open, isInterEntreprise]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
 
     setUploadingFile(true);
+    const uploadedFiles: ParticipantFile[] = [];
+    let errorCount = 0;
+
     try {
-      const sanitized = file.name
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .replace(/[^a-zA-Z0-9_.-]/g, "_");
-      const path = `${trainingId}/participant_${participant.id}/fichier_${Date.now()}_${sanitized}`;
+      for (const file of Array.from(files)) {
+        try {
+          const sanitized = file.name
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/[^a-zA-Z0-9_.-]/g, "_");
+          const path = `${trainingId}/participant_${participant.id}/fichier_${Date.now()}_${sanitized}`;
 
-      const { error: uploadErr } = await supabase.storage
-        .from("training-documents")
-        .upload(path, file);
-      if (uploadErr) throw uploadErr;
+          const { error: uploadErr } = await supabase.storage
+            .from("training-documents")
+            .upload(path, file);
+          if (uploadErr) throw uploadErr;
 
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from("training-documents").getPublicUrl(path);
+          const {
+            data: { publicUrl },
+          } = supabase.storage.from("training-documents").getPublicUrl(path);
 
-      const { data: insertedFile, error: insertErr } = await (supabase as any)
-        .from("participant_files")
-        .insert({
-          participant_id: participant.id,
-          file_url: publicUrl,
-          file_name: file.name,
-        })
-        .select("id, file_url, file_name, uploaded_at")
-        .single();
+          const { data: insertedFile, error: insertErr } = await (supabase as any)
+            .from("participant_files")
+            .insert({
+              participant_id: participant.id,
+              file_url: publicUrl,
+              file_name: file.name,
+            })
+            .select("id, file_url, file_name, uploaded_at")
+            .single();
 
-      if (insertErr) throw insertErr;
+          if (insertErr) throw insertErr;
+          uploadedFiles.push(insertedFile);
+        } catch (err) {
+          console.error(`File upload error for ${file.name}:`, err);
+          errorCount++;
+        }
+      }
 
-      setParticipantFiles((prev) => [insertedFile, ...prev]);
-      toast({ title: "Fichier ajouté" });
-    } catch (err) {
-      console.error("File upload error:", err);
-      toast({
-        title: "Erreur d'upload",
-        description: err instanceof Error ? err.message : "Erreur.",
-        variant: "destructive",
-      });
+      if (uploadedFiles.length > 0) {
+        setParticipantFiles((prev) => [...uploadedFiles, ...prev]);
+        toast({
+          title: `${uploadedFiles.length} fichier${uploadedFiles.length > 1 ? "s" : ""} ajouté${uploadedFiles.length > 1 ? "s" : ""}`,
+          ...(errorCount > 0 && { description: `${errorCount} fichier${errorCount > 1 ? "s" : ""} en erreur.`, variant: "destructive" as const }),
+        });
+      } else if (errorCount > 0) {
+        toast({ title: "Erreur d'upload", description: "Aucun fichier n'a pu être uploadé.", variant: "destructive" });
+      }
     } finally {
       setUploadingFile(false);
-      // Reset input
       e.target.value = "";
     }
   };
@@ -848,6 +858,7 @@ const EditParticipantDialog = ({
                       <input
                         id={`participant-file-${participant.id}`}
                         type="file"
+                        multiple
                         className="hidden"
                         disabled={uploadingFile}
                         onChange={handleFileUpload}
@@ -859,7 +870,7 @@ const EditParticipantDialog = ({
                           ) : (
                             <Upload className="h-4 w-4 mr-2" />
                           )}
-                          Ajouter un fichier
+                          Ajouter des fichiers
                         </span>
                       </Button>
                     </Label>

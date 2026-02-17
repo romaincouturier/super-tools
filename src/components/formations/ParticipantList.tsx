@@ -1,4 +1,4 @@
-import { HelpCircle, Mail, MailCheck, Clock, CheckCircle, AlertTriangle, Trash2, Loader2, Send, RefreshCw, Receipt, Building, Scroll, Award, Download, Forward, UserCheck, RotateCw, FileSignature, Eye, BellRing, StickyNote } from "lucide-react";
+import { HelpCircle, Mail, MailCheck, Clock, CheckCircle, AlertTriangle, Trash2, Loader2, Send, RefreshCw, Receipt, Building, Scroll, Award, Download, Forward, UserCheck, RotateCw, FileSignature, Eye, BellRing, StickyNote, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -187,6 +187,8 @@ const ParticipantList = ({
   const [generatingCertId, setGeneratingCertId] = useState<string | null>(null);
   const [downloadingConventionId, setDownloadingConventionId] = useState<string | null>(null);
   const [conventionRemindingId, setConventionRemindingId] = useState<string | null>(null);
+  const [sortField, setSortField] = useState<"last_name" | "first_name" | "email" | "amount" | null>(null);
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const { toast } = useToast();
 
   const isInterEntreprise = formatFormation === "inter-entreprises" || formatFormation === "e_learning";
@@ -636,6 +638,40 @@ const ParticipantList = ({
     return status === "envoye" || status === "accueil_envoye" || status === "en_cours";
   };
 
+  const toggleSort = (field: "last_name" | "first_name" | "email" | "amount") => {
+    if (sortField === field) {
+      if (sortDirection === "asc") setSortDirection("desc");
+      else { setSortField(null); setSortDirection("asc"); }
+    } else {
+      setSortField(field);
+      setSortDirection("asc");
+    }
+  };
+
+  const SortIcon = ({ field }: { field: string }) => {
+    if (sortField !== field) return <ArrowUpDown className="h-3 w-3 ml-1 opacity-40" />;
+    return sortDirection === "asc"
+      ? <ArrowUp className="h-3 w-3 ml-1" />
+      : <ArrowDown className="h-3 w-3 ml-1" />;
+  };
+
+  const sortedParticipants = [...participants].sort((a, b) => {
+    if (!sortField) return 0;
+    const dir = sortDirection === "asc" ? 1 : -1;
+    switch (sortField) {
+      case "last_name":
+        return dir * (a.last_name || "").localeCompare(b.last_name || "", "fr");
+      case "first_name":
+        return dir * (a.first_name || "").localeCompare(b.first_name || "", "fr");
+      case "email":
+        return dir * a.email.localeCompare(b.email, "fr");
+      case "amount":
+        return dir * ((a.sold_price_ht || 0) - (b.sold_price_ht || 0));
+      default:
+        return 0;
+    }
+  });
+
   if (participants.length === 0) {
     return (
       <div className="text-center py-12 text-muted-foreground">
@@ -651,17 +687,31 @@ const ParticipantList = ({
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Nom</TableHead>
-            <TableHead>Email</TableHead>
+            <TableHead>
+              <button onClick={() => toggleSort("last_name")} className="flex items-center hover:text-foreground transition-colors">
+                Nom <SortIcon field="last_name" />
+              </button>
+            </TableHead>
+            <TableHead>
+              <button onClick={() => toggleSort("email")} className="flex items-center hover:text-foreground transition-colors">
+                Email <SortIcon field="email" />
+              </button>
+            </TableHead>
             <TableHead>Société</TableHead>
             {isInterEntreprise && <TableHead>Commanditaire</TableHead>}
-            {isInterEntreprise && <TableHead>Montant HT</TableHead>}
+            {isInterEntreprise && (
+              <TableHead>
+                <button onClick={() => toggleSort("amount")} className="flex items-center hover:text-foreground transition-colors">
+                  Montant HT <SortIcon field="amount" />
+                </button>
+              </TableHead>
+            )}
             <TableHead>Recueil des besoins</TableHead>
             <TableHead className="w-28"></TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {participants.map((participant) => {
+          {sortedParticipants.map((participant) => {
             const statusConfig = getStatusConfig(participant.needs_survey_status);
             const StatusIcon = statusConfig.icon;
             const displayName = participant.first_name || participant.last_name

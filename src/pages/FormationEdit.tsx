@@ -67,6 +67,9 @@ const FormationEdit = () => {
   const [financeurName, setFinanceurName] = useState("");
   const [financeurUrl, setFinanceurUrl] = useState("");
 
+  // Notes
+  const [trainingNotes, setTrainingNotes] = useState("");
+
   // Track if data has been loaded (to prevent schedule regeneration)
   const [dataLoaded, setDataLoaded] = useState(false);
   
@@ -132,6 +135,7 @@ const FormationEdit = () => {
       setFinanceurSameAsSponsor(training.financeur_same_as_sponsor ?? true);
       setFinanceurName(training.financeur_name || "");
       setFinanceurUrl(training.financeur_url || "");
+      setTrainingNotes((training as any).notes || "");
 
       // For e-learning, load start/end dates directly (no schedules)
       if (training.format_formation === "e_learning") {
@@ -327,7 +331,8 @@ const FormationEdit = () => {
           financeur_url: financeurSameAsSponsor ? null : (financeurUrl || null),
           elearning_duration: formatFormation === "e_learning" && elearningDuration ? parseFloat(elearningDuration) : null,
           elearning_access_email_content: formatFormation === "e_learning" && elearningAccessEmailContent ? elearningAccessEmailContent : null,
-        })
+          notes: trainingNotes.trim() || null,
+        } as any)
         .eq("id", id);
 
       if (trainingError) throw trainingError;
@@ -821,6 +826,22 @@ const FormationEdit = () => {
                       </div>
                     </>
                   )}
+                </CardContent>
+              </Card>
+
+              {/* Notes */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Notes</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Textarea
+                    value={trainingNotes}
+                    onChange={(e) => setTrainingNotes(e.target.value)}
+                    placeholder="Ajoutez des notes libres sur cette formation..."
+                    rows={4}
+                    className="resize-y"
+                  />
                 </CardContent>
               </Card>
 

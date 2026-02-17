@@ -32,27 +32,23 @@ const SentDevisSection = ({ email, cardId }: SentDevisSectionProps) => {
   const { data: sentDevis, isLoading, refetch } = useQuery({
     queryKey: ["crm-sent-devis", email, cardId],
     queryFn: async () => {
-      if (!email && !cardId) return [];
+      if (!email) return [];
 
-      let query = supabase
+      const { data, error } = await supabase
         .from("activity_logs")
         .select("id, created_at, details")
         .eq("action_type", "micro_devis_sent")
+        .eq("recipient_email", email)
         .order("created_at", { ascending: false })
         .limit(20);
 
-      if (email) {
-        query = query.eq("recipient_email", email);
-      }
-
-      const { data, error } = await query;
       if (error) throw error;
       return (data || []) as SentDevis[];
     },
-    enabled: !!(email || cardId),
+    enabled: !!email,
   });
 
-  if (!email && !cardId) return null;
+  if (!email) return null;
   if (isLoading) return null;
   if (!sentDevis || sentDevis.length === 0) return null;
 

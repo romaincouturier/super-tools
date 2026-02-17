@@ -47,6 +47,8 @@ import {
   Redo,
   LayoutTemplate,
   ArrowDownUp,
+  Sparkles,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -257,10 +259,32 @@ const PageEditor = ({
   const updatePage = useUpdateMissionPage();
   const [imageUploading, setImageUploading] = useState(false);
   const [fileUploading, setFileUploading] = useState(false);
+  const [aiSummary, setAiSummary] = useState<string | null>(null);
+  const [aiSummaryLoading, setAiSummaryLoading] = useState(false);
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
+
+  const handleGeneratePageSummary = async () => {
+    setAiSummaryLoading(true);
+    setAiSummary(null);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Non connecté");
+
+      const response = await supabase.functions.invoke("generate-mission-summary", {
+        body: { action: "summarize_page", mission_id: missionId, page_id: page.id },
+      });
+
+      if (response.error) throw new Error(response.error.message);
+      setAiSummary(response.data.result);
+    } catch (error: any) {
+      toast({ title: "Erreur", description: error.message || "Impossible de générer le résumé", variant: "destructive" });
+    } finally {
+      setAiSummaryLoading(false);
+    }
+  };
 
   const uploadImage = useCallback(
     async (file: File): Promise<string | null> => {
@@ -536,12 +560,45 @@ const PageEditor = ({
         <TB active={false} onClick={() => editor.chain().focus().undo().run()} t="Annuler" disabled={!editor.can().undo()}><Undo className="h-3.5 w-3.5" /></TB>
         <TB active={false} onClick={() => editor.chain().focus().redo().run()} t="Rétablir" disabled={!editor.can().redo()}><Redo className="h-3.5 w-3.5" /></TB>
 
+        <TSep />
+
+        <button
+          onClick={handleGeneratePageSummary}
+          disabled={aiSummaryLoading}
+          title="Résumé IA de cette page"
+          className={cn(
+            "h-7 px-2 flex items-center gap-1 rounded transition-colors shrink-0 text-xs font-medium",
+            aiSummary ? "bg-purple-100 text-purple-700" : "text-muted-foreground hover:bg-muted hover:text-foreground",
+            aiSummaryLoading && "opacity-50 pointer-events-none"
+          )}
+        >
+          {aiSummaryLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+          Résumé IA
+        </button>
+
         {updatePage.isPending && (
           <span className="text-xs text-muted-foreground flex items-center gap-1 ml-2">
             <Loader2 className="h-3 w-3 animate-spin" />
           </span>
         )}
       </div>
+
+      {/* AI Summary Panel */}
+      {aiSummary && (
+        <div className="mb-2 p-3 bg-purple-50 border border-purple-200 rounded-lg text-sm relative">
+          <button
+            onClick={() => setAiSummary(null)}
+            className="absolute top-2 right-2 h-5 w-5 flex items-center justify-center rounded hover:bg-purple-200 text-purple-500"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+          <div className="flex items-center gap-1.5 text-purple-700 font-medium mb-2">
+            <Sparkles className="h-3.5 w-3.5" />
+            Résumé IA
+          </div>
+          <div className="text-purple-900 whitespace-pre-wrap leading-relaxed pr-4">{aiSummary}</div>
+        </div>
+      )}
 
       {/* Editor */}
       <div className="flex-1 relative overflow-y-auto">

@@ -90,6 +90,7 @@ import { cn } from "@/lib/utils";
 import { format, addDays, isAfter, startOfDay, parseISO, isFuture } from "date-fns";
 import { fr } from "date-fns/locale";
 import DOMPurify from "dompurify";
+import { QRCodeSVG } from "qrcode.react";
 import EmojiPickerButton from "@/components/ui/emoji-picker-button";
 import {
   CrmCard,
@@ -1110,13 +1111,30 @@ const CardDetailDrawer = ({
                     <Phone className="h-3 w-3" />
                     Téléphone
                   </Label>
-                  <Input
-                    type="tel"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="06 12 34 56 78"
-                    className="h-8"
-                  />
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="tel"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="06 12 34 56 78"
+                      className="h-8 flex-1"
+                    />
+                    {phone.trim() && (
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="outline" size="icon" className="h-8 w-8 shrink-0" title="QR Code téléphone">
+                            <Phone className="h-3.5 w-3.5" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-4" align="end">
+                          <div className="flex flex-col items-center gap-2">
+                            <QRCodeSVG value={`tel:${phone.trim()}`} size={140} />
+                            <span className="text-xs text-muted-foreground">Scannez pour appeler</span>
+                          </div>
+                        </PopoverContent>
+                      </Popover>
+                    )}
+                  </div>
                 </div>
                 <div className="space-y-1 col-span-2">
                   <Label className="text-xs flex items-center gap-1">

@@ -96,13 +96,15 @@ const ContentCard = ({ card, isDragging, typeColors, onEdit, onDelete, onView, o
 
       <div className="p-3">
         <div className="flex items-start justify-between gap-2">
-          <div className="flex items-start gap-1 flex-1 min-w-0" data-emoji-picker>
-            <EmojiPickerButton
-              emoji={card.emoji}
-              onEmojiChange={(emoji) => onEmojiChange?.(card.id, emoji)}
-              size="sm"
-              className="shrink-0 mt-0.5"
-            />
+          <div className="flex items-start gap-1 flex-1 min-w-0">
+            <span data-emoji-picker>
+              <EmojiPickerButton
+                emoji={card.emoji}
+                onEmojiChange={(emoji) => onEmojiChange?.(card.id, emoji)}
+                size="sm"
+                className="shrink-0 mt-0.5"
+              />
+            </span>
             <h4 className="font-medium text-sm line-clamp-2">{card.title}</h4>
           </div>
 
