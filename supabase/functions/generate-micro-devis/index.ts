@@ -353,10 +353,12 @@ async function sendEmailWithResend(
     };
 
     const subject = processTemplate(subjectTemplate, variables);
-    const contentProcessed = processTemplate(contentTemplate, variables);
-    // Only convert to HTML if the content is plain text (default template)
-    // Custom templates from DB (html_content) are already HTML
-    const contentHtml = isHtmlContent(contentProcessed) ? contentProcessed : textToHtml(contentProcessed);
+    // Check if the RAW template (before variable substitution) is HTML
+    // Variables like devis_description contain HTML, which would fool isHtmlContent
+    // on the processed result. We must check the original template instead.
+    const templateIsHtml = isHtmlContent(contentTemplate);
+    const contentProcessed = processTemplate(contentTemplate, variables, false);
+    const contentHtml = templateIsHtml ? contentProcessed : textToHtml(contentProcessed);
 
   // Fallback signature if Signitic fails
   const fallbackSignature = `
