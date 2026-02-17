@@ -2162,6 +2162,38 @@ export type Database = {
           },
         ]
       }
+      participant_files: {
+        Row: {
+          file_name: string
+          file_url: string
+          id: string
+          participant_id: string
+          uploaded_at: string
+        }
+        Insert: {
+          file_name: string
+          file_url: string
+          id?: string
+          participant_id: string
+          uploaded_at?: string
+        }
+        Update: {
+          file_name?: string
+          file_url?: string
+          id?: string
+          participant_id?: string
+          uploaded_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "participant_files_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "training_participants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
