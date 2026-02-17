@@ -49,7 +49,7 @@ const MissionGallery = ({ mission }: MissionGalleryProps) => {
         .from("mission_media")
         .select("*")
         .eq("mission_id", mission.id)
-        .order("position", { ascending: true });
+        .order("created_at", { ascending: false });
 
       if (error) throw error;
       setMediaItems((data || []) as MediaItem[]);

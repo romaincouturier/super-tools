@@ -46,6 +46,7 @@ import {
   Undo,
   Redo,
   LayoutTemplate,
+  ArrowDownUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -74,6 +75,8 @@ interface MissionPagesProps {
   onActivityPageCreated?: () => void;
 }
 
+type PageSortMode = "date_desc" | "date_asc" | "name_asc" | "name_desc";
+
 interface PageTreeItemProps {
   page: MissionPage;
   allPages: MissionPage[];
@@ -83,6 +86,7 @@ interface PageTreeItemProps {
   onDelete: (page: MissionPage) => void;
   onToggleExpand: (page: MissionPage) => void;
   selectedPageId: string | null;
+  sortFn: (a: MissionPage, b: MissionPage) => number;
 }
 
 // ─── Custom TipTap Extensions ────────────────────────────
@@ -142,10 +146,11 @@ const PageTreeItem = ({
   onDelete,
   onToggleExpand,
   selectedPageId,
+  sortFn,
 }: PageTreeItemProps) => {
   const childPages = allPages
     .filter((p) => p.parent_page_id === page.id)
-    .sort((a, b) => a.position - b.position);
+    .sort(sortFn);
   const hasChildren = childPages.length > 0;
 
   return (
@@ -228,6 +233,7 @@ const PageTreeItem = ({
               onDelete={onDelete}
               onToggleExpand={onToggleExpand}
               selectedPageId={selectedPageId}
+              sortFn={sortFn}
             />
           ))}
         </div>
@@ -603,10 +609,21 @@ const MissionPages = ({ mission, initialActivityPageRequest, onActivityPageCreat
 
   const [selectedPage, setSelectedPage] = useState<MissionPage | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sortMode, setSortMode] = useState<PageSortMode>("date_desc");
+
+  const sortFn = useCallback((a: MissionPage, b: MissionPage): number => {
+    switch (sortMode) {
+      case "name_asc": return a.title.localeCompare(b.title, "fr");
+      case "name_desc": return b.title.localeCompare(a.title, "fr");
+      case "date_asc": return a.updated_at.localeCompare(b.updated_at);
+      case "date_desc": return b.updated_at.localeCompare(a.updated_at);
+      default: return 0;
+    }
+  }, [sortMode]);
 
   const rootPages = (pages || [])
     .filter((p) => !p.parent_page_id)
-    .sort((a, b) => a.position - b.position);
+    .sort(sortFn);
 
   useEffect(() => {
     if (pages && pages.length > 0 && !selectedPage) {
@@ -751,6 +768,27 @@ const MissionPages = ({ mission, initialActivityPageRequest, onActivityPageCreat
         <div className="p-2 border-b flex items-center justify-between">
           <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-1">Pages</span>
           <div className="flex items-center gap-0.5">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="h-6 w-6 flex items-center justify-center rounded hover:bg-muted text-muted-foreground hover:text-foreground" title="Trier">
+                  <ArrowDownUp className="h-3.5 w-3.5" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setSortMode("date_desc")} className={sortMode === "date_desc" ? "font-medium bg-muted" : ""}>
+                  Date modif. (récent)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setSortMode("date_asc")} className={sortMode === "date_asc" ? "font-medium bg-muted" : ""}>
+                  Date modif. (ancien)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setSortMode("name_asc")} className={sortMode === "name_asc" ? "font-medium bg-muted" : ""}>
+                  Nom (A→Z)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setSortMode("name_desc")} className={sortMode === "name_desc" ? "font-medium bg-muted" : ""}>
+                  Nom (Z→A)
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             {pageTemplates && pageTemplates.length > 0 && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -790,6 +828,7 @@ const MissionPages = ({ mission, initialActivityPageRequest, onActivityPageCreat
               onDelete={handleDeletePage}
               onToggleExpand={handleToggleExpand}
               selectedPageId={selectedPage?.id || null}
+              sortFn={sortFn}
             />
           ))}
         </div>
