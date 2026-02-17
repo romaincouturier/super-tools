@@ -1,4 +1,4 @@
-import { HelpCircle, Mail, MailCheck, Clock, CheckCircle, AlertTriangle, Trash2, Loader2, Send, RefreshCw, Receipt, Building, Scroll, Award, Download, Forward, UserCheck, RotateCw, FileSignature, Eye, BellRing } from "lucide-react";
+import { HelpCircle, Mail, MailCheck, Clock, CheckCircle, AlertTriangle, Trash2, Loader2, Send, RefreshCw, Receipt, Building, Scroll, Award, Download, Forward, UserCheck, RotateCw, FileSignature, Eye, BellRing, StickyNote } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -61,6 +61,7 @@ interface Participant {
   convention_document_id?: string | null;
   signed_convention_url?: string | null;
   elearning_duration?: number | null;
+  notes?: string | null;
 }
 
 interface ParticipantListProps {
@@ -685,6 +686,16 @@ const ParticipantList = ({
                         </TooltipTrigger>
                         <TooltipContent>
                           <p>À facturer après la formation</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
+                    {isInterEntreprise && participant.notes && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <StickyNote className="h-3.5 w-3.5 text-muted-foreground" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="max-w-xs whitespace-pre-wrap">{participant.notes}</p>
                         </TooltipContent>
                       </Tooltip>
                     )}

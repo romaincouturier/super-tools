@@ -2712,6 +2712,7 @@ export type Database = {
           needs_survey_sent_at: string | null
           needs_survey_status: string
           needs_survey_token: string | null
+          notes: string | null
           payment_mode: string
           signed_convention_url: string | null
           sold_price_ht: number | null
@@ -2737,6 +2738,7 @@ export type Database = {
           needs_survey_sent_at?: string | null
           needs_survey_status?: string
           needs_survey_token?: string | null
+          notes?: string | null
           payment_mode?: string
           signed_convention_url?: string | null
           sold_price_ht?: number | null
@@ -2762,6 +2764,7 @@ export type Database = {
           needs_survey_sent_at?: string | null
           needs_survey_status?: string
           needs_survey_token?: string | null
+          notes?: string | null
           payment_mode?: string
           signed_convention_url?: string | null
           sold_price_ht?: number | null
@@ -2776,6 +2779,38 @@ export type Database = {
             columns: ["training_id"]
             isOneToOne: false
             referencedRelation: "trainings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      participant_files: {
+        Row: {
+          id: string
+          participant_id: string
+          file_url: string
+          file_name: string
+          uploaded_at: string
+        }
+        Insert: {
+          id?: string
+          participant_id: string
+          file_url: string
+          file_name: string
+          uploaded_at?: string
+        }
+        Update: {
+          id?: string
+          participant_id?: string
+          file_url?: string
+          file_name?: string
+          uploaded_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "participant_files_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "training_participants"
             referencedColumns: ["id"]
           },
         ]

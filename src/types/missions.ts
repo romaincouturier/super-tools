@@ -62,6 +62,21 @@ export interface UpdateMissionInput {
   language?: string;
 }
 
+export interface MissionContact {
+  id: string;
+  mission_id: string;
+  first_name: string | null;
+  last_name: string | null;
+  email: string | null;
+  phone: string | null;
+  role: string | null;
+  language: string;
+  is_primary: boolean;
+  position: number;
+  created_at: string;
+  updated_at: string;
+}
+
 // Status configuration for Kanban columns
 export const missionStatusConfig: Record<MissionStatus, { label: string; color: string }> = {
   not_started: { label: 'À démarrer', color: '#6b7280' },

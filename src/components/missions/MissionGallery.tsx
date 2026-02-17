@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Mission } from "@/types/missions";
@@ -74,7 +74,7 @@ const MissionGallery = ({ mission }: MissionGalleryProps) => {
       .toLowerCase();
   };
 
-  const uploadFiles = async (files: FileList | File[]) => {
+  const uploadFiles = useCallback(async (files: FileList | File[]) => {
     const fileArray = Array.from(files);
     const validFiles = fileArray.filter((f) => getFileType(f) !== null);
 
@@ -149,7 +149,7 @@ const MissionGallery = ({ mission }: MissionGalleryProps) => {
     } finally {
       setUploading(false);
     }
-  };
+  }, [mission.id, mediaItems.length]);
 
   const handleDelete = async (item: MediaItem) => {
     if (!confirm(`Supprimer ${item.file_name} ?`)) return;
@@ -196,6 +196,32 @@ const MissionGallery = ({ mission }: MissionGalleryProps) => {
   const handleDragLeave = () => {
     setDragOver(false);
   };
+
+  const handlePaste = useCallback(
+    (e: ClipboardEvent) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+
+      const imageFiles: File[] = [];
+      for (const item of Array.from(items)) {
+        if (item.type.startsWith("image/") || item.type.startsWith("video/")) {
+          const file = item.getAsFile();
+          if (file) imageFiles.push(file);
+        }
+      }
+
+      if (imageFiles.length > 0) {
+        e.preventDefault();
+        uploadFiles(imageFiles);
+      }
+    },
+    [uploadFiles, mediaItems.length]
+  );
+
+  useEffect(() => {
+    document.addEventListener("paste", handlePaste);
+    return () => document.removeEventListener("paste", handlePaste);
+  }, [handlePaste]);
 
   const formatFileSize = (bytes: number | null) => {
     if (!bytes) return "";
@@ -247,7 +273,7 @@ const MissionGallery = ({ mission }: MissionGalleryProps) => {
           <div className="flex flex-col items-center gap-2">
             <Upload className="h-8 w-8 text-muted-foreground" />
             <p className="text-sm text-muted-foreground">
-              Glissez vos photos ou vidéos ici, ou cliquez pour sélectionner
+              Glissez, collez (Ctrl+V) ou cliquez pour ajouter des médias
             </p>
             <p className="text-xs text-muted-foreground">
               Images (PNG, JPG, WebP, GIF) et vidéos (MP4, WebM, MOV) — max 50 Mo

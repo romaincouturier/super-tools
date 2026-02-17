@@ -24,6 +24,7 @@ import { useToast } from "@/hooks/use-toast";
 import MissionActivityTracker from "./MissionActivityTracker";
 import MissionPages from "./MissionPages";
 import MissionGallery from "./MissionGallery";
+import MissionContacts from "./MissionContacts";
 import EmojiPickerButton from "@/components/ui/emoji-picker-button";
 
 interface MissionDetailDrawerProps {
@@ -67,7 +68,6 @@ const MissionDetailDrawer = ({
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [clientName, setClientName] = useState("");
-  const [clientContact, setClientContact] = useState("");
   const [status, setStatus] = useState<MissionStatus>("not_started");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -78,7 +78,6 @@ const MissionDetailDrawer = ({
   const [newTag, setNewTag] = useState("");
   const [color, setColor] = useState("#6b7280");
   const [missionEmoji, setMissionEmoji] = useState<string | null>(null);
-  const [language, setLanguage] = useState("fr");
   const [activeTab, setActiveTab] = useState("activities");
   const [activityPageRequest, setActivityPageRequest] = useState<{ activityId: string; description: string } | null>(null);
 
@@ -88,7 +87,6 @@ const MissionDetailDrawer = ({
       setTitle(mission.title);
       setDescription(mission.description || "");
       setClientName(mission.client_name || "");
-      setClientContact(mission.client_contact || "");
       setStatus(mission.status);
       setStartDate(mission.start_date || "");
       setEndDate(mission.end_date || "");
@@ -98,7 +96,6 @@ const MissionDetailDrawer = ({
       setTags(mission.tags || []);
       setColor(mission.color);
       setMissionEmoji(mission.emoji || null);
-      setLanguage(mission.language || "fr");
     }
   }, [mission]);
 
@@ -111,7 +108,6 @@ const MissionDetailDrawer = ({
         title: title.trim(),
         description: description.trim() || null,
         client_name: clientName.trim() || null,
-        client_contact: clientContact.trim() || null,
         status,
         start_date: startDate || null,
         end_date: endDate || null,
@@ -121,7 +117,6 @@ const MissionDetailDrawer = ({
         tags,
         color,
         emoji: missionEmoji,
-        language,
       },
     });
   };
@@ -259,7 +254,7 @@ const MissionDetailDrawer = ({
               <Textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                rows={4}
+                rows={6}
                 placeholder="Description de la mission..."
               />
             </div>
@@ -273,14 +268,9 @@ const MissionDetailDrawer = ({
                 placeholder="Nom de l'entreprise"
               />
             </div>
-            <div>
-              <Label>Contact</Label>
-              <Input
-                value={clientContact}
-                onChange={(e) => setClientContact(e.target.value)}
-                placeholder="Nom, email, téléphone..."
-              />
-            </div>
+
+            {/* Multi-contact management */}
+            <MissionContacts missionId={mission.id} />
 
             {/* Dates */}
             <div className="grid grid-cols-2 gap-3">
@@ -300,25 +290,6 @@ const MissionDetailDrawer = ({
                   onChange={(e) => setEndDate(e.target.value)}
                 />
               </div>
-            </div>
-
-            {/* Language */}
-            <div>
-              <Label>Langue de la mission</Label>
-              <Select value={language} onValueChange={setLanguage}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="fr">Français</SelectItem>
-                  <SelectItem value="en">English</SelectItem>
-                  <SelectItem value="es">Español</SelectItem>
-                  <SelectItem value="de">Deutsch</SelectItem>
-                  <SelectItem value="it">Italiano</SelectItem>
-                  <SelectItem value="pt">Português</SelectItem>
-                  <SelectItem value="zh">中文</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
 
             {/* Financials */}

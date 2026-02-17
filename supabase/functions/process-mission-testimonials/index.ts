@@ -56,11 +56,10 @@ serve(async (req: Request) => {
     const today = new Date();
     const todayStr = today.toISOString().split("T")[0];
 
+    // Fetch missions that need testimonial processing
     const { data: missions, error } = await (supabase as any)
       .from("missions")
-      .select("id, title, client_name, client_contact, end_date, testimonial_status, testimonial_last_sent_at, language")
-      .not("client_contact", "is", null)
-      .neq("client_contact", "")
+      .select("id, title, client_name, end_date, testimonial_status, testimonial_last_sent_at")
       .not("end_date", "is", null)
       .lte("end_date", todayStr)
       .neq("testimonial_status", "completed");
@@ -102,11 +101,26 @@ serve(async (req: Request) => {
     for (const mission of missionsWithEmail) {
       const endDate = new Date(mission.end_date);
       const daysSinceEnd = Math.floor((today.getTime() - endDate.getTime()) / (1000 * 60 * 60 * 24));
-      const clientName = extractName(mission.client_contact) || mission.client_name || "";
-      const clientEmail = extractEmail(mission.client_contact)!;
 
-      // Determine formal/informal based on language (default: vous for missions)
-      const isFrench = mission.language === "fr" || !mission.language;
+      // Fetch primary contact from mission_contacts
+      const { data: contacts } = await (supabase as any)
+        .from("mission_contacts")
+        .select("first_name, last_name, email, language")
+        .eq("mission_id", mission.id)
+        .eq("is_primary", true)
+        .limit(1);
+
+      const primaryContact = contacts?.[0];
+      if (!primaryContact || !primaryContact.email) {
+        console.log(`Mission ${mission.id}: no primary contact with email, skipping`);
+        continue;
+      }
+
+      const clientName = primaryContact.first_name || mission.client_name || "";
+      const clientEmail = primaryContact.email;
+
+      // Determine language from primary contact
+      const isFrench = primaryContact.language === "fr" || !primaryContact.language;
 
       // STEP 1: Send Google Review request
       if (mission.testimonial_status === "pending" && daysSinceEnd >= DAYS_BEFORE_GOOGLE_REVIEW) {

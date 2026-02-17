@@ -85,12 +85,6 @@ interface PageTreeItemProps {
   selectedPageId: string | null;
 }
 
-const EMOJI_OPTIONS = [
-  "📄", "📝", "📋", "📌", "📎", "📁", "💡", "⭐", "🎯", "✅",
-  "🔧", "📊", "🚀", "💰", "📞", "📧", "🗓️", "👤", "🏢", "📦",
-  "🔗", "💻", "🎨", "📐", "🔍", "📈", "🗂️", "✏️", "🏷️", "⚡",
-];
-
 // ─── Custom TipTap Extensions ────────────────────────────
 
 const DetailsNode = Node.create({
@@ -255,7 +249,6 @@ const PageEditor = ({
 }) => {
   const { toast } = useToast();
   const updatePage = useUpdateMissionPage();
-  const [iconValue, setIconValue] = useState(page.icon || "📄");
   const [imageUploading, setImageUploading] = useState(false);
   const [fileUploading, setFileUploading] = useState(false);
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -387,12 +380,19 @@ const PageEditor = ({
       },
     },
     onUpdate: ({ editor: ed }) => {
+      // Update title immediately in sidebar (real-time)
+      const firstLineText = ed.state.doc.firstChild?.textContent?.trim() || "Sans titre";
+      const title = firstLineText.substring(0, 100) || "Sans titre";
+      onPageUpdated({ ...page, title, content: ed.getHTML() });
+
+      // Debounce save to database
       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
       saveTimeoutRef.current = setTimeout(() => {
+        const html = ed.getHTML();
         updatePage.mutate({
           id: page.id,
           missionId,
-          updates: { content: ed.getHTML() },
+          updates: { content: html, title },
         });
       }, 800);
     },
@@ -406,18 +406,11 @@ const PageEditor = ({
         editor.commands.setContent(newContent, { emitUpdate: false });
       }
     }
-    setIconValue(page.icon || "📄");
   }, [page.id]);
 
   useEffect(() => {
     return () => { if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current); };
   }, []);
-
-  const handleIconChange = (emoji: string) => {
-    setIconValue(emoji);
-    updatePage.mutate({ id: page.id, missionId, updates: { icon: emoji } });
-    onPageUpdated({ ...page, icon: emoji });
-  };
 
   const handleImageUpload = async (files: FileList) => {
     if (!editor) return;
@@ -490,27 +483,6 @@ const PageEditor = ({
         onChange={(e) => e.target.files && handleVideoUpload(e.target.files)} />
       <input ref={fileInputRef} type="file" multiple className="hidden"
         onChange={(e) => e.target.files && handleDocumentUpload(e.target.files)} />
-
-      {/* Icon only - title not repeated (shown in sidebar) */}
-      <div className="pb-2 mb-1">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button className="text-3xl hover:bg-muted/50 rounded-lg p-1.5 transition-colors">
-              {iconValue}
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-auto p-2">
-            <div className="grid grid-cols-10 gap-0.5">
-              {EMOJI_OPTIONS.map((emoji) => (
-                <button key={emoji} className="text-xl hover:bg-muted rounded p-1.5 transition-colors"
-                  onClick={() => handleIconChange(emoji)}>
-                  {emoji}
-                </button>
-              ))}
-            </div>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
 
       {/* Toolbar */}
       <div className="flex items-center gap-0.5 pb-2 mb-1 border-b overflow-x-auto flex-nowrap">
