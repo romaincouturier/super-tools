@@ -163,7 +163,7 @@ const MissionDetailDrawer = ({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="overflow-y-auto w-full sm:max-w-5xl">
+      <SheetContent className="overflow-y-auto w-full sm:max-w-5xl" onInteractOutside={(e) => e.preventDefault()}>
         <SheetHeader>
           <SheetTitle className="flex items-center justify-between gap-2">
             <span className="truncate flex-1">{mission.title}</span>
