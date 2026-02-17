@@ -380,18 +380,20 @@ const PageEditor = ({
       },
     },
     onUpdate: ({ editor: ed }) => {
+      // Update title immediately in sidebar (real-time)
+      const firstLineText = ed.state.doc.firstChild?.textContent?.trim() || "Sans titre";
+      const title = firstLineText.substring(0, 100) || "Sans titre";
+      onPageUpdated({ ...page, title, content: ed.getHTML() });
+
+      // Debounce save to database
       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
       saveTimeoutRef.current = setTimeout(() => {
         const html = ed.getHTML();
-        // Extract title from first line of text content
-        const firstLineText = ed.state.doc.firstChild?.textContent?.trim() || "Sans titre";
-        const title = firstLineText.substring(0, 100) || "Sans titre";
         updatePage.mutate({
           id: page.id,
           missionId,
           updates: { content: html, title },
         });
-        onPageUpdated({ ...page, title, content: html });
       }, 800);
     },
   });

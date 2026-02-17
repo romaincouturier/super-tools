@@ -254,7 +254,7 @@ const MissionDetailDrawer = ({
               <Textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                rows={4}
+                rows={6}
                 placeholder="Description de la mission..."
               />
             </div>
