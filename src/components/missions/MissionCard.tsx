@@ -56,13 +56,15 @@ const MissionCard = ({ mission, isDragging, onClick, onEmojiChange }: MissionCar
       )}
     >
       {/* Title */}
-      <div className="flex items-start gap-1 mb-2" data-emoji-picker>
-        <EmojiPickerButton
-          emoji={mission.emoji}
-          onEmojiChange={(emoji) => onEmojiChange?.(mission.id, emoji)}
-          size="sm"
-          className="shrink-0 mt-0.5"
-        />
+      <div className="flex items-start gap-1 mb-2">
+        <span data-emoji-picker>
+          <EmojiPickerButton
+            emoji={mission.emoji}
+            onEmojiChange={(emoji) => onEmojiChange?.(mission.id, emoji)}
+            size="sm"
+            className="shrink-0 mt-0.5"
+          />
+        </span>
         <h4 className="font-medium text-sm line-clamp-2">{mission.title}</h4>
       </div>
 

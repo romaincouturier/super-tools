@@ -157,13 +157,15 @@ const CrmCardComponent = ({ card, isDragging, onClick, serviceTypeColors }: CrmC
         </div>
 
         {/* Title */}
-        <div className="flex items-start gap-1" data-emoji-picker>
-          <EmojiPickerButton
-            emoji={card.emoji}
-            onEmojiChange={handleEmojiChange}
-            size="sm"
-            className="shrink-0 mt-0.5"
-          />
+        <div className="flex items-start gap-1">
+          <span data-emoji-picker>
+            <EmojiPickerButton
+              emoji={card.emoji}
+              onEmojiChange={handleEmojiChange}
+              size="sm"
+              className="shrink-0 mt-0.5"
+            />
+          </span>
           <div className="font-medium text-sm line-clamp-2">{card.title}</div>
         </div>
 

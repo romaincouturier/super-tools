@@ -65,7 +65,10 @@ export function NewOpportunityDialog({ open, onOpenChange, userEmail }: NewOppor
           service_type: editedExtraction.service_type || undefined,
           brief_questions: editedExtraction.brief_questions,
           raw_input: rawInput,
-          description_html: rawInput, // Save the pasted text in description/notes
+          description_html: rawInput
+            .split("\n")
+            .map((line) => `<p>${line || "<br>"}</p>`)
+            .join(""), // Convert plain text newlines to HTML paragraphs
         },
         actorEmail: userEmail,
       });
