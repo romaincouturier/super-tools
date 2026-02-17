@@ -339,22 +339,58 @@ const handler = async (req: Request): Promise<Response> => {
       }
 
       case "cold_evaluation": {
-        recipientEmail = participant?.email || "";
-        subject = `🫶🏻 Évaluation à froid de la formation ${training.training_name}`;
-        
-        if (!coldEvaluationFormUrl) {
-          throw new Error("Cold evaluation form URL not configured in app settings");
+        const coldAppUrl = Deno.env.get("APP_URL") || "https://super-tools.lovable.app";
+        // Determine sponsor email: participant-level sponsor_email for inter, training-level for intra
+        const sponsorEmail = participant?.sponsor_email || training.sponsor_email || "";
+        const sponsorName = participant?.sponsor_name || training.sponsor_name || "";
+        const sponsorCompany = participant?.company || training.client_name || "";
+        recipientEmail = sponsorEmail;
+
+        if (!recipientEmail) {
+          throw new Error("No sponsor email found for cold evaluation");
         }
-        
+
+        // Generate a unique token for the evaluation form
+        const coldToken = crypto.randomUUID();
+
+        // Create sponsor_cold_evaluations record
+        const { error: insertErr } = await supabase
+          .from("sponsor_cold_evaluations")
+          .insert({
+            training_id: training.id,
+            participant_id: participant?.id || null,
+            token: coldToken,
+            etat: "envoye",
+            sponsor_email: recipientEmail,
+            sponsor_name: sponsorName,
+            company: sponsorCompany,
+            date_envoi: new Date().toISOString(),
+          });
+
+        if (insertErr) {
+          console.error("Error creating sponsor cold evaluation record:", insertErr);
+          throw new Error("Failed to create sponsor evaluation record");
+        }
+
+        const coldFormUrl = `${coldAppUrl}/evaluation-commanditaire/${coldToken}`;
+
+        // Use sponsor first name for greeting if available
+        const sponsorFirstName = sponsorName.split(" ")[0];
+        const sponsorGreeting = sponsorFirstName
+          ? training.sponsor_formal_address
+            ? `Bonjour ${sponsorFirstName},`
+            : `Bonjour ${sponsorFirstName},`
+          : "Bonjour,";
+
+        subject = `🫶🏻 Évaluation à froid de la formation ${training.training_name}`;
         htmlContent = `
-          <p>${greeting}</p>
-          <p>Comment vas-tu ?</p>
-          <p>Dans le cadre de mon processus qualité (Qualiopi), je propose désormais des évaluations à froid de mes formations.</p>
-          <p>❓ Pourrais-tu prendre 2 minutes pour remplir ce questionnaire en ligne ?</p>
-          <p><a href="${coldEvaluationFormUrl}" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Remplir le questionnaire</a></p>
-          <p>Merci énormément pour ton soutien :-)</p>
-          <p>À bientôt</p>
-          <p><em>PS : on peut continuer à rester en contact sur <a href="https://www.linkedin.com/in/romaincouturier/">LinkedIn</a> et sur <a href="https://www.instagram.com/supertilt.fr/">Instagram</a> pour d'autres contenus sur le sujet de la formation.</em></p>
+          <p>${sponsorGreeting}</p>
+          <p>Comment allez-vous ?</p>
+          <p>Dans le cadre de mon processus qualité (Qualiopi), je vous propose de remplir une évaluation à froid de la formation <strong>"${training.training_name}"</strong>.</p>
+          <p>❓ Cela ne prend que 2 minutes :</p>
+          <p><a href="${coldFormUrl}" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Remplir le questionnaire</a></p>
+          <p>Vos retours sont précieux et m'aident à améliorer continuellement mes formations.</p>
+          <p>Merci pour votre temps !</p>
           ${signatureHtml}
         `;
         break;

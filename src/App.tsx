@@ -25,6 +25,7 @@ const FormationEdit = lazy(() => import("./pages/FormationEdit"));
 const FormationDetail = lazy(() => import("./pages/FormationDetail"));
 const Questionnaire = lazy(() => import("./pages/Questionnaire"));
 const Evaluation = lazy(() => import("./pages/Evaluation"));
+const SponsorEvaluation = lazy(() => import("./pages/SponsorEvaluation"));
 const Evaluations = lazy(() => import("./pages/Evaluations"));
 const Ameliorations = lazy(() => import("./pages/Ameliorations"));
 const PolitiqueConfidentialite = lazy(() => import("./pages/PolitiqueConfidentialite"));
@@ -133,6 +134,8 @@ const App = () => (
               <Route path="/questionnaire/:token" element={<Questionnaire />} />
               {/* Public evaluation form */}
               <Route path="/evaluation/:token" element={<Evaluation />} />
+              {/* Public sponsor cold evaluation form */}
+              <Route path="/evaluation-commanditaire/:token" element={<SponsorEvaluation />} />
               {/* Public attendance signature */}
               <Route path="/emargement/:token" element={<Emargement />} />
               {/* Public devis signature */}

@@ -564,6 +564,7 @@ serve(async (req: Request): Promise<Response> => {
         action_type: "micro_devis_sent",
         recipient_email: body.emailCommanditaire,
         details: {
+          crm_card_id: resolvedCrmCardId || null,
           formation_name: body.formationDemandee,
           client_name: body.nomClient,
           type_subrogation: typeSubrogation,

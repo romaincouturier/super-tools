@@ -8,6 +8,7 @@ import { fr } from "date-fns/locale";
 import { toast } from "sonner";
 
 interface SentDevisDetails {
+  crm_card_id?: string;
   formation_name?: string;
   client_name?: string;
   type_subrogation?: string;
@@ -32,7 +33,7 @@ const SentDevisSection = ({ email, cardId }: SentDevisSectionProps) => {
   const { data: sentDevis, isLoading, refetch } = useQuery({
     queryKey: ["crm-sent-devis", email, cardId],
     queryFn: async () => {
-      if (!email) return [];
+      if (!email || !cardId) return [];
 
       const { data, error } = await supabase
         .from("activity_logs")
@@ -40,12 +41,17 @@ const SentDevisSection = ({ email, cardId }: SentDevisSectionProps) => {
         .eq("action_type", "micro_devis_sent")
         .eq("recipient_email", email)
         .order("created_at", { ascending: false })
-        .limit(20);
+        .limit(50);
 
       if (error) throw error;
-      return (data || []) as SentDevis[];
+
+      // Filter to only show devis linked to this specific card
+      const allDevis = (data || []) as SentDevis[];
+      return allDevis.filter(
+        (d) => d.details?.crm_card_id === cardId
+      );
     },
-    enabled: !!email,
+    enabled: !!email && !!cardId,
   });
 
   if (!email) return null;
