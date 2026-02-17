@@ -2162,6 +2162,38 @@ export type Database = {
           },
         ]
       }
+      participant_files: {
+        Row: {
+          file_name: string
+          file_url: string
+          id: string
+          participant_id: string
+          uploaded_at: string
+        }
+        Insert: {
+          file_name: string
+          file_url: string
+          id?: string
+          participant_id: string
+          uploaded_at?: string
+        }
+        Update: {
+          file_name?: string
+          file_url?: string
+          id?: string
+          participant_id?: string
+          uploaded_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "participant_files_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "training_participants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -2712,6 +2744,7 @@ export type Database = {
           needs_survey_sent_at: string | null
           needs_survey_status: string
           needs_survey_token: string | null
+          notes: string | null
           payment_mode: string
           signed_convention_url: string | null
           sold_price_ht: number | null
@@ -2737,6 +2770,7 @@ export type Database = {
           needs_survey_sent_at?: string | null
           needs_survey_status?: string
           needs_survey_token?: string | null
+          notes?: string | null
           payment_mode?: string
           signed_convention_url?: string | null
           sold_price_ht?: number | null
@@ -2762,6 +2796,7 @@ export type Database = {
           needs_survey_sent_at?: string | null
           needs_survey_status?: string
           needs_survey_token?: string | null
+          notes?: string | null
           payment_mode?: string
           signed_convention_url?: string | null
           sold_price_ht?: number | null
