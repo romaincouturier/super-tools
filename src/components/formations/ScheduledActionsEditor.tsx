@@ -26,6 +26,7 @@ interface ScheduledActionsEditorProps {
   onSave?: () => void;
   saving?: boolean;
   onToggleComplete?: (actionId: string, completed: boolean) => void;
+  onDeleteSaved?: (actionId: string) => void;
 }
 
 // Check if an ID is a database UUID (saved) or a temporary ID (unsaved)
@@ -34,7 +35,7 @@ const isSavedAction = (id: string) => {
   return !id.startsWith("action_");
 };
 
-const ScheduledActionsEditor = ({ actions, onActionsChange, onSave, saving, onToggleComplete }: ScheduledActionsEditorProps) => {
+const ScheduledActionsEditor = ({ actions, onActionsChange, onSave, saving, onToggleComplete, onDeleteSaved }: ScheduledActionsEditorProps) => {
   const generateId = () => `action_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
   const addAction = () => {
@@ -51,6 +52,9 @@ const ScheduledActionsEditor = ({ actions, onActionsChange, onSave, saving, onTo
   };
 
   const removeAction = (id: string) => {
+    if (isSavedAction(id) && onDeleteSaved) {
+      onDeleteSaved(id);
+    }
     onActionsChange(actions.filter((a) => a.id !== id));
   };
 
@@ -249,25 +253,12 @@ const ScheduledActionsEditor = ({ actions, onActionsChange, onSave, saving, onTo
           </div>
         ))}
 
-        {/* Show save button if there are changes to saved actions that need saving */}
-        {savedActions.length > 0 && unsavedActions.length === 0 && onSave && (
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onSave}
-            disabled={saving}
-            className="w-full"
-            size="sm"
-          >
-            {saving ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Mise à jour...
-              </>
-            ) : (
-              "Mettre à jour les actions"
-            )}
-          </Button>
+        {/* Saving indicator */}
+        {saving && (
+          <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground py-1">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Sauvegarde...
+          </div>
         )}
       </CardContent>
     </Card>

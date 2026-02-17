@@ -1098,6 +1098,14 @@ const FormationDetail = () => {
             onSave={() => handleSaveActions(scheduledActions)}
             saving={savingActions}
             onToggleComplete={handleToggleActionComplete}
+            onDeleteSaved={async (actionId) => {
+              try {
+                await supabase.from("training_actions").delete().eq("id", actionId);
+              } catch (error) {
+                console.error("Error deleting action:", error);
+                toast({ title: "Erreur", description: "Impossible de supprimer l'action.", variant: "destructive" });
+              }
+            }}
           />
 
           {/* Attendance Signature */}
