@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Trash2, Loader2, X, Plus, Clock, FileText, Settings, ImageIcon, Share2, Check } from "lucide-react";
+import { Trash2, Loader2, X, Plus, Clock, FileText, Settings, ImageIcon, Share2, Check, Sparkles } from "lucide-react";
 import { Mission, MissionStatus, missionStatusConfig } from "@/types/missions";
 import { useUpdateMission, useDeleteMission } from "@/hooks/useMissions";
 import { useToast } from "@/hooks/use-toast";
@@ -26,6 +26,7 @@ import MissionPages from "./MissionPages";
 import MissionGallery from "./MissionGallery";
 import MissionContacts from "./MissionContacts";
 import EmojiPickerButton from "@/components/ui/emoji-picker-button";
+import { supabase } from "@/integrations/supabase/client";
 
 interface MissionDetailDrawerProps {
   mission: Mission | null;
@@ -54,6 +55,8 @@ const MissionDetailDrawer = ({
   const deleteMission = useDeleteMission();
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
+  const [aiSummary, setAiSummary] = useState<string | null>(null);
+  const [aiSummaryLoading, setAiSummaryLoading] = useState(false);
   const skipNextSaveRef = useRef(true);
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -64,6 +67,24 @@ const MissionDetailDrawer = ({
     setCopied(true);
     toast({ title: "Lien copié", description: "Le lien de la page résumé a été copié." });
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleGenerateMissionSummary = async () => {
+    if (!mission) return;
+    setAiSummaryLoading(true);
+    setAiSummary(null);
+    try {
+      const response = await supabase.functions.invoke("generate-mission-summary", {
+        body: { action: "summarize_mission", mission_id: mission.id },
+      });
+
+      if (response.error) throw new Error(response.error.message);
+      setAiSummary(response.data.result);
+    } catch (error: any) {
+      toast({ title: "Erreur", description: error.message || "Impossible de générer le résumé", variant: "destructive" });
+    } finally {
+      setAiSummaryLoading(false);
+    }
   };
 
   // Form state
@@ -87,6 +108,7 @@ const MissionDetailDrawer = ({
   useEffect(() => {
     if (mission) {
       skipNextSaveRef.current = true;
+      setAiSummary(null);
       setTitle(mission.title);
       setDescription(mission.description || "");
       setClientName(mission.client_name || "");
@@ -171,12 +193,39 @@ const MissionDetailDrawer = ({
               {updateMission.isPending && (
                 <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
               )}
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleGenerateMissionSummary}
+                disabled={aiSummaryLoading}
+                title="Synthèse IA de la mission"
+                className={aiSummary ? "border-purple-300 text-purple-700" : ""}
+              >
+                {aiSummaryLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+              </Button>
               <Button size="sm" variant="outline" onClick={handleShareLink} title="Copier le lien de partage">
                 {copied ? <Check className="h-4 w-4 text-green-600" /> : <Share2 className="h-4 w-4" />}
               </Button>
             </div>
           </SheetTitle>
         </SheetHeader>
+
+        {/* AI Mission Summary Panel */}
+        {aiSummary && (
+          <div className="mt-4 p-4 bg-purple-50 border border-purple-200 rounded-lg text-sm relative">
+            <button
+              onClick={() => setAiSummary(null)}
+              className="absolute top-2 right-2 h-6 w-6 flex items-center justify-center rounded hover:bg-purple-200 text-purple-500"
+            >
+              <X className="h-4 w-4" />
+            </button>
+            <div className="flex items-center gap-1.5 text-purple-700 font-medium mb-2">
+              <Sparkles className="h-4 w-4" />
+              Synthèse IA de la mission
+            </div>
+            <div className="text-purple-900 whitespace-pre-wrap leading-relaxed pr-6">{aiSummary}</div>
+          </div>
+        )}
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
           <TabsList className="grid w-full grid-cols-4">
