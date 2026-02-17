@@ -59,7 +59,7 @@ const CrmKanbanBoard = () => {
 
   // Filter state: all (default board), en_cours, gagne, perdu, a_venir
   type FilterMode = "all" | "en_cours" | "gagne" | "perdu" | "a_venir";
-  const [filterMode, setFilterMode] = useState<FilterMode>("all");
+  const [filterMode, setFilterMode] = useState<FilterMode>("en_cours");
 
   // Search across all card fields (including hidden/scheduled cards)
   const allCards = boardData?.cards || [];

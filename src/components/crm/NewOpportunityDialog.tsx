@@ -66,8 +66,15 @@ export function NewOpportunityDialog({ open, onOpenChange, userEmail }: NewOppor
           brief_questions: editedExtraction.brief_questions,
           raw_input: rawInput,
           description_html: rawInput
+            .replace(/\r\n/g, "\n")
             .split("\n")
-            .map((line) => `<p>${line || "<br>"}</p>`)
+            .map((line) => {
+              const escaped = line
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;");
+              return `<p>${escaped || "<br>"}</p>`;
+            })
             .join(""), // Convert plain text newlines to HTML paragraphs
         },
         actorEmail: userEmail,

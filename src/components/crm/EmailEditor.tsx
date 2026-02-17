@@ -101,7 +101,13 @@ const EmailEditor = ({
 
   const insertSnippet = (snippet: EmailSnippet) => {
     if (!editor) return;
-    editor.chain().focus().insertContent(snippet.content).run();
+    // Convert plain text newlines to HTML paragraphs so Tiptap preserves line breaks
+    const htmlContent = snippet.content
+      .replace(/\r\n/g, "\n")
+      .split("\n")
+      .map((line) => `<p>${line || "<br>"}</p>`)
+      .join("");
+    editor.chain().focus().insertContent(htmlContent).run();
     setSnippetPopoverOpen(false);
   };
 

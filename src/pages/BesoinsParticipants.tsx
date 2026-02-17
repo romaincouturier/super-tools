@@ -2,12 +2,11 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
-import { 
-  Loader2, 
-  ArrowLeft, 
-  ClipboardList, 
-  Search, 
-  Filter,
+import {
+  Loader2,
+  ArrowLeft,
+  ClipboardList,
+  Search,
   ChevronDown,
   ChevronUp,
   ExternalLink,
@@ -34,13 +33,6 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 interface NeedsSurvey {
   id: string;
@@ -72,7 +64,6 @@ const BesoinsParticipants = () => {
   const [loading, setLoading] = useState(true);
   const [surveys, setSurveys] = useState<NeedsSurvey[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const navigate = useNavigate();
 
@@ -130,6 +121,7 @@ const BesoinsParticipants = () => {
           client_name
         )
       `)
+      .eq("etat", "complete")
       .order("date_soumission", { ascending: false, nullsFirst: false });
 
     if (error) {
@@ -163,42 +155,17 @@ const BesoinsParticipants = () => {
     });
   };
 
-  const getStatusBadge = (etat: string) => {
-    switch (etat) {
-      case "soumis":
-        return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Soumis</Badge>;
-      case "en_cours":
-        return <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100">En cours</Badge>;
-      case "envoye":
-        return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">Envoyé</Badge>;
-      default:
-        return <Badge variant="secondary">{etat}</Badge>;
-    }
-  };
-
   const filteredSurveys = surveys.filter((survey) => {
-    const matchesSearch =
+    return (
       searchTerm === "" ||
       survey.nom?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       survey.prenom?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       survey.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       survey.societe?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       survey.training?.training_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      survey.training?.client_name?.toLowerCase().includes(searchTerm.toLowerCase());
-
-    const matchesStatus =
-      statusFilter === "all" || survey.etat === statusFilter;
-
-    return matchesSearch && matchesStatus;
+      survey.training?.client_name?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
   });
-
-  // Count by status
-  const statusCounts = {
-    all: surveys.length,
-    soumis: surveys.filter((s) => s.etat === "soumis").length,
-    en_cours: surveys.filter((s) => s.etat === "en_cours").length,
-    envoye: surveys.filter((s) => s.etat === "envoye").length,
-  };
 
   if (loading) {
     return (
@@ -233,38 +200,14 @@ const BesoinsParticipants = () => {
           </div>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <Card>
-            <CardContent className="pt-4">
-              <div className="text-2xl font-bold">{statusCounts.all}</div>
-              <p className="text-sm text-muted-foreground">Total</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4">
-              <div className="text-2xl font-bold text-green-600">{statusCounts.soumis}</div>
-              <p className="text-sm text-muted-foreground">Soumis</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4">
-              <div className="text-2xl font-bold text-amber-600">{statusCounts.en_cours}</div>
-              <p className="text-sm text-muted-foreground">En cours</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4">
-              <div className="text-2xl font-bold text-blue-600">{statusCounts.envoye}</div>
-              <p className="text-sm text-muted-foreground">Envoyés</p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Filters */}
+        {/* Stats */}
         <Card className="mb-6">
           <CardContent className="pt-4">
-            <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex items-center gap-4">
+              <Badge className="bg-green-100 text-green-800 text-sm">
+                <CheckCircle2 className="h-4 w-4 mr-1" />
+                {surveys.length} recueil(s) complété(s)
+              </Badge>
               <div className="flex-1 relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -274,18 +217,6 @@ const BesoinsParticipants = () => {
                   className="pl-10"
                 />
               </div>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[180px]">
-                  <Filter className="h-4 w-4 mr-2" />
-                  <SelectValue placeholder="Statut" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tous ({statusCounts.all})</SelectItem>
-                  <SelectItem value="soumis">Soumis ({statusCounts.soumis})</SelectItem>
-                  <SelectItem value="en_cours">En cours ({statusCounts.en_cours})</SelectItem>
-                  <SelectItem value="envoye">Envoyés ({statusCounts.envoye})</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
           </CardContent>
         </Card>
@@ -313,7 +244,6 @@ const BesoinsParticipants = () => {
                     <TableHead>Formation</TableHead>
                     <TableHead>Client</TableHead>
                     <TableHead>Date formation</TableHead>
-                    <TableHead>Statut</TableHead>
                     <TableHead>Soumis le</TableHead>
                     <TableHead className="w-10"></TableHead>
                   </TableRow>
@@ -352,7 +282,6 @@ const BesoinsParticipants = () => {
                               ? format(parseISO(survey.training.start_date), "d MMM yyyy", { locale: fr })
                               : "-"}
                           </TableCell>
-                          <TableCell>{getStatusBadge(survey.etat)}</TableCell>
                           <TableCell>
                             {survey.date_soumission
                               ? format(parseISO(survey.date_soumission), "d MMM yyyy", { locale: fr })
@@ -374,7 +303,7 @@ const BesoinsParticipants = () => {
                         </TableRow>
                         <CollapsibleContent asChild>
                           <TableRow className="bg-muted/30">
-                            <TableCell colSpan={8} className="p-4">
+                            <TableCell colSpan={7} className="p-4">
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 {/* Left column */}
                                 <div className="space-y-4">
