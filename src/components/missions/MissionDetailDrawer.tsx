@@ -68,11 +68,6 @@ const MissionDetailDrawer = ({
   const [description, setDescription] = useState("");
   const [clientName, setClientName] = useState("");
   const [clientContact, setClientContact] = useState("");
-  const [clientFirstName, setClientFirstName] = useState("");
-  const [clientLastName, setClientLastName] = useState("");
-  const [clientEmail, setClientEmail] = useState("");
-  const [billingContactName, setBillingContactName] = useState("");
-  const [billingContactEmail, setBillingContactEmail] = useState("");
   const [status, setStatus] = useState<MissionStatus>("not_started");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -94,11 +89,6 @@ const MissionDetailDrawer = ({
       setDescription(mission.description || "");
       setClientName(mission.client_name || "");
       setClientContact(mission.client_contact || "");
-      setClientFirstName(mission.client_first_name || "");
-      setClientLastName(mission.client_last_name || "");
-      setClientEmail(mission.client_email || "");
-      setBillingContactName(mission.billing_contact_name || "");
-      setBillingContactEmail(mission.billing_contact_email || "");
       setStatus(mission.status);
       setStartDate(mission.start_date || "");
       setEndDate(mission.end_date || "");
@@ -122,11 +112,6 @@ const MissionDetailDrawer = ({
         description: description.trim() || null,
         client_name: clientName.trim() || null,
         client_contact: clientContact.trim() || null,
-        client_first_name: clientFirstName.trim() || null,
-        client_last_name: clientLastName.trim() || null,
-        client_email: clientEmail.trim() || null,
-        billing_contact_name: billingContactName.trim() || null,
-        billing_contact_email: billingContactEmail.trim() || null,
         status,
         start_date: startDate || null,
         end_date: endDate || null,
@@ -288,56 +273,13 @@ const MissionDetailDrawer = ({
                 placeholder="Nom de l'entreprise"
               />
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label>Prénom du contact</Label>
-                <Input
-                  value={clientFirstName}
-                  onChange={(e) => setClientFirstName(e.target.value)}
-                  placeholder="Prénom"
-                />
-              </div>
-              <div>
-                <Label>Nom du contact</Label>
-                <Input
-                  value={clientLastName}
-                  onChange={(e) => setClientLastName(e.target.value)}
-                  placeholder="Nom"
-                />
-              </div>
-            </div>
             <div>
-              <Label>Email du contact</Label>
+              <Label>Contact</Label>
               <Input
-                type="email"
-                value={clientEmail}
-                onChange={(e) => setClientEmail(e.target.value)}
-                placeholder="email@exemple.com"
+                value={clientContact}
+                onChange={(e) => setClientContact(e.target.value)}
+                placeholder="Nom, email, téléphone..."
               />
-            </div>
-
-            {/* Billing contact */}
-            <div className="p-4 bg-muted/50 rounded-lg space-y-3">
-              <h4 className="font-medium text-sm">Contact de facturation</h4>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label className="text-xs">Nom</Label>
-                  <Input
-                    value={billingContactName}
-                    onChange={(e) => setBillingContactName(e.target.value)}
-                    placeholder="Nom du contact facturation"
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs">Email</Label>
-                  <Input
-                    type="email"
-                    value={billingContactEmail}
-                    onChange={(e) => setBillingContactEmail(e.target.value)}
-                    placeholder="facturation@exemple.com"
-                  />
-                </div>
-              </div>
             </div>
 
             {/* Dates */}
