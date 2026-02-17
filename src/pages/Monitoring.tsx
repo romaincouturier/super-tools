@@ -1,16 +1,12 @@
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import {
   AreaChart,
   Area,
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  BarChart,
-  Bar,
 } from "recharts";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -18,7 +14,6 @@ import {
   ArrowLeft,
   Database,
   Loader2,
-  RefreshCw,
   HardDrive,
   Table2,
   TrendingUp,
@@ -37,7 +32,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
 interface DbSizeSnapshot {
@@ -58,9 +52,6 @@ function formatBytes(bytes: number): string {
 
 const Monitoring = () => {
   const navigate = useNavigate();
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const [snapshotLoading, setSnapshotLoading] = useState(false);
 
   // Fetch all snapshots
   const { data: snapshots = [], isLoading } = useQuery({
@@ -69,7 +60,7 @@ const Monitoring = () => {
       const { data, error } = await (supabase as any)
         .from("db_size_snapshots")
         .select("*")
-        .order("snapshot_date", { ascending: true });
+        .order("created_at", { ascending: true });
       if (error) throw error;
       return (data || []) as DbSizeSnapshot[];
     },
@@ -86,12 +77,12 @@ const Monitoring = () => {
     refetchInterval: 60000, // Refresh every minute
   });
 
-  // Chart data
+  // Chart data (hourly granularity)
   const chartData = useMemo(
     () =>
       snapshots.map((s) => ({
-        date: format(parseISO(s.snapshot_date), "d MMM", { locale: fr }),
-        fullDate: format(parseISO(s.snapshot_date), "d MMMM yyyy", { locale: fr }),
+        date: format(parseISO(s.created_at), "d MMM HH'h'", { locale: fr }),
+        fullDate: format(parseISO(s.created_at), "d MMMM yyyy à HH'h'mm", { locale: fr }),
         sizeMb: +(s.total_size_bytes / (1024 * 1024)).toFixed(2),
         sizeBytes: s.total_size_bytes,
       })),
@@ -120,32 +111,6 @@ const Monitoring = () => {
     firstSnapshot && firstSnapshot.total_size_bytes > 0
       ? ((growth / firstSnapshot.total_size_bytes) * 100).toFixed(1)
       : "0";
-
-  // Trigger manual snapshot
-  const handleSnapshot = async () => {
-    setSnapshotLoading(true);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const response = await supabase.functions.invoke("record-db-size", {
-        headers: { Authorization: `Bearer ${session?.access_token}` },
-      });
-
-      if (response.error) throw response.error;
-
-      toast({ title: "Snapshot enregistré" });
-      queryClient.invalidateQueries({ queryKey: ["db-size-snapshots"] });
-      queryClient.invalidateQueries({ queryKey: ["db-live-size"] });
-    } catch (error) {
-      console.error("Snapshot error:", error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de prendre un snapshot.",
-        variant: "destructive",
-      });
-    } finally {
-      setSnapshotLoading(false);
-    }
-  };
 
   const chartConfig = {
     sizeMb: {
@@ -183,14 +148,9 @@ const Monitoring = () => {
               <h1 className="text-2xl font-bold">Monitoring</h1>
             </div>
           </div>
-          <Button onClick={handleSnapshot} disabled={snapshotLoading} variant="outline">
-            {snapshotLoading ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <RefreshCw className="h-4 w-4 mr-2" />
-            )}
-            Prendre un snapshot
-          </Button>
+          <Badge variant="secondary" className="text-xs">
+            Snapshot automatique toutes les heures
+          </Badge>
         </div>
 
         {/* KPI cards */}
@@ -258,7 +218,7 @@ const Monitoring = () => {
                 <Database className="h-12 w-12 mx-auto mb-4 opacity-50" />
                 <p>Aucun historique disponible.</p>
                 <p className="text-sm mt-1">
-                  Cliquez sur "Prendre un snapshot" pour commencer le suivi.
+                  Les snapshots sont enregistrés automatiquement toutes les heures.
                 </p>
               </div>
             ) : (
