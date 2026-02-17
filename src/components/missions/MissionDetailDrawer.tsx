@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Sheet,
   SheetContent,
@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Save, Trash2, Loader2, X, Plus, Clock, FileText, Settings, ImageIcon, Share2, Copy, Check } from "lucide-react";
+import { Trash2, Loader2, X, Plus, Clock, FileText, Settings, ImageIcon, Share2, Check } from "lucide-react";
 import { Mission, MissionStatus, missionStatusConfig } from "@/types/missions";
 import { useUpdateMission, useDeleteMission } from "@/hooks/useMissions";
 import { useToast } from "@/hooks/use-toast";
@@ -54,6 +54,8 @@ const MissionDetailDrawer = ({
   const deleteMission = useDeleteMission();
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
+  const skipNextSaveRef = useRef(true);
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleShareLink = () => {
     if (!mission) return;
@@ -84,6 +86,7 @@ const MissionDetailDrawer = ({
   // Initialize form when mission changes
   useEffect(() => {
     if (mission) {
+      skipNextSaveRef.current = true;
       setTitle(mission.title);
       setDescription(mission.description || "");
       setClientName(mission.client_name || "");
@@ -99,27 +102,37 @@ const MissionDetailDrawer = ({
     }
   }, [mission]);
 
-  const handleSave = async () => {
+  // Auto-save settings with debounce
+  useEffect(() => {
+    if (skipNextSaveRef.current) {
+      skipNextSaveRef.current = false;
+      return;
+    }
     if (!mission) return;
 
-    await updateMission.mutateAsync({
-      id: mission.id,
-      updates: {
-        title: title.trim(),
-        description: description.trim() || null,
-        client_name: clientName.trim() || null,
-        status,
-        start_date: startDate || null,
-        end_date: endDate || null,
-        daily_rate: dailyRate ? parseFloat(dailyRate) : null,
-        total_days: totalDays ? parseInt(totalDays) : null,
-        initial_amount: initialAmount ? parseFloat(initialAmount) : null,
-        tags,
-        color,
-        emoji: missionEmoji,
-      },
-    });
-  };
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    saveTimeoutRef.current = setTimeout(() => {
+      updateMission.mutate({
+        id: mission.id,
+        updates: {
+          title: title.trim(),
+          description: description.trim() || null,
+          client_name: clientName.trim() || null,
+          status,
+          start_date: startDate || null,
+          end_date: endDate || null,
+          daily_rate: dailyRate ? parseFloat(dailyRate) : null,
+          total_days: totalDays ? parseInt(totalDays) : null,
+          initial_amount: initialAmount ? parseFloat(initialAmount) : null,
+          tags,
+          color,
+          emoji: missionEmoji,
+        },
+      });
+    }, 800);
+
+    return () => { if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current); };
+  }, [title, description, clientName, status, startDate, endDate, dailyRate, totalDays, initialAmount, tags, color, missionEmoji]);
 
   const handleDelete = async () => {
     if (!mission) return;
@@ -155,15 +168,11 @@ const MissionDetailDrawer = ({
           <SheetTitle className="flex items-center justify-between gap-2">
             <span className="truncate flex-1">{mission.title}</span>
             <div className="flex items-center gap-1">
+              {updateMission.isPending && (
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+              )}
               <Button size="sm" variant="outline" onClick={handleShareLink} title="Copier le lien de partage">
                 {copied ? <Check className="h-4 w-4 text-green-600" /> : <Share2 className="h-4 w-4" />}
-              </Button>
-              <Button size="sm" onClick={handleSave} disabled={updateMission.isPending}>
-                {updateMission.isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Save className="h-4 w-4" />
-                )}
               </Button>
             </div>
           </SheetTitle>

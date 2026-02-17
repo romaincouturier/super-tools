@@ -178,7 +178,7 @@ const PageTreeItem = ({
           )}
         </button>
 
-        <span className="text-sm shrink-0">{page.icon || "📄"}</span>
+        <FileText className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
         <span className="flex-1 text-sm overflow-x-auto whitespace-nowrap scrollbar-hide">
           {page.title || "Sans titre"}
         </span>
@@ -332,7 +332,7 @@ const PageEditor = ({
     content: page.content || "",
     editorProps: {
       attributes: {
-        class: "prose prose-base dark:prose-invert max-w-none focus:outline-none min-h-[calc(100vh-280px)] py-2 text-[15px] leading-relaxed",
+        class: "prose prose-base dark:prose-invert max-w-none focus:outline-none min-h-[calc(100vh-280px)] py-2 text-[15px] leading-normal",
       },
       handlePaste: (_view, event) => {
         const items = event.clipboardData?.items;
