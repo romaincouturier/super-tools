@@ -14,11 +14,14 @@ import {
   Redo,
   ImageIcon,
   Loader2,
+  Mic,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
 import { cn } from "@/lib/utils";
 import { useEffect, useCallback, useState } from "react";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 
 interface CrmDescriptionEditorProps {
@@ -132,12 +135,37 @@ const CrmDescriptionEditor = ({
     editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
   }, [editor]);
 
+  const insertVoicemailStamp = useCallback(() => {
+    if (!editor) return;
+    const now = format(new Date(), "EEEE d MMMM yyyy 'à' HH:mm", { locale: fr });
+    const stampHtml = `<p>---</p><p>Message vocal laissé le ${now}</p><p>---</p>`;
+
+    // Insert at the very beginning of the document
+    editor
+      .chain()
+      .focus("start")
+      .insertContent(stampHtml)
+      .run();
+  }, [editor]);
+
   if (!editor) return null;
 
   return (
     <div className={cn("border rounded-md bg-background relative", className)}>
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-0.5 px-2 py-1.5 border-b bg-muted/30">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={insertVoicemailStamp}
+          title="Ajouter un horodatage de message vocal"
+          className="h-7 px-1.5 text-muted-foreground hover:text-foreground"
+        >
+          <Mic className="h-3.5 w-3.5" />
+        </Button>
+
+        <div className="w-px h-5 bg-border mx-0.5" />
+
         <Toggle
           size="sm"
           pressed={editor.isActive("bold")}
