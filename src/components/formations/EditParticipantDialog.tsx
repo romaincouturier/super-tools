@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Pencil, Loader2, FileText, Upload, Trash2, ExternalLink, CheckCircle2, Download } from "lucide-react";
+import { Pencil, Loader2, FileText, Upload, Trash2, ExternalLink, CheckCircle2, Download, Paperclip, StickyNote } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
@@ -48,6 +49,13 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 
+interface ParticipantFile {
+  id: string;
+  file_url: string;
+  file_name: string;
+  uploaded_at: string;
+}
+
 interface Participant {
   id: string;
   first_name: string | null;
@@ -64,6 +72,7 @@ interface Participant {
   sold_price_ht?: number | null;
   signed_convention_url?: string | null;
   elearning_duration?: number | null;
+  notes?: string | null;
 }
 
 interface ConventionSignatureStatus {
@@ -127,6 +136,9 @@ const EditParticipantDialog = ({
   const [signedConventionUrl, setSignedConventionUrl] = useState(participant.signed_convention_url || null);
   const [uploadingConvention, setUploadingConvention] = useState(false);
   const [conventionSignature, setConventionSignature] = useState<ConventionSignatureStatus | null>(null);
+  const [notes, setNotes] = useState(participant.notes || "");
+  const [participantFiles, setParticipantFiles] = useState<ParticipantFile[]>([]);
+  const [uploadingFile, setUploadingFile] = useState(false);
   const { toast } = useToast();
 
   const isInterEntreprise = formatFormation === "inter-entreprises" || formatFormation === "e_learning";
@@ -147,6 +159,7 @@ const EditParticipantDialog = ({
     setSoldPriceHt(participant.sold_price_ht != null ? String(participant.sold_price_ht) : "");
     setElearningDuration(participant.elearning_duration != null ? String(participant.elearning_duration) : (trainingElearningDuration != null ? String(trainingElearningDuration) : ""));
     setSignedConventionUrl(participant.signed_convention_url || null);
+    setNotes(participant.notes || "");
   }, [participant, trainingElearningDuration]);
 
   // Fetch electronic convention signature status
@@ -172,6 +185,25 @@ const EditParticipantDialog = ({
       fetchConventionSignature();
     }
   }, [open, isInterEntreprise, trainingId, participant.sponsor_email]);
+
+  // Fetch participant files when dialog opens
+  useEffect(() => {
+    const fetchFiles = async () => {
+      const { data, error } = await (supabase as any)
+        .from("participant_files")
+        .select("id, file_url, file_name, uploaded_at")
+        .eq("participant_id", participant.id)
+        .order("uploaded_at", { ascending: false });
+
+      if (!error && data) {
+        setParticipantFiles(data);
+      }
+    };
+
+    if (open && isInterEntreprise) {
+      fetchFiles();
+    }
+  }, [open, isInterEntreprise, participant.id]);
 
   // Fetch existing funders when dialog opens
   useEffect(() => {
@@ -200,6 +232,79 @@ const EditParticipantDialog = ({
     }
   }, [open, isInterEntreprise]);
 
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingFile(true);
+    try {
+      const sanitized = file.name
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-zA-Z0-9_.-]/g, "_");
+      const path = `${trainingId}/participant_${participant.id}/fichier_${Date.now()}_${sanitized}`;
+
+      const { error: uploadErr } = await supabase.storage
+        .from("training-documents")
+        .upload(path, file);
+      if (uploadErr) throw uploadErr;
+
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("training-documents").getPublicUrl(path);
+
+      const { data: insertedFile, error: insertErr } = await (supabase as any)
+        .from("participant_files")
+        .insert({
+          participant_id: participant.id,
+          file_url: publicUrl,
+          file_name: file.name,
+        })
+        .select("id, file_url, file_name, uploaded_at")
+        .single();
+
+      if (insertErr) throw insertErr;
+
+      setParticipantFiles((prev) => [insertedFile, ...prev]);
+      toast({ title: "Fichier ajouté" });
+    } catch (err) {
+      console.error("File upload error:", err);
+      toast({
+        title: "Erreur d'upload",
+        description: err instanceof Error ? err.message : "Erreur.",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingFile(false);
+      // Reset input
+      e.target.value = "";
+    }
+  };
+
+  const handleDeleteFile = async (fileToDelete: ParticipantFile) => {
+    try {
+      const urlParts = fileToDelete.file_url.split("/training-documents/");
+      if (urlParts.length > 1) {
+        await supabase.storage.from("training-documents").remove([urlParts[1]]);
+      }
+
+      await (supabase as any)
+        .from("participant_files")
+        .delete()
+        .eq("id", fileToDelete.id);
+
+      setParticipantFiles((prev) => prev.filter((f) => f.id !== fileToDelete.id));
+      toast({ title: "Fichier supprimé" });
+    } catch (err) {
+      console.error("Delete file error:", err);
+      toast({
+        title: "Erreur",
+        description: "Impossible de supprimer le fichier.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -221,6 +326,11 @@ const EditParticipantDialog = ({
         email: email.trim().toLowerCase(),
         company: company.trim() || null,
       };
+
+      // Add notes for inter-enterprise
+      if (isInterEntreprise) {
+        updateData.notes = notes.trim() || null;
+      }
 
       // Add inter-enterprise fields if applicable
       if (isInterEntreprise) {
@@ -710,6 +820,103 @@ const EditParticipantDialog = ({
                     </Label>
                   )}
                 </div>
+
+                {/* Notes libres */}
+                <div className="pt-4 border-t">
+                  <Label className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+                    <StickyNote className="h-4 w-4" />
+                    Notes
+                  </Label>
+                </div>
+                <div className="space-y-2">
+                  <Textarea
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    placeholder="Notes libres sur ce participant..."
+                    rows={3}
+                  />
+                </div>
+
+                {/* Fichiers libres */}
+                <div className="pt-4 border-t">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+                      <Paperclip className="h-4 w-4" />
+                      Fichiers joints ({participantFiles.length})
+                    </Label>
+                    <Label htmlFor={`participant-file-${participant.id}`} className="cursor-pointer">
+                      <input
+                        id={`participant-file-${participant.id}`}
+                        type="file"
+                        className="hidden"
+                        disabled={uploadingFile}
+                        onChange={handleFileUpload}
+                      />
+                      <Button type="button" variant="outline" size="sm" disabled={uploadingFile} asChild>
+                        <span>
+                          {uploadingFile ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          ) : (
+                            <Upload className="h-4 w-4 mr-2" />
+                          )}
+                          Ajouter un fichier
+                        </span>
+                      </Button>
+                    </Label>
+                  </div>
+                </div>
+                {participantFiles.length > 0 && (
+                  <div className="space-y-2">
+                    {participantFiles.map((pf) => (
+                      <div
+                        key={pf.id}
+                        className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg"
+                      >
+                        <FileText className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                        <a
+                          href={pf.file_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex-1 text-sm text-primary hover:underline truncate"
+                        >
+                          {pf.file_name}
+                        </a>
+                        <span className="text-xs text-muted-foreground flex-shrink-0">
+                          {new Date(pf.uploaded_at).toLocaleDateString("fr-FR")}
+                        </span>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Supprimer ce fichier ?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Le fichier "{pf.file_name}" sera supprimé définitivement.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Annuler</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => handleDeleteFile(pf)}
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              >
+                                Supprimer
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </>
             )}
           </div>
