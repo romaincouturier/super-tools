@@ -2520,6 +2520,108 @@ export type Database = {
           },
         ]
       }
+      sponsor_cold_evaluations: {
+        Row: {
+          attentes_satisfaites: string | null
+          axes_amelioration: string | null
+          commentaires_libres: string | null
+          communication_satisfaisante: boolean | null
+          company: string | null
+          consent_publication: boolean | null
+          created_at: string | null
+          date_envoi: string | null
+          date_premiere_ouverture: string | null
+          date_soumission: string | null
+          description_impact: string | null
+          etat: string
+          id: string
+          impact_competences: string | null
+          message_recommandation: string | null
+          objectifs_atteints: string | null
+          organisation_satisfaisante: boolean | null
+          participant_id: string | null
+          points_forts: string | null
+          recommandation: string | null
+          satisfaction_globale: number | null
+          sponsor_email: string | null
+          sponsor_name: string | null
+          token: string
+          training_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          attentes_satisfaites?: string | null
+          axes_amelioration?: string | null
+          commentaires_libres?: string | null
+          communication_satisfaisante?: boolean | null
+          company?: string | null
+          consent_publication?: boolean | null
+          created_at?: string | null
+          date_envoi?: string | null
+          date_premiere_ouverture?: string | null
+          date_soumission?: string | null
+          description_impact?: string | null
+          etat?: string
+          id?: string
+          impact_competences?: string | null
+          message_recommandation?: string | null
+          objectifs_atteints?: string | null
+          organisation_satisfaisante?: boolean | null
+          participant_id?: string | null
+          points_forts?: string | null
+          recommandation?: string | null
+          satisfaction_globale?: number | null
+          sponsor_email?: string | null
+          sponsor_name?: string | null
+          token: string
+          training_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          attentes_satisfaites?: string | null
+          axes_amelioration?: string | null
+          commentaires_libres?: string | null
+          communication_satisfaisante?: boolean | null
+          company?: string | null
+          consent_publication?: boolean | null
+          created_at?: string | null
+          date_envoi?: string | null
+          date_premiere_ouverture?: string | null
+          date_soumission?: string | null
+          description_impact?: string | null
+          etat?: string
+          id?: string
+          impact_competences?: string | null
+          message_recommandation?: string | null
+          objectifs_atteints?: string | null
+          organisation_satisfaisante?: boolean | null
+          participant_id?: string | null
+          points_forts?: string | null
+          recommandation?: string | null
+          satisfaction_globale?: number | null
+          sponsor_email?: string | null
+          sponsor_name?: string | null
+          token?: string
+          training_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sponsor_cold_evaluations_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "training_participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sponsor_cold_evaluations_training_id_fkey"
+            columns: ["training_id"]
+            isOneToOne: false
+            referencedRelation: "trainings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trainers: {
         Row: {
           created_at: string
