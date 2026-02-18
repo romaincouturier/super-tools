@@ -3,6 +3,10 @@
  *
  * Pings all edge functions via OPTIONS request to verify they are
  * deployed and reachable. Returns status and response time for each.
+ *
+ * IMPORTANT: When adding a new edge function to the project,
+ * add its name to the FUNCTION_NAMES array below so it appears
+ * in the monitoring dashboard automatically.
  */
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
@@ -13,6 +17,11 @@ import {
   createJsonResponse,
 } from "../_shared/cors.ts";
 
+/**
+ * Complete list of all edge functions in the project.
+ * Keep this list in sync with supabase/functions/ directories.
+ * Excluded: _shared (not a function), check-functions-health (self).
+ */
 const FUNCTION_NAMES = [
   "ai-content-assist",
   "analyze-evaluations",
@@ -68,6 +77,7 @@ const FUNCTION_NAMES = [
   "send-questionnaire-confirmation",
   "send-thank-you-email",
   "send-training-calendar-invite",
+  "send-training-documents",
   "send-welcome-email",
   "submit-attendance-signature",
   "submit-convention-signature",
