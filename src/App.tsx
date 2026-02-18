@@ -54,6 +54,10 @@ const EventDetail = lazy(() => import("./pages/EventDetail"));
 const EventEdit = lazy(() => import("./pages/EventEdit"));
 const Monitoring = lazy(() => import("./pages/Monitoring"));
 const FailedEmails = lazy(() => import("./pages/FailedEmails"));
+// AI Arena
+const ArenaSetup = lazy(() => import("./pages/ArenaSetup"));
+const ArenaDiscussion = lazy(() => import("./pages/ArenaDiscussion"));
+const ArenaResults = lazy(() => import("./pages/ArenaResults"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -150,6 +154,10 @@ const App = () => (
               <Route path="/auth" element={<Auth />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/force-password-change" element={<ForcePasswordChange />} />
+              {/* AI Arena */}
+              <Route path="/arena" element={<ArenaSetup />} />
+              <Route path="/arena/discussion" element={<ArenaDiscussion />} />
+              <Route path="/arena/results" element={<ArenaResults />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

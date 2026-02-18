@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { Settings, AlertTriangle } from "lucide-react";
+import { Settings, AlertTriangle, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import SupertiltLogo from "@/components/SupertiltLogo";
@@ -100,6 +100,21 @@ const AppHeader = ({ showOnboarding = false }: AppHeaderProps) => {
               </Tooltip>
             </TooltipProvider>
           )}
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => navigate("/arena")}
+                  className="p-2 rounded-lg hover:bg-background/10 transition-colors"
+                >
+                  <Sparkles className="w-5 h-5" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>AI Arena</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
