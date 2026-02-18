@@ -75,6 +75,8 @@ const CreateMissionDialog = ({
     }
   };
 
+  console.log("[CreateMissionDialog] render, open:", open, "title:", title);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
