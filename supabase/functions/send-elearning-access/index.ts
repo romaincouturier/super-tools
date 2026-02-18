@@ -16,7 +16,7 @@ serve(async (req) => {
   if (corsResponse) return corsResponse;
 
   try {
-    const { participantId, trainingId } = await req.json();
+    const { participantId, trainingId, couponCode } = await req.json();
 
     if (!participantId || !trainingId) {
       return createErrorResponse("participantId and trainingId are required", 400);
@@ -95,6 +95,26 @@ serve(async (req) => {
     // Build access link from supertilt_link or location
     const accessLink = training.supertilt_link || training.location || "";
 
+    // Build coupon instructions block if coupon is provided
+    let couponInstructions = "";
+    if (couponCode) {
+      couponInstructions = `
+        <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 16px; margin: 16px 0;">
+          <p style="margin: 0 0 8px; font-weight: bold;">Ton code de réduction : <span style="font-size: 1.2em; color: #16a34a;">${escapeHtml(couponCode)}</span></p>
+          <p style="margin: 0 0 8px;">Voici les étapes pour accéder à la formation :</p>
+          <ol style="margin: 0; padding-left: 20px;">
+            <li>Rends-toi sur <a href="${escapeHtml(accessLink)}">${escapeHtml(accessLink)}</a></li>
+            <li>Clique sur "S'inscrire"</li>
+            <li>Sur la page de la commande, clique sur "Cliquez ici pour entrer votre code"</li>
+            <li>Saisis le code <strong>${escapeHtml(couponCode)}</strong></li>
+            <li>Ton panier est mis à jour avec la réduction</li>
+            <li>Complète tes informations et valide la commande</li>
+            <li>Tu recevras un email avec tes accès à la formation</li>
+          </ol>
+          <p style="margin: 8px 0 0; font-size: 0.85em; color: #6b7280;"><em>Ce code est personnel et à usage unique.</em></p>
+        </div>`;
+    }
+
     // Variable replacements
     const variables: Record<string, string> = {
       first_name: participant.first_name || "",
@@ -103,6 +123,8 @@ serve(async (req) => {
       access_link: accessLink,
       start_date: formatDateFr(training.start_date),
       end_date: formatDateFr(training.end_date || training.start_date),
+      coupon_code: couponCode || "",
+      coupon_instructions: couponInstructions,
     };
 
     emailSubject = replaceVariables(emailSubject, variables);
@@ -139,6 +161,7 @@ serve(async (req) => {
           training_name: training.training_name,
           participant_id: participantId,
           participant_name: `${participant.first_name || ""} ${participant.last_name || ""}`.trim(),
+          coupon_code: couponCode || null,
         },
       });
     } catch (logError) {

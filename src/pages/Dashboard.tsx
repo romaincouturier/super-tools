@@ -21,6 +21,7 @@ import {
   Maximize2,
   Square,
   LayoutGrid,
+  BookOpen,
 } from "lucide-react";
 import {
   DndContext,
@@ -129,6 +130,14 @@ const tools: Tool[] = [
     icon: <FileText />,
     path: "/micro-devis",
     module: "micro_devis",
+  },
+  {
+    id: "catalogue",
+    name: "Catalogue",
+    description: "Gérer le catalogue de formations",
+    icon: <BookOpen />,
+    path: "/catalogue",
+    module: "formations",
   },
   {
     id: "formations",

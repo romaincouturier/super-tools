@@ -58,6 +58,7 @@ const FailedEmails = lazy(() => import("./pages/FailedEmails"));
 const ArenaSetup = lazy(() => import("./pages/ArenaSetup"));
 const ArenaDiscussion = lazy(() => import("./pages/ArenaDiscussion"));
 const ArenaResults = lazy(() => import("./pages/ArenaResults"));
+const Catalogue = lazy(() => import("./pages/Catalogue"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -132,6 +133,8 @@ const App = () => (
               <Route path="/events/:id/edit" element={<EventEdit />} />
               {/* Admin monitoring */}
               <Route path="/monitoring" element={<Monitoring />} />
+              {/* Training catalog */}
+              <Route path="/catalogue" element={<Catalogue />} />
               {/* Failed emails */}
               <Route path="/emails-erreur" element={<FailedEmails />} />
               {/* Public needs survey */}

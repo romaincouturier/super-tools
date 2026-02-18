@@ -21,7 +21,7 @@ import ScheduleEditor, { Schedule, SESSION_PRESETS } from "@/components/formatio
 import PrerequisitesEditor from "@/components/formations/PrerequisitesEditor";
 import ProgramSelector from "@/components/formations/ProgramSelector";
 import ObjectivesEditor from "@/components/formations/ObjectivesEditor";
-import TrainingNameCombobox from "@/components/formations/TrainingNameCombobox";
+import TrainingNameCombobox, { FormationConfig } from "@/components/formations/TrainingNameCombobox";
 import TrainerSelector from "@/components/formations/TrainerSelector";
 import SupertiltLinkCombobox from "@/components/formations/SupertiltLinkCombobox";
 
@@ -66,6 +66,9 @@ const FormationEdit = () => {
   const [financeurSameAsSponsor, setFinanceurSameAsSponsor] = useState(true);
   const [financeurName, setFinanceurName] = useState("");
   const [financeurUrl, setFinanceurUrl] = useState("");
+
+  // Catalog
+  const [catalogId, setCatalogId] = useState<string | null>(null);
 
   // Notes
   const [trainingNotes, setTrainingNotes] = useState("");
@@ -136,6 +139,7 @@ const FormationEdit = () => {
       setFinanceurName(training.financeur_name || "");
       setFinanceurUrl(training.financeur_url || "");
       setTrainingNotes((training as any).notes || "");
+      setCatalogId(training.catalog_id || null);
 
       // For e-learning, load start/end dates directly (no schedules)
       if (training.format_formation === "e_learning") {
@@ -331,6 +335,7 @@ const FormationEdit = () => {
           financeur_url: financeurSameAsSponsor ? null : (financeurUrl || null),
           elearning_duration: formatFormation === "e_learning" && elearningDuration ? parseFloat(elearningDuration) : null,
           elearning_access_email_content: formatFormation === "e_learning" && elearningAccessEmailContent ? elearningAccessEmailContent : null,
+          catalog_id: catalogId || null,
           notes: trainingNotes.trim() || null,
         } as any)
         .eq("id", id);
@@ -463,9 +468,29 @@ const FormationEdit = () => {
                     <TrainingNameCombobox
                       value={trainingName}
                       onChange={setTrainingName}
-                      onFormationSelect={(formation) => {
-                        if (formation?.programme_url) {
-                          setProgramFileUrl(formation.programme_url);
+                      onFormationSelect={(formation: FormationConfig | null) => {
+                        if (formation) {
+                          setCatalogId(formation.id);
+                          if (formation.programme_url) {
+                            setProgramFileUrl(formation.programme_url);
+                          }
+                          if (formation.objectives?.length) {
+                            setObjectives(formation.objectives);
+                          }
+                          if (formation.prerequisites?.length) {
+                            setPrerequisites(formation.prerequisites);
+                          }
+                          if (formation.supertilt_link) {
+                            setSupertiltLink(formation.supertilt_link);
+                          }
+                          if (formation.elearning_duration) {
+                            setElearningDuration(String(formation.elearning_duration));
+                          }
+                          if (formation.elearning_access_email_content) {
+                            setElearningAccessEmailContent(formation.elearning_access_email_content);
+                          }
+                        } else {
+                          setCatalogId(null);
                         }
                       }}
                     />

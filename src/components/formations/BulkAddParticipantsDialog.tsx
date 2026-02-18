@@ -319,14 +319,32 @@ const BulkAddParticipantsDialog = ({
         }
       }
 
-      // For e-learning: send access email to each participant (bulk doesn't have payment_mode, default is invoice)
+      // For e-learning: generate coupon + send access email to each participant
       if (formatFormation === "e_learning" && data && data.length > 0) {
         for (const participant of data) {
           try {
+            // Try to generate WooCommerce coupon
+            let couponCode: string | undefined;
+            try {
+              const { data: couponData } = await supabase.functions.invoke("generate-woocommerce-coupon", {
+                body: {
+                  participantId: participant.id,
+                  trainingId,
+                },
+              });
+              if (couponData?.coupon_code) {
+                couponCode = couponData.coupon_code;
+              }
+            } catch (couponErr) {
+              console.error("Failed to generate coupon for:", participant.email, couponErr);
+            }
+
+            // Send e-learning access email with coupon if available
             await supabase.functions.invoke("send-elearning-access", {
               body: {
                 participantId: participant.id,
                 trainingId,
+                couponCode,
               },
             });
             await new Promise(resolve => setTimeout(resolve, 500));
