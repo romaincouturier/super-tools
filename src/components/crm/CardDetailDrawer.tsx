@@ -1301,7 +1301,22 @@ const CardDetailDrawer = ({
                 </h4>
                 <ul className="space-y-1.5">
                   {card.brief_questions.map((q: BriefQuestion) => (
-                    <li key={q.id} className="flex items-start gap-2 text-sm">
+                    <li
+                      key={q.id}
+                      className="flex items-start gap-2 text-sm cursor-pointer hover:bg-amber-100/50 rounded px-1 py-0.5 -mx-1 transition-colors"
+                      onClick={() => {
+                        if (!user?.email) return;
+                        const updatedQuestions = card.brief_questions.map((bq: BriefQuestion) =>
+                          bq.id === q.id ? { ...bq, answered: !bq.answered } : bq
+                        );
+                        updateCard.mutate({
+                          id: card.id,
+                          updates: { brief_questions: updatedQuestions },
+                          actorEmail: user.email,
+                          oldCard: card,
+                        });
+                      }}
+                    >
                       {q.answered ? (
                         <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
                       ) : (
