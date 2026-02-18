@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
-import { Loader2, ArrowLeft, Settings, Mail, Save, RotateCcw, Sparkles, Cog, ExternalLink, Shield, Database, Users, Key, Tag } from "lucide-react";
+import { Loader2, ArrowLeft, Settings, Mail, Save, RotateCcw, Sparkles, Cog, ExternalLink, Shield, Database, Users, Key, Tag, Upload, FileText, Trash2 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import AppHeader from "@/components/AppHeader";
 import { Button } from "@/components/ui/button";
@@ -671,6 +671,10 @@ const Parametres = () => {
   // Permissions
   const [canDeleteEvaluationsEmails, setCanDeleteEvaluationsEmails] = useState("");
 
+  // Règlement intérieur
+  const [reglementUrl, setReglementUrl] = useState("");
+  const [uploadingReglement, setUploadingReglement] = useState(false);
+
   // Check if user is admin
   const isAdmin = user?.email?.toLowerCase() === "romain@supertilt.fr";
   
@@ -719,7 +723,8 @@ const Parametres = () => {
         "delay_cold_evaluation_days", "delay_cold_evaluation_funder_days",
         "delay_evaluation_reminder_1_days", "delay_evaluation_reminder_2_days",
         "delay_convention_reminder_1_days", "delay_convention_reminder_2_days",
-        "can_delete_evaluations_emails"
+        "can_delete_evaluations_emails",
+        "reglement_interieur_url"
       ]);
     
     if (error) {
@@ -793,6 +798,9 @@ const Parametres = () => {
         case "can_delete_evaluations_emails":
           setCanDeleteEvaluationsEmails(setting.setting_value || "");
           break;
+        case "reglement_interieur_url":
+          setReglementUrl(setting.setting_value || "");
+          break;
       }
     });
   };
@@ -821,6 +829,7 @@ const Parametres = () => {
         { setting_key: "delay_convention_reminder_1_days", setting_value: delayConventionReminder1, description: "Délai en jours ouvrés pour la 1ère relance convention de formation" },
         { setting_key: "delay_convention_reminder_2_days", setting_value: delayConventionReminder2, description: "Délai en jours ouvrés pour la 2ème relance convention de formation" },
         { setting_key: "can_delete_evaluations_emails", setting_value: canDeleteEvaluationsEmails, description: "Emails des utilisateurs autorisés à supprimer des évaluations (séparés par des virgules)" },
+        { setting_key: "reglement_interieur_url", setting_value: reglementUrl, description: "URL du règlement intérieur des formations (PDF uploadé)" },
       ];
 
       for (const setting of settingsToSave) {
@@ -1683,6 +1692,93 @@ const Parametres = () => {
                       </p>
                     </div>
                   </div>
+                </div>
+
+                <Separator />
+
+                {/* Règlement intérieur */}
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium">Règlement intérieur des formations</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Uploadez le règlement intérieur de vos formations (PDF). Il sera consultable depuis la page de synthèse de chaque formation.
+                  </p>
+
+                  {reglementUrl ? (
+                    <div className="flex items-center gap-3 p-3 rounded-lg border bg-muted/30 max-w-lg">
+                      <FileText className="h-5 w-5 text-primary shrink-0" />
+                      <span className="text-sm font-medium truncate flex-1">Règlement intérieur</span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        asChild
+                      >
+                        <a href={reglementUrl} target="_blank" rel="noopener noreferrer">
+                          <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
+                          Consulter
+                        </a>
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-destructive hover:text-destructive"
+                        onClick={() => setReglementUrl("")}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <Label htmlFor="reglement-upload" className="sr-only">Règlement intérieur (PDF)</Label>
+                      <div className="flex items-center gap-2 max-w-lg">
+                        <Button
+                          variant="outline"
+                          disabled={uploadingReglement}
+                          onClick={() => document.getElementById("reglement-upload")?.click()}
+                        >
+                          {uploadingReglement ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          ) : (
+                            <Upload className="h-4 w-4 mr-2" />
+                          )}
+                          Choisir un fichier PDF
+                        </Button>
+                        <input
+                          id="reglement-upload"
+                          type="file"
+                          accept=".pdf"
+                          className="hidden"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            if (file.type !== "application/pdf") {
+                              toast({ title: "Format invalide", description: "Seuls les fichiers PDF sont acceptés.", variant: "destructive" });
+                              return;
+                            }
+                            setUploadingReglement(true);
+                            try {
+                              const ext = file.name.split(".").pop();
+                              const filePath = `reglement-interieur/reglement-interieur-${Date.now()}.${ext}`;
+                              const { error: uploadError } = await supabase.storage
+                                .from("training-documents")
+                                .upload(filePath, file, { upsert: true });
+                              if (uploadError) throw uploadError;
+                              const { data: urlData } = supabase.storage
+                                .from("training-documents")
+                                .getPublicUrl(filePath);
+                              setReglementUrl(urlData.publicUrl);
+                              toast({ title: "Fichier uploadé" });
+                            } catch (err) {
+                              console.error("Upload error:", err);
+                              toast({ title: "Erreur d'upload", description: "Impossible d'uploader le fichier.", variant: "destructive" });
+                            } finally {
+                              setUploadingReglement(false);
+                              e.target.value = "";
+                            }
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <Separator />

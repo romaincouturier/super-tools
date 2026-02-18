@@ -102,6 +102,13 @@ const FormationDetail = () => {
   const [mapDialogOpen, setMapDialogOpen] = useState(false);
   const [emailsRefreshTrigger, setEmailsRefreshTrigger] = useState(0);
   const [autoAddParticipantOpen, setAutoAddParticipantOpen] = useState(false);
+  const [addParticipantData, setAddParticipantData] = useState<{
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+    company?: string;
+    soldPriceHt?: string;
+  } | null>(null);
   const [notes, setNotes] = useState("");
   const [savingNotes, setSavingNotes] = useState(false);
   const [notesChanged, setNotesChanged] = useState(false);
@@ -109,14 +116,23 @@ const FormationDetail = () => {
   const { toast } = useToast();
 
   // Auto-open add participant dialog from URL params (CRM integration)
-  const addParticipantFirstName = searchParams.get("addParticipantFirstName") || undefined;
-  const addParticipantLastName = searchParams.get("addParticipantLastName") || undefined;
-  const addParticipantEmail = searchParams.get("addParticipantEmail") || undefined;
-  const addParticipantCompany = searchParams.get("addParticipantCompany") || undefined;
-  const hasAddParticipantParams = !!(addParticipantFirstName || addParticipantLastName || addParticipantEmail);
-
+  // Store values in state BEFORE cleaning URL to prevent race condition
   useEffect(() => {
-    if (hasAddParticipantParams && !loading && training) {
+    const pFirstName = searchParams.get("addParticipantFirstName") || undefined;
+    const pLastName = searchParams.get("addParticipantLastName") || undefined;
+    const pEmail = searchParams.get("addParticipantEmail") || undefined;
+    const pCompany = searchParams.get("addParticipantCompany") || undefined;
+    const pSoldPriceHt = searchParams.get("addParticipantSoldPriceHt") || undefined;
+    const hasParams = !!(pFirstName || pLastName || pEmail);
+
+    if (hasParams && !loading && training) {
+      setAddParticipantData({
+        firstName: pFirstName,
+        lastName: pLastName,
+        email: pEmail,
+        company: pCompany,
+        soldPriceHt: pSoldPriceHt,
+      });
       setAutoAddParticipantOpen(true);
       // Clean up URL params
       const newParams = new URLSearchParams(searchParams);
@@ -124,10 +140,11 @@ const FormationDetail = () => {
       newParams.delete("addParticipantLastName");
       newParams.delete("addParticipantEmail");
       newParams.delete("addParticipantCompany");
+      newParams.delete("addParticipantSoldPriceHt");
       newParams.delete("fromCrmCardId");
       setSearchParams(newParams, { replace: true });
     }
-  }, [hasAddParticipantParams, loading, training]);
+  }, [searchParams, loading, training]);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -1019,12 +1036,16 @@ const FormationDetail = () => {
                       formatFormation={training.format_formation}
                       onParticipantAdded={fetchParticipants}
                       onScheduledEmailsRefresh={() => setEmailsRefreshTrigger(prev => prev + 1)}
-                      initialFirstName={addParticipantFirstName}
-                      initialLastName={addParticipantLastName}
-                      initialEmail={addParticipantEmail}
-                      initialCompany={addParticipantCompany}
+                      initialFirstName={addParticipantData?.firstName}
+                      initialLastName={addParticipantData?.lastName}
+                      initialEmail={addParticipantData?.email}
+                      initialCompany={addParticipantData?.company}
+                      initialSoldPriceHt={addParticipantData?.soldPriceHt}
                       externalOpen={autoAddParticipantOpen}
-                      onExternalOpenChange={setAutoAddParticipantOpen}
+                      onExternalOpenChange={(open) => {
+                        setAutoAddParticipantOpen(open);
+                        if (!open) setAddParticipantData(null);
+                      }}
                     />
                   </div>
                 </div>

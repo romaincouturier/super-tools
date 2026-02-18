@@ -268,6 +268,9 @@ const CardDetailDrawer = ({
     if (lastName) params.set("addParticipantLastName", lastName);
     if (email) params.set("addParticipantEmail", email);
     if (company) params.set("addParticipantCompany", company);
+    if (estimatedValue && parseFloat(estimatedValue) > 0) {
+      params.set("addParticipantSoldPriceHt", estimatedValue);
+    }
     if (card?.id) params.set("fromCrmCardId", card.id);
     const qs = params.toString();
     navigate(`/formations/${trainingId}${qs ? `?${qs}` : ""}`);

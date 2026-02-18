@@ -46,6 +46,7 @@ interface AddParticipantDialogProps {
   initialLastName?: string;
   initialEmail?: string;
   initialCompany?: string;
+  initialSoldPriceHt?: string;
   externalOpen?: boolean;
   onExternalOpenChange?: (open: boolean) => void;
 }
@@ -66,7 +67,7 @@ const capitalizeName = (name: string): string => {
     .join("");
 };
 
-const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, formatFormation, onParticipantAdded, onScheduledEmailsRefresh, initialFirstName, initialLastName, initialEmail, initialCompany, externalOpen, onExternalOpenChange }: AddParticipantDialogProps) => {
+const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, formatFormation, onParticipantAdded, onScheduledEmailsRefresh, initialFirstName, initialLastName, initialEmail, initialCompany, initialSoldPriceHt, externalOpen, onExternalOpenChange }: AddParticipantDialogProps) => {
   const [internalOpen, setInternalOpen] = useState(false);
   const open = externalOpen !== undefined ? externalOpen : internalOpen;
   const setOpen = (v: boolean) => {
@@ -106,8 +107,9 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
         // For intra trainings, prefill company with the training's client name
         setCompany(clientName);
       }
+      if (initialSoldPriceHt) setSoldPriceHt(initialSoldPriceHt);
     }
-  }, [open, initialFirstName, initialLastName, initialEmail, initialCompany, clientName, isInterEntreprise]);
+  }, [open, initialFirstName, initialLastName, initialEmail, initialCompany, initialSoldPriceHt, clientName, isInterEntreprise]);
 
   // Fetch existing funders when dialog opens
   useEffect(() => {

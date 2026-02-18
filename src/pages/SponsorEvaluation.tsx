@@ -21,6 +21,9 @@ type SponsorEvalRecord = {
   sponsor_email: string | null;
   sponsor_name: string | null;
   company: string | null;
+  training_name: string | null;
+  training_start_date: string | null;
+  training_end_date: string | null;
   satisfaction_globale: number | null;
   attentes_satisfaites: string | null;
   objectifs_atteints: string | null;
@@ -38,7 +41,7 @@ type SponsorEvalRecord = {
   date_soumission: string | null;
 };
 
-type TrainingRecord = {
+type TrainingInfo = {
   training_name: string;
   start_date: string;
   end_date: string | null;
@@ -52,7 +55,7 @@ const SponsorEvaluation = () => {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [record, setRecord] = useState<SponsorEvalRecord | null>(null);
-  const [training, setTraining] = useState<TrainingRecord | null>(null);
+  const [training, setTraining] = useState<TrainingInfo | null>(null);
 
   // Form state
   const [satisfactionGlobale, setSatisfactionGlobale] = useState<number | null>(null);
@@ -118,15 +121,24 @@ const SponsorEvaluation = () => {
       if (evTyped.axes_amelioration) setAxesAmelioration(evTyped.axes_amelioration);
       if (evTyped.commentaires_libres) setCommentairesLibres(evTyped.commentaires_libres);
 
-      // Fetch training
-      const { data: t, error: tErr } = await supabase
-        .from("trainings")
-        .select("training_name,start_date,end_date")
-        .eq("id", evTyped.training_id)
-        .single();
+      // Read training info from the evaluation record (stored at creation)
+      if (evTyped.training_name && evTyped.training_start_date) {
+        setTraining({
+          training_name: evTyped.training_name,
+          start_date: evTyped.training_start_date,
+          end_date: evTyped.training_end_date,
+        });
+      } else {
+        // Fallback for older records: try fetching from trainings table
+        const { data: t } = await supabase
+          .from("trainings")
+          .select("training_name,start_date,end_date")
+          .eq("id", evTyped.training_id)
+          .single();
 
-      if (!tErr && t) {
-        setTraining(t as unknown as TrainingRecord);
+        if (t) {
+          setTraining(t as unknown as TrainingInfo);
+        }
       }
 
       // First open tracking
@@ -244,7 +256,7 @@ const SponsorEvaluation = () => {
     );
   }
 
-  if (!record || !training) return null;
+  if (!record) return null;
 
   // Already submitted view
   if (record.etat === "soumis" && record.date_soumission) {
