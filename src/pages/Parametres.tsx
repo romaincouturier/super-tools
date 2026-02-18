@@ -672,8 +672,9 @@ const Parametres = () => {
   const [canDeleteEvaluationsEmails, setCanDeleteEvaluationsEmails] = useState("");
 
   // Règlement intérieur
-  const [reglementUrl, setReglementUrl] = useState("");
+  const [reglementInterieurUrl, setReglementInterieurUrl] = useState<string | null>(null);
   const [uploadingReglement, setUploadingReglement] = useState(false);
+
 
   // Check if user is admin
   const isAdmin = user?.email?.toLowerCase() === "romain@supertilt.fr";
@@ -799,7 +800,10 @@ const Parametres = () => {
           setCanDeleteEvaluationsEmails(setting.setting_value || "");
           break;
         case "reglement_interieur_url":
-          setReglementUrl(setting.setting_value || "");
+          setReglementInterieurUrl(setting.setting_value || null);
+          break;
+        case "reglement_interieur_url":
+          setReglementInterieurUrl(setting.setting_value || null);
           break;
       }
     });
@@ -829,7 +833,7 @@ const Parametres = () => {
         { setting_key: "delay_convention_reminder_1_days", setting_value: delayConventionReminder1, description: "Délai en jours ouvrés pour la 1ère relance convention de formation" },
         { setting_key: "delay_convention_reminder_2_days", setting_value: delayConventionReminder2, description: "Délai en jours ouvrés pour la 2ème relance convention de formation" },
         { setting_key: "can_delete_evaluations_emails", setting_value: canDeleteEvaluationsEmails, description: "Emails des utilisateurs autorisés à supprimer des évaluations (séparés par des virgules)" },
-        { setting_key: "reglement_interieur_url", setting_value: reglementUrl, description: "URL du règlement intérieur des formations (PDF uploadé)" },
+        { setting_key: "reglement_interieur_url", setting_value: reglementInterieurUrl || "", description: "URL du règlement intérieur des formations (PDF uploadé)" },
       ];
 
       for (const setting of settingsToSave) {
@@ -1703,7 +1707,7 @@ const Parametres = () => {
                     Uploadez le règlement intérieur de vos formations (PDF). Il sera consultable depuis la page de synthèse de chaque formation.
                   </p>
 
-                  {reglementUrl ? (
+                  {reglementInterieurUrl ? (
                     <div className="flex items-center gap-3 p-3 rounded-lg border bg-muted/30 max-w-lg">
                       <FileText className="h-5 w-5 text-primary shrink-0" />
                       <span className="text-sm font-medium truncate flex-1">Règlement intérieur</span>
@@ -1712,7 +1716,7 @@ const Parametres = () => {
                         size="sm"
                         asChild
                       >
-                        <a href={reglementUrl} target="_blank" rel="noopener noreferrer">
+                        <a href={reglementInterieurUrl} target="_blank" rel="noopener noreferrer">
                           <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
                           Consulter
                         </a>
@@ -1721,7 +1725,7 @@ const Parametres = () => {
                         variant="ghost"
                         size="sm"
                         className="text-destructive hover:text-destructive"
-                        onClick={() => setReglementUrl("")}
+                        onClick={() => setReglementInterieurUrl(null)}
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
@@ -1765,7 +1769,7 @@ const Parametres = () => {
                               const { data: urlData } = supabase.storage
                                 .from("training-documents")
                                 .getPublicUrl(filePath);
-                              setReglementUrl(urlData.publicUrl);
+                              setReglementInterieurUrl(urlData.publicUrl);
                               toast({ title: "Fichier uploadé" });
                             } catch (err) {
                               console.error("Upload error:", err);
@@ -1781,7 +1785,8 @@ const Parametres = () => {
                   )}
                 </div>
 
-                <Separator />
+
+
 
                 {/* Permissions */}
                 <div className="space-y-4">
