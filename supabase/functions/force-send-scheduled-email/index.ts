@@ -364,6 +364,9 @@ const handler = async (req: Request): Promise<Response> => {
             sponsor_email: recipientEmail,
             sponsor_name: sponsorName,
             company: sponsorCompany,
+            training_name: training.training_name,
+            training_start_date: training.start_date,
+            training_end_date: training.end_date || null,
             date_envoi: new Date().toISOString(),
           });
 

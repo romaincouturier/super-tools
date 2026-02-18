@@ -9,6 +9,7 @@ import {
   Clock,
   Navigation,
   FileText,
+  ScrollText,
   User,
   Mail,
   Phone,
@@ -73,6 +74,7 @@ const TrainingSummary = () => {
   const [trainer, setTrainer] = useState<Trainer | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [reglementUrl, setReglementUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (trainingId) {
@@ -115,6 +117,17 @@ const TrainingSummary = () => {
           .single();
 
         setTrainer(trainerData);
+      }
+
+      // Fetch règlement intérieur URL
+      const { data: reglementSetting } = await supabase
+        .from("app_settings")
+        .select("setting_value")
+        .eq("setting_key", "reglement_interieur_url")
+        .single();
+
+      if (reglementSetting?.setting_value) {
+        setReglementUrl(reglementSetting.setting_value);
       }
     } catch (err) {
       console.error("Error fetching training data:", err);
@@ -345,6 +358,30 @@ END:VCALENDAR`;
                 >
                   <ExternalLink className="h-4 w-4 mr-2" />
                   Consulter le programme
+                </a>
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Règlement intérieur */}
+        {reglementUrl && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <ScrollText className="h-5 w-5 text-primary" />
+                Règlement intérieur
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Button variant="outline" asChild>
+                <a
+                  href={reglementUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Consulter le règlement intérieur
                 </a>
               </Button>
             </CardContent>
