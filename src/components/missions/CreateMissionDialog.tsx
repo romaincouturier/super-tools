@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { toast } from "@/hooks/use-toast";
 import {
   Dialog,
   DialogContent,
@@ -50,19 +51,28 @@ const CreateMissionDialog = ({
     e.preventDefault();
     if (!title.trim()) return;
 
-    await createMission.mutateAsync({
-      title: title.trim(),
-      client_name: clientName.trim() || undefined,
-      client_contact: clientContact.trim() || undefined,
-      initial_amount: totalAmount ? parseFloat(totalAmount) || undefined : undefined,
-      status: defaultStatus,
-    });
+    try {
+      await createMission.mutateAsync({
+        title: title.trim(),
+        client_name: clientName.trim() || undefined,
+        client_contact: clientContact.trim() || undefined,
+        initial_amount: totalAmount ? parseFloat(totalAmount) || undefined : undefined,
+        status: defaultStatus,
+      });
 
-    setTitle("");
-    setClientName("");
-    setClientContact("");
-    setTotalAmount("");
-    onOpenChange(false);
+      setTitle("");
+      setClientName("");
+      setClientContact("");
+      setTotalAmount("");
+      onOpenChange(false);
+    } catch (error) {
+      console.error("Erreur création mission:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de créer la mission. Veuillez réessayer.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
