@@ -802,9 +802,6 @@ const Parametres = () => {
         case "reglement_interieur_url":
           setReglementInterieurUrl(setting.setting_value || null);
           break;
-        case "reglement_interieur_url":
-          setReglementInterieurUrl(setting.setting_value || null);
-          break;
       }
     });
   };
@@ -1785,8 +1782,7 @@ const Parametres = () => {
                   )}
                 </div>
 
-
-
+                <Separator />
 
                 {/* Permissions */}
                 <div className="space-y-4">

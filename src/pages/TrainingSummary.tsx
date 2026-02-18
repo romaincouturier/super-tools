@@ -342,50 +342,42 @@ END:VCALENDAR`;
           </p>
         </div>
 
-        {/* Program - FIRST */}
-        {training.program_file_url && (
+        {/* Documents: Programme + Règlement intérieur */}
+        {(training.program_file_url || reglementInterieurUrl) && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <FileText className="h-5 w-5 text-primary" />
-                Programme de formation
+                Documents
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <Button variant="outline" asChild>
-                <a
-                  href={training.program_file_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  Consulter le programme
-                </a>
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Règlement intérieur */}
-        {reglementInterieurUrl && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <ScrollText className="h-5 w-5 text-primary" />
-                Règlement intérieur
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Button variant="outline" asChild>
-                <a
-                  href={reglementInterieurUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  Consulter le règlement intérieur
-                </a>
-              </Button>
+              <div className="flex flex-wrap gap-3">
+                {training.program_file_url && (
+                  <Button variant="outline" asChild>
+                    <a
+                      href={training.program_file_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <FileText className="h-4 w-4 mr-2" />
+                      Consulter le programme
+                    </a>
+                  </Button>
+                )}
+                {reglementInterieurUrl && (
+                  <Button variant="outline" asChild>
+                    <a
+                      href={reglementInterieurUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <ScrollText className="h-4 w-4 mr-2" />
+                      Règlement intérieur
+                    </a>
+                  </Button>
+                )}
+              </div>
             </CardContent>
           </Card>
         )}
