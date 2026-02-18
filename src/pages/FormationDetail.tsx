@@ -2,8 +2,9 @@ import { useState, useEffect } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
-import { Loader2, ArrowLeft, Calendar, Users, FileText, ExternalLink, Edit2, User as UserIcon, Mail, MapPin, Building, Map, Train, Hotel, UtensilsCrossed, DoorOpen, Clock, Copy, Check, AlertCircle, Share2, CheckCircle2, Euro, StickyNote, Save } from "lucide-react";
+import { Loader2, ArrowLeft, Calendar, Users, FileText, ExternalLink, Edit2, User as UserIcon, Mail, MapPin, Building, Map, Train, Hotel, UtensilsCrossed, DoorOpen, Clock, Copy, Check, AlertCircle, Share2, CheckCircle2, Euro, StickyNote, Save, MoreHorizontal } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { useToast } from "@/hooks/use-toast";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -20,6 +21,12 @@ import {
 } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import ParticipantList from "@/components/formations/ParticipantList";
 import AddParticipantDialog from "@/components/formations/AddParticipantDialog";
 import BulkAddParticipantsDialog from "@/components/formations/BulkAddParticipantsDialog";
@@ -88,6 +95,7 @@ interface Participant {
 }
 
 const FormationDetail = () => {
+  const isMobile = useIsMobile();
   const { id } = useParams<{ id: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const [user, setUser] = useState<User | null>(null);
@@ -479,259 +487,369 @@ const FormationDetail = () => {
       <AppHeader />
 
       {/* Main content */}
-      <main className="max-w-7xl mx-auto p-6">
+      <main className="max-w-7xl mx-auto p-3 md:p-6">
         {/* Back button and title */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-4">
+        <div className="flex items-center justify-between mb-4 md:mb-6 gap-2">
+          <div className="flex items-center gap-2 md:gap-4 min-w-0">
             <Button
               variant="ghost"
               size="icon"
+              className="shrink-0"
               onClick={() => navigate("/formations")}
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            <div>
-              <h1 className="text-2xl font-bold">{training.training_name}</h1>
-              <p className="text-muted-foreground">
+            <div className="min-w-0">
+              <h1 className="text-lg md:text-2xl font-bold truncate">{training.training_name}</h1>
+              <p className="text-xs md:text-sm text-muted-foreground truncate">
                 {formatDateWithSchedule(training.start_date, training.end_date, schedules)}
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            {/* Map button - opens dialog (hidden for e-learning, disabled for online/visio) */}
-            {training.format_formation !== "e_learning" && (() => {
-              const isOnline = training.location?.toLowerCase().includes("visio") ||
-                               training.location?.toLowerCase().includes("en ligne") ||
-                               training.location?.toLowerCase().includes("distanciel");
-              return (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setMapDialogOpen(true)}
-                  disabled={isOnline}
-                  title={isOnline ? "Non disponible pour les formations en ligne" : "Voir la carte"}
-                >
-                  <Map className="h-4 w-4 mr-2" />
-                  Carte
-                </Button>
-              );
-            })()}
-            
-            {/* Train button with checkbox - Hidden for e-learning */}
-            {training.format_formation !== "e_learning" && (
-              <div className="flex items-center gap-1">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={training.train_booked}
-                  title={training.train_booked ? "Réservation déjà effectuée" : "Réserver un train"}
-                  asChild={!training.train_booked}
-                >
-                  {training.train_booked ? (
-                    <span className="flex items-center">
-                      <Train className="h-4 w-4 mr-2" />
-                      Train
-                    </span>
-                  ) : (
-                    <a
-                      href={`https://www.trainline.fr/search/${encodeURIComponent(training.location)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
+
+          {/* Mobile: compact action buttons */}
+          {isMobile ? (
+            <div className="flex items-center gap-1 shrink-0">
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => {
+                  const url = `${window.location.origin}/formation-info/${id}`;
+                  window.open(url, "_blank");
+                }}
+              >
+                <ExternalLink className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => navigate(`/formations/${id}/edit`)}
+              >
+                <Edit2 className="h-4 w-4" />
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="icon" className="h-8 w-8">
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {training.format_formation !== "e_learning" && (() => {
+                    const isOnline = training.location?.toLowerCase().includes("visio") ||
+                                     training.location?.toLowerCase().includes("en ligne") ||
+                                     training.location?.toLowerCase().includes("distanciel");
+                    if (isOnline) return null;
+                    return (
+                      <DropdownMenuItem onClick={() => setMapDialogOpen(true)}>
+                        <Map className="h-4 w-4 mr-2" />
+                        Carte
+                      </DropdownMenuItem>
+                    );
+                  })()}
+                  {training.format_formation !== "e_learning" && (
+                    <DropdownMenuItem
+                      onClick={() => {
+                        if (!training.train_booked) {
+                          window.open(`https://www.trainline.fr/search/${encodeURIComponent(training.location)}`, "_blank");
+                        }
+                      }}
+                      disabled={training.train_booked}
                     >
                       <Train className="h-4 w-4 mr-2" />
-                      Train
-                    </a>
+                      Train {training.train_booked && "✓"}
+                    </DropdownMenuItem>
                   )}
-                </Button>
-                <Checkbox
-                  checked={training.train_booked}
-                  onCheckedChange={async (checked) => {
-                    const newValue = checked === true;
-                    const { error } = await supabase
-                      .from("trainings")
-                      .update({ train_booked: newValue })
-                      .eq("id", training.id);
-                    if (!error) {
-                      setTraining({ ...training, train_booked: newValue });
-                      toast({
-                        title: newValue ? "Train réservé" : "Réservation train annulée",
-                        description: newValue ? "La réservation train a été marquée comme effectuée." : "Le statut de réservation a été réinitialisé.",
-                      });
-                    }
-                  }}
-                  className="ml-1"
-                  title="Marquer la réservation comme effectuée"
-                />
-              </div>
-            )}
-
-            {/* Hotel button with checkbox - Hidden for e-learning */}
-            {training.format_formation !== "e_learning" && (
-              <div className="flex items-center gap-1">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={training.hotel_booked}
-                  title={training.hotel_booked ? "Réservation déjà effectuée" : "Réserver un hôtel"}
-                  asChild={!training.hotel_booked}
-                >
-                  {training.hotel_booked ? (
-                    <span className="flex items-center">
-                      <Hotel className="h-4 w-4 mr-2" />
-                      Hôtel
-                    </span>
-                  ) : (
-                    <a
-                      href={`https://www.booking.com/searchresults.fr.html?ss=${encodeURIComponent(training.location)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                  {training.format_formation !== "e_learning" && (
+                    <DropdownMenuItem
+                      onClick={() => {
+                        if (!training.hotel_booked) {
+                          window.open(`https://www.booking.com/searchresults.fr.html?ss=${encodeURIComponent(training.location)}`, "_blank");
+                        }
+                      }}
+                      disabled={training.hotel_booked}
                     >
                       <Hotel className="h-4 w-4 mr-2" />
-                      Hôtel
-                    </a>
+                      Hôtel {training.hotel_booked && "✓"}
+                    </DropdownMenuItem>
                   )}
-                </Button>
-                <Checkbox
-                  checked={training.hotel_booked}
-                  onCheckedChange={async (checked) => {
-                    const newValue = checked === true;
-                    const { error } = await supabase
-                      .from("trainings")
-                      .update({ hotel_booked: newValue })
-                      .eq("id", training.id);
-                    if (!error) {
-                      setTraining({ ...training, hotel_booked: newValue });
-                      toast({
-                        title: newValue ? "Hôtel réservé" : "Réservation hôtel annulée",
-                        description: newValue ? "La réservation hôtel a été marquée comme effectuée." : "Le statut de réservation a été réinitialisé.",
-                      });
-                    }
-                  }}
-                  className="ml-1"
-                  title="Marquer la réservation comme effectuée"
-                />
-              </div>
-            )}
-            
-            {/* Restaurant button with checkbox - only for inter-entreprises */}
-            {training.format_formation === "inter-entreprises" && (
-              <div className="flex items-center gap-1">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={training.restaurant_booked}
-                  title={training.restaurant_booked ? "Réservation déjà effectuée" : "Réserver un restaurant"}
-                  asChild={!training.restaurant_booked}
-                >
-                  {training.restaurant_booked ? (
-                    <span className="flex items-center">
-                      <UtensilsCrossed className="h-4 w-4 mr-2" />
-                      Restaurant
-                    </span>
-                  ) : (
-                    <a
-                      href={`https://www.google.com/maps/search/restaurants+near+${encodeURIComponent(training.location)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                  {training.format_formation === "inter-entreprises" && (
+                    <DropdownMenuItem
+                      onClick={() => {
+                        if (!training.restaurant_booked) {
+                          window.open(`https://www.google.com/maps/search/restaurants+near+${encodeURIComponent(training.location)}`, "_blank");
+                        }
+                      }}
+                      disabled={training.restaurant_booked}
                     >
                       <UtensilsCrossed className="h-4 w-4 mr-2" />
-                      Restaurant
-                    </a>
+                      Restaurant {training.restaurant_booked && "✓"}
+                    </DropdownMenuItem>
                   )}
-                </Button>
-                <Checkbox
-                  checked={training.restaurant_booked}
-                  onCheckedChange={async (checked) => {
-                    const newValue = checked === true;
-                    const { error } = await supabase
-                      .from("trainings")
-                      .update({ restaurant_booked: newValue })
-                      .eq("id", training.id);
-                    if (!error) {
-                      setTraining({ ...training, restaurant_booked: newValue });
+                  {(training.format_formation === "inter-entreprises" || training.format_formation === "intra") && (
+                    <DropdownMenuItem
+                      onClick={() => {
+                        if (!training.room_rental_booked) {
+                          window.open(`https://www.google.com/maps/search/location+salle+reunion+near+${encodeURIComponent(training.location)}`, "_blank");
+                        }
+                      }}
+                      disabled={training.room_rental_booked}
+                    >
+                      <DoorOpen className="h-4 w-4 mr-2" />
+                      Salle {training.room_rental_booked && "✓"}
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem
+                    onClick={() => {
+                      const url = `${window.location.origin}/formation-info/${id}`;
+                      navigator.clipboard.writeText(url);
                       toast({
-                        title: newValue ? "Restaurant réservé" : "Réservation restaurant annulée",
-                        description: newValue ? "La réservation restaurant a été marquée comme effectuée." : "Le statut de réservation a été réinitialisé.",
+                        title: "Lien copié",
+                        description: "Le lien vers la page participant a été copié.",
                       });
-                    }
-                  }}
-                  className="ml-1"
-                  title="Marquer la réservation comme effectuée"
-                />
-              </div>
-            )}
+                    }}
+                  >
+                    <Copy className="h-4 w-4 mr-2" />
+                    Copier lien participant
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          ) : (
+            /* Desktop: full action buttons */
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Map button - opens dialog (hidden for e-learning, disabled for online/visio) */}
+              {training.format_formation !== "e_learning" && (() => {
+                const isOnline = training.location?.toLowerCase().includes("visio") ||
+                                 training.location?.toLowerCase().includes("en ligne") ||
+                                 training.location?.toLowerCase().includes("distanciel");
+                return (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setMapDialogOpen(true)}
+                    disabled={isOnline}
+                    title={isOnline ? "Non disponible pour les formations en ligne" : "Voir la carte"}
+                  >
+                    <Map className="h-4 w-4 mr-2" />
+                    Carte
+                  </Button>
+                );
+              })()}
 
-            {/* Room rental button with checkbox - for inter-entreprises and intra */}
-            {(training.format_formation === "inter-entreprises" || training.format_formation === "intra") && (
-              <div className="flex items-center gap-1">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={training.room_rental_booked}
-                  title={training.room_rental_booked ? "Location déjà effectuée" : "Rechercher une salle"}
-                  asChild={!training.room_rental_booked}
-                >
-                  {training.room_rental_booked ? (
-                    <span className="flex items-center">
-                      <DoorOpen className="h-4 w-4 mr-2" />
-                      Salle
-                    </span>
-                  ) : (
-                    <a
-                      href={`https://www.google.com/maps/search/location+salle+reunion+near+${encodeURIComponent(training.location)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      <DoorOpen className="h-4 w-4 mr-2" />
-                      Salle
-                    </a>
-                  )}
-                </Button>
-                <Checkbox
-                  checked={training.room_rental_booked}
-                  onCheckedChange={async (checked) => {
-                    const newValue = checked === true;
-                    const { error } = await supabase
-                      .from("trainings")
-                      .update({ room_rental_booked: newValue } as any)
-                      .eq("id", training.id);
-                    if (!error) {
-                      setTraining({ ...training, room_rental_booked: newValue });
-                      toast({
-                        title: newValue ? "Salle réservée" : "Réservation salle annulée",
-                        description: newValue ? "La location de salle a été marquée comme effectuée." : "Le statut de location a été réinitialisé.",
-                      });
-                    }
-                  }}
-                  className="ml-1"
-                  title="Marquer la location comme effectuée"
-                />
-              </div>
-            )}
-            
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                const url = `${window.location.origin}/formation-info/${id}`;
-                navigator.clipboard.writeText(url);
-                toast({
-                  title: "Lien copié",
-                  description: "Le lien vers la page participant a été copié.",
-                });
-              }}
-            >
-              <Share2 className="h-4 w-4 mr-2" />
-              Page participant
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => navigate(`/formations/${id}/edit`)}
-            >
-              <Edit2 className="h-4 w-4 mr-2" />
-              Modifier
-            </Button>
-          </div>
+              {/* Train button with checkbox - Hidden for e-learning */}
+              {training.format_formation !== "e_learning" && (
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={training.train_booked}
+                    title={training.train_booked ? "Réservation déjà effectuée" : "Réserver un train"}
+                    asChild={!training.train_booked}
+                  >
+                    {training.train_booked ? (
+                      <span className="flex items-center">
+                        <Train className="h-4 w-4 mr-2" />
+                        Train
+                      </span>
+                    ) : (
+                      <a
+                        href={`https://www.trainline.fr/search/${encodeURIComponent(training.location)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <Train className="h-4 w-4 mr-2" />
+                        Train
+                      </a>
+                    )}
+                  </Button>
+                  <Checkbox
+                    checked={training.train_booked}
+                    onCheckedChange={async (checked) => {
+                      const newValue = checked === true;
+                      const { error } = await supabase
+                        .from("trainings")
+                        .update({ train_booked: newValue })
+                        .eq("id", training.id);
+                      if (!error) {
+                        setTraining({ ...training, train_booked: newValue });
+                        toast({
+                          title: newValue ? "Train réservé" : "Réservation train annulée",
+                          description: newValue ? "La réservation train a été marquée comme effectuée." : "Le statut de réservation a été réinitialisé.",
+                        });
+                      }
+                    }}
+                    className="ml-1"
+                    title="Marquer la réservation comme effectuée"
+                  />
+                </div>
+              )}
+
+              {/* Hotel button with checkbox - Hidden for e-learning */}
+              {training.format_formation !== "e_learning" && (
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={training.hotel_booked}
+                    title={training.hotel_booked ? "Réservation déjà effectuée" : "Réserver un hôtel"}
+                    asChild={!training.hotel_booked}
+                  >
+                    {training.hotel_booked ? (
+                      <span className="flex items-center">
+                        <Hotel className="h-4 w-4 mr-2" />
+                        Hôtel
+                      </span>
+                    ) : (
+                      <a
+                        href={`https://www.booking.com/searchresults.fr.html?ss=${encodeURIComponent(training.location)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <Hotel className="h-4 w-4 mr-2" />
+                        Hôtel
+                      </a>
+                    )}
+                  </Button>
+                  <Checkbox
+                    checked={training.hotel_booked}
+                    onCheckedChange={async (checked) => {
+                      const newValue = checked === true;
+                      const { error } = await supabase
+                        .from("trainings")
+                        .update({ hotel_booked: newValue })
+                        .eq("id", training.id);
+                      if (!error) {
+                        setTraining({ ...training, hotel_booked: newValue });
+                        toast({
+                          title: newValue ? "Hôtel réservé" : "Réservation hôtel annulée",
+                          description: newValue ? "La réservation hôtel a été marquée comme effectuée." : "Le statut de réservation a été réinitialisé.",
+                        });
+                      }
+                    }}
+                    className="ml-1"
+                    title="Marquer la réservation comme effectuée"
+                  />
+                </div>
+              )}
+
+              {/* Restaurant button with checkbox - only for inter-entreprises */}
+              {training.format_formation === "inter-entreprises" && (
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={training.restaurant_booked}
+                    title={training.restaurant_booked ? "Réservation déjà effectuée" : "Réserver un restaurant"}
+                    asChild={!training.restaurant_booked}
+                  >
+                    {training.restaurant_booked ? (
+                      <span className="flex items-center">
+                        <UtensilsCrossed className="h-4 w-4 mr-2" />
+                        Restaurant
+                      </span>
+                    ) : (
+                      <a
+                        href={`https://www.google.com/maps/search/restaurants+near+${encodeURIComponent(training.location)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <UtensilsCrossed className="h-4 w-4 mr-2" />
+                        Restaurant
+                      </a>
+                    )}
+                  </Button>
+                  <Checkbox
+                    checked={training.restaurant_booked}
+                    onCheckedChange={async (checked) => {
+                      const newValue = checked === true;
+                      const { error } = await supabase
+                        .from("trainings")
+                        .update({ restaurant_booked: newValue })
+                        .eq("id", training.id);
+                      if (!error) {
+                        setTraining({ ...training, restaurant_booked: newValue });
+                        toast({
+                          title: newValue ? "Restaurant réservé" : "Réservation restaurant annulée",
+                          description: newValue ? "La réservation restaurant a été marquée comme effectuée." : "Le statut de réservation a été réinitialisé.",
+                        });
+                      }
+                    }}
+                    className="ml-1"
+                    title="Marquer la réservation comme effectuée"
+                  />
+                </div>
+              )}
+
+              {/* Room rental button with checkbox - for inter-entreprises and intra */}
+              {(training.format_formation === "inter-entreprises" || training.format_formation === "intra") && (
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={training.room_rental_booked}
+                    title={training.room_rental_booked ? "Location déjà effectuée" : "Rechercher une salle"}
+                    asChild={!training.room_rental_booked}
+                  >
+                    {training.room_rental_booked ? (
+                      <span className="flex items-center">
+                        <DoorOpen className="h-4 w-4 mr-2" />
+                        Salle
+                      </span>
+                    ) : (
+                      <a
+                        href={`https://www.google.com/maps/search/location+salle+reunion+near+${encodeURIComponent(training.location)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <DoorOpen className="h-4 w-4 mr-2" />
+                        Salle
+                      </a>
+                    )}
+                  </Button>
+                  <Checkbox
+                    checked={training.room_rental_booked}
+                    onCheckedChange={async (checked) => {
+                      const newValue = checked === true;
+                      const { error } = await supabase
+                        .from("trainings")
+                        .update({ room_rental_booked: newValue } as any)
+                        .eq("id", training.id);
+                      if (!error) {
+                        setTraining({ ...training, room_rental_booked: newValue });
+                        toast({
+                          title: newValue ? "Salle réservée" : "Réservation salle annulée",
+                          description: newValue ? "La location de salle a été marquée comme effectuée." : "Le statut de location a été réinitialisé.",
+                        });
+                      }
+                    }}
+                    className="ml-1"
+                    title="Marquer la location comme effectuée"
+                  />
+                </div>
+              )}
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const url = `${window.location.origin}/formation-info/${id}`;
+                  window.open(url, "_blank");
+                }}
+              >
+                <ExternalLink className="h-4 w-4 mr-2" />
+                Page participant
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => navigate(`/formations/${id}/edit`)}
+              >
+                <Edit2 className="h-4 w-4 mr-2" />
+                Modifier
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* Row 1: Informations + Participants */}
@@ -991,8 +1109,8 @@ const FormationDetail = () => {
 
           {/* Right: Participants */}
           <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
+            <CardHeader className="px-3 md:px-6">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
                 <div>
                   <CardTitle className="flex items-center gap-2">
                     <Users className="h-5 w-5" />
@@ -1002,7 +1120,7 @@ const FormationDetail = () => {
                     {participants.length} participant{participants.length !== 1 ? "s" : ""} inscrit{participants.length !== 1 ? "s" : ""}
                   </CardDescription>
                 </div>
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3 md:gap-4">
                   {/* Formal address toggle for participants */}
                   <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                     <span>Tu</span>
@@ -1051,7 +1169,7 @@ const FormationDetail = () => {
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 px-3 md:px-6">
               <ParticipantList
                 participants={participants}
                 trainingId={training.id}
