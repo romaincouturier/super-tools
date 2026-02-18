@@ -67,15 +67,20 @@ export function NewOpportunityDialog({ open, onOpenChange, userEmail }: NewOppor
           raw_input: rawInput,
           description_html: rawInput
             .replace(/\r\n/g, "\n")
-            .split("\n")
-            .map((line) => {
-              const escaped = line
-                .replace(/&/g, "&amp;")
-                .replace(/</g, "&lt;")
-                .replace(/>/g, "&gt;");
-              return `<p>${escaped || "<br>"}</p>`;
+            .replace(/[\u2028\u2029]/g, "\n") // Normalize Unicode line separators
+            .replace(/\n[ \t]*\n/g, "\n\n") // Treat blank lines (with optional whitespace) as paragraph breaks
+            .replace(/\n{3,}/g, "\n\n") // Collapse 3+ newlines into paragraph break
+            .split("\n\n") // Split on double newlines = paragraphs
+            .map((paragraph) => {
+              const lines = paragraph.split("\n").map((line) =>
+                line
+                  .replace(/&/g, "&amp;")
+                  .replace(/</g, "&lt;")
+                  .replace(/>/g, "&gt;")
+              );
+              return `<p>${lines.join("<br>") || "<br>"}</p>`;
             })
-            .join(""), // Convert plain text newlines to HTML paragraphs
+            .join(""), // Single \n = <br>, double \n\n = new <p>
         },
         actorEmail: userEmail,
       });

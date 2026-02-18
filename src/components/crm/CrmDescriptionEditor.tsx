@@ -89,6 +89,16 @@ const CrmDescriptionEditor = ({
         class:
           "prose prose-sm dark:prose-invert max-w-none focus:outline-none min-h-[180px] p-3 text-[11px] leading-relaxed",
       },
+      // Convert emoji <img> tags (from email clients) back to their text characters
+      transformPastedHTML(html: string) {
+        return html.replace(/<img[^>]*alt="([^"]*)"[^>]*>/gi, (match, alt) => {
+          // If alt text is short and contains non-ASCII chars, it's likely an emoji
+          if (alt && alt.length <= 8 && /[^\x00-\x7F]/.test(alt)) {
+            return alt;
+          }
+          return match;
+        });
+      },
       handlePaste: (view, event) => {
         const items = event.clipboardData?.items;
         if (!items || !cardId) return false;

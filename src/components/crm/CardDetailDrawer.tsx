@@ -382,7 +382,7 @@ const CardDetailDrawer = ({
             first_name: firstName,
             last_name: lastName,
             service_type: serviceType,
-            estimated_value: parseFloat(estimatedValue) || 0,
+            estimated_value: Math.round((parseFloat(estimatedValue) || 0) * 100) / 100,
             comments: details?.comments || [],
             brief_questions: card.brief_questions || [],
           },
@@ -417,7 +417,7 @@ const CardDetailDrawer = ({
             first_name: firstName,
             last_name: lastName,
             service_type: serviceType,
-            estimated_value: parseFloat(estimatedValue) || 0,
+            estimated_value: Math.round((parseFloat(estimatedValue) || 0) * 100) / 100,
             comments: details?.comments || [],
             brief_questions: card.brief_questions || [],
           },
@@ -588,7 +588,7 @@ const CardDetailDrawer = ({
         title: title.trim(),
         description_html: DOMPurify.sanitize(descriptionHtml),
         sales_status: salesStatus,
-        estimated_value: parseFloat(estimatedValue) || 0,
+        estimated_value: Math.round((parseFloat(estimatedValue) || 0) * 100) / 100,
         quote_url: quoteUrl.trim() || null,
         column_id: columnId,
         waiting_next_action_date: scheduledDate || null,
@@ -845,13 +845,13 @@ const CardDetailDrawer = ({
     <>
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
-        className={`overflow-y-auto transition-all duration-300 ${
+        className={`flex flex-col overflow-hidden transition-all duration-300 ${
           isFullScreen
             ? "w-full sm:max-w-full"
             : "w-full sm:max-w-xl"
         }`}
       >
-        <SheetHeader>
+        <SheetHeader className="shrink-0 border-b pb-3">
           <SheetTitle className="flex items-center justify-between gap-2">
             <span className="truncate flex-1">{card.title}</span>
             <div className="flex items-center gap-1">
@@ -878,6 +878,7 @@ const CardDetailDrawer = ({
           </SheetTitle>
         </SheetHeader>
 
+        <div className="flex-1 overflow-y-auto">
         {/* Toolbar - Column selector + Value + Actions */}
         <div className="mt-4 mb-4 flex items-center gap-2">
           {/* Action menu (left) */}
@@ -920,7 +921,7 @@ const CardDetailDrawer = ({
           {/* Estimated value */}
           {estimatedValue && parseFloat(estimatedValue) > 0 && (
             <Badge variant="secondary" className="text-green-700 bg-green-50 border-green-200 text-sm font-medium">
-              {parseFloat(estimatedValue).toLocaleString("fr-FR")} €
+              {Number(parseFloat(estimatedValue) || 0).toLocaleString("fr-FR", { minimumFractionDigits: 0, maximumFractionDigits: 2 })} €
             </Badge>
           )}
 
@@ -1300,7 +1301,22 @@ const CardDetailDrawer = ({
                 </h4>
                 <ul className="space-y-1.5">
                   {card.brief_questions.map((q: BriefQuestion) => (
-                    <li key={q.id} className="flex items-start gap-2 text-sm">
+                    <li
+                      key={q.id}
+                      className="flex items-start gap-2 text-sm cursor-pointer hover:bg-amber-100/50 rounded px-1 py-0.5 -mx-1 transition-colors"
+                      onClick={() => {
+                        if (!user?.email) return;
+                        const updatedQuestions = card.brief_questions.map((bq: BriefQuestion) =>
+                          bq.id === q.id ? { ...bq, answered: !bq.answered } : bq
+                        );
+                        updateCard.mutate({
+                          id: card.id,
+                          updates: { brief_questions: updatedQuestions },
+                          actorEmail: user.email,
+                          oldCard: card,
+                        });
+                      }}
+                    >
                       {q.answered ? (
                         <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
                       ) : (
@@ -1909,6 +1925,7 @@ const CardDetailDrawer = ({
               Supprimer cette opportunité
             </Button>
           </div>
+        </div>
         </div>
       </SheetContent>
     </Sheet>

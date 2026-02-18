@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GraduationCap, Briefcase, GripVertical } from "lucide-react";
+import { GraduationCap, Briefcase } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -64,7 +64,7 @@ const CrmCardComponent = ({ card, isDragging, onClick, serviceTypeColors }: CrmC
 
   const handleValueSave = async () => {
     if (!user?.email) return;
-    const newValue = parseFloat(editValue) || 0;
+    const newValue = Math.round((parseFloat(editValue) || 0) * 100) / 100;
     if (newValue !== card.estimated_value) {
       await updateCard.mutateAsync({
         id: card.id,
@@ -97,7 +97,6 @@ const CrmCardComponent = ({ card, isDragging, onClick, serviceTypeColors }: CrmC
   const handleCardClick = (e: React.MouseEvent) => {
     const target = e.target as HTMLElement;
     if (target.closest('[data-emoji-picker]')) return;
-    if (target.closest('[data-drag-handle]')) return;
     onClick?.();
   };
 
@@ -110,21 +109,14 @@ const CrmCardComponent = ({ card, isDragging, onClick, serviceTypeColors }: CrmC
         borderLeftColor: cardColor,
       }}
       {...attributes}
-      className={`cursor-pointer hover:shadow-md transition-shadow ${isDragging ? "shadow-lg" : ""}`}
+      {...listeners}
+      className={`cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow touch-none ${isDragging ? "shadow-lg" : ""}`}
       onClick={handleCardClick}
     >
       <CardContent className="p-3 space-y-2">
         {/* Header: Drag handle + Service type + Value */}
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-1.5">
-            {/* Drag handle */}
-            <div
-              data-drag-handle
-              {...listeners}
-              className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground touch-none"
-            >
-              <GripVertical className="h-4 w-4" />
-            </div>
             {/* Service type indicator */}
             {card.service_type ? (
               <div
@@ -159,7 +151,7 @@ const CrmCardComponent = ({ card, isDragging, onClick, serviceTypeColors }: CrmC
               onClick={handleValueClick}
               title="Cliquer pour modifier"
             >
-              {(card.estimated_value || 0).toLocaleString("fr-FR")} €
+              {Number(card.estimated_value || 0).toLocaleString("fr-FR", { minimumFractionDigits: 0, maximumFractionDigits: 2 })} €
             </div>
           )}
         </div>
