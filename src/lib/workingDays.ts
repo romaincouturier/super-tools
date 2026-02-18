@@ -98,3 +98,68 @@ export async function fetchNeedsSurveyDelay(supabase: any): Promise<number> {
 
   return 7; // Default 7 days
 }
+
+/**
+ * Fetches the delay for trainer summary from app_settings
+ */
+export async function fetchTrainerSummaryDelay(supabase: any): Promise<number> {
+  try {
+    const { data } = await supabase
+      .from("app_settings")
+      .select("setting_value")
+      .eq("setting_key", "delay_trainer_summary_days")
+      .single();
+
+    if (data?.setting_value) {
+      return parseInt(data.setting_value, 10) || 1;
+    }
+  } catch (error) {
+    console.error("Error fetching trainer summary delay:", error);
+  }
+
+  return 1; // Default 1 day before
+}
+
+/**
+ * Schedules a trainer_summary email if none exists yet for this training.
+ * Should be called after adding participants.
+ */
+export async function scheduleTrainerSummaryIfNeeded(
+  supabase: any,
+  trainingId: string,
+  trainingStartDate: string
+): Promise<void> {
+  try {
+    // Check if trainer_summary already scheduled
+    const { data: existing } = await supabase
+      .from("scheduled_emails")
+      .select("id")
+      .eq("training_id", trainingId)
+      .eq("email_type", "trainer_summary")
+      .limit(1);
+
+    if (existing && existing.length > 0) return;
+
+    const [workingDays, delay] = await Promise.all([
+      fetchWorkingDays(supabase),
+      fetchTrainerSummaryDelay(supabase),
+    ]);
+
+    const startDate = new Date(trainingStartDate + "T00:00:00");
+    const scheduledDate = subtractWorkingDays(startDate, delay, workingDays);
+
+    // Schedule at 7:00 AM UTC
+    if (scheduledDate > new Date()) {
+      const { format } = await import("date-fns");
+      await supabase.from("scheduled_emails").insert({
+        training_id: trainingId,
+        email_type: "trainer_summary",
+        scheduled_for: format(scheduledDate, "yyyy-MM-dd'T'07:00:00"),
+        status: "pending",
+      });
+      console.log("Trainer summary email scheduled for", format(scheduledDate, "yyyy-MM-dd"));
+    }
+  } catch (error) {
+    console.error("Failed to schedule trainer summary:", error);
+  }
+}

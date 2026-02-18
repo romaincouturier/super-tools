@@ -16,7 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
-import { subtractWorkingDays, fetchWorkingDays, fetchNeedsSurveyDelay } from "@/lib/workingDays";
+import { subtractWorkingDays, fetchWorkingDays, fetchNeedsSurveyDelay, scheduleTrainerSummaryIfNeeded } from "@/lib/workingDays";
 
 interface BulkAddParticipantsDialogProps {
   trainingId: string;
@@ -365,6 +365,11 @@ const BulkAddParticipantsDialog = ({
         } catch (scheduleError) {
           console.error("Failed to schedule needs survey emails:", scheduleError);
         }
+      }
+
+      // Schedule trainer summary email if not already scheduled
+      if (trainingStartDate && status !== "non_envoye") {
+        await scheduleTrainerSummaryIfNeeded(supabase, trainingId, trainingStartDate);
       }
 
       // Log activity
