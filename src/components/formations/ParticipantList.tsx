@@ -1,6 +1,7 @@
 import { HelpCircle, Mail, MailCheck, Clock, CheckCircle, AlertTriangle, Trash2, Loader2, Send, RefreshCw, Receipt, Building, Scroll, Award, Download, Forward, UserCheck, RotateCw, FileSignature, Eye, BellRing, StickyNote, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { useToast } from "@/hooks/use-toast";
 import { differenceInDays, parseISO } from "date-fns";
 import {
@@ -176,6 +177,7 @@ const ParticipantList = ({
   trainingDuree,
   onParticipantUpdated
 }: ParticipantListProps) => {
+  const isMobile = useIsMobile();
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [sendingId, setSendingId] = useState<string | null>(null);
   const [remindingId, setRemindingId] = useState<string | null>(null);
@@ -682,421 +684,474 @@ const ParticipantList = ({
     );
   }
 
+  // Helper to render action buttons for a participant (shared between mobile and desktop)
+  const renderParticipantActions = (participant: Participant, displayName: string) => (
+    <div className="flex items-center gap-1 flex-wrap">
+      {/* Documents button - only for inter-enterprise */}
+      {isInterEntreprise && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className={`h-8 w-8 ${participant.invoice_file_url ? "text-primary" : "text-muted-foreground hover:text-primary"}`}
+              onClick={() => setDocumentsParticipant(participant)}
+            >
+              <Receipt className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>{participant.invoice_file_url ? "Facture uploadée - Gérer les documents" : "Gérer la facture"}</p>
+          </TooltipContent>
+        </Tooltip>
+      )}
+
+      {/* Convention button - for inter-enterprise and e-learning */}
+      {isIndividualConvention && (() => {
+        const hasConvention = !!participant.convention_file_url;
+        const sigInfo = conventionSignatures.get(participant.id);
+        const isLoading = generatingConventionId === participant.id || downloadingConventionId === participant.id;
+
+        if (!hasConvention) {
+          return (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-muted-foreground hover:text-primary"
+                  onClick={() => handleGenerateConvention(participant)}
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Scroll className="h-4 w-4" />
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Générer la convention de formation</p>
+              </TooltipContent>
+            </Tooltip>
+          );
+        }
+
+        return (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-primary"
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Scroll className="h-4 w-4" />
+                )}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem
+                onClick={() => handleDownloadConvention(participant)}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Télécharger la convention
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => handleGenerateConvention(participant)}
+              >
+                <RotateCw className="h-4 w-4 mr-2" />
+                Ré-générer la convention
+              </DropdownMenuItem>
+              {sigInfo && !participant.signed_convention_url && (
+                <DropdownMenuItem disabled className="text-xs opacity-70">
+                  <FileSignature className="h-4 w-4 mr-2" />
+                  {sigInfo.status === "signed"
+                    ? `Signée le ${new Date(sigInfo.signed_at!).toLocaleDateString("fr-FR")}`
+                    : sigInfo.status === "pending"
+                      ? "En attente de signature"
+                      : `Signature : ${sigInfo.status}`}
+                </DropdownMenuItem>
+              )}
+              {participant.signed_convention_url && (
+                <DropdownMenuItem disabled className="text-xs opacity-70">
+                  <FileSignature className="h-4 w-4 mr-2" />
+                  Convention signée (upload manuel)
+                </DropdownMenuItem>
+              )}
+              {canSendConventionReminderFor(participant) && (
+                <DropdownMenuItem
+                  onClick={() => handleSendConventionReminder(participant)}
+                  disabled={conventionRemindingId === participant.id}
+                >
+                  {conventionRemindingId === participant.id ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <BellRing className="h-4 w-4 mr-2" />
+                  )}
+                  Relancer pour la convention
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        );
+      })()}
+
+      {/* View questionnaire button - only for completed status */}
+      {(participant.needs_survey_status === "complete" || participant.needs_survey_status === "valide_formateur") && (
+        <ViewQuestionnaireDialog
+          participantId={participant.id}
+          participantName={displayName}
+          trainingId={trainingId}
+        />
+      )}
+
+      {canSendSurveyFor(participant) && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-muted-foreground hover:text-primary"
+              onClick={() => handleSendSurvey(participant)}
+              disabled={sendingId === participant.id}
+            >
+              {sendingId === participant.id ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Envoyer le questionnaire</p>
+          </TooltipContent>
+        </Tooltip>
+      )}
+
+      {/* Reminder button - always visible for sent/in-progress statuses */}
+      {canSendReminderFor(participant) && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-muted-foreground hover:text-primary"
+              onClick={() => handleSendReminder(participant)}
+              disabled={remindingId === participant.id}
+            >
+              {remindingId === participant.id ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4" />
+              )}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Relancer pour recueillir le besoin</p>
+          </TooltipContent>
+        </Tooltip>
+      )}
+
+      {/* Attestation / Certificate button */}
+      {(() => {
+        const cert = certificatesByParticipant.get(participant.id);
+        const hasCert = !!cert?.certificateUrl;
+        const sponsorEmail = participant.sponsor_email;
+        const sponsorName = [participant.sponsor_first_name, participant.sponsor_last_name]
+          .filter(Boolean)
+          .join(" ");
+
+        if (!hasCert) {
+          return (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-muted-foreground hover:text-primary"
+                  disabled={generatingCertId === participant.id}
+                  onClick={() => handleGenerateCertificate(participant)}
+                >
+                  {generatingCertId === participant.id ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Award className="h-4 w-4" />
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Générer et envoyer l'attestation</p>
+              </TooltipContent>
+            </Tooltip>
+          );
+        }
+
+        return (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-primary"
+                disabled={sendingCertId === participant.id}
+              >
+                {sendingCertId === participant.id ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Award className="h-4 w-4" />
+                )}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem
+                onClick={() => window.open(cert!.certificateUrl!, "_blank")}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Télécharger l'attestation
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => handleSendCertificate(
+                  participant,
+                  participant.email,
+                  participant.first_name || ""
+                )}
+              >
+                <Forward className="h-4 w-4 mr-2" />
+                Envoyer au participant
+              </DropdownMenuItem>
+              {sponsorEmail && (
+                <DropdownMenuItem
+                  onClick={() => handleSendCertificate(
+                    participant,
+                    sponsorEmail,
+                    sponsorName
+                  )}
+                >
+                  <UserCheck className="h-4 w-4 mr-2" />
+                  Envoyer au commanditaire
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        );
+      })()}
+
+      {/* Edit participant button */}
+      <EditParticipantDialog
+        participant={participant}
+        trainingId={trainingId}
+        formatFormation={formatFormation}
+        trainingElearningDuration={elearningDuration}
+        onParticipantUpdated={onParticipantUpdated}
+      />
+
+      <AlertDialog>
+        <AlertDialogTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-muted-foreground hover:text-destructive"
+            disabled={deletingId === participant.id}
+          >
+            {deletingId === participant.id ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Trash2 className="h-4 w-4" />
+            )}
+          </Button>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer ce participant ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {displayName} sera définitivement retiré de cette formation.
+              Ses réponses au questionnaire seront également supprimées.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => handleDelete(participant)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+
   return (
     <>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>
-              <button onClick={() => toggleSort("last_name")} className="flex items-center hover:text-foreground transition-colors">
-                Nom <SortIcon field="last_name" />
-              </button>
-            </TableHead>
-            <TableHead>
-              <button onClick={() => toggleSort("email")} className="flex items-center hover:text-foreground transition-colors">
-                Email <SortIcon field="email" />
-              </button>
-            </TableHead>
-            <TableHead>Société</TableHead>
-            {isInterEntreprise && <TableHead>Commanditaire</TableHead>}
-            {isInterEntreprise && (
-              <TableHead>
-                <button onClick={() => toggleSort("amount")} className="flex items-center hover:text-foreground transition-colors">
-                  Montant HT <SortIcon field="amount" />
-                </button>
-              </TableHead>
-            )}
-            <TableHead>Recueil des besoins</TableHead>
-            <TableHead className="w-28"></TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
+      {isMobile ? (
+        /* Mobile: card list for participants */
+        <div className="space-y-3">
           {sortedParticipants.map((participant) => {
             const statusConfig = getStatusConfig(participant.needs_survey_status);
             const StatusIcon = statusConfig.icon;
             const displayName = participant.first_name || participant.last_name
               ? `${participant.first_name || ""} ${participant.last_name || ""}`.trim()
               : participant.email;
-            
-            const sponsorDisplayName = participant.sponsor_first_name || participant.sponsor_last_name
-              ? `${participant.sponsor_first_name || ""} ${participant.sponsor_last_name || ""}`.trim()
-              : null;
 
             return (
-              <TableRow key={participant.id}>
-                <TableCell className="font-medium">
-                  <div className="flex items-center gap-2">
-                    {participant.first_name || participant.last_name
-                      ? `${participant.first_name || ""} ${participant.last_name || ""}`.trim()
-                      : "—"}
-                    {isInterEntreprise && participant.payment_mode === "invoice" && (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span className="inline-block w-2.5 h-2.5 rounded-full bg-warning" />
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>À facturer après la formation</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    )}
-                    {isInterEntreprise && participant.notes && (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <StickyNote className="h-3.5 w-3.5 text-muted-foreground" />
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p className="max-w-xs whitespace-pre-wrap">{participant.notes}</p>
-                        </TooltipContent>
-                      </Tooltip>
+              <div key={participant.id} className="p-3 rounded-lg border bg-card space-y-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="font-medium text-sm truncate">
+                      {participant.first_name || participant.last_name
+                        ? `${participant.first_name || ""} ${participant.last_name || ""}`.trim()
+                        : "—"}
+                    </p>
+                    <p className="text-xs text-muted-foreground truncate">{participant.email}</p>
+                    {participant.company && (
+                      <p className="text-xs text-muted-foreground">{participant.company}</p>
                     )}
                   </div>
-                </TableCell>
-                <TableCell>{participant.email}</TableCell>
-                <TableCell>{participant.company || "—"}</TableCell>
-                {isInterEntreprise && (
-                  <TableCell>
-                    {sponsorDisplayName || participant.sponsor_email ? (
-                      <div className="flex flex-col gap-0.5">
-                        {sponsorDisplayName && (
-                          <span className="text-sm">{sponsorDisplayName}</span>
-                        )}
-                        {participant.sponsor_email && (
-                          <span className="text-xs text-muted-foreground">{participant.sponsor_email}</span>
-                        )}
-                      </div>
-                    ) : (
-                      "—"
+                  <Badge
+                    variant={statusConfig.variant}
+                    className="gap-1 text-xs shrink-0"
+                  >
+                    <StatusIcon className="h-3 w-3" />
+                    {statusConfig.label}
+                  </Badge>
+                </div>
+                {isInterEntreprise && participant.sold_price_ht != null && (
+                  <p className="text-xs text-muted-foreground">
+                    {participant.sold_price_ht.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} € HT
+                    {participant.payment_mode === "invoice" && (
+                      <span className="ml-1.5 text-amber-600">• À facturer</span>
                     )}
-                  </TableCell>
+                  </p>
                 )}
-                {isInterEntreprise && (
-                  <TableCell>
-                    {participant.sold_price_ht != null
-                      ? `${participant.sold_price_ht.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`
-                      : "—"}
-                  </TableCell>
-                )}
-                <TableCell>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Badge
-                        variant={statusConfig.variant}
-                        className="cursor-help gap-1"
-                      >
-                        <StatusIcon className="h-3 w-3" />
-                        {statusConfig.label}
-                      </Badge>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>{statusConfig.tooltip}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-1">
-                    {/* Documents button - only for inter-enterprise */}
-                    {isInterEntreprise && (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className={`h-8 w-8 ${participant.invoice_file_url ? "text-primary" : "text-muted-foreground hover:text-primary"}`}
-                            onClick={() => setDocumentsParticipant(participant)}
-                          >
-                            <Receipt className="h-4 w-4" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>{participant.invoice_file_url ? "Facture uploadée - Gérer les documents" : "Gérer la facture"}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    )}
-
-                    {/* Convention button - for inter-enterprise and e-learning */}
-                    {isIndividualConvention && (() => {
-                      const hasConvention = !!participant.convention_file_url;
-                      const sigInfo = conventionSignatures.get(participant.id);
-                      const isLoading = generatingConventionId === participant.id || downloadingConventionId === participant.id;
-
-                      if (!hasConvention) {
-                        return (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-muted-foreground hover:text-primary"
-                                onClick={() => handleGenerateConvention(participant)}
-                                disabled={isLoading}
-                              >
-                                {isLoading ? (
-                                  <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : (
-                                  <Scroll className="h-4 w-4" />
-                                )}
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Générer la convention de formation</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        );
-                      }
-
-                      return (
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-primary"
-                              disabled={isLoading}
-                            >
-                              {isLoading ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <Scroll className="h-4 w-4" />
-                              )}
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem
-                              onClick={() => handleDownloadConvention(participant)}
-                            >
-                              <Download className="h-4 w-4 mr-2" />
-                              Télécharger la convention
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => handleGenerateConvention(participant)}
-                            >
-                              <RotateCw className="h-4 w-4 mr-2" />
-                              Ré-générer la convention
-                            </DropdownMenuItem>
-                            {sigInfo && !participant.signed_convention_url && (
-                              <DropdownMenuItem disabled className="text-xs opacity-70">
-                                <FileSignature className="h-4 w-4 mr-2" />
-                                {sigInfo.status === "signed"
-                                  ? `Signée le ${new Date(sigInfo.signed_at!).toLocaleDateString("fr-FR")}`
-                                  : sigInfo.status === "pending"
-                                    ? "En attente de signature"
-                                    : `Signature : ${sigInfo.status}`}
-                              </DropdownMenuItem>
-                            )}
-                            {participant.signed_convention_url && (
-                              <DropdownMenuItem disabled className="text-xs opacity-70">
-                                <FileSignature className="h-4 w-4 mr-2" />
-                                Convention signée (upload manuel)
-                              </DropdownMenuItem>
-                            )}
-                            {canSendConventionReminderFor(participant) && (
-                              <DropdownMenuItem
-                                onClick={() => handleSendConventionReminder(participant)}
-                                disabled={conventionRemindingId === participant.id}
-                              >
-                                {conventionRemindingId === participant.id ? (
-                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                ) : (
-                                  <BellRing className="h-4 w-4 mr-2" />
-                                )}
-                                Relancer pour la convention
-                              </DropdownMenuItem>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      );
-                    })()}
-
-                    {/* View questionnaire button - only for completed status */}
-                    {(participant.needs_survey_status === "complete" || participant.needs_survey_status === "valide_formateur") && (
-                      <ViewQuestionnaireDialog
-                        participantId={participant.id}
-                        participantName={displayName}
-                        trainingId={trainingId}
-                      />
-                    )}
-                    
-                    {canSendSurveyFor(participant) && (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-muted-foreground hover:text-primary"
-                            onClick={() => handleSendSurvey(participant)}
-                            disabled={sendingId === participant.id}
-                          >
-                            {sendingId === participant.id ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <Send className="h-4 w-4" />
-                            )}
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Envoyer le questionnaire</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    )}
-
-                    {/* Reminder button - always visible for sent/in-progress statuses */}
-                    {canSendReminderFor(participant) && (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-muted-foreground hover:text-primary"
-                            onClick={() => handleSendReminder(participant)}
-                            disabled={remindingId === participant.id}
-                          >
-                            {remindingId === participant.id ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <RefreshCw className="h-4 w-4" />
-                            )}
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Relancer pour recueillir le besoin</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    )}
-
-                    {/* Attestation / Certificate button */}
-                    {(() => {
-                      const cert = certificatesByParticipant.get(participant.id);
-                      const hasCert = !!cert?.certificateUrl;
-                      const sponsorEmail = participant.sponsor_email;
-                      const sponsorName = [participant.sponsor_first_name, participant.sponsor_last_name]
-                        .filter(Boolean)
-                        .join(" ");
-
-                      if (!hasCert) {
-                        return (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-muted-foreground hover:text-primary"
-                                disabled={generatingCertId === participant.id}
-                                onClick={() => handleGenerateCertificate(participant)}
-                              >
-                                {generatingCertId === participant.id ? (
-                                  <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : (
-                                  <Award className="h-4 w-4" />
-                                )}
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Générer et envoyer l'attestation</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        );
-                      }
-
-                      return (
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-primary"
-                              disabled={sendingCertId === participant.id}
-                            >
-                              {sendingCertId === participant.id ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <Award className="h-4 w-4" />
-                              )}
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem
-                              onClick={() => window.open(cert!.certificateUrl!, "_blank")}
-                            >
-                              <Download className="h-4 w-4 mr-2" />
-                              Télécharger l'attestation
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => handleSendCertificate(
-                                participant,
-                                participant.email,
-                                participant.first_name || ""
-                              )}
-                            >
-                              <Forward className="h-4 w-4 mr-2" />
-                              Envoyer au participant
-                            </DropdownMenuItem>
-                            {sponsorEmail && (
-                              <DropdownMenuItem
-                                onClick={() => handleSendCertificate(
-                                  participant,
-                                  sponsorEmail,
-                                  sponsorName
-                                )}
-                              >
-                                <UserCheck className="h-4 w-4 mr-2" />
-                                Envoyer au commanditaire
-                              </DropdownMenuItem>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      );
-                    })()}
-
-                    {/* Edit participant button */}
-                    <EditParticipantDialog
-                      participant={participant}
-                      trainingId={trainingId}
-                      formatFormation={formatFormation}
-                      trainingElearningDuration={elearningDuration}
-                      onParticipantUpdated={onParticipantUpdated}
-                    />
-
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                          disabled={deletingId === participant.id}
-                        >
-                          {deletingId === participant.id ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Trash2 className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Supprimer ce participant ?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            {displayName} sera définitivement retiré de cette formation.
-                            Ses réponses au questionnaire seront également supprimées.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Annuler</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={() => handleDelete(participant)}
-                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                          >
-                            Supprimer
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </div>
-                </TableCell>
-              </TableRow>
+                {renderParticipantActions(participant, displayName)}
+              </div>
             );
           })}
-        </TableBody>
-      </Table>
+        </div>
+      ) : (
+        /* Desktop: table */
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>
+                <button onClick={() => toggleSort("last_name")} className="flex items-center hover:text-foreground transition-colors">
+                  Nom <SortIcon field="last_name" />
+                </button>
+              </TableHead>
+              <TableHead>
+                <button onClick={() => toggleSort("email")} className="flex items-center hover:text-foreground transition-colors">
+                  Email <SortIcon field="email" />
+                </button>
+              </TableHead>
+              <TableHead>Société</TableHead>
+              {isInterEntreprise && <TableHead>Commanditaire</TableHead>}
+              {isInterEntreprise && (
+                <TableHead>
+                  <button onClick={() => toggleSort("amount")} className="flex items-center hover:text-foreground transition-colors">
+                    Montant HT <SortIcon field="amount" />
+                  </button>
+                </TableHead>
+              )}
+              <TableHead>Recueil des besoins</TableHead>
+              <TableHead className="w-28"></TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {sortedParticipants.map((participant) => {
+              const statusConfig = getStatusConfig(participant.needs_survey_status);
+              const StatusIcon = statusConfig.icon;
+              const displayName = participant.first_name || participant.last_name
+                ? `${participant.first_name || ""} ${participant.last_name || ""}`.trim()
+                : participant.email;
+
+              const sponsorDisplayName = participant.sponsor_first_name || participant.sponsor_last_name
+                ? `${participant.sponsor_first_name || ""} ${participant.sponsor_last_name || ""}`.trim()
+                : null;
+
+              return (
+                <TableRow key={participant.id}>
+                  <TableCell className="font-medium">
+                    <div className="flex items-center gap-2">
+                      {participant.first_name || participant.last_name
+                        ? `${participant.first_name || ""} ${participant.last_name || ""}`.trim()
+                        : "—"}
+                      {isInterEntreprise && participant.payment_mode === "invoice" && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="inline-block w-2.5 h-2.5 rounded-full bg-warning" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>À facturer après la formation</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
+                      {isInterEntreprise && participant.notes && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <StickyNote className="h-3.5 w-3.5 text-muted-foreground" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="max-w-xs whitespace-pre-wrap">{participant.notes}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell>{participant.email}</TableCell>
+                  <TableCell>{participant.company || "—"}</TableCell>
+                  {isInterEntreprise && (
+                    <TableCell>
+                      {sponsorDisplayName || participant.sponsor_email ? (
+                        <div className="flex flex-col gap-0.5">
+                          {sponsorDisplayName && (
+                            <span className="text-sm">{sponsorDisplayName}</span>
+                          )}
+                          {participant.sponsor_email && (
+                            <span className="text-xs text-muted-foreground">{participant.sponsor_email}</span>
+                          )}
+                        </div>
+                      ) : (
+                        "—"
+                      )}
+                    </TableCell>
+                  )}
+                  {isInterEntreprise && (
+                    <TableCell>
+                      {participant.sold_price_ht != null
+                        ? `${participant.sold_price_ht.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`
+                        : "—"}
+                    </TableCell>
+                  )}
+                  <TableCell>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Badge
+                          variant={statusConfig.variant}
+                          className="cursor-help gap-1"
+                        >
+                          <StatusIcon className="h-3 w-3" />
+                          {statusConfig.label}
+                        </Badge>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>{statusConfig.tooltip}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TableCell>
+                  <TableCell>
+                    {renderParticipantActions(participant, displayName)}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      )}
       
       {/* Documents dialog for inter-enterprise */}
       {documentsParticipant && (

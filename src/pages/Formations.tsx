@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Plus, Calendar, ArrowLeft, ArrowUpDown, ChevronLeft, ChevronRight, Search, X } from "lucide-react";
+import { Loader2, Plus, Calendar, ArrowLeft, ArrowUpDown, ChevronLeft, ChevronRight, Search, X, MapPin, Building } from "lucide-react";
 import { format, parseISO, isPast, isFuture, isToday, differenceInDays } from "date-fns";
 import { fr } from "date-fns/locale";
 import AppHeader from "@/components/AppHeader";
@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/useAuth";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface Training {
   id: string;
@@ -58,6 +59,7 @@ type SortField = "date" | "title" | "client" | "location";
 type SortOrder = "asc" | "desc";
 
 const Formations = () => {
+  const isMobile = useIsMobile();
   const { user, loading: authLoading, logout } = useAuth();
   const [dataLoading, setDataLoading] = useState(true);
   const [trainings, setTrainings] = useState<Training[]>([]);
@@ -310,70 +312,52 @@ const Formations = () => {
       <AppHeader />
 
       {/* Main content */}
-      <main className="max-w-6xl mx-auto p-6">
+      <main className="max-w-6xl mx-auto p-3 md:p-6">
         {/* Back button and title */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-4">
+        <div className="flex items-center justify-between mb-4 md:mb-6 gap-2">
+          <div className="flex items-center gap-2 md:gap-4 min-w-0">
             <Button
               variant="ghost"
               size="icon"
+              className="shrink-0"
               onClick={() => navigate("/")}
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
+            <div className="flex items-center gap-2 md:gap-3 min-w-0">
+              <div className="p-2 rounded-lg bg-primary/10 shrink-0 hidden md:block">
                 <Calendar className="h-6 w-6 text-primary" />
               </div>
-              <h1 className="text-2xl font-bold">Gestion des formations</h1>
+              <h1 className="text-lg md:text-2xl font-bold truncate">Formations</h1>
             </div>
           </div>
-          <Button onClick={() => navigate("/formations/new")}>
-            <Plus className="h-4 w-4 mr-2" />
-            Ajouter une formation
+          <Button size={isMobile ? "icon" : "default"} onClick={() => navigate("/formations/new")} className="shrink-0">
+            <Plus className="h-4 w-4 md:mr-2" />
+            <span className="hidden md:inline">Ajouter une formation</span>
           </Button>
         </div>
 
         {/* Tabs and table */}
         <Card>
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between gap-3">
-              <Tabs value={filter} onValueChange={(v) => setFilter(v as "upcoming" | "ongoing" | "past")}>
-                <TabsList>
-                  <TabsTrigger value="upcoming">
-                    À venir ({upcomingTrainings.length})
-                  </TabsTrigger>
-                  <TabsTrigger value="ongoing">
-                    En cours ({ongoingTrainings.length})
-                  </TabsTrigger>
-                  <TabsTrigger value="past">
-                    Passées ({pastTrainings.length})
-                  </TabsTrigger>
-                </TabsList>
-              </Tabs>
+          <CardHeader className="pb-3 px-3 md:px-6">
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center justify-between gap-3">
+                <Tabs value={filter} onValueChange={(v) => setFilter(v as "upcoming" | "ongoing" | "past")}>
+                  <TabsList className="h-8 md:h-9">
+                    <TabsTrigger value="upcoming" className="text-xs md:text-sm px-2 md:px-3">
+                      À venir ({upcomingTrainings.length})
+                    </TabsTrigger>
+                    <TabsTrigger value="ongoing" className="text-xs md:text-sm px-2 md:px-3">
+                      En cours ({ongoingTrainings.length})
+                    </TabsTrigger>
+                    <TabsTrigger value="past" className="text-xs md:text-sm px-2 md:px-3">
+                      Passées ({pastTrainings.length})
+                    </TabsTrigger>
+                  </TabsList>
+                </Tabs>
 
-              <div className="flex items-center gap-3">
-                {/* Search input */}
-                <div className="relative">
-                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Rechercher participant, commanditaire, formation…"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-9 h-8 w-[340px]"
-                  />
-                  {searchQuery && (
-                    <button
-                      onClick={() => setSearchQuery("")}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </button>
-                  )}
-                </div>
-
-                {/* Pagination controls for past trainings */}
-                {filter === "past" && pastTrainings.length > 0 && (
+                {/* Pagination controls for past trainings - desktop only */}
+                {!isMobile && filter === "past" && pastTrainings.length > 0 && (
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-muted-foreground">Afficher</span>
                     <Select
@@ -392,9 +376,28 @@ const Formations = () => {
                   </div>
                 )}
               </div>
+
+              {/* Search input - full width on mobile */}
+              <div className="relative">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder={isMobile ? "Rechercher…" : "Rechercher participant, commanditaire, formation…"}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9 h-8 w-full md:w-[340px]"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery("")}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-3 md:px-6">
             {filteredTrainings.length === 0 && filter === "upcoming" ? (
               <div className="text-center py-12 text-muted-foreground">
                 {searchQuery ? (
@@ -445,8 +448,104 @@ const Formations = () => {
                   </>
                 )}
               </div>
+            ) : isMobile ? (
+              <>
+                {/* Mobile: card list */}
+                <div className="space-y-3">
+                  {filteredTrainings.map((training) => {
+                    const daysUntil = getDaysUntilStart(training.start_date);
+                    const isUpcoming = filter === "upcoming";
+
+                    return (
+                      <div
+                        key={training.id}
+                        className="p-3 rounded-lg border bg-card cursor-pointer hover:bg-muted/50 active:bg-muted/70 transition-colors"
+                        onClick={() => navigate(`/formations/${training.id}`)}
+                      >
+                        <div className="flex items-start justify-between gap-2 mb-1.5">
+                          <p className="font-medium text-sm leading-tight">
+                            {training.training_name}
+                          </p>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            {(training.participant_count ?? 0) > 0 && (
+                              <Badge variant="secondary" className="text-xs px-1.5 py-0">
+                                {training.participant_count}
+                              </Badge>
+                            )}
+                            {hasActions(training.id) && (
+                              <span
+                                className="inline-block w-2 h-2 rounded-full bg-warning"
+                                title="Actions programmées"
+                              />
+                            )}
+                            {isUpcoming && daysUntil >= 0 && (
+                              <Badge
+                                variant={daysUntil <= 7 ? "default" : "secondary"}
+                                className={`text-xs px-1.5 py-0 ${daysUntil <= 2 ? "bg-warning text-warning-foreground" : ""}`}
+                              >
+                                J-{daysUntil}
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                          <span className="flex items-center gap-1">
+                            <Calendar className="h-3 w-3" />
+                            {formatDateRange(training.start_date, training.end_date)}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                          <Badge variant="outline" className="text-xs flex items-center gap-1">
+                            <Building className="h-3 w-3" />
+                            {training.client_name}
+                          </Badge>
+                          {training.location && (
+                            <span className="text-xs text-muted-foreground flex items-center gap-1">
+                              <MapPin className="h-3 w-3" />
+                              {training.location}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Pagination footer for past trainings - mobile */}
+                {filter === "past" && totalPages > 1 && (
+                  <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                    <p className="text-xs text-muted-foreground">
+                      {((currentPage - 1) * pageSize) + 1}-{Math.min(currentPage * pageSize, sortedPastTrainings.length)} / {sortedPastTrainings.length}
+                    </p>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                        disabled={currentPage === 1}
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+                      <span className="text-xs px-2">
+                        {currentPage}/{totalPages}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                        disabled={currentPage === totalPages}
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </>
             ) : (
               <>
+                {/* Desktop: table */}
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -506,7 +605,7 @@ const Formations = () => {
                   </TableBody>
                 </Table>
 
-                {/* Pagination footer for past trainings */}
+                {/* Pagination footer for past trainings - desktop */}
                 {filter === "past" && totalPages > 1 && (
                   <div className="flex items-center justify-between mt-4 pt-4 border-t">
                     <p className="text-sm text-muted-foreground">
