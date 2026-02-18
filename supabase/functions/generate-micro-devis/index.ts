@@ -357,7 +357,7 @@ async function sendEmailWithResend(
     // Variables like devis_description contain HTML, which would fool isHtmlContent
     // on the processed result. We must check the original template instead.
     const templateIsHtml = isHtmlContent(contentTemplate);
-    const contentProcessed = processTemplate(contentTemplate, variables, false);
+    const contentProcessed = processTemplate(contentTemplate, variables);
     const contentHtml = templateIsHtml ? contentProcessed : textToHtml(contentProcessed);
 
   // Fallback signature if Signitic fails
