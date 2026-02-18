@@ -33,7 +33,7 @@ import {
 import { Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-import { subtractWorkingDays, fetchWorkingDays, fetchNeedsSurveyDelay } from "@/lib/workingDays";
+import { subtractWorkingDays, fetchWorkingDays, fetchNeedsSurveyDelay, scheduleTrainerSummaryIfNeeded } from "@/lib/workingDays";
 
 interface AddParticipantDialogProps {
   trainingId: string;
@@ -324,6 +324,11 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
         } catch (scheduleError) {
           console.error("Failed to schedule needs survey email:", scheduleError);
         }
+      }
+
+      // Schedule trainer summary email if not already scheduled
+      if (trainingStartDate && status !== "non_envoye") {
+        await scheduleTrainerSummaryIfNeeded(supabase, trainingId, trainingStartDate);
       }
 
       // Log activity
