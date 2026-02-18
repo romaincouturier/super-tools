@@ -281,24 +281,87 @@ const handler = async (req: Request): Promise<Response> => {
       }
 
       case "trainer_summary": {
-        // This is sent to the trainer
-        recipientEmail = "romain@supertilt.fr";
-        subject = `Synthèse pré-formation – ${training.training_name} – ${formatDate(training.start_date)}`;
-        
-        // Get all questionnaires for this training
+        // Get trainer info from trainers table
+        let trainerEmail = "romain@supertilt.fr";
+        let trainerFirstName = "Romain";
+        if (training.trainer_id) {
+          const { data: trainer } = await supabase
+            .from("trainers")
+            .select("email, first_name")
+            .eq("id", training.trainer_id)
+            .single();
+          if (trainer) {
+            trainerEmail = trainer.email;
+            trainerFirstName = trainer.first_name;
+          }
+        }
+        recipientEmail = trainerEmail;
+
+        // Get completed questionnaires count
         const { data: questionnaires } = await supabase
           .from("questionnaire_besoins")
-          .select("*")
+          .select("id, etat")
           .eq("training_id", training.id);
 
-        const summaryContent = questionnaires && questionnaires.length > 0
-          ? `<p>${questionnaires.length} questionnaire(s) reçu(s) pour cette formation.</p>`
-          : `<p>Aucun questionnaire reçu pour cette formation.</p>`;
+        const completedCount = questionnaires?.filter(q => q.etat === "complete").length || 0;
+        const totalCount = questionnaires?.length || 0;
 
+        // Call AI to generate summary if there are completed questionnaires
+        let aiSummaryHtml = "";
+        if (completedCount > 0) {
+          try {
+            const summaryResponse = await fetch(
+              `${supabaseUrl}/functions/v1/summarize-needs-survey`,
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  "Authorization": `Bearer ${supabaseServiceKey}`,
+                },
+                body: JSON.stringify({ trainingId: training.id }),
+              }
+            );
+
+            if (summaryResponse.ok) {
+              const summaryData = await summaryResponse.json();
+              if (summaryData.success && summaryData.summary) {
+                // Convert markdown-style text to HTML
+                const summaryText = summaryData.summary
+                  .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+                  .replace(/^- (.*)/gm, "<li>$1</li>")
+                  .replace(/(<li>.*<\/li>\n?)+/g, "<ul>$&</ul>")
+                  .replace(/\n\n/g, "</p><p>")
+                  .replace(/\n/g, "<br>");
+                aiSummaryHtml = `<div style="background-color: #f8f9fa; border-left: 4px solid #e6bc00; padding: 16px; border-radius: 4px; margin: 16px 0;">${summaryText}</div>`;
+              }
+            } else {
+              console.warn("Failed to get AI summary:", summaryResponse.status);
+            }
+          } catch (aiError) {
+            console.warn("Error calling summarize-needs-survey:", aiError);
+          }
+        }
+
+        const statsLine = completedCount > 0
+          ? `<p>📊 <strong>${completedCount} questionnaire(s) complété(s)</strong> sur ${totalCount} envoyé(s).</p>`
+          : `<p>⚠️ Aucun questionnaire complété pour cette formation (${totalCount} envoyé(s)).</p>`;
+
+        const noSummaryFallback = completedCount === 0
+          ? `<p>Pas de synthèse disponible car aucun participant n'a encore répondu au questionnaire de recueil des besoins.</p>`
+          : "";
+
+        subject = `☀️ Demain c'est le grand jour ! Synthèse pré-formation – ${training.training_name}`;
         htmlContent = `
-          <p>Bonjour,</p>
-          <p>Voici la synthèse des besoins recueillis pour la formation <strong>"${training.training_name}"</strong> prévue le ${formatDate(training.start_date)}.</p>
-          ${summaryContent}
+          <p>Salut ${trainerFirstName} 👋</p>
+          <p>Ta formation <strong>"${training.training_name}"</strong> pour <strong>${training.client_name}</strong> a lieu <strong>demain ${formatDate(training.start_date)}</strong> !</p>
+          <p>📍 Lieu : ${training.location}</p>
+          ${schedules && schedules.length > 0 ? `<p>🕐 Horaires :<br>${formatSchedules(schedules)}</p>` : ""}
+          <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+          <h3 style="color: #333;">🎯 Synthèse des besoins des participants</h3>
+          ${statsLine}
+          ${aiSummaryHtml || noSummaryFallback}
+          <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+          <p>Bonne préparation et bonne formation demain ! 🚀</p>
           ${signatureHtml}
         `;
         break;
