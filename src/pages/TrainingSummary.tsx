@@ -72,9 +72,10 @@ const TrainingSummary = () => {
   const [training, setTraining] = useState<Training | null>(null);
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [trainer, setTrainer] = useState<Trainer | null>(null);
+  const [reglementInterieurUrl, setReglementInterieurUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [reglementUrl, setReglementUrl] = useState<string | null>(null);
+  
 
   useEffect(() => {
     if (trainingId) {
@@ -119,16 +120,17 @@ const TrainingSummary = () => {
         setTrainer(trainerData);
       }
 
-      // Fetch règlement intérieur URL
-      const { data: reglementSetting } = await supabase
+      // Fetch règlement intérieur URL from app_settings
+      const { data: settingData } = await supabase
         .from("app_settings")
         .select("setting_value")
         .eq("setting_key", "reglement_interieur_url")
-        .single();
+        .maybeSingle();
 
-      if (reglementSetting?.setting_value) {
-        setReglementUrl(reglementSetting.setting_value);
+      if (settingData?.setting_value) {
+        setReglementInterieurUrl(settingData.setting_value);
       }
+
     } catch (err) {
       console.error("Error fetching training data:", err);
       setError("Erreur lors du chargement des données");
@@ -365,7 +367,7 @@ END:VCALENDAR`;
         )}
 
         {/* Règlement intérieur */}
-        {reglementUrl && (
+        {reglementInterieurUrl && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -376,7 +378,7 @@ END:VCALENDAR`;
             <CardContent>
               <Button variant="outline" asChild>
                 <a
-                  href={reglementUrl}
+                  href={reglementInterieurUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                 >
