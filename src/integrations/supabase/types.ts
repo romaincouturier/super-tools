@@ -3177,6 +3177,7 @@ export type Database = {
         Args: { encryption_key: string; plain_token: string }
         Returns: string
       }
+      get_cron_status: { Args: never; Returns: Json }
       get_db_size: { Args: never; Returns: Json }
       has_crm_access: { Args: { _user_id: string }; Returns: boolean }
       has_module_access: {
