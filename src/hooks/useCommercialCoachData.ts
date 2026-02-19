@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { loadArenaApiKeys, saveArenaApiKeys } from "@/lib/arena/api";
 import { TEMPLATES } from "@/lib/arena/templates";
 import type { SessionConfig, ApiKeys } from "@/lib/arena/types";
-import type { CrmColumn, CrmCard, CrmRevenueTarget } from "@/types/crm";
+import type { CrmColumn, CrmCard, CrmRevenueTarget, CommercialCoachContext } from "@/types/crm";
 import { acquisitionSourceConfig, lossReasonConfig } from "@/types/crm";
 import type { OKRObjective, OKRKeyResult } from "@/types/okr";
 import type { Mission } from "@/types/missions";
@@ -20,36 +20,47 @@ function hasAnyProvider(_keys: ApiKeys): boolean {
   return true;
 }
 
-// Build annual ambition context from OKRs
+// Build annual ambition context from configurable text + OKRs
 function buildAmbitionContext(
-  objectives: (OKRObjective & { okr_key_results: OKRKeyResult[] })[]
+  objectives: (OKRObjective & { okr_key_results: OKRKeyResult[] })[],
+  ambitionText?: string
 ): string {
   const currentYear = new Date().getFullYear();
+  let result = "";
+
+  // User-defined ambition text (from settings)
+  if (ambitionText?.trim()) {
+    result += `Vision et ambition ${currentYear} (definie par l'utilisateur):\n${ambitionText}\n`;
+  }
+
+  // OKR annual objectives complement the ambition
   const annualObjectives = objectives.filter(
     (obj) => obj.time_target === "annual" && obj.target_year === currentYear
   );
 
-  if (!annualObjectives.length) {
-    return "Aucune ambition annuelle definie. Il est recommande de definir des objectifs annuels pour orienter la strategie commerciale.";
-  }
+  if (annualObjectives.length > 0) {
+    result += `\nOKR annuels ${currentYear}:\n`;
+    for (const obj of annualObjectives) {
+      result += `\n★ ${obj.title}`;
+      if (obj.description) result += `\n  Vision: ${obj.description}`;
+      result += `\n  Progression: ${obj.progress_percentage}% | Confiance: ${obj.confidence_level}%`;
 
-  let result = `Ambition ${currentYear}:\n`;
-  for (const obj of annualObjectives) {
-    result += `\n★ ${obj.title}`;
-    if (obj.description) result += `\n  Vision: ${obj.description}`;
-    result += `\n  Progression: ${obj.progress_percentage}% | Confiance: ${obj.confidence_level}%`;
-
-    const krs = obj.okr_key_results || [];
-    if (krs.length > 0) {
-      result += `\n  Resultats cles:`;
-      for (const kr of krs) {
-        const val =
-          kr.target_value != null
-            ? `${kr.current_value}/${kr.target_value} ${kr.unit || ""}`
-            : `${kr.progress_percentage}%`;
-        result += `\n    - ${kr.title} → ${val} (${kr.progress_percentage}%)`;
+      const krs = obj.okr_key_results || [];
+      if (krs.length > 0) {
+        result += `\n  Resultats cles:`;
+        for (const kr of krs) {
+          const val =
+            kr.target_value != null
+              ? `${kr.current_value}/${kr.target_value} ${kr.unit || ""}`
+              : `${kr.progress_percentage}%`;
+          result += `\n    - ${kr.title} → ${val} (${kr.progress_percentage}%)`;
+        }
       }
     }
+  }
+
+  if (!result.trim()) {
+    return "Aucune ambition annuelle definie. Allez dans les parametres du Coach Commercial pour definir votre ambition.";
   }
 
   return result;
@@ -285,8 +296,15 @@ function buildCRMContext(columns: CrmColumn[], cards: CrmCard[]): string {
 }
 
 // Build acquisition structure analysis
-function buildAcquisitionContext(cards: CrmCard[], missions: Mission[]): string {
+function buildAcquisitionContext(cards: CrmCard[], missions: Mission[], acquisitionText?: string): string {
   let result = "";
+
+  // User-defined acquisition structure description (from settings)
+  if (acquisitionText?.trim()) {
+    result += `Description de la structure d'acquisition (definie par l'utilisateur):\n${acquisitionText}\n\n`;
+  }
+
+  result += "Analyse des donnees CRM:\n";
 
   // --- Breakdown by service type ---
   const formationCards = cards.filter((c) => c.service_type === "formation");
@@ -546,7 +564,7 @@ export function useCommercialCoachData() {
       const apiKeys = await loadArenaApiKeys();
 
       // Fetch all data in parallel
-      const [okrRes, columnsRes, cardsRes, missionsRes, trainingsRes, catalogueRes, revenueTargetsRes] =
+      const [okrRes, columnsRes, cardsRes, missionsRes, trainingsRes, catalogueRes, revenueTargetsRes, coachContextsRes] =
         await Promise.all([
           (supabase as any)
             .from("okr_objectives")
@@ -576,6 +594,11 @@ export function useCommercialCoachData() {
             .from("crm_revenue_targets")
             .select("*")
             .order("period_start", { ascending: true }),
+          (supabase as any)
+            .from("commercial_coach_contexts")
+            .select("*")
+            .eq("year", new Date().getFullYear())
+            .order("context_type", { ascending: true }),
         ]);
 
       // Fetch calendar events (non-blocking — calendar may not be connected)
@@ -625,12 +648,15 @@ export function useCommercialCoachData() {
       const trainingsData = (trainingsRes.data || []) as { id: string; training_name: string; client_name: string; start_date: string; end_date: string | null; sold_price_ht: number | null }[];
       const catalogueData = (catalogueRes.data || []) as { formation_name: string; prix: number | null; duree_heures: number | null }[];
       const revenueTargetsData = (revenueTargetsRes.data || []) as CrmRevenueTarget[];
+      const coachContexts = (coachContextsRes.data || []) as CommercialCoachContext[];
+      const ambitionText = coachContexts.find((c) => c.context_type === "ambition")?.content;
+      const acquisitionText = coachContexts.find((c) => c.context_type === "acquisition_structure")?.content;
 
       // Build context blocks
-      const ambitionContext = buildAmbitionContext(okrData);
+      const ambitionContext = buildAmbitionContext(okrData, ambitionText);
       const okrContext = buildOKRContext(okrData);
       const crmContext = buildCRMContext(columnsData, cardsData);
-      const acquisitionContext = buildAcquisitionContext(cardsData, missionsData);
+      const acquisitionContext = buildAcquisitionContext(cardsData, missionsData, acquisitionText);
       const missionsContext = buildMissionsContext(missionsData);
       const formationsContext = buildFormationsContext(trainingsData, catalogueData);
       const wonCards = cardsData.filter((c) => c.sales_status === "WON");

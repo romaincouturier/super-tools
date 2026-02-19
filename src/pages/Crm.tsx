@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { BarChart3, Sparkles, ArrowLeft, Kanban, BrainCircuit } from "lucide-react";
+import { BarChart3, Sparkles, ArrowLeft, Kanban, BrainCircuit, Settings2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import AppHeader from "@/components/AppHeader";
 import CrmKanbanBoard from "@/components/crm/CrmKanbanBoard";
 import { NewOpportunityDialog } from "@/components/crm/NewOpportunityDialog";
+import CoachCommercialSettings from "@/components/crm/CoachCommercialSettings";
 import { useAuth } from "@/hooks/useAuth";
 import { useCommercialCoachData } from "@/hooks/useCommercialCoachData";
 
@@ -12,6 +13,7 @@ const Crm = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [showNewOpportunity, setShowNewOpportunity] = useState(false);
+  const [showCoachSettings, setShowCoachSettings] = useState(false);
   const { launchCoach, isLoading: isCoachLoading } = useCommercialCoachData();
 
   return (
@@ -42,14 +44,26 @@ const Crm = () => {
             </div>
           </div>
           <div className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={() => launchCoach()}
-              disabled={isCoachLoading}
-            >
-              <BrainCircuit className="h-4 w-4 mr-2" />
-              {isCoachLoading ? "Chargement..." : "Coach Commercial"}
-            </Button>
+            <div className="flex">
+              <Button
+                variant="outline"
+                onClick={() => launchCoach()}
+                disabled={isCoachLoading}
+                className="rounded-r-none"
+              >
+                <BrainCircuit className="h-4 w-4 mr-2" />
+                {isCoachLoading ? "Chargement..." : "Coach Commercial"}
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setShowCoachSettings(true)}
+                className="rounded-l-none border-l-0"
+                title="Paramétrer le coach"
+              >
+                <Settings2 className="h-4 w-4" />
+              </Button>
+            </div>
             <Button onClick={() => setShowNewOpportunity(true)}>
               <Sparkles className="h-4 w-4 mr-2" />
               Nouvelle opportunité
@@ -73,6 +87,12 @@ const Crm = () => {
           open={showNewOpportunity}
           onOpenChange={setShowNewOpportunity}
           userEmail={user?.email || "unknown"}
+        />
+
+        {/* Coach Commercial Settings Drawer */}
+        <CoachCommercialSettings
+          open={showCoachSettings}
+          onOpenChange={setShowCoachSettings}
         />
       </main>
     </div>

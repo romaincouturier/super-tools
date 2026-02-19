@@ -224,6 +224,19 @@ export interface CrmRevenueTarget {
   created_by: string | null;
 }
 
+// Coach commercial configurable context (ambition, acquisition structure)
+export type CoachContextType = 'ambition' | 'acquisition_structure';
+
+export interface CommercialCoachContext {
+  id: string;
+  context_type: CoachContextType;
+  year: number;
+  content: string;
+  created_at: string;
+  updated_at: string;
+  created_by: string | null;
+}
+
 // Config objects for acquisition sources and loss reasons
 export const acquisitionSourceConfig: Record<AcquisitionSource, string> = {
   recommandation: 'Recommandation',
