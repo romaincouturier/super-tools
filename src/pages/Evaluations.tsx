@@ -364,7 +364,7 @@ const Evaluations = () => {
       <AppHeader />
 
       {/* Main content */}
-      <main className="max-w-6xl mx-auto p-6">
+      <main className="max-w-6xl mx-auto p-4 sm:p-6">
         <div className="flex items-center gap-4 mb-6">
           <Button variant="ghost" size="icon" onClick={() => navigate("/")}>
             <ArrowLeft className="h-5 w-5" />
@@ -377,7 +377,7 @@ const Evaluations = () => {
           <div className="flex items-center gap-2">
             <Filter className="h-4 w-4 text-muted-foreground" />
             <Select value={selectedTraining} onValueChange={handleTrainingChange}>
-              <SelectTrigger className="w-[300px]">
+              <SelectTrigger className="w-full sm:w-[300px]">
                 <SelectValue placeholder="Filtrer par formation" />
               </SelectTrigger>
               <SelectContent>
@@ -546,7 +546,7 @@ const Evaluations = () => {
               {selectedEvaluation && (
                 <div className="space-y-6">
                   {/* Informations participant */}
-                  <div className="grid grid-cols-2 gap-4 p-4 bg-muted/50 rounded-lg">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-muted/50 rounded-lg">
                     <div>
                       <span className="text-sm text-muted-foreground">Email</span>
                       <p className="font-medium">{selectedEvaluation.email || "—"}</p>
@@ -638,7 +638,7 @@ const Evaluations = () => {
                   {/* Qualité pédagogique */}
                   <div>
                     <h3 className="font-semibold mb-2">Qualité pédagogique</h3>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       {selectedEvaluation.rythme && (
                         <p className="text-sm">
                           <span className="text-muted-foreground">Rythme :</span>{" "}

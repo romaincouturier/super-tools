@@ -551,6 +551,302 @@ function buildFormationsContext(
   return result;
 }
 
+// Build CRM comments context — recent discussion threads on deals
+function buildCrmCommentsContext(
+  comments: { card_id: string; author_email: string; content: string; created_at: string }[],
+  cards: CrmCard[]
+): string {
+  if (!comments.length) return "Aucun commentaire CRM enregistre.";
+
+  const cardMap = new Map(cards.map((c) => [c.id, c]));
+
+  // Group by card
+  const byCard = new Map<string, typeof comments>();
+  for (const c of comments) {
+    const arr = byCard.get(c.card_id) || [];
+    arr.push(c);
+    byCard.set(c.card_id, arr);
+  }
+
+  let result = `Commentaires CRM recents (${comments.length} commentaires sur ${byCard.size} deals):\n`;
+  for (const [cardId, cardComments] of byCard) {
+    const card = cardMap.get(cardId);
+    const cardLabel = card ? `${card.title}${card.company ? ` (${card.company})` : ""}` : cardId;
+    result += `\n  ${cardLabel} — ${cardComments.length} commentaire(s):\n`;
+    // Show last 3 comments per deal to keep context concise
+    for (const c of cardComments.slice(0, 3)) {
+      const date = new Date(c.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
+      const snippet = c.content.length > 150 ? c.content.slice(0, 150) + "..." : c.content;
+      result += `    [${date}] ${snippet}\n`;
+    }
+  }
+
+  return result;
+}
+
+// Build CRM email outreach context
+function buildCrmEmailsContext(
+  emails: { card_id: string; sender_email: string; recipient_email: string; subject: string; sent_at: string }[],
+  cards: CrmCard[]
+): string {
+  if (!emails.length) return "Aucun email CRM enregistre.";
+
+  const cardMap = new Map(cards.map((c) => [c.id, c]));
+
+  // Group by card
+  const byCard = new Map<string, typeof emails>();
+  for (const e of emails) {
+    const arr = byCard.get(e.card_id) || [];
+    arr.push(e);
+    byCard.set(e.card_id, arr);
+  }
+
+  let result = `Emails CRM envoyes (${emails.length} emails sur ${byCard.size} deals):\n`;
+  for (const [cardId, cardEmails] of byCard) {
+    const card = cardMap.get(cardId);
+    const cardLabel = card ? `${card.title}${card.company ? ` (${card.company})` : ""}` : cardId;
+    result += `\n  ${cardLabel} — ${cardEmails.length} email(s):\n`;
+    for (const e of cardEmails.slice(0, 3)) {
+      const date = new Date(e.sent_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
+      result += `    [${date}] "${e.subject}" → ${e.recipient_email}\n`;
+    }
+  }
+
+  // Global stats
+  const now = Date.now();
+  const last7d = emails.filter((e) => now - new Date(e.sent_at).getTime() < 7 * 24 * 60 * 60 * 1000).length;
+  const last30d = emails.filter((e) => now - new Date(e.sent_at).getTime() < 30 * 24 * 60 * 60 * 1000).length;
+  result += `\nFrequence: ${last7d} emails cette semaine, ${last30d} ce mois-ci.\n`;
+
+  return result;
+}
+
+// Build training evaluations context — satisfaction summary
+function buildTrainingEvaluationsContext(
+  evaluations: {
+    training_name: string;
+    appreciation_generale: number | null;
+    recommandation: string | null;
+    message_recommandation: string | null;
+    amelioration_suggeree: string | null;
+    company: string | null;
+  }[]
+): string {
+  if (!evaluations.length) return "Aucune evaluation de formation soumise.";
+
+  const withRating = evaluations.filter((e) => e.appreciation_generale != null);
+  const avgRating = withRating.length > 0
+    ? (withRating.reduce((s, e) => s + (e.appreciation_generale || 0), 0) / withRating.length).toFixed(1)
+    : "—";
+
+  const recommenders = evaluations.filter(
+    (e) => e.recommandation === "oui" || e.recommandation === "oui_avec_enthousiasme"
+  ).length;
+  const nonRecommenders = evaluations.filter((e) => e.recommandation === "non").length;
+  const totalWithReco = evaluations.filter((e) => e.recommandation).length;
+  const recoRate = totalWithReco > 0 ? Math.round((recommenders / totalWithReco) * 100) : 0;
+
+  let result = `Evaluations de formation (${evaluations.length} evaluations):\n`;
+  result += `  Note moyenne: ${avgRating}/5\n`;
+  result += `  Taux de recommandation: ${recoRate}% (${recommenders}/${totalWithReco})\n`;
+  if (nonRecommenders > 0) {
+    result += `  ⚠ ${nonRecommenders} participant(s) ne recommandent pas la formation\n`;
+  }
+
+  // Group by training for per-training summary
+  const byTraining = new Map<string, typeof evaluations>();
+  for (const e of evaluations) {
+    const arr = byTraining.get(e.training_name) || [];
+    arr.push(e);
+    byTraining.set(e.training_name, arr);
+  }
+
+  for (const [name, evals] of byTraining) {
+    const avg = evals.filter((e) => e.appreciation_generale != null);
+    const rating = avg.length > 0
+      ? (avg.reduce((s, e) => s + (e.appreciation_generale || 0), 0) / avg.length).toFixed(1)
+      : "—";
+    result += `\n  ${name}: ${rating}/5 (${evals.length} eval.)\n`;
+    // Show testimonials
+    const testimonials = evals
+      .filter((e) => e.message_recommandation)
+      .slice(0, 2);
+    for (const t of testimonials) {
+      result += `    "${t.message_recommandation}"${t.company ? ` — ${t.company}` : ""}\n`;
+    }
+    // Show improvement suggestions
+    const improvements = evals
+      .filter((e) => e.amelioration_suggeree)
+      .slice(0, 2);
+    for (const imp of improvements) {
+      result += `    Amelioration: "${imp.amelioration_suggeree}"\n`;
+    }
+  }
+
+  return result;
+}
+
+// Build sponsor evaluations context — decision-maker satisfaction
+function buildSponsorEvaluationsContext(
+  evaluations: {
+    training_name: string;
+    sponsor_name: string | null;
+    company: string | null;
+    satisfaction_globale: number | null;
+    recommandation: string | null;
+    message_recommandation: string | null;
+    points_forts: string | null;
+    axes_amelioration: string | null;
+    impact_competences: string | null;
+    objectifs_atteints: string | null;
+  }[]
+): string {
+  if (!evaluations.length) return "Aucune evaluation commanditaire soumise.";
+
+  const withRating = evaluations.filter((e) => e.satisfaction_globale != null);
+  const avgRating = withRating.length > 0
+    ? (withRating.reduce((s, e) => s + (e.satisfaction_globale || 0), 0) / withRating.length).toFixed(1)
+    : "—";
+
+  const recommenders = evaluations.filter((e) => e.recommandation === "oui").length;
+  const totalWithReco = evaluations.filter((e) => e.recommandation).length;
+  const recoRate = totalWithReco > 0 ? Math.round((recommenders / totalWithReco) * 100) : 0;
+
+  let result = `Evaluations commanditaires/sponsors (${evaluations.length} evaluations):\n`;
+  result += `  Satisfaction moyenne: ${avgRating}/5\n`;
+  result += `  Taux de recommandation: ${recoRate}% (${recommenders}/${totalWithReco})\n`;
+
+  // Impact assessment
+  const impactOui = evaluations.filter((e) => e.impact_competences === "oui").length;
+  const objectifsOui = evaluations.filter((e) => e.objectifs_atteints === "oui").length;
+  if (impactOui > 0 || objectifsOui > 0) {
+    result += `  Impact competences valide par ${impactOui}/${evaluations.length} sponsors\n`;
+    result += `  Objectifs atteints pour ${objectifsOui}/${evaluations.length} sponsors\n`;
+  }
+
+  // Individual sponsor feedback
+  for (const e of evaluations.slice(0, 5)) {
+    const label = [e.sponsor_name, e.company].filter(Boolean).join(" — ") || "Anonyme";
+    result += `\n  ${label} (${e.training_name}): ${e.satisfaction_globale || "—"}/5\n`;
+    if (e.points_forts) result += `    Points forts: "${e.points_forts.slice(0, 120)}"\n`;
+    if (e.message_recommandation) result += `    Temoignage: "${e.message_recommandation.slice(0, 120)}"\n`;
+    if (e.axes_amelioration) result += `    Ameliorations: "${e.axes_amelioration.slice(0, 120)}"\n`;
+  }
+
+  return result;
+}
+
+// Build mission activities context — delivery and billing tracking
+function buildMissionActivitiesContext(
+  activities: {
+    mission_title: string;
+    description: string;
+    activity_date: string;
+    duration: number;
+    duration_type: string;
+    billable_amount: number | null;
+    is_billed: boolean;
+  }[]
+): string {
+  if (!activities.length) return "Aucune activite mission enregistree.";
+
+  const totalBillable = activities.reduce((s, a) => s + (a.billable_amount || 0), 0);
+  const billed = activities.filter((a) => a.is_billed);
+  const totalBilled = billed.reduce((s, a) => s + (a.billable_amount || 0), 0);
+  const totalDays = activities
+    .filter((a) => a.duration_type === "days")
+    .reduce((s, a) => s + a.duration, 0);
+  const totalHours = activities
+    .filter((a) => a.duration_type === "hours")
+    .reduce((s, a) => s + a.duration, 0);
+
+  let result = `Activites missions (${activities.length} activites):\n`;
+  result += `  Volume: ${totalDays > 0 ? `${totalDays}j` : ""}${totalDays > 0 && totalHours > 0 ? " + " : ""}${totalHours > 0 ? `${totalHours}h` : ""}\n`;
+  result += `  Montant facturable: ${fmtEuro(totalBillable)} (dont ${fmtEuro(totalBilled)} facture)\n`;
+  if (totalBillable > totalBilled) {
+    result += `  ⚠ ${fmtEuro(totalBillable - totalBilled)} en attente de facturation\n`;
+  }
+
+  // Group by mission
+  const byMission = new Map<string, typeof activities>();
+  for (const a of activities) {
+    const arr = byMission.get(a.mission_title) || [];
+    arr.push(a);
+    byMission.set(a.mission_title, arr);
+  }
+
+  for (const [title, acts] of byMission) {
+    const missionTotal = acts.reduce((s, a) => s + (a.billable_amount || 0), 0);
+    result += `\n  ${title}: ${acts.length} activites, ${fmtEuro(missionTotal)}\n`;
+    // Show last 3 activities
+    for (const a of acts.slice(0, 3)) {
+      const date = new Date(a.activity_date).toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
+      result += `    [${date}] ${a.description} (${a.duration}${a.duration_type === "days" ? "j" : "h"})${a.billable_amount ? ` — ${fmtEuro(a.billable_amount)}` : ""}\n`;
+    }
+  }
+
+  return result;
+}
+
+// Build CRM activity log context — sales engagement metrics
+function buildCrmActivityLogContext(
+  logs: { card_id: string; action_type: string; old_value: string | null; new_value: string | null; created_at: string }[],
+  cards: CrmCard[]
+): string {
+  if (!logs.length) return "Aucune activite CRM enregistree.";
+
+  const cardMap = new Map(cards.map((c) => [c.id, c]));
+
+  // Action type breakdown
+  const actionCounts = new Map<string, number>();
+  for (const log of logs) {
+    actionCounts.set(log.action_type, (actionCounts.get(log.action_type) || 0) + 1);
+  }
+
+  const actionLabels: Record<string, string> = {
+    card_created: "Opportunites creees",
+    card_moved: "Deplacements pipeline",
+    sales_status_changed: "Changements statut vente",
+    estimated_value_changed: "Modifications de valeur",
+    email_sent: "Emails envoyes",
+    comment_added: "Commentaires ajoutes",
+    tag_added: "Tags ajoutes",
+    attachment_added: "Pieces jointes",
+  };
+
+  let result = `Activite CRM (${logs.length} actions recentes):\n`;
+  for (const [action, count] of [...actionCounts.entries()].sort((a, b) => b[1] - a[1])) {
+    const label = actionLabels[action] || action;
+    result += `  - ${label}: ${count}\n`;
+  }
+
+  // Recent pipeline movements (last 10)
+  const moves = logs
+    .filter((l) => l.action_type === "card_moved" || l.action_type === "sales_status_changed")
+    .slice(0, 10);
+  if (moves.length > 0) {
+    result += `\nDerniers mouvements pipeline:\n`;
+    for (const m of moves) {
+      const card = cardMap.get(m.card_id);
+      const cardLabel = card ? `${card.title}${card.company ? ` (${card.company})` : ""}` : "Deal inconnu";
+      const date = new Date(m.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
+      if (m.action_type === "sales_status_changed") {
+        result += `  [${date}] ${cardLabel}: ${m.old_value || "?"} → ${m.new_value || "?"}\n`;
+      } else {
+        result += `  [${date}] ${cardLabel}: ${m.old_value || "?"} → ${m.new_value || "?"}\n`;
+      }
+    }
+  }
+
+  // Engagement cadence (last 7 days vs last 30 days)
+  const now = Date.now();
+  const last7d = logs.filter((l) => now - new Date(l.created_at).getTime() < 7 * 24 * 60 * 60 * 1000).length;
+  const last30d = logs.filter((l) => now - new Date(l.created_at).getTime() < 30 * 24 * 60 * 60 * 1000).length;
+  result += `\nCadence: ${last7d} actions cette semaine, ${last30d} ce mois-ci.\n`;
+
+  return result;
+}
+
 // Main hook
 export function useCommercialCoachData() {
   const navigate = useNavigate();
@@ -563,8 +859,12 @@ export function useCommercialCoachData() {
       // Load API keys (Claude is always available via server-side key)
       const apiKeys = await loadArenaApiKeys();
 
-      // Fetch all data in parallel
-      const [okrRes, columnsRes, cardsRes, missionsRes, trainingsRes, catalogueRes, revenueTargetsRes, coachContextsRes] =
+      // Fetch all data in parallel (14 queries)
+      const [
+        okrRes, columnsRes, cardsRes, missionsRes, trainingsRes, catalogueRes,
+        revenueTargetsRes, coachContextsRes,
+        commentsRes, emailsRes, evalRes, sponsorEvalRes, missionActivitiesRes, activityLogRes,
+      ] =
         await Promise.all([
           (supabase as any)
             .from("okr_objectives")
@@ -599,6 +899,49 @@ export function useCommercialCoachData() {
             .select("*")
             .eq("year", new Date().getFullYear())
             .order("context_type", { ascending: true }),
+          // NEW: CRM comments (last 90 days, non-deleted)
+          (supabase as any)
+            .from("crm_comments")
+            .select("card_id, author_email, content, created_at")
+            .eq("is_deleted", false)
+            .gte("created_at", new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString())
+            .order("created_at", { ascending: false })
+            .limit(100),
+          // NEW: CRM emails (last 90 days)
+          (supabase as any)
+            .from("crm_card_emails")
+            .select("card_id, sender_email, recipient_email, subject, sent_at")
+            .gte("sent_at", new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString())
+            .order("sent_at", { ascending: false })
+            .limit(100),
+          // NEW: Training evaluations (submitted)
+          supabase
+            .from("training_evaluations")
+            .select("appreciation_generale, recommandation, message_recommandation, amelioration_suggeree, company, trainings!inner(training_name)")
+            .eq("etat", "soumis")
+            .order("date_soumission", { ascending: false })
+            .limit(100),
+          // NEW: Sponsor evaluations (submitted)
+          (supabase as any)
+            .from("sponsor_cold_evaluations")
+            .select("satisfaction_globale, recommandation, message_recommandation, points_forts, axes_amelioration, impact_competences, objectifs_atteints, sponsor_name, company, trainings!inner(training_name)")
+            .eq("etat", "soumis")
+            .order("date_soumission", { ascending: false })
+            .limit(50),
+          // NEW: Mission activities (last 6 months)
+          (supabase as any)
+            .from("mission_activities")
+            .select("description, activity_date, duration, duration_type, billable_amount, is_billed, missions!inner(title)")
+            .gte("activity_date", new Date(Date.now() - 180 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10))
+            .order("activity_date", { ascending: false })
+            .limit(100),
+          // NEW: CRM activity log (last 60 days)
+          (supabase as any)
+            .from("crm_activity_log")
+            .select("card_id, action_type, old_value, new_value, created_at")
+            .gte("created_at", new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString())
+            .order("created_at", { ascending: false })
+            .limit(200),
         ]);
 
       // Fetch calendar events (non-blocking — calendar may not be connected)
@@ -652,6 +995,40 @@ export function useCommercialCoachData() {
       const ambitionText = coachContexts.find((c) => c.context_type === "ambition")?.content;
       const acquisitionText = coachContexts.find((c) => c.context_type === "acquisition_structure")?.content;
 
+      // Cast new data (non-blocking — these may fail on older DBs)
+      const commentsData = (commentsRes?.data || []) as { card_id: string; author_email: string; content: string; created_at: string }[];
+      const emailsData = (emailsRes?.data || []) as { card_id: string; sender_email: string; recipient_email: string; subject: string; sent_at: string }[];
+      const evalData = ((evalRes?.data || []) as any[]).map((e: any) => ({
+        training_name: e.trainings?.training_name || "Inconnue",
+        appreciation_generale: e.appreciation_generale,
+        recommandation: e.recommandation,
+        message_recommandation: e.message_recommandation,
+        amelioration_suggeree: e.amelioration_suggeree,
+        company: e.company,
+      }));
+      const sponsorEvalData = ((sponsorEvalRes?.data || []) as any[]).map((e: any) => ({
+        training_name: e.trainings?.training_name || "Inconnue",
+        sponsor_name: e.sponsor_name,
+        company: e.company,
+        satisfaction_globale: e.satisfaction_globale,
+        recommandation: e.recommandation,
+        message_recommandation: e.message_recommandation,
+        points_forts: e.points_forts,
+        axes_amelioration: e.axes_amelioration,
+        impact_competences: e.impact_competences,
+        objectifs_atteints: e.objectifs_atteints,
+      }));
+      const missionActivitiesData = ((missionActivitiesRes?.data || []) as any[]).map((a: any) => ({
+        mission_title: a.missions?.title || "Inconnue",
+        description: a.description,
+        activity_date: a.activity_date,
+        duration: a.duration,
+        duration_type: a.duration_type,
+        billable_amount: a.billable_amount,
+        is_billed: a.is_billed,
+      }));
+      const activityLogData = (activityLogRes?.data || []) as { card_id: string; action_type: string; old_value: string | null; new_value: string | null; created_at: string }[];
+
       // Build context blocks
       const ambitionContext = buildAmbitionContext(okrData, ambitionText);
       const okrContext = buildOKRContext(okrData);
@@ -662,6 +1039,12 @@ export function useCommercialCoachData() {
       const wonCards = cardsData.filter((c) => c.sales_status === "WON");
       const revenueTargetContext = buildRevenueTargetContext(revenueTargetsData, wonCards);
       const calendarContext = buildCalendarContext(calendarEvents);
+      const commentsContext = buildCrmCommentsContext(commentsData, cardsData);
+      const emailsContext = buildCrmEmailsContext(emailsData, cardsData);
+      const evalContext = buildTrainingEvaluationsContext(evalData);
+      const sponsorEvalContext = buildSponsorEvaluationsContext(sponsorEvalData);
+      const missionActivitiesContext = buildMissionActivitiesContext(missionActivitiesData);
+      const activityLogContext = buildCrmActivityLogContext(activityLogData, cardsData);
 
       const today = new Date().toLocaleDateString("fr-FR", {
         weekday: "long",
@@ -684,14 +1067,32 @@ ${okrContext}
 --- PIPELINE CRM (avec indices de confiance, velocite, stagnation) ---
 ${crmContext}
 
+--- COMMENTAIRES CRM (echanges et notes sur les deals) ---
+${commentsContext}
+
+--- EMAILS CRM (historique de communication) ---
+${emailsContext}
+
+--- ACTIVITE CRM (mouvements et engagement recent) ---
+${activityLogContext}
+
 --- STRUCTURE D'ACQUISITION CLIENTS ---
 ${acquisitionContext}
 
 --- KANBAN MISSIONS ---
 ${missionsContext}
 
+--- ACTIVITES MISSIONS (delivery et facturation) ---
+${missionActivitiesContext}
+
 --- FORMATIONS ---
 ${formationsContext}
+
+--- EVALUATIONS FORMATIONS (satisfaction participants) ---
+${evalContext}
+
+--- EVALUATIONS COMMANDITAIRES (satisfaction sponsors/decideurs) ---
+${sponsorEvalContext}
 
 --- AGENDA (14 prochains jours) ---
 ${calendarContext}
@@ -705,8 +1106,11 @@ Instructions : Utilisez TOUTES ces donnees reelles pour analyser la situation co
 4. Les indices de confiance pour identifier les deals a risque ou a accelerer
 5. La velocite commerciale (delai moyen de closing, deals stagnants)
 6. La structure d'acquisition (formation vs mission, sources) pour optimiser l'allocation d'effort
-7. La capacite de delivery vs le pipeline ouvert
+7. La capacite de delivery vs le pipeline ouvert et les activites missions
 8. L'agenda pour contextualiser les recommandations d'actions avec les rendez-vous a venir
+9. Les commentaires et emails CRM pour identifier les preoccupations clients et le niveau d'engagement
+10. Les evaluations formation et commanditaires pour identifier la qualite du service et les opportunites d'upsell
+11. Les activites missions (facturation, delivery) pour evaluer la sante financiere et la charge
 Ne demandez pas de donnees supplementaires, tout est ci-dessus.`;
 
       // Build session config from template

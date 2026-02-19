@@ -57,14 +57,14 @@ export default function ArenaResults() {
     <div className="min-h-screen bg-background">
       <AppHeader />
       <header className="border-b border-border">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-3">
-            <button onClick={() => navigate("/")} className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:text-foreground">
+        <div className="mx-auto flex max-w-5xl flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 sm:px-6 py-3 sm:py-4">
+          <div className="flex items-center gap-3 min-w-0">
+            <button onClick={() => navigate("/")} className="shrink-0 rounded-lg p-1.5 text-muted-foreground transition-colors hover:text-foreground">
               <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
               </svg>
             </button>
-            <div>
+            <div className="min-w-0">
               <div className="flex items-center gap-2">
                 <h1 className="text-sm font-semibold">Resultats</h1>
                 <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${
@@ -78,25 +78,25 @@ export default function ArenaResults() {
               <p className="max-w-md truncate text-xs text-muted-foreground">{config.topic}</p>
             </div>
           </div>
-          <div className="flex gap-2">
-            <button onClick={() => navigate("/arena")} className="rounded-lg border border-border px-4 py-2 text-sm transition-colors hover:border-border-hover">
+          <div className="flex flex-wrap gap-2">
+            <button onClick={() => navigate("/arena")} className="rounded-lg border border-border px-3 sm:px-4 py-2 text-xs sm:text-sm transition-colors hover:border-border-hover">
               Nouvelle discussion
             </button>
-            <button onClick={handleExport} className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary/90">
+            <button onClick={handleExport} className="rounded-lg bg-primary px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-white transition-colors hover:bg-primary/90">
               Exporter Markdown
             </button>
           </div>
         </div>
       </header>
 
-      <main className="mx-auto max-w-5xl px-6 py-8">
+      <main className="mx-auto max-w-5xl px-4 sm:px-6 py-6 sm:py-8">
         {/* Tabs */}
-        <div className="mb-6 flex gap-1 rounded-lg border border-border bg-card p-1">
+        <div className="mb-6 flex flex-wrap gap-1 rounded-lg border border-border bg-card p-1">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex-1 rounded-md px-4 py-2 text-sm font-medium transition-colors ${
+              className={`flex-1 min-w-[80px] rounded-md px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium transition-colors ${
                 activeTab === tab.id ? "bg-primary text-white" : "text-muted-foreground hover:text-foreground"
               }`}
             >
@@ -200,7 +200,7 @@ export default function ArenaResults() {
         {/* Metrics tab */}
         {activeTab === "metrics" && (
           <div className="space-y-6">
-            <div className="grid gap-4 sm:grid-cols-5">
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
               <div className="rounded-xl border border-border bg-card p-5">
                 <div className="text-xs font-medium text-muted-foreground">Tours</div>
                 <div className="mt-1 text-2xl font-bold">{result.metrics.totalTurns}</div>

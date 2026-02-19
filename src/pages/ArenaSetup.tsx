@@ -286,35 +286,36 @@ export default function ArenaSetup() {
       <AppHeader />
 
       {/* Sub-header with back navigation — same pattern as CRM */}
-      <div className="mx-auto max-w-5xl px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
+      <div className="mx-auto max-w-5xl px-4 sm:px-6 py-4">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 sm:gap-4 min-w-0">
             <Button
               variant="ghost"
               size="icon"
+              className="shrink-0"
               onClick={() => navigate("/")}
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
+              <div className="p-2 rounded-lg bg-primary/10 hidden sm:block">
                 <Sparkles className="h-6 w-6 text-primary" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold">AI Arena</h1>
-                <p className="text-muted-foreground text-sm">Discussions Multi-Agents</p>
+                <h1 className="text-xl sm:text-2xl font-bold">AI Arena</h1>
+                <p className="text-muted-foreground text-xs sm:text-sm hidden sm:block">Discussions Multi-Agents</p>
               </div>
             </div>
           </div>
           {!isLoading && !isFirstVisit && (
             <button
               onClick={() => setShowSidebar(!showSidebar)}
-              className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-xs text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+              className="flex shrink-0 items-center gap-2 rounded-lg border border-border px-2 sm:px-3 py-2 text-xs text-muted-foreground transition-colors hover:border-primary hover:text-primary"
             >
               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              Historique
+              <span className="hidden sm:inline">Historique</span>
               {history.length > 0 && <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[9px] font-bold text-primary">{history.length}</span>}
             </button>
           )}
@@ -413,7 +414,7 @@ export default function ArenaSetup() {
         </>
       )}
 
-      <main className="mx-auto max-w-5xl px-6 py-8">
+      <main className="mx-auto max-w-5xl px-4 sm:px-6 py-6 sm:py-8">
         {/* Wait for keys to load before deciding which view to show */}
         {isLoading ? (
           <div className="flex items-center justify-center py-20">
@@ -636,12 +637,12 @@ export default function ArenaSetup() {
                 </button>
               </div>
               {showSaveTemplate && (
-                <div className="mb-3 flex items-center gap-2">
+                <div className="mb-3 flex flex-col sm:flex-row gap-2">
                   <input
                     type="text"
                     value={newTemplateName}
                     onChange={(e) => setNewTemplateName(e.target.value)}
-                    className="w-40 rounded-lg border border-border bg-card px-2 py-1.5 text-xs outline-none focus:border-primary"
+                    className="w-full sm:w-40 rounded-lg border border-border bg-card px-2 py-1.5 text-xs outline-none focus:border-primary"
                     placeholder="Nom du template"
                   />
                   <input
@@ -651,19 +652,21 @@ export default function ArenaSetup() {
                     className="flex-1 rounded-lg border border-border bg-card px-2 py-1.5 text-xs outline-none focus:border-primary"
                     placeholder="Description (optionnel)"
                   />
-                  <button
-                    onClick={handleSaveTemplate}
-                    disabled={!newTemplateName.trim()}
-                    className="rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-primary/90 disabled:opacity-40"
-                  >
-                    OK
-                  </button>
-                  <button
-                    onClick={() => setShowSaveTemplate(false)}
-                    className="text-xs text-muted-foreground hover:text-foreground"
-                  >
-                    Annuler
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleSaveTemplate}
+                      disabled={!newTemplateName.trim()}
+                      className="rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-primary/90 disabled:opacity-40"
+                    >
+                      OK
+                    </button>
+                    <button
+                      onClick={() => setShowSaveTemplate(false)}
+                      className="text-xs text-muted-foreground hover:text-foreground"
+                    >
+                      Annuler
+                    </button>
+                  </div>
                 </div>
               )}
               <div className="flex flex-wrap gap-2">
@@ -795,7 +798,7 @@ export default function ArenaSetup() {
               {/* Discussion settings */}
               <section className="mb-8">
                 <h2 className="mb-3 text-lg font-semibold">Parametres</h2>
-                <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                   <div>
                     <label className="mb-1 block text-xs font-medium text-muted-foreground">Mode</label>
                     <select

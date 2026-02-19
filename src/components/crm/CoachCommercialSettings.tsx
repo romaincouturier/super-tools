@@ -238,17 +238,17 @@ export default function CoachCommercialSettings({ open, onOpenChange }: CoachCom
 
         <Tabs defaultValue="ambition" className="mt-6">
           <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="ambition" className="flex items-center gap-1.5">
-              <Target className="h-3.5 w-3.5" />
-              Ambition
+            <TabsTrigger value="ambition" className="flex items-center gap-1 sm:gap-1.5 text-xs sm:text-sm px-1 sm:px-3">
+              <Target className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">Ambition</span>
             </TabsTrigger>
-            <TabsTrigger value="acquisition" className="flex items-center gap-1.5">
-              <TrendingUp className="h-3.5 w-3.5" />
-              Acquisition
+            <TabsTrigger value="acquisition" className="flex items-center gap-1 sm:gap-1.5 text-xs sm:text-sm px-1 sm:px-3">
+              <TrendingUp className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">Acquisition</span>
             </TabsTrigger>
-            <TabsTrigger value="objectifs" className="flex items-center gap-1.5">
-              <DollarSign className="h-3.5 w-3.5" />
-              Objectifs CA
+            <TabsTrigger value="objectifs" className="flex items-center gap-1 sm:gap-1.5 text-xs sm:text-sm px-1 sm:px-3">
+              <DollarSign className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">Objectifs</span>
             </TabsTrigger>
           </TabsList>
 
@@ -488,8 +488,8 @@ export default function CoachCommercialSettings({ open, onOpenChange }: CoachCom
               <CardContent className="space-y-4">
                 {/* Add form */}
                 {showAddTarget && (
-                  <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 space-y-3">
-                    <div className="grid grid-cols-3 gap-3">
+                  <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 sm:p-4 space-y-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       <div className="space-y-1">
                         <Label className="text-xs">Type de période</Label>
                         <Select value={newTargetType} onValueChange={(v) => setNewTargetType(v as typeof newTargetType)}>
