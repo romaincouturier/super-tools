@@ -21,7 +21,7 @@ import ScheduleEditor, { Schedule, SESSION_PRESETS } from "@/components/formatio
 import PrerequisitesEditor from "@/components/formations/PrerequisitesEditor";
 import ProgramSelector from "@/components/formations/ProgramSelector";
 import ObjectivesEditor from "@/components/formations/ObjectivesEditor";
-import TrainingNameCombobox from "@/components/formations/TrainingNameCombobox";
+import TrainingNameCombobox, { FormationConfig } from "@/components/formations/TrainingNameCombobox";
 import TrainerSelector from "@/components/formations/TrainerSelector";
 import SupertiltLinkCombobox from "@/components/formations/SupertiltLinkCombobox";
 import ScheduledActionsEditor, { ScheduledAction } from "@/components/formations/ScheduledActionsEditor";
@@ -83,6 +83,9 @@ const FormationCreate = () => {
   // Scheduled actions
   const [scheduledActions, setScheduledActions] = useState<ScheduledAction[]>([]);
   
+  // Catalog
+  const [catalogId, setCatalogId] = useState<string | null>(null);
+
   // Trainer
   const [trainerId, setTrainerId] = useState<string | null>(null);
   const [trainerDetails, setTrainerDetails] = useState<{
@@ -299,6 +302,7 @@ const FormationCreate = () => {
           trainer_id: trainerId || null,
           elearning_duration: formatFormation === "e_learning" && elearningDuration ? parseFloat(elearningDuration) : null,
           elearning_access_email_content: formatFormation === "e_learning" && elearningAccessEmailContent ? elearningAccessEmailContent : null,
+          catalog_id: catalogId || null,
           created_by: user.id,
         })
         .select()
@@ -483,32 +487,31 @@ const FormationCreate = () => {
                 <TrainingNameCombobox
                   value={trainingName}
                   onChange={setTrainingName}
-                  onFormationSelect={async (formation) => {
-                    if (formation?.programme_url) {
-                      setProgramFileUrl(formation.programme_url);
-                    }
-                    // Prefill prerequisites & objectives from the most recent training with same name
-                    if (formation?.formation_name) {
-                      try {
-                        const { data: prevTraining } = await (supabase as any)
-                          .from("trainings")
-                          .select("prerequisites, objectives")
-                          .eq("training_name", formation.formation_name)
-                          .not("prerequisites", "is", null)
-                          .order("created_at", { ascending: false })
-                          .limit(1)
-                          .maybeSingle();
-                        if (prevTraining) {
-                          if (prevTraining.prerequisites?.length && prerequisites.length === 0) {
-                            setPrerequisites(prevTraining.prerequisites);
-                          }
-                          if (prevTraining.objectives?.length && objectives.length === 0) {
-                            setObjectives(prevTraining.objectives);
-                          }
-                        }
-                      } catch (err) {
-                        console.error("Failed to prefill prerequisites/objectives:", err);
+                  onFormationSelect={(formation: FormationConfig | null) => {
+                    if (formation) {
+                      // Link to catalog entry
+                      setCatalogId(formation.id);
+                      // Pre-fill all catalog fields
+                      if (formation.programme_url) {
+                        setProgramFileUrl(formation.programme_url);
                       }
+                      if (formation.objectives?.length && objectives.length === 0) {
+                        setObjectives(formation.objectives);
+                      }
+                      if (formation.prerequisites?.length && prerequisites.length === 0) {
+                        setPrerequisites(formation.prerequisites);
+                      }
+                      if (formation.supertilt_link) {
+                        setSupertiltLink(formation.supertilt_link);
+                      }
+                      if (formation.elearning_duration) {
+                        setElearningDuration(String(formation.elearning_duration));
+                      }
+                      if (formation.elearning_access_email_content) {
+                        setElearningAccessEmailContent(formation.elearning_access_email_content);
+                      }
+                    } else {
+                      setCatalogId(null);
                     }
                   }}
                 />

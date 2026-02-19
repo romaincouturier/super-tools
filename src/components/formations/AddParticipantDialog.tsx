@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Plus, Loader2, AlertTriangle } from "lucide-react";
+import { Plus, Loader2, AlertTriangle, ShoppingCart } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { differenceInDays, parseISO, format } from "date-fns";
 import {
@@ -88,6 +88,7 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
   const [financeurName, setFinanceurName] = useState("");
   const [financeurUrl, setFinanceurUrl] = useState("");
   const [paymentMode, setPaymentMode] = useState<"online" | "invoice">("invoice");
+  const [generateCoupon, setGenerateCoupon] = useState(true);
   const [financeurPopoverOpen, setFinanceurPopoverOpen] = useState(false);
   const [existingFinanceurs, setExistingFinanceurs] = useState<string[]>([]);
   const [isManualMode, setIsManualMode] = useState(false);
@@ -190,6 +191,7 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
     setFinanceurName("");
     setFinanceurUrl("");
     setPaymentMode("invoice");
+    setGenerateCoupon(true);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -283,13 +285,42 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
         }
       }
 
-      // For e-learning: send access email if participant didn't pay online
+      // For e-learning: generate coupon if needed, then send access email
       if (formatFormation === "e_learning" && paymentMode !== "online" && insertedParticipant) {
+        let couponCode: string | undefined;
+
+        // Generate WooCommerce coupon if requested
+        if (generateCoupon) {
+          try {
+            const { data: couponData, error: couponError } = await supabase.functions.invoke("generate-woocommerce-coupon", {
+              body: {
+                participantId: insertedParticipant.id,
+                trainingId,
+              },
+            });
+            if (couponError) {
+              console.error("Failed to generate WooCommerce coupon:", couponError);
+              toast({
+                title: "Coupon non généré",
+                description: "Le participant a été ajouté mais le coupon WooCommerce n'a pas pu être créé. Vérifiez la configuration WooCommerce.",
+                variant: "default",
+                duration: 8000,
+              });
+            } else if (couponData?.coupon_code) {
+              couponCode = couponData.coupon_code;
+            }
+          } catch (couponErr) {
+            console.error("Failed to generate WooCommerce coupon:", couponErr);
+          }
+        }
+
+        // Send e-learning access email (with coupon code if available)
         try {
           await supabase.functions.invoke("send-elearning-access", {
             body: {
               participantId: insertedParticipant.id,
               trainingId,
+              couponCode,
             },
           });
         } catch (emailError) {
@@ -608,6 +639,26 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
                     <Label htmlFor="paymentInvoice" className="font-normal cursor-pointer">À facturer</Label>
                   </div>
                 </RadioGroup>
+
+                {/* WooCommerce coupon generation for e-learning manual enrollment */}
+                {formatFormation === "e_learning" && paymentMode !== "online" && (
+                  <div className="pt-4 border-t space-y-2">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="generateCoupon"
+                        checked={generateCoupon}
+                        onCheckedChange={(checked) => setGenerateCoupon(checked === true)}
+                      />
+                      <Label htmlFor="generateCoupon" className="text-sm font-normal cursor-pointer flex items-center gap-1.5">
+                        <ShoppingCart className="h-3.5 w-3.5" />
+                        Générer un coupon WooCommerce (100% réduction)
+                      </Label>
+                    </div>
+                    <p className="text-xs text-muted-foreground pl-6">
+                      Un code promo unique sera créé sur WooCommerce et envoyé au participant avec les instructions d'accès.
+                    </p>
+                  </div>
+                )}
               </>
             )}
           </div>

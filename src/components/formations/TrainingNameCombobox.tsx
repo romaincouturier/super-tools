@@ -18,12 +18,21 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 
-interface FormationConfig {
+export interface FormationConfig {
   id: string;
   formation_name: string;
   duree_heures: number;
   prix: number;
   programme_url: string | null;
+  objectives: string[] | null;
+  prerequisites: string[] | null;
+  supports_url: string | null;
+  elearning_duration: number | null;
+  elearning_access_email_content: string | null;
+  supertilt_link: string | null;
+  woocommerce_product_id: number | null;
+  description: string | null;
+  is_active: boolean;
 }
 
 interface TrainingNameComboboxProps {
@@ -48,7 +57,8 @@ const TrainingNameCombobox = ({ value, onChange, onFormationSelect }: TrainingNa
   const fetchFormations = async () => {
     const { data, error } = await supabase
       .from("formation_configs")
-      .select("id, formation_name, duree_heures, prix, programme_url")
+      .select("id, formation_name, duree_heures, prix, programme_url, objectives, prerequisites, supports_url, elearning_duration, elearning_access_email_content, supertilt_link, woocommerce_product_id, description, is_active")
+      .eq("is_active", true)
       .order("display_order", { ascending: true });
 
     if (!error && data) {
@@ -111,7 +121,7 @@ const TrainingNameCombobox = ({ value, onChange, onFormationSelect }: TrainingNa
                 "Aucune formation trouvée."
               )}
             </CommandEmpty>
-            
+
             {/* Option to create new formation */}
             {isNewFormation && (
               <>
@@ -131,10 +141,10 @@ const TrainingNameCombobox = ({ value, onChange, onFormationSelect }: TrainingNa
 
             {/* Existing formations */}
             {formations.length > 0 && (
-              <CommandGroup heading="Formations existantes">
+              <CommandGroup heading="Catalogue de formations">
                 {formations
-                  .filter(f => 
-                    !inputValue || 
+                  .filter(f =>
+                    !inputValue ||
                     f.formation_name.toLowerCase().includes(inputValue.toLowerCase())
                   )
                   .map((formation) => (
@@ -153,7 +163,8 @@ const TrainingNameCombobox = ({ value, onChange, onFormationSelect }: TrainingNa
                       <div className="flex flex-col">
                         <span>{formation.formation_name}</span>
                         <span className="text-xs text-muted-foreground">
-                          {formation.duree_heures}h • {formation.prix}€
+                          {formation.duree_heures}h &middot; {formation.prix}€
+                          {formation.woocommerce_product_id && " · WC"}
                         </span>
                       </div>
                     </CommandItem>

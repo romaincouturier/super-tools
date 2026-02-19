@@ -1301,36 +1301,63 @@ export type Database = {
       formation_configs: {
         Row: {
           created_at: string
+          description: string | null
           display_order: number
           duree_heures: number
+          elearning_access_email_content: string | null
+          elearning_duration: number | null
           formation_name: string
           id: string
+          is_active: boolean
           is_default: boolean
+          objectives: string[] | null
+          prerequisites: string[] | null
           prix: number
           programme_url: string | null
+          supertilt_link: string | null
+          supports_url: string | null
           updated_at: string
+          woocommerce_product_id: number | null
         }
         Insert: {
           created_at?: string
+          description?: string | null
           display_order?: number
           duree_heures?: number
+          elearning_access_email_content?: string | null
+          elearning_duration?: number | null
           formation_name: string
           id?: string
+          is_active?: boolean
           is_default?: boolean
+          objectives?: string[] | null
+          prerequisites?: string[] | null
           prix?: number
           programme_url?: string | null
+          supertilt_link?: string | null
+          supports_url?: string | null
           updated_at?: string
+          woocommerce_product_id?: number | null
         }
         Update: {
           created_at?: string
+          description?: string | null
           display_order?: number
           duree_heures?: number
+          elearning_access_email_content?: string | null
+          elearning_duration?: number | null
           formation_name?: string
           id?: string
+          is_active?: boolean
           is_default?: boolean
+          objectives?: string[] | null
+          prerequisites?: string[] | null
           prix?: number
           programme_url?: string | null
+          supertilt_link?: string | null
+          supports_url?: string | null
           updated_at?: string
+          woocommerce_product_id?: number | null
         }
         Relationships: []
       }
@@ -2955,6 +2982,7 @@ export type Database = {
       trainings: {
         Row: {
           attendance_sheets_urls: string[] | null
+          catalog_id: string | null
           client_address: string | null
           client_name: string
           convention_file_url: string | null
@@ -2997,6 +3025,7 @@ export type Database = {
         }
         Insert: {
           attendance_sheets_urls?: string[] | null
+          catalog_id?: string | null
           client_address?: string | null
           client_name: string
           convention_file_url?: string | null
@@ -3039,6 +3068,7 @@ export type Database = {
         }
         Update: {
           attendance_sheets_urls?: string[] | null
+          catalog_id?: string | null
           client_address?: string | null
           client_name?: string
           convention_file_url?: string | null
@@ -3081,10 +3111,96 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "trainings_catalog_id_fkey"
+            columns: ["catalog_id"]
+            isOneToOne: false
+            referencedRelation: "formation_configs"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "trainings_trainer_id_fkey"
             columns: ["trainer_id"]
             isOneToOne: false
             referencedRelation: "trainers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      woocommerce_coupons: {
+        Row: {
+          id: string
+          coupon_code: string
+          woocommerce_coupon_id: number | null
+          participant_id: string | null
+          training_id: string | null
+          catalog_id: string | null
+          woocommerce_product_id: number | null
+          discount_type: string
+          amount: number
+          usage_limit: number
+          expiry_date: string | null
+          email_restriction: string | null
+          status: string
+          error_message: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          coupon_code: string
+          woocommerce_coupon_id?: number | null
+          participant_id?: string | null
+          training_id?: string | null
+          catalog_id?: string | null
+          woocommerce_product_id?: number | null
+          discount_type?: string
+          amount?: number
+          usage_limit?: number
+          expiry_date?: string | null
+          email_restriction?: string | null
+          status?: string
+          error_message?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          coupon_code?: string
+          woocommerce_coupon_id?: number | null
+          participant_id?: string | null
+          training_id?: string | null
+          catalog_id?: string | null
+          woocommerce_product_id?: number | null
+          discount_type?: string
+          amount?: number
+          usage_limit?: number
+          expiry_date?: string | null
+          email_restriction?: string | null
+          status?: string
+          error_message?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "woocommerce_coupons_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "training_participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "woocommerce_coupons_training_id_fkey"
+            columns: ["training_id"]
+            isOneToOne: false
+            referencedRelation: "trainings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "woocommerce_coupons_catalog_id_fkey"
+            columns: ["catalog_id"]
+            isOneToOne: false
+            referencedRelation: "formation_configs"
             referencedColumns: ["id"]
           },
         ]
