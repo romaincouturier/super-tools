@@ -12,12 +12,16 @@ export interface SavedSession {
   result: SessionResult;
 }
 
-const STORAGE_KEY = "ai-arena-history";
+const STORAGE_KEY_PREFIX = "ai-arena-history";
 const MAX_SESSIONS = 30;
 
-export function getSavedSessions(): SavedSession[] {
+function storageKey(userId?: string): string {
+  return userId ? `${STORAGE_KEY_PREFIX}-${userId}` : STORAGE_KEY_PREFIX;
+}
+
+export function getSavedSessions(userId?: string): SavedSession[] {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(storageKey(userId));
     if (!raw) return [];
     return JSON.parse(raw) as SavedSession[];
   } catch {
@@ -25,8 +29,8 @@ export function getSavedSessions(): SavedSession[] {
   }
 }
 
-export function saveSession(config: SessionConfig, result: SessionResult): string {
-  const sessions = getSavedSessions();
+export function saveSession(config: SessionConfig, result: SessionResult, userId?: string): string {
+  const sessions = getSavedSessions(userId);
   const id = crypto.randomUUID?.() || Date.now().toString(36);
   const entry: SavedSession = {
     id,
@@ -41,15 +45,15 @@ export function saveSession(config: SessionConfig, result: SessionResult): strin
   };
   sessions.unshift(entry);
   if (sessions.length > MAX_SESSIONS) sessions.length = MAX_SESSIONS;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
+  localStorage.setItem(storageKey(userId), JSON.stringify(sessions));
   return id;
 }
 
-export function getSession(id: string): SavedSession | null {
-  return getSavedSessions().find((s) => s.id === id) || null;
+export function getSession(id: string, userId?: string): SavedSession | null {
+  return getSavedSessions(userId).find((s) => s.id === id) || null;
 }
 
-export function deleteSession(id: string): void {
-  const sessions = getSavedSessions().filter((s) => s.id !== id);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
+export function deleteSession(id: string, userId?: string): void {
+  const sessions = getSavedSessions(userId).filter((s) => s.id !== id);
+  localStorage.setItem(storageKey(userId), JSON.stringify(sessions));
 }

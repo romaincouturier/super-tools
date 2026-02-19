@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import { v4 as uuidv4 } from "uuid";
 import type { SessionConfig, AgentConfig, DiscussionMode, UserMode, ApiKeys, Template } from "@/lib/arena/types";
 import { AGENT_COLORS } from "@/lib/arena/types";
@@ -43,9 +44,14 @@ export default function ArenaSetup() {
   const [isLoading, setIsLoading] = useState(true); // true until keys are loaded
   const [isFirstVisit, setIsFirstVisit] = useState(true); // true until we load keys
   const [step, setStep] = useState(0); // 0=onboarding, 1=topic, 2=agents/templates
+  const [userId, setUserId] = useState<string | undefined>(undefined);
 
   useEffect(() => {
-    setHistory(getSavedSessions());
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      const uid = session?.user?.id;
+      setUserId(uid);
+      setHistory(getSavedSessions(uid));
+    });
     setCustomTemplates(getCustomTemplates());
     try {
       const fb = JSON.parse(localStorage.getItem("ai-arena-feedback") || "[]");
@@ -163,7 +169,7 @@ export default function ArenaSetup() {
   };
 
   const handleDeleteSession = (id: string) => {
-    deleteSession(id);
+    deleteSession(id, userId);
     setHistory((prev) => prev.filter((s) => s.id !== id));
   };
 
