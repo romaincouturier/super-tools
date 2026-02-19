@@ -413,17 +413,17 @@ const Historique = () => {
                     <Collapsible key={log.id}>
                       <div className="border rounded-lg">
                         <CollapsibleTrigger asChild>
-                          <div className="flex items-center gap-4 p-3 hover:bg-muted/50 cursor-pointer transition-colors">
-                            <div className="w-[140px] font-mono text-sm text-muted-foreground shrink-0">
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 p-3 hover:bg-muted/50 cursor-pointer transition-colors">
+                            <div className="font-mono text-xs sm:text-sm text-muted-foreground shrink-0">
                               {formatDateTime(log.created_at)}
                             </div>
-                            <div className="w-[160px] shrink-0">
+                            <div className="shrink-0">
                               <Badge variant={actionInfo.variant} className="gap-1">
                                 {actionInfo.icon}
                                 {actionInfo.label}
                               </Badge>
                             </div>
-                            <div className="font-medium shrink-0 w-[200px] truncate">
+                            <div className="font-medium shrink-0 truncate min-w-0 sm:max-w-[200px]">
                               {log.recipient_email}
                             </div>
                             <div className="flex-1 text-muted-foreground text-sm truncate">

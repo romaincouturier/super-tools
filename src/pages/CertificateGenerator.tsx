@@ -380,7 +380,7 @@ const Index = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-5 gap-4">
                 <div className="space-y-2 col-span-1">
                   <Label htmlFor="duree">Durée (heures)</Label>
                   <div className="relative">

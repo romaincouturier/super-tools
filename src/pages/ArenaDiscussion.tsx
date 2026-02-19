@@ -11,6 +11,7 @@ import { saveSession } from "@/lib/arena/history";
 import { callOrchestrate, callOrchestratorApi } from "@/lib/arena/api";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { v4 as uuidv4 } from "uuid";
+import AppHeader from "@/components/AppHeader";
 
 export default function ArenaDiscussion() {
   const navigate = useNavigate();
@@ -939,16 +940,17 @@ REGLES CRITIQUES pour le livrable :
 
   return (
     <div className="flex h-screen flex-col bg-background">
+      <AppHeader />
       {/* Header */}
       <header className="shrink-0 border-b border-border">
-        <div className="flex items-center justify-between px-6 py-3">
-          <div className="flex items-center gap-3">
-            <button onClick={() => navigate("/arena")} className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:text-foreground">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-3 sm:px-6 py-2 sm:py-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <button onClick={() => navigate("/")} className="shrink-0 rounded-lg p-1.5 text-muted-foreground transition-colors hover:text-foreground">
               <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
               </svg>
             </button>
-            <div>
+            <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
                 <h1 className="text-sm font-semibold">AI Arena</h1>
                 <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${
@@ -962,15 +964,14 @@ REGLES CRITIQUES pour le livrable :
               <p className="max-w-md truncate text-xs text-muted-foreground">{config.topic}</p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+            <div className="flex flex-wrap items-center gap-1 sm:gap-2 text-[10px] sm:text-xs text-muted-foreground">
               <span>Tour {turnNumber}/{config.rules.maxTurns}</span>
-              <span className="text-border">|</span>
-              <span>{totalTokens} tok</span>
-              <span className="text-border">|</span>
-              <span className="font-mono">${estimatedCostUsd.toFixed(4)}</span>
-              <span className="text-border">|</span>
-              <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+              <span className="text-border hidden sm:inline">|</span>
+              <span className="hidden sm:inline">{totalTokens} tok</span>
+              <span className="text-border hidden sm:inline">|</span>
+              <span className="font-mono hidden sm:inline">${estimatedCostUsd.toFixed(4)}</span>
+              <span className={`rounded-full px-2 py-0.5 text-[10px] sm:text-xs font-medium ${
                 discussionState === "active" ? "bg-emerald-500/10 text-emerald-500"
                   : discussionState === "stalling" ? "bg-destructive/10 text-destructive"
                     : discussionState === "converging" ? "bg-amber-500/10 text-amber-500"
@@ -980,47 +981,47 @@ REGLES CRITIQUES pour le livrable :
               </span>
             </div>
             {isRunning && (
-              <div className="flex gap-2">
-                <button onClick={handlePause} className="rounded-lg border border-border px-3 py-1.5 text-xs transition-colors hover:border-border-hover">
+              <div className="flex flex-wrap gap-1 sm:gap-2">
+                <button onClick={handlePause} className="rounded-lg border border-border px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs transition-colors hover:border-border-hover">
                   {isPaused ? "Reprendre" : "Pause"}
                 </button>
                 {config.mode === "decision" && (
-                  <button onClick={forceVote} className="rounded-lg border border-amber-500/30 px-3 py-1.5 text-xs text-amber-500 transition-colors hover:bg-amber-500/10">
+                  <button onClick={forceVote} className="rounded-lg border border-amber-500/30 px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs text-amber-500 transition-colors hover:bg-amber-500/10">
                     Voter
                   </button>
                 )}
                 {config.mode === "deliverable" && (
-                  <button onClick={forceDeliverable} className="rounded-lg border border-emerald-500/30 px-3 py-1.5 text-xs text-emerald-500 transition-colors hover:bg-emerald-500/10">
+                  <button onClick={forceDeliverable} className="rounded-lg border border-emerald-500/30 px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs text-emerald-500 transition-colors hover:bg-emerald-500/10">
                     Livrable
                   </button>
                 )}
-                <button onClick={handleStop} className="rounded-lg border border-destructive/30 px-3 py-1.5 text-xs text-destructive transition-colors hover:bg-destructive/10">
+                <button onClick={handleStop} className="rounded-lg border border-destructive/30 px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs text-destructive transition-colors hover:bg-destructive/10">
                   Arreter
                 </button>
               </div>
             )}
             {!isRunning && messages.length > 0 && (
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-1 sm:gap-2">
                 <button
                   onClick={handleCopyAll}
-                  className="rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+                  className="rounded-lg border border-border px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs text-muted-foreground transition-colors hover:border-primary hover:text-primary"
                   title="Copier tous les echanges"
                 >
                   {copied ? (
                     <span className="flex items-center gap-1 text-emerald-500">
                       <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-                      Copie
+                      <span className="hidden sm:inline">Copie</span>
                     </span>
                   ) : (
                     <span className="flex items-center gap-1">
                       <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
-                      Copier
+                      <span className="hidden sm:inline">Copier</span>
                     </span>
                   )}
                 </button>
                 <button
                   onClick={handleDownloadMd}
-                  className="rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+                  className="rounded-lg border border-border px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs text-muted-foreground transition-colors hover:border-primary hover:text-primary"
                   title="Telecharger en Markdown"
                 >
                   <span className="flex items-center gap-1">
@@ -1030,15 +1031,15 @@ REGLES CRITIQUES pour le livrable :
                 </button>
                 <button
                   onClick={handleContinue}
-                  className="rounded-lg border border-primary/30 px-3 py-1.5 text-xs text-primary transition-colors hover:bg-primary/10"
+                  className="rounded-lg border border-primary/30 px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs text-primary transition-colors hover:bg-primary/10"
                   title="Continuer la discussion (+5 tours)"
                 >
                   <span className="flex items-center gap-1">
                     <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                    Continuer
+                    <span className="hidden sm:inline">Continuer</span>
                   </span>
                 </button>
-                <button onClick={goToResults} className="rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-primary/90">
+                <button onClick={goToResults} className="rounded-lg bg-primary px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-medium text-white transition-colors hover:bg-primary/90">
                   Resultats
                 </button>
               </div>
@@ -1046,7 +1047,7 @@ REGLES CRITIQUES pour le livrable :
           </div>
         </div>
         {/* Agent badges */}
-        <div className="flex gap-2 overflow-x-auto px-6 pb-3">
+        <div className="flex gap-2 overflow-x-auto px-3 sm:px-6 pb-3">
           {config.agents.map((agent) => (
             <div
               key={agent.id}
@@ -1216,7 +1217,7 @@ REGLES CRITIQUES pour le livrable :
 
       {/* Step-by-step input -- always visible during discussion */}
       {isRunning && (
-        <div className="shrink-0 border-t border-border px-6 py-3">
+        <div className="shrink-0 border-t border-border px-3 sm:px-6 py-3">
           {waitingForUser ? (
             /* Waiting for user: show next speaker recommendation + input */
             <div>

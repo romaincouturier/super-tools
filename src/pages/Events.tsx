@@ -62,30 +62,30 @@ const Events = () => {
     <div className="min-h-screen bg-background">
       <AppHeader />
 
-      <main className="max-w-6xl mx-auto p-6">
+      <main className="max-w-6xl mx-auto p-4 sm:p-6">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={() => navigate("/")}>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <Button variant="ghost" size="icon" className="shrink-0" onClick={() => navigate("/")}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
+              <div className="p-2 rounded-lg bg-primary/10 hidden sm:block">
                 <CalendarDays className="h-6 w-6 text-primary" />
               </div>
-              <h1 className="text-2xl font-bold">Événements</h1>
+              <h1 className="text-xl sm:text-2xl font-bold">Événements</h1>
             </div>
           </div>
-          <Button onClick={() => navigate("/events/new")}>
-            <Plus className="h-4 w-4 mr-2" />
-            Nouvel événement
+          <Button size="sm" onClick={() => navigate("/events/new")}>
+            <Plus className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Nouvel événement</span>
           </Button>
         </div>
 
         {/* Tabs + Search */}
         <Card>
           <CardHeader className="pb-3">
-            <div className="flex items-center justify-between gap-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <Tabs value={filter} onValueChange={(v) => setFilter(v as "upcoming" | "past")}>
                 <TabsList>
                   <TabsTrigger value="upcoming">
@@ -103,7 +103,7 @@ const Events = () => {
                   placeholder="Rechercher un événement…"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 h-8 w-[280px]"
+                  className="pl-9 h-8 w-full sm:w-[280px]"
                 />
                 {searchQuery && (
                   <button

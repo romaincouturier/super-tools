@@ -155,6 +155,7 @@ const FailedEmails = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
+                  <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -187,6 +188,7 @@ const FailedEmails = () => {
                       ))}
                     </TableBody>
                   </Table>
+                  </div>
                 </CardContent>
               </Card>
             )}
@@ -209,6 +211,7 @@ const FailedEmails = () => {
                 ) : failedEmails.length === 0 ? (
                   <p className="text-center py-6 text-muted-foreground">Aucun email ad-hoc en erreur.</p>
                 ) : (
+                  <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -262,6 +265,7 @@ const FailedEmails = () => {
                       ))}
                     </TableBody>
                   </Table>
+                  </div>
                 )}
               </CardContent>
             </Card>
@@ -280,7 +284,7 @@ const FailedEmails = () => {
           </DialogHeader>
           {previewEmail && (
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-2 text-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
                 <div>
                   <span className="text-muted-foreground">Destinataire:</span>{" "}
                   <span className="font-medium">{previewEmail.recipient_email}</span>
