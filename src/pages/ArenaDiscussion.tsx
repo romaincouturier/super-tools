@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import type { SessionConfig, Message, ApiKeys, OrchestratorDecision, VoteResult, DiscussionState } from "@/lib/arena/types";
 import { estimateCost } from "@/lib/arena/types";
 import { buildSlidingContext } from "@/lib/arena/store";
@@ -49,6 +50,7 @@ export default function ArenaDiscussion() {
   const [waitingForUser, setWaitingForUser] = useState(false);
   const continueResolverRef = useRef<((overrideAgentId?: string) => void) | null>(null);
   const [nextSpeakerSuggestion, setNextSpeakerSuggestion] = useState<{ agentId: string; agentName: string; instruction: string } | null>(null);
+  const [userId, setUserId] = useState<string | undefined>(undefined);
 
   useEffect(() => { pauseRef.current = isPaused; }, [isPaused]);
 
@@ -120,6 +122,13 @@ export default function ArenaDiscussion() {
       sessionStorage.setItem("ai-arena-turn", String(turnNumber));
     }
   }, [messages, turnNumber]);
+
+  // Fetch user ID for per-user history isolation
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUserId(session?.user?.id);
+    });
+  }, []);
 
   useEffect(() => {
     const configStr = sessionStorage.getItem("ai-arena-config");
@@ -644,7 +653,7 @@ REGLES CRITIQUES pour le livrable :
       sessionStorage.setItem("ai-arena-result", JSON.stringify(result));
 
       // Auto-save to history
-      try { saveSession(config, result); } catch { /* ignore quota errors */ }
+      try { saveSession(config, result, userId); } catch { /* ignore quota errors */ }
 
     } catch (err: unknown) {
       if (err instanceof Error && err.name === "AbortError") { /* ok */ }
