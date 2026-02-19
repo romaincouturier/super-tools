@@ -188,3 +188,6 @@ verify_jwt = false
 
 [functions.process-mission-testimonials]
 verify_jwt = false
+
+[functions.process-participant-list-reminders]
+verify_jwt = false
