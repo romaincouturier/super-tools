@@ -1,3 +1,5 @@
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import type { Message } from "@/lib/arena/types";
 
 interface MessageBubbleProps {
@@ -9,6 +11,14 @@ const providerBadge: Record<string, string> = {
   gemini: "Gem",
 };
 
+function MarkdownContent({ content }: { content: string }) {
+  return (
+    <div className="prose prose-sm dark:prose-invert max-w-none leading-relaxed prose-p:my-1.5 prose-headings:mt-3 prose-headings:mb-1.5 prose-ul:my-1.5 prose-ol:my-1.5 prose-li:my-0.5 prose-blockquote:my-2 prose-pre:my-2">
+      <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
+    </div>
+  );
+}
+
 export default function MessageBubble({ message }: MessageBubbleProps) {
   if (message.isSynthesis) {
     return (
@@ -19,7 +29,7 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
           </svg>
           <span className="font-semibold text-blue-500">{message.agentName || "Synthese finale"}</span>
         </div>
-        <div className="whitespace-pre-wrap text-sm leading-relaxed">{message.content}</div>
+        <MarkdownContent content={message.content} />
       </div>
     );
   }
@@ -33,7 +43,7 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
           </svg>
           <span className="font-semibold text-emerald-500">Livrable final</span>
         </div>
-        <div className="whitespace-pre-wrap text-sm leading-relaxed">{message.content}</div>
+        <MarkdownContent content={message.content} />
       </div>
     );
   }
@@ -61,7 +71,7 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
               className="rounded-xl rounded-tl-sm border-2 px-4 py-3"
               style={{ borderColor: message.agentColor + "60" }}
             >
-              <div className="whitespace-pre-wrap text-sm leading-relaxed">{message.content}</div>
+              <MarkdownContent content={message.content} />
             </div>
           </div>
         </div>
@@ -108,7 +118,7 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
             className="rounded-xl rounded-tl-sm border px-4 py-3"
             style={{ borderColor: message.agentColor + "40" }}
           >
-            <div className="whitespace-pre-wrap text-sm leading-relaxed">{message.content}</div>
+            <MarkdownContent content={message.content} />
           </div>
         </div>
       </div>

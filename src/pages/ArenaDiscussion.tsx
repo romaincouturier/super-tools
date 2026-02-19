@@ -11,6 +11,8 @@ import { saveSession } from "@/lib/arena/history";
 import { callOrchestrate, callOrchestratorApi } from "@/lib/arena/api";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { v4 as uuidv4 } from "uuid";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import AppHeader from "@/components/AppHeader";
 
 export default function ArenaDiscussion() {
@@ -36,6 +38,7 @@ export default function ArenaDiscussion() {
   const [rating, setRating] = useState<number | null>(null);
   const [feedbackText, setFeedbackText] = useState("");
   const [feedbackSent, setFeedbackSent] = useState(false);
+  const [showScrollButton, setShowScrollButton] = useState(false);
   const lang = config?.rules.language === "fr" ? "fr-FR" : "en-US";
   const { isListening, isSupported: micSupported, startListening, stopListening } = useSpeechRecognition(lang);
   const voiceToInput = useCallback(() => {
@@ -112,8 +115,19 @@ export default function ArenaDiscussion() {
     const el = scrollContainerRef.current;
     if (!el) return;
     const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
-    // Only consider user as "scrolled away" if they are far from bottom
-    userHasScrolledRef.current = distanceFromBottom > 400;
+    const scrolledAway = distanceFromBottom > 150;
+    userHasScrolledRef.current = scrolledAway;
+    setShowScrollButton(scrolledAway);
+  }, []);
+
+  // Force scroll to bottom (user clicks the button)
+  const forceScrollToBottom = useCallback(() => {
+    userHasScrolledRef.current = false;
+    setShowScrollButton(false);
+    const el = scrollContainerRef.current;
+    if (el) {
+      el.scrollTop = el.scrollHeight;
+    }
   }, []);
 
   // Persist messages to sessionStorage so they survive tab switches
@@ -177,7 +191,6 @@ export default function ArenaDiscussion() {
       setCurrentSpeaker(agentId);
       if (!existingContent) {
         setStreamingContent("");
-        userHasScrolledRef.current = false;
       }
 
       while (true) {
@@ -1063,7 +1076,7 @@ REGLES CRITIQUES pour le livrable :
       </header>
 
       {/* Key points sidebar (if any) */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="relative flex flex-1 overflow-hidden">
         <div ref={scrollContainerRef} onScroll={handleScroll} className="flex-1 overflow-y-auto py-4">
           {messages.map((message) => (
             <MessageBubble key={message.id} message={message} />
@@ -1082,7 +1095,9 @@ REGLES CRITIQUES pour le livrable :
                     <span className="text-xs text-muted-foreground">Tour {turnNumber}</span>
                   </div>
                   <div className="rounded-xl rounded-tl-sm border px-4 py-3" style={{ borderColor: currentAgent.color + "40" }}>
-                    <div className="whitespace-pre-wrap text-sm leading-relaxed">{streamingContent}</div>
+                    <div className="prose prose-sm dark:prose-invert max-w-none leading-relaxed prose-p:my-1.5 prose-headings:mt-3 prose-headings:mb-1.5 prose-ul:my-1.5 prose-ol:my-1.5 prose-li:my-0.5">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>{streamingContent}</ReactMarkdown>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1097,7 +1112,9 @@ REGLES CRITIQUES pour le livrable :
                   {currentSpeaker === "deliverable" ? "Generation du livrable..." : "Synthese en cours..."}
                 </span>
               </div>
-              <div className="whitespace-pre-wrap text-sm leading-relaxed">{streamingContent}</div>
+              <div className="prose prose-sm dark:prose-invert max-w-none leading-relaxed prose-p:my-1.5 prose-headings:mt-3 prose-headings:mb-1.5 prose-ul:my-1.5 prose-ol:my-1.5 prose-li:my-0.5">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{streamingContent}</ReactMarkdown>
+              </div>
             </div>
           )}
 
@@ -1198,6 +1215,19 @@ REGLES CRITIQUES pour le livrable :
 
           <div ref={messagesEndRef} />
         </div>
+
+        {/* Floating scroll-to-bottom button */}
+        {showScrollButton && (
+          <button
+            onClick={forceScrollToBottom}
+            className="absolute bottom-20 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5 rounded-full border border-border bg-card/95 backdrop-blur-sm px-3 py-1.5 text-xs text-muted-foreground shadow-lg transition-all hover:text-foreground hover:border-primary"
+          >
+            <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+            </svg>
+            Nouveaux messages
+          </button>
+        )}
 
         {/* Key points sidebar */}
         {keyPoints.length > 0 && (
