@@ -53,24 +53,22 @@ export default function ArenaSetup() {
     } catch { /* ignore */ }
     // Load persisted API keys via loadArenaApiKeys
     loadArenaApiKeys().then((saved) => {
-      if (saved.claude || saved.openai || saved.gemini) {
-        setApiKeys(saved);
-        setShowApiKeys(false);
-        setIsFirstVisit(false);
-        setStep(1); // go straight to topic
-        // Adapt default agents to available provider
-        const p: "claude" | "openai" | "gemini" = saved.claude ? "claude" : saved.openai ? "openai" : "gemini";
-        const m = p === "claude" ? "claude-haiku-4-5-20251001" : p === "openai" ? "gpt-4o-mini" : "gemini-2.0-flash";
-        setAgents((prev) => prev.map((a) => a.provider !== p ? { ...a, provider: p, model: m } : a));
-      } else {
-        setShowApiKeys(true);
-        setIsFirstVisit(true);
-        setStep(0); // onboarding
+      setApiKeys(saved);
+      // Claude is always available via server-side key, skip onboarding
+      setShowApiKeys(false);
+      setIsFirstVisit(false);
+      setStep(1); // go straight to topic
+      // Adapt default agents to available provider if user has OpenAI/Gemini keys
+      if (saved.openai || saved.gemini) {
+        const p: "claude" | "openai" | "gemini" = saved.openai ? "openai" : "gemini";
+        // Keep claude as default, just load saved keys
       }
       setIsLoading(false);
     }).catch(() => {
-      setShowApiKeys(true);
-      setIsFirstVisit(true);
+      // Claude is still available server-side even on error
+      setShowApiKeys(false);
+      setIsFirstVisit(false);
+      setStep(1);
       setIsLoading(false);
     });
   }, []);
