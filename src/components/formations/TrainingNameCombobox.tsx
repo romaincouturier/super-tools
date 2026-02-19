@@ -62,7 +62,7 @@ const TrainingNameCombobox = ({ value, onChange, onFormationSelect }: TrainingNa
       .order("display_order", { ascending: true });
 
     if (!error && data) {
-      setFormations(data);
+      setFormations(data as unknown as FormationConfig[]);
     }
   };
 

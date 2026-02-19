@@ -1,7 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
-import Anthropic from "npm:@anthropic-ai/sdk@^0.74.0";
-import OpenAI from "npm:openai@^4.77.0";
+import Anthropic from "https://esm.sh/@anthropic-ai/sdk@0.74.0";
+import OpenAI from "https://esm.sh/openai@4.77.0";
 
 interface RequestBody {
   provider: "claude" | "openai" | "gemini";

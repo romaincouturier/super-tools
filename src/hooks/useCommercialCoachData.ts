@@ -252,7 +252,7 @@ export function useCommercialCoachData() {
       );
       const crmContext = buildCRMContext(
         (columnsRes.data || []) as CrmColumn[],
-        (cardsRes.data || []) as CrmCard[]
+        (cardsRes.data || []) as unknown as CrmCard[]
       );
       const missionsContext = buildMissionsContext((missionsRes.data || []) as Mission[]);
       const formationsContext = buildFormationsContext(
