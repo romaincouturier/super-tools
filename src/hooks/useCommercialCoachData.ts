@@ -14,9 +14,9 @@ import { useToast } from "@/hooks/use-toast";
 const fmtEuro = (v: number | null | undefined) =>
   v != null ? `${v.toLocaleString("fr-FR")}€` : "—";
 
-// Check if at least one API key is present
-function hasAnyApiKey(keys: ApiKeys): boolean {
-  return !!(keys.claude?.trim() || keys.openai?.trim() || keys.gemini?.trim());
+// Claude is always available via server-side key
+function hasAnyProvider(_keys: ApiKeys): boolean {
+  return true;
 }
 
 // Build OKR context block from live data
@@ -186,17 +186,8 @@ export function useCommercialCoachData() {
   const launchCoach = async (customTopic?: string) => {
     setIsLoading(true);
     try {
-      // Load API keys first to fail fast
+      // Load API keys (Claude is always available via server-side key)
       const apiKeys = await loadArenaApiKeys();
-      if (!hasAnyApiKey(apiKeys)) {
-        toast({
-          title: "Cle API manquante",
-          description: "Configurez au moins une cle API dans AI Arena avant d'utiliser le Coach Commercial.",
-          variant: "destructive",
-        });
-        setIsLoading(false);
-        return;
-      }
 
       // Fetch all data in parallel
       const [okrRes, columnsRes, cardsRes, missionsRes, trainingsRes, catalogueRes] =
@@ -297,17 +288,9 @@ Instructions : Utilisez ces donnees reelles pour analyser la situation commercia
         return;
       }
 
-      const availableProvider: "claude" | "openai" | "gemini" = apiKeys.claude?.trim()
-        ? "claude"
-        : apiKeys.openai?.trim()
-          ? "openai"
-          : "gemini";
-      const defaultModel =
-        availableProvider === "claude"
-          ? "claude-haiku-4-5-20251001"
-          : availableProvider === "openai"
-            ? "gpt-4o-mini"
-            : "gemini-2.0-flash";
+      // Always use Claude (server-side key available)
+      const availableProvider: "claude" | "openai" | "gemini" = "claude";
+      const defaultModel = "claude-haiku-4-5-20251001";
 
       const config: SessionConfig = {
         topic:
