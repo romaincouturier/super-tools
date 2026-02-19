@@ -200,6 +200,8 @@ export default function ArenaDiscussion() {
       // Use sliding context for long discussions
       const contextHistory = buildSlidingContext(history);
 
+      // Use a generous token budget so the model is never cut off mid-sentence.
+      // Response length is controlled via the system prompt instructions.
       const response = await callOrchestrate({
         provider: agentConfig.provider,
         apiKey,
@@ -208,7 +210,7 @@ export default function ArenaDiscussion() {
         turnInstruction: instruction,
         history: contextHistory,
         topic: config!.topic,
-        maxTokens: config!.rules.maxTokensPerTurn,
+        maxTokens: 4096,
       }, abortRef.current?.signal);
 
       if (!response.ok) {
@@ -216,30 +218,7 @@ export default function ArenaDiscussion() {
         throw new Error(err || `HTTP ${response.status}`);
       }
 
-      let result = await streamResponse(response, agentConfig.id);
-
-      // Auto-continuation: detect truncated responses and ask the agent to finish
-      if (looksIncomplete(result.content)) {
-        const contResponse = await callOrchestrate({
-          provider: agentConfig.provider,
-          apiKey,
-          model: agentConfig.model,
-          systemPrompt: systemPrompt + "\n\nIMPORTANT: Tu continues ta reponse precedente qui a ete coupee. Ne repete pas ce qui est deja dit. Termine ton point en quelques phrases.",
-          turnInstruction: `Continue directement la suite de ton texte. Voici comment ta reponse se terminait : "...${result.content.slice(-200)}"`,
-          history: contextHistory,
-          topic: config!.topic,
-          maxTokens: 1000,
-        }, abortRef.current?.signal);
-
-        if (contResponse.ok) {
-          const contResult = await streamResponse(contResponse, agentConfig.id, result.content);
-          result = {
-            content: contResult.content,
-            outputTokens: result.outputTokens + contResult.outputTokens,
-            inputTokens: result.inputTokens + contResult.inputTokens,
-          };
-        }
-      }
+      const result = await streamResponse(response, agentConfig.id);
 
       setCurrentSpeaker(null);
       setStreamingContent("");
@@ -1327,7 +1306,8 @@ ${agent.stance ? `Ta position initiale : ${agent.stance}` : ""}
 ${expertContext.length > 0 ? `\n${expertContext.join("\n")}` : ""}
 
 Regles de la discussion :
-- TERMINE TOUJOURS tes idees -- mieux vaut 2 arguments complets que 5 inacheves. Si tu manques de place, conclus plutot que de laisser en suspens.
+- LONGUEUR : Vise 250 a 400 mots maximum par intervention. Sois dense et percutant, pas exhaustif.
+- TERMINE TOUJOURS tes idees -- mieux vaut 2 arguments complets que 5 inacheves. Conclus toujours proprement.
 - REAGIS aux interventions precedentes : cite les noms des autres participants, dis si tu es d'accord ou non, et POURQUOI.
 - NE REPETE PAS ce qui a ete dit. Si un point a deja ete fait, dis "comme l'a dit [nom]" et ajoute de la valeur.
 - RELIE toujours tes points au SUJET CENTRAL de la discussion. Ne pars pas dans des tangentes.
@@ -1337,26 +1317,6 @@ Regles de la discussion :
 - Langue : ${config.rules.language === "fr" ? "francais" : "anglais"}${filesContext}`;
 }
 
-/**
- * Detect if an agent response was cut short (hit the token limit mid-sentence).
- * Returns true if the text appears incomplete.
- */
-function looksIncomplete(text: string): boolean {
-  if (!text || text.length < 100) return false;
-  const trimmed = text.trimEnd();
-  // Proper sentence endings
-  if (/[.!?:»"\u2019)\]]$/.test(trimmed)) return false;
-  // Ends with a markdown heading or list marker (structural ending)
-  if (/\n#{1,3}\s+\S.*$/.test(trimmed)) return false;
-  // Ends with a complete list item (dash/number + text + period/punctuation)
-  if (/[-*]\s+.{10,}[.!?]$/.test(trimmed)) return false;
-  // Ends with a closing markdown bold/italic
-  if (/\*{1,2}$/.test(trimmed)) return false;
-  // Ends with an emoji (common in AI outputs)
-  if (/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]$/u.test(trimmed)) return false;
-  // The text is likely cut mid-sentence
-  return true;
-}
 
 function computeTokensPerAgent(messages: Message[]): Record<string, number> {
   const result: Record<string, number> = {};
