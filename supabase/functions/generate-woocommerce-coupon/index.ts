@@ -58,10 +58,10 @@ serve(async (req) => {
       return createErrorResponse("Participant introuvable", 404);
     }
 
-    // Fetch training with catalog info
+    // Fetch training
     const { data: training, error: trainingError } = await supabase
       .from("trainings")
-      .select("*, formation_configs(*)")
+      .select("*")
       .eq("id", trainingId)
       .single();
 
@@ -69,9 +69,26 @@ serve(async (req) => {
       return createErrorResponse("Formation introuvable", 404);
     }
 
-    // Get WooCommerce product ID from catalog
-    const catalog = (training as any).formation_configs;
-    const woocommerceProductId = catalog?.woocommerce_product_id;
+    // Fetch catalog entry separately to get WooCommerce product ID
+    if (!training.catalog_id) {
+      return createErrorResponse(
+        "Cette formation n'est pas liée à une entrée du catalogue. " +
+        "Veuillez d'abord associer la formation à une entrée du catalogue contenant un WooCommerce Product ID.",
+        400
+      );
+    }
+
+    const { data: catalog, error: catalogError } = await supabase
+      .from("formation_configs")
+      .select("*")
+      .eq("id", training.catalog_id)
+      .single();
+
+    if (catalogError || !catalog) {
+      return createErrorResponse("Entrée catalogue introuvable", 404);
+    }
+
+    const woocommerceProductId = catalog.woocommerce_product_id;
 
     if (!woocommerceProductId) {
       return createErrorResponse(
@@ -146,14 +163,14 @@ serve(async (req) => {
     }
 
     // Record coupon in database
-    const { data: couponRecord, error: insertError } = await supabase
+    const { error: insertError } = await supabase
       .from("woocommerce_coupons")
       .insert({
         coupon_code: couponCode,
         woocommerce_coupon_id: wcCouponId,
         participant_id: participantId,
         training_id: trainingId,
-        catalog_id: training.catalog_id || null,
+        catalog_id: training.catalog_id,
         woocommerce_product_id: woocommerceProductId,
         discount_type: "percent",
         amount: 100,
@@ -162,9 +179,7 @@ serve(async (req) => {
         email_restriction: participant.email,
         status: couponStatus,
         error_message: errorMessage,
-      })
-      .select()
-      .single();
+      });
 
     if (insertError) {
       console.error("Failed to record coupon in database:", insertError);

@@ -103,7 +103,7 @@ serve(async (req) => {
           <p style="margin: 0 0 8px; font-weight: bold;">Ton code de réduction : <span style="font-size: 1.2em; color: #16a34a;">${escapeHtml(couponCode)}</span></p>
           <p style="margin: 0 0 8px;">Voici les étapes pour accéder à la formation :</p>
           <ol style="margin: 0; padding-left: 20px;">
-            <li>Rends-toi sur <a href="${escapeHtml(accessLink)}">${escapeHtml(accessLink)}</a></li>
+            <li>Rends-toi sur <a href="${accessLink}">${escapeHtml(accessLink)}</a></li>
             <li>Clique sur "S'inscrire"</li>
             <li>Sur la page de la commande, clique sur "Cliquez ici pour entrer votre code"</li>
             <li>Saisis le code <strong>${escapeHtml(couponCode)}</strong></li>

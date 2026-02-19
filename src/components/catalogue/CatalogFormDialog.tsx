@@ -251,7 +251,8 @@ const CatalogFormDialog = ({ open, onClose, entry }: CatalogFormDialogProps) => 
                   <Label>Objectifs pédagogiques</Label>
                   <ObjectivesEditor
                     objectives={objectives}
-                    onChange={setObjectives}
+                    onObjectivesChange={setObjectives}
+                    programFileUrl={programmeUrl}
                   />
                 </div>
 
@@ -259,15 +260,17 @@ const CatalogFormDialog = ({ open, onClose, entry }: CatalogFormDialogProps) => 
                   <Label>Prérequis</Label>
                   <PrerequisitesEditor
                     prerequisites={prerequisites}
-                    onChange={setPrerequisites}
+                    onPrerequisitesChange={setPrerequisites}
+                    programFileUrl={programmeUrl}
                   />
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="programmeUrl">URL du programme (PDF)</Label>
                   <ProgramSelector
-                    value={programmeUrl}
-                    onChange={setProgrammeUrl}
+                    programFileUrl={programmeUrl}
+                    onProgramChange={setProgrammeUrl}
+                    userId=""
                   />
                 </div>
 

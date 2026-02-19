@@ -1,7 +1,7 @@
 -- Table to track WooCommerce coupons generated for manual e-learning enrollment
 CREATE TABLE public.woocommerce_coupons (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
-  coupon_code TEXT NOT NULL,
+  coupon_code TEXT NOT NULL UNIQUE,
   woocommerce_coupon_id INTEGER,
   participant_id UUID REFERENCES public.training_participants(id) ON DELETE SET NULL,
   training_id UUID REFERENCES public.trainings(id) ON DELETE SET NULL,
@@ -31,6 +31,9 @@ ON public.woocommerce_coupons FOR INSERT TO authenticated WITH CHECK (true);
 CREATE POLICY "Authenticated users can update woocommerce coupons"
 ON public.woocommerce_coupons FOR UPDATE TO authenticated USING (true);
 
+CREATE POLICY "Authenticated users can delete woocommerce coupons"
+ON public.woocommerce_coupons FOR DELETE TO authenticated USING (true);
+
 -- Allow service role (edge functions) full access
 CREATE POLICY "Service role full access to woocommerce coupons"
 ON public.woocommerce_coupons FOR ALL TO service_role USING (true);
@@ -38,6 +41,7 @@ ON public.woocommerce_coupons FOR ALL TO service_role USING (true);
 -- Indexes
 CREATE INDEX idx_woocommerce_coupons_participant ON public.woocommerce_coupons(participant_id);
 CREATE INDEX idx_woocommerce_coupons_training ON public.woocommerce_coupons(training_id);
+CREATE INDEX idx_woocommerce_coupons_catalog ON public.woocommerce_coupons(catalog_id);
 CREATE INDEX idx_woocommerce_coupons_code ON public.woocommerce_coupons(coupon_code);
 
 -- Trigger for updated_at
