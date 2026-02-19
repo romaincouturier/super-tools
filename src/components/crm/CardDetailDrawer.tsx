@@ -174,6 +174,9 @@ const CardDetailDrawer = ({
   const [websiteUrl, setWebsiteUrl] = useState("");
   const [serviceType, setServiceType] = useState<"formation" | "mission" | null>(null);
 
+  // Confidence score state
+  const [confidenceScore, setConfidenceScore] = useState<number | null>(null);
+
   // Scheduled action state
   const [scheduledDate, setScheduledDate] = useState("");
   const [scheduledText, setScheduledText] = useState("");
@@ -300,6 +303,8 @@ const CardDetailDrawer = ({
       setLinkedinUrl(card.linkedin_url || "");
       setWebsiteUrl(card.website_url || "");
       setServiceType(card.service_type || null);
+      // Confidence score
+      setConfidenceScore(card.confidence_score ?? null);
       // Next action
       setNextActionText(card.next_action_text || "");
       setNextActionDone(card.next_action_done || false);
@@ -606,6 +611,7 @@ const CardDetailDrawer = ({
         next_action_done: nextActionDone,
         linked_mission_id: linkedMissionId,
         emoji: cardEmoji,
+        confidence_score: confidenceScore,
       },
       actorEmail: user.email,
       oldCard: card,
@@ -922,6 +928,21 @@ const CardDetailDrawer = ({
           {estimatedValue && parseFloat(estimatedValue) > 0 && (
             <Badge variant="secondary" className="text-green-700 bg-green-50 border-green-200 text-sm font-medium">
               {Number(parseFloat(estimatedValue) || 0).toLocaleString("fr-FR", { minimumFractionDigits: 0, maximumFractionDigits: 2 })} €
+            </Badge>
+          )}
+
+          {/* Confidence score badge */}
+          {confidenceScore !== null && (
+            <Badge
+              variant="outline"
+              className={cn(
+                "text-xs font-medium",
+                confidenceScore >= 70 && "border-green-300 text-green-700 bg-green-50",
+                confidenceScore >= 40 && confidenceScore < 70 && "border-orange-300 text-orange-700 bg-orange-50",
+                confidenceScore < 40 && "border-red-300 text-red-700 bg-red-50",
+              )}
+            >
+              {confidenceScore}% confiance
             </Badge>
           )}
 
@@ -1535,6 +1556,48 @@ const CardDetailDrawer = ({
                 value={estimatedValue}
                 onChange={(e) => setEstimatedValue(e.target.value)}
               />
+            </div>
+
+            {/* Confidence score */}
+            <div>
+              <Label className="flex items-center justify-between">
+                <span>Indice de confiance</span>
+                <span className={cn(
+                  "text-xs font-medium px-1.5 py-0.5 rounded",
+                  confidenceScore === null && "text-muted-foreground",
+                  confidenceScore !== null && confidenceScore >= 70 && "text-green-700 bg-green-50",
+                  confidenceScore !== null && confidenceScore >= 40 && confidenceScore < 70 && "text-orange-700 bg-orange-50",
+                  confidenceScore !== null && confidenceScore < 40 && "text-red-700 bg-red-50",
+                )}>
+                  {confidenceScore !== null ? `${confidenceScore}%` : "Non défini"}
+                </span>
+              </Label>
+              <div className="flex items-center gap-3 mt-1.5">
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  step="5"
+                  value={confidenceScore ?? 50}
+                  onChange={(e) => setConfidenceScore(parseInt(e.target.value))}
+                  className="flex-1 h-2 accent-primary cursor-pointer"
+                />
+                {confidenceScore !== null && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 px-1.5 text-xs text-muted-foreground"
+                    onClick={() => setConfidenceScore(null)}
+                    title="Réinitialiser"
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                )}
+              </div>
+              <div className="flex justify-between text-[10px] text-muted-foreground mt-0.5 px-0.5">
+                <span>Peu probable</span>
+                <span>Très probable</span>
+              </div>
             </div>
 
             {/* Email section */}

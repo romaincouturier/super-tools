@@ -19,13 +19,53 @@ function hasAnyProvider(_keys: ApiKeys): boolean {
   return true;
 }
 
-// Build OKR context block from live data
+// Build annual ambition context from OKRs
+function buildAmbitionContext(
+  objectives: (OKRObjective & { okr_key_results: OKRKeyResult[] })[]
+): string {
+  const currentYear = new Date().getFullYear();
+  const annualObjectives = objectives.filter(
+    (obj) => obj.time_target === "annual" && obj.target_year === currentYear
+  );
+
+  if (!annualObjectives.length) {
+    return "Aucune ambition annuelle definie. Il est recommande de definir des objectifs annuels pour orienter la strategie commerciale.";
+  }
+
+  let result = `Ambition ${currentYear}:\n`;
+  for (const obj of annualObjectives) {
+    result += `\n★ ${obj.title}`;
+    if (obj.description) result += `\n  Vision: ${obj.description}`;
+    result += `\n  Progression: ${obj.progress_percentage}% | Confiance: ${obj.confidence_level}%`;
+
+    const krs = obj.okr_key_results || [];
+    if (krs.length > 0) {
+      result += `\n  Resultats cles:`;
+      for (const kr of krs) {
+        const val =
+          kr.target_value != null
+            ? `${kr.current_value}/${kr.target_value} ${kr.unit || ""}`
+            : `${kr.progress_percentage}%`;
+        result += `\n    - ${kr.title} → ${val} (${kr.progress_percentage}%)`;
+      }
+    }
+  }
+
+  return result;
+}
+
+// Build OKR context block from live data (non-annual objectives for current year)
 function buildOKRContext(
   objectives: (OKRObjective & { okr_key_results: OKRKeyResult[] })[]
 ): string {
-  if (!objectives.length) return "Aucun OKR actif.";
+  const currentYear = new Date().getFullYear();
+  const nonAnnual = objectives.filter(
+    (obj) => !(obj.time_target === "annual" && obj.target_year === currentYear)
+  );
 
-  return objectives
+  if (!nonAnnual.length) return "Aucun OKR periodique actif.";
+
+  return nonAnnual
     .map((obj) => {
       const krs = (obj.okr_key_results || [])
         .map((kr) => {
@@ -41,58 +81,217 @@ function buildOKRContext(
     .join("\n");
 }
 
-// Build CRM pipeline context from live data
+// Build CRM pipeline context from live data — with dedicated won/lost sections & confidence
 function buildCRMContext(columns: CrmColumn[], cards: CrmCard[]): string {
   if (!cards.length) return "Pipeline vide.";
 
   const colMap = new Map(columns.map((c) => [c.id, c.name]));
-  const grouped = new Map<string, { count: number; total: number; items: string[] }>();
 
+  // Separate cards by status
+  const openCards = cards.filter((c) => c.sales_status === "OPEN");
+  const wonCards = cards.filter((c) => c.sales_status === "WON");
+  const lostCards = cards.filter((c) => c.sales_status === "LOST");
+
+  let result = "";
+
+  // --- OPEN PIPELINE (grouped by column) ---
+  result += ">> Pipeline ouvert (opportunites en cours):\n";
+  const grouped = new Map<string, { count: number; total: number; items: string[] }>();
   for (const col of columns) {
     grouped.set(col.name, { count: 0, total: 0, items: [] });
   }
 
-  for (const card of cards) {
+  for (const card of openCards) {
     const colName = colMap.get(card.column_id) || "Inconnu";
     const g = grouped.get(colName) || { count: 0, total: 0, items: [] };
     g.count++;
     g.total += card.estimated_value || 0;
-    const label = [
+    const parts = [
       card.title,
       card.company ? `(${card.company})` : null,
       card.estimated_value ? fmtEuro(card.estimated_value) : null,
       card.service_type ? `[${card.service_type}]` : null,
+      card.confidence_score != null ? `confiance: ${card.confidence_score}%` : null,
     ]
       .filter(Boolean)
       .join(" ");
-    g.items.push(label);
+    g.items.push(parts);
     grouped.set(colName, g);
   }
 
-  const openCards = cards.filter((c) => c.sales_status === "OPEN");
-  const wonCards = cards.filter((c) => c.sales_status === "WON");
-  const lostCards = cards.filter((c) => c.sales_status === "LOST");
-  const totalOpen = openCards.reduce((s, c) => s + (c.estimated_value || 0), 0);
-  const winRate =
-    wonCards.length + lostCards.length > 0
-      ? Math.round((wonCards.length / (wonCards.length + lostCards.length)) * 100)
-      : 0;
-
-  let result = "";
   for (const [colName, g] of grouped) {
     if (g.count > 0) {
-      result += `${colName}: ${g.count} opportunite(s) (${fmtEuro(g.total)})\n`;
+      result += `  ${colName}: ${g.count} opportunite(s) (${fmtEuro(g.total)})\n`;
       for (const item of g.items) {
-        result += `  - ${item}\n`;
+        result += `    - ${item}\n`;
       }
     }
   }
 
-  result += `\nResume pipeline:\n`;
-  result += `- Total pipeline ouvert: ${fmtEuro(totalOpen)} (${openCards.length} deals)\n`;
-  result += `- Gagnes: ${wonCards.length} deals (${fmtEuro(wonCards.reduce((s, c) => s + (c.estimated_value || 0), 0))})\n`;
-  result += `- Perdus: ${lostCards.length} deals\n`;
-  result += `- Taux de conversion: ${winRate}%`;
+  const totalOpen = openCards.reduce((s, c) => s + (c.estimated_value || 0), 0);
+  result += `  Total pipeline ouvert: ${fmtEuro(totalOpen)} (${openCards.length} deals)\n`;
+
+  // --- Weighted pipeline (using confidence scores) ---
+  const cardsWithConfidence = openCards.filter((c) => c.confidence_score != null);
+  if (cardsWithConfidence.length > 0) {
+    const weightedTotal = cardsWithConfidence.reduce(
+      (s, c) => s + (c.estimated_value || 0) * ((c.confidence_score || 0) / 100),
+      0
+    );
+    const avgConfidence = Math.round(
+      cardsWithConfidence.reduce((s, c) => s + (c.confidence_score || 0), 0) /
+        cardsWithConfidence.length
+    );
+    result += `  Pipeline pondere (confiance): ${fmtEuro(weightedTotal)} (confiance moyenne: ${avgConfidence}%)\n`;
+  }
+
+  // --- DEALS AT RISK (low confidence) ---
+  const atRisk = openCards.filter(
+    (c) => c.confidence_score != null && c.confidence_score < 40 && (c.estimated_value || 0) > 0
+  );
+  if (atRisk.length > 0) {
+    result += `\n>> Deals a risque (confiance < 40%):\n`;
+    for (const card of atRisk) {
+      result += `  - ${card.title} ${card.company ? `(${card.company})` : ""} ${fmtEuro(card.estimated_value)} — confiance: ${card.confidence_score}%\n`;
+    }
+  }
+
+  // --- WON DEALS ---
+  if (wonCards.length > 0) {
+    const totalWon = wonCards.reduce((s, c) => s + (c.estimated_value || 0), 0);
+    result += `\n>> Deals GAGNES (${wonCards.length} deals, total: ${fmtEuro(totalWon)}):\n`;
+    for (const card of wonCards) {
+      const parts = [
+        card.title,
+        card.company ? `(${card.company})` : null,
+        card.estimated_value ? fmtEuro(card.estimated_value) : null,
+        card.service_type ? `[${card.service_type}]` : null,
+      ]
+        .filter(Boolean)
+        .join(" ");
+      result += `  ✓ ${parts}\n`;
+    }
+  } else {
+    result += `\n>> Deals GAGNES: Aucun deal gagne pour le moment.\n`;
+  }
+
+  // --- LOST DEALS ---
+  if (lostCards.length > 0) {
+    result += `\n>> Deals PERDUS (${lostCards.length}):\n`;
+    for (const card of lostCards) {
+      const parts = [
+        card.title,
+        card.company ? `(${card.company})` : null,
+        card.estimated_value ? fmtEuro(card.estimated_value) : null,
+        card.service_type ? `[${card.service_type}]` : null,
+      ]
+        .filter(Boolean)
+        .join(" ");
+      result += `  ✗ ${parts}\n`;
+    }
+  }
+
+  // --- CONVERSION METRICS ---
+  const winRate =
+    wonCards.length + lostCards.length > 0
+      ? Math.round((wonCards.length / (wonCards.length + lostCards.length)) * 100)
+      : 0;
+  result += `\n>> Metriques de conversion:\n`;
+  result += `  - Taux de conversion: ${winRate}% (${wonCards.length} gagnes / ${wonCards.length + lostCards.length} clotures)\n`;
+  result += `  - Total en cours: ${openCards.length} deals\n`;
+  result += `  - Total traites: ${wonCards.length + lostCards.length} deals\n`;
+
+  return result;
+}
+
+// Build acquisition structure analysis
+function buildAcquisitionContext(cards: CrmCard[], missions: Mission[]): string {
+  let result = "";
+
+  // --- Breakdown by service type ---
+  const formationCards = cards.filter((c) => c.service_type === "formation");
+  const missionCards = cards.filter((c) => c.service_type === "mission");
+  const unclassifiedCards = cards.filter((c) => !c.service_type);
+
+  const formationOpen = formationCards.filter((c) => c.sales_status === "OPEN");
+  const formationWon = formationCards.filter((c) => c.sales_status === "WON");
+  const formationLost = formationCards.filter((c) => c.sales_status === "LOST");
+  const missionOpen = missionCards.filter((c) => c.sales_status === "OPEN");
+  const missionWon = missionCards.filter((c) => c.sales_status === "WON");
+  const missionLost = missionCards.filter((c) => c.sales_status === "LOST");
+
+  result += "Repartition par type de service:\n";
+  result += `  Formations: ${formationCards.length} total (${formationOpen.length} en cours, ${formationWon.length} gagnes, ${formationLost.length} perdus)\n`;
+  result += `    - Pipeline ouvert: ${fmtEuro(formationOpen.reduce((s, c) => s + (c.estimated_value || 0), 0))}\n`;
+  result += `    - CA gagne: ${fmtEuro(formationWon.reduce((s, c) => s + (c.estimated_value || 0), 0))}\n`;
+  if (formationWon.length + formationLost.length > 0) {
+    result += `    - Taux conversion: ${Math.round((formationWon.length / (formationWon.length + formationLost.length)) * 100)}%\n`;
+  }
+
+  result += `  Missions: ${missionCards.length} total (${missionOpen.length} en cours, ${missionWon.length} gagnes, ${missionLost.length} perdus)\n`;
+  result += `    - Pipeline ouvert: ${fmtEuro(missionOpen.reduce((s, c) => s + (c.estimated_value || 0), 0))}\n`;
+  result += `    - CA gagne: ${fmtEuro(missionWon.reduce((s, c) => s + (c.estimated_value || 0), 0))}\n`;
+  if (missionWon.length + missionLost.length > 0) {
+    result += `    - Taux conversion: ${Math.round((missionWon.length / (missionWon.length + missionLost.length)) * 100)}%\n`;
+  }
+
+  if (unclassifiedCards.length > 0) {
+    result += `  Non classifie: ${unclassifiedCards.length} opportunites\n`;
+  }
+
+  // --- Average deal value ---
+  const allWon = cards.filter((c) => c.sales_status === "WON");
+  if (allWon.length > 0) {
+    const avgDealValue = allWon.reduce((s, c) => s + (c.estimated_value || 0), 0) / allWon.length;
+    result += `\nPanier moyen deals gagnes: ${fmtEuro(avgDealValue)}\n`;
+
+    const formationAvg = formationWon.length > 0
+      ? formationWon.reduce((s, c) => s + (c.estimated_value || 0), 0) / formationWon.length
+      : 0;
+    const missionAvg = missionWon.length > 0
+      ? missionWon.reduce((s, c) => s + (c.estimated_value || 0), 0) / missionWon.length
+      : 0;
+    if (formationWon.length > 0) result += `  - Panier moyen formations: ${fmtEuro(formationAvg)}\n`;
+    if (missionWon.length > 0) result += `  - Panier moyen missions: ${fmtEuro(missionAvg)}\n`;
+  }
+
+  // --- Top companies (recurring clients) ---
+  const companyMap = new Map<string, { count: number; won: number; totalValue: number }>();
+  for (const card of cards) {
+    if (!card.company) continue;
+    const key = card.company.toLowerCase();
+    const existing = companyMap.get(key) || { count: 0, won: 0, totalValue: 0 };
+    existing.count++;
+    if (card.sales_status === "WON") existing.won++;
+    existing.totalValue += card.estimated_value || 0;
+    companyMap.set(key, existing);
+  }
+
+  const topCompanies = [...companyMap.entries()]
+    .sort((a, b) => b[1].totalValue - a[1].totalValue)
+    .slice(0, 5);
+
+  if (topCompanies.length > 0) {
+    result += `\nTop clients par valeur:\n`;
+    for (const [company, stats] of topCompanies) {
+      result += `  - ${company}: ${stats.count} opportunites, ${stats.won} gagnes, ${fmtEuro(stats.totalValue)} total\n`;
+    }
+  }
+
+  // --- Mission delivery capacity ---
+  const activeMissions = missions.filter(
+    (m) => m.status === "in_progress" || m.status === "not_started"
+  );
+  const completedMissions = missions.filter((m) => m.status === "completed");
+  result += `\nCapacite de delivery:\n`;
+  result += `  - Missions actives: ${activeMissions.length}\n`;
+  result += `  - Missions terminees: ${completedMissions.length}\n`;
+  if (activeMissions.length > 0) {
+    const totalActive = activeMissions.reduce((s, m) => s + (m.total_amount || 0), 0);
+    const totalConsumed = activeMissions.reduce((s, m) => s + (m.consumed_amount || 0), 0);
+    const consumptionRate = totalActive > 0 ? Math.round((totalConsumed / totalActive) * 100) : 0;
+    result += `  - Montant missions actives: ${fmtEuro(totalActive)} (${consumptionRate}% consomme)\n`;
+  }
 
   return result;
 }
@@ -194,7 +393,7 @@ export function useCommercialCoachData() {
         await Promise.all([
           (supabase as any)
             .from("okr_objectives")
-            .select(`*, okr_key_results ( id, title, target_value, current_value, unit, progress_percentage, confidence_level )`)
+            .select(`*, okr_key_results ( id, title, description, target_value, current_value, unit, progress_percentage, confidence_level )`)
             .in("status", ["active", "draft"])
             .order("position", { ascending: true }),
           supabase
@@ -237,19 +436,21 @@ export function useCommercialCoachData() {
         return;
       }
 
+      // Cast data
+      const okrData = (okrRes.data || []) as (OKRObjective & { okr_key_results: OKRKeyResult[] })[];
+      const columnsData = (columnsRes.data || []) as CrmColumn[];
+      const cardsData = (cardsRes.data || []) as unknown as CrmCard[];
+      const missionsData = (missionsRes.data || []) as Mission[];
+      const trainingsData = (trainingsRes.data || []) as { id: string; training_name: string; client_name: string; start_date: string; end_date: string | null; sold_price_ht: number | null }[];
+      const catalogueData = (catalogueRes.data || []) as { formation_name: string; prix: number | null; duree_heures: number | null }[];
+
       // Build context blocks
-      const okrContext = buildOKRContext(
-        (okrRes.data || []) as (OKRObjective & { okr_key_results: OKRKeyResult[] })[]
-      );
-      const crmContext = buildCRMContext(
-        (columnsRes.data || []) as CrmColumn[],
-        (cardsRes.data || []) as unknown as CrmCard[]
-      );
-      const missionsContext = buildMissionsContext((missionsRes.data || []) as Mission[]);
-      const formationsContext = buildFormationsContext(
-        (trainingsRes.data || []) as { id: string; training_name: string; client_name: string; start_date: string; end_date: string | null; sold_price_ht: number | null }[],
-        (catalogueRes.data || []) as { formation_name: string; prix: number | null; duree_heures: number | null }[]
-      );
+      const ambitionContext = buildAmbitionContext(okrData);
+      const okrContext = buildOKRContext(okrData);
+      const crmContext = buildCRMContext(columnsData, cardsData);
+      const acquisitionContext = buildAcquisitionContext(cardsData, missionsData);
+      const missionsContext = buildMissionsContext(missionsData);
+      const formationsContext = buildFormationsContext(trainingsData, catalogueData);
 
       const today = new Date().toLocaleDateString("fr-FR", {
         weekday: "long",
@@ -260,11 +461,17 @@ export function useCommercialCoachData() {
 
       const additionalContext = `=== DONNEES COMMERCIALES EN TEMPS REEL (${today}) ===
 
---- OKR ACTIFS ---
+--- AMBITION ANNUELLE ---
+${ambitionContext}
+
+--- OKR PERIODIQUES ---
 ${okrContext}
 
---- PIPELINE CRM ---
+--- PIPELINE CRM (avec indices de confiance) ---
 ${crmContext}
+
+--- STRUCTURE D'ACQUISITION CLIENTS ---
+${acquisitionContext}
 
 --- KANBAN MISSIONS ---
 ${missionsContext}
@@ -274,7 +481,13 @@ ${formationsContext}
 
 === FIN DES DONNEES ===
 
-Instructions : Utilisez ces donnees reelles pour analyser la situation commerciale, challenger les priorites et produire un plan d'action concret. Ne demandez pas de donnees supplementaires, tout est ci-dessus.`;
+Instructions : Utilisez TOUTES ces donnees reelles pour analyser la situation commerciale. Portez une attention particuliere a :
+1. L'ambition annuelle et l'ecart avec la situation actuelle
+2. Les deals gagnes ET perdus pour comprendre les patterns de conversion
+3. Les indices de confiance pour identifier les deals a risque ou a accelerer
+4. La structure d'acquisition (formation vs mission) pour optimiser l'allocation d'effort
+5. La capacite de delivery vs le pipeline ouvert
+Ne demandez pas de donnees supplementaires, tout est ci-dessus.`;
 
       // Build session config from template
       const template = TEMPLATES.find((t) => t.id === "coach-commercial");
@@ -295,7 +508,7 @@ Instructions : Utilisez ces donnees reelles pour analyser la situation commercia
       const config: SessionConfig = {
         topic:
           customTopic ||
-          "Analyse ma situation commerciale et produis un plan d'action structure avec : (1) actions prioritaires cette semaine, (2) plan de prospection physique pour missions et facilitation, (3) strategie d'acquisition en ligne pour les formations, (4) jalons lies aux OKR.",
+          "Analyse ma situation commerciale complete et produis un plan d'action structure avec : (1) ecart entre ambition annuelle et situation actuelle, (2) actions prioritaires cette semaine avec priorisation par indice de confiance, (3) plan de prospection physique pour missions et facilitation, (4) strategie d'acquisition en ligne pour les formations, (5) analyse des deals gagnes/perdus et recommandations, (6) jalons lies aux OKR.",
         additionalContext,
         mode: template.mode,
         userMode: "interventionist",

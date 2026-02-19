@@ -74,6 +74,8 @@ export interface CrmCard {
   linked_mission_id: string | null;
   // Emoji
   emoji?: string | null;
+  // Confidence score (0-100)
+  confidence_score: number | null;
   // Joined data
   tags?: CrmTag[];
 }
@@ -189,6 +191,8 @@ export interface UpdateCardInput {
   linked_mission_id?: string | null;
   // Emoji
   emoji?: string | null;
+  // Confidence score
+  confidence_score?: number | null;
 }
 
 export interface CreateColumnInput {

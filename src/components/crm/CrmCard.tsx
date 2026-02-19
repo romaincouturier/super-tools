@@ -156,6 +156,33 @@ const CrmCardComponent = ({ card, isDragging, onClick, serviceTypeColors }: CrmC
           )}
         </div>
 
+        {/* Confidence score mini bar */}
+        {card.confidence_score !== null && card.confidence_score !== undefined && (
+          <div className="flex items-center gap-1.5">
+            <div className="flex-1 h-1 rounded-full bg-muted overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all ${
+                  card.confidence_score >= 70
+                    ? "bg-green-500"
+                    : card.confidence_score >= 40
+                    ? "bg-orange-400"
+                    : "bg-red-400"
+                }`}
+                style={{ width: `${card.confidence_score}%` }}
+              />
+            </div>
+            <span className={`text-[10px] font-medium ${
+              card.confidence_score >= 70
+                ? "text-green-600"
+                : card.confidence_score >= 40
+                ? "text-orange-600"
+                : "text-red-600"
+            }`}>
+              {card.confidence_score}%
+            </span>
+          </div>
+        )}
+
         {/* Title */}
         <div className="flex items-start gap-1">
           <span data-emoji-picker>

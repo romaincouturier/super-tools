@@ -117,6 +117,7 @@ export const useCrmBoard = () => {
           next_action_done: (card as unknown as { next_action_done?: boolean }).next_action_done ?? false,
           linked_mission_id: (card as unknown as { linked_mission_id?: string }).linked_mission_id ?? null,
           emoji: (card as unknown as { emoji?: string }).emoji ?? null,
+          confidence_score: (card as unknown as { confidence_score?: number }).confidence_score ?? null,
           tags: cardTagsList,
         };
       });
