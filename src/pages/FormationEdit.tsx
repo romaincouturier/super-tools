@@ -139,7 +139,7 @@ const FormationEdit = () => {
       setFinanceurName(training.financeur_name || "");
       setFinanceurUrl(training.financeur_url || "");
       setTrainingNotes((training as any).notes || "");
-      setCatalogId(training.catalog_id || null);
+      setCatalogId((training as any).catalog_id || null);
 
       // For e-learning, load start/end dates directly (no schedules)
       if (training.format_formation === "e_learning") {
