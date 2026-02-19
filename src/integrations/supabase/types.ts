@@ -319,6 +319,36 @@ export type Database = {
         }
         Relationships: []
       }
+      commercial_coach_contexts: {
+        Row: {
+          content: string
+          context_type: string
+          created_at: string
+          created_by: string | null
+          id: string
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          content?: string
+          context_type: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          updated_at?: string
+          year: number
+        }
+        Update: {
+          content?: string
+          context_type?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          updated_at?: string
+          year?: number
+        }
+        Relationships: []
+      }
       content_cards: {
         Row: {
           card_type: string
