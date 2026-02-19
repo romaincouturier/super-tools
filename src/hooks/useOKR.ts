@@ -301,11 +301,7 @@ export const useOKRInitiatives = (keyResultId: string | null) => {
 
       const { data, error } = await (supabase as any)
         .from("okr_initiatives")
-        .select(`
-          *,
-          linked_mission:missions(id, title),
-          linked_training:trainings(id, training_name)
-        `)
+        .select("*")
         .eq("key_result_id", keyResultId)
         .order("position", { ascending: true });
 
