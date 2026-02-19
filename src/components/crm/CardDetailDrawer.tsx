@@ -557,7 +557,7 @@ const CardDetailDrawer = ({
             confidence_score: confidenceScore,
             current_next_action: nextActionText,
             days_in_pipeline: card.created_at ? Math.floor((Date.now() - new Date(card.created_at).getTime()) / (1000 * 60 * 60 * 24)) : null,
-            activities: details?.activities?.slice(0, 10) || [],
+            activities: details?.activity?.slice(0, 10) || [],
           },
         },
       });
