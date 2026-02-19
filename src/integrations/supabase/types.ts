@@ -726,6 +726,7 @@ export type Database = {
       }
       crm_cards: {
         Row: {
+          acquisition_source: string | null
           brief_questions: Json | null
           column_id: string
           company: string | null
@@ -739,6 +740,9 @@ export type Database = {
           last_name: string | null
           linked_mission_id: string | null
           linkedin_url: string | null
+          loss_reason: string | null
+          loss_reason_detail: string | null
+          lost_at: string | null
           next_action_done: boolean | null
           next_action_text: string | null
           phone: string | null
@@ -753,8 +757,10 @@ export type Database = {
           waiting_next_action_date: string | null
           waiting_next_action_text: string | null
           website_url: string | null
+          won_at: string | null
         }
         Insert: {
+          acquisition_source?: string | null
           brief_questions?: Json | null
           column_id: string
           company?: string | null
@@ -768,6 +774,9 @@ export type Database = {
           last_name?: string | null
           linked_mission_id?: string | null
           linkedin_url?: string | null
+          loss_reason?: string | null
+          loss_reason_detail?: string | null
+          lost_at?: string | null
           next_action_done?: boolean | null
           next_action_text?: string | null
           phone?: string | null
@@ -782,8 +791,10 @@ export type Database = {
           waiting_next_action_date?: string | null
           waiting_next_action_text?: string | null
           website_url?: string | null
+          won_at?: string | null
         }
         Update: {
+          acquisition_source?: string | null
           brief_questions?: Json | null
           column_id?: string
           company?: string | null
@@ -797,6 +808,9 @@ export type Database = {
           last_name?: string | null
           linked_mission_id?: string | null
           linkedin_url?: string | null
+          loss_reason?: string | null
+          loss_reason_detail?: string | null
+          lost_at?: string | null
           next_action_done?: boolean | null
           next_action_text?: string | null
           phone?: string | null
@@ -811,6 +825,7 @@ export type Database = {
           waiting_next_action_date?: string | null
           waiting_next_action_text?: string | null
           website_url?: string | null
+          won_at?: string | null
         }
         Relationships: [
           {
@@ -883,6 +898,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      crm_revenue_targets: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          period_start: string
+          period_type: string
+          target_amount: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          period_start: string
+          period_type: string
+          target_amount?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          period_start?: string
+          period_type?: string
+          target_amount?: number
+          updated_at?: string
+        }
+        Relationships: []
       }
       crm_settings: {
         Row: {
@@ -1382,6 +1427,36 @@ export type Database = {
           id?: string
           is_default?: boolean
           updated_at?: string
+        }
+        Relationships: []
+      }
+      google_calendar_tokens: {
+        Row: {
+          access_token: string
+          created_at: string
+          id: string
+          refresh_token: string
+          token_expires_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token: string
+          created_at?: string
+          id?: string
+          refresh_token: string
+          token_expires_at: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token?: string
+          created_at?: string
+          id?: string
+          refresh_token?: string
+          token_expires_at?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
