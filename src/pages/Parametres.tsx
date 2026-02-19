@@ -28,6 +28,7 @@ import { ApiKeyManager } from "@/components/settings/ApiKeyManager";
 import CrmTagManager from "@/components/settings/CrmTagManager";
 import CrmColorSettings from "@/components/settings/CrmColorSettings";
 import GoogleDriveConnect from "@/components/GoogleDriveConnect";
+import GoogleCalendarConnect from "@/components/GoogleCalendarConnect";
 import { useModuleAccess } from "@/hooks/useModuleAccess";
 import ArenaKeySettings from "@/components/settings/ArenaKeySettings";
 
@@ -2049,8 +2050,31 @@ const Parametres = () => {
           )}
 
           {isAdmin && (
-            <TabsContent value="integrations">
+            <TabsContent value="integrations" className="space-y-6">
               <ApiKeyManager />
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Connexions Google</CardTitle>
+                  <CardDescription>Connectez vos services Google pour enrichir les fonctionnalités.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium">Google Drive</p>
+                      <p className="text-xs text-muted-foreground">Stockage de fichiers et pièces jointes</p>
+                    </div>
+                    <GoogleDriveConnect />
+                  </div>
+                  <Separator />
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium">Google Calendar</p>
+                      <p className="text-xs text-muted-foreground">Agenda utilisé par le coach commercial pour contextualiser les recommandations</p>
+                    </div>
+                    <GoogleCalendarConnect />
+                  </div>
+                </CardContent>
+              </Card>
             </TabsContent>
           )}
 

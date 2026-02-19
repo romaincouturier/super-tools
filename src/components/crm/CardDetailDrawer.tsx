@@ -98,7 +98,12 @@ import {
   CrmColumn,
   SalesStatus,
   BriefQuestion,
+  AcquisitionSource,
+  LossReason,
+  acquisitionSourceConfig,
+  lossReasonConfig,
 } from "@/types/crm";
+import LossReasonDialog from "./LossReasonDialog";
 import {
   useCrmCardDetails,
   useUpdateCard,
@@ -176,6 +181,17 @@ const CardDetailDrawer = ({
 
   // Confidence score state
   const [confidenceScore, setConfidenceScore] = useState<number | null>(null);
+
+  // Acquisition source state
+  const [acquisitionSource, setAcquisitionSource] = useState<AcquisitionSource | null>(null);
+
+  // Loss reason dialog state
+  const [showLossReasonDialog, setShowLossReasonDialog] = useState(false);
+  const [pendingLossStatus, setPendingLossStatus] = useState(false);
+
+  // Next best action AI state
+  const [nextActionSuggesting, setNextActionSuggesting] = useState(false);
+  const [nextActionSuggestion, setNextActionSuggestion] = useState<string | null>(null);
 
   // Scheduled action state
   const [scheduledDate, setScheduledDate] = useState("");
@@ -305,6 +321,10 @@ const CardDetailDrawer = ({
       setServiceType(card.service_type || null);
       // Confidence score
       setConfidenceScore(card.confidence_score ?? null);
+      // Acquisition source
+      setAcquisitionSource(card.acquisition_source ?? null);
+      // Reset next action suggestion
+      setNextActionSuggestion(null);
       // Next action
       setNextActionText(card.next_action_text || "");
       setNextActionDone(card.next_action_done || false);
@@ -514,6 +534,44 @@ const CardDetailDrawer = ({
   };
 
   // Copy to clipboard
+  // Suggest next action with AI (Feature 5)
+  const handleSuggestNextAction = async () => {
+    if (!card) return;
+    setNextActionSuggesting(true);
+    setNextActionSuggestion(null);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("crm-ai-assist", {
+        body: {
+          action: "suggest_next_action",
+          card_data: {
+            title: card.title,
+            description: descriptionHtml,
+            company,
+            first_name: firstName,
+            last_name: lastName,
+            service_type: serviceType,
+            estimated_value: Math.round((parseFloat(estimatedValue) || 0) * 100) / 100,
+            comments: details?.comments || [],
+            brief_questions: card.brief_questions || [],
+            confidence_score: confidenceScore,
+            current_next_action: nextActionText,
+            days_in_pipeline: card.created_at ? Math.floor((Date.now() - new Date(card.created_at).getTime()) / (1000 * 60 * 60 * 24)) : null,
+            activities: details?.activities?.slice(0, 10) || [],
+          },
+        },
+      });
+
+      if (error) throw error;
+      setNextActionSuggestion(data.result);
+    } catch (error) {
+      console.error("AI next action suggestion error:", error);
+      setNextActionSuggestion("Erreur lors de la suggestion. Veuillez réessayer.");
+    } finally {
+      setNextActionSuggesting(false);
+    }
+  };
+
   const copyToClipboard = async (text: string) => {
     await navigator.clipboard.writeText(text);
   };
@@ -612,6 +670,7 @@ const CardDetailDrawer = ({
         linked_mission_id: linkedMissionId,
         emoji: cardEmoji,
         confidence_score: confidenceScore,
+        acquisition_source: acquisitionSource,
       },
       actorEmail: user.email,
       oldCard: card,
@@ -626,8 +685,53 @@ const CardDetailDrawer = ({
   const handleSalesStatusChange = async (newStatus: SalesStatus) => {
     if (!card || !user?.email) return;
 
-    // Use local salesStatus state (the CURRENT value before this change) to detect transition
+    // Intercept LOST transition: show loss reason dialog first
     const previousStatus = salesStatus;
+    if (newStatus === "LOST" && previousStatus !== "LOST") {
+      setPendingLossStatus(true);
+      setShowLossReasonDialog(true);
+      return;
+    }
+
+    await applyStatusChange(newStatus, previousStatus);
+  };
+
+  // Called when loss reason dialog is confirmed
+  const handleLossReasonConfirm = async (reason: LossReason, detail: string) => {
+    setShowLossReasonDialog(false);
+    setPendingLossStatus(false);
+    if (!card || !user?.email) return;
+
+    const previousStatus = salesStatus;
+    setSalesStatus("LOST");
+
+    const updates: Record<string, unknown> = {
+      sales_status: "LOST",
+      loss_reason: reason,
+      loss_reason_detail: detail || null,
+      lost_at: new Date().toISOString(),
+      status_operational: "TODAY",
+      waiting_next_action_date: null,
+      waiting_next_action_text: null,
+    };
+    setScheduledDate("");
+    setScheduledText("");
+
+    await updateCard.mutateAsync({
+      id: card.id,
+      updates,
+      actorEmail: user.email,
+      oldCard: card,
+    });
+  };
+
+  const handleLossReasonCancel = () => {
+    setShowLossReasonDialog(false);
+    setPendingLossStatus(false);
+  };
+
+  const applyStatusChange = async (newStatus: SalesStatus, previousStatus: SalesStatus) => {
+    if (!card || !user?.email) return;
     setSalesStatus(newStatus);
 
     // When opportunity becomes WON or LOST, reset operational status to TODAY and clear waiting fields
@@ -638,13 +742,25 @@ const CardDetailDrawer = ({
       updates.status_operational = "TODAY";
       updates.waiting_next_action_date = null;
       updates.waiting_next_action_text = null;
-      // Clear local state for scheduled action fields
       setScheduledDate("");
       setScheduledText("");
     }
 
-    // Save immediately when status changes
-    // Check if we're transitioning TO WON from a non-WON status
+    // Set temporal timestamps
+    if (newStatus === "WON" && previousStatus !== "WON") {
+      updates.won_at = new Date().toISOString();
+    }
+    if (newStatus === "LOST" && previousStatus !== "LOST") {
+      updates.lost_at = new Date().toISOString();
+    }
+    // Clear timestamps when reverting to OPEN
+    if (newStatus === "OPEN") {
+      updates.won_at = null;
+      updates.lost_at = null;
+      updates.loss_reason = null;
+      updates.loss_reason_detail = null;
+    }
+
     const statusChangedToWon = newStatus === "WON" && previousStatus !== "WON";
 
     await updateCard.mutateAsync({
@@ -1226,7 +1342,7 @@ const CardDetailDrawer = ({
                     )}
                   </div>
                 </div>
-                <div className="space-y-1 col-span-2">
+                <div className="space-y-1">
                   <Label className="text-xs">Type de prestation</Label>
                   <Select
                     value={serviceType || ""}
@@ -1238,6 +1354,22 @@ const CardDetailDrawer = ({
                     <SelectContent>
                       <SelectItem value="formation">Formation</SelectItem>
                       <SelectItem value="mission">Mission</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Source d'acquisition</Label>
+                  <Select
+                    value={acquisitionSource || ""}
+                    onValueChange={(v) => setAcquisitionSource(v as AcquisitionSource)}
+                  >
+                    <SelectTrigger className="h-8">
+                      <SelectValue placeholder="Non définie" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(Object.entries(acquisitionSourceConfig) as [AcquisitionSource, string][]).map(([key, label]) => (
+                        <SelectItem key={key} value={key}>{label}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -1443,14 +1575,50 @@ const CardDetailDrawer = ({
                   <Label htmlFor="next-action-done" className="text-xs text-muted-foreground mb-1 block">
                     Prochaine action
                   </Label>
-                  <Input
-                    value={nextActionText}
-                    onChange={(e) => setNextActionText(e.target.value)}
-                    placeholder="Quelle est la prochaine action à faire ?"
-                    className={`h-8 text-sm ${nextActionDone ? "line-through text-muted-foreground" : ""}`}
-                  />
+                  <div className="flex gap-1.5">
+                    <Input
+                      value={nextActionText}
+                      onChange={(e) => setNextActionText(e.target.value)}
+                      placeholder="Quelle est la prochaine action à faire ?"
+                      className={`h-8 text-sm flex-1 ${nextActionDone ? "line-through text-muted-foreground" : ""}`}
+                    />
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 px-2 text-purple-600 hover:text-purple-700 hover:bg-purple-50"
+                      onClick={handleSuggestNextAction}
+                      disabled={nextActionSuggesting}
+                      title="Suggérer avec l'IA"
+                    >
+                      {nextActionSuggesting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Wand2 className="h-3.5 w-3.5" />}
+                    </Button>
+                  </div>
                 </div>
               </div>
+
+              {/* AI next action suggestion */}
+              {nextActionSuggestion && (
+                <div className="p-3 bg-purple-50 rounded-lg border border-purple-200 text-sm">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-medium text-purple-700 text-xs">Suggestion IA</span>
+                    <div className="flex gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-5 px-1.5 text-[10px] text-purple-700"
+                        onClick={() => { setNextActionText(nextActionSuggestion); setNextActionSuggestion(null); }}
+                      >
+                        <Check className="h-3 w-3 mr-0.5" />
+                        Appliquer
+                      </Button>
+                      <Button variant="ghost" size="sm" className="h-5 px-1" onClick={() => setNextActionSuggestion(null)}>
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                  <p className="text-purple-900">{nextActionSuggestion}</p>
+                </div>
+              )}
 
               {/* AI buttons */}
               <div className="flex gap-2 flex-wrap">
@@ -1992,6 +2160,13 @@ const CardDetailDrawer = ({
         </div>
       </SheetContent>
     </Sheet>
+
+    {/* Loss Reason Dialog */}
+    <LossReasonDialog
+      open={showLossReasonDialog}
+      onConfirm={handleLossReasonConfirm}
+      onCancel={handleLossReasonCancel}
+    />
 
     {/* Create Training Dialog - MUST be outside Sheet to display correctly */}
     <CreateTrainingDialog

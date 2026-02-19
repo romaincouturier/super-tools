@@ -9,7 +9,7 @@ import {
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
 
 interface CrmAiRequest {
-  action: "analyze_exchanges" | "generate_quote_description" | "improve_email_subject" | "improve_email_body";
+  action: "analyze_exchanges" | "generate_quote_description" | "improve_email_subject" | "improve_email_body" | "suggest_next_action";
   card_data: {
     title?: string;
     description?: string;
@@ -24,6 +24,11 @@ interface CrmAiRequest {
     subject?: string;
     body?: string;
     context?: string;
+    // Next action suggestion fields
+    confidence_score?: number | null;
+    current_next_action?: string;
+    days_in_pipeline?: number | null;
+    activities?: Array<{ action_type: string; new_value?: string; created_at: string }>;
   };
 }
 
@@ -235,6 +240,41 @@ Règles :
 - Pas de "Objet :" dans le corps
 
 Réponds uniquement avec le HTML amélioré du corps de l'email.`;
+
+        result = await callAnthropic(systemPrompt, userPrompt);
+        break;
+      }
+
+      case "suggest_next_action": {
+        const systemPrompt = `Tu es un coach commercial expert pour SuperTilt, organisme de formation professionnelle.
+Tu analyses le contexte d'une opportunité CRM pour suggérer la prochaine action concrète à effectuer.
+
+Règles :
+- Propose UNE SEULE action concrète et réalisable
+- Sois spécifique (pas de "relancer le client" mais "envoyer un email de suivi avec le devis mis à jour")
+- Tiens compte de l'ancienneté du deal, de la confiance, et de l'historique d'activité
+- Maximum 2 phrases
+- En français
+- Pas de préambule, directement l'action`;
+
+        let nextActionContext = context;
+        if (card_data.confidence_score != null) {
+          nextActionContext += `\n**Indice de confiance:** ${card_data.confidence_score}%\n`;
+        }
+        if (card_data.days_in_pipeline != null) {
+          nextActionContext += `**Jours dans le pipeline:** ${card_data.days_in_pipeline}\n`;
+        }
+        if (card_data.current_next_action) {
+          nextActionContext += `**Action précédente:** ${card_data.current_next_action}\n`;
+        }
+        if (card_data.activities && card_data.activities.length > 0) {
+          nextActionContext += `\n## Dernières activités\n`;
+          card_data.activities.forEach((a) => {
+            nextActionContext += `- [${a.created_at}] ${a.action_type}${a.new_value ? ` → ${a.new_value}` : ""}\n`;
+          });
+        }
+
+        const userPrompt = `Quelle est la meilleure prochaine action à effectuer pour faire avancer cette opportunité ?\n\n${nextActionContext}`;
 
         result = await callAnthropic(systemPrompt, userPrompt);
         break;

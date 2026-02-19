@@ -22,7 +22,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useCrmBoard, useMoveCard, useCreateColumn, useCrmSettings, useUpdateCard } from "@/hooks/useCrmBoard";
 import { useAuth } from "@/hooks/useAuth";
-import { CrmCard } from "@/types/crm";
+import { CrmCard, LossReason } from "@/types/crm";
+import LossReasonDialog from "./LossReasonDialog";
 import CrmColumn from "./CrmColumn";
 import CrmCardComponent from "./CrmCard";
 import CardDetailDrawer from "./CardDetailDrawer";
@@ -51,6 +52,10 @@ const CrmKanbanBoard = () => {
   // Training creation dialog state
   const [showCreateTrainingDialog, setShowCreateTrainingDialog] = useState(false);
   const [pendingTrainingCard, setPendingTrainingCard] = useState<CrmCard | null>(null);
+
+  // Loss reason dialog state (for drag-to-lost)
+  const [showLossReasonDialog, setShowLossReasonDialog] = useState(false);
+  const [pendingLossCard, setPendingLossCard] = useState<{ cardId: string; targetColumnId: string; newIndex: number; oldCard: CrmCard } | null>(null);
 
   // Search state
   const [searchQuery, setSearchQuery] = useState("");
@@ -194,6 +199,35 @@ const CrmKanbanBoard = () => {
     }
   };
 
+  // Handle loss reason dialog confirmation from drag
+  const handleDragLossReasonConfirm = async (reason: LossReason, detail: string) => {
+    setShowLossReasonDialog(false);
+    if (!pendingLossCard || !user?.email) return;
+
+    await updateCard.mutateAsync({
+      id: pendingLossCard.cardId,
+      updates: {
+        column_id: pendingLossCard.targetColumnId,
+        position: pendingLossCard.newIndex,
+        sales_status: "LOST",
+        lost_at: new Date().toISOString(),
+        loss_reason: reason,
+        loss_reason_detail: detail || null,
+        status_operational: "TODAY",
+        waiting_next_action_date: null,
+        waiting_next_action_text: null,
+      },
+      actorEmail: user.email,
+      oldCard: pendingLossCard.oldCard,
+    });
+    setPendingLossCard(null);
+  };
+
+  const handleDragLossReasonCancel = () => {
+    setShowLossReasonDialog(false);
+    setPendingLossCard(null);
+  };
+
   // Celebration confetti animation for won deals
   const celebrateWin = () => {
     const duration = 3000;
@@ -267,25 +301,37 @@ const CrmKanbanBoard = () => {
     const oldColumnId = originalCard?.column_id || targetColumnId;
     const oldColumn = boardData?.columns.find((col) => col.id === oldColumnId);
 
-    // Check if moving to/from a "won" column (contains "gagné" case-insensitive)
+    // Check if moving to/from a "won" or "lost" column
     const isWonColumn = targetColumn?.name.toLowerCase().includes("gagné") || false;
     const wasInWonColumn = oldColumn?.name.toLowerCase().includes("gagné") || false;
+    const isLostColumn = targetColumn?.name.toLowerCase().includes("perdu") || false;
+    const wasInLostColumn = oldColumn?.name.toLowerCase().includes("perdu") || false;
 
-    // Detect if this is a fresh win (moving to won from non-won)
+    // Detect transitions
     const movingToWon = isWonColumn && !wasInWonColumn;
-
-    // Detect if leaving a won column (moving from won to non-won)
+    const movingToLost = isLostColumn && !wasInLostColumn;
     const leavingWonColumn = wasInWonColumn && !isWonColumn;
+    const leavingLostColumn = wasInLostColumn && !isLostColumn;
 
     // Determine what updates to apply
-    if (movingToWon) {
+    if (movingToLost && originalCard) {
+      // Moving to lost column: intercept with loss reason dialog
+      setPendingLossCard({
+        cardId: activeCardId,
+        targetColumnId,
+        newIndex: Math.max(0, newIndex),
+        oldCard: originalCard,
+      });
+      setShowLossReasonDialog(true);
+    } else if (movingToWon) {
       // Moving to won column: set sales_status to WON + trigger celebration
       await updateCard.mutateAsync({
         id: activeCardId,
         updates: {
           column_id: targetColumnId,
           position: Math.max(0, newIndex),
-          sales_status: "WON"
+          sales_status: "WON",
+          won_at: new Date().toISOString(),
         },
         actorEmail: user.email,
         oldCard: originalCard!,
@@ -300,14 +346,18 @@ const CrmKanbanBoard = () => {
         setPendingTrainingCard(originalCard!);
         setShowCreateTrainingDialog(true);
       }
-    } else if (leavingWonColumn) {
-      // Leaving won column: reset sales_status to OPEN
+    } else if (leavingWonColumn || leavingLostColumn) {
+      // Leaving won/lost column: reset sales_status to OPEN
       await updateCard.mutateAsync({
         id: activeCardId,
         updates: {
           column_id: targetColumnId,
           position: Math.max(0, newIndex),
-          sales_status: "OPEN"
+          sales_status: "OPEN",
+          won_at: null,
+          lost_at: null,
+          loss_reason: null,
+          loss_reason_detail: null,
         },
         actorEmail: user.email,
         oldCard: originalCard!,
@@ -608,6 +658,13 @@ const CrmKanbanBoard = () => {
         onConfirmAddParticipant={handleConfirmAddParticipant}
         opportunityTitle={pendingTrainingCard?.title || ""}
         isFormation={pendingTrainingCard?.service_type === "formation" || !pendingTrainingCard?.service_type}
+      />
+
+      {/* Loss Reason Dialog for drag-to-lost */}
+      <LossReasonDialog
+        open={showLossReasonDialog}
+        onConfirm={handleDragLossReasonConfirm}
+        onCancel={handleDragLossReasonCancel}
       />
     </div>
   );
