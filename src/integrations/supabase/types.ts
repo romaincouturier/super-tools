@@ -3247,6 +3247,7 @@ export type Database = {
         | "okr"
         | "medias"
         | "monitoring"
+        | "arena"
       notification_type:
         | "review_requested"
         | "comment_added"
@@ -3397,6 +3398,7 @@ export const Constants = {
         "okr",
         "medias",
         "monitoring",
+        "arena",
       ],
       notification_type: [
         "review_requested",

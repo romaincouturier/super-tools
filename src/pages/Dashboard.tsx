@@ -18,6 +18,7 @@ import {
   ImageIcon,
   CalendarDays,
   Database,
+  Sparkles,
   Maximize2,
   Square,
   LayoutGrid,
@@ -210,6 +211,14 @@ const tools: Tool[] = [
     icon: <Database />,
     path: "/monitoring",
     module: "monitoring",
+  },
+  {
+    id: "arena",
+    name: "AI Arena",
+    description: "Discussions multi-agents IA",
+    icon: <Sparkles />,
+    path: "/arena",
+    module: "arena",
   },
 ];
 

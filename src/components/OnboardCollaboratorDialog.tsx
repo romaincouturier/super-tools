@@ -29,6 +29,17 @@ const ALL_MODULES: AppModule[] = [
   "ameliorations",
   "historique",
   "contenu",
+  "besoins",
+  "emails",
+  "statistiques",
+  "crm",
+  "missions",
+  "okr",
+  "medias",
+  "events",
+  "monitoring",
+  "parametres",
+  "arena",
 ];
 
 const OnboardCollaboratorDialog = ({ userEmail }: OnboardCollaboratorDialogProps) => {

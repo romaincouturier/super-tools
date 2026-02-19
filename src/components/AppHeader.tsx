@@ -7,6 +7,7 @@ import UserMenu from "@/components/UserMenu";
 import OnboardCollaboratorDialog from "@/components/OnboardCollaboratorDialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
+import { useModuleAccess } from "@/hooks/useModuleAccess";
 
 interface AppHeaderProps {
   showOnboarding?: boolean;
@@ -15,6 +16,7 @@ interface AppHeaderProps {
 const AppHeader = ({ showOnboarding = false }: AppHeaderProps) => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const { hasAccess } = useModuleAccess();
   const [firstName, setFirstName] = useState<string | null>(null);
   const [failedEmailCount, setFailedEmailCount] = useState(0);
 
@@ -100,21 +102,23 @@ const AppHeader = ({ showOnboarding = false }: AppHeaderProps) => {
               </Tooltip>
             </TooltipProvider>
           )}
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  onClick={() => navigate("/arena")}
-                  className="p-2 rounded-lg hover:bg-background/10 transition-colors"
-                >
-                  <Sparkles className="w-5 h-5" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>AI Arena</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          {hasAccess("arena") && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => navigate("/arena")}
+                    className="p-2 rounded-lg hover:bg-background/10 transition-colors"
+                  >
+                    <Sparkles className="w-5 h-5" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>AI Arena</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
