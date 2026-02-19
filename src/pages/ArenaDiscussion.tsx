@@ -113,6 +113,14 @@ export default function ArenaDiscussion() {
     userHasScrolledRef.current = distanceFromBottom > 400;
   }, []);
 
+  // Persist messages to sessionStorage so they survive tab switches
+  useEffect(() => {
+    if (messages.length > 0) {
+      sessionStorage.setItem("ai-arena-messages", JSON.stringify(messages));
+      sessionStorage.setItem("ai-arena-turn", String(turnNumber));
+    }
+  }, [messages, turnNumber]);
+
   useEffect(() => {
     const configStr = sessionStorage.getItem("ai-arena-config");
     const keysStr = sessionStorage.getItem("ai-arena-api-keys") || localStorage.getItem("ai-arena-api-keys");
@@ -120,6 +128,17 @@ export default function ArenaDiscussion() {
     try {
       setConfig(JSON.parse(configStr));
       if (keysStr) setApiKeys(JSON.parse(keysStr));
+      // Restore previous messages if any
+      const savedMessages = sessionStorage.getItem("ai-arena-messages");
+      const savedTurn = sessionStorage.getItem("ai-arena-turn");
+      if (savedMessages) {
+        const parsed = JSON.parse(savedMessages) as Message[];
+        if (parsed.length > 0) {
+          setMessages(parsed);
+          setTurnNumber(savedTurn ? parseInt(savedTurn, 10) : parsed.length);
+          setWaitingForUser(true); // Pause so user can continue manually
+        }
+      }
     } catch { navigate("/arena"); }
   }, [navigate]);
 
@@ -463,6 +482,10 @@ REGLES CRITIQUES pour le livrable :
     setIsRunning(true);
     setError(null);
     abortRef.current = new AbortController();
+
+    // Clear any previously saved session since we're starting fresh
+    sessionStorage.removeItem("ai-arena-messages");
+    sessionStorage.removeItem("ai-arena-turn");
 
     const allMessages: Message[] = [];
     let currentTurn = 0;
