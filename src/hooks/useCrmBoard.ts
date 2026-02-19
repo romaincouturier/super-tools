@@ -117,6 +117,12 @@ export const useCrmBoard = () => {
           next_action_done: (card as unknown as { next_action_done?: boolean }).next_action_done ?? false,
           linked_mission_id: (card as unknown as { linked_mission_id?: string }).linked_mission_id ?? null,
           emoji: (card as unknown as { emoji?: string }).emoji ?? null,
+          confidence_score: (card as unknown as { confidence_score?: number }).confidence_score ?? null,
+          won_at: (card as unknown as { won_at?: string }).won_at ?? null,
+          lost_at: (card as unknown as { lost_at?: string }).lost_at ?? null,
+          acquisition_source: ((card as unknown as { acquisition_source?: string }).acquisition_source ?? null) as CrmCard["acquisition_source"],
+          loss_reason: ((card as unknown as { loss_reason?: string }).loss_reason ?? null) as CrmCard["loss_reason"],
+          loss_reason_detail: (card as unknown as { loss_reason_detail?: string }).loss_reason_detail ?? null,
           tags: cardTagsList,
         };
       });
