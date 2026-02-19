@@ -26,7 +26,12 @@ Deno.serve(async (req: Request) => {
     return createErrorResponse("Invalid JSON", 400);
   }
 
-  const { apiKey, provider = "claude", topic, mode, agents, history, turnNumber, maxTurns, language } = body;
+  const { apiKey: clientApiKey, provider = "claude", topic, mode, agents, history, turnNumber, maxTurns, language } = body;
+
+  // For Claude, use server-side ANTHROPIC_API_KEY secret
+  const apiKey = provider === "claude"
+    ? (Deno.env.get("ANTHROPIC_API_KEY") || clientApiKey)
+    : clientApiKey;
 
   if (!apiKey) {
     return createErrorResponse("Missing API key", 400);

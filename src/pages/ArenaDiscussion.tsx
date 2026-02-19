@@ -126,7 +126,7 @@ export default function ArenaDiscussion() {
   const getApiKey = useCallback((provider: string): string => {
     if (provider === "openai") return apiKeys.openai || "";
     if (provider === "gemini") return apiKeys.gemini || "";
-    return apiKeys.claude || "";
+    return "server-managed"; // Claude uses server-side ANTHROPIC_API_KEY
   }, [apiKeys]);
 
   // Stream an SSE response and collect content + usage
@@ -246,9 +246,9 @@ export default function ArenaDiscussion() {
   const callOrchestrator = useCallback(
     async (history: Message[], turn: number): Promise<OrchestratorDecision> => {
       if (!config) throw new Error("No config");
-      // Pick the best available key for the orchestrator
-      const orchKey = apiKeys.claude || apiKeys.openai || apiKeys.gemini || "";
-      const orchProvider = apiKeys.claude ? "claude" : apiKeys.openai ? "openai" : apiKeys.gemini ? "gemini" : "claude";
+      // Use Claude by default for orchestrator (server-side key)
+      const orchKey = "server-managed";
+      const orchProvider = "claude" as const;
       if (!orchKey) {
         // Fallback round-robin if no key at all
         const agentIndex = (turn - 1) % config.agents.length;

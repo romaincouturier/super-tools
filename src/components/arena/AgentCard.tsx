@@ -28,7 +28,7 @@ export default function AgentCard({
   };
 
   const providerAvailable = (p: Provider) => {
-    if (p === "claude") return !!apiKeys.claude;
+    if (p === "claude") return true; // Uses server-side ANTHROPIC_API_KEY
     if (p === "openai") return !!apiKeys.openai;
     if (p === "gemini") return !!apiKeys.gemini;
     return false;
