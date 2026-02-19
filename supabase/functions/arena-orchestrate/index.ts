@@ -25,7 +25,12 @@ Deno.serve(async (req: Request) => {
     return new Response("Invalid JSON", { status: 400, headers: corsHeaders });
   }
 
-  const { provider = "claude", apiKey, model, systemPrompt, turnInstruction, history, topic, maxTokens } = body;
+  const { provider = "claude", apiKey: clientApiKey, model, systemPrompt, turnInstruction, history, topic, maxTokens } = body;
+
+  // For Claude, use server-side ANTHROPIC_API_KEY secret
+  const apiKey = provider === "claude"
+    ? (Deno.env.get("ANTHROPIC_API_KEY") || clientApiKey)
+    : clientApiKey;
 
   if (!apiKey || !model || !systemPrompt) {
     return new Response("Missing required fields (apiKey, model, systemPrompt)", { status: 400, headers: corsHeaders });

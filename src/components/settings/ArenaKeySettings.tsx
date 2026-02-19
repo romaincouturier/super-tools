@@ -33,7 +33,7 @@ export default function ArenaKeySettings() {
     setSaving(false);
   };
 
-  const hasAnyKey = !!(keys.claude?.trim() || keys.openai?.trim() || keys.gemini?.trim());
+  const hasAnyKey = true; // Claude is always available via server key
 
   if (loading) {
     return (
@@ -53,9 +53,7 @@ export default function ArenaKeySettings() {
           <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">Discussions Multi-Agents</span>
         </CardTitle>
         <CardDescription>
-          Configurez les cles API pour les providers IA utilises par AI Arena.
-          Chaque agent peut utiliser un provider different (Claude, OpenAI, Gemini).
-          Les cles sont stockees dans les parametres de l'application.
+          La clé Anthropic (Claude) est gérée côté serveur. Configurez ici les clés optionnelles pour OpenAI et Gemini.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -77,23 +75,13 @@ export default function ArenaKeySettings() {
         </div>
 
         <div className="space-y-4">
-          <div className="space-y-2">
-            <Label className="flex items-center gap-2">
+          <div className="rounded-lg bg-primary/5 border border-primary/20 p-3">
+            <div className="flex items-center gap-2 text-sm font-medium">
               <span className="inline-block h-2 w-2 rounded-full bg-[#D97706]" />
-              Anthropic (Claude)
-              <span className="text-xs text-primary">recommande</span>
-            </Label>
-            <Input
-              type={showKeys ? "text" : "password"}
-              value={keys.claude || ""}
-              onChange={(e) => setKeys({ ...keys, claude: e.target.value })}
-              placeholder="sk-ant-..."
-            />
-            <p className="text-[11px] text-muted-foreground">
-              Utilise pour les agents Claude et l'orchestrateur.{" "}
-              <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener noreferrer" className="text-primary underline">
-                Obtenir une cle
-              </a>
+              Anthropic (Claude) — <span className="text-primary">disponible</span>
+            </div>
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              Clé gérée côté serveur (ANTHROPIC_API_KEY). Aucune configuration nécessaire.
             </p>
           </div>
 

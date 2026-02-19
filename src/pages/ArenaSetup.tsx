@@ -107,8 +107,8 @@ export default function ArenaSetup() {
     setMaxTokensPerTurn(template.rules.maxTokensPerTurn);
     setLanguage(template.rules.language);
     // Adapt agents to available provider
-    const availableProvider: "claude" | "openai" | "gemini" = apiKeys.claude?.trim() ? "claude" : apiKeys.openai?.trim() ? "openai" : apiKeys.gemini?.trim() ? "gemini" : "claude";
-    const defaultModel = availableProvider === "claude" ? "claude-haiku-4-5-20251001" : availableProvider === "openai" ? "gpt-4o-mini" : "gemini-2.0-flash";
+    const availableProvider: "claude" | "openai" | "gemini" = "claude";
+    const defaultModel = "claude-haiku-4-5-20251001";
     setAgents(
       template.agents.map((a, i) => ({
         ...a,
@@ -170,8 +170,8 @@ export default function ArenaSetup() {
   };
 
   const expertToAgent = (expert: ExpertProfile, index: number, stance?: string): AgentConfig => {
-    const p: "claude" | "openai" | "gemini" = apiKeys.claude?.trim() ? "claude" : apiKeys.openai?.trim() ? "openai" : apiKeys.gemini?.trim() ? "gemini" : "claude";
-    const m = p === "claude" ? "claude-haiku-4-5-20251001" : p === "openai" ? "gpt-4o-mini" : "gemini-2.0-flash";
+    const p: "claude" | "openai" | "gemini" = "claude";
+    const m = "claude-haiku-4-5-20251001";
     return {
     id: uuidv4(),
     name: expert.name,
@@ -189,9 +189,9 @@ export default function ArenaSetup() {
   };
 
   const handleSuggestExperts = async () => {
-    const suggestKey = apiKeys.claude?.trim() || apiKeys.openai?.trim() || apiKeys.gemini?.trim();
-    const suggestProvider = apiKeys.claude?.trim() ? "claude" : apiKeys.openai?.trim() ? "openai" : "gemini";
-    if (!topic.trim() || !suggestKey) return;
+    const suggestKey = "server-managed"; // Claude key is server-side
+    const suggestProvider = "claude" as const;
+    if (!topic.trim()) return;
     setIsSuggesting(true);
     setSuggestions([]);
     try {
@@ -240,13 +240,13 @@ export default function ArenaSetup() {
 
   // At least one provider key + topic + agents named
   const hasRequiredKey = agents.every((a) => {
-    if (a.provider === "claude") return !!apiKeys.claude?.trim();
+    if (a.provider === "claude") return true; // Server-side key
     if (a.provider === "openai") return !!apiKeys.openai?.trim();
     if (a.provider === "gemini") return !!apiKeys.gemini?.trim();
     return false;
   });
   const canStart = topic.trim().length > 0 && hasRequiredKey && agents.every((a) => a.name.trim().length > 0);
-  const hasAnyKey = !!(apiKeys.claude?.trim() || apiKeys.openai?.trim() || apiKeys.gemini?.trim());
+  const hasAnyKey = true; // Claude is always available via server key
 
   const startDiscussion = () => {
     if (!canStart) return;
@@ -404,23 +404,15 @@ export default function ArenaSetup() {
           <section className="mx-auto max-w-lg">
             <div className="mb-6 text-center">
               <h2 className="mb-2 text-xl font-bold">Bienvenue sur AI Arena</h2>
-              <p className="text-sm text-muted-foreground">Pour commencer, renseignez au moins une cle API. Vos cles restent stockees localement dans votre navigateur.</p>
+              <p className="text-sm text-muted-foreground">Claude (Anthropic) est disponible par défaut. Vous pouvez aussi ajouter des clés OpenAI ou Gemini pour utiliser d'autres providers.</p>
             </div>
             <div className="rounded-xl border border-border bg-card p-5 space-y-4">
-              <div>
-                <label className="mb-1 flex items-center gap-2 text-xs font-medium text-muted-foreground">
+              <div className="rounded-lg bg-primary/5 border border-primary/20 p-3">
+                <div className="flex items-center gap-2 text-sm font-medium">
                   <span className="inline-block h-2 w-2 rounded-full bg-[#D97706]" />
-                  Anthropic (Claude) <span className="text-primary">recommande</span>
-                </label>
-                <input
-                  type="password"
-                  value={apiKeys.claude || ""}
-                  onChange={(e) => setApiKeys({ ...apiKeys, claude: e.target.value })}
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-primary"
-                  placeholder="sk-ant-..."
-                  autoFocus
-                />
-                <p className="mt-1 text-[10px] text-muted-foreground">Utilise pour les agents et l'orchestrateur. <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener noreferrer" className="text-primary underline hover:text-primary/90">Obtenir une cle</a></p>
+                  Anthropic (Claude) — <span className="text-primary">disponible</span>
+                </div>
+                <p className="mt-1 text-[10px] text-muted-foreground">Clé gérée côté serveur. Aucune configuration nécessaire.</p>
               </div>
               <div>
                 <label className="mb-1 flex items-center gap-2 text-xs font-medium text-muted-foreground">
@@ -450,19 +442,12 @@ export default function ArenaSetup() {
               </div>
               <button
                 onClick={() => {
-                  if (hasAnyKey) {
-                    saveArenaApiKeys(apiKeys);
-                    // Switch default agents to the provider whose key was entered
-                    const availableProvider: "claude" | "openai" | "gemini" = apiKeys.claude?.trim() ? "claude" : apiKeys.openai?.trim() ? "openai" : "gemini";
-                    const defaultModel = availableProvider === "claude" ? "claude-haiku-4-5-20251001" : availableProvider === "openai" ? "gpt-4o-mini" : "gemini-2.0-flash";
-                    setAgents((prev) => prev.map((a) => ({ ...a, provider: availableProvider, model: defaultModel })));
-                    setIsFirstVisit(false);
-                    setShowApiKeys(false);
-                    setStep(1);
-                  }
+                  saveArenaApiKeys(apiKeys);
+                  setIsFirstVisit(false);
+                  setShowApiKeys(false);
+                  setStep(1);
                 }}
-                disabled={!hasAnyKey}
-                className="w-full rounded-xl bg-primary py-3 text-center font-semibold text-white transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-40"
+                className="w-full rounded-xl bg-primary py-3 text-center font-semibold text-white transition-colors hover:bg-primary/90"
               >
                 Commencer
               </button>
@@ -750,19 +735,12 @@ export default function ArenaSetup() {
                   </div>
                   {showApiKeys && (
                     <div className="mt-3 space-y-3">
-                      <div>
-                        <label className="mb-1 flex items-center gap-2 text-xs font-medium text-muted-foreground">
-                          <span className="inline-block h-2 w-2 rounded-full bg-[#D97706]" />
-                          Anthropic (Claude) {usedProviders.has("claude") && <span className="text-primary">*requis</span>}
-                        </label>
-                        <input
-                          type="password"
-                          value={apiKeys.claude || ""}
-                          onChange={(e) => { const k = { ...apiKeys, claude: e.target.value }; setApiKeys(k); saveArenaApiKeys(k); }}
-                          className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
-                          placeholder="sk-ant-..."
-                        />
+                    <div className="rounded-lg bg-primary/5 border border-primary/20 p-2">
+                      <div className="flex items-center gap-2 text-xs font-medium">
+                        <span className="inline-block h-2 w-2 rounded-full bg-[#D97706]" />
+                        Claude — <span className="text-primary">disponible (clé serveur)</span>
                       </div>
+                    </div>
                       <div>
                         <label className="mb-1 flex items-center gap-2 text-xs font-medium text-muted-foreground">
                           <span className="inline-block h-2 w-2 rounded-full bg-[#10A37F]" />
