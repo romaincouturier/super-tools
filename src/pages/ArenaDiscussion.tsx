@@ -228,7 +228,7 @@ export default function ArenaDiscussion() {
           turnInstruction: `Continue directement la suite de ton texte. Voici comment ta reponse se terminait : "...${result.content.slice(-200)}"`,
           history: contextHistory,
           topic: config!.topic,
-          maxTokens: 600,
+          maxTokens: 1000,
         }, abortRef.current?.signal);
 
         if (contResponse.ok) {

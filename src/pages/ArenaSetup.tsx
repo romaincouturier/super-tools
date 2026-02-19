@@ -19,7 +19,7 @@ export default function ArenaSetup() {
   const [mode, setMode] = useState<DiscussionMode>("exploration");
   const [userMode, setUserMode] = useState<UserMode>("observer");
   const [maxTurns, setMaxTurns] = useState(10);
-  const [maxTokensPerTurn, setMaxTokensPerTurn] = useState(800);
+  const [maxTokensPerTurn, setMaxTokensPerTurn] = useState(1500);
   const [language, setLanguage] = useState("fr");
   const [apiKeys, setApiKeys] = useState<ApiKeys>({ claude: "", openai: "", gemini: "" });
   const [showApiKeys, setShowApiKeys] = useState(false);
