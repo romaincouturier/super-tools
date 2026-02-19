@@ -1,16 +1,18 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { BarChart3, Sparkles, ArrowLeft, Kanban } from "lucide-react";
+import { BarChart3, Sparkles, ArrowLeft, Kanban, BrainCircuit } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import AppHeader from "@/components/AppHeader";
 import CrmKanbanBoard from "@/components/crm/CrmKanbanBoard";
 import { NewOpportunityDialog } from "@/components/crm/NewOpportunityDialog";
 import { useAuth } from "@/hooks/useAuth";
+import { useCommercialCoachData } from "@/hooks/useCommercialCoachData";
 
 const Crm = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [showNewOpportunity, setShowNewOpportunity] = useState(false);
+  const { launchCoach, isLoading: isCoachLoading } = useCommercialCoachData();
 
   return (
     <div className="min-h-screen bg-background">
@@ -40,6 +42,14 @@ const Crm = () => {
             </div>
           </div>
           <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => launchCoach()}
+              disabled={isCoachLoading}
+            >
+              <BrainCircuit className="h-4 w-4 mr-2" />
+              {isCoachLoading ? "Chargement..." : "Coach Commercial"}
+            </Button>
             <Button onClick={() => setShowNewOpportunity(true)}>
               <Sparkles className="h-4 w-4 mr-2" />
               Nouvelle opportunité

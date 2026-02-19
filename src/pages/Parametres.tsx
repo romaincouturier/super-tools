@@ -29,6 +29,7 @@ import CrmTagManager from "@/components/settings/CrmTagManager";
 import CrmColorSettings from "@/components/settings/CrmColorSettings";
 import GoogleDriveConnect from "@/components/GoogleDriveConnect";
 import { useModuleAccess } from "@/hooks/useModuleAccess";
+import ArenaKeySettings from "@/components/settings/ArenaKeySettings";
 
 interface EmailTemplate {
   id: string;
@@ -1258,6 +1259,10 @@ const Parametres = () => {
                 Intégrations
               </TabsTrigger>
             )}
+            <TabsTrigger value="arena" className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4" />
+              AI Arena
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="general">
@@ -2048,6 +2053,10 @@ const Parametres = () => {
               <ApiKeyManager />
             </TabsContent>
           )}
+
+          <TabsContent value="arena">
+            <ArenaKeySettings />
+          </TabsContent>
         </Tabs>
       </main>
     </div>
