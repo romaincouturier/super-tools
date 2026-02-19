@@ -841,12 +841,12 @@ const InitiativeDialog = ({ open, onOpenChange, keyResultId }: InitiativeDialogP
           </div>
           <div>
             <Label>Lier à une mission</Label>
-            <Select value={linkedMissionId} onValueChange={setLinkedMissionId}>
+            <Select value={linkedMissionId || "none"} onValueChange={(val) => setLinkedMissionId(val === "none" ? "" : val)}>
               <SelectTrigger>
                 <SelectValue placeholder="Sélectionner une mission" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Aucune</SelectItem>
+                <SelectItem value="none">Aucune</SelectItem>
                 {missions?.map((m) => (
                   <SelectItem key={m.id} value={m.id}>
                     {m.title}
