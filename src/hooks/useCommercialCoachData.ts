@@ -2,16 +2,22 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { v4 as uuidv4 } from "uuid";
 import { supabase } from "@/integrations/supabase/client";
-import { loadArenaApiKeys } from "@/lib/arena/api";
+import { loadArenaApiKeys, saveArenaApiKeys } from "@/lib/arena/api";
 import { TEMPLATES } from "@/lib/arena/templates";
-import type { SessionConfig } from "@/lib/arena/types";
+import type { SessionConfig, ApiKeys } from "@/lib/arena/types";
 import type { CrmColumn, CrmCard } from "@/types/crm";
 import type { OKRObjective, OKRKeyResult } from "@/types/okr";
 import type { Mission } from "@/types/missions";
+import { useToast } from "@/hooks/use-toast";
 
 // Format a number as euros
 const fmtEuro = (v: number | null | undefined) =>
   v != null ? `${v.toLocaleString("fr-FR")}€` : "—";
+
+// Check if at least one API key is present
+function hasAnyApiKey(keys: ApiKeys): boolean {
+  return !!(keys.claude?.trim() || keys.openai?.trim() || keys.gemini?.trim());
+}
 
 // Build OKR context block from live data
 function buildOKRContext(
@@ -174,13 +180,26 @@ function buildFormationsContext(
 // Main hook
 export function useCommercialCoachData() {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
 
   const launchCoach = async (customTopic?: string) => {
     setIsLoading(true);
     try {
+      // Load API keys first to fail fast
+      const apiKeys = await loadArenaApiKeys();
+      if (!hasAnyApiKey(apiKeys)) {
+        toast({
+          title: "Cle API manquante",
+          description: "Configurez au moins une cle API dans AI Arena avant d'utiliser le Coach Commercial.",
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
+      }
+
       // Fetch all data in parallel
-      const [okrRes, columnsRes, cardsRes, missionsRes, trainingsRes, catalogueRes, apiKeys] =
+      const [okrRes, columnsRes, cardsRes, missionsRes, trainingsRes, catalogueRes] =
         await Promise.all([
           (supabase as any)
             .from("okr_objectives")
@@ -206,8 +225,26 @@ export function useCommercialCoachData() {
             .from("formation_configs")
             .select("formation_name, prix, duree_heures")
             .order("display_order", { ascending: true }),
-          loadArenaApiKeys(),
         ]);
+
+      // Check for Supabase errors
+      const errors: string[] = [];
+      if (okrRes.error) errors.push(`OKR: ${okrRes.error.message}`);
+      if (columnsRes.error) errors.push(`CRM colonnes: ${columnsRes.error.message}`);
+      if (cardsRes.error) errors.push(`CRM cartes: ${cardsRes.error.message}`);
+      if (missionsRes.error) errors.push(`Missions: ${(missionsRes.error as Error).message}`);
+      if (trainingsRes.error) errors.push(`Formations: ${trainingsRes.error.message}`);
+      if (catalogueRes.error) errors.push(`Catalogue: ${catalogueRes.error.message}`);
+
+      if (errors.length > 0) {
+        toast({
+          title: "Erreur de chargement",
+          description: `Impossible de charger certaines donnees: ${errors.join(", ")}`,
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
+      }
 
       // Build context blocks
       const okrContext = buildOKRContext(
@@ -250,15 +287,21 @@ Instructions : Utilisez ces donnees reelles pour analyser la situation commercia
 
       // Build session config from template
       const template = TEMPLATES.find((t) => t.id === "coach-commercial");
-      if (!template) throw new Error("Template coach-commercial introuvable");
+      if (!template) {
+        toast({
+          title: "Erreur",
+          description: "Template Coach Commercial introuvable.",
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
+      }
 
       const availableProvider: "claude" | "openai" | "gemini" = apiKeys.claude?.trim()
         ? "claude"
         : apiKeys.openai?.trim()
           ? "openai"
-          : apiKeys.gemini?.trim()
-            ? "gemini"
-            : "claude";
+          : "gemini";
       const defaultModel =
         availableProvider === "claude"
           ? "claude-haiku-4-5-20251001"
@@ -285,9 +328,15 @@ Instructions : Utilisez ces donnees reelles pour analyser la situation commercia
 
       sessionStorage.setItem("ai-arena-config", JSON.stringify(config));
       sessionStorage.setItem("ai-arena-api-keys", JSON.stringify(apiKeys));
+      saveArenaApiKeys(apiKeys);
       navigate("/arena/discussion");
     } catch (err) {
       console.error("Erreur lancement Coach Commercial:", err);
+      toast({
+        title: "Erreur inattendue",
+        description: "Impossible de lancer le Coach Commercial. Verifiez la console pour plus de details.",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
