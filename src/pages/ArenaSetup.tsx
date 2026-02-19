@@ -12,6 +12,9 @@ import AgentCard from "@/components/arena/AgentCard";
 import { createDefaultAgent } from "@/lib/arena/store";
 import { callSuggestExperts, loadArenaApiKeys, saveArenaApiKeys } from "@/lib/arena/api";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
+import AppHeader from "@/components/AppHeader";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft, Sparkles } from "lucide-react";
 
 export default function ArenaSetup() {
   const navigate = useNavigate();
@@ -280,15 +283,27 @@ export default function ArenaSetup() {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b border-border">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-3">
-            <Link to="/arena" className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary font-mono text-lg font-bold text-white">
-              A
-            </Link>
-            <div>
-              <h1 className="text-xl font-bold">AI Arena</h1>
-              <p className="text-xs text-muted-foreground">Discussions Multi-Agents</p>
+      <AppHeader />
+
+      {/* Sub-header with back navigation — same pattern as CRM */}
+      <div className="mx-auto max-w-5xl px-6 py-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate("/")}
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <Sparkles className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold">AI Arena</h1>
+                <p className="text-muted-foreground text-sm">Discussions Multi-Agents</p>
+              </div>
             </div>
           </div>
           {!isLoading && !isFirstVisit && (
@@ -304,7 +319,7 @@ export default function ArenaSetup() {
             </button>
           )}
         </div>
-      </header>
+      </div>
 
       {/* Sidebar -- history panel */}
       {showSidebar && (

@@ -11,6 +11,7 @@ import { saveSession } from "@/lib/arena/history";
 import { callOrchestrate, callOrchestratorApi } from "@/lib/arena/api";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { v4 as uuidv4 } from "uuid";
+import AppHeader from "@/components/AppHeader";
 
 export default function ArenaDiscussion() {
   const navigate = useNavigate();
@@ -939,11 +940,12 @@ REGLES CRITIQUES pour le livrable :
 
   return (
     <div className="flex h-screen flex-col bg-background">
+      <AppHeader />
       {/* Header */}
       <header className="shrink-0 border-b border-border">
         <div className="flex items-center justify-between px-6 py-3">
           <div className="flex items-center gap-3">
-            <button onClick={() => navigate("/arena")} className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:text-foreground">
+            <button onClick={() => navigate("/")} className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:text-foreground">
               <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
               </svg>

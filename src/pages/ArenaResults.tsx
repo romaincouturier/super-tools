@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import type { SessionConfig, SessionResult } from "@/lib/arena/types";
 import { exportToMarkdown, downloadMarkdown } from "@/lib/arena/export";
 import MessageBubble from "@/components/arena/MessageBubble";
+import AppHeader from "@/components/AppHeader";
 
 export default function ArenaResults() {
   const navigate = useNavigate();
@@ -54,10 +55,11 @@ export default function ArenaResults() {
 
   return (
     <div className="min-h-screen bg-background">
+      <AppHeader />
       <header className="border-b border-border">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-3">
-            <button onClick={() => navigate("/arena")} className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:text-foreground">
+            <button onClick={() => navigate("/")} className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:text-foreground">
               <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
               </svg>
