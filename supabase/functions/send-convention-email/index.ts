@@ -3,7 +3,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { getSigniticSignature } from "../_shared/signitic.ts";
 import { getBccSettings } from "../_shared/bcc-settings.ts";
 import { sendEmail } from "../_shared/resend.ts";
-import { handleCorsPreflightIfNeeded, getCorsHeaders } from "../_shared/cors.ts";
+import { handleCorsPreflightIfNeeded, getCorsHeaders, createErrorResponse } from "../_shared/cors.ts";
+import { verifyAuth } from "../_shared/supabase-client.ts";
 import { z, parseBody } from "../_shared/validation.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -32,6 +33,9 @@ function formatDateFr(dateStr: string): string {
 serve(async (req: Request): Promise<Response> => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
+
+  const user = await verifyAuth(req.headers.get("authorization"));
+  if (!user) return createErrorResponse("Unauthorized", 401, req);
 
   try {
     const { data, error } = await parseBody(req, schema);

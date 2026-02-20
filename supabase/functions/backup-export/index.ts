@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { corsHeaders, handleCorsPreflightIfNeeded, getCorsHeaders } from "../_shared/cors.ts";
+import { corsHeaders, handleCorsPreflightIfNeeded, getCorsHeaders, createErrorResponse } from "../_shared/cors.ts";
+import { verifyAuth } from "../_shared/supabase-client.ts";
 import { z, parseBody } from "../_shared/validation.ts";
 
 const requestSchema = z.object({
@@ -119,6 +120,9 @@ async function uploadToGoogleDrive(
 serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
+
+  const user = await verifyAuth(req.headers.get("authorization"));
+  if (!user) return createErrorResponse("Unauthorized", 401, req);
 
   try {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;

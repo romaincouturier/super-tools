@@ -3,7 +3,8 @@ import { Resend } from "https://esm.sh/resend@2.0.0";
 import { encode as base64Encode } from "https://deno.land/std@0.190.0/encoding/base64.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
 import { getSenderFrom, getSenderEmail, getBccList } from "../_shared/email-settings.ts";
-import { handleCorsPreflightIfNeeded, getCorsHeaders } from "../_shared/cors.ts";
+import { handleCorsPreflightIfNeeded, getCorsHeaders, createErrorResponse } from "../_shared/cors.ts";
+import { verifyAuth } from "../_shared/supabase-client.ts";
 import { z, parseBody } from "../_shared/validation.ts";
 
 interface TrainingSchedule {
@@ -108,6 +109,9 @@ function formatDateFrench(dateStr: string): string {
 serve(async (req: Request): Promise<Response> => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
+
+  const user = await verifyAuth(req.headers.get("authorization"));
+  if (!user) return createErrorResponse("Unauthorized", 401, req);
 
   try {
     const { data, error: validationError } = await parseBody(req, requestSchema);

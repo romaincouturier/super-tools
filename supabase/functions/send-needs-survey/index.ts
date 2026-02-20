@@ -9,6 +9,7 @@ import {
   sendEmail,
   escapeHtml,
   formatDateWithDayFr,
+  verifyAuth,
   z,
   parseBody,
 } from "../_shared/mod.ts";
@@ -21,6 +22,9 @@ const requestSchema = z.object({
 serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
+
+  const user = await verifyAuth(req.headers.get("authorization"));
+  if (!user) return createErrorResponse("Unauthorized", 401, req);
 
   try {
     const { data, error } = await parseBody(req, requestSchema);

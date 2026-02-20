@@ -16,6 +16,7 @@ import {
   createErrorResponse,
   createJsonResponse,
 } from "../_shared/cors.ts";
+import { verifyAuth } from "../_shared/supabase-client.ts";
 
 /**
  * Complete list of all edge functions in the project.
@@ -130,6 +131,9 @@ async function checkFunction(
 serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
+
+  const user = await verifyAuth(req.headers.get("authorization"));
+  if (!user) return createErrorResponse("Unauthorized", 401, req);
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;

@@ -4,6 +4,7 @@ import {
   createErrorResponse,
   createJsonResponse,
   getSupabaseClient,
+  verifyAuth,
   z,
   parseBody,
 } from "../_shared/mod.ts";
@@ -43,6 +44,9 @@ function generateCouponCode(firstName: string): string {
 serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
+
+  const user = await verifyAuth(req.headers.get("authorization"));
+  if (!user) return createErrorResponse("Unauthorized", 401, req);
 
   try {
     const { data, error } = await parseBody(req, requestBodySchema);

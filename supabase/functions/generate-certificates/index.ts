@@ -3,7 +3,8 @@ import { zipSync } from "https://esm.sh/fflate@0.8.2";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { getSenderFrom, getBccList } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
-import { handleCorsPreflightIfNeeded, getCorsHeaders } from "../_shared/cors.ts";
+import { handleCorsPreflightIfNeeded, getCorsHeaders, createErrorResponse } from "../_shared/cors.ts";
+import { verifyAuth } from "../_shared/supabase-client.ts";
 import { z, parseBody } from "../_shared/validation.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -585,20 +586,10 @@ serve(async (req: Request): Promise<Response> => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
 
+  const user = await verifyAuth(req.headers.get("authorization"));
+  if (!user) return createErrorResponse("Unauthorized", 401, req);
+
   try {
-    // --- Authentication check ---
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
-      });
-    }
-
-    const supabaseClient = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
-      global: { headers: { Authorization: authHeader } },
-    });
-
     // Fetch website URLs from settings
     const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     const { data: urlSettings } = await supabaseAdmin
@@ -609,17 +600,7 @@ serve(async (req: Request): Promise<Response> => {
     const websiteUrl = urlSettings?.find((s: any) => s.setting_key === "website_url")?.setting_value || "https://www.supertilt.fr";
     const youtubeUrl = urlSettings?.find((s: any) => s.setting_key === "youtube_url")?.setting_value || "https://www.youtube.com/@supertilt";
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabaseClient.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims?.sub) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
-      });
-    }
-
-    console.log(`Authenticated user: ${claimsData.claims.sub}`);
-    // --- End authentication check ---
+    console.log(`Authenticated user: ${user.id}`);
 
     const { data, error } = await parseBody(req, requestBodySchema);
     if (error) return error;
