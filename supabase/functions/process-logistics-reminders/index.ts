@@ -298,6 +298,48 @@ serve(async (req) => {
       `);
     }
 
+    // ── 5. PENDING CONTENT REVIEWS ──
+    const pendingReviewAlerts: string[] = [];
+
+    const { data: pendingReviews } = await supabase
+      .from("content_reviews")
+      .select("id, card_id, reviewer_email, status, created_at, content_cards(title)")
+      .in("status", ["pending", "in_review"])
+      .order("created_at", { ascending: true });
+
+    if (pendingReviews && pendingReviews.length > 0) {
+      // Group by reviewer
+      const byReviewer = new Map<string, typeof pendingReviews>();
+      for (const review of pendingReviews) {
+        const email = review.reviewer_email || "inconnu";
+        const list = byReviewer.get(email) || [];
+        list.push(review);
+        byReviewer.set(email, list);
+      }
+
+      for (const [reviewer, reviews] of byReviewer) {
+        const items = reviews.map((r) => {
+          const cardTitle = (r as any).content_cards?.title || "Sans titre";
+          const daysAgo = Math.ceil((Date.now() - new Date(r.created_at).getTime()) / (1000 * 60 * 60 * 24));
+          const statusLabel = r.status === "pending" ? "En attente" : "En cours";
+          return `<a href="${appUrl}/contenu?card=${r.card_id}" style="color: #1a1a2e; text-decoration: underline;">${cardTitle}</a> — ${statusLabel} (${daysAgo}j)`;
+        });
+        pendingReviewAlerts.push(
+          `<li><strong>${reviewer}</strong> : ${items.join(" · ")}</li>`
+        );
+      }
+    }
+
+    if (pendingReviewAlerts.length > 0) {
+      alertSections.push(`
+        <div style="margin-bottom: 24px;">
+          <h3 style="color: #8B5CF6; margin: 0 0 8px 0; font-size: 16px;">📋 Relectures en attente</h3>
+          <ul style="margin: 0; padding-left: 20px;">${pendingReviewAlerts.join("")}</ul>
+          <p style="margin-top: 8px;"><a href="${appUrl}/contenu" style="color: #1a1a2e; text-decoration: underline; font-size: 14px;">Voir le tableau de contenu →</a></p>
+        </div>
+      `);
+    }
+
     // ── SEND DIGEST EMAIL ──
     if (alertSections.length === 0) {
       console.log(`[${VERSION}] No alerts to send`);
@@ -307,7 +349,7 @@ serve(async (req) => {
       );
     }
 
-    const totalAlerts = logisticsAlerts.length + conventionNotGenerated.length + conventionNotSigned.length + failedEmailAlerts.length;
+    const totalAlerts = logisticsAlerts.length + conventionNotGenerated.length + conventionNotSigned.length + failedEmailAlerts.length + pendingReviewAlerts.length;
 
     const htmlContent = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -359,6 +401,7 @@ serve(async (req) => {
         conventionNotGenerated: conventionNotGenerated.length,
         conventionNotSigned: conventionNotSigned.length,
         failedEmails: failedEmailAlerts.length,
+        pendingReviews: pendingReviewAlerts.length,
         total: totalAlerts,
         _version: VERSION,
       }),

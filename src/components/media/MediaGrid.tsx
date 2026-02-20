@@ -1,14 +1,12 @@
-import { MediaItemWithMission } from "@/hooks/useMediaLibrary";
+import { MediaItem, useDeleteMedia, deleteMediaFile } from "@/hooks/useMedia";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ImageIcon, Video, Play, Trash2, Briefcase, Download, GraduationCap } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { ImageIcon, Video, Play, Trash2, Briefcase, Download, GraduationCap, CalendarDays, HandCoins } from "lucide-react";
 import { toast } from "sonner";
-import { useQueryClient } from "@tanstack/react-query";
 
 interface MediaGridProps {
-  items: MediaItemWithMission[];
-  onOpenLightbox: (item: MediaItemWithMission) => void;
+  items: MediaItem[];
+  onOpenLightbox: (item: MediaItem) => void;
 }
 
 const formatFileSize = (bytes: number | null) => {
@@ -18,8 +16,26 @@ const formatFileSize = (bytes: number | null) => {
   return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`;
 };
 
+const sourceIcon = (sourceType: string) => {
+  switch (sourceType) {
+    case "training": return <GraduationCap className="h-2.5 w-2.5" />;
+    case "event": return <CalendarDays className="h-2.5 w-2.5" />;
+    case "crm": return <HandCoins className="h-2.5 w-2.5" />;
+    default: return <Briefcase className="h-2.5 w-2.5" />;
+  }
+};
+
+const sourceIconLarge = (sourceType: string) => {
+  switch (sourceType) {
+    case "training": return <GraduationCap className="h-3 w-3 flex-shrink-0" />;
+    case "event": return <CalendarDays className="h-3 w-3 flex-shrink-0" />;
+    case "crm": return <HandCoins className="h-3 w-3 flex-shrink-0" />;
+    default: return <Briefcase className="h-3 w-3 flex-shrink-0" />;
+  }
+};
+
 const MediaGrid = ({ items, onOpenLightbox }: MediaGridProps) => {
-  const queryClient = useQueryClient();
+  const deleteMutation = useDeleteMedia();
 
   const downloadFile = async (url: string, fileName: string) => {
     try {
@@ -38,39 +54,18 @@ const MediaGrid = ({ items, onOpenLightbox }: MediaGridProps) => {
     }
   };
 
-  const handleDelete = async (e: React.MouseEvent, item: MediaItemWithMission) => {
+  const handleDelete = async (e: React.MouseEvent, item: MediaItem) => {
     e.stopPropagation();
     if (!confirm(`Supprimer ${item.file_name} ?`)) return;
 
     try {
-      const url = new URL(item.file_url);
-
-      if (item.source === "training") {
-        const pathParts = url.pathname.split("/training-media/");
-        if (pathParts.length > 1) {
-          await supabase.storage
-            .from("training-media")
-            .remove([decodeURIComponent(pathParts[1])]);
-        }
-      } else {
-        const pathParts = url.pathname.split("/mission-media/");
-        if (pathParts.length > 1) {
-          await supabase.storage
-            .from("mission-media")
-            .remove([decodeURIComponent(pathParts[1])]);
-        }
-      }
-
-      const tableName = item.source === "training" ? "training_media" : "mission_media";
-      const { error } = await (supabase as any)
-        .from(tableName)
-        .delete()
-        .eq("id", item.id);
-
-      if (error) throw error;
-
+      await deleteMediaFile(item.file_url);
+      await deleteMutation.mutateAsync({
+        id: item.id,
+        sourceType: item.source_type,
+        sourceId: item.source_id,
+      });
       toast.success("Fichier supprimé");
-      queryClient.invalidateQueries({ queryKey: ["media-library"] });
     } catch (error) {
       console.error("Delete error:", error);
       toast.error("Erreur lors de la suppression");
@@ -149,14 +144,10 @@ const MediaGrid = ({ items, onOpenLightbox }: MediaGridProps) => {
               </div>
             </div>
             <div className="flex items-center gap-1 text-white/80 text-xs truncate">
-              {item.source === "training" ? (
-                <GraduationCap className="h-3 w-3 flex-shrink-0" />
-              ) : (
-                <Briefcase className="h-3 w-3 flex-shrink-0" />
-              )}
+              {sourceIconLarge(item.source_type)}
               <span className="truncate">
-                {item.mission_emoji ? `${item.mission_emoji} ` : ""}
-                {item.mission_title}
+                {item.source_emoji ? `${item.source_emoji} ` : ""}
+                {item.source_label}
               </span>
             </div>
             {item.file_size && (
@@ -170,11 +161,8 @@ const MediaGrid = ({ items, onOpenLightbox }: MediaGridProps) => {
               variant="secondary"
               className="text-[10px] px-1.5 py-0 bg-black/50 text-white border-0 backdrop-blur-sm"
             >
-              {item.source === "training"
-                ? <GraduationCap className="h-2.5 w-2.5" />
-                : (item.mission_emoji || <Briefcase className="h-2.5 w-2.5" />)
-              }
-              <span className="ml-1 max-w-[80px] truncate">{item.mission_title}</span>
+              {item.source_emoji || sourceIcon(item.source_type)}
+              <span className="ml-1 max-w-[80px] truncate">{item.source_label}</span>
             </Badge>
           </div>
         </div>

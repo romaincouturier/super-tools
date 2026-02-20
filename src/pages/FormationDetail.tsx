@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
-import { Loader2, ArrowLeft, Calendar, Users, FileText, ExternalLink, Edit2, User as UserIcon, Mail, MapPin, Building, Map, Train, Hotel, UtensilsCrossed, DoorOpen, Clock, Copy, Check, AlertCircle, Share2, CheckCircle2, Euro, StickyNote, Save, MoreHorizontal } from "lucide-react";
+import { Loader2, ArrowLeft, Calendar, Users, FileText, ExternalLink, Edit2, User as UserIcon, Mail, MapPin, Building, Map, Train, Hotel, UtensilsCrossed, DoorOpen, Clock, Copy, Check, AlertCircle, Share2, CheckCircle2, Euro, StickyNote, Save, MoreHorizontal, Heart, Send, AlertTriangle } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useToast } from "@/hooks/use-toast";
@@ -35,7 +35,9 @@ import ScheduledEmailsSummary from "@/components/formations/ScheduledEmailsSumma
 import NeedsSurveySummaryDialog from "@/components/formations/NeedsSurveySummaryDialog";
 import AttendanceSignatureBlock from "@/components/formations/AttendanceSignatureBlock";
 import ScheduledActionsEditor, { ScheduledAction } from "@/components/formations/ScheduledActionsEditor";
-import FormationMediaManager from "@/components/formations/FormationMediaManager";
+import EntityMediaManager from "@/components/media/EntityMediaManager";
+import ThankYouEmailPreviewDialog from "@/components/formations/ThankYouEmailPreviewDialog";
+import { isToday, isBefore, startOfDay } from "date-fns";
 
 interface Training {
   id: string;
@@ -122,6 +124,9 @@ const FormationDetail = () => {
   const [notes, setNotes] = useState("");
   const [savingNotes, setSavingNotes] = useState(false);
   const [notesChanged, setNotesChanged] = useState(false);
+  const [showThankYouPreview, setShowThankYouPreview] = useState(false);
+  const [sendingThankYou, setSendingThankYou] = useState(false);
+  const [thankYouSentAt, setThankYouSentAt] = useState<string | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -240,6 +245,53 @@ const FormationDetail = () => {
     }
   };
   
+  // Fetch thank-you email sent date
+  useEffect(() => {
+    if (!id) return;
+    const fetchThankYouSentDate = async () => {
+      const { data } = await supabase
+        .from("activity_logs")
+        .select("created_at")
+        .eq("action_type", "thank_you_email_sent")
+        .order("created_at", { ascending: false })
+        .limit(20);
+      if (data) {
+        const match = data.find((log: any) => {
+          const details = (log as any).details as { training_id?: string } | null;
+          return details?.training_id === id;
+        });
+        if (match) setThankYouSentAt(match.created_at);
+      }
+    };
+    fetchThankYouSentDate();
+  }, [id]);
+
+  const handleSendThankYouEmail = async () => {
+    setSendingThankYou(true);
+    try {
+      const { error, data } = await supabase.functions.invoke("send-thank-you-email", {
+        body: { trainingId: id },
+      });
+      if (error) throw error;
+      toast({
+        title: "Email de remerciement envoyé",
+        description: `Le mail a été envoyé à ${data.recipientCount} participant(s). Les emails post-formation ont été programmés automatiquement.`,
+      });
+      setThankYouSentAt(new Date().toISOString());
+      setShowThankYouPreview(false);
+      setEmailsRefreshTrigger((prev) => prev + 1);
+    } catch (error: any) {
+      console.error("Send error:", error);
+      toast({
+        title: "Erreur d'envoi",
+        description: error.message || "Impossible d'envoyer le mail de remerciement.",
+        variant: "destructive",
+      });
+    } finally {
+      setSendingThankYou(false);
+    }
+  };
+
   const handleSaveActions = async (actions: ScheduledAction[]) => {
     if (!id || !user) return;
     
@@ -1220,6 +1272,63 @@ const FormationDetail = () => {
                 trainingName={training.training_name}
                 completedCount={participants.filter(p => p.needs_survey_status === "complete").length}
               />
+
+              {/* Thank You Email Section */}
+              {(() => {
+                const effectiveEndDate = training.end_date || training.start_date;
+                const endDate = parseISO(effectiveEndDate);
+                const isLastDayOrAfter = isToday(endDate) || isBefore(endDate, startOfDay(new Date()));
+                const hasSupportsUrl = !!training.supports_url?.trim();
+                const canSend = isLastDayOrAfter && hasSupportsUrl && participants.length > 0;
+
+                return (
+                  <div className="pt-4 border-t space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex flex-col gap-1">
+                        <span className="text-sm font-medium flex items-center gap-2">
+                          <Heart className="h-4 w-4" />
+                          Mail de remerciement
+                        </span>
+                        {thankYouSentAt && (
+                          <span className="text-xs text-muted-foreground flex items-center gap-1">
+                            <CheckCircle2 className="h-3 w-3 text-primary" />
+                            Envoyé le {format(parseISO(thankYouSentAt), "d MMMM yyyy 'à' HH:mm", { locale: fr })}
+                          </span>
+                        )}
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setShowThankYouPreview(true)}
+                        disabled={sendingThankYou || !canSend}
+                      >
+                        {sendingThankYou ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <Send className="h-4 w-4 mr-2" />
+                        )}
+                        Envoyer
+                      </Button>
+                    </div>
+                    {!hasSupportsUrl && (
+                      <p className="text-xs text-destructive flex items-center gap-1">
+                        <AlertTriangle className="h-3 w-3" />
+                        Un support de formation doit être renseigné avant l'envoi
+                      </p>
+                    )}
+                    {!isLastDayOrAfter && (
+                      <p className="text-xs text-muted-foreground flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        Disponible à partir du {format(endDate, "d MMMM yyyy", { locale: fr })} (dernier jour de formation)
+                      </p>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      L'envoi programme automatiquement les emails post-formation (avis Google, témoignage vidéo, évaluation à froid, relances)
+                    </p>
+                  </div>
+                );
+              })()}
             </CardContent>
           </Card>
         </div>
@@ -1289,9 +1398,10 @@ const FormationDetail = () => {
 
         {/* Row 4: Photos & Videos */}
         <div className="mb-6">
-          <FormationMediaManager
-            trainingId={training.id}
-            trainingName={training.training_name}
+          <EntityMediaManager
+            sourceType="training"
+            sourceId={training.id}
+            sourceLabel={training.training_name}
           />
         </div>
 
@@ -1375,6 +1485,17 @@ const FormationDetail = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Thank You Email Preview Dialog */}
+      <ThankYouEmailPreviewDialog
+        open={showThankYouPreview}
+        onOpenChange={setShowThankYouPreview}
+        trainingId={training.id}
+        trainingName={training.training_name}
+        supportsUrl={training.supports_url?.trim() || null}
+        onConfirmSend={handleSendThankYouEmail}
+        isSending={sendingThankYou}
+      />
     </div>
   );
 };

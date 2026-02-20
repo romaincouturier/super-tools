@@ -104,6 +104,7 @@ import {
   lossReasonConfig,
 } from "@/types/crm";
 import LossReasonDialog from "./LossReasonDialog";
+import EntityMediaManager from "@/components/media/EntityMediaManager";
 import {
   useCrmCardDetails,
   useUpdateCard,
@@ -1177,6 +1178,9 @@ const CardDetailDrawer = ({
             <TabsTrigger value="attachments">
               <Paperclip className="h-4 w-4" />
             </TabsTrigger>
+            <TabsTrigger value="media">
+              <ImageIcon className="h-4 w-4" />
+            </TabsTrigger>
             <TabsTrigger value="activity">
               <History className="h-4 w-4" />
             </TabsTrigger>
@@ -2108,6 +2112,16 @@ const CardDetailDrawer = ({
                 </div>
               ))}
             </div>
+          </TabsContent>
+
+          {/* Media Tab */}
+          <TabsContent value="media" className="mt-4">
+            <EntityMediaManager
+              sourceType="crm"
+              sourceId={card.id}
+              sourceLabel={card.title}
+              variant="bare"
+            />
           </TabsContent>
 
           {/* Activity Tab */}

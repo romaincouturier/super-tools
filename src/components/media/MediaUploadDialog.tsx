@@ -1,8 +1,7 @@
 import { useState, useRef } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { useQueryClient } from "@tanstack/react-query";
 import { Mission } from "@/types/missions";
+import { useAddMedia, uploadMediaFile, MediaSourceType } from "@/hooks/useMedia";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
@@ -19,19 +18,29 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Upload, Plus } from "lucide-react";
+import { Loader2, Upload, Plus, Briefcase, GraduationCap, CalendarDays, HandCoins } from "lucide-react";
 
-interface MediaUploadDialogProps {
-  missions: Mission[];
+interface EntityOption {
+  id: string;
+  label: string;
+  emoji?: string | null;
 }
 
-const MediaUploadDialog = ({ missions }: MediaUploadDialogProps) => {
+interface MediaUploadDialogProps {
+  missions: EntityOption[];
+  trainings?: EntityOption[];
+  events?: EntityOption[];
+  crmCards?: EntityOption[];
+}
+
+const MediaUploadDialog = ({ missions, trainings = [], events = [], crmCards = [] }: MediaUploadDialogProps) => {
   const [open, setOpen] = useState(false);
-  const [selectedMissionId, setSelectedMissionId] = useState<string>("");
+  const [selectedSourceType, setSelectedSourceType] = useState<MediaSourceType>("mission");
+  const [selectedEntityId, setSelectedEntityId] = useState<string>("");
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const queryClient = useQueryClient();
+  const addMedia = useAddMedia();
 
   const getFileType = (file: File): "image" | "video" | null => {
     if (file.type.startsWith("image/")) return "image";
@@ -39,17 +48,19 @@ const MediaUploadDialog = ({ missions }: MediaUploadDialogProps) => {
     return null;
   };
 
-  const sanitizeFileName = (name: string) => {
-    return name
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/[^a-zA-Z0-9._-]/g, "_")
-      .toLowerCase();
+  const currentEntities = (): EntityOption[] => {
+    switch (selectedSourceType) {
+      case "mission": return missions;
+      case "training": return trainings;
+      case "event": return events;
+      case "crm": return crmCards;
+      default: return [];
+    }
   };
 
   const uploadFiles = async (files: FileList | File[]) => {
-    if (!selectedMissionId) {
-      toast.error("Veuillez sélectionner une mission");
+    if (!selectedEntityId) {
+      toast.error("Veuillez sélectionner une entité");
       return;
     }
 
@@ -70,54 +81,29 @@ const MediaUploadDialog = ({ missions }: MediaUploadDialogProps) => {
     setUploading(true);
 
     try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const userId = sessionData.session?.user?.id;
-      if (!userId) {
-        toast.error("Vous devez être connecté");
-        return;
-      }
-
       let successCount = 0;
 
       for (const file of validFiles) {
-        const fileType = getFileType(file)!;
-        const sanitized = sanitizeFileName(file.name);
-        const path = `${selectedMissionId}/${Date.now()}_${sanitized}`;
+        try {
+          const fileType = getFileType(file)!;
+          const fileUrl = await uploadMediaFile(file, selectedSourceType, selectedEntityId);
 
-        const { error: uploadError } = await supabase.storage
-          .from("mission-media")
-          .upload(path, file);
-
-        if (uploadError) {
-          console.error("Upload error:", uploadError);
-          toast.error(`Erreur lors de l'upload de ${file.name}`);
-          continue;
-        }
-
-        const { data: urlData } = supabase.storage
-          .from("mission-media")
-          .getPublicUrl(path);
-
-        const { error: insertError } = await (supabase as any)
-          .from("mission_media")
-          .insert({
-            mission_id: selectedMissionId,
-            file_url: urlData.publicUrl,
+          await addMedia.mutateAsync({
+            file_url: fileUrl,
             file_name: file.name,
             file_type: fileType,
             mime_type: file.type,
             file_size: file.size,
             position: 0,
-            created_by: userId,
+            source_type: selectedSourceType,
+            source_id: selectedEntityId,
           });
 
-        if (insertError) {
-          console.error("Insert error:", insertError);
-          toast.error(`Erreur lors de l'enregistrement de ${file.name}`);
-          continue;
+          successCount++;
+        } catch (err) {
+          console.error("Upload error:", err);
+          toast.error(`Erreur lors de l'upload de ${file.name}`);
         }
-
-        successCount++;
       }
 
       if (successCount > 0) {
@@ -126,13 +112,9 @@ const MediaUploadDialog = ({ missions }: MediaUploadDialogProps) => {
             ? "Fichier ajouté"
             : `${successCount} fichiers ajoutés`
         );
-        queryClient.invalidateQueries({ queryKey: ["media-library"] });
         setOpen(false);
-        setSelectedMissionId("");
+        setSelectedEntityId("");
       }
-    } catch (error) {
-      console.error("Upload error:", error);
-      toast.error("Erreur lors de l'upload");
     } finally {
       setUploading(false);
     }
@@ -144,6 +126,11 @@ const MediaUploadDialog = ({ missions }: MediaUploadDialogProps) => {
     if (e.dataTransfer.files.length > 0) {
       uploadFiles(e.dataTransfer.files);
     }
+  };
+
+  const handleSourceTypeChange = (value: string) => {
+    setSelectedSourceType(value as MediaSourceType);
+    setSelectedEntityId("");
   };
 
   return (
@@ -160,17 +147,53 @@ const MediaUploadDialog = ({ missions }: MediaUploadDialogProps) => {
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Mission selector */}
+          {/* Source type selector */}
           <div className="space-y-2">
-            <label className="text-sm font-medium">Mission</label>
-            <Select value={selectedMissionId} onValueChange={setSelectedMissionId}>
+            <label className="text-sm font-medium">Type de source</label>
+            <Select value={selectedSourceType} onValueChange={handleSourceTypeChange}>
               <SelectTrigger>
-                <SelectValue placeholder="Sélectionner une mission..." />
+                <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {missions.map((m) => (
-                  <SelectItem key={m.id} value={m.id}>
-                    {m.emoji ? `${m.emoji} ` : ""}{m.title}
+                <SelectItem value="mission">
+                  <span className="flex items-center gap-2">
+                    <Briefcase className="h-3.5 w-3.5" /> Mission
+                  </span>
+                </SelectItem>
+                <SelectItem value="training">
+                  <span className="flex items-center gap-2">
+                    <GraduationCap className="h-3.5 w-3.5" /> Formation
+                  </span>
+                </SelectItem>
+                <SelectItem value="event">
+                  <span className="flex items-center gap-2">
+                    <CalendarDays className="h-3.5 w-3.5" /> Événement
+                  </span>
+                </SelectItem>
+                <SelectItem value="crm">
+                  <span className="flex items-center gap-2">
+                    <HandCoins className="h-3.5 w-3.5" /> Opportunité
+                  </span>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Entity selector */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium">
+              {selectedSourceType === "mission" ? "Mission" :
+               selectedSourceType === "training" ? "Formation" :
+               selectedSourceType === "event" ? "Événement" : "Opportunité"}
+            </label>
+            <Select value={selectedEntityId} onValueChange={setSelectedEntityId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Sélectionner..." />
+              </SelectTrigger>
+              <SelectContent>
+                {currentEntities().map((e) => (
+                  <SelectItem key={e.id} value={e.id}>
+                    {e.emoji ? `${e.emoji} ` : ""}{e.label}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -181,12 +204,12 @@ const MediaUploadDialog = ({ missions }: MediaUploadDialogProps) => {
           <div
             className={cn(
               "border-2 border-dashed rounded-lg p-8 text-center transition-colors",
-              !selectedMissionId && "opacity-50 pointer-events-none",
+              !selectedEntityId && "opacity-50 pointer-events-none",
               dragOver
                 ? "border-primary bg-primary/5"
                 : "border-muted-foreground/25 hover:border-primary/50 cursor-pointer"
             )}
-            onClick={() => selectedMissionId && fileInputRef.current?.click()}
+            onClick={() => selectedEntityId && fileInputRef.current?.click()}
             onDrop={handleDrop}
             onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
             onDragLeave={() => setDragOver(false)}

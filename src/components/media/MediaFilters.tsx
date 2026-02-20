@@ -1,7 +1,7 @@
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Search, ImageIcon, Video, X, Filter } from "lucide-react";
+import { Search, ImageIcon, Video, X, Filter, Briefcase, GraduationCap, CalendarDays, HandCoins } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -10,22 +10,25 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-interface Mission {
+interface SourceOption {
   id: string;
-  title: string;
+  label: string;
   emoji: string | null;
+  sourceType: string;
 }
 
 interface MediaFiltersProps {
   search: string;
   onSearchChange: (value: string) => void;
-  selectedMission: string;
-  onMissionChange: (value: string) => void;
+  selectedSource: string;
+  onSourceChange: (value: string) => void;
+  selectedSourceType: string;
+  onSourceTypeChange: (value: string) => void;
   selectedTag: string;
   onTagChange: (value: string) => void;
   selectedType: string;
   onTypeChange: (value: string) => void;
-  missions: Mission[];
+  sources: SourceOption[];
   tags: string[];
   hasActiveFilters: boolean;
   onClearFilters: () => void;
@@ -34,13 +37,15 @@ interface MediaFiltersProps {
 const MediaFilters = ({
   search,
   onSearchChange,
-  selectedMission,
-  onMissionChange,
+  selectedSource,
+  onSourceChange,
+  selectedSourceType,
+  onSourceTypeChange,
   selectedTag,
   onTagChange,
   selectedType,
   onTypeChange,
-  missions,
+  sources,
   tags,
   hasActiveFilters,
   onClearFilters,
@@ -59,16 +64,46 @@ const MediaFilters = ({
           />
         </div>
 
-        {/* Mission filter */}
-        <Select value={selectedMission} onValueChange={onMissionChange}>
-          <SelectTrigger className="w-full sm:w-[220px]">
-            <SelectValue placeholder="Toutes les missions" />
+        {/* Source type filter */}
+        <Select value={selectedSourceType} onValueChange={onSourceTypeChange}>
+          <SelectTrigger className="w-full sm:w-[180px]">
+            <SelectValue placeholder="Toutes les sources" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Toutes les missions</SelectItem>
-            {missions.map((m) => (
-              <SelectItem key={m.id} value={m.id}>
-                {m.emoji ? `${m.emoji} ` : ""}{m.title}
+            <SelectItem value="all">Toutes les sources</SelectItem>
+            <SelectItem value="mission">
+              <span className="flex items-center gap-2">
+                <Briefcase className="h-3.5 w-3.5" /> Missions
+              </span>
+            </SelectItem>
+            <SelectItem value="training">
+              <span className="flex items-center gap-2">
+                <GraduationCap className="h-3.5 w-3.5" /> Formations
+              </span>
+            </SelectItem>
+            <SelectItem value="event">
+              <span className="flex items-center gap-2">
+                <CalendarDays className="h-3.5 w-3.5" /> Événements
+              </span>
+            </SelectItem>
+            <SelectItem value="crm">
+              <span className="flex items-center gap-2">
+                <HandCoins className="h-3.5 w-3.5" /> Opportunités
+              </span>
+            </SelectItem>
+          </SelectContent>
+        </Select>
+
+        {/* Entity filter */}
+        <Select value={selectedSource} onValueChange={onSourceChange}>
+          <SelectTrigger className="w-full sm:w-[220px]">
+            <SelectValue placeholder="Toutes les entités" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Toutes les entités</SelectItem>
+            {sources.map((s) => (
+              <SelectItem key={s.id} value={s.id}>
+                {s.emoji ? `${s.emoji} ` : ""}{s.label}
               </SelectItem>
             ))}
           </SelectContent>

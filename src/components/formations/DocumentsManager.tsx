@@ -1642,40 +1642,6 @@ const DocumentsManager = ({
             )}
           </div>
 
-          {/* Thank You Email Section */}
-          <div className="pt-4 border-t space-y-2">
-            <div className="flex items-center justify-between">
-              <div className="flex flex-col gap-1">
-                <Label className="flex items-center gap-2">
-                  <Heart className="h-4 w-4" />
-                  Mail de remerciement
-                </Label>
-                {documentsSentInfo.thankYou && (
-                  <span className="text-xs text-muted-foreground flex items-center gap-1">
-                    <CheckCircle className="h-3 w-3 text-primary" />
-                    Envoyé le {formatSentDate(documentsSentInfo.thankYou)}
-                  </span>
-                )}
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={openThankYouPreview}
-                disabled={sendingThankYou}
-              >
-                {sendingThankYou ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <Send className="h-4 w-4 mr-2" />
-                )}
-                Envoyer
-              </Button>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Envoi à tous les participants inscrits
-            </p>
-          </div>
         </CardContent>
       </Card>
 
@@ -1750,15 +1716,6 @@ const DocumentsManager = ({
         </DialogContent>
       </Dialog>
 
-      <ThankYouEmailPreviewDialog
-        open={showThankYouPreview}
-        onOpenChange={setShowThankYouPreview}
-        trainingId={trainingId}
-        trainingName={trainingName}
-        supportsUrl={supportsUrl.trim() ? supportsUrl.trim() : null}
-        onConfirmSend={handleSendThankYouEmail}
-        isSending={sendingThankYou}
-      />
     </>
   );
 };
