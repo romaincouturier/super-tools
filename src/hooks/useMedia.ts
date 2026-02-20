@@ -22,6 +22,21 @@ export interface MediaItem {
   source_tags: string[];
 }
 
+// Raw row shape returned by the media table (not in generated types)
+interface MediaRow {
+  id: string;
+  file_url: string;
+  file_name: string;
+  file_type: "image" | "video" | "video_link";
+  mime_type: string | null;
+  file_size: number | null;
+  position: number;
+  source_type: MediaSourceType;
+  source_id: string;
+  created_at: string;
+  created_by: string | null;
+}
+
 const MEDIA_LIBRARY_KEY = "media-library";
 const ENTITY_MEDIA_KEY = "entity-media";
 
@@ -38,13 +53,13 @@ export const useMediaLibrary = () => {
 
       if (error) throw error;
 
-      const rows = (mediaRows || []) as any[];
+      const rows = (mediaRows || []) as MediaRow[];
 
       // Collect source ids per type for batch label lookup
-      const missionIds = [...new Set(rows.filter((r: any) => r.source_type === "mission").map((r: any) => r.source_id))];
-      const eventIds = [...new Set(rows.filter((r: any) => r.source_type === "event").map((r: any) => r.source_id))];
-      const trainingIds = [...new Set(rows.filter((r: any) => r.source_type === "training").map((r: any) => r.source_id))];
-      const crmIds = [...new Set(rows.filter((r: any) => r.source_type === "crm").map((r: any) => r.source_id))];
+      const missionIds = [...new Set(rows.filter((r) => r.source_type === "mission").map((r) => r.source_id))];
+      const eventIds = [...new Set(rows.filter((r) => r.source_type === "event").map((r) => r.source_id))];
+      const trainingIds = [...new Set(rows.filter((r) => r.source_type === "training").map((r) => r.source_id))];
+      const crmIds = [...new Set(rows.filter((r) => r.source_type === "crm").map((r) => r.source_id))];
 
       // Fetch labels
       const labelMap: Record<string, { label: string; emoji: string | null; color: string | null; tags: string[] }> = {};
@@ -54,7 +69,7 @@ export const useMediaLibrary = () => {
           .from("missions")
           .select("id, title, emoji, color, tags")
           .in("id", missionIds);
-        (data || []).forEach((m: any) => {
+        (data || []).forEach((m: { id: string; title: string; emoji: string | null; color: string | null; tags: string[] | null }) => {
           labelMap[m.id] = { label: m.title, emoji: m.emoji, color: m.color, tags: m.tags || [] };
         });
       }
@@ -64,7 +79,7 @@ export const useMediaLibrary = () => {
           .from("events")
           .select("id, title")
           .in("id", eventIds);
-        (data || []).forEach((e: any) => {
+        (data || []).forEach((e: { id: string; title: string }) => {
           labelMap[e.id] = { label: e.title, emoji: null, color: null, tags: ["événement"] };
         });
       }
@@ -74,7 +89,7 @@ export const useMediaLibrary = () => {
           .from("trainings")
           .select("id, training_name")
           .in("id", trainingIds);
-        (data || []).forEach((t: any) => {
+        (data || []).forEach((t: { id: string; training_name: string }) => {
           labelMap[t.id] = { label: t.training_name, emoji: null, color: null, tags: ["formation"] };
         });
       }
@@ -84,12 +99,12 @@ export const useMediaLibrary = () => {
           .from("crm_cards")
           .select("id, title, emoji")
           .in("id", crmIds);
-        (data || []).forEach((c: any) => {
+        (data || []).forEach((c: { id: string; title: string; emoji: string | null }) => {
           labelMap[c.id] = { label: c.title, emoji: c.emoji, color: null, tags: ["opportunité"] };
         });
       }
 
-      return rows.map((row: any): MediaItem => {
+      return rows.map((row): MediaItem => {
         const info = labelMap[row.source_id] || { label: "Inconnu", emoji: null, color: null, tags: [] };
         return {
           id: row.id,

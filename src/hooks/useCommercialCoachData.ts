@@ -998,7 +998,8 @@ export function useCommercialCoachData() {
       // Cast new data (non-blocking — these may fail on older DBs)
       const commentsData = (commentsRes?.data || []) as { card_id: string; author_email: string; content: string; created_at: string }[];
       const emailsData = (emailsRes?.data || []) as { card_id: string; sender_email: string; recipient_email: string; subject: string; sent_at: string }[];
-      const evalData = ((evalRes?.data || []) as any[]).map((e: any) => ({
+      type EvalRow = { trainings?: { training_name: string } | null; appreciation_generale: string | null; recommandation: string | null; message_recommandation: string | null; amelioration_suggeree: string | null; company: string | null };
+      const evalData = ((evalRes?.data || []) as EvalRow[]).map((e) => ({
         training_name: e.trainings?.training_name || "Inconnue",
         appreciation_generale: e.appreciation_generale,
         recommandation: e.recommandation,
@@ -1006,7 +1007,8 @@ export function useCommercialCoachData() {
         amelioration_suggeree: e.amelioration_suggeree,
         company: e.company,
       }));
-      const sponsorEvalData = ((sponsorEvalRes?.data || []) as any[]).map((e: any) => ({
+      type SponsorEvalRow = { trainings?: { training_name: string } | null; sponsor_name: string | null; company: string | null; satisfaction_globale: string | null; recommandation: string | null; message_recommandation: string | null; points_forts: string | null; axes_amelioration: string | null; impact_competences: string | null; objectifs_atteints: string | null };
+      const sponsorEvalData = ((sponsorEvalRes?.data || []) as SponsorEvalRow[]).map((e) => ({
         training_name: e.trainings?.training_name || "Inconnue",
         sponsor_name: e.sponsor_name,
         company: e.company,
@@ -1018,7 +1020,8 @@ export function useCommercialCoachData() {
         impact_competences: e.impact_competences,
         objectifs_atteints: e.objectifs_atteints,
       }));
-      const missionActivitiesData = ((missionActivitiesRes?.data || []) as any[]).map((a: any) => ({
+      type MissionActivityRow = { missions?: { title: string } | null; description: string | null; activity_date: string; duration: number | null; duration_type: string | null; billable_amount: number | null; is_billed: boolean };
+      const missionActivitiesData = ((missionActivitiesRes?.data || []) as MissionActivityRow[]).map((a) => ({
         mission_title: a.missions?.title || "Inconnue",
         description: a.description,
         activity_date: a.activity_date,

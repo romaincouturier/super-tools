@@ -384,8 +384,6 @@ const FormationCreate = () => {
 
           if (emailError) {
             console.error("Error sending calendar invite:", emailError);
-          } else {
-            console.log("Calendar invite sent to trainer:", trainerDetails.email);
           }
         } catch (emailErr) {
           console.error("Failed to send calendar invite:", emailErr);
@@ -401,11 +399,11 @@ const FormationCreate = () => {
       });
 
       navigate(`/formations/${training.id}`);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error creating training:", error);
       toast({
         title: "Erreur",
-        description: error.message || "Une erreur est survenue lors de la création.",
+        description: error instanceof Error ? error.message : "Une erreur est survenue lors de la création.",
         variant: "destructive",
       });
     } finally {

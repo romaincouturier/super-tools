@@ -98,9 +98,8 @@ export function ChatbotWidget() {
     }
   };
 
-  const handleFeedback = async (messageId: string, feedback: "helpful" | "not_helpful") => {
-    // For now, just log feedback - could be enhanced to update the conversation record
-    console.log("Feedback:", messageId, feedback);
+  const handleFeedback = async (_messageId: string, _feedback: "helpful" | "not_helpful") => {
+    // TODO: enhance to persist feedback to conversation record
   };
 
   if (!isOpen) {

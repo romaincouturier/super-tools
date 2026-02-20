@@ -199,7 +199,7 @@ const FormationEdit = () => {
       }
       
       setLoading(false);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error fetching training:", error);
       toast({
         title: "Erreur",
@@ -386,11 +386,11 @@ const FormationEdit = () => {
       });
 
       navigate(`/formations/${id}`);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error updating training:", error);
       toast({
         title: "Erreur",
-        description: error.message || "Une erreur est survenue lors de la modification.",
+        description: error instanceof Error ? error.message : "Une erreur est survenue lors de la modification.",
         variant: "destructive",
       });
     } finally {

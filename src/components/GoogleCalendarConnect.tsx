@@ -112,9 +112,9 @@ const GoogleCalendarConnect = ({ onStatusChange }: GoogleCalendarConnectProps) =
       } else {
         throw new Error(data.error || "Failed to get auth URL");
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to initiate Calendar OAuth:", error);
-      toast({ title: "Erreur", description: error.message || "Impossible de démarrer la connexion", variant: "destructive" });
+      toast({ title: "Erreur", description: error instanceof Error ? error.message : "Impossible de démarrer la connexion", variant: "destructive" });
       setIsConnecting(false);
     }
   };
@@ -135,7 +135,7 @@ const GoogleCalendarConnect = ({ onStatusChange }: GoogleCalendarConnectProps) =
       setIsConnected(false);
       onStatusChange?.(false);
       toast({ title: "Google Calendar déconnecté", description: "L'agenda ne sera plus utilisé par le coach." });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to disconnect:", error);
       toast({ title: "Erreur", description: "Impossible de déconnecter Google Calendar", variant: "destructive" });
     }

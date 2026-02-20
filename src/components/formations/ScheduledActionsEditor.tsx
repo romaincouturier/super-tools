@@ -58,7 +58,7 @@ const ScheduledActionsEditor = ({ actions, onActionsChange, onSave, saving, onTo
     onActionsChange(actions.filter((a) => a.id !== id));
   };
 
-  const updateAction = (id: string, field: keyof ScheduledAction, value: any) => {
+  const updateAction = (id: string, field: keyof ScheduledAction, value: ScheduledAction[keyof ScheduledAction]) => {
     onActionsChange(
       actions.map((a) => (a.id === id ? { ...a, [field]: value } : a))
     );

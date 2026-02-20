@@ -52,7 +52,7 @@ interface ViewQuestionnaireDialogProps {
   trainingId: string;
 }
 
-const Section = ({ icon: Icon, title, children }: { icon: any; title: string; children: React.ReactNode }) => (
+const Section = ({ icon: Icon, title, children }: { icon: React.ComponentType<{ className?: string }>; title: string; children: React.ReactNode }) => (
   <div className="space-y-3">
     <div className="flex items-center gap-2 text-sm font-medium">
       <Icon className="h-4 w-4 text-primary" />
@@ -125,7 +125,7 @@ const ViewQuestionnaireDialog = ({ participantId, participantName, trainingId }:
       }
 
       setQuestionnaire(data as QuestionnaireData);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error fetching questionnaire:", error);
       toast({
         title: "Erreur",

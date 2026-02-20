@@ -80,19 +80,19 @@ const Catalogue = () => {
         .select("catalog_id");
 
       const countMap: Record<string, number> = {};
-      trainings?.forEach((t: any) => {
+      trainings?.forEach((t) => {
         if (t.catalog_id) {
           countMap[t.catalog_id] = (countMap[t.catalog_id] || 0) + 1;
         }
       });
 
       setCatalogEntries(
-        (entries || []).map((e: any) => ({
+        (entries || []).map((e) => ({
           ...e,
           training_count: countMap[e.id] || 0,
         }))
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error fetching catalog:", error);
       toast({
         title: "Erreur",
@@ -139,11 +139,11 @@ const Catalogue = () => {
 
       toast({ title: "Supprimé", description: "Entrée du catalogue supprimée." });
       fetchCatalog();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error deleting catalog entry:", error);
       toast({
         title: "Erreur",
-        description: error.message || "Impossible de supprimer cette entrée.",
+        description: error instanceof Error ? error.message : "Impossible de supprimer cette entrée.",
         variant: "destructive",
       });
     } finally {

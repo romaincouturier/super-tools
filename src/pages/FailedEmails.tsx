@@ -96,7 +96,7 @@ const FailedEmails = () => {
       if (error) throw error;
       setFailedEmails((prev) => prev.filter((e) => e.id !== failedEmailId));
       toast({ title: "Email supprimé" });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Erreur",
         description: "Impossible de supprimer.",

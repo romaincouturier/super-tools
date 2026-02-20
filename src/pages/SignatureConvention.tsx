@@ -157,7 +157,7 @@ const SignatureConvention = () => {
               setConventionData((prev) =>
                 prev ? { ...prev, pdf_url: refreshResult.data.pdf_url } : prev
               );
-              console.log("PDF URL refreshed to permanent storage");
+              // PDF URL refreshed to permanent storage
             }
           } catch (refreshErr) {
             console.warn("Could not refresh PDF URL:", refreshErr);

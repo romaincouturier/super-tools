@@ -163,19 +163,15 @@ const ProgramSelector = ({
 
       if (signedError) throw signedError;
 
-      const path = (signedData as any)?.path as string | undefined;
-      const token = (signedData as any)?.token as string | undefined;
-      const publicUrl = (signedData as any)?.publicUrl as string | undefined;
+      const uploadResponse = signedData as { path?: string; token?: string; publicUrl?: string } | null;
+      const path = uploadResponse?.path;
+      const token = uploadResponse?.token;
+      const publicUrl = uploadResponse?.publicUrl;
 
       if (!path || !token || !publicUrl) {
         console.error("[ProgramSelector] Invalid signed upload response:", signedData);
         throw new Error("Réponse d'upload invalide. Veuillez réessayer.");
       }
-
-      console.log("[ProgramSelector] Signed upload prepared", {
-        authedUserId,
-        path,
-      });
 
       const { error: uploadError } = await supabase.storage
         .from("training-programs")
@@ -209,11 +205,11 @@ const ProgramSelector = ({
       if (onPrerequisitesExtracted) {
         await extractPrerequisitesFromPdf(publicUrl);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Upload error:", error);
       toast({
         title: "Erreur d'upload",
-        description: error.message || "Une erreur est survenue lors de l'upload.",
+        description: error instanceof Error ? error.message : "Une erreur est survenue lors de l'upload.",
         variant: "destructive",
       });
     } finally {
@@ -266,11 +262,11 @@ const ProgramSelector = ({
         title: "Programme supprimé",
         description: "Le fichier a été retiré de votre bibliothèque.",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Delete error:", error);
       toast({
         title: "Erreur de suppression",
-        description: error.message || "Une erreur est survenue lors de la suppression.",
+        description: error instanceof Error ? error.message : "Une erreur est survenue lors de la suppression.",
         variant: "destructive",
       });
     } finally {

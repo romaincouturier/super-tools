@@ -137,18 +137,13 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
   // NOTE: This function is called at submit time, so trainingStartDate should always be defined
   // We use the prop directly to ensure we have the latest value
   const getEmailMode = (startDateStr: string | undefined): { status: string; sendWelcomeNow: boolean } => {
-    console.log("[AddParticipantDialog] getEmailMode called with startDate:", startDateStr);
-    
     if (!startDateStr) {
-      console.warn("[AddParticipantDialog] No trainingStartDate provided, defaulting to non_envoye");
       return { status: "non_envoye", sendWelcomeNow: false };
     }
-    
+
     const startDate = parseISO(startDateStr);
     const today = new Date();
     const daysUntilStart = differenceInDays(startDate, today);
-    
-    console.log("[AddParticipantDialog] Days until start:", daysUntilStart);
     
     // Training already started or is today
     if (daysUntilStart <= 0) {
@@ -215,8 +210,6 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
       // Determine initial status and whether to send welcome email
       // Pass the prop value explicitly to avoid stale closure issues
       const { status, sendWelcomeNow } = getEmailMode(trainingStartDate);
-      console.log("[AddParticipantDialog] Submit - status:", status, "sendWelcomeNow:", sendWelcomeNow);
-
       const participantData = {
         training_id: trainingId,
         first_name: capitalizeName(firstName) || null,
@@ -395,11 +388,11 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
       if (onScheduledEmailsRefresh) {
         onScheduledEmailsRefresh();
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error adding participant:", error);
       toast({
         title: "Erreur",
-        description: error.message || "Une erreur est survenue.",
+        description: error instanceof Error ? error.message : "Une erreur est survenue.",
         variant: "destructive",
       });
     } finally {

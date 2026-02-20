@@ -144,7 +144,7 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
             .select("id")
             .eq("status", "sent");
           if (!sentNl || sentNl.length === 0) return { data: [] };
-          const nlIds = sentNl.map((n: any) => n.id);
+          const nlIds = sentNl.map((n: { id: string }) => n.id);
           const { data: nlCards } = await (supabase as any)
             .from("newsletter_cards")
             .select("card_id")
@@ -175,7 +175,7 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
 
       // Build set of card IDs that belong to a sent newsletter
       const sentNlCardIds = new Set<string>(
-        (sentNewslettersRes.data || []).map((nc: any) => nc.card_id)
+        (sentNewslettersRes.data || []).map((nc: { card_id: string }) => nc.card_id)
       );
       setCardIdsInSentNewsletter(sentNlCardIds);
 

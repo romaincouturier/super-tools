@@ -51,8 +51,8 @@ const MissionContacts = ({ missionId }: MissionContactsProps) => {
         language: "fr",
       });
       setEditingId(result.id);
-    } catch (err: any) {
-      toast({ title: "Erreur", description: err.message, variant: "destructive" });
+    } catch (err: unknown) {
+      toast({ title: "Erreur", description: err instanceof Error ? err.message : "Une erreur est survenue", variant: "destructive" });
     }
   };
 
@@ -63,8 +63,8 @@ const MissionContacts = ({ missionId }: MissionContactsProps) => {
         missionId,
         updates: { [field]: value || null },
       });
-    } catch (err: any) {
-      toast({ title: "Erreur", description: err.message, variant: "destructive" });
+    } catch (err: unknown) {
+      toast({ title: "Erreur", description: err instanceof Error ? err.message : "Une erreur est survenue", variant: "destructive" });
     }
   };
 
@@ -76,8 +76,8 @@ const MissionContacts = ({ missionId }: MissionContactsProps) => {
         updates: { is_primary: true },
       });
       toast({ title: "Contact principal défini" });
-    } catch (err: any) {
-      toast({ title: "Erreur", description: err.message, variant: "destructive" });
+    } catch (err: unknown) {
+      toast({ title: "Erreur", description: err instanceof Error ? err.message : "Une erreur est survenue", variant: "destructive" });
     }
   };
 
@@ -87,8 +87,8 @@ const MissionContacts = ({ missionId }: MissionContactsProps) => {
     try {
       await deleteContact.mutateAsync({ id: contact.id, missionId });
       toast({ title: "Contact supprimé" });
-    } catch (err: any) {
-      toast({ title: "Erreur", description: err.message, variant: "destructive" });
+    } catch (err: unknown) {
+      toast({ title: "Erreur", description: err instanceof Error ? err.message : "Une erreur est survenue", variant: "destructive" });
     }
   };
 

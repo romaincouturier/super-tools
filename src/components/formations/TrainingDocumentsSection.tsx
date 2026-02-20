@@ -64,10 +64,10 @@ const TrainingDocumentsSection = ({ trainingId }: TrainingDocumentsSectionProps)
       toast.success("Document ajouté", {
         description: file.name,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Upload error:", error);
       toast.error("Erreur lors de l'upload", {
-        description: error.message || "Impossible d'ajouter le document.",
+        description: error instanceof Error ? error.message : "Impossible d'ajouter le document.",
       });
     } finally {
       setUploading(false);
@@ -88,10 +88,10 @@ const TrainingDocumentsSection = ({ trainingId }: TrainingDocumentsSectionProps)
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Download error:", error);
       toast.error("Erreur de téléchargement", {
-        description: error.message || "Impossible de télécharger le document.",
+        description: error instanceof Error ? error.message : "Impossible de télécharger le document.",
       });
     } finally {
       setDownloadingId(null);
@@ -113,10 +113,10 @@ const TrainingDocumentsSection = ({ trainingId }: TrainingDocumentsSectionProps)
       toast.success("Document supprimé", {
         description: fileName,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Delete error:", error);
       toast.error("Erreur de suppression", {
-        description: error.message || "Impossible de supprimer le document.",
+        description: error instanceof Error ? error.message : "Impossible de supprimer le document.",
       });
     } finally {
       setDeletingId(null);

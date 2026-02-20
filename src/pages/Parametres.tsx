@@ -1003,7 +1003,7 @@ const Parametres = () => {
         title: "Template enregistré",
         description: `Le modèle d'email (${mode === "tu" ? "tutoiement" : "vouvoiement"}) a été mis à jour avec succès.`,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Save error:", error);
       toast({
         title: "Erreur",
@@ -1085,11 +1085,11 @@ const Parametres = () => {
         title: "Contenu amélioré",
         description: "L'IA a proposé des améliorations. Vérifiez et enregistrez si satisfait.",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("AI improvement error:", error);
       toast({
         title: "Erreur",
-        description: error.message || "Impossible d'améliorer le contenu avec l'IA.",
+        description: error instanceof Error ? error.message : "Impossible d'améliorer le contenu avec l'IA.",
         variant: "destructive",
       });
     } finally {

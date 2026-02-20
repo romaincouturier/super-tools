@@ -99,8 +99,8 @@ const GenerateInvoiceDialog = ({
 
       setInvoiceUrl(urlData.publicUrl);
       toast({ title: "Fichier uploadé" });
-    } catch (err: any) {
-      toast({ title: "Erreur d'upload", description: err.message, variant: "destructive" });
+    } catch (err: unknown) {
+      toast({ title: "Erreur d'upload", description: err instanceof Error ? err.message : "Une erreur est survenue", variant: "destructive" });
     } finally {
       setUploading(false);
     }
@@ -140,8 +140,8 @@ const GenerateInvoiceDialog = ({
       setInvoiceNumber("");
       setInvoiceUrl("");
       onOpenChange(false);
-    } catch (err: any) {
-      toast({ title: "Erreur", description: err.message, variant: "destructive" });
+    } catch (err: unknown) {
+      toast({ title: "Erreur", description: err instanceof Error ? err.message : "Une erreur est survenue", variant: "destructive" });
     } finally {
       setSaving(false);
     }

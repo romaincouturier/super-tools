@@ -274,8 +274,8 @@ const FormationDetail = () => {
         .order("created_at", { ascending: false })
         .limit(20);
       if (data) {
-        const match = data.find((log: any) => {
-          const details = (log as any).details as { training_id?: string } | null;
+        const match = data.find((log) => {
+          const details = log.details as { training_id?: string } | null;
           return details?.training_id === id;
         });
         if (match) setThankYouSentAt(match.created_at);
@@ -298,11 +298,11 @@ const FormationDetail = () => {
       setThankYouSentAt(new Date().toISOString());
       setShowThankYouPreview(false);
       setEmailsRefreshTrigger((prev) => prev + 1);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Send error:", error);
       toast({
         title: "Erreur d'envoi",
-        description: error.message || "Impossible d'envoyer le mail de remerciement.",
+        description: error instanceof Error ? error.message : "Impossible d'envoyer le mail de remerciement.",
         variant: "destructive",
       });
     } finally {

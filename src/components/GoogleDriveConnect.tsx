@@ -123,11 +123,11 @@ const GoogleDriveConnect = ({ onStatusChange }: GoogleDriveConnectProps) => {
       } else {
         throw new Error(data.error || "Failed to get auth URL");
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to initiate OAuth:", error);
       toast({
         title: "Erreur",
-        description: error.message || "Impossible de démarrer la connexion",
+        description: error instanceof Error ? error.message : "Impossible de démarrer la connexion",
         variant: "destructive",
       });
       setIsConnecting(false);
@@ -155,7 +155,7 @@ const GoogleDriveConnect = ({ onStatusChange }: GoogleDriveConnectProps) => {
         title: "Google Drive déconnecté",
         description: "Les certificats ne seront plus uploadés sur Drive.",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to disconnect:", error);
       toast({
         title: "Erreur",

@@ -284,7 +284,7 @@ const BulkAddParticipantsDialog = ({
       // Create questionnaire_besoins records immediately so links work from day 1
       if (data && data.length > 0) {
         try {
-          const questionnaireRecords = data.map((p: any) => ({
+          const questionnaireRecords = data.map((p) => ({
             participant_id: p.id,
             training_id: trainingId,
             token: p.needs_survey_token,
@@ -431,11 +431,11 @@ const BulkAddParticipantsDialog = ({
       setBulkText("");
       setOpen(false);
       onParticipantsAdded();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error adding participants:", error);
       toast({
         title: "Erreur",
-        description: error.message || "Une erreur est survenue.",
+        description: error instanceof Error ? error.message : "Une erreur est survenue.",
         variant: "destructive",
       });
     } finally {

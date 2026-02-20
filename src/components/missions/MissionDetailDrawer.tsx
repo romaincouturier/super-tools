@@ -80,8 +80,8 @@ const MissionDetailDrawer = ({
 
       if (response.error) throw new Error(response.error.message);
       setAiSummary(response.data.result);
-    } catch (error: any) {
-      toast({ title: "Erreur", description: error.message || "Impossible de générer le résumé", variant: "destructive" });
+    } catch (error: unknown) {
+      toast({ title: "Erreur", description: error instanceof Error ? error.message : "Impossible de générer le résumé", variant: "destructive" });
     } finally {
       setAiSummaryLoading(false);
     }

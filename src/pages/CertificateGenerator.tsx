@@ -280,12 +280,13 @@ const Index = () => {
         setParticipants("");
         setEmailCommanditaire("");
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error:", error);
-      addLog("Système", "error", error.message || "Une erreur est survenue", "error");
+      const errorMessage = error instanceof Error ? error.message : "Une erreur est survenue";
+      addLog("Système", "error", errorMessage, "error");
       toast({
         title: "Erreur",
-        description: error.message || "Une erreur est survenue lors de la génération",
+        description: error instanceof Error ? error.message : "Une erreur est survenue lors de la génération",
         variant: "destructive",
       });
     } finally {

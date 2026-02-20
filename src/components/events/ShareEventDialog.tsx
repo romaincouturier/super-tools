@@ -113,11 +113,11 @@ const ShareEventDialog = ({ event }: ShareEventDialogProps) => {
 
       setSelectedProfile(null);
       setOpen(false);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Share error:", err);
       toast({
         title: "Erreur d'envoi",
-        description: err.message || "Impossible d'envoyer l'email.",
+        description: err instanceof Error ? err.message : "Impossible d'envoyer l'email.",
         variant: "destructive",
       });
     } finally {

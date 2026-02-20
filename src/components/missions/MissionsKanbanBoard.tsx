@@ -117,10 +117,8 @@ const MissionsKanbanBoard = ({ prefillFromCrm, onPrefillConsumed }: MissionsKanb
   };
 
   const handleAddMission = (status: MissionStatus) => {
-    console.log("[MissionsKanbanBoard] handleAddMission called, status:", status, "showCreateDialog before:", showCreateDialog);
     setCreateDialogStatus(status);
     setShowCreateDialog(true);
-    console.log("[MissionsKanbanBoard] setShowCreateDialog(true) called");
   };
 
   const handleMissionClick = (mission: Mission) => {

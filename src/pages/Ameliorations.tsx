@@ -182,7 +182,7 @@ const Ameliorations = () => {
       });
 
       fetchImprovements(selectedTraining, selectedStatus);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error updating status:", error);
       toast({
         title: "Erreur",
@@ -206,7 +206,7 @@ const Ameliorations = () => {
       });
 
       fetchImprovements(selectedTraining, selectedStatus);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error deleting improvement:", error);
       toast({
         title: "Erreur",
@@ -270,7 +270,7 @@ const Ameliorations = () => {
         category: "recommendation",
       });
       fetchImprovements(selectedTraining, selectedStatus);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error adding improvement:", error);
       toast({
         title: "Erreur",

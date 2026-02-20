@@ -145,8 +145,8 @@ const MissionActivityTracker = ({ mission, onCreatePageForActivity }: MissionAct
       }
       setShowAddDialog(false);
       resetForm();
-    } catch (error: any) {
-      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+    } catch (error: unknown) {
+      toast({ title: "Erreur", description: error instanceof Error ? error.message : "Une erreur est survenue", variant: "destructive" });
     }
   };
 
@@ -156,8 +156,8 @@ const MissionActivityTracker = ({ mission, onCreatePageForActivity }: MissionAct
     try {
       await deleteActivity.mutateAsync({ id: activity.id, missionId: mission.id });
       toast({ title: "Activité supprimée" });
-    } catch (error: any) {
-      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+    } catch (error: unknown) {
+      toast({ title: "Erreur", description: error instanceof Error ? error.message : "Une erreur est survenue", variant: "destructive" });
     }
   };
 
@@ -168,8 +168,8 @@ const MissionActivityTracker = ({ mission, onCreatePageForActivity }: MissionAct
         missionId: mission.id,
         updates: { is_billed: !activity.is_billed },
       });
-    } catch (error: any) {
-      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+    } catch (error: unknown) {
+      toast({ title: "Erreur", description: error instanceof Error ? error.message : "Une erreur est survenue", variant: "destructive" });
     }
   };
 

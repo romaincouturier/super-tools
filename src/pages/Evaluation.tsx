@@ -158,7 +158,7 @@ const Evaluation = () => {
           .update({ date_premiere_ouverture: nowIso })
           .eq("id", evTyped.id);
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error("Failed to load evaluation", e);
       setError(
         "Impossible d'ouvrir cette évaluation (lien invalide, expiré, ou accès refusé)."
@@ -244,7 +244,7 @@ const Evaluation = () => {
       setEvaluation((prev) =>
         prev ? { ...prev, etat: "soumis", date_soumission: nowIso } : prev
       );
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error("Submit failed", e);
       toast({
         title: "Erreur",

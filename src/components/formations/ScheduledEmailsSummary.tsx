@@ -503,7 +503,7 @@ Je te remercie sincèrement pour ton aide et te souhaite une excellente continua
 
       await refreshEmails();
       setEmailToDelete(null);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error deleting email:", error);
       toast({
         title: "Erreur",
@@ -531,11 +531,11 @@ Je te remercie sincèrement pour ton aide et te souhaite une excellente continua
 
       await refreshEmails();
       setSelectedEmail(null);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error force sending email:", error);
       toast({
         title: "Erreur",
-        description: error.message || "Impossible d'envoyer l'email.",
+        description: error instanceof Error ? error.message : "Impossible d'envoyer l'email.",
         variant: "destructive",
       });
     } finally {

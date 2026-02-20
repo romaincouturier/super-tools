@@ -546,21 +546,24 @@ export const useOKRStatistics = (year?: number) => {
 
       if (error) throw error;
 
+      type OKRObjectiveRow = { id: string; status: string; progress_percentage: number; confidence_level: number; time_target: string };
+      const typedObjectives = (objectives || []) as OKRObjectiveRow[];
+
       const stats = {
-        totalObjectives: objectives?.length || 0,
-        activeObjectives: objectives?.filter((o: any) => o.status === "active").length || 0,
-        completedObjectives: objectives?.filter((o: any) => o.status === "completed").length || 0,
-        avgProgress: objectives?.length
-          ? Math.round(objectives.reduce((sum: number, o: any) => sum + o.progress_percentage, 0) / objectives.length)
+        totalObjectives: typedObjectives.length,
+        activeObjectives: typedObjectives.filter((o) => o.status === "active").length,
+        completedObjectives: typedObjectives.filter((o) => o.status === "completed").length,
+        avgProgress: typedObjectives.length
+          ? Math.round(typedObjectives.reduce((sum, o) => sum + o.progress_percentage, 0) / typedObjectives.length)
           : 0,
-        avgConfidence: objectives?.length
-          ? Math.round(objectives.reduce((sum: number, o: any) => sum + o.confidence_level, 0) / objectives.length)
+        avgConfidence: typedObjectives.length
+          ? Math.round(typedObjectives.reduce((sum, o) => sum + o.confidence_level, 0) / typedObjectives.length)
           : 0,
         byQuarter: {} as Record<string, { count: number; avgProgress: number }>,
       };
 
       // Calculate by quarter
-      objectives?.forEach((o: any) => {
+      typedObjectives.forEach((o) => {
         if (!stats.byQuarter[o.time_target]) {
           stats.byQuarter[o.time_target] = { count: 0, avgProgress: 0 };
         }

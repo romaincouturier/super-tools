@@ -4,10 +4,10 @@ import { toast } from "@/hooks/use-toast";
  * Wraps a mutation function to prevent execution when offline.
  * Shows a toast notification instead.
  */
-export function offlineGuard<T extends (...args: any[]) => Promise<any>>(
+export function offlineGuard<T extends (...args: unknown[]) => Promise<unknown>>(
   fn: T
 ): T {
-  return ((...args: any[]) => {
+  return ((...args: unknown[]) => {
     if (!navigator.onLine) {
       toast({
         title: "Action impossible",

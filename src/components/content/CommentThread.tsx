@@ -187,10 +187,10 @@ const CommentThread = ({
       }
 
       return publicUrl;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Upload error:", error);
-      const statusCode = (error as any)?.statusCode as number | undefined;
-      const message = String(error?.message || "").trim();
+      const statusCode = (error as Record<string, unknown>)?.statusCode as number | undefined;
+      const message = String(error instanceof Error ? error.message : "").trim();
       const msg = [statusCode ? `HTTP ${statusCode}` : null, message || null]
         .filter(Boolean)
         .join(" — ");

@@ -130,7 +130,7 @@ const BesoinsParticipants = () => {
     }
 
     // Transform the data to match our interface
-    const transformed = (data || []).map((item: any) => ({
+    const transformed = (data || []).map((item) => ({
       ...item,
       training: item.trainings,
     }));

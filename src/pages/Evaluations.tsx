@@ -232,11 +232,11 @@ const Evaluations = () => {
           description: data?.message || "Aucune évaluation à analyser",
         });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Analysis error:", error);
       toast({
         title: "Erreur",
-        description: error.message || "Impossible de générer l'analyse",
+        description: error instanceof Error ? error.message : "Impossible de générer l'analyse",
         variant: "destructive",
       });
     } finally {
@@ -280,7 +280,7 @@ const Evaluations = () => {
         }
         setAnalysis(updatedAnalysis);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error accepting recommendation:", error);
       toast({
         title: "Erreur",
@@ -310,7 +310,7 @@ const Evaluations = () => {
 
       // Refresh list
       fetchEvaluations(selectedTraining);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error deleting evaluation:", error);
       toast({
         title: "Erreur",

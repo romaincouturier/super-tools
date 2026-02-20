@@ -245,7 +245,7 @@ const Questionnaire = () => {
           console.warn("First open tracking failed (non-blocking):", trackingErr);
         }
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error("Failed to load questionnaire", e);
       setError(
         "Impossible d'ouvrir ce questionnaire (lien invalide, expiré, ou accès refusé)."
@@ -322,7 +322,7 @@ const Questionnaire = () => {
           description: "Vos réponses ont été enregistrées.",
         });
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error("Autosave failed", e);
       setSaveStatus("error");
       
@@ -482,7 +482,7 @@ const Questionnaire = () => {
       setQuestionnaire((prev) =>
         prev ? { ...prev, etat: "complete", date_soumission: nowIso } : prev
       );
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error("Submit failed", e);
       toast({
         title: "Erreur",

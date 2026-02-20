@@ -1,4 +1,5 @@
 import { addDays, subDays } from "date-fns";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 /**
  * Calculates a target date by subtracting working days from a given date.
@@ -55,7 +56,7 @@ export function addWorkingDays(
 /**
  * Fetches working days configuration from app_settings
  */
-export async function fetchWorkingDays(supabase: any): Promise<boolean[]> {
+export async function fetchWorkingDays(supabase: SupabaseClient): Promise<boolean[]> {
   const defaultWorkingDays = [false, true, true, true, true, true, false];
   
   try {
@@ -81,7 +82,7 @@ export async function fetchWorkingDays(supabase: any): Promise<boolean[]> {
 /**
  * Fetches the delay for needs survey from app_settings
  */
-export async function fetchNeedsSurveyDelay(supabase: any): Promise<number> {
+export async function fetchNeedsSurveyDelay(supabase: SupabaseClient): Promise<number> {
   try {
     const { data } = await supabase
       .from("app_settings")
@@ -102,7 +103,7 @@ export async function fetchNeedsSurveyDelay(supabase: any): Promise<number> {
 /**
  * Fetches the delay for trainer summary from app_settings
  */
-export async function fetchTrainerSummaryDelay(supabase: any): Promise<number> {
+export async function fetchTrainerSummaryDelay(supabase: SupabaseClient): Promise<number> {
   try {
     const { data } = await supabase
       .from("app_settings")
@@ -125,7 +126,7 @@ export async function fetchTrainerSummaryDelay(supabase: any): Promise<number> {
  * Should be called after adding participants.
  */
 export async function scheduleTrainerSummaryIfNeeded(
-  supabase: any,
+  supabase: SupabaseClient,
   trainingId: string,
   trainingStartDate: string
 ): Promise<void> {
@@ -157,7 +158,7 @@ export async function scheduleTrainerSummaryIfNeeded(
         scheduled_for: format(scheduledDate, "yyyy-MM-dd'T'07:00:00"),
         status: "pending",
       });
-      console.log("Trainer summary email scheduled for", format(scheduledDate, "yyyy-MM-dd"));
+      // Trainer summary email scheduled
     }
   } catch (error) {
     console.error("Failed to schedule trainer summary:", error);

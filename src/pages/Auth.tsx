@@ -183,13 +183,14 @@ const Auth = () => {
         });
         setIsLogin(true);
       }
-    } catch (error: any) {
-      let message = error.message;
-      if (error.message.includes("Invalid login credentials")) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Une erreur est survenue";
+      let message = errorMessage;
+      if (errorMessage.includes("Invalid login credentials")) {
         message = "Email ou mot de passe incorrect";
-      } else if (error.message.includes("User already registered")) {
+      } else if (errorMessage.includes("User already registered")) {
         message = "Cet email est déjà utilisé";
-      } else if (error.message.includes("Password should be at least")) {
+      } else if (errorMessage.includes("Password should be at least")) {
         message = "Le mot de passe doit contenir au moins 6 caractères";
       }
       toast({

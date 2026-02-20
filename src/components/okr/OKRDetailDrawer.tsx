@@ -137,8 +137,8 @@ const OKRDetailDrawer = ({ objective, open, onOpenChange }: OKRDetailDrawerProps
         },
       });
       toast({ title: "Objectif mis à jour" });
-    } catch (error: any) {
-      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+    } catch (error: unknown) {
+      toast({ title: "Erreur", description: error instanceof Error ? error.message : "Une erreur est survenue", variant: "destructive" });
     }
   };
 
@@ -478,8 +478,8 @@ const KeyResultCard = ({ keyResult, objectiveId, onEdit }: KeyResultCardProps) =
     try {
       await deleteKR.mutateAsync({ id: keyResult.id, objectiveId });
       toast({ title: "Résultat clé supprimé" });
-    } catch (error: any) {
-      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+    } catch (error: unknown) {
+      toast({ title: "Erreur", description: error instanceof Error ? error.message : "Une erreur est survenue", variant: "destructive" });
     }
   };
 
@@ -570,8 +570,8 @@ const InitiativeRow = ({ initiative, keyResultId }: { initiative: OKRInitiative;
   const handleDelete = async () => {
     try {
       await deleteInitiative.mutateAsync({ id: initiative.id, keyResultId });
-    } catch (error: any) {
-      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+    } catch (error: unknown) {
+      toast({ title: "Erreur", description: error instanceof Error ? error.message : "Une erreur est survenue", variant: "destructive" });
     }
   };
 
@@ -681,8 +681,8 @@ const KeyResultDialog = ({ open, onOpenChange, objectiveId, editingKR }: KeyResu
         toast({ title: "Résultat clé créé" });
       }
       onOpenChange(false);
-    } catch (error: any) {
-      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+    } catch (error: unknown) {
+      toast({ title: "Erreur", description: error instanceof Error ? error.message : "Une erreur est survenue", variant: "destructive" });
     }
   };
 
@@ -814,8 +814,8 @@ const InitiativeDialog = ({ open, onOpenChange, keyResultId, onCreated }: Initia
       setDescription("");
       setLinkedMissionId("");
       onCreated?.();
-    } catch (error: any) {
-      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+    } catch (error: unknown) {
+      toast({ title: "Erreur", description: error instanceof Error ? error.message : "Une erreur est survenue", variant: "destructive" });
     }
   };
 
@@ -904,8 +904,8 @@ const CheckInDialog = ({ open, onOpenChange, objective }: CheckInDialogProps) =>
       });
       toast({ title: "Suivi enregistré" });
       onOpenChange(false);
-    } catch (error: any) {
-      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+    } catch (error: unknown) {
+      toast({ title: "Erreur", description: error instanceof Error ? error.message : "Une erreur est survenue", variant: "destructive" });
     }
   };
 
@@ -964,15 +964,15 @@ const CheckInDialog = ({ open, onOpenChange, objective }: CheckInDialogProps) =>
 };
 
 // Participant Row
-const ParticipantRow = ({ participant, objectiveId }: { participant: any; objectiveId: string }) => {
+const ParticipantRow = ({ participant, objectiveId }: { participant: { id: string; name: string | null; email: string; role: string }; objectiveId: string }) => {
   const { toast } = useToast();
   const removeParticipant = useRemoveOKRParticipant();
 
   const handleRemove = async () => {
     try {
       await removeParticipant.mutateAsync({ id: participant.id, objectiveId });
-    } catch (error: any) {
-      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+    } catch (error: unknown) {
+      toast({ title: "Erreur", description: error instanceof Error ? error.message : "Une erreur est survenue", variant: "destructive" });
     }
   };
 
@@ -1027,8 +1027,8 @@ const ParticipantDialog = ({ open, onOpenChange, objectiveId }: ParticipantDialo
       setEmail("");
       setName("");
       setRole("contributor");
-    } catch (error: any) {
-      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+    } catch (error: unknown) {
+      toast({ title: "Erreur", description: error instanceof Error ? error.message : "Une erreur est survenue", variant: "destructive" });
     }
   };
 

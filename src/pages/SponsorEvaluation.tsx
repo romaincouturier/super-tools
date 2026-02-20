@@ -148,7 +148,7 @@ const SponsorEvaluation = () => {
           .update({ date_premiere_ouverture: new Date().toISOString() })
           .eq("id", evTyped.id);
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error("Failed to load sponsor evaluation", e);
       setError("Impossible d'ouvrir cette évaluation (lien invalide, expiré, ou accès refusé).");
     } finally {
@@ -212,7 +212,7 @@ const SponsorEvaluation = () => {
       setRecord((prev) =>
         prev ? { ...prev, etat: "soumis", date_soumission: nowIso } : prev
       );
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error("Submit failed", e);
       toast({
         title: "Erreur",

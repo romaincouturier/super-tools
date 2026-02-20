@@ -159,11 +159,11 @@ const CatalogFormDialog = ({ open, onClose, entry }: CatalogFormDialogProps) => 
       }
 
       onClose(true);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error saving catalog entry:", error);
       toast({
         title: "Erreur",
-        description: error.message || "Impossible de sauvegarder.",
+        description: error instanceof Error ? error.message : "Impossible de sauvegarder.",
         variant: "destructive",
       });
     } finally {
