@@ -1,10 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+import { handleCorsPreflightIfNeeded, getCorsHeaders } from "../_shared/cors.ts";
 
 interface ImproveEmailRequest {
   subject: string;
@@ -14,9 +9,8 @@ interface ImproveEmailRequest {
 }
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const corsResponse = handleCorsPreflightIfNeeded(req);
+  if (corsResponse) return corsResponse;
 
   try {
     const { subject, content, templateType, templateName }: ImproveEmailRequest = await req.json();
@@ -78,7 +72,7 @@ Améliore le style et la formulation tout en gardant toutes les variables {{...}
           JSON.stringify({ error: "Trop de requêtes. Veuillez réessayer dans quelques instants." }),
           {
             status: 429,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
           }
         );
       }
@@ -87,7 +81,7 @@ Améliore le style et la formulation tout en gardant toutes les variables {{...}
           JSON.stringify({ error: "Crédit IA insuffisant. Veuillez ajouter des crédits." }),
           {
             status: 402,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
           }
         );
       }
@@ -124,7 +118,7 @@ Améliore le style et la formulation tout en gardant toutes les variables {{...}
         content: improved.content || content,
       }),
       {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       }
     );
   } catch (error) {
@@ -133,7 +127,7 @@ Améliore le style et la formulation tout en gardant toutes les variables {{...}
       JSON.stringify({ error: error instanceof Error ? error.message : "Erreur inconnue" }),
       {
         status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       }
     );
   }

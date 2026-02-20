@@ -4,15 +4,10 @@ import { getSigniticSignature } from "../_shared/signitic.ts";
 import { getBccSettings } from "../_shared/bcc-settings.ts";
 import { sendEmail } from "../_shared/resend.ts";
 import { generateSignedPdf } from "../_shared/generate-signed-pdf.ts";
+import { handleCorsPreflightIfNeeded, getCorsHeaders } from "../_shared/cors.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
 
 interface JourneyEvent {
   event: string;
@@ -78,9 +73,8 @@ function formatDateFr(dateStr: string): string {
 }
 
 serve(async (req: Request): Promise<Response> => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const corsResponse = handleCorsPreflightIfNeeded(req);
+  if (corsResponse) return corsResponse;
 
   try {
     const body: RequestBody = await req.json();
@@ -89,14 +83,14 @@ serve(async (req: Request): Promise<Response> => {
     if (!token || !signatureData || !signerName) {
       return new Response(
         JSON.stringify({ error: "Token, signature et nom du signataire requis" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
       );
     }
 
     if (!consent) {
       return new Response(
         JSON.stringify({ error: "Le consentement est requis pour la signature électronique" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
       );
     }
 
@@ -112,14 +106,14 @@ serve(async (req: Request): Promise<Response> => {
     if (fetchError || !conventionSig) {
       return new Response(
         JSON.stringify({ error: "Lien de signature invalide ou expiré" }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 404, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
       );
     }
 
     if (conventionSig.status === "signed") {
       return new Response(
         JSON.stringify({ error: "Cette convention a déjà été signée" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
       );
     }
 
@@ -129,14 +123,14 @@ serve(async (req: Request): Promise<Response> => {
     ) {
       return new Response(
         JSON.stringify({ error: "Ce lien de signature a expiré" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
       );
     }
 
     if (conventionSig.status === "cancelled") {
       return new Response(
         JSON.stringify({ error: "Cette convention a été annulée" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
       );
     }
 
@@ -196,7 +190,7 @@ serve(async (req: Request): Promise<Response> => {
           console.error("PDF integrity check failed: hash mismatch");
           return new Response(
             JSON.stringify({ error: "L'intégrité du document ne peut être vérifiée. Le PDF semble avoir été modifié." }),
-            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            { status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
           );
         }
       } else {
@@ -264,7 +258,7 @@ serve(async (req: Request): Promise<Response> => {
       console.error("Error updating convention signature:", updateError);
       return new Response(
         JSON.stringify({ error: "Erreur lors de l'enregistrement de la signature" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
       );
     }
 
@@ -525,14 +519,14 @@ ${signature}`;
         signatureHash,
         proofHash,
       }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 200, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
     );
   } catch (error: unknown) {
     console.error("Error:", error);
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
     return new Response(
       JSON.stringify({ error: errorMessage }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
     );
   }
 });

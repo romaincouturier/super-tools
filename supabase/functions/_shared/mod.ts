@@ -7,6 +7,7 @@
 // CORS utilities
 export {
   corsHeaders,
+  getCorsHeaders,
   handleCorsPreflightIfNeeded,
   createErrorResponse,
   createJsonResponse,

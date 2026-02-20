@@ -2,12 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { crypto } from "https://deno.land/std@0.168.0/crypto/mod.ts";
 import { encode as hexEncode } from "https://deno.land/std@0.168.0/encoding/hex.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-api-key, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
+import { handleCorsPreflightIfNeeded, getCorsHeaders } from "../_shared/cors.ts";
 
 interface TrainingInput {
   // Required fields
@@ -138,9 +133,8 @@ async function logRequest(
 
 serve(async (req) => {
   // Handle CORS
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const corsResponse = handleCorsPreflightIfNeeded(req);
+  if (corsResponse) return corsResponse;
 
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
   const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -159,7 +153,7 @@ serve(async (req) => {
       await logRequest(supabase, null, "/zapier-create-training", "POST", 401, null, response, req);
       return new Response(JSON.stringify(response), {
         status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
@@ -171,7 +165,7 @@ serve(async (req) => {
       await logRequest(supabase, null, "/zapier-create-training", "POST", 401, null, response, req);
       return new Response(JSON.stringify(response), {
         status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
@@ -183,7 +177,7 @@ serve(async (req) => {
       await logRequest(supabase, keyId, "/zapier-create-training", "POST", 403, null, response, req);
       return new Response(JSON.stringify(response), {
         status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
@@ -201,7 +195,7 @@ serve(async (req) => {
       await logRequest(supabase, keyId, "/zapier-create-training", "POST", 400, requestBody, response, req);
       return new Response(JSON.stringify(response), {
         status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
@@ -235,7 +229,7 @@ serve(async (req) => {
       await logRequest(supabase, keyId, "/zapier-create-training", "POST", 500, requestBody, response, req);
       return new Response(JSON.stringify(response), {
         status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
@@ -305,7 +299,7 @@ serve(async (req) => {
 
     return new Response(JSON.stringify(response), {
       status: 201,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
     });
   } catch (error: unknown) {
     console.error("Error in zapier-create-training:", error);
@@ -314,7 +308,7 @@ serve(async (req) => {
     await logRequest(supabase, keyId, "/zapier-create-training", "POST", 500, requestBody, response, req);
     return new Response(JSON.stringify(response), {
       status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
     });
   }
 });
