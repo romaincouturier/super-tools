@@ -2700,6 +2700,36 @@ export type Database = {
           },
         ]
       }
+      session_start_notifications: {
+        Row: {
+          created_at: string
+          id: string
+          participants_count: number | null
+          period: string
+          signature_sent_at: string | null
+          trainer_notified_at: string | null
+          training_schedule_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          participants_count?: number | null
+          period: string
+          signature_sent_at?: string | null
+          trainer_notified_at?: string | null
+          training_schedule_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          participants_count?: number | null
+          period?: string
+          signature_sent_at?: string | null
+          trainer_notified_at?: string | null
+          training_schedule_id?: string
+        }
+        Relationships: []
+      }
       sponsor_cold_evaluations: {
         Row: {
           attentes_satisfaites: string | null
