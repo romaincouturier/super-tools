@@ -102,12 +102,12 @@ serve(async (req) => {
     const useTutoiement = training.participants_formal_address === false;
     const templateTypeSuffix = useTutoiement ? "_tu" : "_vous";
 
-    // Fetch custom email template if exists (with mode suffix)
+    // Fetch custom email template (with mode suffix: _tu or _vous)
     const { data: customTemplate } = await supabase
       .from("email_templates")
       .select("subject, html_content")
       .eq("template_type", `thank_you${templateTypeSuffix}`)
-      .single();
+      .maybeSingle();
 
     // Use appropriate default based on formality setting
     const defaultSubject = useTutoiement ? DEFAULT_SUBJECT_TU : DEFAULT_SUBJECT_VOUS;
