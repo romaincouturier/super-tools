@@ -581,26 +581,34 @@ REGLES CRITIQUES pour le livrable :
         allMessages.push(message);
         setMessages([...allMessages]);
 
-        // Step-by-step: get next speaker recommendation, then wait for user
+        // Step-by-step: get next speaker recommendation, then wait for user (non-observer modes)
         if (turn < config.rules.maxTurns - 1) {
           // Pre-fetch orchestrator decision for next turn to show recommendation
           const nextDecision = await callOrchestrator(allMessages, currentTurn + 1);
-          const suggestedAgent = config.agents.find((a) => a.id === nextDecision.nextSpeaker);
 
-          const overrideId = await waitForUserContinue(
-            suggestedAgent
-              ? { agentId: suggestedAgent.id, agentName: suggestedAgent.name, instruction: nextDecision.instruction }
-              : undefined
-          );
-          if (abortRef.current?.signal.aborted) throw new Error("Discussion arretee");
+          // In observer mode, auto-continue without waiting for user input
+          if (config.userMode === "observer") {
+            // Small pause between turns for readability
+            await new Promise((r) => setTimeout(r, 800));
+            if (abortRef.current?.signal.aborted) throw new Error("Discussion arretee");
+          } else {
+            const suggestedAgent = config.agents.find((a) => a.id === nextDecision.nextSpeaker);
 
-          // If user overrode the speaker, update the decision
-          if (overrideId && overrideId !== nextDecision.nextSpeaker) {
-            nextDecision.nextSpeaker = overrideId;
-            const overrideAgent = config.agents.find((a) => a.id === overrideId);
-            nextDecision.instruction = `Donne ton point de vue sur ce qui vient d'etre dit par rapport au sujet central : ${config.topic}`;
-            if (overrideAgent) {
-              nextDecision.instruction = `${overrideAgent.name}, reagis aux echanges precedents et donne ton point de vue sur le sujet central : ${config.topic}`;
+            const overrideId = await waitForUserContinue(
+              suggestedAgent
+                ? { agentId: suggestedAgent.id, agentName: suggestedAgent.name, instruction: nextDecision.instruction }
+                : undefined
+            );
+            if (abortRef.current?.signal.aborted) throw new Error("Discussion arretee");
+
+            // If user overrode the speaker, update the decision
+            if (overrideId && overrideId !== nextDecision.nextSpeaker) {
+              nextDecision.nextSpeaker = overrideId;
+              const overrideAgent = config.agents.find((a) => a.id === overrideId);
+              nextDecision.instruction = `Donne ton point de vue sur ce qui vient d'etre dit par rapport au sujet central : ${config.topic}`;
+              if (overrideAgent) {
+                nextDecision.instruction = `${overrideAgent.name}, reagis aux echanges precedents et donne ton point de vue sur le sujet central : ${config.topic}`;
+              }
             }
           }
           pendingDecision = nextDecision;
