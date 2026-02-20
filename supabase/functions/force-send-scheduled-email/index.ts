@@ -367,9 +367,12 @@ const handler = async (req: Request): Promise<Response> => {
 
       case "cold_evaluation": {
         const coldAppUrl = appUrl;
-        // Determine sponsor email: participant-level sponsor_email for inter, training-level for intra
+        // Determine sponsor email: participant-level sponsor_email for inter, training-level (intra) from training.sponsor_email
         const sponsorEmail = participant?.sponsor_email || training.sponsor_email || "";
-        const sponsorName = participant?.sponsor_name || training.sponsor_name || "";
+        // Build sponsor name: for intra (no participant), use training.sponsor_first_name + sponsor_last_name
+        const sponsorName = participant?.sponsor_name ||
+          [training.sponsor_first_name, training.sponsor_last_name].filter(Boolean).join(" ") ||
+          "";
         const sponsorCompany = participant?.company || training.client_name || "";
         recipientEmail = sponsorEmail;
 
