@@ -198,9 +198,11 @@ serve(async (req) => {
       const trainingDate = new Date(training.start_date);
       const daysUntil = Math.ceil((trainingDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
       
-      // Determine what needs to be booked for train/hotel (3 months reminder)
+      // Determine what needs to be booked
+      // Hotel: remind up to 3 months before
+      // Train: remind only within 2 months (SNCF bookings open ~60 days before)
       const needsHotel = !training.hotel_booked;
-      const needsTrain = !training.train_booked;
+      const needsTrain = !training.train_booked && daysUntil <= 60;
       
       // Restaurant reminder only for inter-entreprises, 2 weeks or 1 week before
       const isInterEntreprise = training.format_formation === "inter-entreprises";

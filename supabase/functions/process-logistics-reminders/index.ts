@@ -97,10 +97,14 @@ serve(async (req) => {
 
     // ── 1. LOGISTICS ALERTS ──
     const logisticsAlerts: string[] = [];
+    const todayDate = new Date(today);
     for (const t of trainings) {
       if (t.format_formation === "e_learning") continue;
       const missing: string[] = [];
-      if (!t.train_booked) missing.push("Train");
+      // Train: only alert within 2 months (SNCF bookings open ~60 days before)
+      const startDate = new Date(t.start_date);
+      const daysUntilTraining = Math.ceil((startDate.getTime() - todayDate.getTime()) / (1000 * 60 * 60 * 24));
+      if (!t.train_booked && daysUntilTraining <= 60) missing.push("Train");
       if (!t.hotel_booked) missing.push("Hôtel");
       if (missing.length === 0) continue;
 
