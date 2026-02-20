@@ -3,8 +3,18 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getSenderFrom, getBccList } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
 import { handleCorsPreflightIfNeeded, getCorsHeaders } from "../_shared/cors.ts";
+import { z, parseBody } from "../_shared/validation.ts";
 
 const VERSION = "send-action-reminder@2026-02-02.3";
+
+const schema = z.object({
+  actionId: z.string().min(1),
+  trainingName: z.string().optional(),
+  description: z.string().min(1),
+  assignedEmail: z.string().email(),
+  assignedName: z.string().optional(),
+  trainingId: z.string().uuid().optional(),
+});
 
 serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
@@ -29,24 +39,10 @@ serve(async (req) => {
     // Fetch BCC settings
     const bccList = await getBccList();
 
-    let body: any;
-    try {
-      body = await req.json();
-    } catch {
-      return new Response(
-        JSON.stringify({ error: "Invalid JSON body", _version: VERSION }),
-        { status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
-      );
-    }
+    const { data, error } = await parseBody(req, schema);
+    if (error) return error;
 
-    const { actionId, trainingName, description, assignedEmail, assignedName, trainingId } = body;
-
-    if (!actionId || !assignedEmail || !description) {
-      return new Response(
-        JSON.stringify({ error: "Missing required fields", _version: VERSION }),
-        { status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
-      );
-    }
+    const { actionId, trainingName, description, assignedEmail, assignedName, trainingId } = data;
 
     const trainingLink = trainingId 
       ? `${APP_URL}/formations/${trainingId}` 

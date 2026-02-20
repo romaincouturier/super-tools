@@ -9,14 +9,16 @@ import {
   escapeHtml,
   formatDateWithDayFr,
   formatTime,
+  z,
+  parseBody,
 } from "../_shared/mod.ts";
 import { getBccList } from "../_shared/email-settings.ts";
 
-interface ShareEventRequest {
-  event_id: string;
-  recipient_email: string;
-  recipient_name?: string;
-}
+const requestSchema = z.object({
+  event_id: z.string().uuid(),
+  recipient_email: z.string().email(),
+  recipient_name: z.string().optional(),
+});
 
 serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
@@ -54,11 +56,10 @@ serve(async (req) => {
     console.log("[share-email] Authenticated user:", user.id);
 
     // ── Parse request body ──
-    const { event_id, recipient_email, recipient_name } = await req.json() as ShareEventRequest;
+    const { data, error: validationError } = await parseBody(req, requestSchema);
+    if (validationError) return validationError;
 
-    if (!event_id || !recipient_email) {
-      return createErrorResponse("event_id et recipient_email sont requis", 400);
-    }
+    const { event_id, recipient_email, recipient_name } = data;
 
     // Use service role client for data queries
     const supabase = createClient(supabaseUrl, serviceKey);

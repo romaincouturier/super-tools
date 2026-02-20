@@ -4,20 +4,21 @@ import { getSigniticSignature } from "../_shared/signitic.ts";
 import { getBccSettings } from "../_shared/bcc-settings.ts";
 import { sendEmail } from "../_shared/resend.ts";
 import { handleCorsPreflightIfNeeded, getCorsHeaders } from "../_shared/cors.ts";
+import { z, parseBody } from "../_shared/validation.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-interface RequestBody {
-  trainingId: string;
-  conventionUrl: string;
-  recipientEmail: string;
-  recipientName?: string;
-  recipientFirstName?: string;
-  formalAddress?: boolean;
-  conventionFileName?: string;
-  enableOnlineSignature?: boolean;
-}
+const schema = z.object({
+  trainingId: z.string().uuid(),
+  conventionUrl: z.string().min(1),
+  recipientEmail: z.string().email(),
+  recipientName: z.string().optional(),
+  recipientFirstName: z.string().optional(),
+  formalAddress: z.boolean().optional().default(true),
+  conventionFileName: z.string().optional(),
+  enableOnlineSignature: z.boolean().optional().default(false),
+});
 
 function formatDateFr(dateStr: string): string {
   const date = new Date(dateStr);
@@ -33,24 +34,19 @@ serve(async (req: Request): Promise<Response> => {
   if (corsResponse) return corsResponse;
 
   try {
-    const body: RequestBody = await req.json();
+    const { data, error } = await parseBody(req, schema);
+    if (error) return error;
+
     const {
       trainingId,
       conventionUrl,
       recipientEmail,
       recipientName,
       recipientFirstName,
-      formalAddress = true,
+      formalAddress,
       conventionFileName,
-      enableOnlineSignature = false,
-    } = body;
-
-    if (!trainingId || !conventionUrl || !recipientEmail) {
-      return new Response(
-        JSON.stringify({ error: "trainingId, conventionUrl et recipientEmail sont requis" }),
-        { status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
-      );
-    }
+      enableOnlineSignature,
+    } = data;
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 

@@ -5,15 +5,17 @@ import {
   createJsonResponse,
   verifyAuth,
   getSupabaseClient,
+  z,
+  parseBody,
 } from "../_shared/mod.ts";
 
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
 
-interface SummaryRequest {
-  action: "summarize_page" | "summarize_mission";
-  mission_id: string;
-  page_id?: string; // Required for summarize_page
-}
+const requestBodySchema = z.object({
+  action: z.string().min(1),
+  mission_id: z.string().uuid(),
+  page_id: z.string().uuid().optional(),
+});
 
 async function callAnthropic(systemPrompt: string, userPrompt: string): Promise<string> {
   if (!ANTHROPIC_API_KEY) {
@@ -69,11 +71,9 @@ serve(async (req) => {
       return createErrorResponse("Non autorisé", 401);
     }
 
-    const { action, mission_id, page_id } = (await req.json()) as SummaryRequest;
-
-    if (!action || !mission_id) {
-      return createErrorResponse("action et mission_id sont requis", 400);
-    }
+    const { data, error } = await parseBody(req, requestBodySchema);
+    if (error) return error;
+    const { action, mission_id, page_id } = data;
 
     const supabase = getSupabaseClient();
 

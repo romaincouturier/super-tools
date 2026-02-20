@@ -3,38 +3,35 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getSenderFrom, getBccList } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
 import { handleCorsPreflightIfNeeded, getCorsHeaders } from "../_shared/cors.ts";
+import { z, parseBody } from "../_shared/validation.ts";
 
 // Bump this when you deploy to confirm the latest code is running.
 const VERSION = "send-content-notification@2026-02-05.1";
+
+const schema = z.object({
+  type: z.string().min(1),
+  recipientEmail: z.string().email(),
+  cardTitle: z.string().optional(),
+  externalUrl: z.string().optional(),
+  cardId: z.string().optional(),
+  authorName: z.string().optional(),
+  commentText: z.string().optional(),
+});
 
 serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
 
   try {
-    let body: any;
-    try {
-      body = await req.json();
-    } catch {
-      return new Response(
-        JSON.stringify({ error: "Invalid JSON body", _version: VERSION }),
-        { status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
-      );
-    }
+    const { data, error } = await parseBody(req, schema);
+    if (error) return error;
 
-    const { type, recipientEmail, cardTitle, externalUrl, cardId, authorName, commentText } = body ?? {};
+    const { type, recipientEmail, cardTitle, externalUrl, cardId, authorName, commentText } = data;
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
     const APP_URL = Deno.env.get("APP_URL") || "https://super-tools.lovable.app";
 
     if (!RESEND_API_KEY) {
       throw new Error("RESEND_API_KEY is not configured");
-    }
-
-    if (!recipientEmail || !type) {
-      return new Response(
-        JSON.stringify({ error: "Missing required fields", _version: VERSION }),
-        { status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
-      );
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;

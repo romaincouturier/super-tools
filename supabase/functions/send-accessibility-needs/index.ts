@@ -3,20 +3,26 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getSenderFrom, getSenderEmail, getBccList } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
 import { handleCorsPreflightIfNeeded, getCorsHeaders } from "../_shared/cors.ts";
+import { z, parseBody } from "../_shared/validation.ts";
+
+const schema = z.object({
+  questionnaireId: z.string().uuid().optional(),
+  trainingId: z.string().uuid().optional(),
+  participantEmail: z.string().email(),
+  participantFirstName: z.string().optional(),
+  accessibilityNeeds: z.string().min(1),
+  trainingName: z.string().optional(),
+});
 
 serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
 
   try {
-    const { questionnaireId, trainingId, participantEmail, participantFirstName, accessibilityNeeds, trainingName } = await req.json();
+    const { data, error } = await parseBody(req, schema);
+    if (error) return error;
 
-    if (!participantEmail || !accessibilityNeeds) {
-      return new Response(
-        JSON.stringify({ error: "participantEmail and accessibilityNeeds are required" }),
-        { status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
-      );
-    }
+    const { questionnaireId, trainingId, participantEmail, participantFirstName, accessibilityNeeds, trainingName } = data;
 
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
     if (!RESEND_API_KEY) {

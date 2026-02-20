@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { handleCorsPreflightIfNeeded, getCorsHeaders } from "../_shared/cors.ts";
+import { z, parseBody } from "../_shared/validation.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -8,13 +9,13 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 // PDFMonkey template ID for Convention de Formation
 const CONVENTION_TEMPLATE_ID = "A9C4C140-4854-40AF-9EFA-BDD88EEA39A4";
 
-interface RequestBody {
-  trainingId: string;
-  participantId?: string; // For inter/e-learning: generate for specific participant
-  subrogation?: boolean; // Whether OPCO pays directly
-  mandatairePayeur?: string; // Optional paying agent info
-  pricePerParticipant?: number; // Price per participant
-}
+const requestBodySchema = z.object({
+  trainingId: z.string().uuid(),
+  participantId: z.string().uuid().optional(),
+  subrogation: z.boolean().optional().default(false),
+  mandatairePayeur: z.string().optional(),
+  pricePerParticipant: z.number().optional(),
+});
 
 interface Schedule {
   day_date: string;
@@ -158,23 +159,17 @@ serve(async (req: Request): Promise<Response> => {
   if (corsResponse) return corsResponse;
 
   try {
-    const body: RequestBody = await req.json();
-    console.log("Received request:", JSON.stringify(body));
+    const { data, error } = await parseBody(req, requestBodySchema);
+    if (error) return error;
+    console.log("Received request:", JSON.stringify(data));
 
     const {
       trainingId,
       participantId,
-      subrogation = false,
+      subrogation,
       mandatairePayeur,
       pricePerParticipant: inputPrice,
-    } = body;
-
-    if (!trainingId) {
-      return new Response(
-        JSON.stringify({ error: "trainingId est requis" }),
-        { status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
-      );
-    }
+    } = data;
 
     const pdfMonkeyApiKey = Deno.env.get("PDFMONKEY_API_KEY");
     if (!pdfMonkeyApiKey) {

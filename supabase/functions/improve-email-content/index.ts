@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { handleCorsPreflightIfNeeded, getCorsHeaders } from "../_shared/cors.ts";
+import { z, parseBody } from "../_shared/validation.ts";
 
 interface ImproveEmailRequest {
   subject: string;
@@ -8,12 +9,22 @@ interface ImproveEmailRequest {
   templateName: string;
 }
 
+const requestSchema = z.object({
+  subject: z.string().min(1),
+  content: z.string().min(1),
+  templateType: z.string().min(1),
+  templateName: z.string().min(1),
+});
+
 serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
 
   try {
-    const { subject, content, templateType, templateName }: ImproveEmailRequest = await req.json();
+    const { data, error } = await parseBody(req, requestSchema);
+    if (error) return error;
+
+    const { subject, content, templateType, templateName } = data;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
@@ -90,8 +101,8 @@ Améliore le style et la formulation tout en gardant toutes les variables {{...}
       throw new Error("Erreur lors de l'appel à l'IA");
     }
 
-    const data = await response.json();
-    const aiResponse = data.choices?.[0]?.message?.content;
+    const aiData = await response.json();
+    const aiResponse = aiData.choices?.[0]?.message?.content;
 
     if (!aiResponse) {
       throw new Error("Réponse IA vide");

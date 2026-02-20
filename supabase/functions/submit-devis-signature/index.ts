@@ -4,6 +4,7 @@ import { getSigniticSignature } from "../_shared/signitic.ts";
 import { getBccSettings } from "../_shared/bcc-settings.ts";
 import { sendEmail } from "../_shared/resend.ts";
 import { handleCorsPreflightIfNeeded, getCorsHeaders } from "../_shared/cors.ts";
+import { z, parseBody } from "../_shared/validation.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -14,26 +15,30 @@ interface JourneyEvent {
   details?: Record<string, unknown>;
 }
 
-interface RequestBody {
-  token: string;
-  signatureData: string;
-  userAgent: string;
-  consent: boolean;
-  signerName: string;
-  signerFunction?: string;
-  deviceInfo?: {
-    screenWidth?: number;
-    screenHeight?: number;
-    timezone?: string;
-    language?: string;
-    colorDepth?: number;
-    pixelRatio?: number;
-    platform?: string;
-    cookiesEnabled?: boolean;
-    onLine?: boolean;
-  };
-  journeyEvents?: JourneyEvent[];
-}
+const requestSchema = z.object({
+  token: z.string().min(1),
+  signatureData: z.string().min(1),
+  signerName: z.string().min(1),
+  signerFunction: z.string().optional(),
+  userAgent: z.string().optional(),
+  consent: z.boolean().optional(),
+  deviceInfo: z.object({
+    screenWidth: z.number().optional(),
+    screenHeight: z.number().optional(),
+    timezone: z.string().optional(),
+    language: z.string().optional(),
+    colorDepth: z.number().optional(),
+    pixelRatio: z.number().optional(),
+    platform: z.string().optional(),
+    cookiesEnabled: z.boolean().optional(),
+    onLine: z.boolean().optional(),
+  }).optional(),
+  journeyEvents: z.array(z.object({
+    event: z.string().min(1),
+    timestamp: z.string().min(1),
+    details: z.record(z.unknown()).optional(),
+  })).optional(),
+});
 
 async function generateHash(data: string): Promise<string> {
   const encoder = new TextEncoder();
@@ -75,15 +80,10 @@ serve(async (req: Request): Promise<Response> => {
   if (corsResponse) return corsResponse;
 
   try {
-    const body: RequestBody = await req.json();
-    const { token, signatureData, userAgent, consent, signerName, signerFunction, deviceInfo, journeyEvents } = body;
+    const { data, error } = await parseBody(req, requestSchema);
+    if (error) return error;
 
-    if (!token || !signatureData || !signerName) {
-      return new Response(
-        JSON.stringify({ error: "Token, signature et nom du signataire requis" }),
-        { status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
-      );
-    }
+    const { token, signatureData, userAgent, consent, signerName, signerFunction, deviceInfo, journeyEvents } = data;
 
     if (!consent) {
       return new Response(

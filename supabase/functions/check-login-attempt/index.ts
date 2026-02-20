@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { corsHeaders, handleCorsPreflightIfNeeded, getCorsHeaders } from "../_shared/cors.ts";
+import { z, parseBody } from "../_shared/validation.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -10,16 +11,18 @@ const MAX_ATTEMPTS_PER_IP = 5;
 const MAX_ATTEMPTS_PER_EMAIL = 3;
 const LOCKOUT_DURATION_MINUTES = 15;
 
-interface RequestBody {
-  email: string;
-}
+const requestSchema = z.object({
+  email: z.string().email(),
+});
 
 serve(async (req: Request) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
 
   try {
-    const { email }: RequestBody = await req.json();
+    const { data, error } = await parseBody(req, requestSchema);
+    if (error) return error;
+    const { email } = data;
     
     // Récupérer l'IP depuis les headers
     const ipAddress = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() 

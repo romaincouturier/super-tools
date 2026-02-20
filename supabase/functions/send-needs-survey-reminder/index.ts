@@ -8,18 +8,24 @@ import {
   getSupabaseClient,
   sendEmail,
   formatDateWithDayFr,
+  z,
+  parseBody,
 } from "../_shared/mod.ts";
+
+const requestSchema = z.object({
+  participantId: z.string().uuid(),
+  trainingId: z.string().uuid(),
+});
 
 serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
 
   try {
-    const { participantId, trainingId } = await req.json();
+    const { data, error } = await parseBody(req, requestSchema);
+    if (error) return error;
 
-    if (!participantId || !trainingId) {
-      return createErrorResponse("participantId and trainingId are required", 400);
-    }
+    const { participantId, trainingId } = data;
 
     const supabase = getSupabaseClient();
     const appUrl = Deno.env.get("APP_URL") || "https://super-tools.lovable.app";

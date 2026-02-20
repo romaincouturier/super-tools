@@ -51,6 +51,19 @@ export {
 // Failed emails logger
 export { logFailedEmail } from "./failed-emails.ts";
 
+// Validation (Zod)
+export {
+  z,
+  parseBody,
+  uuidSchema,
+  emailSchema,
+  nonEmptyString,
+  isoDateString,
+  trainingIdSchema,
+  participantIdSchema,
+  tokenSchema,
+} from "./validation.ts";
+
 // Templates
 export {
   processTemplate,

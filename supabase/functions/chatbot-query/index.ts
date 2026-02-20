@@ -5,6 +5,8 @@ import {
   createJsonResponse,
   getSupabaseClient,
   escapeHtml,
+  z,
+  parseBody,
 } from "../_shared/mod.ts";
 
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
@@ -134,20 +136,20 @@ ${contextText || "Aucune information pertinente trouvée dans la base de connais
   };
 }
 
+const requestSchema = z.object({
+  question: z.string().min(1).max(1000),
+  conversationId: z.string().optional(),
+});
+
 serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
 
   try {
-    const { question, conversationId } = await req.json();
+    const { data, error } = await parseBody(req, requestSchema);
+    if (error) return error;
 
-    if (!question || typeof question !== "string") {
-      return createErrorResponse("question is required", 400);
-    }
-
-    if (question.length > 1000) {
-      return createErrorResponse("Question too long (max 1000 characters)", 400);
-    }
+    const { question, conversationId } = data;
 
     const supabase = getSupabaseClient();
 

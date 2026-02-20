@@ -3,26 +3,26 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { getSenderFrom } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
 import { handleCorsPreflightIfNeeded, getCorsHeaders } from "../_shared/cors.ts";
+import { z, parseBody } from "../_shared/validation.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY")!;
 
-interface RequestBody {
-  email: string;
-  redirectUrl: string;
-}
+const requestSchema = z.object({
+  email: z.string().email(),
+  redirectUrl: z.string().min(1),
+});
 
 serve(async (req: Request) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
 
   try {
-    const { email, redirectUrl }: RequestBody = await req.json();
-    
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      throw new Error("Email invalide");
-    }
+    const { data: validatedData, error: validationError } = await parseBody(req, requestSchema);
+    if (validationError) return validationError;
+
+    const { email, redirectUrl } = validatedData;
 
     const supabaseClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 

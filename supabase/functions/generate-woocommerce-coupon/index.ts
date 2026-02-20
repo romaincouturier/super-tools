@@ -4,6 +4,8 @@ import {
   createErrorResponse,
   createJsonResponse,
   getSupabaseClient,
+  z,
+  parseBody,
 } from "../_shared/mod.ts";
 
 /**
@@ -20,6 +22,11 @@ import {
  * 4. Records the coupon in the woocommerce_coupons table
  * 5. Returns the coupon_code
  */
+
+const requestBodySchema = z.object({
+  participantId: z.string().uuid(),
+  trainingId: z.string().uuid(),
+});
 
 function generateCouponCode(firstName: string): string {
   const prefix = "ELEARN";
@@ -38,11 +45,9 @@ serve(async (req) => {
   if (corsResponse) return corsResponse;
 
   try {
-    const { participantId, trainingId } = await req.json();
-
-    if (!participantId || !trainingId) {
-      return createErrorResponse("participantId and trainingId are required", 400);
-    }
+    const { data, error } = await parseBody(req, requestBodySchema);
+    if (error) return error;
+    const { participantId, trainingId } = data;
 
     const supabase = getSupabaseClient();
 

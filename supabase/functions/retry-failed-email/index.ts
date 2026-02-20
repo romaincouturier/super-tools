@@ -5,7 +5,13 @@ import {
   createJsonResponse,
   getSupabaseClient,
   sendEmail,
+  z,
+  parseBody,
 } from "../_shared/mod.ts";
+
+const requestSchema = z.object({
+  failedEmailId: z.string().uuid(),
+});
 
 /**
  * Retry Failed Email
@@ -18,11 +24,9 @@ serve(async (req) => {
   if (corsResponse) return corsResponse;
 
   try {
-    const { failedEmailId } = await req.json();
-
-    if (!failedEmailId) {
-      return createErrorResponse("failedEmailId is required", 400);
-    }
+    const { data, error } = await parseBody(req, requestSchema);
+    if (error) return error;
+    const { failedEmailId } = data;
 
     const supabase = getSupabaseClient();
 

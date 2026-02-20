@@ -3,46 +3,53 @@ import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-
 import { crypto } from "https://deno.land/std@0.168.0/crypto/mod.ts";
 import { encode as hexEncode } from "https://deno.land/std@0.168.0/encoding/hex.ts";
 import { handleCorsPreflightIfNeeded, getCorsHeaders } from "../_shared/cors.ts";
+import { z, parseBody } from "../_shared/validation.ts";
 
-interface TrainingInput {
+const participantSchema = z.object({
+  email: z.string().email(),
+  first_name: z.string().optional(),
+  last_name: z.string().optional(),
+  company: z.string().optional(),
+  job_title: z.string().optional(),
+});
+
+const scheduleSchema = z.object({
+  day_date: z.string().min(1),
+  start_time: z.string().min(1),
+  end_time: z.string().min(1),
+});
+
+const requestSchema = z.object({
   // Required fields
-  training_name: string;
-  client_name: string;
-  start_date: string; // ISO date or YYYY-MM-DD
-  end_date: string;
-  location: string;
+  training_name: z.string().min(1),
+  client_name: z.string().min(1),
+  start_date: z.string().min(1),
+  end_date: z.string().min(1),
+  location: z.string().min(1),
 
   // Optional fields
-  format_formation?: "intra-entreprise" | "inter-entreprises" | "e-learning";
-  program_id?: string;
+  format_formation: z.enum(["intra-entreprise", "inter-entreprises", "e-learning"]).optional(),
+  program_id: z.string().optional(),
 
   // Sponsor info
-  sponsor_email?: string;
-  sponsor_first_name?: string;
-  sponsor_last_name?: string;
-  sponsor_company?: string;
-  sponsor_formal_address?: boolean;
+  sponsor_email: z.string().email().optional(),
+  sponsor_first_name: z.string().optional(),
+  sponsor_last_name: z.string().optional(),
+  sponsor_company: z.string().optional(),
+  sponsor_formal_address: z.boolean().optional(),
 
   // Participants (array)
-  participants?: {
-    email: string;
-    first_name?: string;
-    last_name?: string;
-    company?: string;
-    job_title?: string;
-  }[];
+  participants: z.array(participantSchema).optional(),
 
   // Schedules
-  schedules?: {
-    day_date: string;
-    start_time: string; // HH:MM
-    end_time: string;
-  }[];
+  schedules: z.array(scheduleSchema).optional(),
 
   // Extra fields
-  notes?: string;
-  supports_url?: string;
-}
+  notes: z.string().optional(),
+  supports_url: z.string().optional(),
+});
+
+type TrainingInput = z.infer<typeof requestSchema>;
 
 interface ApiKeyData {
   id: string;
@@ -181,23 +188,10 @@ serve(async (req) => {
       });
     }
 
-    // Parse request body
-    requestBody = await req.json();
-
-    // Validate required fields
-    const requiredFields = ["training_name", "client_name", "start_date", "end_date", "location"];
-    const missingFields = requiredFields.filter(
-      (field) => !requestBody![field as keyof TrainingInput]
-    );
-
-    if (missingFields.length > 0) {
-      const response = { error: `Missing required fields: ${missingFields.join(", ")}` };
-      await logRequest(supabase, keyId, "/zapier-create-training", "POST", 400, requestBody, response, req);
-      return new Response(JSON.stringify(response), {
-        status: 400,
-        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
-      });
-    }
+    // Parse and validate request body
+    const { data, error } = await parseBody(req, requestSchema);
+    if (error) return error;
+    requestBody = data;
 
     // Create training
     const trainingData = {

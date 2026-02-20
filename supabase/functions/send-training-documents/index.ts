@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getSenderFrom, getBccList } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
 import { handleCorsPreflightIfNeeded, getCorsHeaders } from "../_shared/cors.ts";
+import { z, parseBody } from "../_shared/validation.ts";
 
 // Format date for display (e.g., "15 janvier 2025")
 function formatDateFr(dateStr: string): string {
@@ -44,32 +45,43 @@ function stripHtml(html: string): string {
     .trim();
 }
 
+const requestSchema = z.object({
+  trainingId: z.string().uuid().optional(),
+  trainingName: z.string().optional(),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+  recipientEmail: z.string().email(),
+  recipientName: z.string().optional(),
+  recipientFirstName: z.string().optional(),
+  documentType: z.string().min(1),
+  invoiceUrl: z.string().optional(),
+  attendanceSheetsUrls: z.array(z.string()).optional(),
+  ccEmail: z.string().email().optional(),
+  formalAddress: z.boolean().optional().default(true),
+});
+
 serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
 
   try {
-    const { 
-      trainingId, 
+    const { data, error: validationError } = await parseBody(req, requestSchema);
+    if (validationError) return validationError;
+
+    const {
+      trainingId,
       trainingName,
       startDate,
       endDate,
-      recipientEmail, 
-      recipientName, 
+      recipientEmail,
+      recipientName,
       recipientFirstName,
       documentType,
       invoiceUrl,
       attendanceSheetsUrls,
       ccEmail,
-      formalAddress = true // default to vouvoiement
-    } = await req.json();
-
-    if (!recipientEmail) {
-      return new Response(
-        JSON.stringify({ error: "Recipient email is required" }),
-        { status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
-      );
-    }
+      formalAddress,
+    } = data;
 
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
     if (!RESEND_API_KEY) {

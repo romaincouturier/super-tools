@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { handleCorsPreflightIfNeeded, getCorsHeaders } from "../_shared/cors.ts";
+import { z, parseBody } from "../_shared/validation.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -10,6 +11,11 @@ interface JourneyEvent {
   timestamp: string;
   details?: Record<string, unknown>;
 }
+
+const requestSchema = z.object({
+  signatureId: z.string().uuid().optional(),
+  token: z.string().min(1).optional(),
+});
 
 async function hashArrayBuffer(buffer: ArrayBuffer): Promise<string> {
   const hashBuffer = await crypto.subtle.digest("SHA-256", buffer);
@@ -22,7 +28,10 @@ serve(async (req: Request): Promise<Response> => {
   if (corsResponse) return corsResponse;
 
   try {
-    const { signatureId, token } = await req.json();
+    const { data, error } = await parseBody(req, requestSchema);
+    if (error) return error;
+
+    const { signatureId, token } = data;
 
     if (!signatureId && !token) {
       return new Response(

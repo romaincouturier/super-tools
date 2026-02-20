@@ -6,6 +6,11 @@ import {
   handleCorsPreflightIfNeeded,
 } from "../_shared/cors.ts";
 import { getSupabaseClient, verifyAuth } from "../_shared/supabase-client.ts";
+import { z, parseBody } from "../_shared/validation.ts";
+
+const requestSchema = z.object({
+  originalFileName: z.string().min(1),
+});
 
 function sanitizeBaseName(name: string): string {
   return name
@@ -25,9 +30,9 @@ serve(async (req: Request): Promise<Response> => {
     const user = await verifyAuth(req.headers.get("Authorization"));
     if (!user) return createErrorResponse("Unauthorized", 401);
 
-    const body = await req.json().catch(() => ({}));
-    const originalFileName = String(body?.originalFileName ?? "").trim();
-    if (!originalFileName) return createErrorResponse("originalFileName is required", 400);
+    const { data, error } = await parseBody(req, requestSchema);
+    if (error) return error;
+    const { originalFileName } = data;
 
     const ext = (originalFileName.split(".").pop() || "pdf").toLowerCase();
     if (ext !== "pdf") return createErrorResponse("Only PDF files are supported", 400);

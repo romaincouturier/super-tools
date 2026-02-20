@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getSenderFrom, getSenderEmail, getBccList } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
 import { handleCorsPreflightIfNeeded, getCorsHeaders } from "../_shared/cors.ts";
+import { z, parseBody } from "../_shared/validation.ts";
 
 // Format date to Google Calendar format: YYYYMMDDTHHMMSS
 function formatDateForCalendar(dateStr: string, timeStr: string): string {
@@ -72,19 +73,23 @@ function generatePerDayCalendarLinks(
   });
 }
 
+const requestSchema = z.object({
+  questionnaireId: z.string().optional(),
+  trainingId: z.string().uuid(),
+  participantEmail: z.string().email(),
+  participantFirstName: z.string().optional(),
+  formatFormation: z.string().optional(),
+});
+
 serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
 
   try {
-    const { questionnaireId, trainingId, participantEmail, participantFirstName, formatFormation } = await req.json();
+    const { data, error: validationError } = await parseBody(req, requestSchema);
+    if (validationError) return validationError;
 
-    if (!participantEmail || !trainingId) {
-      return new Response(
-        JSON.stringify({ error: "participantEmail and trainingId are required" }),
-        { status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
-      );
-    }
+    const { questionnaireId, trainingId, participantEmail, participantFirstName, formatFormation } = data;
 
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
     if (!RESEND_API_KEY) {

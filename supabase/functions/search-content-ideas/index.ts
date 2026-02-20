@@ -1,23 +1,24 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { handleCorsPreflightIfNeeded, getCorsHeaders } from "../_shared/cors.ts";
+import { z, parseBody } from "../_shared/validation.ts";
+
+const requestSchema = z.object({
+  query: z.string().min(1),
+});
 
 serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
 
   try {
-    const { query } = await req.json();
+    const { data, error } = await parseBody(req, requestSchema);
+    if (error) return error;
+
+    const { query } = data;
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
-    }
-
-    if (!query) {
-      return new Response(
-        JSON.stringify({ error: "Missing query" }),
-        { status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
-      );
     }
 
     // Fetch ideas cards from database
@@ -103,8 +104,8 @@ Identifie les idées les plus pertinentes par rapport à cette recherche.`;
       );
     }
 
-    const data = await response.json();
-    const aiResponse = data.choices?.[0]?.message?.content || "{}";
+    const aiData = await response.json();
+    const aiResponse = aiData.choices?.[0]?.message?.content || "{}";
 
     // Parse AI response
     let matches: { index: number; relevance: string }[] = [];

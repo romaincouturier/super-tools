@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { getSenderFrom, getSenderEmail, getSenderName } from "../_shared/email-settings.ts";
 import { handleCorsPreflightIfNeeded, getCorsHeaders } from "../_shared/cors.ts";
+import { z, parseBody } from "../_shared/validation.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -43,12 +44,12 @@ function generateTempPassword(): string {
   return password.split("").sort(() => Math.random() - 0.5).join("");
 }
 
-interface RequestBody {
-  email: string;
-  firstName?: string;
-  lastName?: string;
-  modules?: string[];
-}
+const requestSchema = z.object({
+  email: z.string().email(),
+  firstName: z.string().optional(),
+  lastName: z.string().optional(),
+  modules: z.array(z.string()).min(1, "Veuillez sélectionner au moins un module"),
+});
 
 serve(async (req: Request) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
@@ -76,15 +77,9 @@ serve(async (req: Request) => {
       throw new Error(`Seul ${adminEmail} peut créer des comptes collaborateurs`);
     }
 
-    const { email, firstName, lastName, modules = [] }: RequestBody = await req.json();
-    
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      throw new Error("Email invalide");
-    }
-
-    if (!modules || modules.length === 0) {
-      throw new Error("Veuillez sélectionner au moins un module");
-    }
+    const { data, error } = await parseBody(req, requestSchema);
+    if (error) return error;
+    const { email, firstName, lastName, modules } = data;
 
     // Check if user already exists
     const { data: existingUsers } = await supabaseClient.auth.admin.listUsers();

@@ -2,6 +2,15 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getSenderEmail } from "../_shared/email-settings.ts";
 import { corsHeaders, handleCorsPreflightIfNeeded, getCorsHeaders } from "../_shared/cors.ts";
+import { z, parseBody } from "../_shared/validation.ts";
+
+const requestSchema = z.object({
+  backupData: z.object({
+    tables: z.record(z.array(z.unknown())),
+    exportedAt: z.string().optional(),
+  }).passthrough(),
+  dryRun: z.boolean().optional().default(true),
+});
 
 // Tables that should be cleared and restored (order matters for foreign keys)
 const TABLES_RESTORE_ORDER = [
@@ -66,11 +75,9 @@ serve(async (req) => {
       throw new Error("Seul l'administrateur peut restaurer des sauvegardes");
     }
 
-    const { backupData, dryRun = true } = await req.json();
-
-    if (!backupData || !backupData.tables) {
-      throw new Error("Format de sauvegarde invalide");
-    }
+    const { data, error } = await parseBody(req, requestSchema);
+    if (error) return error;
+    const { backupData, dryRun } = data;
 
     console.log(`[backup-import] Starting ${dryRun ? "DRY RUN" : "RESTORE"} from backup dated ${backupData.exportedAt}`);
 

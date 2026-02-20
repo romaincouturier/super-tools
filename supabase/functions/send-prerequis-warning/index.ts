@@ -2,20 +2,25 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { getSenderFrom, getSenderEmail, getBccList } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
 import { handleCorsPreflightIfNeeded, getCorsHeaders } from "../_shared/cors.ts";
+import { z, parseBody } from "../_shared/validation.ts";
+
+const requestSchema = z.object({
+  questionnaireId: z.string().optional(),
+  participantEmail: z.string().email(),
+  participantName: z.string().min(1),
+  trainingName: z.string().min(1),
+  prerequisValidations: z.record(z.string()).optional(),
+});
 
 serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
 
   try {
-    const { questionnaireId, participantEmail, participantName, trainingName, prerequisValidations } = await req.json();
+    const { data, error: validationError } = await parseBody(req, requestSchema);
+    if (validationError) return validationError;
 
-    if (!participantEmail || !trainingName) {
-      return new Response(
-        JSON.stringify({ error: "participantEmail and trainingName are required" }),
-        { status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
-      );
-    }
+    const { questionnaireId, participantEmail, participantName, trainingName, prerequisValidations } = data;
 
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
     if (!RESEND_API_KEY) {

@@ -5,7 +5,13 @@ import {
   createJsonResponse,
   getSupabaseClient,
   verifyAuth,
+  z,
+  parseBody,
 } from "../_shared/mod.ts";
+
+const requestSchema = z.object({
+  raw_input: z.string().min(1).max(5000),
+});
 
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
 
@@ -182,15 +188,10 @@ serve(async (req) => {
       return createErrorResponse("Non autorisé", 401);
     }
 
-    const { raw_input } = await req.json();
+    const { data, error } = await parseBody(req, requestSchema);
+    if (error) return error;
 
-    if (!raw_input || typeof raw_input !== "string") {
-      return createErrorResponse("raw_input est requis", 400);
-    }
-
-    if (raw_input.length > 5000) {
-      return createErrorResponse("Texte trop long (max 5000 caractères)", 400);
-    }
+    const { raw_input } = data;
 
     console.log("Extracting opportunity from:", raw_input.substring(0, 100));
 

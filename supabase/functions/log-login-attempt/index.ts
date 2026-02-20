@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { getSenderEmail, getSenderFrom } from "../_shared/email-settings.ts";
 import { handleCorsPreflightIfNeeded, getCorsHeaders } from "../_shared/cors.ts";
+import { z, parseBody } from "../_shared/validation.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -11,10 +12,10 @@ const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY")!;
 const ALERT_THRESHOLD = 3; // Envoyer une alerte après 3 échecs consécutifs
 const UNAUTHORIZED_ALERT_COOLDOWN_MINUTES = 60; // Cooldown entre alertes pour un même email inconnu
 
-interface RequestBody {
-  email: string;
-  success: boolean;
-}
+const requestSchema = z.object({
+  email: z.string().email(),
+  success: z.boolean(),
+});
 
 serve(async (req: Request) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
@@ -23,7 +24,9 @@ serve(async (req: Request) => {
   try {
     const [ADMIN_EMAIL, senderFrom] = await Promise.all([getSenderEmail(), getSenderFrom()]);
 
-    const { email, success }: RequestBody = await req.json();
+    const { data, error } = await parseBody(req, requestSchema);
+    if (error) return error;
+    const { email, success } = data;
 
     // Récupérer l'IP et le user agent
     const ipAddress = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() 

@@ -10,6 +10,8 @@ import {
   sendEmail,
   processTemplate,
   textToHtml,
+  z,
+  parseBody,
 } from "../_shared/mod.ts";
 
 // Generate a secure token for evaluation access
@@ -74,16 +76,20 @@ function addWorkingDays(startDate: Date, numDays: number, workingDays: boolean[]
   return result;
 }
 
+const requestSchema = z.object({
+  trainingId: z.string().uuid(),
+  testEmail: z.string().email().optional(),
+});
+
 serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
 
   try {
-    const { trainingId, testEmail } = await req.json();
+    const { data, error } = await parseBody(req, requestSchema);
+    if (error) return error;
 
-    if (!trainingId) {
-      return createErrorResponse("trainingId is required", 400);
-    }
+    const { trainingId, testEmail } = data;
 
     const supabase = getSupabaseClient();
 

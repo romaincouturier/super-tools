@@ -4,20 +4,21 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { getSenderFrom, getBccList } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
 import { handleCorsPreflightIfNeeded, getCorsHeaders } from "../_shared/cors.ts";
+import { z, parseBody } from "../_shared/validation.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-interface RequestBody {
-  activityLogId: string; // Reference to the activity_logs entry for the devis
-  recipientEmail: string;
-  recipientName?: string;
-  clientName: string;
-  formationName: string;
-  devisType: "sans_subrogation" | "avec_subrogation";
-  pdfUrl: string;
-  expiresInDays?: number; // Default 30 days
-}
+const schema = z.object({
+  activityLogId: z.string().min(1),
+  recipientEmail: z.string().email(),
+  recipientName: z.string().optional(),
+  clientName: z.string().min(1),
+  formationName: z.string().min(1),
+  devisType: z.enum(["sans_subrogation", "avec_subrogation"]),
+  pdfUrl: z.string().min(1),
+  expiresInDays: z.number().optional().default(30),
+});
 
 // Generate a secure token
 function generateToken(): string {
@@ -33,8 +34,10 @@ serve(async (req: Request): Promise<Response> => {
   if (corsResponse) return corsResponse;
 
   try {
-    const body: RequestBody = await req.json();
-    console.log("Received request:", JSON.stringify(body));
+    const { data, error } = await parseBody(req, schema);
+    if (error) return error;
+
+    console.log("Received request:", JSON.stringify(data));
 
     const {
       activityLogId,
@@ -44,16 +47,8 @@ serve(async (req: Request): Promise<Response> => {
       formationName,
       devisType,
       pdfUrl,
-      expiresInDays = 30,
-    } = body;
-
-    // Validate required fields
-    if (!activityLogId || !recipientEmail || !clientName || !formationName || !devisType || !pdfUrl) {
-      return new Response(
-        JSON.stringify({ error: "Champs obligatoires manquants" }),
-        { status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
-      );
-    }
+      expiresInDays,
+    } = data;
 
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
     if (!resendApiKey) {

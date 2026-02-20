@@ -5,41 +5,42 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { getSenderFrom, getSenderEmail, getBccList } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
 import { handleCorsPreflightIfNeeded, getCorsHeaders } from "../_shared/cors.ts";
+import { z, parseBody } from "../_shared/validation.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-interface RequestBody {
-  nomClient: string;
-  adresseClient: string;
-  codePostalClient: string;
-  villeClient: string;
-  pays: string;
-  emailCommanditaire: string;
-  adresseCommanditaire: string;
-  isAdministration: boolean;
-  noteDevis: string;
-  formationDemandee: string;
-  dateFormation: string;
-  lieu: string;
-  includeCadeau: boolean;
-  fraisDossier: boolean;
-  prix: number;
-  dureeHeures: number;
-  programmeUrl: string | null;
-  nbParticipants: number;
-  participants: string; // Liste des participants (texte brut)
-  typeSubrogation?: "sans" | "avec" | "les2"; // Optional for backward compatibility
-  // Additional fields for duplication feature
-  typeDevis?: "formation" | "jeu";
-  formatFormation?: "intra" | "inter";
-  formationLibre?: string;
-  dateFormationLibre?: string;
-  lieuAutre?: string;
-  // CRM card link
-  crmCardId?: string;
-  senderEmail?: string;
-}
+const requestBodySchema = z.object({
+  nomClient: z.string().min(1),
+  adresseClient: z.string().min(1),
+  codePostalClient: z.string().min(1),
+  villeClient: z.string().min(1),
+  pays: z.string().min(1),
+  emailCommanditaire: z.string().email(),
+  adresseCommanditaire: z.string().min(1),
+  isAdministration: z.boolean(),
+  noteDevis: z.string(),
+  formationDemandee: z.string().min(1),
+  dateFormation: z.string().min(1),
+  lieu: z.string().min(1),
+  includeCadeau: z.boolean(),
+  fraisDossier: z.boolean(),
+  prix: z.number(),
+  dureeHeures: z.number(),
+  programmeUrl: z.string().nullable(),
+  nbParticipants: z.number().min(1),
+  participants: z.string(),
+  typeSubrogation: z.enum(["sans", "avec", "les2"]).optional(),
+  typeDevis: z.enum(["formation", "jeu"]).optional(),
+  formatFormation: z.enum(["intra", "inter"]).optional(),
+  formationLibre: z.string().optional(),
+  dateFormationLibre: z.string().optional(),
+  lieuAutre: z.string().optional(),
+  crmCardId: z.string().optional(),
+  senderEmail: z.string().email().optional(),
+});
+
+type RequestBody = z.infer<typeof requestBodySchema>;
 
 const PDFMONKEY_TEMPLATE_ID = "C3BC00C9-232F-4ADD-9D1F-9FD176573E93";
 
@@ -399,20 +400,13 @@ serve(async (req: Request): Promise<Response> => {
   if (corsResponse) return corsResponse;
 
   try {
-    const body: RequestBody = await req.json();
+    const { data: body, error: validationError } = await parseBody(req, requestBodySchema);
+    if (validationError) return validationError;
     console.log("Received request:", JSON.stringify(body));
-
-    // Validate required fields
-    if (!body.emailCommanditaire || !body.formationDemandee) {
-      return new Response(
-        JSON.stringify({ error: "Missing required fields" }),
-        { status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
-      );
-    }
 
     // Default to "les2" for backward compatibility
     const typeSubrogation = body.typeSubrogation || "les2";
-    
+
     let pdfSansSubrogation: { pdfUrl: string; documentId: string } | null = null;
     let pdfAvecSubrogation: { pdfUrl: string; documentId: string } | null = null;
 

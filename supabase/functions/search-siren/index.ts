@@ -1,5 +1,10 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { handleCorsPreflightIfNeeded, getCorsHeaders } from "../_shared/cors.ts";
+import { z, parseBody } from "../_shared/validation.ts";
+
+const requestSchema = z.object({
+  siren: z.string().regex(/^\d{9}$/, "SIREN invalide. Il doit contenir exactement 9 chiffres."),
+});
 
 interface InseeUniteLegale {
   siren: string;
@@ -36,14 +41,9 @@ serve(async (req: Request): Promise<Response> => {
   if (corsResponse) return corsResponse;
 
   try {
-    const { siren } = await req.json();
-
-    if (!siren || !/^\d{9}$/.test(siren)) {
-      return new Response(
-        JSON.stringify({ error: "SIREN invalide. Il doit contenir exactement 9 chiffres." }),
-        { status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
-      );
-    }
+    const { data, error } = await parseBody(req, requestSchema);
+    if (error) return error;
+    const { siren } = data;
 
     const apiKey = Deno.env.get("INSEE_API_KEY");
     if (!apiKey) {

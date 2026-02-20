@@ -9,19 +9,26 @@ import {
   getSupabaseClient,
   sendEmail,
   escapeHtml,
+  z,
+  parseBody,
 } from "../_shared/mod.ts";
 import { getBccList } from "../_shared/email-settings.ts";
+
+const schema = z.object({
+  participantId: z.string().uuid(),
+  trainingId: z.string().uuid(),
+  couponCode: z.string().optional(),
+});
 
 serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
 
   try {
-    const { participantId, trainingId, couponCode } = await req.json();
+    const { data, error } = await parseBody(req, schema);
+    if (error) return error;
 
-    if (!participantId || !trainingId) {
-      return createErrorResponse("participantId and trainingId are required", 400);
-    }
+    const { participantId, trainingId, couponCode } = data;
 
     const supabase = getSupabaseClient();
 

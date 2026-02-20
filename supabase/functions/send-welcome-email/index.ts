@@ -10,6 +10,8 @@ import {
   getSupabaseClient,
   sendEmail,
   escapeHtml,
+  z,
+  parseBody,
 } from "../_shared/mod.ts";
 
 // Send notification to sponsor (intra-enterprise)
@@ -55,16 +57,21 @@ async function sendSponsorNotification(
   }
 }
 
+const requestSchema = z.object({
+  participantId: z.string().uuid(),
+  trainingId: z.string().uuid(),
+  templateId: z.string().uuid().optional(),
+});
+
 serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
 
   try {
-    const { participantId, trainingId, templateId } = await req.json();
+    const { data, error } = await parseBody(req, requestSchema);
+    if (error) return error;
 
-    if (!participantId || !trainingId) {
-      return createErrorResponse("participantId and trainingId are required", 400);
-    }
+    const { participantId, trainingId, templateId } = data;
 
     const supabase = getSupabaseClient();
     const appUrl = Deno.env.get("APP_URL") || "https://super-tools.lovable.app";

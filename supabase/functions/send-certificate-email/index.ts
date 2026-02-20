@@ -7,6 +7,7 @@ import {
   handleCorsPreflightIfNeeded,
 } from "../_shared/cors.ts";
 import { getSupabaseClient, verifyAuth } from "../_shared/supabase-client.ts";
+import { z, parseBody } from "../_shared/validation.ts";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
@@ -14,6 +15,12 @@ const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 import { getSigniticSignature } from "../_shared/signitic.ts";
 import { getSenderFrom, getBccList } from "../_shared/email-settings.ts";
 const getSignature = getSigniticSignature;
+
+const schema = z.object({
+  evaluationId: z.string().min(1),
+  recipientEmail: z.string().email(),
+  recipientName: z.string().optional(),
+});
 
 serve(async (req: Request): Promise<Response> => {
   const preflight = handleCorsPreflightIfNeeded(req);
@@ -23,13 +30,10 @@ serve(async (req: Request): Promise<Response> => {
     const user = await verifyAuth(req.headers.get("Authorization"));
     if (!user) return createErrorResponse("Unauthorized", 401);
 
-    const body = await req.json().catch(() => ({}));
-    const evaluationId = String(body?.evaluationId ?? "").trim();
-    const recipientEmail = String(body?.recipientEmail ?? "").trim();
-    const recipientName = String(body?.recipientName ?? "").trim();
+    const { data, error } = await parseBody(req, schema);
+    if (error) return error;
 
-    if (!evaluationId) return createErrorResponse("evaluationId is required", 400);
-    if (!recipientEmail) return createErrorResponse("recipientEmail is required", 400);
+    const { evaluationId, recipientEmail, recipientName } = data;
 
     const supabase = getSupabaseClient();
 

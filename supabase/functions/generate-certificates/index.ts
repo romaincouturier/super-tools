@@ -4,28 +4,35 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { getSenderFrom, getBccList } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
 import { handleCorsPreflightIfNeeded, getCorsHeaders } from "../_shared/cors.ts";
+import { z, parseBody } from "../_shared/validation.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const GOOGLE_OAUTH_CLIENT_ID = Deno.env.get("GOOGLE_OAUTH_CLIENT_ID");
 const GOOGLE_OAUTH_CLIENT_SECRET = Deno.env.get("GOOGLE_OAUTH_CLIENT_SECRET");
 
+const participantSchema = z.object({
+  prenom: z.string().min(1),
+  nom: z.string().min(1),
+  email: z.string().email(),
+});
+
+const requestBodySchema = z.object({
+  formationName: z.string().min(1),
+  entreprise: z.string().min(1),
+  duree: z.string().min(1),
+  userId: z.string().uuid().optional(),
+  dateDebut: z.string().min(1),
+  dateFin: z.string().min(1),
+  emailDestinataire: z.string().email(),
+  emailCommanditaire: z.string().email().optional(),
+  participants: z.array(participantSchema).min(1),
+});
+
 interface Participant {
   prenom: string;
   nom: string;
   email: string;
-}
-
-interface RequestBody {
-  formationName: string;
-  entreprise: string;
-  duree: string;
-  userId?: string; // For OAuth token lookup
-  dateDebut: string;
-  dateFin: string;
-  emailDestinataire: string;
-  emailCommanditaire?: string;
-  participants: Participant[];
 }
 
 interface PdfData {
@@ -614,8 +621,9 @@ serve(async (req: Request): Promise<Response> => {
     console.log(`Authenticated user: ${claimsData.claims.sub}`);
     // --- End authentication check ---
 
-    const body: RequestBody = await req.json();
-    const { formationName, entreprise, duree, dateDebut, dateFin, emailDestinataire, emailCommanditaire, participants, userId } = body;
+    const { data, error } = await parseBody(req, requestBodySchema);
+    if (error) return error;
+    const { formationName, entreprise, duree, dateDebut, dateFin, emailDestinataire, emailCommanditaire, participants, userId } = data;
 
     console.log(`Processing ${participants.length} participants for formation: ${formationName}`);
     if (userId) {

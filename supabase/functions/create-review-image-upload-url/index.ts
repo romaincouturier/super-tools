@@ -6,6 +6,14 @@ import {
   handleCorsPreflightIfNeeded,
 } from "../_shared/cors.ts";
 import { getSupabaseClient, verifyAuth } from "../_shared/supabase-client.ts";
+import { z, parseBody } from "../_shared/validation.ts";
+
+const requestSchema = z.object({
+  originalFileName: z.string().min(1),
+  reviewId: z.string().min(1),
+  mimeType: z.string().optional(),
+  fileBase64: z.string().optional(),
+});
 
 function sanitizeBaseName(name: string): string {
   return (
@@ -47,14 +55,9 @@ serve(async (req: Request): Promise<Response> => {
     const user = await verifyAuth(req.headers.get("Authorization"));
     if (!user) return createErrorResponse("Unauthorized", 401);
 
-    const body = await req.json().catch(() => ({}));
-    const originalFileName = String(body?.originalFileName ?? "").trim();
-    const reviewId = String(body?.reviewId ?? "").trim();
-    const mimeType = String(body?.mimeType ?? "").trim();
-    const fileBase64 = String(body?.fileBase64 ?? "").trim();
-
-    if (!reviewId) return createErrorResponse("reviewId is required", 400);
-    if (!originalFileName) return createErrorResponse("originalFileName is required", 400);
+    const { data, error } = await parseBody(req, requestSchema);
+    if (error) return error;
+    const { originalFileName, reviewId, mimeType, fileBase64 } = data;
 
     const ext = inferImageExt(originalFileName, mimeType);
     const allowed = new Set(["png", "jpg", "gif", "webp", "heic", "heif"]);

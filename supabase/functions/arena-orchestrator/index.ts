@@ -2,31 +2,42 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { corsHeaders, handleCorsPreflightIfNeeded, createErrorResponse, createJsonResponse } from "../_shared/cors.ts";
 import Anthropic from "https://esm.sh/@anthropic-ai/sdk@0.74.0";
 import OpenAI from "https://esm.sh/openai@4.77.0";
+import { z, parseBody } from "../_shared/validation.ts";
 
-interface RequestBody {
-  apiKey: string;
-  provider?: "claude" | "openai" | "gemini";
-  topic: string;
-  mode: "exploration" | "decision" | "deliverable";
-  agents: { id: string; name: string; role: string; personality: string; stance?: string }[];
-  history: { agentName: string; content: string; isUser?: boolean }[];
-  turnNumber: number;
-  maxTurns: number;
-  language: string;
-}
+const agentSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1),
+  role: z.string().min(1),
+  personality: z.string().min(1),
+  stance: z.string().optional(),
+});
+
+const historyItemSchema = z.object({
+  agentName: z.string(),
+  content: z.string(),
+  isUser: z.boolean().optional(),
+});
+
+const requestSchema = z.object({
+  apiKey: z.string().optional().default(""),
+  provider: z.enum(["claude", "openai", "gemini"]).optional().default("claude"),
+  topic: z.string().min(1),
+  mode: z.enum(["exploration", "decision", "deliverable"]),
+  agents: z.array(agentSchema).min(1),
+  history: z.array(historyItemSchema).optional().default([]),
+  turnNumber: z.number().int().positive(),
+  maxTurns: z.number().int().positive(),
+  language: z.string().min(1),
+});
 
 Deno.serve(async (req: Request) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
 
-  let body: RequestBody;
-  try {
-    body = await req.json();
-  } catch {
-    return createErrorResponse("Invalid JSON", 400);
-  }
+  const { data, error } = await parseBody(req, requestSchema);
+  if (error) return error;
 
-  const { apiKey: clientApiKey, provider = "claude", topic, mode, agents, history, turnNumber, maxTurns, language } = body;
+  const { apiKey: clientApiKey, provider, topic, mode, agents, history, turnNumber, maxTurns, language } = data;
 
   // For Claude, use server-side ANTHROPIC_API_KEY secret
   const apiKey = provider === "claude"

@@ -1,23 +1,25 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { corsHeaders, handleCorsPreflightIfNeeded, getCorsHeaders } from "../_shared/cors.ts";
+import { z, parseBody } from "../_shared/validation.ts";
+
+const requestSchema = z.object({
+  action: z.string().min(1),
+  content: z.string().min(1),
+});
 
 serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
 
   try {
-    const { action, content } = await req.json();
+    const { data, error } = await parseBody(req, requestSchema);
+    if (error) return error;
+
+    const { action, content } = data;
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
-    }
-
-    if (!content || !action) {
-      return new Response(
-        JSON.stringify({ error: "Missing content or action" }),
-        { status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
-      );
     }
 
     // Fetch brand voice settings from database
@@ -135,8 +137,8 @@ Réponds uniquement avec le post Instagram.`;
       );
     }
 
-    const data = await response.json();
-    const result = data.choices?.[0]?.message?.content || "";
+    const aiData = await response.json();
+    const result = aiData.choices?.[0]?.message?.content || "";
 
     return new Response(
       JSON.stringify({ result }),

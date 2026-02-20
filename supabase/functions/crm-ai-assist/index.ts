@@ -4,6 +4,8 @@ import {
   createErrorResponse,
   createJsonResponse,
   verifyAuth,
+  z,
+  parseBody,
 } from "../_shared/mod.ts";
 
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
@@ -31,6 +33,39 @@ interface CrmAiRequest {
     activities?: Array<{ action_type: string; new_value?: string; created_at: string }>;
   };
 }
+
+const requestSchema = z.object({
+  action: z.enum(["analyze_exchanges", "generate_quote_description", "improve_email_subject", "improve_email_body", "suggest_next_action"]),
+  card_data: z.object({
+    title: z.string().optional(),
+    description: z.string().optional(),
+    company: z.string().optional(),
+    first_name: z.string().optional(),
+    last_name: z.string().optional(),
+    service_type: z.enum(["formation", "mission"]).nullable().optional(),
+    estimated_value: z.number().optional(),
+    comments: z.array(z.object({
+      content: z.string(),
+      author_email: z.string(),
+      created_at: z.string(),
+    })).optional(),
+    brief_questions: z.array(z.object({
+      question: z.string(),
+      answered: z.boolean(),
+    })).optional(),
+    subject: z.string().optional(),
+    body: z.string().optional(),
+    context: z.string().optional(),
+    confidence_score: z.number().nullable().optional(),
+    current_next_action: z.string().optional(),
+    days_in_pipeline: z.number().nullable().optional(),
+    activities: z.array(z.object({
+      action_type: z.string(),
+      new_value: z.string().optional(),
+      created_at: z.string(),
+    })).optional(),
+  }),
+});
 
 async function callAnthropic(systemPrompt: string, userPrompt: string): Promise<string> {
   if (!ANTHROPIC_API_KEY) {
@@ -118,11 +153,10 @@ serve(async (req) => {
       return createErrorResponse("Non autorisé", 401);
     }
 
-    const { action, card_data } = await req.json() as CrmAiRequest;
+    const { data, error } = await parseBody(req, requestSchema);
+    if (error) return error;
 
-    if (!action || !card_data) {
-      return createErrorResponse("action et card_data sont requis", 400);
-    }
+    const { action, card_data } = data;
 
     const context = buildContextFromCard(card_data);
     let result: string;

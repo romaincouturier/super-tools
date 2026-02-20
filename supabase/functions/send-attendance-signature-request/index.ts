@@ -3,27 +3,23 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getSenderFrom, getBccList } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
 import { handleCorsPreflightIfNeeded, getCorsHeaders } from "../_shared/cors.ts";
+import { z, parseBody } from "../_shared/validation.ts";
+
+const schema = z.object({
+  trainingId: z.string().uuid(),
+  scheduleDate: z.string().min(1),
+  period: z.enum(["AM", "PM"]),
+});
 
 serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
 
   try {
-    const { trainingId, scheduleDate, period } = await req.json();
+    const { data, error } = await parseBody(req, schema);
+    if (error) return error;
 
-    if (!trainingId || !scheduleDate || !period) {
-      return new Response(
-        JSON.stringify({ error: "trainingId, scheduleDate, and period are required" }),
-        { status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
-      );
-    }
-
-    if (!["AM", "PM"].includes(period)) {
-      return new Response(
-        JSON.stringify({ error: "period must be 'AM' or 'PM'" }),
-        { status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
-      );
-    }
+    const { trainingId, scheduleDate, period } = data;
 
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
     if (!RESEND_API_KEY) {

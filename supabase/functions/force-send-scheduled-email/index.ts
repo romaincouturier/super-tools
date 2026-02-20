@@ -4,12 +4,13 @@ import { Resend } from "https://esm.sh/resend@2.0.0";
 import { getSenderFrom, getSenderEmail, getBccList } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
 import { handleCorsPreflightIfNeeded, getCorsHeaders } from "../_shared/cors.ts";
+import { z, parseBody } from "../_shared/validation.ts";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
-interface ForceSendRequest {
-  scheduledEmailId: string;
-}
+const requestSchema = z.object({
+  scheduledEmailId: z.string().uuid(),
+});
 
 const handler = async (req: Request): Promise<Response> => {
   console.log("Force send scheduled email function called");
@@ -23,11 +24,9 @@ const handler = async (req: Request): Promise<Response> => {
     const appUrl = Deno.env.get("APP_URL") || "https://super-tools.lovable.app";
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { scheduledEmailId }: ForceSendRequest = await req.json();
-
-    if (!scheduledEmailId) {
-      throw new Error("scheduledEmailId is required");
-    }
+    const { data, error } = await parseBody(req, requestSchema);
+    if (error) return error;
+    const { scheduledEmailId } = data;
 
     console.log("Processing scheduled email:", scheduledEmailId);
 

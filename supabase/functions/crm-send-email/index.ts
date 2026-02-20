@@ -6,6 +6,8 @@ import {
   verifyAuth,
   sendEmail,
   getSigniticSignature,
+  z,
+  parseBody,
 } from "../_shared/mod.ts";
 import { getBccSettings } from "../_shared/bcc-settings.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
@@ -20,6 +22,13 @@ interface CrmSendEmailRequest {
   subject: string;
   body_html: string;
 }
+
+const requestSchema = z.object({
+  card_id: z.string().uuid(),
+  recipient_email: z.string().email(),
+  subject: z.string().min(1),
+  body_html: z.string().min(1),
+});
 
 /**
  * Add inline styles to HTML elements for email client compatibility
@@ -94,11 +103,10 @@ serve(async (req) => {
       return createErrorResponse("Non autorisé", 401);
     }
 
-    const { card_id, recipient_email, subject, body_html } = await req.json() as CrmSendEmailRequest;
+    const { data, error } = await parseBody(req, requestSchema);
+    if (error) return error;
 
-    if (!card_id || !recipient_email || !subject) {
-      return createErrorResponse("card_id, recipient_email et subject sont requis", 400);
-    }
+    const { card_id, recipient_email, subject, body_html } = data;
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 

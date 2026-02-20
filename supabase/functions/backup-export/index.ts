@@ -1,6 +1,12 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, handleCorsPreflightIfNeeded, getCorsHeaders } from "../_shared/cors.ts";
+import { z, parseBody } from "../_shared/validation.ts";
+
+const requestSchema = z.object({
+  uploadToGDrive: z.boolean().optional().default(false),
+  userId: z.string().optional(),
+});
 
 // List of all tables to backup
 const TABLES_TO_BACKUP = [
@@ -120,7 +126,9 @@ serve(async (req) => {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     // Get optional parameters
-    const { uploadToGDrive = false, userId } = await req.json().catch(() => ({}));
+    const { data, error } = await parseBody(req, requestSchema);
+    if (error) return error;
+    const { uploadToGDrive, userId } = data;
 
     console.log("[backup-export] Starting backup of all tables...");
 

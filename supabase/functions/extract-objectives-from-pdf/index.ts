@@ -1,6 +1,12 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { handleCorsPreflightIfNeeded, getCorsHeaders } from "../_shared/cors.ts";
+import { z, parseBody } from "../_shared/validation.ts";
+
+const requestBodySchema = z.object({
+  pdfUrl: z.string().url(),
+  extractType: z.string().optional().default("objectives"),
+});
 
 serve(async (req) => {
   // Handle CORS preflight
@@ -8,14 +14,9 @@ serve(async (req) => {
   if (corsResponse) return corsResponse;
 
   try {
-    const { pdfUrl, extractType = "objectives" } = await req.json();
-
-    if (!pdfUrl) {
-      return new Response(
-        JSON.stringify({ error: "PDF URL is required" }),
-        { status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
-      );
-    }
+    const { data, error } = await parseBody(req, requestBodySchema);
+    if (error) return error;
+    const { pdfUrl, extractType } = data;
 
     console.log("Fetching PDF from:", pdfUrl);
     console.log("Extract type:", extractType);

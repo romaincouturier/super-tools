@@ -2,30 +2,33 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import Anthropic from "https://esm.sh/@anthropic-ai/sdk@0.74.0";
 import OpenAI from "https://esm.sh/openai@4.77.0";
+import { z, parseBody } from "../_shared/validation.ts";
 
-interface RequestBody {
-  provider: "claude" | "openai" | "gemini";
-  apiKey: string;
-  model: string;
-  systemPrompt: string;
-  turnInstruction: string;
-  history: { agentName: string; content: string; isUser?: boolean }[];
-  topic: string;
-  maxTokens: number;
-}
+const historyItemSchema = z.object({
+  agentName: z.string(),
+  content: z.string(),
+  isUser: z.boolean().optional(),
+});
+
+const requestSchema = z.object({
+  provider: z.enum(["claude", "openai", "gemini"]).optional().default("claude"),
+  apiKey: z.string().optional().default(""),
+  model: z.string().min(1),
+  systemPrompt: z.string().min(1),
+  turnInstruction: z.string().min(1),
+  history: z.array(historyItemSchema).optional().default([]),
+  topic: z.string().min(1),
+  maxTokens: z.number().optional().default(1200),
+});
 
 Deno.serve(async (req: Request) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
 
-  let body: RequestBody;
-  try {
-    body = await req.json();
-  } catch {
-    return new Response("Invalid JSON", { status: 400, headers: corsHeaders });
-  }
+  const { data, error } = await parseBody(req, requestSchema);
+  if (error) return error;
 
-  const { provider = "claude", apiKey: clientApiKey, model, systemPrompt, turnInstruction, history, topic, maxTokens } = body;
+  const { provider, apiKey: clientApiKey, model, systemPrompt, turnInstruction, history, topic, maxTokens } = data;
 
   // For Claude, use server-side ANTHROPIC_API_KEY secret
   const apiKey = provider === "claude"

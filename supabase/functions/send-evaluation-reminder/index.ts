@@ -9,6 +9,8 @@ import {
   sendEmail,
   processTemplate,
   textToHtml,
+  z,
+  parseBody,
 } from "../_shared/mod.ts";
 
 // Default templates - Reminder 1
@@ -69,16 +71,19 @@ Je vous remercie sincèrement pour votre aide et vous souhaite une excellente co
 
 À bientôt`;
 
+const requestSchema = z.object({
+  scheduledEmailId: z.string().uuid(),
+});
+
 serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
 
   try {
-    const { scheduledEmailId } = await req.json();
+    const { data, error } = await parseBody(req, requestSchema);
+    if (error) return error;
 
-    if (!scheduledEmailId) {
-      return createErrorResponse("scheduledEmailId is required", 400);
-    }
+    const { scheduledEmailId } = data;
 
     const supabase = getSupabaseClient();
     const appUrl = Deno.env.get("APP_URL") || "https://super-tools.lovable.app";

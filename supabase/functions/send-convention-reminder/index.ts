@@ -8,6 +8,8 @@ import {
   getSupabaseClient,
   sendEmail,
   formatDateWithDayFr,
+  z,
+  parseBody,
 } from "../_shared/mod.ts";
 
 /**
@@ -19,16 +21,20 @@ import {
  * - Inter/E-learning (per-participant convention, sent to participant's sponsor_email)
  */
 
+const schema = z.object({
+  trainingId: z.string().uuid(),
+  participantId: z.string().uuid().optional(),
+});
+
 serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
 
   try {
-    const { trainingId, participantId } = await req.json();
+    const { data, error } = await parseBody(req, schema);
+    if (error) return error;
 
-    if (!trainingId) {
-      return createErrorResponse("trainingId is required", 400);
-    }
+    const { trainingId, participantId } = data;
 
     const supabase = getSupabaseClient();
     const appUrl = Deno.env.get("APP_URL") || "https://super-tools.lovable.app";

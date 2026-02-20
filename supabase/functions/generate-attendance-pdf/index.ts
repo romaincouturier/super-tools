@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { handleCorsPreflightIfNeeded, getCorsHeaders } from "../_shared/cors.ts";
+import { z, parseBody } from "../_shared/validation.ts";
 
 interface AttendanceSignature {
   id: string;
@@ -24,19 +25,19 @@ interface Training {
   trainer_name: string;
 }
 
+const requestBodySchema = z.object({
+  trainingId: z.string().uuid(),
+  participantId: z.string().uuid().optional(),
+});
+
 serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
 
   try {
-    const { trainingId, participantId } = await req.json();
-
-    if (!trainingId) {
-      return new Response(
-        JSON.stringify({ error: "trainingId is required" }),
-        { status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
-      );
-    }
+    const { data, error } = await parseBody(req, requestBodySchema);
+    if (error) return error;
+    const { trainingId, participantId } = data;
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;

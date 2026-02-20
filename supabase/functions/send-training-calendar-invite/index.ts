@@ -4,23 +4,24 @@ import { encode as base64Encode } from "https://deno.land/std@0.190.0/encoding/b
 import { getSigniticSignature } from "../_shared/signitic.ts";
 import { getSenderFrom, getSenderEmail, getBccList } from "../_shared/email-settings.ts";
 import { handleCorsPreflightIfNeeded, getCorsHeaders } from "../_shared/cors.ts";
+import { z, parseBody } from "../_shared/validation.ts";
 
-interface TrainingSchedule {
-  day_date: string;
-  start_time: string;
-  end_time: string;
-}
+const trainingScheduleSchema = z.object({
+  day_date: z.string().min(1),
+  start_time: z.string().min(1),
+  end_time: z.string().min(1),
+});
 
-interface RequestBody {
-  trainingId: string;
-  trainingName: string;
-  clientName: string;
-  location: string;
-  schedules: TrainingSchedule[];
-  trainerEmail: string;
-  trainerFirstName: string;
-  trainerLastName: string;
-}
+const requestSchema = z.object({
+  trainingId: z.string().uuid(),
+  trainingName: z.string().min(1),
+  clientName: z.string().min(1),
+  location: z.string().min(1),
+  schedules: z.array(trainingScheduleSchema).min(1),
+  trainerEmail: z.string().email(),
+  trainerFirstName: z.string().min(1),
+  trainerLastName: z.string().min(1),
+});
 
 // Generate ICS file content for training sessions
 function generateICS(
@@ -103,8 +104,10 @@ serve(async (req: Request): Promise<Response> => {
   if (corsResponse) return corsResponse;
 
   try {
-    const body: RequestBody = await req.json();
-    console.log("Received request:", JSON.stringify(body));
+    const { data, error: validationError } = await parseBody(req, requestSchema);
+    if (validationError) return validationError;
+
+    console.log("Received request:", JSON.stringify(data));
 
     const {
       trainingId,
@@ -115,14 +118,7 @@ serve(async (req: Request): Promise<Response> => {
       trainerEmail,
       trainerFirstName,
       trainerLastName,
-    } = body;
-
-    if (!trainerEmail || !trainingName || !schedules || schedules.length === 0) {
-      return new Response(
-        JSON.stringify({ error: "Missing required fields" }),
-        { status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
-      );
-    }
+    } = data;
 
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
     if (!resendApiKey) {
