@@ -144,15 +144,19 @@ serve(async (req: Request): Promise<Response> => {
         const nbParticipants = participantsByTraining[training.id] || 0;
         if (nbParticipants === 0) continue; // No eligible participants, nothing to check
 
-        // Count participants who have a convention_file_url
+        // Count participants who have a convention_file_url OR a signed_convention_url
         const { data: pWithConvention } = await supabase
           .from("training_participants")
-          .select("id")
+          .select("id, convention_file_url, signed_convention_url")
           .eq("training_id", training.id)
-          .neq("payment_status", "online")
-          .not("convention_file_url", "is", null);
+          .neq("payment_status", "online");
 
-        const nbWithConvention = pWithConvention?.length || 0;
+        const pWithConventionFiltered = (pWithConvention || []).filter(
+          (p: { convention_file_url?: string | null; signed_convention_url?: string | null }) =>
+            p.convention_file_url || p.signed_convention_url
+        );
+
+        const nbWithConvention = pWithConventionFiltered.length;
 
         if (nbWithConvention < nbParticipants) {
           issues.push(
