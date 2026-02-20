@@ -56,6 +56,10 @@ interface Training {
   end_date: string | null;
   evaluation_link: string;
   supports_url: string | null;
+  sponsor_first_name: string | null;
+  sponsor_last_name: string | null;
+  sponsor_email: string | null;
+  format_formation: string | null;
 }
 
 interface Schedule {
@@ -119,7 +123,7 @@ const ScheduledEmailsSummary = ({ trainingId, participants, refreshTrigger }: Sc
       // Fetch training info
       const { data: trainingData } = await supabase
         .from("trainings")
-        .select("training_name, location, start_date, end_date, evaluation_link, supports_url")
+        .select("training_name, location, start_date, end_date, evaluation_link, supports_url, sponsor_first_name, sponsor_last_name, sponsor_email, format_formation")
         .eq("id", trainingId)
         .single();
 
@@ -568,9 +572,17 @@ Je te remercie sincèrement pour ton aide et te souhaite une excellente continua
     );
   };
 
-  const getParticipantName = (participantId: string | null) => {
-    if (!participantId) return "Tous les participants";
-    const participant = participants.find(p => p.id === participantId);
+  const getParticipantName = (email: ScheduledEmail) => {
+    if (!email.participant_id) {
+      // For cold_evaluation with no participant (intra): show sponsor name
+      if (email.email_type === "cold_evaluation" && training) {
+        const sponsorName = [training.sponsor_first_name, training.sponsor_last_name].filter(Boolean).join(" ");
+        if (sponsorName) return `Commanditaire : ${sponsorName}`;
+        if (training.sponsor_email) return `Commanditaire : ${training.sponsor_email}`;
+      }
+      return "Tous les participants";
+    }
+    const participant = participants.find(p => p.id === email.participant_id);
     if (!participant) return "Participant inconnu";
     if (participant.first_name || participant.last_name) {
       return `${participant.first_name || ""} ${participant.last_name || ""}`.trim();
@@ -748,7 +760,7 @@ Je te remercie sincèrement pour ton aide et te souhaite une excellente continua
                           onClick={() => setSelectedEmail(email)}
                         >
                           <div className="flex-1 min-w-0">
-                            <span className="truncate block">{getParticipantName(email.participant_id)}</span>
+                            <span className="truncate block">{getParticipantName(email)}</span>
                             <span className="text-xs text-muted-foreground">
                               Prévu le {format(parseISO(email.scheduled_for), "d MMM à HH:mm", { locale: fr })}
                             </span>
@@ -806,7 +818,7 @@ Je te remercie sincèrement pour ton aide et te souhaite une excellente continua
                           onClick={() => setSelectedEmail(email)}
                         >
                           <div className="flex-1 min-w-0">
-                            <span className="truncate block">{getParticipantName(email.participant_id)}</span>
+                            <span className="truncate block">{getParticipantName(email)}</span>
                             <span className="text-xs text-muted-foreground">
                               Envoyé le {format(parseISO(email.sent_at!), "d MMM à HH:mm", { locale: fr })}
                             </span>
@@ -843,7 +855,7 @@ Je te remercie sincèrement pour ton aide et te souhaite une excellente continua
             <DialogDescription>
               De: {"{sender_name}"} &lt;{"{sender_email}"}&gt;
               <br />
-              À: {selectedEmail && getParticipantName(selectedEmail.participant_id)}
+              À: {selectedEmail && getParticipantName(selectedEmail)}
             </DialogDescription>
           </DialogHeader>
           
@@ -920,7 +932,7 @@ Je te remercie sincèrement pour ton aide et te souhaite une excellente continua
             <AlertDialogTitle>Supprimer cet email programmé ?</AlertDialogTitle>
             <AlertDialogDescription>
               L'email "{emailToDelete && getEmailTypeLabel(emailToDelete.email_type)}" prévu pour{" "}
-              {emailToDelete && getParticipantName(emailToDelete.participant_id)} sera définitivement supprimé.
+              {emailToDelete && getParticipantName(emailToDelete)} sera définitivement supprimé.
               Cette action est irréversible.
             </AlertDialogDescription>
           </AlertDialogHeader>
