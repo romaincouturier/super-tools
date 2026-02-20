@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import DOMPurify from "dompurify";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, ArrowLeft, Mail, CheckCircle, AlertTriangle, Trash2, Eye } from "lucide-react";
@@ -308,7 +309,7 @@ const FailedEmails = () => {
               <div className="border rounded-lg p-4 bg-white dark:bg-gray-900">
                 <div
                   className="prose prose-sm max-w-none dark:prose-invert"
-                  dangerouslySetInnerHTML={{ __html: previewEmail.html_content }}
+                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(previewEmail.html_content) }}
                 />
               </div>
             </div>

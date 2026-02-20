@@ -785,7 +785,7 @@ const Parametres = () => {
               setWorkingDays(days);
             }
           } catch {
-            // Keep default
+            // intentionally empty – keep default working days on parse failure
           }
           break;
         case "delay_needs_survey_days":

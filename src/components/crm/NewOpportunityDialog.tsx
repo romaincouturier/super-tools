@@ -44,7 +44,7 @@ export function NewOpportunityDialog({ open, onOpenChange, userEmail }: NewOppor
       setEditedExtraction(result);
       setStep("review");
     } catch {
-      // Error handled by mutation
+      // intentionally empty – error UI is handled by extractMutation.isError
     }
   };
 
@@ -92,7 +92,7 @@ export function NewOpportunityDialog({ open, onOpenChange, userEmail }: NewOppor
       setEditedExtraction(null);
       onOpenChange(false);
     } catch {
-      // Error handled by mutation
+      // intentionally empty – error UI is handled by createCardMutation.isError
     }
   };
 

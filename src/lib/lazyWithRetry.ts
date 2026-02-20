@@ -41,7 +41,7 @@ export function lazyWithRetry<T extends ComponentType<any>>(
           window.location.reload();
         }
       } catch {
-        // ignore
+        // intentionally empty – sessionStorage may be unavailable (e.g. private browsing)
       }
     }
 

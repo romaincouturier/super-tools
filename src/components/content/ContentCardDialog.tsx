@@ -98,7 +98,8 @@ const ContentCardDialog = ({
           .eq("status", "draft")
           .order("scheduled_date", { ascending: true });
         setDraftNewsletters(data || []);
-      } catch {
+      } catch (error) {
+        console.warn("Failed to fetch draft newsletters:", error);
         setDraftNewsletters([]);
       }
     };
@@ -115,7 +116,8 @@ const ContentCardDialog = ({
           .eq("card_id", card.id)
           .limit(1);
         setAttachedNewsletterId(data?.[0]?.newsletter_id || null);
-      } catch {
+      } catch (error) {
+        console.warn("Failed to fetch card newsletter attachment:", error);
         setAttachedNewsletterId(null);
       }
     };

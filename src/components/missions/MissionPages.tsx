@@ -737,7 +737,7 @@ const MissionPages = ({ mission, initialActivityPageRequest, onActivityPageCreat
   const handleToggleExpand = async (page: MissionPage) => {
     try {
       await updatePage.mutateAsync({ id: page.id, missionId: mission.id, updates: { is_expanded: !page.is_expanded } });
-    } catch {}
+    } catch (error) { console.error("Failed to toggle page expand:", error); }
   };
 
   const handleDeletePage = async (page: MissionPage) => {

@@ -68,7 +68,8 @@ const EventDetail = () => {
       await deleteEvent.mutateAsync(id);
       toast({ title: "Événement supprimé" });
       navigate("/events");
-    } catch {
+    } catch (error) {
+      console.error("Failed to delete event:", error);
       toast({ title: "Erreur", description: "Impossible de supprimer.", variant: "destructive" });
     }
   };
@@ -90,7 +91,8 @@ const EventDetail = () => {
       setVideoUrl("");
       setVideoName("");
       setVideoLinkDialogOpen(false);
-    } catch {
+    } catch (error) {
+      console.error("Failed to add video link:", error);
       toast({ title: "Erreur", variant: "destructive" });
     }
   };
@@ -100,7 +102,8 @@ const EventDetail = () => {
     try {
       await deleteMediaMutation.mutateAsync({ id: mediaId, sourceType: "event", sourceId: id });
       toast({ title: "Lien vidéo supprimé" });
-    } catch {
+    } catch (error) {
+      console.error("Failed to delete video link:", error);
       toast({ title: "Erreur", variant: "destructive" });
     }
   };

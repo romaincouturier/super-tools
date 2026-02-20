@@ -958,8 +958,8 @@ export function useCommercialCoachData() {
             calendarEvents = calData.events || [];
           }
         }
-      } catch {
-        // Calendar not connected — ignore silently
+      } catch (error) {
+        console.warn("Calendar events fetch failed (calendar may not be connected):", error);
       }
 
       // Check for Supabase errors

@@ -22,7 +22,7 @@ export default function ArenaResults() {
       parsedResult.metrics.duration = Date.now() - startTime;
       setConfig(parsedConfig);
       setResult(parsedResult);
-    } catch { navigate("/arena"); }
+    } catch (error) { console.warn("Failed to parse arena results:", error); navigate("/arena"); }
   }, [navigate]);
 
   const handleExport = () => {

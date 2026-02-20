@@ -1,4 +1,5 @@
 import { useState } from "react";
+import DOMPurify from "dompurify";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
@@ -128,7 +129,7 @@ const NeedsSurveySummaryDialog = ({
           {summary && !loading && (
             <div
               className="prose prose-sm max-w-none dark:prose-invert"
-              dangerouslySetInnerHTML={{ __html: formatSummary(summary) }}
+              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(formatSummary(summary)) }}
             />
           )}
         </ScrollArea>

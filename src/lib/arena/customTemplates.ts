@@ -14,6 +14,7 @@ export function getCustomTemplates(): CustomTemplate[] {
     if (!raw) return [];
     return JSON.parse(raw) as CustomTemplate[];
   } catch {
+    // intentionally empty – return empty array if localStorage parse fails
     return [];
   }
 }

@@ -850,8 +850,8 @@ const DocumentsManager = ({
           a.click();
           document.body.removeChild(a);
           window.URL.revokeObjectURL(url);
-        } catch {
-          // Fallback to direct download
+        } catch (error) {
+          console.warn("Blob download failed, falling back to direct download:", error);
           window.location.href = data.pdfUrl;
         }
 

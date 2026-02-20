@@ -25,6 +25,7 @@ export function getSavedSessions(userId?: string): SavedSession[] {
     if (!raw) return [];
     return JSON.parse(raw) as SavedSession[];
   } catch {
+    // intentionally empty – return empty array if localStorage parse fails
     return [];
   }
 }

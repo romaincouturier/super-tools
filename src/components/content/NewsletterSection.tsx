@@ -96,7 +96,7 @@ const NewsletterSection = ({ onCardClick, refreshKey }: NewsletterSectionProps) 
           setNewsletterToolUrl(data.setting_value);
         }
       } catch {
-        // Setting not configured yet
+        // intentionally empty – newsletter_tool_url setting may not exist yet
       }
     };
     fetchToolUrl();
@@ -177,8 +177,8 @@ const NewsletterSection = ({ onCardClick, refreshKey }: NewsletterSectionProps) 
               if (cid) pendingMap.set(cid, (pendingMap.get(cid) || 0) + 1);
             }
           }
-        } catch {
-          // Ignore errors fetching comments
+        } catch (error) {
+          console.warn("Failed to fetch pending review comments:", error);
         }
 
         setNewsletterCards(

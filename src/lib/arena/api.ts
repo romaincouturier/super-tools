@@ -94,7 +94,7 @@ export async function loadArenaApiKeys(): Promise<ApiKeys> {
   try {
     const cached = localStorage.getItem(LOCAL_STORAGE_KEY);
     if (cached) keys = JSON.parse(cached);
-  } catch { /* ignore */ }
+  } catch { /* intentionally empty – localStorage JSON parse may fail */ }
 
   // Then try Supabase app_settings (overrides localStorage)
   try {

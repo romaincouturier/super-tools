@@ -87,6 +87,7 @@ import {
   UserPlus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "@/hooks/use-toast";
 import { format, addDays, isAfter, startOfDay, parseISO, isFuture } from "date-fns";
 import { fr } from "date-fns/locale";
 import DOMPurify from "dompurify";
@@ -866,7 +867,7 @@ const CardDetailDrawer = ({
     const selectedDate = startOfDay(new Date(scheduledDate));
     const today = startOfDay(new Date());
     if (!isAfter(selectedDate, today)) {
-      alert("La date doit être dans le futur (pas aujourd'hui)");
+      toast({ title: "Date invalide", description: "La date doit être dans le futur (pas aujourd'hui)", variant: "destructive" });
       return;
     }
 

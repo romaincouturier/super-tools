@@ -387,7 +387,7 @@ const ParticipantList = ({
               throw new Error("La génération du certificat a échoué.");
             }
           } catch (parseErr) {
-            // ignore parse errors
+            // intentionally empty – skip non-JSON lines in SSE stream
           }
         }
       }

@@ -59,7 +59,7 @@ export default function ArenaSetup() {
     try {
       const fb = JSON.parse(localStorage.getItem("ai-arena-feedback") || "[]");
       setFeedbackHistory(fb.reverse());
-    } catch { /* ignore */ }
+    } catch { /* intentionally empty – localStorage feedback parse is best-effort */ }
     // Load persisted API keys via loadArenaApiKeys
     loadArenaApiKeys().then((saved) => {
       setApiKeys(saved);
@@ -224,7 +224,7 @@ export default function ArenaSetup() {
           setMode(data.suggestedMode);
         }
       }
-    } catch { /* ignore */ }
+    } catch (error) { console.error("Failed to suggest experts:", error); }
     setIsSuggesting(false);
   };
 

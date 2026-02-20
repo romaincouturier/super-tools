@@ -163,7 +163,7 @@ export default function ArenaDiscussion() {
           setWaitingForUser(true); // Pause so user can continue manually
         }
       }
-    } catch { navigate("/arena"); }
+    } catch (error) { console.warn("Failed to parse arena session data:", error); navigate("/arena"); }
   }, [navigate]);
 
   const getApiKey = useCallback((provider: string): string => {
@@ -306,8 +306,8 @@ export default function ArenaDiscussion() {
         if (!response.ok) throw new Error("Orchestrator failed");
         const decision = await response.json();
         return { ...decision, turnNumber: turn };
-      } catch {
-        // Fallback round-robin
+      } catch (error) {
+        console.warn("Orchestrator call failed, using round-robin fallback:", error);
         const agentIndex = (turn - 1) % config.agents.length;
         return {
           nextSpeaker: config.agents[agentIndex].id,
@@ -376,7 +376,7 @@ Sois concis et tranche.`;
                     voteContent += parsed.text;
                     setStreamingContent(voteContent);
                   }
-                } catch { /* skip */ }
+                } catch { /* intentionally empty – skip malformed SSE chunks */ }
               }
             }
           }
@@ -402,7 +402,7 @@ Sois concis et tranche.`;
             vote: voteContent.slice(0, 200),
             reasoning: voteContent,
           });
-        } catch { /* skip on error */ }
+        } catch (error) { console.warn("Vote collection failed for agent:", agent.id, error); }
       }
 
       setCurrentSpeaker(null);
@@ -488,7 +488,7 @@ REGLES CRITIQUES pour le livrable :
                 content += parsed.text;
                 setStreamingContent(content);
               }
-            } catch { /* skip */ }
+            } catch { /* intentionally empty – skip malformed SSE chunks */ }
           }
         }
       }
@@ -675,7 +675,7 @@ REGLES CRITIQUES pour le livrable :
       sessionStorage.setItem("ai-arena-result", JSON.stringify(result));
 
       // Auto-save to history
-      try { saveSession(config, result, userId); } catch { /* ignore quota errors */ }
+      try { saveSession(config, result, userId); } catch (error) { console.warn("Failed to auto-save session to history:", error); }
 
     } catch (err: unknown) {
       if (err instanceof Error && err.name === "AbortError") { /* ok */ }
@@ -944,7 +944,7 @@ REGLES CRITIQUES pour le livrable :
       // Keep last 50 entries
       if (existing.length > 50) existing.splice(0, existing.length - 50);
       localStorage.setItem("ai-arena-feedback", JSON.stringify(existing));
-    } catch { /* ignore */ }
+    } catch { /* intentionally empty – localStorage feedback is best-effort */ }
     setFeedbackSent(true);
   }, [rating, feedbackText, config, turnNumber, estimatedCostUsd]);
 

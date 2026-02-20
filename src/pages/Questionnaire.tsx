@@ -689,6 +689,7 @@ const Questionnaire = () => {
     try {
       return format(new Date(dateStr), "EEEE d MMMM yyyy", { locale: fr });
     } catch {
+      // intentionally empty – return raw string if date parsing fails
       return dateStr;
     }
   };
