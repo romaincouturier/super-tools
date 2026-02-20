@@ -10,7 +10,7 @@ const PolitiqueConfidentialite = () => {
   const [contactName, setContactName] = useState("");
 
   useEffect(() => {
-    supabase.rpc("get_public_contact").then(({ data }) => {
+    (supabase.rpc as any)("get_public_contact").then(({ data }: any) => {
       if (data && data.length > 0) {
         setContactEmail(data[0].email || "");
         setContactName(data[0].name || "");

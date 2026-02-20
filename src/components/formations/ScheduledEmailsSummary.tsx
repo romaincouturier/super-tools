@@ -841,7 +841,7 @@ Je te remercie sincèrement pour ton aide et te souhaite une excellente continua
               {selectedEmail && getEmailTypeLabel(selectedEmail.email_type)}
             </DialogTitle>
             <DialogDescription>
-              De: {{sender_name}} &lt;{{sender_email}}&gt;
+              De: {"{sender_name}"} &lt;{"{sender_email}"}&gt;
               <br />
               À: {selectedEmail && getParticipantName(selectedEmail.participant_id)}
             </DialogDescription>

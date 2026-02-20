@@ -1690,6 +1690,48 @@ export type Database = {
         }
         Relationships: []
       }
+      media: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          file_name: string
+          file_size: number | null
+          file_type: string
+          file_url: string
+          id: string
+          mime_type: string | null
+          position: number
+          source_id: string
+          source_type: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          file_name: string
+          file_size?: number | null
+          file_type: string
+          file_url: string
+          id?: string
+          mime_type?: string | null
+          position?: number
+          source_id: string
+          source_type: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          file_name?: string
+          file_size?: number | null
+          file_type?: string
+          file_url?: string
+          id?: string
+          mime_type?: string | null
+          position?: number
+          source_id?: string
+          source_type?: string
+        }
+        Relationships: []
+      }
       mission_activities: {
         Row: {
           activity_date: string
@@ -2336,6 +2378,7 @@ export type Database = {
           email: string
           first_name: string | null
           id: string
+          is_admin: boolean
           last_name: string | null
           updated_at: string
           user_id: string
@@ -2346,6 +2389,7 @@ export type Database = {
           email: string
           first_name?: string | null
           id?: string
+          is_admin?: boolean
           last_name?: string | null
           updated_at?: string
           user_id: string
@@ -2356,6 +2400,7 @@ export type Database = {
           email?: string
           first_name?: string | null
           id?: string
+          is_admin?: boolean
           last_name?: string | null
           updated_at?: string
           user_id?: string
@@ -2849,6 +2894,44 @@ export type Database = {
           },
         ]
       }
+      training_documents: {
+        Row: {
+          created_at: string | null
+          file_name: string
+          file_size: number | null
+          file_url: string
+          id: string
+          training_id: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          file_name: string
+          file_size?: number | null
+          file_url: string
+          id?: string
+          training_id: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          file_name?: string
+          file_size?: number | null
+          file_url?: string
+          id?: string
+          training_id?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_documents_training_id_fkey"
+            columns: ["training_id"]
+            isOneToOne: false
+            referencedRelation: "trainings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       training_evaluations: {
         Row: {
           amelioration_suggeree: string | null
@@ -2956,6 +3039,53 @@ export type Database = {
           },
           {
             foreignKeyName: "training_evaluations_training_id_fkey"
+            columns: ["training_id"]
+            isOneToOne: false
+            referencedRelation: "trainings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      training_media: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          file_name: string
+          file_size: number | null
+          file_type: string
+          file_url: string
+          id: string
+          mime_type: string | null
+          position: number
+          training_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          file_name: string
+          file_size?: number | null
+          file_type: string
+          file_url: string
+          id?: string
+          mime_type?: string | null
+          position?: number
+          training_id: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          file_name?: string
+          file_size?: number | null
+          file_type?: string
+          file_url?: string
+          id?: string
+          mime_type?: string | null
+          position?: number
+          training_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_media_training_id_fkey"
             columns: ["training_id"]
             isOneToOne: false
             referencedRelation: "trainings"
@@ -3089,6 +3219,7 @@ export type Database = {
       }
       trainings: {
         Row: {
+          assigned_to: string | null
           attendance_sheets_urls: string[] | null
           catalog_id: string | null
           client_address: string | null
@@ -3132,6 +3263,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          assigned_to?: string | null
           attendance_sheets_urls?: string[] | null
           catalog_id?: string | null
           client_address?: string | null
@@ -3175,6 +3307,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          assigned_to?: string | null
           attendance_sheets_urls?: string[] | null
           catalog_id?: string | null
           client_address?: string | null
@@ -3324,12 +3457,20 @@ export type Database = {
       }
       get_cron_status: { Args: never; Returns: Json }
       get_db_size: { Args: never; Returns: Json }
+      get_public_contact: {
+        Args: never
+        Returns: {
+          email: string
+          name: string
+        }[]
+      }
       has_crm_access: { Args: { _user_id: string }; Returns: boolean }
       has_module_access: {
         Args: { _module: string; _user_id: string }
         Returns: boolean
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_signup_allowed: { Args: { p_email: string }; Returns: boolean }
       update_api_key_last_used: { Args: { key_id: string }; Returns: undefined }
       upsert_profile: {
         Args: { p_display_name?: string; p_email: string; p_user_id: string }
