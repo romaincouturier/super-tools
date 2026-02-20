@@ -102,28 +102,12 @@ serve(async (req) => {
     const useTutoiement = training.participants_formal_address === false;
     const templateTypeSuffix = useTutoiement ? "_tu" : "_vous";
 
-    // Fetch custom email template: try with mode suffix first, then fallback to generic "thank_you"
-    let customTemplate: { subject: string; html_content: string } | null = null;
-    const { data: templateWithSuffix } = await supabase
+    // Fetch custom email template (with mode suffix: _tu or _vous)
+    const { data: customTemplate } = await supabase
       .from("email_templates")
       .select("subject, html_content")
       .eq("template_type", `thank_you${templateTypeSuffix}`)
       .maybeSingle();
-    
-    if (templateWithSuffix) {
-      customTemplate = templateWithSuffix;
-    } else {
-      // Fallback: try legacy template without mode suffix
-      const { data: templateLegacy } = await supabase
-        .from("email_templates")
-        .select("subject, html_content")
-        .eq("template_type", "thank_you")
-        .maybeSingle();
-      if (templateLegacy) {
-        customTemplate = templateLegacy;
-        console.log("Using legacy template (no mode suffix)");
-      }
-    }
 
     // Use appropriate default based on formality setting
     const defaultSubject = useTutoiement ? DEFAULT_SUBJECT_TU : DEFAULT_SUBJECT_VOUS;
