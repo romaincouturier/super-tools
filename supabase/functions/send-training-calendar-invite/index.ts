@@ -6,6 +6,12 @@ import { getSenderFrom, getSenderEmail, getBccList } from "../_shared/email-sett
 import { handleCorsPreflightIfNeeded, getCorsHeaders } from "../_shared/cors.ts";
 import { z, parseBody } from "../_shared/validation.ts";
 
+interface TrainingSchedule {
+  day_date: string;
+  start_time: string;
+  end_time: string;
+}
+
 const trainingScheduleSchema = z.object({
   day_date: z.string().min(1),
   start_time: z.string().min(1),

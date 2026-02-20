@@ -24,8 +24,8 @@ serve(async (req) => {
   if (corsResponse) return corsResponse;
 
   try {
-    const { data, error } = await parseBody(req, requestSchema);
-    if (error) return error;
+    const { data, error: validationError } = await parseBody(req, requestSchema);
+    if (validationError) return validationError;
     const { failedEmailId } = data;
 
     const supabase = getSupabaseClient();
