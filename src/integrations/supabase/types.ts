@@ -760,6 +760,7 @@ export type Database = {
           brief_questions: Json | null
           column_id: string
           company: string | null
+          confidence_score: number | null
           created_at: string
           description_html: string | null
           email: string | null
@@ -794,6 +795,7 @@ export type Database = {
           brief_questions?: Json | null
           column_id: string
           company?: string | null
+          confidence_score?: number | null
           created_at?: string
           description_html?: string | null
           email?: string | null
@@ -828,6 +830,7 @@ export type Database = {
           brief_questions?: Json | null
           column_id?: string
           company?: string | null
+          confidence_score?: number | null
           created_at?: string
           description_html?: string | null
           email?: string | null
