@@ -1,7 +1,7 @@
 import { MediaItemWithMission } from "@/hooks/useMediaLibrary";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { X, Briefcase, ChevronLeft, ChevronRight, Download } from "lucide-react";
+import { X, Briefcase, ChevronLeft, ChevronRight, Download, GraduationCap } from "lucide-react";
 import { toast } from "sonner";
 import { useEffect, useCallback } from "react";
 
@@ -122,7 +122,10 @@ const MediaLightbox = ({ item, items, onClose, onNavigate }: MediaLightboxProps)
       {/* Info bar */}
       <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-3 bg-black/60 backdrop-blur-sm px-4 py-2 rounded-lg">
         <Badge variant="secondary" className="bg-white/20 text-white border-0 text-xs">
-          <Briefcase className="h-3 w-3 mr-1" />
+          {item.source === "training"
+            ? <GraduationCap className="h-3 w-3 mr-1" />
+            : <Briefcase className="h-3 w-3 mr-1" />
+          }
           {item.mission_emoji ? `${item.mission_emoji} ` : ""}
           {item.mission_title}
         </Badge>

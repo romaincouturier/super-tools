@@ -15,7 +15,7 @@ export interface MediaItemWithMission {
   mission_tags: string[];
   mission_emoji: string | null;
   mission_color: string | null;
-  source: "mission" | "event";
+  source: "mission" | "event" | "training";
 }
 
 const MEDIA_LIBRARY_KEY = "media-library";
@@ -79,8 +79,36 @@ export const useMediaLibrary = () => {
         source: "event" as const,
       }));
 
+      // Fetch training media (photos & videos linked to formations)
+      const { data: trainingData, error: trainingError } = await (supabase as any)
+        .from("training_media")
+        .select("*, trainings!inner(training_name)")
+        .order("created_at", { ascending: false });
+
+      let trainingItems: MediaItemWithMission[] = [];
+      if (trainingError) {
+        console.warn("Could not fetch training media:", trainingError.message);
+      } else {
+        trainingItems = ((trainingData || []) as any[]).map((item) => ({
+          id: item.id,
+          mission_id: item.training_id, // reuse field for filtering
+          file_url: item.file_url,
+          file_name: item.file_name,
+          file_type: item.file_type,
+          mime_type: item.mime_type,
+          file_size: item.file_size,
+          position: item.position,
+          created_at: item.created_at,
+          mission_title: item.trainings?.training_name || "Formation",
+          mission_tags: [item.trainings?.training_name || "formation"],
+          mission_emoji: null,
+          mission_color: null,
+          source: "training" as const,
+        }));
+      }
+
       // Merge and sort by created_at descending
-      return [...missionItems, ...eventItems].sort(
+      return [...missionItems, ...eventItems, ...trainingItems].sort(
         (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       );
     },
