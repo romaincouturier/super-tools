@@ -1,10 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { handleCorsPreflightIfNeeded, getCorsHeaders } from "../_shared/cors.ts";
 
 const GOOGLE_OAUTH_CLIENT_ID = Deno.env.get("GOOGLE_OAUTH_CLIENT_ID")!;
 const GOOGLE_OAUTH_CLIENT_SECRET = Deno.env.get("GOOGLE_OAUTH_CLIENT_SECRET")!;
@@ -17,9 +13,8 @@ const SCOPES = [
 ].join(" ");
 
 serve(async (req: Request): Promise<Response> => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const corsResponse = handleCorsPreflightIfNeeded(req);
+  if (corsResponse) return corsResponse;
 
   try {
     const url = new URL(req.url);
@@ -33,7 +28,7 @@ serve(async (req: Request): Promise<Response> => {
       if (!authHeader?.startsWith("Bearer ")) {
         return new Response(JSON.stringify({ error: "Unauthorized" }), {
           status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
         });
       }
 
@@ -46,7 +41,7 @@ serve(async (req: Request): Promise<Response> => {
         console.error("Auth error:", userError);
         return new Response(JSON.stringify({ error: "Unauthorized" }), {
           status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
         });
       }
 
@@ -71,7 +66,7 @@ serve(async (req: Request): Promise<Response> => {
 
       return new Response(JSON.stringify({ authUrl: authUrl.toString() }), {
         status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
@@ -175,7 +170,7 @@ serve(async (req: Request): Promise<Response> => {
       if (!authHeader?.startsWith("Bearer ")) {
         return new Response(JSON.stringify({ connected: false }), {
           status: 200,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
         });
       }
 
@@ -186,7 +181,7 @@ serve(async (req: Request): Promise<Response> => {
       if (userError || !userData.user) {
         return new Response(JSON.stringify({ connected: false }), {
           status: 200,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
         });
       }
 
@@ -201,7 +196,7 @@ serve(async (req: Request): Promise<Response> => {
         expiresAt: tokenData?.token_expires_at 
       }), {
         status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
@@ -211,7 +206,7 @@ serve(async (req: Request): Promise<Response> => {
       if (!authHeader?.startsWith("Bearer ")) {
         return new Response(JSON.stringify({ error: "Unauthorized" }), {
           status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
         });
       }
 
@@ -222,7 +217,7 @@ serve(async (req: Request): Promise<Response> => {
       if (userError || !userData.user) {
         return new Response(JSON.stringify({ error: "Unauthorized" }), {
           status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
         });
       }
 
@@ -235,20 +230,20 @@ serve(async (req: Request): Promise<Response> => {
 
       return new Response(JSON.stringify({ success: true }), {
         status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
     return new Response(JSON.stringify({ error: "Invalid action" }), {
       status: 400,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
     });
 
   } catch (error: any) {
     console.error("Error in google-drive-auth:", error);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
     });
   }
 });

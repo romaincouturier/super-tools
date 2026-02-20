@@ -18,7 +18,7 @@ import {
   getSigniticSignature,
   wrapEmailHtml,
   textToHtml,
-  corsHeaders,
+  getCorsHeaders,
   handleCorsPreflightIfNeeded,
 } from "../_shared/mod.ts";
 
@@ -68,7 +68,7 @@ serve(async (req: Request) => {
       console.error("Error fetching missions:", error);
       return new Response(JSON.stringify({ error: error.message }), {
         status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
@@ -91,7 +91,7 @@ serve(async (req: Request) => {
     if (missionsWithEmail.length === 0) {
       return new Response(JSON.stringify({ message: "No missions to process" }), {
         status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
@@ -286,14 +286,14 @@ Best regards,`;
       }),
       {
         status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       }
     );
   } catch (error: any) {
     console.error("Error processing mission testimonials:", error);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
     });
   }
 });

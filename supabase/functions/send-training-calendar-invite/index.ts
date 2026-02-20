@@ -3,11 +3,7 @@ import { Resend } from "https://esm.sh/resend@2.0.0";
 import { encode as base64Encode } from "https://deno.land/std@0.190.0/encoding/base64.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
 import { getSenderFrom, getSenderEmail, getBccList } from "../_shared/email-settings.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { handleCorsPreflightIfNeeded, getCorsHeaders } from "../_shared/cors.ts";
 
 interface TrainingSchedule {
   day_date: string;
@@ -103,9 +99,8 @@ function formatDateFrench(dateStr: string): string {
 }
 
 serve(async (req: Request): Promise<Response> => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const corsResponse = handleCorsPreflightIfNeeded(req);
+  if (corsResponse) return corsResponse;
 
   try {
     const body: RequestBody = await req.json();
@@ -125,7 +120,7 @@ serve(async (req: Request): Promise<Response> => {
     if (!trainerEmail || !trainingName || !schedules || schedules.length === 0) {
       return new Response(
         JSON.stringify({ error: "Missing required fields" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
       );
     }
 
@@ -218,7 +213,7 @@ serve(async (req: Request): Promise<Response> => {
       }),
       {
         status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       }
     );
   } catch (error: unknown) {
@@ -228,7 +223,7 @@ serve(async (req: Request): Promise<Response> => {
       JSON.stringify({ error: errorMessage }),
       {
         status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       }
     );
   }

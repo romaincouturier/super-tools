@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getSenderFrom, getSenderEmail, getSenderName } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
+import { handleCorsPreflightIfNeeded, getCorsHeaders } from "../_shared/cors.ts";
 
 /**
  * Process Participant List Reminders
@@ -10,12 +11,6 @@ import { getSigniticSignature } from "../_shared/signitic.ts";
  * sends an alert email to the trainer every 2 working days.
  * Stops when participants are added or training starts.
  */
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
 
 const DAYS_FR = ["dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi"];
 const MONTHS_FR = [
@@ -52,9 +47,8 @@ function getWorkingDaysBetween(
 }
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const corsResponse = handleCorsPreflightIfNeeded(req);
+  if (corsResponse) return corsResponse;
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -88,7 +82,7 @@ serve(async (req) => {
       console.log("[participant-list-reminders] No upcoming trainings within 30 days");
       return new Response(
         JSON.stringify({ success: true, message: "No trainings to check" }),
-        { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        { status: 200, headers: { "Content-Type": "application/json", ...getCorsHeaders(req) } }
       );
     }
 
@@ -112,7 +106,7 @@ serve(async (req) => {
       console.log("[participant-list-reminders] Today is not a working day, skipping");
       return new Response(
         JSON.stringify({ success: true, message: "Not a working day" }),
-        { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        { status: 200, headers: { "Content-Type": "application/json", ...getCorsHeaders(req) } }
       );
     }
 
@@ -321,13 +315,13 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({ success: true, checked: trainings.length, sent: sentCount, results }),
-      { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      { status: 200, headers: { "Content-Type": "application/json", ...getCorsHeaders(req) } }
     );
   } catch (error) {
     console.error("[participant-list-reminders] Error:", error);
     return new Response(
       JSON.stringify({ success: false, error: error instanceof Error ? error.message : "Unknown error" }),
-      { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      { status: 500, headers: { "Content-Type": "application/json", ...getCorsHeaders(req) } }
     );
   }
 });

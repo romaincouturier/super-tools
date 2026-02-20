@@ -1,30 +1,24 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { handleCorsPreflightIfNeeded, getCorsHeaders } from "../_shared/cors.ts";
 
 /**
  * Process Scheduled Emails
- * 
+ *
  * This function is called by a cron job every 15 minutes to process
  * pending emails from the scheduled_emails queue.
- * 
+ *
  * It delegates the actual email sending to the force-send-scheduled-email function
  * which handles all email types.
  */
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
 
 const FUNCTION_VERSION = "1.0.0";
 
 serve(async (req) => {
   console.log(`[process-scheduled-emails v${FUNCTION_VERSION}] Starting...`);
 
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const corsResponse = handleCorsPreflightIfNeeded(req);
+  if (corsResponse) return corsResponse;
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -56,7 +50,7 @@ serve(async (req) => {
           message: "No pending emails to process",
           _version: FUNCTION_VERSION
         }),
-        { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        { status: 200, headers: { "Content-Type": "application/json", ...getCorsHeaders(req) } }
       );
     }
 
@@ -114,7 +108,7 @@ serve(async (req) => {
         results,
         _version: FUNCTION_VERSION
       }),
-      { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      { status: 200, headers: { "Content-Type": "application/json", ...getCorsHeaders(req) } }
     );
   } catch (error) {
     console.error("[process-scheduled-emails] Error:", error);
@@ -125,7 +119,7 @@ serve(async (req) => {
         error: errorMessage,
         _version: FUNCTION_VERSION
       }),
-      { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      { status: 500, headers: { "Content-Type": "application/json", ...getCorsHeaders(req) } }
     );
   }
 });

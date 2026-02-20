@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getSenderFrom } from "../_shared/email-settings.ts";
+import { handleCorsPreflightIfNeeded, getCorsHeaders } from "../_shared/cors.ts";
 
 /**
  * Process Logistics & Convention Reminders — Per-user edition
@@ -10,12 +11,6 @@ import { getSenderFrom } from "../_shared/email-settings.ts";
  * Admins receive ALL alerts; non-admin users receive only alerts
  * for trainings where assigned_to = their user_id.
  */
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
 
 const VERSION = "process-logistics-reminders@3.0.0";
 
@@ -36,9 +31,8 @@ interface TrainingAlert {
 serve(async (req) => {
   console.log(`[${VERSION}] Starting...`);
 
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const corsResponse = handleCorsPreflightIfNeeded(req);
+  if (corsResponse) return corsResponse;
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -76,7 +70,7 @@ serve(async (req) => {
       console.log(`[${VERSION}] No recipients found`);
       return new Response(
         JSON.stringify({ success: true, message: "No recipients", _version: VERSION }),
-        { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        { status: 200, headers: { "Content-Type": "application/json", ...getCorsHeaders(req) } }
       );
     }
 
@@ -495,14 +489,14 @@ serve(async (req) => {
         totalAlerts: totalAlertsSent,
         _version: VERSION,
       }),
-      { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      { status: 200, headers: { "Content-Type": "application/json", ...getCorsHeaders(req) } }
     );
   } catch (error) {
     console.error(`[${VERSION}] Error:`, error);
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
     return new Response(
       JSON.stringify({ success: false, error: errorMessage, _version: VERSION }),
-      { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      { status: 500, headers: { "Content-Type": "application/json", ...getCorsHeaders(req) } }
     );
   }
 });
