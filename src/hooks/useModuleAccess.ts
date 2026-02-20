@@ -87,7 +87,7 @@ export function useModuleAccess() {
         .select("is_admin")
         .eq("user_id", user.id)
         .single();
-      const isAdminUser = profile?.is_admin === true;
+      const isAdminUser = (profile as any)?.is_admin === true;
       setIsAdmin(isAdminUser);
 
       if (isAdminUser) {

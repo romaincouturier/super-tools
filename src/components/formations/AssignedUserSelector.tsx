@@ -14,7 +14,7 @@ interface UserProfile {
   first_name: string | null;
   last_name: string | null;
   email: string;
-  is_admin: boolean;
+  is_admin: boolean | null;
 }
 
 interface AssignedUserSelectorProps {
@@ -41,7 +41,7 @@ export default function AssignedUserSelector({
         .order("first_name");
 
       if (error) throw error;
-      setUsers(data || []);
+      setUsers((data || []) as UserProfile[]);
     } catch (error) {
       console.error("Error fetching users:", error);
     } finally {

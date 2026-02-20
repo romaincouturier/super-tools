@@ -129,7 +129,7 @@ const Evaluations = () => {
         .select("is_admin")
         .eq("user_id", currentUser.id)
         .single();
-      if (profile?.is_admin) {
+      if ((profile as any)?.is_admin) {
         setCanDeleteEvaluations(true);
         return;
       }
