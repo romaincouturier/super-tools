@@ -1,7 +1,7 @@
 import { MediaItemWithMission } from "@/hooks/useMediaLibrary";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ImageIcon, Video, Play, Trash2, Briefcase, Download } from "lucide-react";
+import { ImageIcon, Video, Play, Trash2, Briefcase, Download, GraduationCap } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -44,15 +44,26 @@ const MediaGrid = ({ items, onOpenLightbox }: MediaGridProps) => {
 
     try {
       const url = new URL(item.file_url);
-      const pathParts = url.pathname.split("/mission-media/");
-      if (pathParts.length > 1) {
-        await supabase.storage
-          .from("mission-media")
-          .remove([decodeURIComponent(pathParts[1])]);
+
+      if (item.source === "training") {
+        const pathParts = url.pathname.split("/training-media/");
+        if (pathParts.length > 1) {
+          await supabase.storage
+            .from("training-media")
+            .remove([decodeURIComponent(pathParts[1])]);
+        }
+      } else {
+        const pathParts = url.pathname.split("/mission-media/");
+        if (pathParts.length > 1) {
+          await supabase.storage
+            .from("mission-media")
+            .remove([decodeURIComponent(pathParts[1])]);
+        }
       }
 
+      const tableName = item.source === "training" ? "training_media" : "mission_media";
       const { error } = await (supabase as any)
-        .from("mission_media")
+        .from(tableName)
         .delete()
         .eq("id", item.id);
 
@@ -138,7 +149,11 @@ const MediaGrid = ({ items, onOpenLightbox }: MediaGridProps) => {
               </div>
             </div>
             <div className="flex items-center gap-1 text-white/80 text-xs truncate">
-              <Briefcase className="h-3 w-3 flex-shrink-0" />
+              {item.source === "training" ? (
+                <GraduationCap className="h-3 w-3 flex-shrink-0" />
+              ) : (
+                <Briefcase className="h-3 w-3 flex-shrink-0" />
+              )}
               <span className="truncate">
                 {item.mission_emoji ? `${item.mission_emoji} ` : ""}
                 {item.mission_title}
@@ -149,13 +164,16 @@ const MediaGrid = ({ items, onOpenLightbox }: MediaGridProps) => {
             )}
           </div>
 
-          {/* Mission tag (always visible) */}
+          {/* Source tag (always visible) */}
           <div className="absolute top-2 left-2">
             <Badge
               variant="secondary"
               className="text-[10px] px-1.5 py-0 bg-black/50 text-white border-0 backdrop-blur-sm"
             >
-              {item.mission_emoji || <Briefcase className="h-2.5 w-2.5" />}
+              {item.source === "training"
+                ? <GraduationCap className="h-2.5 w-2.5" />
+                : (item.mission_emoji || <Briefcase className="h-2.5 w-2.5" />)
+              }
               <span className="ml-1 max-w-[80px] truncate">{item.mission_title}</span>
             </Badge>
           </div>

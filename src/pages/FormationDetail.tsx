@@ -35,6 +35,7 @@ import ScheduledEmailsSummary from "@/components/formations/ScheduledEmailsSumma
 import NeedsSurveySummaryDialog from "@/components/formations/NeedsSurveySummaryDialog";
 import AttendanceSignatureBlock from "@/components/formations/AttendanceSignatureBlock";
 import ScheduledActionsEditor, { ScheduledAction } from "@/components/formations/ScheduledActionsEditor";
+import FormationMediaManager from "@/components/formations/FormationMediaManager";
 
 interface Training {
   id: string;
@@ -1286,7 +1287,15 @@ const FormationDetail = () => {
           />
         </div>
 
-        {/* Row 4: Notes */}
+        {/* Row 4: Photos & Videos */}
+        <div className="mb-6">
+          <FormationMediaManager
+            trainingId={training.id}
+            trainingName={training.training_name}
+          />
+        </div>
+
+        {/* Row 5: Notes */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           <Card>
             <CardHeader>
