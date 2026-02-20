@@ -555,6 +555,7 @@ const KeyResultCard = ({ keyResult, objectiveId, onEdit }: KeyResultCardProps) =
         open={showInitiativeDialog}
         onOpenChange={setShowInitiativeDialog}
         keyResultId={keyResult.id}
+        onCreated={() => setShowInitiatives(true)}
       />
     </div>
   );
@@ -782,9 +783,10 @@ interface InitiativeDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   keyResultId: string;
+  onCreated?: () => void;
 }
 
-const InitiativeDialog = ({ open, onOpenChange, keyResultId }: InitiativeDialogProps) => {
+const InitiativeDialog = ({ open, onOpenChange, keyResultId, onCreated }: InitiativeDialogProps) => {
   const { toast } = useToast();
   const createInitiative = useCreateOKRInitiative();
   const { data: missions } = useMissions();
@@ -811,6 +813,7 @@ const InitiativeDialog = ({ open, onOpenChange, keyResultId }: InitiativeDialogP
       setTitle("");
       setDescription("");
       setLinkedMissionId("");
+      onCreated?.();
     } catch (error: any) {
       toast({ title: "Erreur", description: error.message, variant: "destructive" });
     }
@@ -841,12 +844,12 @@ const InitiativeDialog = ({ open, onOpenChange, keyResultId }: InitiativeDialogP
           </div>
           <div>
             <Label>Lier à une mission</Label>
-            <Select value={linkedMissionId} onValueChange={setLinkedMissionId}>
+            <Select value={linkedMissionId || "none"} onValueChange={(val) => setLinkedMissionId(val === "none" ? "" : val)}>
               <SelectTrigger>
                 <SelectValue placeholder="Sélectionner une mission" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Aucune</SelectItem>
+                <SelectItem value="none">Aucune</SelectItem>
                 {missions?.map((m) => (
                   <SelectItem key={m.id} value={m.id}>
                     {m.title}
