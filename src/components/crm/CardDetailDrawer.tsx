@@ -1775,6 +1775,61 @@ const CardDetailDrawer = ({
                 Envoyer un email
               </h4>
               <div className="space-y-3">
+                {/* Email templates */}
+                <div className="flex items-center gap-2">
+                  <Label className="text-xs text-muted-foreground whitespace-nowrap">Modèle</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" size="sm" className="h-8 text-xs gap-1 flex-1">
+                        <FileText className="h-3.5 w-3.5" />
+                        Choisir un modèle
+                        <ChevronDown className="h-3 w-3 ml-auto" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-80 p-0" align="start">
+                      <div className="p-2 border-b">
+                        <p className="text-sm font-medium">Modèles d'email</p>
+                        <p className="text-xs text-muted-foreground">Cliquez pour pré-remplir le message</p>
+                      </div>
+                      <div className="divide-y">
+                        {[
+                          {
+                            name: "Relance devis",
+                            subject: `Suivi de votre demande${company ? ` – ${company}` : ""}`,
+                            body: `<p>Bonjour${firstName ? ` ${firstName}` : ""},</p><p>Je reviens vers vous concernant le devis que je vous ai transmis${card?.title ? ` pour votre demande de ${card.title.toLowerCase()}` : ""}.</p><p>Je voulais m'assurer que vous aviez bien reçu tous les éléments et que tout était clair pour vous.</p><p>Je reste à votre disposition pour répondre à vos questions et vous aider à finaliser votre décision.</p><p>Bonne journée,</p>`,
+                          },
+                          {
+                            name: "Premier contact",
+                            subject: `${company ? company + " – " : ""}Prise de contact SuperTilt`,
+                            body: `<p>Bonjour${firstName ? ` ${firstName}` : ""},</p><p>Je me permets de vous contacter suite à votre demande concernant ${card?.title || "notre offre de formation"}.</p><p>Je serais ravi(e) d'échanger avec vous pour mieux comprendre vos besoins et vous proposer la solution la plus adaptée.</p><p>Seriez-vous disponible pour un appel de 15 minutes cette semaine ?</p><p>Bonne journée,</p>`,
+                          },
+                          {
+                            name: "Envoi de devis",
+                            subject: `Votre devis${company ? ` – ${company}` : ""}`,
+                            body: `<p>Bonjour${firstName ? ` ${firstName}` : ""},</p><p>Suite à notre échange, veuillez trouver ci-joint votre devis pour ${card?.title || "la prestation demandée"}.</p><p>Ce document détaille l'ensemble des éléments convenus. N'hésitez pas à me revenir si vous souhaitez apporter des ajustements.</p><p>Dans l'attente de votre retour,</p>`,
+                          },
+                          {
+                            name: "Confirmation de formation",
+                            subject: `Confirmation de votre inscription${company ? ` – ${company}` : ""}`,
+                            body: `<p>Bonjour${firstName ? ` ${firstName}` : ""},</p><p>Je suis ravi(e) de confirmer votre participation à ${card?.title || "la formation"}.</p><p>Vous recevrez prochainement tous les documents nécessaires (convention, programme, modalités pratiques).</p><p>En attendant, n'hésitez pas à me contacter pour toute question.</p><p>À très bientôt,</p>`,
+                          },
+                        ].map((template) => (
+                          <button
+                            key={template.name}
+                            className="w-full text-left px-3 py-2.5 text-sm hover:bg-muted transition-colors"
+                            onClick={() => {
+                              setEmailSubject(template.subject);
+                              setEmailBody(template.body);
+                            }}
+                          >
+                            <div className="font-medium text-sm">{template.name}</div>
+                          </button>
+                        ))}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
                 <div className="flex items-center gap-2">
                   <Label className="text-xs text-muted-foreground whitespace-nowrap flex items-center gap-1">
                     Destinataire

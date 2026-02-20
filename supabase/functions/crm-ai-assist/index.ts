@@ -183,24 +183,28 @@ Génère uniquement la description, sans titre ni en-tête.`;
       }
 
       case "improve_email_subject": {
-        const systemPrompt = `Tu es un expert en communication commerciale pour SuperTilt, organisme de formation professionnelle.
-Tu améliores les objets d'emails pour les rendre plus percutants, professionnels et engageants.
+        const systemPrompt = `Tu es un expert en copywriting commercial pour SuperTilt, organisme de formation professionnelle certifié Qualiopi.
+Tu réécris les objets d'emails pour maximiser le taux d'ouverture : clairs, spécifiques, qui créent une légère urgence ou curiosité sans être racoleurs.
 Tu réponds UNIQUEMENT avec l'objet amélioré, sans explication ni guillemets.`;
 
         const subject = card_data.subject || "";
         const company = card_data.company || "";
         const firstName = card_data.first_name || "";
 
-        const userPrompt = `Améliore cet objet d'email commercial :
+        const userPrompt = `Réécris cet objet d'email pour qu'il soit plus percutant et incitatif à l'ouverture :
 Objet actuel : "${subject}"
 ${company ? `Entreprise : ${company}` : ""}
 ${firstName ? `Prénom du contact : ${firstName}` : ""}
 
-Règles :
-- Garde un ton professionnel mais engageant
-- Maximum 60 caractères
-- Pas de majuscules excessives ni de ponctuation agressive
-- Adapte au contexte commercial (formation/mission)
+Contraintes :
+- Maximum 55 caractères
+- Ton professionnel mais direct et engageant
+- Pas de point d'exclamation ni de majuscules abusives
+- Peut contenir le prénom ou l'entreprise si pertinent
+- Crée une légère curiosité ou sentiment d'urgence subtile
+- Spécifique à la formation/prestation concernée
+
+Exemples de bons objets : "Votre devis – formations facilitation graphique", "Votre inscription en attente – SuperTilt", "Suite à notre échange – quelques précisions"
 
 Réponds uniquement avec l'objet amélioré.`;
 
@@ -209,10 +213,10 @@ Réponds uniquement avec l'objet amélioré.`;
       }
 
       case "improve_email_body": {
-        const systemPrompt = `Tu es un expert en rédaction commerciale pour SuperTilt, organisme de formation professionnelle.
-Tu améliores les emails commerciaux pour les rendre plus professionnels, clairs et engageants.
-Tu conserves le sens et les informations clés du message original.
-Tu réponds UNIQUEMENT avec le contenu HTML amélioré de l'email, sans explication.`;
+        const systemPrompt = `Tu es un expert en rédaction d'emails commerciaux B2B pour SuperTilt, organisme de formation professionnelle certifié Qualiopi.
+Tu réécris les emails pour qu'ils soient plus percutants, chaleureux et orientés action.
+Ton style : phrases courtes et rythmées, direct mais bienveillant, focus sur la valeur pour le client, appel à l'action clair.
+Tu réponds UNIQUEMENT avec le contenu HTML amélioré, sans explication.`;
 
         const body = card_data.body || "";
         const subject = card_data.subject || "";
@@ -220,26 +224,27 @@ Tu réponds UNIQUEMENT avec le contenu HTML amélioré de l'email, sans explicat
         const firstName = card_data.first_name || "";
         const emailContext = card_data.context || "";
 
-        const userPrompt = `Améliore ce corps d'email commercial :
+        const userPrompt = `Réécris ce corps d'email pour le rendre plus percutant et efficace commercialement :
 
-Objet de l'email : "${subject}"
+Objet : "${subject}"
 ${company ? `Entreprise : ${company}` : ""}
-${firstName ? `Prénom du contact : ${firstName}` : ""}
+${firstName ? `Contact : ${firstName}` : ""}
+${emailContext ? `\nContexte de l'opportunité :\n${emailContext}` : ""}
 
-Corps actuel (HTML) :
+Email original (HTML) :
 ${body}
 
-${emailContext ? `Contexte de l'opportunité :\n${emailContext}` : ""}
+Objectifs de la réécriture :
+- Phrases plus courtes et rythmées (éviter les longues énumérations)
+- Ton direct mais chaleureux, comme si on parlait à quelqu'un qu'on connaît
+- Mettre en avant ce que ça apporte au client (bénéfices > caractéristiques)
+- Terminer par un appel à l'action clair et simple (ex: "Dites-moi si vous avez des questions", "Êtes-vous disponible pour en discuter ?")
+- Conserver le tutoiement/vouvoiement du message original
+- Conserver toutes les informations importantes
+- Format HTML avec balises <p>
+- Ne PAS ajouter de signature ni modifier les formules de politesse existantes
 
-Règles :
-- Conserve le format HTML avec des balises <p> et <br>
-- Garde le tutoiement/vouvoiement du message original
-- Améliore la clarté, le professionnalisme et l'impact
-- Conserve toutes les informations clés
-- Ne pas ajouter de signature ni de formule de politesse si absente
-- Pas de "Objet :" dans le corps
-
-Réponds uniquement avec le HTML amélioré du corps de l'email.`;
+Réponds uniquement avec le HTML amélioré.`;
 
         result = await callAnthropic(systemPrompt, userPrompt);
         break;
