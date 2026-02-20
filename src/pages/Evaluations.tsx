@@ -121,10 +121,18 @@ const Evaluations = () => {
   }, [navigate]);
 
   const checkDeletePermission = async (userEmail: string) => {
-    // Admin always has permission
-    if (userEmail.toLowerCase() === "romain@supertilt.fr") {
-      setCanDeleteEvaluations(true);
-      return;
+    // Admin always has permission - check via profiles table
+    const { data: { user: currentUser } } = await supabase.auth.getUser();
+    if (currentUser) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("is_admin")
+        .eq("user_id", currentUser.id)
+        .single();
+      if (profile?.is_admin) {
+        setCanDeleteEvaluations(true);
+        return;
+      }
     }
 
     // Check app_settings for allowed emails

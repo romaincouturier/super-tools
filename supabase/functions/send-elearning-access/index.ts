@@ -10,6 +10,7 @@ import {
   sendEmail,
   escapeHtml,
 } from "../_shared/mod.ts";
+import { getBccList } from "../_shared/email-settings.ts";
 
 serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
@@ -136,10 +137,11 @@ serve(async (req) => {
       ${signature}
     `;
 
-    // Send email to participant with BCC to romain@supertilt.fr
+    // Send email to participant with BCC
+    const bccList = await getBccList();
     const result = await sendEmail({
       to: [participant.email],
-      bcc: ["romain@supertilt.fr"],
+      bcc: bccList,
       subject: emailSubject,
       html: htmlEmail,
     });

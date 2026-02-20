@@ -2,6 +2,8 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { encode as base64Encode } from "https://deno.land/std@0.190.0/encoding/base64.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import { getSenderFrom, getSenderEmail, getBccList } from "../_shared/email-settings.ts";
+import { getSigniticSignature } from "../_shared/signitic.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -257,34 +259,8 @@ async function sendEmailWithResend(
 
   console.log("Using template:", customTemplate ? "custom" : "default");
 
-  // Fetch Signitic signature for romain@supertilt.fr
-  const signiticApiKey = Deno.env.get("SIGNITIC_API_KEY");
-  let emailSignature = "";
-  
-  if (signiticApiKey) {
-    try {
-      const signatureResponse = await fetch(
-        "https://api.signitic.app/signatures/romain@supertilt.fr/html",
-        {
-          headers: {
-            "x-api-key": signiticApiKey,
-          },
-        }
-      );
-      
-      if (signatureResponse.ok) {
-        const htmlContent = await signatureResponse.text();
-        if (htmlContent && !htmlContent.includes("error")) {
-          emailSignature = htmlContent;
-          console.log("Signitic signature fetched successfully");
-        }
-      } else {
-        console.warn("Could not fetch Signitic signature:", signatureResponse.status);
-      }
-    } catch (error) {
-      console.warn("Error fetching Signitic signature:", error);
-    }
-  }
+  // Fetch Signitic signature and email settings
+  const emailSignature = await getSigniticSignature();
 
   // Download PDFs based on type
   let pdfSansSubrogation: ArrayBuffer | null = null;
@@ -400,10 +376,13 @@ async function sendEmailWithResend(
     });
   }
   
+  const senderFrom = await getSenderFrom();
+  const bccList = await getBccList();
+
   const emailResponse = await resend.emails.send({
-    from: "Romain Couturier <romain@supertilt.fr>",
+    from: senderFrom,
     to: [emailCommanditaire],
-    bcc: ["romain@supertilt.fr", "supertilt@bcc.nocrm.io"],
+    bcc: bccList,
     subject,
     html: htmlContent,
     attachments,
@@ -497,10 +476,12 @@ serve(async (req: Request): Promise<Response> => {
           : "";
         const bodyWithAttachments = emailResult.htmlContent + attachmentInfo;
 
+        const contactEmail = await getSenderEmail();
+
         // Insert into crm_card_emails
         await supabase.from("crm_card_emails").insert({
           card_id: resolvedCrmCardId,
-          sender_email: body.senderEmail || "romain@supertilt.fr",
+          sender_email: body.senderEmail || contactEmail,
           recipient_email: body.emailCommanditaire,
           subject: emailResult.subject,
           body_html: bodyWithAttachments,
@@ -513,7 +494,7 @@ serve(async (req: Request): Promise<Response> => {
           old_value: null,
           new_value: `To: ${body.emailCommanditaire} - ${emailResult.subject}`,
           metadata: { source: "micro_devis", attachments: emailResult.attachmentNames },
-          actor_email: body.senderEmail || "romain@supertilt.fr",
+          actor_email: body.senderEmail || contactEmail,
         });
 
         // Schedule follow-up 3 working days later

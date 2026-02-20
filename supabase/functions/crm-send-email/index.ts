@@ -7,7 +7,9 @@ import {
   sendEmail,
   getSigniticSignature,
 } from "../_shared/mod.ts";
+import { getBccSettings } from "../_shared/bcc-settings.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import { getSenderEmail } from "../_shared/email-settings.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -101,10 +103,13 @@ serve(async (req) => {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     // Get sender email from auth result
-    const senderEmail = authResult.email || "romain@supertilt.fr";
+    const senderEmail = authResult.email || await getSenderEmail();
 
-    // Get Signitic signature
-    const emailSignature = await getSigniticSignature();
+    // Get Signitic signature and BCC settings
+    const [emailSignature, bccList] = await Promise.all([
+      getSigniticSignature(),
+      getBccSettings(supabase),
+    ]);
 
     // Process HTML to add inline styles for email compatibility
     const styledBodyHtml = addInlineStyles(body_html);
@@ -131,10 +136,9 @@ serve(async (req) => {
     // Send the email using Resend
     const emailResult = await sendEmail({
       to: [recipient_email],
-      from: "Romain Couturier <romain@supertilt.fr>",
       subject: subject,
       html: completeHtml,
-      bcc: ["romain@supertilt.fr", "supertilt@bcc.nocrm.io"],
+      bcc: bccList,
     });
 
     if (!emailResult.success) {

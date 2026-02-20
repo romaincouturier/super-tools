@@ -1,6 +1,8 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { Resend } from "https://esm.sh/resend@2.0.0";
+import { getSenderFrom, getBccList, getSenderEmail } from "../_shared/email-settings.ts";
+import { getSigniticSignature } from "../_shared/signitic.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -162,24 +164,6 @@ const uploadToDrive = async (
   return `https://drive.google.com/file/d/${result.id}/view`;
 };
 
-// Get Signitic signature
-const getSignature = async (): Promise<string> => {
-  try {
-    const response = await fetch(
-      "https://api.signitic.com/v1/signatures/26ef8e56-f3df-11ef-b723-42010a40000c/html",
-      {
-        headers: { "X-API-KEY": Deno.env.get("SIGNITIC_API_KEY") || "" },
-      }
-    );
-    if (response.ok) {
-      return await response.text();
-    }
-  } catch (e) {
-    console.log("Could not fetch Signitic signature:", e);
-  }
-  return "";
-};
-
 const handler = async (req: Request): Promise<Response> => {
   console.log("Process evaluation submission function called");
 
@@ -191,6 +175,23 @@ const handler = async (req: Request): Promise<Response> => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Fetch evaluation notification email from settings
+    const { data: evalNotifSetting } = await supabase
+      .from("app_settings")
+      .select("setting_value")
+      .eq("setting_key", "evaluation_notification_email")
+      .maybeSingle();
+    const evaluationNotificationEmail = evalNotifSetting?.setting_value || await getSenderEmail();
+
+    // Fetch website URLs from settings
+    const { data: urlSettings } = await supabase
+      .from("app_settings")
+      .select("setting_key, setting_value")
+      .in("setting_key", ["website_url", "youtube_url"]);
+
+    const websiteUrl = urlSettings?.find((s: any) => s.setting_key === "website_url")?.setting_value || "https://www.supertilt.fr";
+    const youtubeUrl = urlSettings?.find((s: any) => s.setting_key === "youtube_url")?.setting_value || "https://www.youtube.com/@supertilt";
 
     const { evaluationId }: ProcessRequest = await req.json();
 
@@ -245,7 +246,11 @@ const handler = async (req: Request): Promise<Response> => {
       }
     }
 
-    const signatureHtml = await getSignature();
+    const [signatureHtml, senderFrom, bccList] = await Promise.all([
+      getSigniticSignature(),
+      getSenderFrom(),
+      getBccList(),
+    ]);
 
     // Format participant info
     const firstName = evaluation.first_name || "";
@@ -391,9 +396,9 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // ========================================
-    // 3. Send notification to emmanuelle@supertilt.fr
+    // 3. Send evaluation notification email
     // ========================================
-    console.log("Sending notification to Emmanuelle...");
+    console.log(`Sending evaluation notification to ${evaluationNotificationEmail}...`);
 
     const consentText = evaluation.consent_publication ? "Oui, j'accepte la publication" : "Non, je veux rester anonyme";
     const nameDisplay = evaluation.consent_publication
@@ -405,7 +410,7 @@ const handler = async (req: Request): Promise<Response> => {
       : "";
 
     const notificationHtml = `
-      <p>Bonjour Emmanuelle,</p>
+      <p>Bonjour,</p>
       <p>Une nouvelle évaluation a été soumise et nécessite potentiellement la création d'un commentaire sur le site.</p>
       <hr>
       <p><strong>Formation :</strong> ${training.training_name}</p>
@@ -419,9 +424,9 @@ const handler = async (req: Request): Promise<Response> => {
     `;
 
     await resend.emails.send({
-      from: "Romain Couturier <romain@supertilt.fr>",
-      to: ["emmanuelle@supertilt.fr"],
-      bcc: ["romain@supertilt.fr", "supertilt@bcc.nocrm.io"],
+      from: senderFrom,
+      to: [evaluationNotificationEmail],
+      bcc: bccList,
       subject: `Commentaire à créer sur le site - ${training.training_name}`,
       html: notificationHtml,
     });
@@ -441,7 +446,7 @@ const handler = async (req: Request): Promise<Response> => {
       <p>Je te remercie pour ton évaluation.</p>
       <p>Tu trouveras en pièce jointe ton certificat de réalisation pour la formation <strong>${training.training_name}</strong>.</p>
       <p>Je te souhaite de bien exploiter tout ce que tu as vu pendant la formation !</p>
-      <p>Si tu souhaites aller plus loin, je t'invite à te rendre régulièrement sur <a href="https://www.supertilt.fr">www.supertilt.fr</a> et à consulter ma <a href="https://www.youtube.com/@supertilt">chaîne YouTube</a>.</p>
+      <p>Si tu souhaites aller plus loin, je t'invite à te rendre régulièrement sur <a href="${websiteUrl}">${websiteUrl.replace(/^https?:\/\/(www\.)?/, "")}</a> et à consulter ma <a href="${youtubeUrl}">chaîne YouTube</a>.</p>
       <p>Bonne continuation et à bientôt !</p>
       ${signatureHtml}
     `;
@@ -450,9 +455,9 @@ const handler = async (req: Request): Promise<Response> => {
     const pdfBase64 = btoa(String.fromCharCode(...pdfBytes));
 
     await resend.emails.send({
-      from: "Romain Couturier <romain@supertilt.fr>",
+      from: senderFrom,
       to: [email],
-      bcc: ["romain@supertilt.fr", "supertilt@bcc.nocrm.io"],
+      bcc: bccList,
       subject: `Ton certificat de réalisation pour la formation ${training.training_name}`,
       html: certificateEmailHtml,
       attachments: [
@@ -504,9 +509,9 @@ const handler = async (req: Request): Promise<Response> => {
       `;
 
       await resend.emails.send({
-        from: "Romain Couturier <romain@supertilt.fr>",
+        from: senderFrom,
         to: [email],
-        bcc: ["romain@supertilt.fr", "supertilt@bcc.nocrm.io"],
+        bcc: bccList,
         subject: `Ton accès à la formation en ligne à la Facilitation Graphique`,
         html: fgEmailHtml,
       });

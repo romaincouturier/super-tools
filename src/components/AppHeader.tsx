@@ -16,7 +16,7 @@ interface AppHeaderProps {
 const AppHeader = ({ showOnboarding = false }: AppHeaderProps) => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
-  const { hasAccess } = useModuleAccess();
+  const { hasAccess, isAdmin } = useModuleAccess();
   const [firstName, setFirstName] = useState<string | null>(null);
   const [failedEmailCount, setFailedEmailCount] = useState(0);
 
@@ -81,7 +81,7 @@ const AppHeader = ({ showOnboarding = false }: AppHeaderProps) => {
           )}
         </div>
         <div className="flex items-center gap-3">
-          {showOnboarding && <OnboardCollaboratorDialog userEmail={user?.email} />}
+          {showOnboarding && <OnboardCollaboratorDialog isAdmin={isAdmin} />}
           {failedEmailCount > 0 && (
             <TooltipProvider>
               <Tooltip>

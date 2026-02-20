@@ -23,6 +23,7 @@ serve(async (req) => {
     }
 
     const supabase = getSupabaseClient();
+    const appUrl = Deno.env.get("APP_URL") || "https://super-tools.lovable.app";
 
     // Fetch BCC settings and signature in parallel
     const [bccList, signature] = await Promise.all([
@@ -134,8 +135,7 @@ serve(async (req) => {
     }
 
     // Build questionnaire URL - use published domain
-    const baseUrl = "https://super-tools.lovable.app";
-    const questionnaireUrl = `${baseUrl}/questionnaire/${token}`;
+    const questionnaireUrl = `${appUrl}/questionnaire/${token}`;
 
     // Format training date
     const formattedDate = formatDateWithDayFr(training.start_date);

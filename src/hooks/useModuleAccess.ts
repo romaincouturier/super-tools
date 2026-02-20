@@ -81,8 +81,13 @@ export function useModuleAccess() {
 
       setUserEmail(user.email || null);
 
-      // Check if user is admin (romain@supertilt.fr)
-      const isAdminUser = user.email?.toLowerCase() === "romain@supertilt.fr";
+      // Check if user is admin via profiles table
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("is_admin")
+        .eq("user_id", user.id)
+        .single();
+      const isAdminUser = profile?.is_admin === true;
       setIsAdmin(isAdminUser);
 
       if (isAdminUser) {

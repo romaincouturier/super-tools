@@ -18,7 +18,7 @@ import { Loader2, UserPlus } from "lucide-react";
 import { AppModule, MODULE_LABELS } from "@/hooks/useModuleAccess";
 
 interface OnboardCollaboratorDialogProps {
-  userEmail?: string;
+  isAdmin?: boolean;
 }
 
 const ALL_MODULES: AppModule[] = [
@@ -42,7 +42,7 @@ const ALL_MODULES: AppModule[] = [
   "arena",
 ];
 
-const OnboardCollaboratorDialog = ({ userEmail }: OnboardCollaboratorDialogProps) => {
+const OnboardCollaboratorDialog = ({ isAdmin }: OnboardCollaboratorDialogProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [email, setEmail] = useState("");
   const [firstName, setFirstName] = useState("");
@@ -51,8 +51,8 @@ const OnboardCollaboratorDialog = ({ userEmail }: OnboardCollaboratorDialogProps
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  // Only romain@supertilt.fr can see and use this
-  if (userEmail?.toLowerCase() !== "romain@supertilt.fr") {
+  // Only admins can see and use this
+  if (!isAdmin) {
     return null;
   }
 

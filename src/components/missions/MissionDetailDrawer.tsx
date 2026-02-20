@@ -23,7 +23,7 @@ import { useUpdateMission, useDeleteMission } from "@/hooks/useMissions";
 import { useToast } from "@/hooks/use-toast";
 import MissionActivityTracker from "./MissionActivityTracker";
 import MissionPages from "./MissionPages";
-import MissionGallery from "./MissionGallery";
+import EntityMediaManager from "@/components/media/EntityMediaManager";
 import MissionContacts from "./MissionContacts";
 import EmojiPickerButton from "@/components/ui/emoji-picker-button";
 import { supabase } from "@/integrations/supabase/client";
@@ -269,7 +269,13 @@ const MissionDetailDrawer = ({
 
           {/* Gallery Tab */}
           <TabsContent value="gallery" className="mt-4">
-            <MissionGallery mission={mission} />
+            <EntityMediaManager
+              sourceType="mission"
+              sourceId={mission.id}
+              sourceLabel={mission.title}
+              variant="bare"
+              enablePaste
+            />
           </TabsContent>
 
           {/* Settings Tab */}

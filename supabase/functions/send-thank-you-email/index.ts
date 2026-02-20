@@ -128,7 +128,7 @@ serve(async (req) => {
     const supportsUrl = training.supports_url || "";
 
     // Base URL for evaluation links
-    const baseUrl = "https://super-tools.lovable.app";
+    const baseUrl = Deno.env.get("APP_URL") || "https://super-tools.lovable.app";
 
     // TEST MODE: Send only to the test email
     if (testEmail) {

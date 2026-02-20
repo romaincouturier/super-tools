@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getSenderEmail } from "../_shared/email-settings.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -65,7 +66,8 @@ serve(async (req) => {
       throw new Error("Non autorisé");
     }
 
-    if (user.email?.toLowerCase() !== "romain@supertilt.fr") {
+    const adminEmail = await getSenderEmail();
+    if (user.email?.toLowerCase() !== adminEmail.toLowerCase()) {
       throw new Error("Seul l'administrateur peut restaurer des sauvegardes");
     }
 

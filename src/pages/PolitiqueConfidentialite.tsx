@@ -1,9 +1,23 @@
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const PolitiqueConfidentialite = () => {
+  const [contactEmail, setContactEmail] = useState("");
+  const [contactName, setContactName] = useState("");
+
+  useEffect(() => {
+    supabase.rpc("get_public_contact").then(({ data }) => {
+      if (data && data.length > 0) {
+        setContactEmail(data[0].email || "");
+        setContactName(data[0].name || "");
+      }
+    });
+  }, []);
+
   return (
     <div className="min-h-screen bg-background p-4 md:p-6">
       <div className="mx-auto w-full max-w-3xl space-y-6">
@@ -27,7 +41,7 @@ const PolitiqueConfidentialite = () => {
                 collectées dans le cadre de ses activités de formation professionnelle.
               </p>
               <p className="text-muted-foreground">
-                <strong>Contact :</strong> romain@supertilt.fr
+                <strong>Contact :</strong> {contactEmail}
               </p>
             </section>
 
@@ -105,8 +119,8 @@ const PolitiqueConfidentialite = () => {
               </ul>
               <p className="text-muted-foreground mt-3">
                 Pour exercer ces droits, contactez-nous à :{" "}
-                <a href="mailto:romain@supertilt.fr" className="text-primary hover:underline">
-                  romain@supertilt.fr
+                <a href={`mailto:${contactEmail}`} className="text-primary hover:underline">
+                  {contactEmail}
                 </a>
               </p>
             </section>
@@ -118,9 +132,9 @@ const PolitiqueConfidentialite = () => {
                 référent handicap :
               </p>
               <p className="text-muted-foreground">
-                <strong>Romain Couturier</strong> -{" "}
-                <a href="mailto:romain@supertilt.fr" className="text-primary hover:underline">
-                  romain@supertilt.fr
+                <strong>{contactName}</strong> -{" "}
+                <a href={`mailto:${contactEmail}`} className="text-primary hover:underline">
+                  {contactEmail}
                 </a>
               </p>
             </section>

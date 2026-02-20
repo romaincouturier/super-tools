@@ -247,7 +247,7 @@ Ce témoignage pourrait être réalisé via une courte interview en visioconfér
 
 Si tu es partant(e), il te suffit de cliquer sur le lien ci-dessous pour convenir d'un moment ensemble :
 
-👉 Contacte-moi pour trouver un créneau : mailto:romain@supertilt.fr?subject=OK%20pour%20faire%20un%20t%C3%A9moignage%20Vid%C3%A9o&body=Salut%2C%0D%0A%0D%0AJe%20viens%20de%20recevoir%20ton%20mail%2C%20je%20suis%20partant%20pour%20faire%20un%20t%C3%A9moignage%20vid%C3%A9o%20%3A-)
+👉 Contacte-moi pour trouver un créneau : mailto:{{sender_email}}?subject=OK%20pour%20faire%20un%20t%C3%A9moignage%20Vid%C3%A9o&body=Salut%2C%0D%0A%0D%0AJe%20viens%20de%20recevoir%20ton%20mail%2C%20je%20suis%20partant%20pour%20faire%20un%20t%C3%A9moignage%20vid%C3%A9o%20%3A-)
 
 Merci d'avance pour ton temps et ton retour ! Je reste à disposition pour toute question ou précision.
 
@@ -260,7 +260,7 @@ Ce témoignage pourrait être réalisé via une courte interview en visioconfér
 
 Si vous êtes partant(e), il vous suffit de cliquer sur le lien ci-dessous pour convenir d'un moment ensemble :
 
-👉 Contactez-moi pour trouver un créneau : mailto:romain@supertilt.fr?subject=OK%20pour%20faire%20un%20t%C3%A9moignage%20Vid%C3%A9o&body=Bonjour%2C%0D%0A%0D%0AJe%20viens%20de%20recevoir%20votre%20mail%2C%20je%20suis%20partant%20pour%20faire%20un%20t%C3%A9moignage%20vid%C3%A9o.
+👉 Contactez-moi pour trouver un créneau : mailto:{{sender_email}}?subject=OK%20pour%20faire%20un%20t%C3%A9moignage%20Vid%C3%A9o&body=Bonjour%2C%0D%0A%0D%0AJe%20viens%20de%20recevoir%20votre%20mail%2C%20je%20suis%20partant%20pour%20faire%20un%20t%C3%A9moignage%20vid%C3%A9o.
 
 Merci d'avance pour votre temps et votre retour ! Je reste à disposition pour toute question ou précision.
 
@@ -537,7 +537,7 @@ Tu trouveras ci-joint la convention de formation pour <strong>{{training_name}}<
 {{#signature_link}}
 <p style="margin: 20px 0;"><a href="{{signature_link}}" style="display: inline-block; padding: 12px 24px; background-color: #e6bc00; color: #000; text-decoration: none; border-radius: 6px; font-weight: bold;">✍️ Signer la convention en ligne</a></p>
 
-Tu peux aussi la retourner signée par email à romain@supertilt.fr
+Tu peux aussi la retourner signée par email à {{sender_email}}
 {{/signature_link}}
 
 Je reste disponible si tu as la moindre question.
@@ -552,7 +552,7 @@ Vous trouverez ci-joint la convention de formation pour <strong>{{training_name}
 {{#signature_link}}
 <p style="margin: 20px 0;"><a href="{{signature_link}}" style="display: inline-block; padding: 12px 24px; background-color: #e6bc00; color: #000; text-decoration: none; border-radius: 6px; font-weight: bold;">✍️ Signer la convention en ligne</a></p>
 
-Vous pouvez également la retourner signée par email à romain@supertilt.fr
+Vous pouvez également la retourner signée par email à {{sender_email}}
 {{/signature_link}}
 
 Je reste à votre disposition pour toute question.
@@ -645,10 +645,16 @@ const Parametres = () => {
   const [activeMode, setActiveMode] = useState<Record<string, AddressMode>>({});
   
   // General settings
+  const [senderEmail, setSenderEmail] = useState("");
+  const [senderName, setSenderName] = useState("");
+  const [evaluationNotificationEmail, setEvaluationNotificationEmail] = useState("");
   const [bccEnabled, setBccEnabled] = useState(true);
-  const [bccEmail, setBccEmail] = useState("romain@supertilt.fr");
+  const [bccEmail, setBccEmail] = useState("");
   const [googleMyBusinessUrl, setGoogleMyBusinessUrl] = useState("https://g.page/r/CWJ0W_P6C-BJEAE/review");
   const [supertiltSiteUrl, setSupertiltSiteUrl] = useState("https://supertilt.fr");
+  const [websiteUrl, setWebsiteUrl] = useState("https://www.supertilt.fr");
+  const [youtubeUrl, setYoutubeUrl] = useState("https://www.youtube.com/@supertilt");
+  const [blogUrl, setBlogUrl] = useState("https://supertilt.fr/blog/");
   const [newsletterToolUrl, setNewsletterToolUrl] = useState("");
   const [savingSettings, setSavingSettings] = useState(false);
   const [tvaRate, setTvaRate] = useState("20");
@@ -678,11 +684,8 @@ const Parametres = () => {
   const [uploadingReglement, setUploadingReglement] = useState(false);
 
 
-  // Check if user is admin
-  const isAdmin = user?.email?.toLowerCase() === "romain@supertilt.fr";
-  
-  // Module access check
-  const { hasAccess, loading: accessLoading } = useModuleAccess();
+  // Module access check (isAdmin comes from profiles table)
+  const { hasAccess, isAdmin, loading: accessLoading } = useModuleAccess();
   
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -719,7 +722,9 @@ const Parametres = () => {
       .from("app_settings")
       .select("setting_key, setting_value")
       .in("setting_key", [
+        "sender_email", "sender_name", "evaluation_notification_email",
         "bcc_email", "bcc_enabled", "working_days", "google_my_business_url", "supertilt_site_url", "newsletter_tool_url",
+        "website_url", "youtube_url", "blog_url",
         "tva_rate",
         "delay_needs_survey_days", "delay_reminder_days", "delay_trainer_summary_days",
         "delay_google_review_days", "delay_video_testimonial_days",
@@ -737,6 +742,15 @@ const Parametres = () => {
     
     data?.forEach((setting) => {
       switch (setting.setting_key) {
+        case "sender_email":
+          setSenderEmail(setting.setting_value || "");
+          break;
+        case "sender_name":
+          setSenderName(setting.setting_value || "");
+          break;
+        case "evaluation_notification_email":
+          setEvaluationNotificationEmail(setting.setting_value || "");
+          break;
         case "bcc_email":
           setBccEmail(setting.setting_value || "");
           break;
@@ -751,6 +765,15 @@ const Parametres = () => {
           break;
         case "newsletter_tool_url":
           setNewsletterToolUrl(setting.setting_value || "");
+          break;
+        case "website_url":
+          setWebsiteUrl(setting.setting_value || "https://www.supertilt.fr");
+          break;
+        case "youtube_url":
+          setYoutubeUrl(setting.setting_value || "https://www.youtube.com/@supertilt");
+          break;
+        case "blog_url":
+          setBlogUrl(setting.setting_value || "https://supertilt.fr/blog/");
           break;
         case "tva_rate":
           setTvaRate(setting.setting_value || "20");
@@ -812,11 +835,17 @@ const Parametres = () => {
     setSavingSettings(true);
     try {
       const settingsToSave = [
+        { setting_key: "sender_email", setting_value: senderEmail, description: "Adresse email de l'expéditeur pour tous les envois" },
+        { setting_key: "sender_name", setting_value: senderName, description: "Nom de l'expéditeur pour tous les envois" },
+        { setting_key: "evaluation_notification_email", setting_value: evaluationNotificationEmail, description: "Email qui reçoit les notifications de nouvelles évaluations" },
         { setting_key: "bcc_email", setting_value: bccEmail, description: "Adresse email en copie cachée (BCC) pour tous les envois" },
         { setting_key: "bcc_enabled", setting_value: bccEnabled.toString(), description: "Activer ou désactiver l'envoi en copie cachée (BCC)" },
         { setting_key: "google_my_business_url", setting_value: googleMyBusinessUrl, description: "URL de la fiche Google My Business pour les demandes d'avis" },
         { setting_key: "supertilt_site_url", setting_value: supertiltSiteUrl, description: "URL du site SuperTilt pour les liens formations" },
         { setting_key: "newsletter_tool_url", setting_value: newsletterToolUrl, description: "URL de l'outil de newsletter (ex: Brevo, Mailchimp)" },
+        { setting_key: "website_url", setting_value: websiteUrl, description: "URL du site web principal" },
+        { setting_key: "youtube_url", setting_value: youtubeUrl, description: "URL de la chaîne YouTube" },
+        { setting_key: "blog_url", setting_value: blogUrl, description: "URL du blog" },
         { setting_key: "tva_rate", setting_value: tvaRate, description: "Taux de TVA par défaut en pourcentage (ex: 20 pour 20%)" },
         { setting_key: "working_days", setting_value: JSON.stringify(workingDays), description: "Jours ouvrables pour l'envoi des emails (tableau de 7 booléens : dim, lun, mar, mer, jeu, ven, sam)" },
         { setting_key: "delay_needs_survey_days", setting_value: delayNeedsSurvey, description: "Délai avant formation pour envoyer le questionnaire de besoins (en jours)" },
@@ -1275,6 +1304,50 @@ const Parametres = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-8">
+                {/* Sender Identity */}
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium">Identité de l'expéditeur</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Nom et email utilisés comme expéditeur pour tous les emails envoyés par l'application.
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-lg">
+                    <div className="space-y-2">
+                      <Label htmlFor="sender-name">Nom de l'expéditeur</Label>
+                      <Input
+                        id="sender-name"
+                        value={senderName}
+                        onChange={(e) => setSenderName(e.target.value)}
+                        placeholder="Romain Couturier"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="sender-email">Email de l'expéditeur</Label>
+                      <Input
+                        id="sender-email"
+                        type="email"
+                        value={senderEmail}
+                        onChange={(e) => setSenderEmail(e.target.value)}
+                        placeholder="romain@supertilt.fr"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2 max-w-lg">
+                    <Label htmlFor="evaluation-notification-email">Email de notification des évaluations</Label>
+                    <Input
+                      id="evaluation-notification-email"
+                      type="email"
+                      value={evaluationNotificationEmail}
+                      onChange={(e) => setEvaluationNotificationEmail(e.target.value)}
+                      placeholder="email@exemple.com"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Reçoit un email à chaque soumission d'évaluation par un participant (avis, consentement publication).
+                    </p>
+                  </div>
+                </div>
+
+                <Separator />
+
                 {/* BCC Settings */}
                 <div className="space-y-4">
                   <h3 className="text-sm font-medium">Copie cachée des emails</h3>
@@ -1370,6 +1443,48 @@ const Parametres = () => {
                       >
                         <ExternalLink className="h-4 w-4" />
                       </Button>
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Website, YouTube, Blog URLs */}
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium">Liens publics</h3>
+                  <p className="text-sm text-muted-foreground">
+                    URLs utilisées dans les emails envoyés aux participants (certificats, évaluations, etc.).
+                  </p>
+                  <div className="space-y-3 max-w-lg">
+                    <div className="space-y-2">
+                      <Label htmlFor="website-url">Site web</Label>
+                      <Input
+                        id="website-url"
+                        type="url"
+                        value={websiteUrl}
+                        onChange={(e) => setWebsiteUrl(e.target.value)}
+                        placeholder="https://www.supertilt.fr"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="youtube-url">Chaîne YouTube</Label>
+                      <Input
+                        id="youtube-url"
+                        type="url"
+                        value={youtubeUrl}
+                        onChange={(e) => setYoutubeUrl(e.target.value)}
+                        placeholder="https://www.youtube.com/@supertilt"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="blog-url">Blog</Label>
+                      <Input
+                        id="blog-url"
+                        type="url"
+                        value={blogUrl}
+                        onChange={(e) => setBlogUrl(e.target.value)}
+                        placeholder="https://supertilt.fr/blog/"
+                      />
                     </div>
                   </div>
                 </div>

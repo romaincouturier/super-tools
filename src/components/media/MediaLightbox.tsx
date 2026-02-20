@@ -1,15 +1,15 @@
-import { MediaItemWithMission } from "@/hooks/useMediaLibrary";
+import { MediaItem } from "@/hooks/useMedia";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { X, Briefcase, ChevronLeft, ChevronRight, Download, GraduationCap } from "lucide-react";
+import { X, Briefcase, ChevronLeft, ChevronRight, Download, GraduationCap, CalendarDays, HandCoins } from "lucide-react";
 import { toast } from "sonner";
 import { useEffect, useCallback } from "react";
 
 interface MediaLightboxProps {
-  item: MediaItemWithMission;
-  items: MediaItemWithMission[];
+  item: MediaItem;
+  items: MediaItem[];
   onClose: () => void;
-  onNavigate: (item: MediaItemWithMission) => void;
+  onNavigate: (item: MediaItem) => void;
 }
 
 const formatFileSize = (bytes: number | null) => {
@@ -17,6 +17,15 @@ const formatFileSize = (bytes: number | null) => {
   if (bytes < 1024) return `${bytes} o`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} Ko`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`;
+};
+
+const sourceIcon = (sourceType: string) => {
+  switch (sourceType) {
+    case "training": return <GraduationCap className="h-3 w-3 mr-1" />;
+    case "event": return <CalendarDays className="h-3 w-3 mr-1" />;
+    case "crm": return <HandCoins className="h-3 w-3 mr-1" />;
+    default: return <Briefcase className="h-3 w-3 mr-1" />;
+  }
 };
 
 const MediaLightbox = ({ item, items, onClose, onNavigate }: MediaLightboxProps) => {
@@ -122,12 +131,9 @@ const MediaLightbox = ({ item, items, onClose, onNavigate }: MediaLightboxProps)
       {/* Info bar */}
       <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-3 bg-black/60 backdrop-blur-sm px-4 py-2 rounded-lg">
         <Badge variant="secondary" className="bg-white/20 text-white border-0 text-xs">
-          {item.source === "training"
-            ? <GraduationCap className="h-3 w-3 mr-1" />
-            : <Briefcase className="h-3 w-3 mr-1" />
-          }
-          {item.mission_emoji ? `${item.mission_emoji} ` : ""}
-          {item.mission_title}
+          {sourceIcon(item.source_type)}
+          {item.source_emoji ? `${item.source_emoji} ` : ""}
+          {item.source_label}
         </Badge>
         <span className="text-white text-sm">{item.file_name}</span>
         {item.file_size && (

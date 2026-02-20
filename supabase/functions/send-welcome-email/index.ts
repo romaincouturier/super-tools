@@ -67,6 +67,7 @@ serve(async (req) => {
     }
 
     const supabase = getSupabaseClient();
+    const appUrl = Deno.env.get("APP_URL") || "https://super-tools.lovable.app";
 
     // Fetch BCC settings and signature in parallel
     const [bccList, signature] = await Promise.all([
@@ -144,7 +145,7 @@ serve(async (req) => {
     });
 
     // Build training summary page URL
-    const trainingSummaryUrl = `https://super-tools.lovable.app/formation-info/${trainingId}`;
+    const trainingSummaryUrl = `${appUrl}/formation-info/${trainingId}`;
 
     // Template variables
     const variables: Record<string, string> = {

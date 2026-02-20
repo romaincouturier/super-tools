@@ -82,6 +82,8 @@ const Questionnaire = () => {
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [retryCount, setRetryCount] = useState(0);
+  const [contactEmail, setContactEmail] = useState("");
+  const [contactName, setContactName] = useState("");
 
   const dirtyRef = useRef(false);
   const autosaveTimerRef = useRef<number | null>(null);
@@ -494,6 +496,13 @@ const Questionnaire = () => {
 
   useEffect(() => {
     fetchData();
+    // Fetch contact info from settings
+    supabase.rpc("get_public_contact").then(({ data }) => {
+      if (data && data.length > 0) {
+        setContactEmail(data[0].email || "");
+        setContactName(data[0].name || "");
+      }
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
@@ -725,7 +734,7 @@ const Questionnaire = () => {
             {retryCount > 0 && (
               <p className="text-xs text-muted-foreground mt-2">
                 Si le problème persiste, vérifiez votre connexion internet ou contactez-nous à{" "}
-                <a href="mailto:romain@supertilt.fr" className="text-primary hover:underline">romain@supertilt.fr</a>
+                <a href={`mailto:${contactEmail}`} className="text-primary hover:underline">{contactEmail}</a>
               </p>
             )}
           </CardContent>
@@ -1224,9 +1233,9 @@ const Questionnaire = () => {
               )}
             </div>
             <p className="text-sm text-muted-foreground border-l-2 border-primary pl-3">
-              Notre référent handicap : <strong>Romain Couturier</strong> -{" "}
-              <a href="mailto:romain@supertilt.fr" className="text-primary hover:underline">
-                romain@supertilt.fr
+              Notre référent handicap : <strong>{contactName}</strong> -{" "}
+              <a href={`mailto:${contactEmail}`} className="text-primary hover:underline">
+                {contactEmail}
               </a>
             </p>
           </CardContent>
