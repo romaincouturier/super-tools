@@ -32,7 +32,7 @@ serve(async (req) => {
     // Fetch CRM cards with waiting_next_action_date = today and sales_status OPEN
     const { data: dueCards, error: fetchError } = await supabase
       .from("crm_cards")
-      .select("id, title, company, first_name, last_name, email, waiting_next_action_date, waiting_next_action_text, status_operational")
+      .select("id, title, company, first_name, last_name, email, phone, waiting_next_action_date, waiting_next_action_text, status_operational")
       .eq("waiting_next_action_date", today)
       .eq("sales_status", "OPEN");
 
@@ -59,7 +59,6 @@ serve(async (req) => {
     ]);
 
     const recipientEmail = "romain@supertilt.fr";
-    const results: { id: string; title: string; success: boolean; error?: string }[] = [];
 
     // Build a single digest email with all due actions
     const actionRows = dueCards.map((card) => {
@@ -69,13 +68,23 @@ serve(async (req) => {
         : card.title;
       const actionText = card.waiting_next_action_text || "Action à réaliser";
 
+      // Build contact info with clickable phone and email
+      const contactParts: string[] = [];
+      if (contactName) contactParts.push(`<span style="color: #374151; font-weight: 500;">${contactName}</span>`);
+      if (card.phone) {
+        contactParts.push(`<a href="tel:${card.phone.replace(/\s/g, "")}" style="color: #2563eb; text-decoration: none; font-size: 13px;">📞 ${card.phone}</a>`);
+      }
+      if (card.email) {
+        contactParts.push(`<a href="mailto:${card.email}" style="color: #2563eb; text-decoration: none; font-size: 13px;">✉️ ${card.email}</a>`);
+      }
+
       return `
         <tr>
-          <td style="padding: 8px 12px; border-bottom: 1px solid #e5e7eb;">
-            <strong>${label}</strong>
-            ${contactName ? `<br/><span style="color: #6b7280; font-size: 13px;">${contactName}</span>` : ""}
+          <td style="padding: 10px 12px; border-bottom: 1px solid #e5e7eb; vertical-align: top;">
+            <strong style="color: #111827;">${label}</strong>
+            ${contactParts.length > 0 ? `<br/><span style="display: flex; flex-direction: column; gap: 2px; margin-top: 4px;">${contactParts.map(p => `<span>${p}</span>`).join("")}</span>` : ""}
           </td>
-          <td style="padding: 8px 12px; border-bottom: 1px solid #e5e7eb;">${actionText}</td>
+          <td style="padding: 10px 12px; border-bottom: 1px solid #e5e7eb; vertical-align: top; color: #374151;">${actionText}</td>
         </tr>
       `;
     }).join("");
