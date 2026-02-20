@@ -1,6 +1,8 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { Resend } from "https://esm.sh/resend@2.0.0";
+import { getSenderFrom, getBccList } from "../_shared/email-settings.ts";
+import { getSigniticSignature } from "../_shared/signitic.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -162,24 +164,6 @@ const uploadToDrive = async (
   return `https://drive.google.com/file/d/${result.id}/view`;
 };
 
-// Get Signitic signature
-const getSignature = async (): Promise<string> => {
-  try {
-    const response = await fetch(
-      "https://api.signitic.com/v1/signatures/26ef8e56-f3df-11ef-b723-42010a40000c/html",
-      {
-        headers: { "X-API-KEY": Deno.env.get("SIGNITIC_API_KEY") || "" },
-      }
-    );
-    if (response.ok) {
-      return await response.text();
-    }
-  } catch (e) {
-    console.log("Could not fetch Signitic signature:", e);
-  }
-  return "";
-};
-
 const handler = async (req: Request): Promise<Response> => {
   console.log("Process evaluation submission function called");
 
@@ -245,7 +229,11 @@ const handler = async (req: Request): Promise<Response> => {
       }
     }
 
-    const signatureHtml = await getSignature();
+    const [signatureHtml, senderFrom, bccList] = await Promise.all([
+      getSigniticSignature(),
+      getSenderFrom(),
+      getBccList(),
+    ]);
 
     // Format participant info
     const firstName = evaluation.first_name || "";
@@ -419,9 +407,9 @@ const handler = async (req: Request): Promise<Response> => {
     `;
 
     await resend.emails.send({
-      from: "Romain Couturier <romain@supertilt.fr>",
+      from: senderFrom,
       to: ["emmanuelle@supertilt.fr"],
-      bcc: ["romain@supertilt.fr", "supertilt@bcc.nocrm.io"],
+      bcc: bccList,
       subject: `Commentaire à créer sur le site - ${training.training_name}`,
       html: notificationHtml,
     });
@@ -450,9 +438,9 @@ const handler = async (req: Request): Promise<Response> => {
     const pdfBase64 = btoa(String.fromCharCode(...pdfBytes));
 
     await resend.emails.send({
-      from: "Romain Couturier <romain@supertilt.fr>",
+      from: senderFrom,
       to: [email],
-      bcc: ["romain@supertilt.fr", "supertilt@bcc.nocrm.io"],
+      bcc: bccList,
       subject: `Ton certificat de réalisation pour la formation ${training.training_name}`,
       html: certificateEmailHtml,
       attachments: [
@@ -504,9 +492,9 @@ const handler = async (req: Request): Promise<Response> => {
       `;
 
       await resend.emails.send({
-        from: "Romain Couturier <romain@supertilt.fr>",
+        from: senderFrom,
         to: [email],
-        bcc: ["romain@supertilt.fr", "supertilt@bcc.nocrm.io"],
+        bcc: bccList,
         subject: `Ton accès à la formation en ligne à la Facilitation Graphique`,
         html: fgEmailHtml,
       });

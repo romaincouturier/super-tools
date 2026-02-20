@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { encode as base64Encode } from "https://deno.land/std@0.190.0/encoding/base64.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
+import { getSenderFrom, getSenderEmail, getBccList } from "../_shared/email-settings.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -31,7 +32,8 @@ function generateICS(
   clientName: string,
   location: string,
   schedules: TrainingSchedule[],
-  trainerEmail: string
+  trainerEmail: string,
+  organizerEmail: string
 ): string {
   const uid = crypto.randomUUID();
   const now = new Date();
@@ -56,7 +58,7 @@ DTEND:${formatICSDateTime(endDate)}
 SUMMARY:Formation: ${escapeICS(trainingName)} - ${escapeICS(clientName)}
 DESCRIPTION:Formation pour ${escapeICS(clientName)}\\n\\nFormateur: Vous etes le formateur de cette session.
 LOCATION:${escapeICS(location)}
-ORGANIZER;CN=Supertilt:mailto:romain@supertilt.fr
+ORGANIZER;CN=Supertilt:mailto:${organizerEmail}
 ATTENDEE;ROLE=REQ-PARTICIPANT;PARTSTAT=ACCEPTED;CN=${escapeICS(trainerEmail)}:mailto:${trainerEmail}
 STATUS:CONFIRMED
 END:VEVENT
@@ -134,17 +136,22 @@ serve(async (req: Request): Promise<Response> => {
 
     const resend = new Resend(resendApiKey);
 
-    // Generate ICS file and fetch signature in parallel
-    const [icsContent, emailSignature] = await Promise.all([
-      Promise.resolve(generateICS(
-        trainingName,
-        clientName,
-        location,
-        schedules,
-        trainerEmail
-      )),
+    // Fetch email settings, signature, and generate ICS in parallel
+    const [organizerEmail, senderFrom, bccList, emailSignature] = await Promise.all([
+      getSenderEmail(),
+      getSenderFrom(),
+      getBccList(),
       getSigniticSignature(),
     ]);
+
+    const icsContent = generateICS(
+      trainingName,
+      clientName,
+      location,
+      schedules,
+      trainerEmail,
+      organizerEmail
+    );
 
     // Build schedule list for email
     const scheduleList = schedules
@@ -188,9 +195,9 @@ serve(async (req: Request): Promise<Response> => {
 
     // Send email with ICS attachment
     const emailResponse = await resend.emails.send({
-      from: "Romain Couturier <romain@supertilt.fr>",
+      from: senderFrom,
       to: [trainerEmail],
-      bcc: ["romain@supertilt.fr", "supertilt@bcc.nocrm.io"],
+      bcc: bccList,
       subject: `Nouvelle formation : ${trainingName} - ${clientName}`,
       html: htmlContent,
       attachments: [

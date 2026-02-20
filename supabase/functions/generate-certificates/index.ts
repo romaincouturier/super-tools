@@ -1,6 +1,8 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { zipSync } from "https://esm.sh/fflate@0.8.2";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import { getSenderFrom, getBccList } from "../_shared/email-settings.ts";
+import { getSigniticSignature } from "../_shared/signitic.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -11,51 +13,6 @@ const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
-
-// Fetch Signitic signature for romain@supertilt.fr
-async function getSigniticSignature(): Promise<string> {
-  const signiticApiKey = Deno.env.get("SIGNITIC_API_KEY");
-
-  if (!signiticApiKey) {
-    console.warn("SIGNITIC_API_KEY not configured, using default signature");
-    return getDefaultSignature();
-  }
-
-  try {
-    const response = await fetch(
-      "https://api.signitic.app/signatures/romain@supertilt.fr/html",
-      {
-        headers: {
-          "x-api-key": signiticApiKey,
-        },
-      }
-    );
-
-    if (response.ok) {
-      const htmlContent = await response.text();
-      if (htmlContent && htmlContent.trim()) {
-        console.log("Signitic signature fetched successfully");
-        return htmlContent;
-      }
-    }
-
-    console.warn("Could not fetch Signitic signature:", response.status);
-    return getDefaultSignature();
-  } catch (error) {
-    console.error("Error fetching Signitic signature:", error);
-    return getDefaultSignature();
-  }
-}
-
-function getDefaultSignature(): string {
-  return `
-    <p>--</p>
-    <p><strong>Romain Couturier</strong><br>
-    Expert en agilité et gestion du temps, facilitateur graphique et facilitateur d'intelligence collective<br>
-    06 66 98 76 35<br>
-    <a href="https://www.supertilt.fr">www.supertilt.fr</a></p>
-  `;
-}
 
 interface Participant {
   prenom: string;
@@ -430,9 +387,11 @@ async function sendEmailWithResend(
   // HTML-escape user-provided data
   const safeParticipantFirstName = escapeHtml(participantFirstName);
   const safeFormationName = escapeHtml(formationName);
-  
+
   // Use first name only for greeting
   const greeting = safeParticipantFirstName ? `Bonjour ${safeParticipantFirstName},` : "Bonjour,";
+
+  const senderFrom = await getSenderFrom();
 
   // Send to participant
   const participantEmailResponse = await fetch("https://api.resend.com/emails", {
@@ -442,7 +401,7 @@ async function sendEmailWithResend(
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      from: "Romain Couturier <romain@supertilt.fr>",
+      from: senderFrom,
       to: [participantEmail],
       subject: `Ton certificat de réalisation pour la formation ${formationName}`,
       html: `
@@ -480,7 +439,7 @@ async function sendEmailWithResend(
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "Romain Couturier <romain@supertilt.fr>",
+        from: senderFrom,
         to: [emailDestinataire],
         subject: `[Copie] Certificat envoyé à ${participantName} - ${formationName}`,
         html: `
@@ -519,12 +478,15 @@ async function sendCertificatesToCommanditaire(
     throw new Error("RESEND_API_KEY is not set");
   }
 
+  const senderFrom = await getSenderFrom();
+  const bccList = await getBccList();
+
   // If only one PDF, send it directly without ZIP
   if (pdfDataList.length === 1) {
     const pdfData = pdfDataList[0];
     const pdfBase64 = btoa(String.fromCharCode(...pdfData.pdfBuffer));
 
-    console.log(`Sending single certificate to commanditaire: ${emailCommanditaire} (BCC: romain@supertilt.fr)`);
+    console.log(`Sending single certificate to commanditaire: ${emailCommanditaire}`);
 
     const emailResponse = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -533,9 +495,9 @@ async function sendCertificatesToCommanditaire(
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "Romain Couturier <romain@supertilt.fr>",
+        from: senderFrom,
         to: [emailCommanditaire],
-        bcc: ["romain@supertilt.fr"],
+        bcc: bccList,
         subject: `Certificat de réalisation - Formation ${formationName}`,
         html: `
           <p>Bonjour,</p>
@@ -575,7 +537,7 @@ async function sendCertificatesToCommanditaire(
 
   const zipFileName = `Certificats_${formationName.replace(/\s+/g, "_")}.zip`;
 
-  console.log(`Sending ZIP to commanditaire: ${emailCommanditaire} (BCC: romain@supertilt.fr)`);
+  console.log(`Sending ZIP to commanditaire: ${emailCommanditaire}`);
 
   const emailResponse = await fetch("https://api.resend.com/emails", {
     method: "POST",
@@ -584,9 +546,9 @@ async function sendCertificatesToCommanditaire(
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      from: "Romain Couturier <romain@supertilt.fr>",
+      from: senderFrom,
       to: [emailCommanditaire],
-      bcc: ["romain@supertilt.fr"],
+      bcc: bccList,
       subject: `Certificats de réalisation - Formation ${formationName}`,
       html: `
         <p>Bonjour,</p>

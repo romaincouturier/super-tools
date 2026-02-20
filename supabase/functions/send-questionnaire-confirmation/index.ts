@@ -1,84 +1,13 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getSenderFrom, getSenderEmail, getBccList } from "../_shared/email-settings.ts";
+import { getSigniticSignature } from "../_shared/signitic.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
 };
-
-// Fetch Signitic signature for romain@supertilt.fr
-async function getSigniticSignature(): Promise<string> {
-  const signiticApiKey = Deno.env.get("SIGNITIC_API_KEY");
-  
-  if (!signiticApiKey) {
-    console.warn("SIGNITIC_API_KEY not configured, using default signature");
-    return getDefaultSignature();
-  }
-
-  try {
-    const response = await fetch(
-      "https://api.signitic.app/signatures/romain@supertilt.fr/html",
-      {
-        headers: {
-          "x-api-key": signiticApiKey,
-        },
-      }
-    );
-
-    if (response.ok) {
-      const htmlContent = await response.text();
-      if (htmlContent && !htmlContent.includes("error")) {
-        console.log("Signitic signature fetched successfully");
-        return htmlContent;
-      }
-    }
-    
-    console.warn("Could not fetch Signitic signature:", response.status);
-    return getDefaultSignature();
-  } catch (error) {
-    console.error("Error fetching Signitic signature:", error);
-    return getDefaultSignature();
-  }
-}
-
-function getDefaultSignature(): string {
-  return `<p style="margin-top: 20px; color: #666; font-size: 14px;">
-    <strong>Romain Couturier</strong><br/>
-    <a href="https://www.supertilt.fr" style="color: #1a1a2e; text-decoration: underline;">SuperTilt Formation</a><br/>
-    <a href="mailto:romain@supertilt.fr">romain@supertilt.fr</a>
-  </p>`;
-}
-
-// Fetch BCC settings from app_settings
-// deno-lint-ignore no-explicit-any
-async function getBccSettings(supabase: any): Promise<string[]> {
-  const { data: bccSettings } = await supabase
-    .from("app_settings")
-    .select("setting_key, setting_value")
-    .in("setting_key", ["bcc_email", "bcc_enabled"]);
-  
-  let bccEnabled = true;
-  let bccEmailValue: string | null = null;
-  
-  bccSettings?.forEach((s: { setting_key: string; setting_value: string | null }) => {
-    if (s.setting_key === "bcc_enabled") {
-      bccEnabled = s.setting_value === "true";
-    }
-    if (s.setting_key === "bcc_email" && s.setting_value) {
-      bccEmailValue = s.setting_value;
-    }
-  });
-  
-  const bccList: string[] = [];
-  if (bccEnabled && bccEmailValue) {
-    bccList.push(bccEmailValue);
-  }
-  bccList.push("supertilt@bcc.nocrm.io");
-  
-  console.log("BCC settings - enabled:", bccEnabled, "email:", bccEmailValue, "final list:", bccList.join(", "));
-  return bccList;
-}
 
 // Format date to Google Calendar format: YYYYMMDDTHHMMSS
 function formatDateForCalendar(dateStr: string, timeStr: string): string {
@@ -97,7 +26,8 @@ function generatePerDayCalendarLinks(
   endDate: string,
   schedules: Array<{ day_date: string; start_time: string; end_time: string }>
 ): Array<{ label: string; google: string; outlook: string }> {
-  const description = `Formation Supertilt: ${trainingName}\n\nContact: Romain Couturier\nTéléphone: 06 66 98 76 35\nEmail: romain@supertilt.fr`;
+  const senderEmail = await getSenderEmail();
+  const description = `Formation Supertilt: ${trainingName}\n\nEmail: ${senderEmail}`;
   
   const sortedSchedules = schedules && schedules.length > 0
     ? [...schedules].sort((a, b) => a.day_date.localeCompare(b.day_date))
@@ -172,7 +102,7 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Fetch BCC settings
-    const bccList = await getBccSettings(supabase);
+    const bccList = await getBccList();
 
     // Fetch training info
     let trainingName = "";
@@ -214,8 +144,12 @@ serve(async (req) => {
       schedules || []
     );
 
-    // Get signature
-    const signature = await getSigniticSignature();
+    // Get signature and sender info
+    const [signature, senderEmail, senderFrom] = await Promise.all([
+      getSigniticSignature(),
+      getSenderEmail(),
+      getSenderFrom(),
+    ]);
 
     const firstName = participantFirstName || "participant";
 
@@ -275,7 +209,7 @@ serve(async (req) => {
       
       <p>Tu peux aussi flâner sur notre <a href="https://www.youtube.com/c/SuperTilt">chaîne YouTube</a> et notre <a href="https://supertilt.fr/blog/">blog</a> sur lesquels tu trouveras des éléments en rapport avec le programme.</p>
       
-      <p>Si tu as la moindre question, je reste à ta disposition par téléphone : <strong>06 66 98 76 35</strong> ou par mail <a href="mailto:romain@supertilt.fr">romain@supertilt.fr</a></p>
+      <p>Si tu as la moindre question, je reste à ta disposition par mail <a href="mailto:${senderEmail}">${senderEmail}</a></p>
       
       <p>À très vite,</p>
       
@@ -290,12 +224,12 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "Romain Couturier <romain@supertilt.fr>",
+        from: senderFrom,
         to: [participantEmail],
         bcc: bccList,
         subject: `Questionnaire complété - ${trainingName}`,
         html: htmlContent,
-        reply_to: "romain@supertilt.fr",
+        reply_to: senderEmail,
       }),
     });
 

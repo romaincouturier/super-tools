@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getSenderFrom, getSenderEmail } from "../_shared/email-settings.ts";
+import { getSigniticSignature } from "../_shared/signitic.ts";
 
 /**
  * Process Participant List Reminders
@@ -116,30 +118,12 @@ serve(async (req) => {
 
     const results: { trainingId: string; trainingName: string; sent: boolean; reason: string }[] = [];
 
-    // Fetch Signitic signature
-    let signature = "";
-    try {
-      const signiticApiKey = Deno.env.get("SIGNITIC_API_KEY");
-      if (signiticApiKey) {
-        const sigRes = await fetch(
-          "https://api.signitic.app/signatures/romain@supertilt.fr/html",
-          { headers: { "x-api-key": signiticApiKey } }
-        );
-        if (sigRes.ok) {
-          const html = await sigRes.text();
-          if (html && html.trim() && !html.includes("error")) signature = html;
-        }
-      }
-      if (!signature) {
-        signature = `<p style="margin-top:20px;">--</p>
-          <p style="font-size:14px;color:#333;">
-            <strong>Romain Couturier</strong><br>
-            Expert en agilité et gestion du temps<br>
-            06 66 98 76 35<br>
-            <a href="https://www.supertilt.fr" style="color:#0066cc;">www.supertilt.fr</a>
-          </p>`;
-      }
-    } catch (_e) { /* use default */ }
+    // Fetch Signitic signature and sender info
+    const [signature, defaultEmail, senderFrom] = await Promise.all([
+      getSigniticSignature(),
+      getSenderEmail(),
+      getSenderFrom(),
+    ]);
 
     for (const training of trainings) {
       // Count participants
@@ -184,7 +168,7 @@ serve(async (req) => {
       }
 
       // Get trainer info
-      let trainerEmail = "romain@supertilt.fr";
+      let trainerEmail = defaultEmail;
       let trainerFirstName = "Romain";
       if (training.trainer_id) {
         const { data: trainer } = await supabase
@@ -281,7 +265,7 @@ serve(async (req) => {
       } catch (_e) { /* no bcc */ }
 
       const emailPayload: Record<string, unknown> = {
-        from: "Romain Couturier <romain@supertilt.fr>",
+        from: senderFrom,
         to: [trainerEmail],
         subject,
         html: bodyHtml,

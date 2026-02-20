@@ -6,9 +6,9 @@
  */
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getSenderFrom } from "./email-settings.ts";
 
 const RESEND_API_URL = "https://api.resend.com/emails";
-const DEFAULT_FROM = "Romain Couturier <romain@supertilt.fr>";
 
 export interface EmailAttachment {
   filename: string;
@@ -90,8 +90,10 @@ export async function sendEmail(options: SendEmailOptions): Promise<SendEmailRes
         Authorization: `Bearer ${resendApiKey}`,
         "Content-Type": "application/json",
       },
+    const defaultFrom = await getSenderFrom();
+
       body: JSON.stringify({
-        from: options.from || DEFAULT_FROM,
+        from: options.from || defaultFrom,
         to: toArray,
         cc: options.cc,
         bcc: options.bcc,

@@ -15,8 +15,6 @@ import { validatePassword } from "@/lib/passwordValidation";
 import { useLoginAttempts } from "@/hooks/useLoginAttempts";
 import { cn } from "@/lib/utils";
 
-// Admin email - has full access to all modules
-const ADMIN_EMAIL = "romain@supertilt.fr";
 
 const Auth = () => {
   const [email, setEmail] = useState("");
@@ -148,7 +146,8 @@ const Auth = () => {
       } else {
         // Only admin can create accounts via signup form
         // Other users are created via onboarding process
-        if (email.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
+        const { data: isAllowed } = await supabase.rpc("is_signup_allowed", { p_email: email });
+        if (!isAllowed) {
           toast({
             title: "Inscription non autorisée",
             description: "Les nouveaux utilisateurs doivent être ajoutés via l'interface d'administration.",

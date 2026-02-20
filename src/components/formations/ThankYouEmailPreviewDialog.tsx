@@ -49,8 +49,8 @@ Pour finaliser cette formation, j'ai besoin que tu prennes quelques minutes pour
 Je te souhaite une bonne journée
 
 —
-Romain Couturier
-romain@supertilt.fr`;
+{{sender_name}}
+{{sender_email}}`;
 
 const DEFAULT_CONTENT_VOUS = `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
 
@@ -67,8 +67,8 @@ Pour finaliser cette formation, j'ai besoin que vous preniez quelques minutes po
 Je vous souhaite une bonne journée
 
 —
-Romain Couturier
-romain@supertilt.fr`;
+{{sender_name}}
+{{sender_email}}`;
 
 const DEFAULT_SUBJECT_TU = `Merci pour ta participation à la formation {{training_name}}`;
 const DEFAULT_SUBJECT_VOUS = `Merci pour votre participation à la formation {{training_name}}`;
@@ -256,7 +256,7 @@ const ThankYouEmailPreviewDialog = ({
             {/* Info note */}
             <p className="text-xs text-muted-foreground mt-3">
               Note : Chaque participant recevra un email personnalisé avec son prénom et un lien d'évaluation unique.
-              Une copie sera envoyée en BCC à romain@supertilt.fr.
+              Une copie sera envoyée en BCC à {{sender_email}}.
               {useTutoiement ? " (Mode tutoiement)" : " (Mode vouvoiement)"}
             </p>
 

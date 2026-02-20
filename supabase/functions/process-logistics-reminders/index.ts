@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getSenderFrom, getSenderEmail } from "../_shared/email-settings.ts";
 
 /**
  * Process Logistics & Convention Reminders
@@ -90,7 +91,7 @@ serve(async (req) => {
       .eq("role", "admin")
       .limit(1);
 
-    const adminEmail = adminProfiles?.[0]?.email || "romain@supertilt.fr";
+    const adminEmail = adminProfiles?.[0]?.email || await getSenderEmail();
 
     // Build alerts
     const alertSections: string[] = [];
@@ -340,6 +341,42 @@ serve(async (req) => {
       `);
     }
 
+    // ── 6. TRAININGS FINISHED WITHOUT INVOICE ──
+    const invoiceAlerts: string[] = [];
+
+    const { data: pastTrainings } = await supabase
+      .from("trainings")
+      .select("id, training_name, start_date, end_date, invoice_file_url")
+      .lt("start_date", today)
+      .is("invoice_file_url", null);
+
+    if (pastTrainings && pastTrainings.length > 0) {
+      for (const t of pastTrainings) {
+        const endDate = t.end_date || t.start_date;
+        // Only alert if training actually ended (end_date in the past)
+        if (new Date(endDate) >= new Date(today)) continue;
+
+        const daysAgo = Math.ceil((Date.now() - new Date(endDate).getTime()) / (1000 * 60 * 60 * 24));
+        const formattedDate = new Date(endDate).toLocaleDateString("fr-FR", {
+          day: "numeric",
+          month: "long",
+        });
+
+        invoiceAlerts.push(
+          `<li><a href="${appUrl}/formations/${t.id}" style="color: #1a1a2e; text-decoration: underline;">${t.training_name}</a> — terminée le ${formattedDate} (il y a ${daysAgo}j)</li>`
+        );
+      }
+    }
+
+    if (invoiceAlerts.length > 0) {
+      alertSections.push(`
+        <div style="margin-bottom: 24px;">
+          <h3 style="color: #EF4444; margin: 0 0 8px 0; font-size: 16px;">🧾 Formations terminées sans facture (${invoiceAlerts.length})</h3>
+          <ul style="margin: 0; padding-left: 20px;">${invoiceAlerts.join("")}</ul>
+        </div>
+      `);
+    }
+
     // ── SEND DIGEST EMAIL ──
     if (alertSections.length === 0) {
       console.log(`[${VERSION}] No alerts to send`);
@@ -349,7 +386,7 @@ serve(async (req) => {
       );
     }
 
-    const totalAlerts = logisticsAlerts.length + conventionNotGenerated.length + conventionNotSigned.length + failedEmailAlerts.length + pendingReviewAlerts.length;
+    const totalAlerts = logisticsAlerts.length + conventionNotGenerated.length + conventionNotSigned.length + failedEmailAlerts.length + pendingReviewAlerts.length + invoiceAlerts.length;
 
     const htmlContent = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -375,7 +412,7 @@ serve(async (req) => {
           Authorization: `Bearer ${resendApiKey}`,
         },
         body: JSON.stringify({
-          from: "Romain Couturier <romain@supertilt.fr>",
+          from: await getSenderFrom(),
           to: [adminEmail],
           subject: `🔔 ${totalAlerts} alerte${totalAlerts > 1 ? "s" : ""} formation${totalAlerts > 1 ? "s" : ""}`,
           html: htmlContent,
@@ -402,6 +439,7 @@ serve(async (req) => {
         conventionNotSigned: conventionNotSigned.length,
         failedEmails: failedEmailAlerts.length,
         pendingReviews: pendingReviewAlerts.length,
+        invoiceMissing: invoiceAlerts.length,
         total: totalAlerts,
         _version: VERSION,
       }),

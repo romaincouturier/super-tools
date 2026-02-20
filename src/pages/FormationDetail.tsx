@@ -34,6 +34,7 @@ import DocumentsManager from "@/components/formations/DocumentsManager";
 import ScheduledEmailsSummary from "@/components/formations/ScheduledEmailsSummary";
 import NeedsSurveySummaryDialog from "@/components/formations/NeedsSurveySummaryDialog";
 import AttendanceSignatureBlock from "@/components/formations/AttendanceSignatureBlock";
+import TrainingDocumentsSection from "@/components/formations/TrainingDocumentsSection";
 import ScheduledActionsEditor, { ScheduledAction } from "@/components/formations/ScheduledActionsEditor";
 import EntityMediaManager from "@/components/media/EntityMediaManager";
 import ThankYouEmailPreviewDialog from "@/components/formations/ThankYouEmailPreviewDialog";
@@ -1336,28 +1337,31 @@ const FormationDetail = () => {
         {/* Row 2: Documents + Scheduled Emails */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           {/* Left: Documents and Communication */}
-          <DocumentsManager
-            trainingId={training.id}
-            trainingName={training.training_name}
-            startDate={training.start_date}
-            endDate={training.end_date}
-            invoiceFileUrl={training.invoice_file_url}
-            attendanceSheetsUrls={training.attendance_sheets_urls || []}
-            sponsorEmail={training.sponsor_email}
-            sponsorName={getSponsorName()}
-            sponsorFirstName={training.sponsor_first_name}
-            sponsorFormalAddress={training.sponsor_formal_address}
-            supportsUrl={training.supports_url}
-            evaluationLink={training.evaluation_link}
-            formatFormation={training.format_formation}
-            conventionFileUrl={training.convention_file_url}
-            trainerName={training.trainer_name}
-            location={training.location}
-            schedules={schedules}
-            participants={participants}
-            signedConventionUrls={training.signed_convention_urls || []}
-            onUpdate={fetchTrainingData}
-          />
+          <div className="space-y-6">
+            <DocumentsManager
+              trainingId={training.id}
+              trainingName={training.training_name}
+              startDate={training.start_date}
+              endDate={training.end_date}
+              invoiceFileUrl={training.invoice_file_url}
+              attendanceSheetsUrls={training.attendance_sheets_urls || []}
+              sponsorEmail={training.sponsor_email}
+              sponsorName={getSponsorName()}
+              sponsorFirstName={training.sponsor_first_name}
+              sponsorFormalAddress={training.sponsor_formal_address}
+              supportsUrl={training.supports_url}
+              evaluationLink={training.evaluation_link}
+              formatFormation={training.format_formation}
+              conventionFileUrl={training.convention_file_url}
+              trainerName={training.trainer_name}
+              location={training.location}
+              schedules={schedules}
+              participants={participants}
+              signedConventionUrls={training.signed_convention_urls || []}
+              onUpdate={fetchTrainingData}
+            />
+            <TrainingDocumentsSection trainingId={id!} />
+          </div>
 
           {/* Right: Scheduled Emails */}
           <ScheduledEmailsSummary

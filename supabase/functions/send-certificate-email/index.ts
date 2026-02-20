@@ -12,6 +12,7 @@ const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
 // Get Signitic signature using shared module
 import { getSigniticSignature } from "../_shared/signitic.ts";
+import { getSenderFrom, getBccList } from "../_shared/email-settings.ts";
 const getSignature = getSigniticSignature;
 
 serve(async (req: Request): Promise<Response> => {
@@ -85,10 +86,13 @@ serve(async (req: Request): Promise<Response> => {
 
     const fileName = `Certificat_${training.training_name.replace(/[^a-zA-Z0-9]/g, "_")}_${participantName.replace(/\s+/g, "_")}.pdf`;
 
+    const senderFrom = await getSenderFrom();
+    const bccList = await getBccList();
+
     await resend.emails.send({
-      from: "Romain Couturier <romain@supertilt.fr>",
+      from: senderFrom,
       to: [recipientEmail],
-      bcc: ["romain@supertilt.fr", "supertilt@bcc.nocrm.io"],
+      bcc: bccList,
       subject: `Certificat de réalisation - ${training.training_name} - ${participantName}`,
       html: emailHtml,
       attachments: [{ filename: fileName, content: pdfBase64 }],

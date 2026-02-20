@@ -207,7 +207,7 @@ const Index = () => {
             duree: `${duree}h`,
             dateDebut,
             dateFin,
-            emailDestinataire: "romain@supertilt.fr",
+            emailDestinataire: user?.email || "",
             emailCommanditaire: emailCommanditaire.trim() || undefined,
             participants: parsedParticipants,
             userId: user?.id,

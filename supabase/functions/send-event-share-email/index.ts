@@ -10,6 +10,7 @@ import {
   formatDateWithDayFr,
   formatTime,
 } from "../_shared/mod.ts";
+import { getBccList } from "../_shared/email-settings.ts";
 
 interface ShareEventRequest {
   event_id: string;
@@ -189,12 +190,13 @@ serve(async (req) => {
 </html>
     `;
 
+    const bccList = await getBccList();
+
     const emailResult = await sendEmail({
       to: [recipient_email],
-      from: "Romain Couturier <romain@supertilt.fr>",
       subject: `📌 Événement partagé : ${event.title}`,
       html: completeHtml,
-      bcc: ["romain@supertilt.fr", "supertilt@bcc.nocrm.io"],
+      bcc: bccList,
     });
 
     if (!emailResult.success) {

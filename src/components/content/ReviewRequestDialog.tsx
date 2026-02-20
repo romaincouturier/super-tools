@@ -57,10 +57,20 @@ const ReviewRequestDialog = ({
 
       if (error) throw error;
 
-      setUsers([
-        { id: "emmanuelle", email: "emmanuelle@supertilt.fr" },
-        { id: "romain", email: "romain@supertilt.fr" },
-      ]);
+      if (data && data.length > 0) {
+        const userIds = data.map((d) => d.user_id);
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("user_id, email, display_name")
+          .in("user_id", userIds);
+
+        if (profiles) {
+          setUsers(profiles.map((p) => ({
+            id: p.user_id,
+            email: p.email,
+          })));
+        }
+      }
     } catch (error) {
       console.error("Error fetching users:", error);
     }

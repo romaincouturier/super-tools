@@ -436,7 +436,7 @@ export default function TrainerManager() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="Ex: romain@supertilt.fr"
+                placeholder="Ex: email@exemple.fr"
               />
             </div>
 

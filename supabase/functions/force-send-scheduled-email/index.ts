@@ -1,6 +1,8 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { Resend } from "https://esm.sh/resend@2.0.0";
+import { getSenderFrom, getSenderEmail, getBccList } from "../_shared/email-settings.ts";
+import { getSigniticSignature } from "../_shared/signitic.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -9,48 +11,6 @@ const corsHeaders = {
 };
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
-
-// Signitic signature fetching with fallback
-const SIGNITIC_API_URL = "https://api.signitic.app/signatures/romain@supertilt.fr/html";
-
-function getDefaultSignature(): string {
-  return `
-    <p style="margin-top: 20px;">--</p>
-    <p style="font-size: 14px; color: #333;">
-      <strong>Romain Couturier</strong><br>
-      Expert en agilité et gestion du temps, facilitateur graphique et facilitateur d'intelligence collective<br>
-      06 66 98 76 35<br>
-      <a href="https://www.supertilt.fr" style="color: #0066cc;">www.supertilt.fr</a>
-    </p>
-  `;
-}
-
-async function getSigniticSignature(): Promise<string> {
-  const signiticApiKey = Deno.env.get("SIGNITIC_API_KEY");
-  if (!signiticApiKey) {
-    console.warn("SIGNITIC_API_KEY not configured, using default signature");
-    return getDefaultSignature();
-  }
-
-  try {
-    const response = await fetch(SIGNITIC_API_URL, {
-      headers: { "x-api-key": signiticApiKey },
-    });
-
-    if (response.ok) {
-      const htmlContent = await response.text();
-      if (htmlContent && htmlContent.trim() && !htmlContent.includes("error")) {
-        console.log("Signitic signature fetched successfully");
-        return htmlContent;
-      }
-    }
-    console.warn("Could not fetch Signitic signature:", response.status);
-    return getDefaultSignature();
-  } catch (error) {
-    console.error("Error fetching Signitic signature:", error);
-    return getDefaultSignature();
-  }
-}
 
 interface ForceSendRequest {
   scheduledEmailId: string;
@@ -135,6 +95,9 @@ const handler = async (req: Request): Promise<Response> => {
     
     const googleReviewLink = gmbSetting?.setting_value || "https://g.page/r/CWJ0W_P6C-BJEAE/review";
     const coldEvaluationFormUrl = coldEvalSetting?.setting_value || "";
+
+    // Fetch sender email for use in templates
+    const senderEmail = await getSenderEmail();
 
     // Get Signitic signature using correct API URL with fallback
     const signatureHtml = await getSigniticSignature();
@@ -282,7 +245,7 @@ const handler = async (req: Request): Promise<Response> => {
 
       case "trainer_summary": {
         // Get trainer info from trainers table
-        let trainerEmail = "romain@supertilt.fr";
+        let trainerEmail = await getSenderEmail();
         let trainerFirstName = "Romain";
         if (training.trainer_id) {
           const { data: trainer } = await supabase
@@ -392,7 +355,7 @@ const handler = async (req: Request): Promise<Response> => {
           <p>J'espère que tu vas bien et que la formation <strong>"${training.training_name}"</strong> t'a apporté ce que tu en attendais.</p>
           <p>Ton retour d'expérience serait très précieux pour moi et pour les futurs participants. Serais-tu d'accord pour partager ton témoignage en vidéo ?</p>
           <p>Je te propose une courte interview ensemble via Zoom, cela prend seulement 10 minutes.</p>
-          <p><a href="mailto:romain@supertilt.fr?subject=OK%20pour%20faire%20un%20t%C3%A9moignage%20Vid%C3%A9o&body=Salut%2C%0D%0A%0D%0AJe%20viens%20de%20recevoir%20ton%20mail%2C%20je%20suis%20partant%20pour%20faire%20un%20t%C3%A9moignage%20vid%C3%A9o%20%3A-)" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Je suis partant(e) !</a></p>
+          <p><a href="mailto:${senderEmail}?subject=OK%20pour%20faire%20un%20t%C3%A9moignage%20Vid%C3%A9o&body=Salut%2C%0D%0A%0D%0AJe%20viens%20de%20recevoir%20ton%20mail%2C%20je%20suis%20partant%20pour%20faire%20un%20t%C3%A9moignage%20vid%C3%A9o%20%3A-)" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Je suis partant(e) !</a></p>
           <p>Les témoignages authentiques de personnes qui ont vraiment vécu la formation sont les plus inspirants pour ceux qui hésitent encore.</p>
           <p>Merci d'avance pour ton aide !</p>
           <p>Bonne journée</p>
@@ -463,8 +426,8 @@ const handler = async (req: Request): Promise<Response> => {
       }
 
       case "funder_reminder": {
-        // This email goes to the trainer (romain@supertilt.fr) to remind about contacting the funder
-        recipientEmail = "romain@supertilt.fr";
+        // This email goes to the sender to remind about contacting the funder
+        recipientEmail = await getSenderEmail();
         // Check participant-level financeur first, fallback to training-level
         const financeurName = participant?.financeur_name || training.financeur_name || "Financeur inconnu";
         const financeurUrl = participant?.financeur_url || training.financeur_url || "";
@@ -585,37 +548,15 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log(`Sending ${scheduledEmail.email_type} email to ${recipientEmail}`);
 
-    // Fetch BCC settings from app_settings
-    const { data: bccSettings } = await supabase
-      .from("app_settings")
-      .select("setting_key, setting_value")
-      .in("setting_key", ["bcc_enabled", "bcc_email"]);
+    // Fetch BCC list and sender from shared settings
+    const bccList = await getBccList();
+    const senderFrom = await getSenderFrom();
 
-    let bccEnabled = true;
-    let bccEmail = "romain@supertilt.fr";
-    
-    if (bccSettings) {
-      for (const setting of bccSettings) {
-        if (setting.setting_key === "bcc_enabled") {
-          bccEnabled = setting.setting_value === "true";
-        }
-        if (setting.setting_key === "bcc_email") {
-          bccEmail = setting.setting_value || "romain@supertilt.fr";
-        }
-      }
-    }
-
-    // Build BCC list
-    const bccList = ["supertilt@bcc.nocrm.io"]; // Always include nocrm.io
-    if (bccEnabled && bccEmail) {
-      bccList.push(bccEmail);
-    }
-
-    console.log(`BCC enabled: ${bccEnabled}, BCC list: ${bccList.join(", ")}`);
+    console.log(`BCC list: ${bccList.join(", ")}`);
 
     // Send the email
     const emailResponse = await resend.emails.send({
-      from: "Romain Couturier <romain@supertilt.fr>",
+      from: senderFrom,
       to: [recipientEmail],
       bcc: bccList,
       subject,

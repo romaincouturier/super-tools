@@ -1,6 +1,8 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import { getSenderFrom, getBccList } from "../_shared/email-settings.ts";
+import { getSigniticSignature } from "../_shared/signitic.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -28,46 +30,6 @@ function generateToken(): string {
   return Array.from(array)
     .map(b => b.toString(16).padStart(2, "0"))
     .join("");
-}
-
-// Fetch Signitic signature
-async function getSigniticSignature(): Promise<string> {
-  const signiticApiKey = Deno.env.get("SIGNITIC_API_KEY");
-
-  if (!signiticApiKey) {
-    return getDefaultSignature();
-  }
-
-  try {
-    const response = await fetch(
-      "https://api.signitic.app/signatures/romain@supertilt.fr/html",
-      {
-        headers: {
-          "x-api-key": signiticApiKey,
-        },
-      }
-    );
-
-    if (response.ok) {
-      const htmlContent = await response.text();
-      if (htmlContent && !htmlContent.includes("error")) {
-        return htmlContent;
-      }
-    }
-
-    return getDefaultSignature();
-  } catch (error) {
-    console.warn("Error fetching Signitic signature:", error);
-    return getDefaultSignature();
-  }
-}
-
-function getDefaultSignature(): string {
-  return `<p style="margin-top: 20px; color: #666; font-size: 14px;">
-    <strong>Romain Couturier</strong><br/>
-    <a href="https://www.supertilt.fr" style="color: #1a1a2e; text-decoration: underline;">SuperTilt Formation</a><br/>
-    <a href="mailto:romain@supertilt.fr">romain@supertilt.fr</a>
-  </p>`;
 }
 
 serve(async (req: Request): Promise<Response> => {
@@ -184,11 +146,12 @@ serve(async (req: Request): Promise<Response> => {
     `;
 
     // Send email
+    const [senderFrom, bccList] = await Promise.all([getSenderFrom(), getBccList()]);
     const resend = new Resend(resendApiKey);
     const emailResponse = await resend.emails.send({
-      from: "Romain Couturier <romain@supertilt.fr>",
+      from: senderFrom,
       to: [recipientEmail],
-      bcc: ["romain@supertilt.fr", "supertilt@bcc.nocrm.io"],
+      bcc: bccList,
       subject: `Signature de devis - Formation "${formationName}"`,
       html: htmlContent,
     });

@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getSenderFrom, getBccList } from "../_shared/email-settings.ts";
+import { getSigniticSignature } from "../_shared/signitic.ts";
 
 // Bump this when you deploy to confirm the latest code is running.
 const VERSION = "send-content-notification@2026-02-05.1";
@@ -8,79 +10,6 @@ const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
-
-// Fetch Signitic signature for romain@supertilt.fr
-async function getSigniticSignature(): Promise<string> {
-  const signiticApiKey = Deno.env.get("SIGNITIC_API_KEY");
-  
-  if (!signiticApiKey) {
-    console.warn("SIGNITIC_API_KEY not configured, using default signature");
-    return getDefaultSignature();
-  }
-
-  try {
-    const response = await fetch(
-      "https://api.signitic.app/signatures/romain@supertilt.fr/html",
-      {
-        headers: {
-          "x-api-key": signiticApiKey,
-        },
-      }
-    );
-
-    if (response.ok) {
-      const htmlContent = await response.text();
-      if (htmlContent && !htmlContent.includes("error")) {
-        console.log("Signitic signature fetched successfully");
-        return htmlContent;
-      }
-    }
-    
-    console.warn("Could not fetch Signitic signature:", response.status);
-    return getDefaultSignature();
-  } catch (error) {
-    console.error("Error fetching Signitic signature:", error);
-    return getDefaultSignature();
-  }
-}
-
-function getDefaultSignature(): string {
-  return `<p style="margin-top: 20px; color: #666; font-size: 14px;">
-    <strong>Romain Couturier</strong><br/>
-    <a href="https://www.supertilt.fr" style="color: #1a1a2e; text-decoration: underline;">SuperTilt Formation</a><br/>
-    <a href="mailto:romain@supertilt.fr">romain@supertilt.fr</a>
-  </p>`;
-}
-
-// Fetch BCC settings from app_settings
-// deno-lint-ignore no-explicit-any
-async function getBccSettings(supabase: any): Promise<string[]> {
-  const { data: bccSettings } = await supabase
-    .from("app_settings")
-    .select("setting_key, setting_value")
-    .in("setting_key", ["bcc_email", "bcc_enabled"]);
-  
-  let bccEnabled = true;
-  let bccEmailValue: string | null = null;
-  
-  bccSettings?.forEach((s: { setting_key: string; setting_value: string | null }) => {
-    if (s.setting_key === "bcc_enabled") {
-      bccEnabled = s.setting_value === "true";
-    }
-    if (s.setting_key === "bcc_email" && s.setting_value) {
-      bccEmailValue = s.setting_value;
-    }
-  });
-  
-  const bccList: string[] = [];
-  if (bccEnabled && bccEmailValue) {
-    bccList.push(bccEmailValue);
-  }
-  bccList.push("supertilt@bcc.nocrm.io");
-  
-  console.log("BCC settings - enabled:", bccEnabled, "email:", bccEmailValue, "final list:", bccList.join(", "));
-  return bccList;
-}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -118,7 +47,7 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Fetch BCC settings
-    const bccList = await getBccSettings(supabase);
+    const bccList = await getBccList();
 
     const normalizedType = String(type)
       .trim()
@@ -129,8 +58,9 @@ serve(async (req) => {
       `[${VERSION}] notification type=${normalizedType} to=${recipientEmail} cardId=${cardId ?? "(none)"}`
     );
 
-    // Get Signitic signature
+    // Get Signitic signature and sender from
     const signature = await getSigniticSignature();
+    const senderFrom = await getSenderFrom();
 
     let subject = "";
     let htmlContent = "";
@@ -249,7 +179,7 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "Romain Couturier <romain@supertilt.fr>",
+        from: senderFrom,
         to: [recipientEmail],
         bcc: bccList,
         subject,

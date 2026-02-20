@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { sendEmail } from "../_shared/resend.ts";
+import { getSenderEmail } from "../_shared/email-settings.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -11,7 +12,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const ALERT_EMAIL = "romain@supertilt.fr";
+// ALERT_EMAIL is fetched dynamically via getSenderEmail()
 
 interface TrainingIssue {
   trainingName: string;
@@ -46,6 +47,7 @@ serve(async (req: Request): Promise<Response> => {
 
   try {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    const ALERT_EMAIL = await getSenderEmail();
 
     // Fetch upcoming trainings (start_date >= today)
     const today = new Date().toISOString().split("T")[0];

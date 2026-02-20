@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import { getSenderFrom, getSenderEmail, getSenderName } from "../_shared/email-settings.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -59,7 +60,7 @@ serve(async (req: Request) => {
   }
 
   try {
-    // Verify the caller is authenticated and is romain@supertilt.fr
+    // Verify the caller is authenticated and is the admin
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       throw new Error("Non autorisé");
@@ -75,8 +76,9 @@ serve(async (req: Request) => {
       throw new Error("Non autorisé");
     }
     
-    if (callingUser.email?.toLowerCase() !== "romain@supertilt.fr") {
-      throw new Error("Seul romain@supertilt.fr peut créer des comptes collaborateurs");
+    const adminEmail = await getSenderEmail();
+    if (callingUser.email?.toLowerCase() !== adminEmail.toLowerCase()) {
+      throw new Error(`Seul ${adminEmail} peut créer des comptes collaborateurs`);
     }
 
     const { email, firstName, lastName, modules = [] }: RequestBody = await req.json();
@@ -165,6 +167,7 @@ serve(async (req: Request) => {
     // Send welcome email with temporary password
     const APP_URL = Deno.env.get("APP_URL") || "https://super-tools.lovable.app";
     
+    const [senderFrom, senderName] = await Promise.all([getSenderFrom(), getSenderName()]);
     const emailResponse = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
@@ -172,7 +175,7 @@ serve(async (req: Request) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "Romain Couturier <romain@supertilt.fr>",
+        from: senderFrom,
         to: [email],
         subject: "Bienvenue sur SuperTools - Vos identifiants de connexion",
         html: `
@@ -205,7 +208,7 @@ serve(async (req: Request) => {
           </ul>
           <p>À bientôt sur SuperTools !</p>
           <p>--<br>
-          <strong>Romain Couturier</strong><br>
+          <strong>${senderName}</strong><br>
           Supertilt</p>
         `,
       }),

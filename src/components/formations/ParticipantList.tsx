@@ -353,7 +353,7 @@ const ParticipantList = ({
             duree: trainingDuree,
             dateDebut: trainingStartDate,
             dateFin: trainingEndDate || trainingStartDate,
-            emailDestinataire: "romain@supertilt.fr",
+            emailDestinataire: session.data.session?.user?.email || "",
             participants: [{
               prenom: participant.first_name || "",
               nom: participant.last_name || "",

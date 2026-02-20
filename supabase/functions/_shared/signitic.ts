@@ -5,19 +5,19 @@
  * Falls back to a default signature if API is unavailable
  */
 
-const SIGNITIC_EMAIL = "romain@supertilt.fr";
-const SIGNITIC_API_URL = `https://api.signitic.app/signatures/${SIGNITIC_EMAIL}/html`;
+import { getSigniticUrl, getSenderName, getSenderEmail } from "./email-settings.ts";
 
 /**
  * Default signature HTML when Signitic API is unavailable
  */
-function getDefaultSignature(): string {
+async function getDefaultSignature(): Promise<string> {
+  const name = await getSenderName();
+  const email = await getSenderEmail();
   return `
     <p style="margin-top: 20px;">--</p>
     <p style="font-size: 14px; color: #333;">
-      <strong>Romain Couturier</strong><br>
-      Expert en agilité et gestion du temps, facilitateur graphique et facilitateur d'intelligence collective<br>
-      06 66 98 76 35<br>
+      <strong>${name}</strong><br>
+      <a href="mailto:${email}" style="color: #0066cc;">${email}</a><br>
       <a href="https://www.supertilt.fr" style="color: #0066cc;">www.supertilt.fr</a>
     </p>
   `;
@@ -37,7 +37,8 @@ export async function getSigniticSignature(): Promise<string> {
   }
 
   try {
-    const response = await fetch(SIGNITIC_API_URL, {
+    const apiUrl = await getSigniticUrl();
+    const response = await fetch(apiUrl, {
       headers: {
         "x-api-key": signiticApiKey,
       },

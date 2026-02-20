@@ -247,7 +247,7 @@ Ce témoignage pourrait être réalisé via une courte interview en visioconfér
 
 Si tu es partant(e), il te suffit de cliquer sur le lien ci-dessous pour convenir d'un moment ensemble :
 
-👉 Contacte-moi pour trouver un créneau : mailto:romain@supertilt.fr?subject=OK%20pour%20faire%20un%20t%C3%A9moignage%20Vid%C3%A9o&body=Salut%2C%0D%0A%0D%0AJe%20viens%20de%20recevoir%20ton%20mail%2C%20je%20suis%20partant%20pour%20faire%20un%20t%C3%A9moignage%20vid%C3%A9o%20%3A-)
+👉 Contacte-moi pour trouver un créneau : mailto:{{sender_email}}?subject=OK%20pour%20faire%20un%20t%C3%A9moignage%20Vid%C3%A9o&body=Salut%2C%0D%0A%0D%0AJe%20viens%20de%20recevoir%20ton%20mail%2C%20je%20suis%20partant%20pour%20faire%20un%20t%C3%A9moignage%20vid%C3%A9o%20%3A-)
 
 Merci d'avance pour ton temps et ton retour ! Je reste à disposition pour toute question ou précision.
 
@@ -260,7 +260,7 @@ Ce témoignage pourrait être réalisé via une courte interview en visioconfér
 
 Si vous êtes partant(e), il vous suffit de cliquer sur le lien ci-dessous pour convenir d'un moment ensemble :
 
-👉 Contactez-moi pour trouver un créneau : mailto:romain@supertilt.fr?subject=OK%20pour%20faire%20un%20t%C3%A9moignage%20Vid%C3%A9o&body=Bonjour%2C%0D%0A%0D%0AJe%20viens%20de%20recevoir%20votre%20mail%2C%20je%20suis%20partant%20pour%20faire%20un%20t%C3%A9moignage%20vid%C3%A9o.
+👉 Contactez-moi pour trouver un créneau : mailto:{{sender_email}}?subject=OK%20pour%20faire%20un%20t%C3%A9moignage%20Vid%C3%A9o&body=Bonjour%2C%0D%0A%0D%0AJe%20viens%20de%20recevoir%20votre%20mail%2C%20je%20suis%20partant%20pour%20faire%20un%20t%C3%A9moignage%20vid%C3%A9o.
 
 Merci d'avance pour votre temps et votre retour ! Je reste à disposition pour toute question ou précision.
 
@@ -537,7 +537,7 @@ Tu trouveras ci-joint la convention de formation pour <strong>{{training_name}}<
 {{#signature_link}}
 <p style="margin: 20px 0;"><a href="{{signature_link}}" style="display: inline-block; padding: 12px 24px; background-color: #e6bc00; color: #000; text-decoration: none; border-radius: 6px; font-weight: bold;">✍️ Signer la convention en ligne</a></p>
 
-Tu peux aussi la retourner signée par email à romain@supertilt.fr
+Tu peux aussi la retourner signée par email à {{sender_email}}
 {{/signature_link}}
 
 Je reste disponible si tu as la moindre question.
@@ -552,7 +552,7 @@ Vous trouverez ci-joint la convention de formation pour <strong>{{training_name}
 {{#signature_link}}
 <p style="margin: 20px 0;"><a href="{{signature_link}}" style="display: inline-block; padding: 12px 24px; background-color: #e6bc00; color: #000; text-decoration: none; border-radius: 6px; font-weight: bold;">✍️ Signer la convention en ligne</a></p>
 
-Vous pouvez également la retourner signée par email à romain@supertilt.fr
+Vous pouvez également la retourner signée par email à {{sender_email}}
 {{/signature_link}}
 
 Je reste à votre disposition pour toute question.
@@ -646,7 +646,7 @@ const Parametres = () => {
   
   // General settings
   const [bccEnabled, setBccEnabled] = useState(true);
-  const [bccEmail, setBccEmail] = useState("romain@supertilt.fr");
+  const [bccEmail, setBccEmail] = useState("");
   const [googleMyBusinessUrl, setGoogleMyBusinessUrl] = useState("https://g.page/r/CWJ0W_P6C-BJEAE/review");
   const [supertiltSiteUrl, setSupertiltSiteUrl] = useState("https://supertilt.fr");
   const [newsletterToolUrl, setNewsletterToolUrl] = useState("");
@@ -678,11 +678,8 @@ const Parametres = () => {
   const [uploadingReglement, setUploadingReglement] = useState(false);
 
 
-  // Check if user is admin
-  const isAdmin = user?.email?.toLowerCase() === "romain@supertilt.fr";
-  
-  // Module access check
-  const { hasAccess, loading: accessLoading } = useModuleAccess();
+  // Module access check (isAdmin comes from profiles table)
+  const { hasAccess, isAdmin, loading: accessLoading } = useModuleAccess();
   
   const navigate = useNavigate();
   const { toast } = useToast();

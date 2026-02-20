@@ -300,8 +300,8 @@ Nous restons à votre disposition pour toute question.
 À très bientôt !
 
 —
-Romain Couturier
-romain@supertilt.fr`;
+{{sender_name}}
+{{sender_email}}`;
 
       case "needs_survey":
         return `${greeting}
@@ -317,8 +317,8 @@ Ce questionnaire vous prendra environ 5 minutes et me permettra d'adapter le con
 Merci de le compléter au moins 2 jours avant la formation.
 
 —
-Romain Couturier
-romain@supertilt.fr`;
+{{sender_name}}
+{{sender_email}}`;
 
       case "reminder":
         return `${greeting}
@@ -336,8 +336,8 @@ N'hésitez pas à me contacter si vous avez des questions.
 À très bientôt !
 
 —
-Romain Couturier
-romain@supertilt.fr`;
+{{sender_name}}
+{{sender_email}}`;
 
       case "trainer_summary":
         return `Bonjour,
@@ -347,8 +347,8 @@ Voici la synthèse des besoins recueillis pour la formation "${training.training
 [Synthèse des réponses au questionnaire]
 
 —
-Romain Couturier
-romain@supertilt.fr`;
+{{sender_name}}
+{{sender_email}}`;
 
       case "thank_you":
         const supportsSection = training.supports_url 
@@ -367,8 +367,8 @@ Je suis curieux de voir comment vous allez utiliser tout ce que nous avons vu ! 
 Je vous souhaite une bonne journée
 
 —
-Romain Couturier
-romain@supertilt.fr`;
+{{sender_name}}
+{{sender_email}}`;
 
       case "google_review":
         return `${greeting}
@@ -387,8 +387,8 @@ Merci infiniment pour ton soutien et pour avoir participé à notre formation ! 
 À bientôt,
 
 —
-Romain Couturier
-romain@supertilt.fr`;
+{{sender_name}}
+{{sender_email}}`;
 
       case "video_testimonial":
         return `${greeting}
@@ -408,8 +408,8 @@ Merci d'avance pour ton aide !
 Bonne journée
 
 —
-Romain Couturier
-romain@supertilt.fr`;
+{{sender_name}}
+{{sender_email}}`;
 
       case "cold_evaluation":
         return `${greeting}
@@ -429,8 +429,8 @@ Merci énormément pour ton soutien :-)
 PS : on peut continuer à rester en contact sur LinkedIn et sur Instagram pour d'autres contenus sur le sujet de la formation.
 
 —
-Romain Couturier
-romain@supertilt.fr`;
+{{sender_name}}
+{{sender_email}}`;
 
       case "funder_reminder":
         return `Bonjour,
@@ -440,8 +440,8 @@ C'est le moment de contacter le financeur pour la formation "${training.training
 N'oublie pas de faire le bilan qualité avec eux !
 
 —
-Romain Couturier
-romain@supertilt.fr`;
+{{sender_name}}
+{{sender_email}}`;
 
       case "evaluation_reminder_1":
         return `${greeting}
@@ -458,8 +458,8 @@ Un grand merci d'avance pour ta contribution !
 Belle journée à toi
 
 —
-Romain Couturier
-romain@supertilt.fr`;
+{{sender_name}}
+{{sender_email}}`;
 
       case "evaluation_reminder_2":
         return `${greeting}
@@ -476,8 +476,8 @@ Je te remercie sincèrement pour ton aide et te souhaite une excellente continua
 À bientôt
 
 —
-Romain Couturier
-romain@supertilt.fr`;
+{{sender_name}}
+{{sender_email}}`;
 
       default:
         return "Contenu de l'email non disponible.";
@@ -841,7 +841,7 @@ romain@supertilt.fr`;
               {selectedEmail && getEmailTypeLabel(selectedEmail.email_type)}
             </DialogTitle>
             <DialogDescription>
-              De: Romain Couturier &lt;romain@supertilt.fr&gt;
+              De: {{sender_name}} &lt;{{sender_email}}&gt;
               <br />
               À: {selectedEmail && getParticipantName(selectedEmail.participant_id)}
             </DialogDescription>
