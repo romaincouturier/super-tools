@@ -105,6 +105,7 @@ const FormationDetail = () => {
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [copiedEmail, setCopiedEmail] = useState(false);
   const [copiedLocation, setCopiedLocation] = useState(false);
+  const [copiedParticipantEmails, setCopiedParticipantEmails] = useState(false);
   const [scheduledActions, setScheduledActions] = useState<ScheduledAction[]>([]);
   const [savingActions, setSavingActions] = useState(false);
   const [mapDialogOpen, setMapDialogOpen] = useState(false);
@@ -1116,8 +1117,36 @@ const FormationDetail = () => {
                     <Users className="h-5 w-5" />
                     Participants
                   </CardTitle>
-                  <CardDescription>
+                  <CardDescription className="flex items-center gap-1.5">
                     {participants.length} participant{participants.length !== 1 ? "s" : ""} inscrit{participants.length !== 1 ? "s" : ""}
+                    {participants.length > 0 && (
+                      <button
+                        type="button"
+                        className="p-0.5 rounded hover:bg-muted transition-colors"
+                        title="Copier tous les emails"
+                        onClick={() => {
+                          const emailList = participants
+                            .map((p) => {
+                              const name = [p.first_name, p.last_name].filter(Boolean).join(" ");
+                              return name ? `${name} <${p.email}>` : p.email;
+                            })
+                            .join(", ");
+                          navigator.clipboard.writeText(emailList);
+                          setCopiedParticipantEmails(true);
+                          toast({
+                            title: "Emails copiés",
+                            description: `${participants.length} adresse${participants.length > 1 ? "s" : ""} copiée${participants.length > 1 ? "s" : ""} pour Gmail.`,
+                          });
+                          setTimeout(() => setCopiedParticipantEmails(false), 2000);
+                        }}
+                      >
+                        {copiedParticipantEmails ? (
+                          <Check className="h-3.5 w-3.5 text-primary" />
+                        ) : (
+                          <Copy className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
+                        )}
+                      </button>
+                    )}
                   </CardDescription>
                 </div>
                 <div className="flex items-center gap-3 md:gap-4">
