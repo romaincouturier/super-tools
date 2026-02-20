@@ -59,7 +59,25 @@ serve(async (req) => {
       getBccSettings(supabase),
     ]);
 
-    const recipientEmail = await getSenderEmail();
+    // Get all users with CRM access (or admin)
+    const { data: allProfiles } = await supabase
+      .from("profiles")
+      .select("user_id, email, first_name, is_admin");
+
+    const { data: crmAccess } = await supabase
+      .from("user_module_access")
+      .select("user_id")
+      .eq("module", "crm");
+
+    const crmUserIds = new Set((crmAccess || []).map((m: any) => m.user_id));
+    const crmRecipients = (allProfiles || [])
+      .filter((p: any) => p.is_admin || crmUserIds.has(p.user_id))
+      .map((p: any) => p.email as string);
+
+    // Fallback to sender email if no CRM users found
+    if (crmRecipients.length === 0) {
+      crmRecipients.push(await getSenderEmail());
+    }
 
     // Build a single digest email with all due actions
     const actionRows = dueCards.map((card) => {
@@ -113,7 +131,7 @@ serve(async (req) => {
     `;
 
     const emailResult = await sendEmail({
-      to: [recipientEmail],
+      to: crmRecipients,
       subject: `🔔 CRM : ${dueCards.length} action${dueCards.length > 1 ? "s" : ""} programmée${dueCards.length > 1 ? "s" : ""} aujourd'hui`,
       html: htmlContent,
       bcc: bccList,

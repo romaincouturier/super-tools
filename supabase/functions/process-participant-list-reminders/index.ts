@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { getSenderFrom, getSenderEmail } from "../_shared/email-settings.ts";
+import { getSenderFrom, getSenderEmail, getSenderName } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
 
 /**
@@ -169,7 +169,7 @@ serve(async (req) => {
 
       // Get trainer info
       let trainerEmail = defaultEmail;
-      let trainerFirstName = "Romain";
+      let trainerFirstName = await getSenderName();
       if (training.trainer_id) {
         const { data: trainer } = await supabase
           .from("trainers")

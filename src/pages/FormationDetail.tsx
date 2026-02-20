@@ -72,6 +72,7 @@ interface Training {
   signed_convention_urls?: string[];
   elearning_duration?: number | null;
   notes?: string | null;
+  assigned_to?: string | null;
 }
 
 interface Schedule {
@@ -128,6 +129,7 @@ const FormationDetail = () => {
   const [showThankYouPreview, setShowThankYouPreview] = useState(false);
   const [sendingThankYou, setSendingThankYou] = useState(false);
   const [thankYouSentAt, setThankYouSentAt] = useState<string | null>(null);
+  const [assignedUserName, setAssignedUserName] = useState<string | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -208,6 +210,21 @@ const FormationDetail = () => {
     setTraining(trainingData);
     setNotes(trainingData.notes || "");
     setNotesChanged(false);
+
+    // Fetch assigned user name
+    if ((trainingData as any).assigned_to) {
+      const { data: assignedProfile } = await supabase
+        .from("profiles")
+        .select("first_name, last_name, email")
+        .eq("user_id", (trainingData as any).assigned_to)
+        .maybeSingle();
+      if (assignedProfile) {
+        const name = [assignedProfile.first_name, assignedProfile.last_name].filter(Boolean).join(" ");
+        setAssignedUserName(name || assignedProfile.email.split("@")[0]);
+      }
+    } else {
+      setAssignedUserName(null);
+    }
 
     // Fetch schedules
     const { data: schedulesData } = await supabase
@@ -975,6 +992,12 @@ const FormationDetail = () => {
                   <UserIcon className="h-3.5 w-3.5" />
                   {training.trainer_name}
                 </Badge>
+                {assignedUserName && (
+                  <Badge variant="outline" className="flex items-center gap-1.5 text-blue-600 border-blue-300">
+                    <UserIcon className="h-3.5 w-3.5" />
+                    {assignedUserName}
+                  </Badge>
+                )}
                 {schedules.length > 0 && (
                   <Badge variant="outline" className="flex items-center gap-1.5">
                     <Clock className="h-3.5 w-3.5" />

@@ -103,7 +103,7 @@ serve(async (req) => {
     }
 
     const periodLabel = period === "AM" ? "Matin" : "Après-midi";
-    const baseUrl = "https://super-tools.lovable.app";
+    const baseUrl = Deno.env.get("APP_URL") || "https://super-tools.lovable.app";
 
     let successCount = 0;
     let errorCount = 0;

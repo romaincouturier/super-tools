@@ -23,6 +23,7 @@ import ProgramSelector from "@/components/formations/ProgramSelector";
 import ObjectivesEditor from "@/components/formations/ObjectivesEditor";
 import TrainingNameCombobox, { FormationConfig } from "@/components/formations/TrainingNameCombobox";
 import TrainerSelector from "@/components/formations/TrainerSelector";
+import AssignedUserSelector from "@/components/formations/AssignedUserSelector";
 import SupertiltLinkCombobox from "@/components/formations/SupertiltLinkCombobox";
 
 const FormationEdit = () => {
@@ -61,7 +62,8 @@ const FormationEdit = () => {
   const [sponsorEmail, setSponsorEmail] = useState("");
   const [sponsorFormalAddress, setSponsorFormalAddress] = useState(true); // true = vouvoiement (default)
   const [trainerId, setTrainerId] = useState<string | null>(null);
-  
+  const [assignedTo, setAssignedTo] = useState<string | null>(null);
+
   // Financeur
   const [financeurSameAsSponsor, setFinanceurSameAsSponsor] = useState(true);
   const [financeurName, setFinanceurName] = useState("");
@@ -135,6 +137,7 @@ const FormationEdit = () => {
       setSponsorEmail(training.sponsor_email || "");
       setSponsorFormalAddress(training.sponsor_formal_address ?? true);
       setTrainerId(training.trainer_id || null);
+      setAssignedTo((training as any).assigned_to || null);
       setFinanceurSameAsSponsor(training.financeur_same_as_sponsor ?? true);
       setFinanceurName(training.financeur_name || "");
       setFinanceurUrl(training.financeur_url || "");
@@ -330,6 +333,7 @@ const FormationEdit = () => {
           sponsor_email: sponsorEmail || null,
           sponsor_formal_address: sponsorFormalAddress,
           trainer_id: trainerId || null,
+          assigned_to: assignedTo || null,
           financeur_same_as_sponsor: financeurSameAsSponsor,
           financeur_name: financeurSameAsSponsor ? null : (financeurName || null),
           financeur_url: financeurSameAsSponsor ? null : (financeurUrl || null),
@@ -731,6 +735,18 @@ const FormationEdit = () => {
                       value={trainerId}
                       onChange={setTrainerId}
                     />
+                  </div>
+
+                  {/* Assigned User */}
+                  <div className="space-y-2">
+                    <Label>Responsable (alertes)</Label>
+                    <AssignedUserSelector
+                      value={assignedTo}
+                      onChange={setAssignedTo}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      L'utilisateur assigné recevra les alertes quotidiennes pour cette formation
+                    </p>
                   </div>
 
                   {/* SuperTilt Link */}

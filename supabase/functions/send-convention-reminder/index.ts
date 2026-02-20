@@ -31,6 +31,7 @@ serve(async (req) => {
     }
 
     const supabase = getSupabaseClient();
+    const appUrl = Deno.env.get("APP_URL") || "https://super-tools.lovable.app";
 
     // Fetch BCC settings and signature in parallel
     const [bccList, signature] = await Promise.all([
@@ -119,8 +120,7 @@ serve(async (req) => {
     }
 
     // Build signature URL if token exists
-    const baseUrl = "https://super-tools.lovable.app";
-    const signatureUrl = signatureToken ? `${baseUrl}/signature-convention/${signatureToken}` : "";
+    const signatureUrl = signatureToken ? `${appUrl}/signature-convention/${signatureToken}` : "";
 
     // Fetch custom template
     const useFormal = isIntra ? training.sponsor_formal_address : true;

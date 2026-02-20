@@ -81,6 +81,7 @@ serve(async (req) => {
     }
 
     const supabase = getSupabaseClient();
+    const appUrl = Deno.env.get("APP_URL") || "https://super-tools.lovable.app";
 
     // Fetch the scheduled email
     const { data: scheduledEmail, error: scheduledError } = await supabase
@@ -197,8 +198,7 @@ serve(async (req) => {
     ]);
 
     // Build evaluation link
-    const baseUrl = "https://super-tools.lovable.app";
-    const evaluationLink = `${baseUrl}/evaluation/${evaluation.token}`;
+    const evaluationLink = `${appUrl}/evaluation/${evaluation.token}`;
 
     // Process templates with variables (don't escape - templates contain the content)
     const variables = {

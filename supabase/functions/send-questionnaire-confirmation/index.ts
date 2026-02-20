@@ -101,6 +101,15 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    // Fetch URLs from settings
+    const { data: urlSettings } = await supabase
+      .from("app_settings")
+      .select("setting_key, setting_value")
+      .in("setting_key", ["youtube_url", "blog_url"]);
+
+    const youtubeUrl = urlSettings?.find((s: any) => s.setting_key === "youtube_url")?.setting_value || "https://www.youtube.com/@supertilt";
+    const blogUrl = urlSettings?.find((s: any) => s.setting_key === "blog_url")?.setting_value || "https://supertilt.fr/blog/";
+
     // Fetch BCC settings
     const bccList = await getBccList();
 
@@ -207,7 +216,7 @@ serve(async (req) => {
       
       ${calendarSection}
       
-      <p>Tu peux aussi flâner sur notre <a href="https://www.youtube.com/c/SuperTilt">chaîne YouTube</a> et notre <a href="https://supertilt.fr/blog/">blog</a> sur lesquels tu trouveras des éléments en rapport avec le programme.</p>
+      <p>Tu peux aussi flâner sur notre <a href="${youtubeUrl}">chaîne YouTube</a> et notre <a href="${blogUrl}">blog</a> sur lesquels tu trouveras des éléments en rapport avec le programme.</p>
       
       <p>Si tu as la moindre question, je reste à ta disposition par mail <a href="mailto:${senderEmail}">${senderEmail}</a></p>
       

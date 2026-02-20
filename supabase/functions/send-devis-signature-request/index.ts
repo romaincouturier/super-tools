@@ -67,6 +67,7 @@ serve(async (req: Request): Promise<Response> => {
     }
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    const appUrl = Deno.env.get("APP_URL") || "https://super-tools.lovable.app";
 
     // Generate unique token
     const token = generateToken();
@@ -100,7 +101,7 @@ serve(async (req: Request): Promise<Response> => {
     }
 
     // Build signature URL
-    const signatureUrl = `https://super-tools.lovable.app/signature-devis/${token}`;
+    const signatureUrl = `${appUrl}/signature-devis/${token}`;
 
     // Get email signature
     const emailSignature = await getSigniticSignature();

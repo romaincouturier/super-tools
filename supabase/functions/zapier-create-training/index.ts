@@ -145,6 +145,7 @@ serve(async (req) => {
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
   const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+  const appUrl = Deno.env.get("APP_URL") || "https://super-tools.lovable.app";
 
   let requestBody: TrainingInput | null = null;
   let keyId: string | null = null;
@@ -294,7 +295,7 @@ serve(async (req) => {
         end_date: training.end_date,
         location: training.location,
         format_formation: training.format_formation,
-        url: `https://super-tools.lovable.app/formations/${training.id}`,
+        url: `${appUrl}/formations/${training.id}`,
       },
       participants_created: createdParticipants.length,
       schedules_created: requestBody!.schedules?.length || 0,

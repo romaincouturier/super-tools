@@ -135,6 +135,7 @@ serve(async (req: Request): Promise<Response> => {
     }
 
     const resend = new Resend(resendApiKey);
+    const appUrl = Deno.env.get("APP_URL") || "https://super-tools.lovable.app";
 
     // Fetch email settings, signature, and generate ICS in parallel
     const [organizerEmail, senderFrom, bccList, emailSignature] = await Promise.all([
@@ -181,7 +182,7 @@ serve(async (req: Request): Promise<Response> => {
         <p>Vous trouverez en piece jointe un fichier <strong>.ics</strong> que vous pouvez ouvrir pour ajouter cette formation directement a votre agenda (Outlook, Google Calendar, Apple Calendar, etc.).</p>
 
         <p style="margin-top: 24px;">
-          <a href="https://super-tools.lovable.app/formations/${trainingId}" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">
+          <a href="${appUrl}/formations/${trainingId}" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">
             Voir les details de la formation
           </a>
         </p>

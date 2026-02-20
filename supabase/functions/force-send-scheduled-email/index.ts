@@ -26,6 +26,7 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const appUrl = Deno.env.get("APP_URL") || "https://super-tools.lovable.app";
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const { scheduledEmailId }: ForceSendRequest = await req.json();
@@ -162,7 +163,7 @@ const handler = async (req: Request): Promise<Response> => {
       case "needs_survey": {
         recipientEmail = participant?.email || "";
         const surveyToken = participant?.needs_survey_token || "";
-        const surveyUrl = `https://super-tools.lovable.app/questionnaire/${surveyToken}`;
+        const surveyUrl = `${appUrl}/questionnaire/${surveyToken}`;
         subject = `${training.training_name} – Questionnaire de recueil des besoins`;
         htmlContent = `
           <p>${greeting}</p>
@@ -224,7 +225,7 @@ const handler = async (req: Request): Promise<Response> => {
           });
         }
 
-        const evaluationUrl = `https://super-tools.lovable.app/evaluation/${evaluationToken}`;
+        const evaluationUrl = `${appUrl}/evaluation/${evaluationToken}`;
         const supportsSection = training.supports_url
           ? `<p>${formalAddress ? "Vous trouverez" : "Tu trouveras"} également tous les supports de la formation ici :<br><a href="${training.supports_url}">${training.supports_url}</a></p>`
           : "";
@@ -365,7 +366,7 @@ const handler = async (req: Request): Promise<Response> => {
       }
 
       case "cold_evaluation": {
-        const coldAppUrl = Deno.env.get("APP_URL") || "https://super-tools.lovable.app";
+        const coldAppUrl = appUrl;
         // Determine sponsor email: participant-level sponsor_email for inter, training-level for intra
         const sponsorEmail = participant?.sponsor_email || training.sponsor_email || "";
         const sponsorName = participant?.sponsor_name || training.sponsor_name || "";
@@ -434,7 +435,6 @@ const handler = async (req: Request): Promise<Response> => {
         const participantName = participant
           ? [participant.first_name, participant.last_name].filter(Boolean).join(" ")
           : "";
-        const appUrl = Deno.env.get("APP_URL") || "https://super-tools.lovable.app";
         const trainingUrl = `${appUrl}/formations/${training.id}`;
 
         subject = `📋 Rappel : Contacter le financeur pour ${training.training_name}${participantName ? ` (${participantName})` : ""}`;
@@ -480,7 +480,7 @@ const handler = async (req: Request): Promise<Response> => {
           throw new Error("No evaluation record found for participant");
         }
 
-        const evalUrl = `https://super-tools.lovable.app/evaluation/${evalCheck.token}`;
+        const evalUrl = `${appUrl}/evaluation/${evalCheck.token}`;
         const isFirstReminder = scheduledEmail.email_type === "evaluation_reminder_1";
         const useTutoiement = !training.participants_formal_address;
 

@@ -367,7 +367,9 @@ async function sendEmailWithResend(
   formationName: string,
   pdfUrl: string,
   emailDestinataire: string,
-  signature: string
+  signature: string,
+  websiteUrl: string,
+  youtubeUrl: string
 ): Promise<void> {
   const resendApiKey = Deno.env.get("RESEND_API_KEY");
 
@@ -408,7 +410,7 @@ async function sendEmailWithResend(
         <p>${greeting}</p>
         <p>Tu trouveras en pièce jointe ton certificat de réalisation pour la formation ${safeFormationName}.</p>
         <p>Je te souhaite de bien exploiter tout ce que tu as vu pendant la formation !</p>
-        <p>Si tu souhaites aller plus loin, je t'invite à te rendre régulièrement sur <a href="https://www.supertilt.fr">www.supertilt.fr</a> et à consulter ma <a href="https://www.youtube.com/@supertilt">chaîne YouTube</a>.</p>
+        <p>Si tu souhaites aller plus loin, je t'invite à te rendre régulièrement sur <a href="${websiteUrl}">${websiteUrl.replace(/^https?:\/\/(www\.)?/, "")}</a> et à consulter ma <a href="${youtubeUrl}">chaîne YouTube</a>.</p>
         <p>Bonne continuation et à bientôt !</p>
         ${signature}
       `,
@@ -595,6 +597,16 @@ serve(async (req: Request): Promise<Response> => {
       global: { headers: { Authorization: authHeader } },
     });
 
+    // Fetch website URLs from settings
+    const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    const { data: urlSettings } = await supabaseAdmin
+      .from("app_settings")
+      .select("setting_key, setting_value")
+      .in("setting_key", ["website_url", "youtube_url"]);
+
+    const websiteUrl = urlSettings?.find((s: any) => s.setting_key === "website_url")?.setting_value || "https://www.supertilt.fr";
+    const youtubeUrl = urlSettings?.find((s: any) => s.setting_key === "youtube_url")?.setting_value || "https://www.youtube.com/@supertilt";
+
     const token = authHeader.replace("Bearer ", "");
     const { data: claimsData, error: claimsError } = await supabaseClient.auth.getClaims(token);
     if (claimsError || !claimsData?.claims?.sub) {
@@ -758,7 +770,9 @@ serve(async (req: Request): Promise<Response> => {
                 formationName,
                 pdfUrl,
                 emailDestinataire,
-                signature
+                signature,
+                websiteUrl,
+                youtubeUrl
               );
               sendEvent({ 
                 type: "step", 
