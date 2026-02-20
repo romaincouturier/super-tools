@@ -12,6 +12,7 @@ const corsHeaders = {
 
 const ADMIN_EMAIL = "romain@supertilt.fr";
 const ALERT_THRESHOLD = 3; // Envoyer une alerte après 3 échecs consécutifs
+const UNAUTHORIZED_ALERT_COOLDOWN_MINUTES = 60; // Cooldown entre alertes pour un même email inconnu
 
 interface RequestBody {
   email: string;
@@ -49,9 +50,98 @@ serve(async (req: Request) => {
       throw insertError;
     }
 
-    // Si échec, vérifier si on doit envoyer une alerte
+    // Si échec, vérifier si l'email existe dans le système
     if (!success) {
-      // Compter les échecs récents pour cet email
+      // Vérifier si l'utilisateur existe dans auth.users
+      const { data: userExists, error: rpcError } = await supabase
+        .rpc("check_user_exists_by_email", { target_email: email.toLowerCase() });
+
+      if (rpcError) {
+        console.error("Error checking user existence:", rpcError);
+      }
+
+      // Si l'email n'existe pas dans le système, envoyer une alerte immédiate
+      if (userExists === false) {
+        // Vérifier le cooldown : ne pas envoyer si une alerte a déjà été envoyée récemment pour cet email
+        const cooldownStart = new Date(Date.now() - UNAUTHORIZED_ALERT_COOLDOWN_MINUTES * 60 * 1000).toISOString();
+        const { data: recentUnauthorizedAttempts } = await supabase
+          .from("login_attempts")
+          .select("id")
+          .eq("email", email.toLowerCase())
+          .eq("success", false)
+          .gte("attempted_at", cooldownStart);
+
+        const isFirstAttemptInWindow = (recentUnauthorizedAttempts?.length || 0) <= 1;
+
+        if (isFirstAttemptInWindow) {
+          console.log(`Unauthorized email detected: ${email}, sending alert...`);
+
+          try {
+            const now = new Date();
+            const formattedDate = now.toLocaleDateString("fr-FR", {
+              day: "2-digit",
+              month: "2-digit",
+              year: "numeric",
+            });
+            const formattedTime = now.toLocaleTimeString("fr-FR", {
+              hour: "2-digit",
+              minute: "2-digit",
+            });
+
+            const maskedIp = ipAddress.replace(/(\d+)\.(\d+)\.(\d+)\.(\d+)/, "$1.$2.xxx.xxx");
+
+            await fetch("https://api.resend.com/emails", {
+              method: "POST",
+              headers: {
+                "Authorization": `Bearer ${RESEND_API_KEY}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                from: "SuperTools Sécurité <romain@supertilt.fr>",
+                to: [ADMIN_EMAIL],
+                subject: "🚫 Alerte sécurité SuperTools - Tentative de connexion non autorisée",
+                html: `
+                  <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                    <h1 style="color: #b91c1c;">🚫 Tentative de connexion non autorisée</h1>
+                    <p><strong>Une tentative de connexion a été détectée avec un email qui n'existe pas dans le système.</strong></p>
+
+                    <div style="background-color: #fef2f2; border-left: 4px solid #b91c1c; padding: 16px; margin: 20px 0;">
+                      <p style="margin: 0;"><strong>Email utilisé :</strong> ${email}</p>
+                      <p style="margin: 8px 0 0;"><strong>Adresse IP :</strong> ${maskedIp}</p>
+                      <p style="margin: 8px 0 0;"><strong>User Agent :</strong> ${userAgent}</p>
+                      <p style="margin: 8px 0 0;"><strong>Date :</strong> ${formattedDate} à ${formattedTime}</p>
+                    </div>
+
+                    <p>Cet email <strong>n'appartient à aucun utilisateur enregistré</strong> dans SuperTools. Cela peut indiquer :</p>
+                    <ul>
+                      <li>Une tentative d'intrusion par un tiers</li>
+                      <li>Un utilisateur qui utilise un mauvais email</li>
+                    </ul>
+
+                    <p>Si les tentatives persistent depuis la même IP, pensez à bloquer cette adresse.</p>
+
+                    <p style="color: #666; font-size: 14px; margin-top: 30px;">
+                      Cet email a été envoyé automatiquement par le système de sécurité SuperTools.<br>
+                      L'adresse IP a été partiellement masquée pour votre sécurité.<br>
+                      Les alertes pour un même email inconnu sont limitées à une par heure.
+                    </p>
+
+                    <p style="margin-top: 40px;">--<br>
+                    <strong>SuperTools</strong><br>
+                    Supertilt</p>
+                  </div>
+                `,
+              }),
+            });
+
+            console.log("Unauthorized access alert email sent successfully");
+          } catch (emailError) {
+            console.error("Failed to send unauthorized access alert email:", emailError);
+          }
+        }
+      }
+
+      // Compter les échecs récents pour cet email (alerte brute force existante)
       const windowStart = new Date(Date.now() - 15 * 60 * 1000).toISOString();
       
       const { data: recentFailures, error: countError } = await supabase
