@@ -84,14 +84,14 @@ export async function sendEmail(options: SendEmailOptions): Promise<SendEmailRes
   const toArray = Array.isArray(options.to) ? options.to : [options.to];
 
   try {
+    const defaultFrom = await getSenderFrom();
+
     const response = await fetch(RESEND_API_URL, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${resendApiKey}`,
         "Content-Type": "application/json",
       },
-    const defaultFrom = await getSenderFrom();
-
       body: JSON.stringify({
         from: options.from || defaultFrom,
         to: toArray,
