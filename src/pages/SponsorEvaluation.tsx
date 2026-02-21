@@ -270,7 +270,7 @@ const SponsorEvaluation = () => {
             </div>
             <CardTitle>Merci pour votre retour !</CardTitle>
             <CardDescription>
-              Vous avez envoyé votre évaluation pour la formation <strong>{training.training_name}</strong> le{" "}
+              Vous avez envoyé votre évaluation pour la formation <strong>{training!.training_name}</strong> le{" "}
               {format(new Date(record.date_soumission), "d MMMM yyyy à HH:mm", { locale: fr })}.
             </CardDescription>
           </CardHeader>
@@ -294,7 +294,7 @@ const SponsorEvaluation = () => {
             <h1 className="text-2xl font-bold text-foreground">
               Évaluation à froid de la formation
             </h1>
-            <p className="text-muted-foreground mt-1">{training.training_name}</p>
+            <p className="text-muted-foreground mt-1">{training!.training_name}</p>
           </div>
         </div>
 

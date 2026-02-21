@@ -89,7 +89,7 @@ const ReviewRequestDialog = ({
 
       const reviewerId = currentUserId;
 
-      const { error } = await supabase.from("content_reviews").insert({
+      const { error } = await (supabase as any).from("content_reviews").insert({
         card_id: cardId,
         reviewer_id: reviewerId,
         reviewer_email: selectedUser,

@@ -497,7 +497,7 @@ const Questionnaire = () => {
   useEffect(() => {
     fetchData();
     // Fetch contact info from settings
-    supabase.rpc("get_public_contact").then(({ data }) => {
+    supabase.rpc("get_public_contact" as any).then(({ data }: { data: any }) => {
       if (data && data.length > 0) {
         setContactEmail(data[0].email || "");
         setContactName(data[0].name || "");

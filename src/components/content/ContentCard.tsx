@@ -53,7 +53,7 @@ const ContentCard = ({ card, isDragging, typeColors, onEdit, onDelete, onView, o
   };
 
   const dragging = isDragging || isSortableDragging;
-  const borderColor = typeColors?.[card.card_type] || (card.card_type === "post" ? "#a855f7" : "#3b82f6");
+  const borderColor = (card.card_type && typeColors?.[card.card_type]) || (card.card_type === "post" ? "#a855f7" : "#3b82f6");
 
   const handleCardClick = (e: React.MouseEvent) => {
     const target = e.target as HTMLElement;

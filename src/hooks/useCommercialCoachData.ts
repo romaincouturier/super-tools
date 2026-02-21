@@ -625,7 +625,7 @@ function buildCrmEmailsContext(
 function buildTrainingEvaluationsContext(
   evaluations: {
     training_name: string;
-    appreciation_generale: number | null;
+    appreciation_generale: string | null;
     recommandation: string | null;
     message_recommandation: string | null;
     amelioration_suggeree: string | null;
@@ -636,7 +636,7 @@ function buildTrainingEvaluationsContext(
 
   const withRating = evaluations.filter((e) => e.appreciation_generale != null);
   const avgRating = withRating.length > 0
-    ? (withRating.reduce((s, e) => s + (e.appreciation_generale || 0), 0) / withRating.length).toFixed(1)
+    ? (withRating.reduce((s, e) => s + (Number(e.appreciation_generale) || 0), 0) / withRating.length).toFixed(1)
     : "—";
 
   const recommenders = evaluations.filter(
@@ -664,7 +664,7 @@ function buildTrainingEvaluationsContext(
   for (const [name, evals] of byTraining) {
     const avg = evals.filter((e) => e.appreciation_generale != null);
     const rating = avg.length > 0
-      ? (avg.reduce((s, e) => s + (e.appreciation_generale || 0), 0) / avg.length).toFixed(1)
+      ? (avg.reduce((s, e) => s + (Number(e.appreciation_generale) || 0), 0) / avg.length).toFixed(1)
       : "—";
     result += `\n  ${name}: ${rating}/5 (${evals.length} eval.)\n`;
     // Show testimonials
@@ -692,7 +692,7 @@ function buildSponsorEvaluationsContext(
     training_name: string;
     sponsor_name: string | null;
     company: string | null;
-    satisfaction_globale: number | null;
+    satisfaction_globale: string | null;
     recommandation: string | null;
     message_recommandation: string | null;
     points_forts: string | null;
@@ -705,7 +705,7 @@ function buildSponsorEvaluationsContext(
 
   const withRating = evaluations.filter((e) => e.satisfaction_globale != null);
   const avgRating = withRating.length > 0
-    ? (withRating.reduce((s, e) => s + (e.satisfaction_globale || 0), 0) / withRating.length).toFixed(1)
+    ? (withRating.reduce((s, e) => s + (Number(e.satisfaction_globale) || 0), 0) / withRating.length).toFixed(1)
     : "—";
 
   const recommenders = evaluations.filter((e) => e.recommandation === "oui").length;
@@ -740,10 +740,10 @@ function buildSponsorEvaluationsContext(
 function buildMissionActivitiesContext(
   activities: {
     mission_title: string;
-    description: string;
+    description: string | null;
     activity_date: string;
-    duration: number;
-    duration_type: string;
+    duration: number | null;
+    duration_type: string | null;
     billable_amount: number | null;
     is_billed: boolean;
   }[]
@@ -755,10 +755,10 @@ function buildMissionActivitiesContext(
   const totalBilled = billed.reduce((s, a) => s + (a.billable_amount || 0), 0);
   const totalDays = activities
     .filter((a) => a.duration_type === "days")
-    .reduce((s, a) => s + a.duration, 0);
+    .reduce((s, a) => s + (a.duration || 0), 0);
   const totalHours = activities
     .filter((a) => a.duration_type === "hours")
-    .reduce((s, a) => s + a.duration, 0);
+    .reduce((s, a) => s + (a.duration || 0), 0);
 
   let result = `Activites missions (${activities.length} activites):\n`;
   result += `  Volume: ${totalDays > 0 ? `${totalDays}j` : ""}${totalDays > 0 && totalHours > 0 ? " + " : ""}${totalHours > 0 ? `${totalHours}h` : ""}\n`;

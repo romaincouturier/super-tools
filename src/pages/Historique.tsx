@@ -407,7 +407,7 @@ const Historique = () => {
               <div className="space-y-2">
                 {filteredLogs.map((log) => {
                   const actionInfo = getActionInfo(log.action_type);
-                  const hasEmailDetails = log.details?.email_subject || log.details?.email_content;
+                  const hasEmailDetails = !!(log.details?.email_subject || log.details?.email_content);
                   
                   return (
                     <Collapsible key={log.id}>
@@ -441,13 +441,13 @@ const Historique = () => {
                         {hasEmailDetails && (
                           <CollapsibleContent>
                             <div className="border-t bg-muted/30 p-4 space-y-3">
-                              {log.details?.email_subject && (
+                              {!!log.details?.email_subject && (
                                 <div>
                                   <Label className="text-xs text-muted-foreground">Sujet du mail</Label>
                                   <p className="font-medium">{String(log.details.email_subject)}</p>
                                 </div>
                               )}
-                              {log.details?.email_content && (
+                              {!!log.details?.email_content && (
                                 <div>
                                   <Label className="text-xs text-muted-foreground">Contenu du mail</Label>
                                   <div className="text-sm whitespace-pre-wrap bg-background rounded-md p-3 border mt-1 max-h-[300px] overflow-y-auto">

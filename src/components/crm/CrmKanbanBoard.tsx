@@ -138,6 +138,9 @@ const CrmKanbanBoard = () => {
   }, [boardData?.cards, filterMode]);
 
 
+  const columns = boardData?.columns || [];
+  const tags = boardData?.tags || [];
+
   const {
     sensors,
     activeItem: dndActiveCard,
@@ -355,9 +358,6 @@ const CrmKanbanBoard = () => {
       </div>
     );
   }
-
-  const columns = boardData?.columns || [];
-  const tags = boardData?.tags || [];
 
   return (
     <div className="h-full flex flex-col gap-3">

@@ -45,7 +45,7 @@ const SupertiltLinkCombobox = ({ value, onChange }: SupertiltLinkComboboxProps) 
 
     if (!error && data) {
       // Deduplicate and keep unique links
-      const unique = Array.from(new Set(data.map((d) => String(d.supertilt_link)))) as string[];
+      const unique = Array.from(new Set(data.map((d: { supertilt_link: string }) => String(d.supertilt_link)))) as string[];
       setLinks(unique);
     }
   };

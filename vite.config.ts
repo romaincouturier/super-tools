@@ -1,3 +1,4 @@
+/// <reference types="vitest" />
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
@@ -100,6 +101,12 @@ export default defineConfig(({ mode }) => ({
     cssCodeSplit: true,
     // Source maps only in dev
     sourcemap: mode === "development",
+  },
+  test: {
+    globals: true,
+    environment: "jsdom",
+    setupFiles: ["./src/test/setup.ts"],
+    include: ["src/**/*.{test,spec}.{ts,tsx}"],
   },
   // Optimize deps for faster dev startup
   optimizeDeps: {

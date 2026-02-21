@@ -283,7 +283,7 @@ const BulkAddParticipantsDialog = ({
             nom: p.last_name,
             societe: p.company,
           }));
-          await supabase.from("questionnaire_besoins").insert(questionnaireRecords);
+          await (supabase as any).from("questionnaire_besoins").insert(questionnaireRecords);
         } catch (qErr) {
           console.warn("Failed to pre-create questionnaire records:", qErr);
         }

@@ -48,11 +48,11 @@ export default function TrainerSelector({
 
       if (error) throw error;
 
-      setTrainers(data || []);
+      setTrainers((data as Trainer[]) || []);
 
       // Auto-select default trainer if no value set
       if (!value && data && data.length > 0) {
-        const defaultTrainer = data.find((t) => t.is_default) || data[0];
+        const defaultTrainer = (data as Trainer[]).find((t) => t.is_default) || (data as Trainer[])[0];
         onChange(defaultTrainer.id);
         onTrainerSelect?.(defaultTrainer);
       }

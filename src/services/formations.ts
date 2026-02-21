@@ -140,7 +140,7 @@ export async function fetchConventionSignatureStatus(trainingId: string) {
 
 export async function fetchPrograms() {
   const { data, error } = await supabase
-    .from("training_programs")
+    .from("training_programs" as any)
     .select("*")
     .order("name", { ascending: true });
 

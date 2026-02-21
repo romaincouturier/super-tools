@@ -220,7 +220,7 @@ const FormationDetail = () => {
     if (!id || !user) return;
     setSavingActions(true);
     try {
-      await saveScheduledActions(id, user.id, actions);
+      await saveScheduledActions(id, user.id, actions as any);
       toast({
         title: "Actions enregistrées",
         description: "Les actions programmées ont été sauvegardées.",

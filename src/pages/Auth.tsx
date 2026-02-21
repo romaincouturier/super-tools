@@ -146,7 +146,7 @@ const Auth = () => {
       } else {
         // Only admin can create accounts via signup form
         // Other users are created via onboarding process
-        const { data: isAllowed } = await supabase.rpc("is_signup_allowed", { p_email: email });
+        const { data: isAllowed } = await (supabase.rpc as any)("is_signup_allowed", { p_email: email });
         if (!isAllowed) {
           toast({
             title: "Inscription non autorisée",

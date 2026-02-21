@@ -264,7 +264,7 @@ export async function logActivity(params: {
   details?: Record<string, unknown>;
   userId?: string;
 }): Promise<void> {
-  await supabase.from("activity_logs").insert({
+  await (supabase as any).from("activity_logs").insert({
     action_type: params.actionType,
     recipient_email: params.recipientEmail,
     details: params.details ?? null,

@@ -72,7 +72,7 @@ export default function TrainerManager() {
         .order("last_name");
 
       if (error) throw error;
-      setTrainers(data || []);
+      setTrainers((data as Trainer[]) || []);
     } catch (error) {
       console.error("Error fetching trainers:", error);
       toast({

@@ -41,7 +41,7 @@ export default function AssignedUserSelector({
         .order("first_name");
 
       if (error) throw error;
-      setUsers(data || []);
+      setUsers((data as unknown as UserProfile[]) || []);
     } catch (error) {
       console.error("Error fetching users:", error);
     } finally {

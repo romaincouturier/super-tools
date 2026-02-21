@@ -256,7 +256,7 @@ const ThankYouEmailPreviewDialog = ({
             {/* Info note */}
             <p className="text-xs text-muted-foreground mt-3">
               Note : Chaque participant recevra un email personnalisé avec son prénom et un lien d'évaluation unique.
-              Une copie sera envoyée en BCC à {{sender_email}}.
+              Une copie sera envoyée en BCC à {"{{sender_email}}"}.
               {useTutoiement ? " (Mode tutoiement)" : " (Mode vouvoiement)"}
             </p>
 

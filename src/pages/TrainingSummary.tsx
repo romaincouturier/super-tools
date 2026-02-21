@@ -89,7 +89,7 @@ const TrainingSummary = () => {
       const { data: trainingData, error: trainingError } = await supabase
         .from("trainings")
         .select("id, training_name, client_name, start_date, end_date, location, program_file_url, trainer_id, objectives, prerequisites, format_formation")
-        .eq("id", trainingId)
+        .eq("id", trainingId!)
         .single();
 
       if (trainingError) throw trainingError;
@@ -104,7 +104,7 @@ const TrainingSummary = () => {
       const { data: schedulesData } = await supabase
         .from("training_schedules")
         .select("*")
-        .eq("training_id", trainingId)
+        .eq("training_id", trainingId!)
         .order("day_date");
 
       setSchedules(schedulesData || []);

@@ -12,7 +12,6 @@ import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 
 interface KanbanItem {
   id: string;
-  [key: string]: unknown;
 }
 
 interface UseKanbanDndOptions<T extends KanbanItem> {
