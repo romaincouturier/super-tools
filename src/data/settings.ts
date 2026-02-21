@@ -19,16 +19,14 @@ export async function fetchAllSettings(): Promise<SettingsMap> {
   return map;
 }
 
-/** Save multiple settings at once via upsert */
+/** Save multiple settings at once via batch upsert */
 export async function saveSettings(
   settings: Array<{ setting_key: string; setting_value: string; description?: string }>
 ): Promise<void> {
-  for (const setting of settings) {
-    const { error } = await supabase
-      .from("app_settings")
-      .upsert(setting, { onConflict: "setting_key" });
-    if (error) throw error;
-  }
+  const { error } = await supabase
+    .from("app_settings")
+    .upsert(settings, { onConflict: "setting_key" });
+  if (error) throw error;
 }
 
 /** Upload a file to the training-documents bucket and return its public URL */

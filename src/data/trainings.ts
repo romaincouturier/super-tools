@@ -170,48 +170,43 @@ export async function saveScheduledActions(
   userId: string,
   actions: ScheduledAction[]
 ): Promise<void> {
-  // Get current actions from DB
+  // Get current actions from DB (including created_by to preserve on upsert)
   const { data: existingActions } = await supabase
     .from("training_actions")
-    .select("id")
+    .select("id, created_by")
     .eq("training_id", trainingId);
 
-  const existingIds = new Set((existingActions || []).map((a) => a.id));
+  const existingMap = new Map(
+    (existingActions || []).map((a) => [a.id, a.created_by])
+  );
   const newIds = new Set(actions.map((a) => a.id));
 
   // Delete removed actions
-  const toDelete = [...existingIds].filter((id) => !newIds.has(id));
+  const toDelete = [...existingMap.keys()].filter((id) => !newIds.has(id));
   if (toDelete.length > 0) {
     await supabase.from("training_actions").delete().in("id", toDelete);
   }
 
-  // Upsert actions
-  for (const action of actions) {
-    if (!action.description || !action.dueDate || !action.assignedEmail) continue;
+  // Batch upsert all valid actions (1 query instead of N)
+  const validActions = actions.filter(
+    (a) => a.description && a.dueDate && a.assignedEmail
+  );
 
-    const isExistingAction = existingIds.has(action.id);
+  if (validActions.length === 0) return;
 
-    if (isExistingAction) {
-      await supabase
-        .from("training_actions")
-        .update({
-          description: action.description,
-          due_date: format(action.dueDate, "yyyy-MM-dd"),
-          assigned_user_email: action.assignedEmail,
-          assigned_user_name: action.assignedName || null,
-        })
-        .eq("id", action.id);
-    } else {
-      await supabase.from("training_actions").insert({
-        training_id: trainingId,
-        description: action.description,
-        due_date: format(action.dueDate, "yyyy-MM-dd"),
-        assigned_user_email: action.assignedEmail,
-        assigned_user_name: action.assignedName || null,
-        created_by: userId,
-      });
-    }
-  }
+  const upsertData = validActions.map((action) => ({
+    id: action.id,
+    training_id: trainingId,
+    description: action.description,
+    due_date: format(action.dueDate, "yyyy-MM-dd"),
+    assigned_user_email: action.assignedEmail,
+    assigned_user_name: action.assignedName || null,
+    created_by: existingMap.get(action.id) ?? userId,
+  }));
+
+  await supabase
+    .from("training_actions")
+    .upsert(upsertData, { onConflict: "id" });
 }
 
 export async function toggleActionComplete(
@@ -243,19 +238,14 @@ export async function deleteAction(actionId: string): Promise<void> {
 export async function fetchThankYouSentDate(trainingId: string): Promise<string | null> {
   const { data } = await supabase
     .from("activity_logs")
-    .select("created_at, details")
+    .select("created_at")
     .eq("action_type", "thank_you_email_sent")
+    .contains("details", { training_id: trainingId })
     .order("created_at", { ascending: false })
-    .limit(20);
+    .limit(1)
+    .maybeSingle();
 
-  if (!data) return null;
-
-  const match = data.find((log) => {
-    const details = log.details as { training_id?: string } | null;
-    return details?.training_id === trainingId;
-  });
-
-  return match?.created_at ?? null;
+  return data?.created_at ?? null;
 }
 
 export async function logActivity(params: {

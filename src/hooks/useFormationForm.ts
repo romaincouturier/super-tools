@@ -121,7 +121,7 @@ export function useFormationForm({ mode, dataLoaded = true }: UseFormationFormOp
 
     const selectedDateStrs = sortedDates.map((d) => format(d, "yyyy-MM-dd"));
     setSchedules(newSchedules.filter((s) => selectedDateStrs.includes(s.day_date)));
-  }, [selectedDates, dataLoaded]);
+  }, [selectedDates, dataLoaded, mode]);
 
   // Fetch SuperTilt site URL
   const fetchSupertiltSiteUrl = useCallback(async () => {
