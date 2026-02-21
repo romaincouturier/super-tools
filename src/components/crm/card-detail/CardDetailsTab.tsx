@@ -45,7 +45,13 @@ import EmojiPickerButton from "@/components/ui/emoji-picker-button";
 import CrmDescriptionEditor from "../CrmDescriptionEditor";
 import EmailEditor from "../EmailEditor";
 import SentDevisSection from "../SentDevisSection";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  analyzeExchanges,
+  generateQuoteDescription,
+  suggestNextAction,
+  improveEmailSubject,
+  improveEmailBody,
+} from "@/services/crm-ai";
 import {
   CrmCard,
   BriefQuestion,
@@ -222,11 +228,7 @@ const CardDetailsTab = (props: CardDetailsTabProps) => {
     setAiAnalyzing(true);
     setAiAnalysis(null);
     try {
-      const { data, error } = await supabase.functions.invoke("crm-ai-assist", {
-        body: { action: "analyze_exchanges", card_data: buildAiCardData() },
-      });
-      if (error) throw error;
-      setAiAnalysis(data.result);
+      setAiAnalysis(await analyzeExchanges(buildAiCardData()));
     } catch {
       setAiAnalysis("Erreur lors de l'analyse. Veuillez réessayer.");
     } finally {
@@ -238,11 +240,7 @@ const CardDetailsTab = (props: CardDetailsTabProps) => {
     setQuoteGenerating(true);
     setQuoteDescription(null);
     try {
-      const { data, error } = await supabase.functions.invoke("crm-ai-assist", {
-        body: { action: "generate_quote_description", card_data: buildAiCardData() },
-      });
-      if (error) throw error;
-      setQuoteDescription(data.result);
+      setQuoteDescription(await generateQuoteDescription(buildAiCardData()));
     } catch {
       setQuoteDescription("Erreur lors de la génération. Veuillez réessayer.");
     } finally {
@@ -254,19 +252,12 @@ const CardDetailsTab = (props: CardDetailsTabProps) => {
     setNextActionSuggesting(true);
     setNextActionSuggestion(null);
     try {
-      const { data, error } = await supabase.functions.invoke("crm-ai-assist", {
-        body: {
-          action: "suggest_next_action",
-          card_data: {
-            ...buildAiCardData(),
-            confidence_score: confidenceScore,
-            current_next_action: nextActionText,
-            days_in_pipeline: card.created_at ? Math.floor((Date.now() - new Date(card.created_at).getTime()) / (1000 * 60 * 60 * 24)) : null,
-          },
-        },
-      });
-      if (error) throw error;
-      setNextActionSuggestion(data.result);
+      setNextActionSuggestion(await suggestNextAction({
+        ...buildAiCardData(),
+        confidence_score: confidenceScore,
+        current_next_action: nextActionText,
+        days_in_pipeline: card.created_at ? Math.floor((Date.now() - new Date(card.created_at).getTime()) / (1000 * 60 * 60 * 24)) : null,
+      }));
     } catch {
       setNextActionSuggestion("Erreur lors de la suggestion. Veuillez réessayer.");
     } finally {
@@ -279,14 +270,7 @@ const CardDetailsTab = (props: CardDetailsTabProps) => {
     setImprovingSubject(true);
     setEmailSubjectBeforeAi(emailSubject);
     try {
-      const { data, error } = await supabase.functions.invoke("crm-ai-assist", {
-        body: {
-          action: "improve_email_subject",
-          card_data: { subject: emailSubject, company, first_name: firstName, context: descriptionHtml },
-        },
-      });
-      if (error) throw error;
-      onEmailSubjectChange(data.result);
+      onEmailSubjectChange(await improveEmailSubject({ subject: emailSubject, company, first_name: firstName, context: descriptionHtml }));
     } catch {
       setEmailSubjectBeforeAi(null);
     } finally {
@@ -299,14 +283,7 @@ const CardDetailsTab = (props: CardDetailsTabProps) => {
     setImprovingBody(true);
     setEmailBodyBeforeAi(emailBody);
     try {
-      const { data, error } = await supabase.functions.invoke("crm-ai-assist", {
-        body: {
-          action: "improve_email_body",
-          card_data: { body: emailBody, subject: emailSubject, company, first_name: firstName, context: descriptionHtml },
-        },
-      });
-      if (error) throw error;
-      onEmailBodyChange(data.result);
+      onEmailBodyChange(await improveEmailBody({ body: emailBody, subject: emailSubject, company, first_name: firstName, context: descriptionHtml }));
     } catch {
       setEmailBodyBeforeAi(null);
     } finally {
