@@ -8,7 +8,7 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 // PDFMonkey template ID for Convention de Formation
-const CONVENTION_TEMPLATE_ID = "A9C4C140-4854-40AF-9EFA-BDD88EEA39A4";
+const CONVENTION_TEMPLATE_ID = Deno.env.get("PDFMONKEY_CONVENTION_TEMPLATE_ID") || "A9C4C140-4854-40AF-9EFA-BDD88EEA39A4";
 
 const requestBodySchema = z.object({
   trainingId: z.string().uuid(),

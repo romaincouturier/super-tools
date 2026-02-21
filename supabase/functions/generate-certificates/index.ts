@@ -41,7 +41,7 @@ interface PdfData {
   pdfBuffer: Uint8Array;
 }
 
-const PDFMONKEY_TEMPLATE_ID = "6593BDA5-6890-45E8-804F-77488D64BEDF";
+const PDFMONKEY_TEMPLATE_ID = Deno.env.get("PDFMONKEY_CERTIFICATE_TEMPLATE_ID") || "6593BDA5-6890-45E8-804F-77488D64BEDF";
 
 // Generate PDF with PDF Monkey
 async function generatePdfWithPdfMonkey(

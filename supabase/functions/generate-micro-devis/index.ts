@@ -43,7 +43,7 @@ const requestBodySchema = z.object({
 
 type RequestBody = z.infer<typeof requestBodySchema>;
 
-const PDFMONKEY_TEMPLATE_ID = "C3BC00C9-232F-4ADD-9D1F-9FD176573E93";
+const PDFMONKEY_TEMPLATE_ID = Deno.env.get("PDFMONKEY_DEVIS_TEMPLATE_ID") || "C3BC00C9-232F-4ADD-9D1F-9FD176573E93";
 
 async function generatePdfWithPdfMonkey(
   data: RequestBody,

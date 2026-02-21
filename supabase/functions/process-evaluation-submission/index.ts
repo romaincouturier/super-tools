@@ -274,7 +274,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     const pdfMonkeyPayload = {
       document: {
-        document_template_id: "6593BDA5-6890-45E8-804F-77488D64BEDF",
+        document_template_id: Deno.env.get("PDFMONKEY_CERTIFICATE_TEMPLATE_ID") || "6593BDA5-6890-45E8-804F-77488D64BEDF",
         status: "pending",
         payload: {
           STAGIAIRE: fullName || "Participant",
@@ -381,8 +381,8 @@ const handler = async (req: Request): Promise<Response> => {
       console.log("Uploading to Google Drive...");
       const accessToken = await getGoogleAccessToken();
       const fileName = `Certificat_${fullName.replace(/\s+/g, "_")}_${training.training_name.replace(/[^a-zA-Z0-9]/g, "_")}.pdf`;
-      // Folder ID from the URL: 1efGGvd1PPABHOfw2Yk6MXKn6HBlgabLD
-      driveUrl = await uploadToDrive(accessToken, fileName, pdfBytes, "1efGGvd1PPABHOfw2Yk6MXKn6HBlgabLD");
+      const driveFolderId = Deno.env.get("GOOGLE_DRIVE_CERTIFICATES_FOLDER_ID") || "1efGGvd1PPABHOfw2Yk6MXKn6HBlgabLD";
+      driveUrl = await uploadToDrive(accessToken, fileName, pdfBytes, driveFolderId);
       console.log("Uploaded to Drive:", driveUrl);
     } catch (driveError) {
       console.error("Google Drive upload failed:", driveError);

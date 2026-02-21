@@ -7,7 +7,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const NOCRM_BCC = "supertilt@bcc.nocrm.io";
+const NOCRM_BCC = Deno.env.get("NOCRM_BCC_EMAIL") || "supertilt@bcc.nocrm.io";
 
 interface EmailSettings {
   senderEmail: string;
