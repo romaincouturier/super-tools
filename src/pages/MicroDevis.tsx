@@ -3,9 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { capitalizeName } from "@/lib/utils";
 import { User } from "@supabase/supabase-js";
-import { Loader2, FileText, ArrowLeft, Send, Settings, Save, X, Plus, Trash2, Star, Eye, Search, ChevronUp, ChevronDown, History, Mail, Copy } from "lucide-react";
-import { format } from "date-fns";
-import { fr } from "date-fns/locale";
+import { Loader2, FileText, ArrowLeft, Send, Plus, Eye, Search } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -30,29 +28,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
-interface FormationConfig {
-  id: string;
-  formation_name: string;
-  prix: number;
-  duree_heures: number;
-  programme_url: string | null;
-  is_default: boolean;
-  display_order: number;
-}
-
-interface FormationDate {
-  id: string;
-  date_label: string;
-  is_default: boolean;
-}
-
-const LIEUX = [
-  "En ligne en accédant à son compte sur supertilt.fr",
-  "Espace Gailleton, 2 Pl. Gailleton, 69002 Lyon",
-  "Agile Tribu, 4ter Pass. de la Main d'Or, 75011 Paris",
-  "Chez le client",
-];
+import { Star } from "lucide-react";
+import type { FormationConfig, FormationDate, DevisHistoryItem } from "@/types/micro-devis";
+import { LIEUX } from "@/types/micro-devis";
+import { DevisHistoryDialog } from "@/components/micro-devis/DevisHistoryDialog";
+import { FormationConfigDialog } from "@/components/micro-devis/FormationConfigDialog";
+import { FormationDatesDialog } from "@/components/micro-devis/FormationDatesDialog";
 
 const MicroDevis = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -118,42 +99,6 @@ const MicroDevis = () => {
   const STORAGE_KEY = "microDevisFormData";
 
   // History of sent quotes
-  interface DevisFormData {
-    nomClient: string;
-    adresseClient: string;
-    codePostalClient: string;
-    villeClient: string;
-    pays: string;
-    emailCommanditaire: string;
-    adresseCommanditaire: string;
-    isAdministration: boolean;
-    noteDevis: string;
-    formationDemandee: string;
-    formationLibre: string;
-    dateFormation: string;
-    dateFormationLibre: string;
-    lieu: string;
-    lieuAutre: string;
-    includeCadeau: boolean;
-    fraisDossier: boolean;
-    participants: string;
-    typeSubrogation: "sans" | "avec" | "les2";
-    typeDevis: "formation" | "jeu";
-    formatFormation: "intra" | "inter";
-  }
-
-  interface DevisHistoryItem {
-    id: string;
-    created_at: string;
-    recipient_email: string;
-    details: {
-      formation_name: string;
-      client_name: string;
-      type_subrogation: string;
-      nb_participants: number;
-      form_data?: DevisFormData;
-    };
-  }
   const [devisHistory, setDevisHistory] = useState<DevisHistoryItem[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [historySearch, setHistorySearch] = useState("");
@@ -829,9 +774,69 @@ const MicroDevis = () => {
     }
   };
 
+  // --- Formation dates handlers (extracted from inline JSX) ---
+
+  const handleAddDate = async (label: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("formation_dates")
+        .insert({ date_label: label, is_default: false })
+        .select()
+        .single();
+      if (error) throw error;
+      setFormationDates(prev => [...prev, data as FormationDate]);
+      toast({ title: "Date ajoutée", description: `"${label}" a été ajoutée.` });
+      setNewDate(null);
+    } catch (error) {
+      console.error("Error adding date:", error);
+      toast({ title: "Erreur", description: "Impossible d'ajouter la date", variant: "destructive" });
+    }
+  };
+
+  const handleDeleteDate = async (id: string, label: string) => {
+    try {
+      const { error } = await supabase.from("formation_dates").delete().eq("id", id);
+      if (error) throw error;
+      setFormationDates(prev => prev.filter(d => d.id !== id));
+      toast({ title: "Date supprimée", description: `"${label}" a été supprimée.` });
+    } catch (error) {
+      console.error("Error deleting date:", error);
+      toast({ title: "Erreur", description: "Impossible de supprimer la date", variant: "destructive" });
+    }
+  };
+
+  const handleSetDefaultDate = async (id: string, label: string) => {
+    try {
+      await supabase.from("formation_dates").update({ is_default: false }).neq("id", "");
+      const { error } = await supabase.from("formation_dates").update({ is_default: true }).eq("id", id);
+      if (error) throw error;
+      setFormationDates(prev => prev.map(d => ({ ...d, is_default: d.id === id })));
+      toast({ title: "Date par défaut", description: `"${label}" est maintenant la date par défaut.` });
+    } catch (error) {
+      console.error("Error setting default:", error);
+      toast({ title: "Erreur", description: "Impossible de définir la date par défaut", variant: "destructive" });
+    }
+  };
+
+  const handleSaveDate = async (date: FormationDate) => {
+    try {
+      const { error } = await supabase
+        .from("formation_dates")
+        .update({ date_label: date.date_label })
+        .eq("id", date.id);
+      if (error) throw error;
+      setFormationDates(prev => prev.map(d => d.id === date.id ? date : d));
+      toast({ title: "Date sauvegardée", description: "Les modifications ont été enregistrées." });
+      setEditingDate(null);
+    } catch (error) {
+      console.error("Error saving date:", error);
+      toast({ title: "Erreur", description: "Impossible de sauvegarder la date", variant: "destructive" });
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (typeDevis !== "formation") {
       toast({
         title: "Fonctionnalité en développement",
@@ -981,98 +986,16 @@ const MicroDevis = () => {
                   Créez des devis rapides et simplifiés
                 </CardDescription>
               </div>
-              <Dialog open={historyDialogOpen} onOpenChange={setHistoryDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button variant="outline" size="sm">
-                    <History className="w-4 h-4 mr-2" />
-                    Historique
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
-                  <DialogHeader>
-                    <DialogTitle>Historique des devis envoyés</DialogTitle>
-                    <DialogDescription>
-                      Retrouvez les devis envoyés précédemment
-                    </DialogDescription>
-                  </DialogHeader>
-
-                  <div className="space-y-4">
-                    {/* Search */}
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        placeholder="Rechercher par email, formation ou client..."
-                        value={historySearch}
-                        onChange={(e) => setHistorySearch(e.target.value)}
-                        className="pl-9"
-                      />
-                    </div>
-
-                    {/* History list */}
-                    {loadingHistory ? (
-                      <div className="flex justify-center py-8">
-                        <Loader2 className="w-6 h-6 animate-spin" />
-                      </div>
-                    ) : filteredHistory.length === 0 ? (
-                      <p className="text-center text-muted-foreground py-8">
-                        {historySearch ? "Aucun résultat trouvé" : "Aucun devis envoyé"}
-                      </p>
-                    ) : (
-                      <div className="space-y-3">
-                        {filteredHistory.map((item) => (
-                          <div
-                            key={item.id}
-                            className="border rounded-lg p-4 space-y-2 hover:bg-muted/50 transition-colors"
-                          >
-                            <div className="flex items-start justify-between">
-                              <div className="space-y-1">
-                                <p className="font-medium text-sm">
-                                  {item.details?.formation_name || "Formation"}
-                                </p>
-                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                  <Mail className="w-3 h-3" />
-                                  <span>{item.recipient_email}</span>
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs text-muted-foreground">
-                                  {format(new Date(item.created_at), "d MMM yyyy HH:mm", { locale: fr })}
-                                </span>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => handleDuplicateDevis(item)}
-                                  title="Dupliquer ce devis"
-                                >
-                                  <Copy className="w-3 h-3 mr-1" />
-                                  Dupliquer
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => handleDeleteDevis(item)}
-                                  title="Supprimer ce devis"
-                                  className="text-destructive hover:text-destructive"
-                                >
-                                  <Trash2 className="w-3 h-3" />
-                                </Button>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                              <span>Client : {item.details?.client_name || "—"}</span>
-                              <span>Participants : {item.details?.nb_participants || "—"}</span>
-                              <span className="capitalize">
-                                {item.details?.type_subrogation === "les2" ? "2 versions" :
-                                 item.details?.type_subrogation === "avec" ? "Avec subrogation" : "Sans subrogation"}
-                              </span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </DialogContent>
-              </Dialog>
+              <DevisHistoryDialog
+                open={historyDialogOpen}
+                onOpenChange={setHistoryDialogOpen}
+                loading={loadingHistory}
+                historySearch={historySearch}
+                onSearchChange={setHistorySearch}
+                filteredHistory={filteredHistory}
+                onDuplicate={handleDuplicateDevis}
+                onDelete={handleDeleteDevis}
+              />
             </div>
           </CardHeader>
           <CardContent>
@@ -1328,242 +1251,21 @@ const MicroDevis = () => {
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <Label>Formation demandée *</Label>
-                      <Dialog open={configDialogOpen} onOpenChange={setConfigDialogOpen}>
-                        <DialogTrigger asChild>
-                          <Button variant="ghost" size="sm" className="h-6 px-2">
-                            <Settings className="w-3 h-3 mr-1" />
-                            Gérer
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
-                          <DialogHeader>
-                            <DialogTitle>Configuration des formations</DialogTitle>
-                            <DialogDescription>
-                              Gérez les formations, leurs prix, durées et URLs des programmes
-                            </DialogDescription>
-                          </DialogHeader>
-                          
-                          {/* Add new formation */}
-                          <div className="border-b pb-4 mb-4">
-                            {newFormation ? (
-                              <div className="space-y-3 p-4 border rounded-lg bg-primary/5">
-                                <h4 className="font-medium">Nouvelle formation</h4>
-                                <div className="space-y-2">
-                                  <Label className="text-xs">Nom de la formation *</Label>
-                                  <Input
-                                    placeholder="Nom de la formation"
-                                    value={newFormation.formation_name || ""}
-                                    onChange={(e) => setNewFormation({
-                                      ...newFormation,
-                                      formation_name: e.target.value
-                                    })}
-                                  />
-                                </div>
-                                <div className="grid grid-cols-2 gap-3">
-                                  <div className="space-y-1">
-                                    <Label className="text-xs">Prix (€)</Label>
-                                    <Input
-                                      type="number"
-                                      placeholder="0"
-                                      value={newFormation.prix || ""}
-                                      onChange={(e) => setNewFormation({
-                                        ...newFormation,
-                                        prix: parseFloat(e.target.value) || 0
-                                      })}
-                                    />
-                                  </div>
-                                  <div className="space-y-1">
-                                    <Label className="text-xs">Durée (heures)</Label>
-                                    <Input
-                                      type="number"
-                                      step="0.5"
-                                      placeholder="0"
-                                      value={newFormation.duree_heures || ""}
-                                      onChange={(e) => setNewFormation({
-                                        ...newFormation,
-                                        duree_heures: parseFloat(e.target.value) || 0
-                                      })}
-                                    />
-                                  </div>
-                                </div>
-                                <div className="space-y-1">
-                                  <Label className="text-xs">URL du programme *</Label>
-                                  <Input
-                                    type="url"
-                                    placeholder="https://..."
-                                    value={newFormation.programme_url || ""}
-                                    onChange={(e) => setNewFormation({
-                                      ...newFormation,
-                                      programme_url: e.target.value || null
-                                    })}
-                                    required
-                                  />
-                                </div>
-                                <div className="flex gap-2">
-                                  <Button size="sm" onClick={handleAddFormation} disabled={!newFormation.formation_name || !newFormation.programme_url}>
-                                    <Save className="w-3 h-3 mr-1" />
-                                    Ajouter
-                                  </Button>
-                                  <Button size="sm" variant="outline" onClick={() => setNewFormation(null)}>
-                                    <X className="w-3 h-3 mr-1" />
-                                    Annuler
-                                  </Button>
-                                </div>
-                              </div>
-                            ) : (
-                              <Button 
-                                variant="outline" 
-                                className="w-full" 
-                                onClick={() => setNewFormation({ prix: 1490, duree_heures: 14 })}
-                              >
-                                <Plus className="w-4 h-4 mr-2" />
-                                Ajouter une formation
-                              </Button>
-                            )}
-                          </div>
-
-                          {/* Existing formations */}
-                          <div className="space-y-3">
-                            {loadingConfigs ? (
-                              <div className="flex justify-center py-8">
-                                <Loader2 className="w-6 h-6 animate-spin" />
-                              </div>
-                            ) : (
-                              formationConfigs.map((config, index) => (
-                                <div key={config.id} className="border rounded-lg p-4 space-y-3">
-                                  <div className="flex items-start justify-between">
-                                    <div className="flex items-center gap-2">
-                                      {/* Reorder buttons */}
-                                      <div className="flex flex-col">
-                                        <Button
-                                          size="sm"
-                                          variant="ghost"
-                                          className="h-5 w-5 p-0"
-                                          onClick={() => handleMoveFormation(index, "up")}
-                                          disabled={index === 0}
-                                          title="Monter"
-                                        >
-                                          <ChevronUp className="w-3 h-3" />
-                                        </Button>
-                                        <Button
-                                          size="sm"
-                                          variant="ghost"
-                                          className="h-5 w-5 p-0"
-                                          onClick={() => handleMoveFormation(index, "down")}
-                                          disabled={index === formationConfigs.length - 1}
-                                          title="Descendre"
-                                        >
-                                          <ChevronDown className="w-3 h-3" />
-                                        </Button>
-                                      </div>
-                                      {config.is_default && (
-                                        <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-                                      )}
-                                      <h4 className="font-medium text-sm">{config.formation_name}</h4>
-                                    </div>
-                                    <div className="flex gap-1">
-                                      {!config.is_default && (
-                                        <Button
-                                          size="sm"
-                                          variant="ghost"
-                                          onClick={() => handleSetDefault(config.id)}
-                                          title="Définir par défaut"
-                                        >
-                                          <Star className="w-3 h-3" />
-                                        </Button>
-                                      )}
-                                      <Button
-                                        size="sm"
-                                        variant="ghost"
-                                        className="text-destructive hover:text-destructive"
-                                        onClick={() => handleDeleteFormation(config.id, config.formation_name)}
-                                      >
-                                        <Trash2 className="w-3 h-3" />
-                                      </Button>
-                                    </div>
-                                  </div>
-                                  
-                                  {editingFormation?.id === config.id ? (
-                                    <div className="space-y-3">
-                                      <div className="space-y-2">
-                                        <Label className="text-xs">Nom de la formation</Label>
-                                        <Input
-                                          value={editingFormation.formation_name}
-                                          onChange={(e) => setEditingFormation({
-                                            ...editingFormation,
-                                            formation_name: e.target.value
-                                          })}
-                                        />
-                                      </div>
-                                      <div className="grid grid-cols-2 gap-3">
-                                        <div className="space-y-1">
-                                          <Label className="text-xs">Prix (€)</Label>
-                                          <Input
-                                            type="number"
-                                            value={editingFormation.prix}
-                                            onChange={(e) => setEditingFormation({
-                                              ...editingFormation,
-                                              prix: parseFloat(e.target.value) || 0
-                                            })}
-                                          />
-                                        </div>
-                                        <div className="space-y-1">
-                                          <Label className="text-xs">Durée (heures)</Label>
-                                          <Input
-                                            type="number"
-                                            step="0.5"
-                                            value={editingFormation.duree_heures}
-                                            onChange={(e) => setEditingFormation({
-                                              ...editingFormation,
-                                              duree_heures: parseFloat(e.target.value) || 0
-                                            })}
-                                          />
-                                        </div>
-                                      </div>
-                                      <div className="space-y-1">
-                                        <Label className="text-xs">URL du programme</Label>
-                                        <Input
-                                          type="url"
-                                          placeholder="https://..."
-                                          value={editingFormation.programme_url || ""}
-                                          onChange={(e) => setEditingFormation({
-                                            ...editingFormation,
-                                            programme_url: e.target.value || null
-                                          })}
-                                        />
-                                      </div>
-                                      <div className="flex gap-2">
-                                        <Button size="sm" onClick={handleSaveFormationConfig}>
-                                          <Save className="w-3 h-3 mr-1" />
-                                          Sauvegarder
-                                        </Button>
-                                        <Button size="sm" variant="outline" onClick={() => setEditingFormation(null)}>
-                                          <X className="w-3 h-3 mr-1" />
-                                          Annuler
-                                        </Button>
-                                      </div>
-                                    </div>
-                                  ) : (
-                                    <div className="flex items-center justify-between">
-                                      <div className="text-sm text-muted-foreground">
-                                        {config.prix}€ • {config.duree_heures}h
-                                        {config.programme_url && " • Programme ✓"}
-                                      </div>
-                                      <Button 
-                                        size="sm" 
-                                        variant="ghost"
-                                        onClick={() => setEditingFormation(config)}
-                                      >
-                                        Modifier
-                                      </Button>
-                                    </div>
-                                  )}
-                                </div>
-                              ))
-                            )}
-                          </div>
-                        </DialogContent>
-                      </Dialog>
+                      <FormationConfigDialog
+                        open={configDialogOpen}
+                        onOpenChange={setConfigDialogOpen}
+                        configs={formationConfigs}
+                        loadingConfigs={loadingConfigs}
+                        editingFormation={editingFormation}
+                        onEditFormation={setEditingFormation}
+                        newFormation={newFormation}
+                        onNewFormation={setNewFormation}
+                        onSave={handleSaveFormationConfig}
+                        onAdd={handleAddFormation}
+                        onDelete={handleDeleteFormation}
+                        onSetDefault={handleSetDefault}
+                        onMove={handleMoveFormation}
+                      />
                     </div>
 
                     {/* Inter-entreprises: select from catalog */}
@@ -1604,238 +1306,20 @@ const MicroDevis = () => {
                       <Label>Dates de la formation *</Label>
                       {/* Only show "Gérer" button for inter-entreprises */}
                       {formatFormation === "inter" && (
-                      <Dialog open={datesDialogOpen} onOpenChange={setDatesDialogOpen}>
-                        <DialogTrigger asChild>
-                          <Button variant="ghost" size="sm" className="h-6 px-2">
-                            <Settings className="w-3 h-3 mr-1" />
-                            Gérer
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
-                          <DialogHeader>
-                            <DialogTitle>Configuration des dates de formation</DialogTitle>
-                            <DialogDescription>
-                              Gérez les dates de formation prédéfinies
-                            </DialogDescription>
-                          </DialogHeader>
-                          
-                          {/* Add new date */}
-                          <div className="border-b pb-4 mb-4">
-                            {newDate ? (
-                              <div className="space-y-3 p-4 border rounded-lg bg-primary/5">
-                                <h4 className="font-medium">Nouvelle date</h4>
-                                <div className="space-y-2">
-                                  <Label className="text-xs">Libellé de la date *</Label>
-                                  <Input
-                                    placeholder="Ex: 15 et 16 janvier 2026"
-                                    value={newDate.date_label || ""}
-                                    onChange={(e) => setNewDate({
-                                      ...newDate,
-                                      date_label: e.target.value
-                                    })}
-                                  />
-                                </div>
-                                <div className="flex gap-2">
-                                  <Button size="sm" onClick={async () => {
-                                    if (!newDate.date_label) return;
-                                    try {
-                                      const { data, error } = await supabase
-                                        .from("formation_dates")
-                                        .insert({
-                                          date_label: newDate.date_label,
-                                          is_default: false,
-                                        })
-                                        .select()
-                                        .single();
-                                      if (error) throw error;
-                                      setFormationDates(prev => [...prev, data as FormationDate]);
-                                      toast({
-                                        title: "Date ajoutée",
-                                        description: `"${newDate.date_label}" a été ajoutée.`,
-                                      });
-                                      setNewDate(null);
-                                    } catch (error) {
-                                      console.error("Error adding date:", error);
-                                      toast({
-                                        title: "Erreur",
-                                        description: "Impossible d'ajouter la date",
-                                        variant: "destructive",
-                                      });
-                                    }
-                                  }} disabled={!newDate.date_label}>
-                                    <Save className="w-3 h-3 mr-1" />
-                                    Ajouter
-                                  </Button>
-                                  <Button size="sm" variant="outline" onClick={() => setNewDate(null)}>
-                                    <X className="w-3 h-3 mr-1" />
-                                    Annuler
-                                  </Button>
-                                </div>
-                              </div>
-                            ) : (
-                              <Button 
-                                variant="outline" 
-                                className="w-full" 
-                                onClick={() => setNewDate({})}
-                              >
-                                <Plus className="w-4 h-4 mr-2" />
-                                Ajouter une date
-                              </Button>
-                            )}
-                          </div>
-
-                          {/* Existing dates */}
-                          <div className="space-y-3">
-                            {loadingDates ? (
-                              <div className="flex justify-center py-8">
-                                <Loader2 className="w-6 h-6 animate-spin" />
-                              </div>
-                            ) : formationDates.length === 0 ? (
-                              <p className="text-center text-muted-foreground py-4">
-                                Aucune date configurée. Ajoutez-en une ou saisissez directement dans le champ.
-                              </p>
-                            ) : (
-                              formationDates.map((dateConfig) => (
-                                <div key={dateConfig.id} className="border rounded-lg p-4 space-y-3">
-                                  <div className="flex items-start justify-between">
-                                    <div className="flex items-center gap-2">
-                                      {dateConfig.is_default && (
-                                        <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-                                      )}
-                                      <h4 className="font-medium text-sm">{dateConfig.date_label}</h4>
-                                    </div>
-                                    <div className="flex gap-1">
-                                      {!dateConfig.is_default && (
-                                        <Button
-                                          size="sm"
-                                          variant="ghost"
-                                          onClick={async () => {
-                                            try {
-                                              await supabase
-                                                .from("formation_dates")
-                                                .update({ is_default: false })
-                                                .neq("id", "");
-                                              const { error } = await supabase
-                                                .from("formation_dates")
-                                                .update({ is_default: true })
-                                                .eq("id", dateConfig.id);
-                                              if (error) throw error;
-                                              setFormationDates(prev => 
-                                                prev.map(d => ({ ...d, is_default: d.id === dateConfig.id }))
-                                              );
-                                              toast({
-                                                title: "Date par défaut",
-                                                description: `"${dateConfig.date_label}" est maintenant la date par défaut.`,
-                                              });
-                                            } catch (error) {
-                                              console.error("Error setting default:", error);
-                                              toast({
-                                                title: "Erreur",
-                                                description: "Impossible de définir la date par défaut",
-                                                variant: "destructive",
-                                              });
-                                            }
-                                          }}
-                                          title="Définir par défaut"
-                                        >
-                                          <Star className="w-3 h-3" />
-                                        </Button>
-                                      )}
-                                      <Button
-                                        size="sm"
-                                        variant="ghost"
-                                        className="text-destructive hover:text-destructive"
-                                        onClick={async () => {
-                                          try {
-                                            const { error } = await supabase
-                                              .from("formation_dates")
-                                              .delete()
-                                              .eq("id", dateConfig.id);
-                                            if (error) throw error;
-                                            setFormationDates(prev => prev.filter(d => d.id !== dateConfig.id));
-                                            toast({
-                                              title: "Date supprimée",
-                                              description: `"${dateConfig.date_label}" a été supprimée.`,
-                                            });
-                                          } catch (error) {
-                                            console.error("Error deleting date:", error);
-                                            toast({
-                                              title: "Erreur",
-                                              description: "Impossible de supprimer la date",
-                                              variant: "destructive",
-                                            });
-                                          }
-                                        }}
-                                      >
-                                        <Trash2 className="w-3 h-3" />
-                                      </Button>
-                                    </div>
-                                  </div>
-                                  
-                                  {editingDate?.id === dateConfig.id ? (
-                                    <div className="space-y-3">
-                                      <div className="space-y-2">
-                                        <Label className="text-xs">Libellé de la date</Label>
-                                        <Input
-                                          value={editingDate.date_label}
-                                          onChange={(e) => setEditingDate({
-                                            ...editingDate,
-                                            date_label: e.target.value
-                                          })}
-                                        />
-                                      </div>
-                                      <div className="flex gap-2">
-                                        <Button size="sm" onClick={async () => {
-                                          if (!editingDate) return;
-                                          try {
-                                            const { error } = await supabase
-                                              .from("formation_dates")
-                                              .update({ date_label: editingDate.date_label })
-                                              .eq("id", editingDate.id);
-                                            if (error) throw error;
-                                            setFormationDates(prev => 
-                                              prev.map(d => d.id === editingDate.id ? editingDate : d)
-                                            );
-                                            toast({
-                                              title: "Date sauvegardée",
-                                              description: `Les modifications ont été enregistrées.`,
-                                            });
-                                            setEditingDate(null);
-                                          } catch (error) {
-                                            console.error("Error saving date:", error);
-                                            toast({
-                                              title: "Erreur",
-                                              description: "Impossible de sauvegarder la date",
-                                              variant: "destructive",
-                                            });
-                                          }
-                                        }}>
-                                          <Save className="w-3 h-3 mr-1" />
-                                          Sauvegarder
-                                        </Button>
-                                        <Button size="sm" variant="outline" onClick={() => setEditingDate(null)}>
-                                          <X className="w-3 h-3 mr-1" />
-                                          Annuler
-                                        </Button>
-                                      </div>
-                                    </div>
-                                  ) : (
-                                    <div className="flex items-center justify-end">
-                                      <Button 
-                                        size="sm" 
-                                        variant="ghost"
-                                        onClick={() => setEditingDate(dateConfig)}
-                                      >
-                                        Modifier
-                                      </Button>
-                                    </div>
-                                  )}
-                                </div>
-                              ))
-                            )}
-                          </div>
-                        </DialogContent>
-                      </Dialog>
+                        <FormationDatesDialog
+                          open={datesDialogOpen}
+                          onOpenChange={setDatesDialogOpen}
+                          dates={formationDates}
+                          loadingDates={loadingDates}
+                          editingDate={editingDate}
+                          onEditDate={setEditingDate}
+                          newDate={newDate}
+                          onNewDate={setNewDate}
+                          onAddDate={handleAddDate}
+                          onDeleteDate={handleDeleteDate}
+                          onSetDefault={handleSetDefaultDate}
+                          onSaveDate={handleSaveDate}
+                        />
                       )}
                     </div>
 
