@@ -54,7 +54,7 @@ const AppHeader = ({ showOnboarding = false }: AppHeaderProps) => {
 
       // Check failed_emails table
       const { count: failedCount } = await (supabase
-        .from("failed_emails" as any)
+        .from("failed_emails")
         .select("*", { count: "exact", head: true })
         .eq("status", "failed") as any);
 

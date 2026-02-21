@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 import {
   useEntityMedia,
   useAddMedia,
@@ -48,6 +48,7 @@ const EntityMediaManager = ({
   enablePaste = false,
   allowVideoLinks = false,
 }: EntityMediaManagerProps) => {
+  const { toast } = useToast();
   const { data: media = [], isLoading } = useEntityMedia(sourceType, sourceId);
   const addMedia = useAddMedia();
   const deleteMutation = useDeleteMedia();
@@ -66,13 +67,13 @@ const EntityMediaManager = ({
     const validFiles = fileArray.filter((f) => getFileType(f) !== null);
 
     if (validFiles.length === 0) {
-      toast.error("Seules les images et vidéos sont acceptées");
+      toast({ title: "Erreur", description: "Seules les images et vidéos sont acceptées", variant: "destructive" });
       return;
     }
 
     const oversized = validFiles.filter((f) => f.size > 50 * 1024 * 1024);
     if (oversized.length > 0) {
-      toast.error("Les fichiers ne doivent pas dépasser 50 Mo");
+      toast({ title: "Erreur", description: "Les fichiers ne doivent pas dépasser 50 Mo", variant: "destructive" });
       return;
     }
 
@@ -99,21 +100,22 @@ const EntityMediaManager = ({
           successCount++;
         } catch (err) {
           console.error("Upload error:", err);
-          toast.error(`Erreur lors de l'upload de ${file.name}`);
+          toast({ title: "Erreur", description: `Erreur lors de l'upload de ${file.name}`, variant: "destructive" });
         }
       }
 
       if (successCount > 0) {
-        toast.success(
-          successCount === 1
+        toast({
+          title: "Succès",
+          description: successCount === 1
             ? "Fichier ajouté"
-            : `${successCount} fichiers ajoutés`
-        );
+            : `${successCount} fichiers ajoutés`,
+        });
       }
     } finally {
       setUploading(false);
     }
-  }, [sourceType, sourceId, addMedia]);
+  }, [sourceType, sourceId, addMedia, toast]);
 
   const handleDelete = async (e: React.MouseEvent, item: MediaItem) => {
     e.stopPropagation();
@@ -128,11 +130,11 @@ const EntityMediaManager = ({
         sourceType: item.source_type,
         sourceId: item.source_id,
       });
-      toast.success("Fichier supprimé");
+      toast({ title: "Succès", description: "Fichier supprimé" });
       if (lightboxItem?.id === item.id) setLightboxItem(null);
     } catch (error) {
       console.error("Delete error:", error);
-      toast.error("Erreur lors de la suppression");
+      toast({ title: "Erreur", description: "Erreur lors de la suppression", variant: "destructive" });
     }
   };
 
@@ -150,7 +152,7 @@ const EntityMediaManager = ({
       document.body.removeChild(a);
       URL.revokeObjectURL(blobUrl);
     } catch {
-      toast.error("Erreur lors du téléchargement");
+      toast({ title: "Erreur", description: "Erreur lors du téléchargement", variant: "destructive" });
     }
   };
 

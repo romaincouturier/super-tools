@@ -59,7 +59,7 @@ const FailedEmails = () => {
     setLoading(true);
     try {
       const { data, error } = await (supabase
-        .from("failed_emails" as any)
+        .from("failed_emails")
         .select("*")
         .order("created_at", { ascending: false }) as any);
 
@@ -90,7 +90,7 @@ const FailedEmails = () => {
   const handleDelete = async (failedEmailId: string) => {
     try {
       const { error } = await (supabase
-        .from("failed_emails" as any)
+        .from("failed_emails")
         .delete()
         .eq("id", failedEmailId) as any);
 

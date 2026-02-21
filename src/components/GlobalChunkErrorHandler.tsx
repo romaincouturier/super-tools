@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 
 const CHUNK_RELOAD_FLAG = "__st_chunk_reload_attempted";
 
@@ -13,6 +13,8 @@ function isChunkLoadError(reason: unknown) {
  * Common cause: the app updated and the old tab tries to load a now-missing chunk.
  */
 export function GlobalChunkErrorHandler() {
+  const { toast } = useToast();
+
   useEffect(() => {
     const onUnhandledRejection = (event: PromiseRejectionEvent) => {
       if (!isChunkLoadError(event.reason)) return;
@@ -27,20 +29,16 @@ export function GlobalChunkErrorHandler() {
         return;
       }
 
-      toast.error(
-        "Une mise à jour est disponible. Veuillez recharger la page.",
-        {
-          action: {
-            label: "Recharger",
-            onClick: () => window.location.reload(),
-          },
-        }
-      );
+      toast({
+        title: "Erreur",
+        description: "Une mise à jour est disponible. Veuillez recharger la page.",
+        variant: "destructive",
+      });
     };
 
     window.addEventListener("unhandledrejection", onUnhandledRejection);
     return () => window.removeEventListener("unhandledrejection", onUnhandledRejection);
-  }, []);
+  }, [toast]);
 
   return null;
 }

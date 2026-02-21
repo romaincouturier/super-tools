@@ -2,7 +2,7 @@ import { MediaItem, useDeleteMedia, deleteMediaFile } from "@/hooks/useMedia";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ImageIcon, Video, Play, Trash2, Briefcase, Download, GraduationCap, CalendarDays, HandCoins } from "lucide-react";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 
 interface MediaGridProps {
   items: MediaItem[];
@@ -35,6 +35,7 @@ const sourceIconLarge = (sourceType: string) => {
 };
 
 const MediaGrid = ({ items, onOpenLightbox }: MediaGridProps) => {
+  const { toast } = useToast();
   const deleteMutation = useDeleteMedia();
 
   const downloadFile = async (url: string, fileName: string) => {
@@ -50,7 +51,7 @@ const MediaGrid = ({ items, onOpenLightbox }: MediaGridProps) => {
       document.body.removeChild(a);
       URL.revokeObjectURL(blobUrl);
     } catch {
-      toast.error("Erreur lors du téléchargement");
+      toast({ title: "Erreur", description: "Erreur lors du téléchargement", variant: "destructive" });
     }
   };
 
@@ -65,10 +66,10 @@ const MediaGrid = ({ items, onOpenLightbox }: MediaGridProps) => {
         sourceType: item.source_type,
         sourceId: item.source_id,
       });
-      toast.success("Fichier supprimé");
+      toast({ title: "Succès", description: "Fichier supprimé" });
     } catch (error) {
       console.error("Delete error:", error);
-      toast.error("Erreur lors de la suppression");
+      toast({ title: "Erreur", description: "Erreur lors de la suppression", variant: "destructive" });
     }
   };
 

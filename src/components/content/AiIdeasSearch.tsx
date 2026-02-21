@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 import { Search, Sparkles, Loader2, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,7 @@ interface SearchResult {
 }
 
 const AiIdeasSearch = ({ onSelectCard }: AiIdeasSearchProps) => {
+  const { toast } = useToast();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
@@ -25,7 +26,7 @@ const AiIdeasSearch = ({ onSelectCard }: AiIdeasSearchProps) => {
 
   const handleSearch = async () => {
     if (!query.trim()) {
-      toast.error("Entrez une question");
+      toast({ title: "Erreur", description: "Entrez une question", variant: "destructive" });
       return;
     }
 
@@ -42,11 +43,11 @@ const AiIdeasSearch = ({ onSelectCard }: AiIdeasSearchProps) => {
       setResults(data.results || []);
 
       if (!data.results?.length) {
-        toast.info("Aucune idée correspondante trouvée");
+        toast({ description: "Aucune idée correspondante trouvée" });
       }
     } catch (error) {
       console.error("Error searching ideas:", error);
-      toast.error("Erreur lors de la recherche");
+      toast({ title: "Erreur", description: "Erreur lors de la recherche", variant: "destructive" });
     } finally {
       setLoading(false);
     }

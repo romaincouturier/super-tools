@@ -15,7 +15,7 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 
 interface ThankYouEmailPreviewDialogProps {
   open: boolean;
@@ -82,6 +82,7 @@ const ThankYouEmailPreviewDialog = ({
   onConfirmSend,
   isSending,
 }: ThankYouEmailPreviewDialogProps) => {
+  const { toast } = useToast();
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [loading, setLoading] = useState(false);
   const [customTemplate, setCustomTemplate] = useState<{ subject: string; content: string } | null>(null);
@@ -140,7 +141,7 @@ const ThankYouEmailPreviewDialog = ({
 
   const handleSendTest = async () => {
     if (!testEmail || !testEmail.includes("@")) {
-      toast.error("Veuillez saisir une adresse email valide");
+      toast({ title: "Erreur", description: "Veuillez saisir une adresse email valide", variant: "destructive" });
       return;
     }
 
@@ -155,10 +156,10 @@ const ThankYouEmailPreviewDialog = ({
 
       if (error) throw error;
 
-      toast.success(`Email de test envoyé à ${testEmail}`);
+      toast({ title: "Succès", description: `Email de test envoyé à ${testEmail}` });
     } catch (error) {
       console.error("Error sending test email:", error);
-      toast.error("Erreur lors de l'envoi du mail de test");
+      toast({ title: "Erreur", description: "Erreur lors de l'envoi du mail de test", variant: "destructive" });
     } finally {
       setIsSendingTest(false);
     }

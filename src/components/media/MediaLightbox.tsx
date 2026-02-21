@@ -2,7 +2,7 @@ import { MediaItem } from "@/hooks/useMedia";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { X, Briefcase, ChevronLeft, ChevronRight, Download, GraduationCap, CalendarDays, HandCoins } from "lucide-react";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 import { useEffect, useCallback } from "react";
 
 interface MediaLightboxProps {
@@ -29,6 +29,7 @@ const sourceIcon = (sourceType: string) => {
 };
 
 const MediaLightbox = ({ item, items, onClose, onNavigate }: MediaLightboxProps) => {
+  const { toast } = useToast();
   const currentIndex = items.findIndex((i) => i.id === item.id);
   const hasPrev = currentIndex > 0;
   const hasNext = currentIndex < items.length - 1;
@@ -46,7 +47,7 @@ const MediaLightbox = ({ item, items, onClose, onNavigate }: MediaLightboxProps)
       document.body.removeChild(a);
       URL.revokeObjectURL(blobUrl);
     } catch {
-      toast.error("Erreur lors du téléchargement");
+      toast({ title: "Erreur", description: "Erreur lors du téléchargement", variant: "destructive" });
     }
   };
 

@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 
 interface SentDevisDetails {
   crm_card_id?: string;
@@ -30,6 +30,7 @@ interface SentDevisSectionProps {
 }
 
 const SentDevisSection = ({ email, cardId }: SentDevisSectionProps) => {
+  const { toast } = useToast();
   const { data: sentDevis, isLoading, refetch } = useQuery({
     queryKey: ["crm-sent-devis", email, cardId],
     queryFn: async () => {
@@ -65,7 +66,7 @@ const SentDevisSection = ({ email, cardId }: SentDevisSectionProps) => {
   const handleDuplicate = (devis: SentDevis) => {
     const formData = devis.details?.form_data;
     if (!formData) {
-      toast.error("Pas de données de formulaire pour dupliquer");
+      toast({ title: "Erreur", description: "Pas de données de formulaire pour dupliquer", variant: "destructive" });
       return;
     }
 

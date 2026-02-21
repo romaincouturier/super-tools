@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,6 +42,7 @@ export default function BackupManager({
   onSettingsChange,
   hasGoogleDrive,
 }: BackupManagerProps) {
+  const { toast } = useToast();
   const [exporting, setExporting] = useState(false);
   const [importing, setImporting] = useState(false);
   const [dryRunResults, setDryRunResults] = useState<Record<string, { deleted: number; inserted: number }> | null>(null);
@@ -67,10 +68,10 @@ export default function BackupManager({
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
-      toast.success("Sauvegarde téléchargée avec succès");
+      toast({ title: "Succès", description: "Sauvegarde téléchargée avec succès" });
     } catch (error) {
       console.error("Export error:", error);
-      toast.error("Erreur lors de l'export");
+      toast({ title: "Erreur", description: "Erreur lors de l'export", variant: "destructive" });
     } finally {
       setExporting(false);
     }
@@ -88,13 +89,13 @@ export default function BackupManager({
       if (error) throw error;
 
       if (data.googleDrive) {
-        toast.success(`Sauvegarde uploadée sur Google Drive: ${data.fileName}`);
+        toast({ title: "Succès", description: `Sauvegarde uploadée sur Google Drive: ${data.fileName}` });
       } else {
-        toast.warning("Sauvegarde créée mais pas d'accès Google Drive configuré");
+        toast({ title: "Attention", description: "Sauvegarde créée mais pas d'accès Google Drive configuré" });
       }
     } catch (error) {
       console.error("Export to GDrive error:", error);
-      toast.error("Erreur lors de l'export vers Google Drive");
+      toast({ title: "Erreur", description: "Erreur lors de l'export vers Google Drive", variant: "destructive" });
     } finally {
       setExporting(false);
     }
@@ -123,10 +124,10 @@ export default function BackupManager({
       if (error) throw error;
 
       setDryRunResults(data.results);
-      toast.info("Simulation terminée. Vérifiez les résultats avant de restaurer.");
+      toast({ description: "Simulation terminée. Vérifiez les résultats avant de restaurer." });
     } catch (error) {
       console.error("Dry run error:", error);
-      toast.error("Erreur lors de la simulation");
+      toast({ title: "Erreur", description: "Erreur lors de la simulation", variant: "destructive" });
     } finally {
       setImporting(false);
     }
@@ -146,12 +147,12 @@ export default function BackupManager({
 
       if (error) throw error;
 
-      toast.success("Restauration terminée avec succès !");
+      toast({ title: "Succès", description: "Restauration terminée avec succès !" });
       setSelectedFile(null);
       setDryRunResults(null);
     } catch (error) {
       console.error("Restore error:", error);
-      toast.error("Erreur lors de la restauration");
+      toast({ title: "Erreur", description: "Erreur lors de la restauration", variant: "destructive" });
     } finally {
       setImporting(false);
     }

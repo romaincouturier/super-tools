@@ -11,7 +11,7 @@ import {
 import { arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import KanbanLayout from "@/components/kanban/KanbanLayout";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 import { Plus, Loader2, Settings2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -72,6 +72,7 @@ interface KanbanBoardProps {
 }
 
 const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPublished = false, onNewsletterChange }: KanbanBoardProps) => {
+  const { toast } = useToast();
   const [columns, setColumns] = useState<Column[]>([]);
   const [cards, setCards] = useState<Card[]>([]);
   const [cardIdsInReview, setCardIdsInReview] = useState<Set<string>>(new Set());
@@ -189,7 +190,7 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
       );
     } catch (error) {
       console.error("Error fetching data:", error);
-      toast.error("Erreur lors du chargement des données");
+      toast({ title: "Erreur", description: "Erreur lors du chargement des données", variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -283,7 +284,7 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
         );
       } catch (error) {
         console.error("Error reordering columns:", error);
-        toast.error("Erreur lors du réordonnancement des colonnes");
+        toast({ title: "Erreur", description: "Erreur lors du réordonnancement des colonnes", variant: "destructive" });
         fetchData();
       }
       return;
@@ -336,7 +337,7 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
         .eq("id", activeCardId);
     } catch (error) {
       console.error("Error updating card position:", error);
-      toast.error("Erreur lors du déplacement de la carte");
+      toast({ title: "Erreur", description: "Erreur lors du déplacement de la carte", variant: "destructive" });
       fetchData();
     }
   };
@@ -364,11 +365,11 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
 
       if (error) throw error;
 
-      toast.success("Colonne ajoutée");
+      toast({ title: "Succès", description: "Colonne ajoutée" });
       fetchData();
     } catch (error) {
       console.error("Error adding column:", error);
-      toast.error("Erreur lors de l'ajout de la colonne");
+      toast({ title: "Erreur", description: "Erreur lors de l'ajout de la colonne", variant: "destructive" });
     }
     setShowAddColumn(false);
   };
@@ -385,10 +386,10 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
       setColumns((prev) =>
         prev.map((c) => (c.id === columnId ? { ...c, name: newName } : c))
       );
-      toast.success("Colonne renommée");
+      toast({ title: "Succès", description: "Colonne renommée" });
     } catch (error) {
       console.error("Error renaming column:", error);
-      toast.error("Erreur lors du renommage");
+      toast({ title: "Erreur", description: "Erreur lors du renommage", variant: "destructive" });
     }
   };
 
@@ -403,10 +404,10 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
 
       setColumns((prev) => prev.filter((c) => c.id !== columnId));
       setCards((prev) => prev.filter((c) => c.column_id !== columnId));
-      toast.success("Colonne supprimée");
+      toast({ title: "Succès", description: "Colonne supprimée" });
     } catch (error) {
       console.error("Error deleting column:", error);
-      toast.error("Erreur lors de la suppression");
+      toast({ title: "Erreur", description: "Erreur lors de la suppression", variant: "destructive" });
     }
   };
 
@@ -426,7 +427,7 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
           .eq("id", editingCard.id);
 
         if (error) throw error;
-        toast.success("Carte mise à jour");
+        toast({ title: "Succès", description: "Carte mise à jour" });
       } else if (newCardColumnId) {
         const columnCards = cards.filter((c) => c.column_id === newCardColumnId);
         const { error } = await (supabase as any).from("content_cards").insert({
@@ -441,12 +442,12 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
         });
 
         if (error) throw error;
-        toast.success("Carte créée");
+        toast({ title: "Succès", description: "Carte créée" });
       }
       fetchData();
     } catch (error) {
       console.error("Error saving card:", error);
-      toast.error("Erreur lors de la sauvegarde");
+      toast({ title: "Erreur", description: "Erreur lors de la sauvegarde", variant: "destructive" });
     }
     setEditingCard(null);
     setNewCardColumnId(null);
@@ -462,10 +463,10 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
       if (error) throw error;
 
       setCards((prev) => prev.filter((c) => c.id !== cardId));
-      toast.success("Carte supprimée");
+      toast({ title: "Succès", description: "Carte supprimée" });
     } catch (error) {
       console.error("Error deleting card:", error);
-      toast.error("Erreur lors de la suppression");
+      toast({ title: "Erreur", description: "Erreur lors de la suppression", variant: "destructive" });
     }
   };
 
@@ -483,7 +484,7 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
       );
     } catch (error) {
       console.error("Error updating emoji:", error);
-      toast.error("Erreur lors de la mise à jour de l'emoji");
+      toast({ title: "Erreur", description: "Erreur lors de la mise à jour de l'emoji", variant: "destructive" });
     }
   };
 
@@ -620,6 +621,7 @@ const ColorSettingsDialog = ({
   colors: ContentTypeColors;
   onSave: (colors: ContentTypeColors) => Promise<void>;
 }) => {
+  const { toast } = useToast();
   const [articleColor, setArticleColor] = useState(colors.article);
   const [postColor, setPostColor] = useState(colors.post);
 
@@ -630,7 +632,7 @@ const ColorSettingsDialog = ({
 
   const handleSave = async () => {
     await onSave({ article: articleColor, post: postColor });
-    toast.success("Couleurs enregistrées");
+    toast({ title: "Succès", description: "Couleurs enregistrées" });
     onOpenChange(false);
   };
 

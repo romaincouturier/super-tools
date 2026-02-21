@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 import { Send, Loader2, MessageCircle, X, Pencil, Image, FileText, Palette, Trash2, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -65,6 +65,7 @@ const CommentThread = ({
   reviewStatus,
   onCommentAdded
 }: CommentThreadProps) => {
+  const { toast } = useToast();
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
   const [newComment, setNewComment] = useState("");
@@ -111,7 +112,7 @@ const CommentThread = ({
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
-        toast.error("L'image ne doit pas dépasser 5 Mo");
+        toast({ title: "Erreur", description: "L'image ne doit pas dépasser 5 Mo", variant: "destructive" });
         return;
       }
       setImageFile(file);
@@ -133,7 +134,7 @@ const CommentThread = ({
         const file = item.getAsFile();
         if (file) {
           if (file.size > 5 * 1024 * 1024) {
-            toast.error("L'image ne doit pas dépasser 5 Mo");
+            toast({ title: "Erreur", description: "L'image ne doit pas dépasser 5 Mo", variant: "destructive" });
             return;
           }
           setImageFile(file);
@@ -159,7 +160,7 @@ const CommentThread = ({
   const uploadImage = async (file: File): Promise<string | null> => {
     const { data: sessionData } = await supabase.auth.getSession();
     if (!sessionData.session?.user) {
-      toast.error("Votre session a expiré — reconnectez-vous puis réessayez");
+      toast({ title: "Erreur", description: "Votre session a expiré — reconnectez-vous puis réessayez", variant: "destructive" });
       return null;
     }
 
@@ -194,7 +195,7 @@ const CommentThread = ({
       const msg = [statusCode ? `HTTP ${statusCode}` : null, message || null]
         .filter(Boolean)
         .join(" — ");
-      toast.error(msg ? `Upload impossible : ${msg}` : "Erreur lors de l'upload de l'image");
+      toast({ title: "Erreur", description: msg ? `Upload impossible : ${msg}` : "Erreur lors de l'upload de l'image", variant: "destructive" });
       return null;
     }
   };
@@ -208,7 +209,7 @@ const CommentThread = ({
       const userId = sessionData.session?.user?.id;
 
       if (!userId) {
-        toast.error("Vous devez être connecté");
+        toast({ title: "Erreur", description: "Vous devez être connecté", variant: "destructive" });
         return;
       }
 
@@ -313,10 +314,10 @@ const CommentThread = ({
       clearImage();
       fetchComments();
       onCommentAdded?.();
-      toast.success("Commentaire ajouté");
+      toast({ title: "Succès", description: "Commentaire ajouté" });
     } catch (error) {
       console.error("Error adding comment:", error);
-      toast.error("Erreur lors de l'ajout du commentaire");
+      toast({ title: "Erreur", description: "Erreur lors de l'ajout du commentaire", variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
@@ -339,16 +340,16 @@ const CommentThread = ({
 
       fetchComments();
       onCommentAdded?.(); // Notify parent to refresh pending count
-      toast.success(
+      toast({ title: "Succès", description:
         status === "approved"
           ? "Retour accepté"
           : status === "refused"
             ? "Retour rejeté"
             : "Correction effectuée"
-      );
+      });
     } catch (error) {
       console.error("Error updating comment status:", error);
-      toast.error("Erreur lors de la mise à jour");
+      toast({ title: "Erreur", description: "Erreur lors de la mise à jour", variant: "destructive" });
     }
   };
 
@@ -365,10 +366,10 @@ const CommentThread = ({
 
       fetchComments();
       onCommentAdded?.(); // Notify parent to refresh pending count
-      toast.success("Commentaire supprimé");
+      toast({ title: "Succès", description: "Commentaire supprimé" });
     } catch (error) {
       console.error("Error deleting comment:", error);
-      toast.error("Erreur lors de la suppression");
+      toast({ title: "Erreur", description: "Erreur lors de la suppression", variant: "destructive" });
     }
   };
 
@@ -510,7 +511,7 @@ const CommentThread = ({
                               onClick={(e) => {
                                 e.stopPropagation();
                                 navigator.clipboard.writeText(comment.proposed_correction!);
-                                toast.success("Correction copiée");
+                                toast({ title: "Succès", description: "Correction copiée" });
                               }}
                               title="Copier la correction"
                             >

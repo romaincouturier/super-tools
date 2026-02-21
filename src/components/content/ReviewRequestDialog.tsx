@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
   DialogContent,
@@ -38,6 +38,7 @@ const ReviewRequestDialog = ({
   cardTitle,
   onCreated,
 }: ReviewRequestDialogProps) => {
+  const { toast } = useToast();
   const [users, setUsers] = useState<User[]>([]);
   const [selectedUser, setSelectedUser] = useState("");
   const [loading, setLoading] = useState(false);
@@ -78,7 +79,7 @@ const ReviewRequestDialog = ({
 
   const handleSubmit = async () => {
     if (!selectedUser) {
-      toast.error("Veuillez sélectionner un relecteur");
+      toast({ title: "Erreur", description: "Veuillez sélectionner un relecteur", variant: "destructive" });
       return;
     }
 
@@ -122,12 +123,12 @@ const ReviewRequestDialog = ({
         console.error("Error sending notification email:", emailError);
       }
 
-      toast.success("Relecteur associé");
+      toast({ title: "Succès", description: "Relecteur associé" });
       onOpenChange(false);
       onCreated();
     } catch (error) {
       console.error("Error creating review request:", error);
-      toast.error("Erreur lors de la création de la demande");
+      toast({ title: "Erreur", description: "Erreur lors de la création de la demande", variant: "destructive" });
     } finally {
       setLoading(false);
     }

@@ -16,7 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import type { Card, ContentCardType } from "./KanbanBoard";
@@ -49,6 +49,7 @@ const ContentCardDialog = ({
   onSave,
   onNewsletterChange,
 }: ContentCardDialogProps) => {
+  const { toast } = useToast();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [imageUrl, setImageUrl] = useState("");
@@ -128,7 +129,7 @@ const ContentCardDialog = ({
 
   const handleAiAction = async (action: AiActionType) => {
     if (!description.trim()) {
-      toast.error("Le contenu est vide");
+      toast({ title: "Erreur", description: "Le contenu est vide", variant: "destructive" });
       return;
     }
 
@@ -142,11 +143,11 @@ const ContentCardDialog = ({
 
       if (data.result) {
         setDescription(data.result);
-        toast.success("Contenu modifié");
+        toast({ title: "Succès", description: "Contenu modifié" });
       }
     } catch (error) {
       console.error("Error with AI assist:", error);
-      toast.error("Erreur lors du traitement IA");
+      toast({ title: "Erreur", description: "Erreur lors du traitement IA", variant: "destructive" });
     } finally {
       setAiLoading(null);
     }
@@ -157,7 +158,7 @@ const ContentCardDialog = ({
     if (!file) return;
 
     if (!file.type.startsWith("image/")) {
-      toast.error("Veuillez sélectionner une image");
+      toast({ title: "Erreur", description: "Veuillez sélectionner une image", variant: "destructive" });
       return;
     }
 
@@ -177,10 +178,10 @@ const ContentCardDialog = ({
         .getPublicUrl(fileName);
 
       setImageUrl(urlData.publicUrl);
-      toast.success("Image téléchargée");
+      toast({ title: "Succès", description: "Image téléchargée" });
     } catch (error) {
       console.error("Error uploading image:", error);
-      toast.error("Erreur lors du téléchargement");
+      toast({ title: "Erreur", description: "Erreur lors du téléchargement", variant: "destructive" });
     } finally {
       setUploading(false);
     }
@@ -199,7 +200,7 @@ const ContentCardDialog = ({
 
   const handleSave = () => {
     if (!title.trim()) {
-      toast.error("Le titre est requis");
+      toast({ title: "Erreur", description: "Le titre est requis", variant: "destructive" });
       return;
     }
 
@@ -229,7 +230,7 @@ const ContentCardDialog = ({
 
       if (newsletterId === "none") {
         setAttachedNewsletterId(null);
-        toast.success("Carte retirée de la newsletter");
+        toast({ title: "Succès", description: "Carte retirée de la newsletter" });
         onNewsletterChange?.();
       } else {
         // Get max display_order for this newsletter
@@ -253,12 +254,12 @@ const ContentCardDialog = ({
         if (error) throw error;
 
         setAttachedNewsletterId(newsletterId);
-        toast.success("Carte ajoutée à la newsletter");
+        toast({ title: "Succès", description: "Carte ajoutée à la newsletter" });
         onNewsletterChange?.();
       }
     } catch (error) {
       console.error("Error updating newsletter attachment:", error);
-      toast.error("Erreur lors de la mise à jour");
+      toast({ title: "Erreur", description: "Erreur lors de la mise à jour", variant: "destructive" });
     } finally {
       setAttachingNewsletter(false);
     }

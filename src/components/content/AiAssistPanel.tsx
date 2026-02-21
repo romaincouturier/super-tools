@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 import {
   Sparkles,
   FileText,
@@ -50,6 +50,7 @@ const actions = [
 ];
 
 const AiAssistPanel = ({ content, onApply }: AiAssistPanelProps) => {
+  const { toast } = useToast();
   const [result, setResult] = useState("");
   const [loading, setLoading] = useState(false);
   const [activeAction, setActiveAction] = useState<ActionType | null>(null);
@@ -57,7 +58,7 @@ const AiAssistPanel = ({ content, onApply }: AiAssistPanelProps) => {
 
   const handleAction = async (action: ActionType) => {
     if (!content.trim()) {
-      toast.error("Le contenu est vide");
+      toast({ title: "Erreur", description: "Le contenu est vide", variant: "destructive" });
       return;
     }
 
@@ -75,7 +76,7 @@ const AiAssistPanel = ({ content, onApply }: AiAssistPanelProps) => {
       setResult(data.result || "");
     } catch (error) {
       console.error("Error with AI assist:", error);
-      toast.error("Erreur lors du traitement IA");
+      toast({ title: "Erreur", description: "Erreur lors du traitement IA", variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -84,13 +85,13 @@ const AiAssistPanel = ({ content, onApply }: AiAssistPanelProps) => {
   const handleCopy = async () => {
     await navigator.clipboard.writeText(result);
     setCopied(true);
-    toast.success("Copié dans le presse-papier");
+    toast({ title: "Succès", description: "Copié dans le presse-papier" });
     setTimeout(() => setCopied(false), 2000);
   };
 
   const handleApply = () => {
     onApply(result);
-    toast.success("Contenu appliqué");
+    toast({ title: "Succès", description: "Contenu appliqué" });
     setResult("");
     setActiveAction(null);
   };

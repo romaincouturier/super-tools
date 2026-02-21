@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 import { Plus, Loader2, CheckCircle2, Clock, MessageSquare, Bell, XCircle, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -55,6 +55,7 @@ const statusConfig: Record<
 };
 
 const ReviewPanel = ({ cardId, cardTitle }: ReviewPanelProps) => {
+  const { toast } = useToast();
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [showRequestDialog, setShowRequestDialog] = useState(false);
@@ -128,11 +129,11 @@ const ReviewPanel = ({ cardId, cardTitle }: ReviewPanelProps) => {
         });
       }
 
-      toast.success("Rappel envoyé");
+      toast({ title: "Succès", description: "Rappel envoyé" });
       fetchReviews();
     } catch (error) {
       console.error("Error sending reminder:", error);
-      toast.error("Erreur lors de l'envoi du rappel");
+      toast({ title: "Erreur", description: "Erreur lors de l'envoi du rappel", variant: "destructive" });
     }
   };
 
@@ -160,11 +161,11 @@ const ReviewPanel = ({ cardId, cardTitle }: ReviewPanelProps) => {
         });
       }
 
-      toast.success("Relecture clôturée");
+      toast({ title: "Succès", description: "Relecture clôturée" });
       fetchReviews();
     } catch (error) {
       console.error("Error closing review:", error);
-      toast.error("Erreur lors de la clôture");
+      toast({ title: "Erreur", description: "Erreur lors de la clôture", variant: "destructive" });
     }
   };
 
@@ -183,10 +184,10 @@ const ReviewPanel = ({ cardId, cardTitle }: ReviewPanelProps) => {
 
       setEditingOpinion(null);
       fetchReviews();
-      toast.success("Avis général enregistré");
+      toast({ title: "Succès", description: "Avis général enregistré" });
     } catch (error) {
       console.error("Error saving opinion:", error);
-      toast.error("Erreur lors de l'enregistrement");
+      toast({ title: "Erreur", description: "Erreur lors de l'enregistrement", variant: "destructive" });
     } finally {
       setSavingOpinion(false);
     }

@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { FileText, Upload, Download, Trash2, Loader2 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,6 +29,7 @@ interface TrainingDocumentsSectionProps {
 }
 
 const TrainingDocumentsSection = ({ trainingId }: TrainingDocumentsSectionProps) => {
+  const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -46,9 +47,7 @@ const TrainingDocumentsSection = ({ trainingId }: TrainingDocumentsSectionProps)
     if (fileInputRef.current) fileInputRef.current.value = "";
 
     if (file.size > MAX_FILE_SIZE) {
-      toast.error("Fichier trop volumineux", {
-        description: `La taille maximale est de 20 Mo. Ce fichier fait ${formatFileSize(file.size)}.`,
-      });
+      toast({ title: "Erreur", description: `Fichier trop volumineux. La taille maximale est de 20 Mo. Ce fichier fait ${formatFileSize(file.size)}.`, variant: "destructive" });
       return;
     }
 
@@ -61,14 +60,10 @@ const TrainingDocumentsSection = ({ trainingId }: TrainingDocumentsSectionProps)
         file_url: fileUrl,
         file_size: file.size,
       });
-      toast.success("Document ajouté", {
-        description: file.name,
-      });
+      toast({ title: "Succès", description: `Document ajouté : ${file.name}` });
     } catch (error: unknown) {
       console.error("Upload error:", error);
-      toast.error("Erreur lors de l'upload", {
-        description: error instanceof Error ? error.message : "Impossible d'ajouter le document.",
-      });
+      toast({ title: "Erreur", description: error instanceof Error ? error.message : "Impossible d'ajouter le document.", variant: "destructive" });
     } finally {
       setUploading(false);
     }
@@ -90,9 +85,7 @@ const TrainingDocumentsSection = ({ trainingId }: TrainingDocumentsSectionProps)
       window.URL.revokeObjectURL(url);
     } catch (error: unknown) {
       console.error("Download error:", error);
-      toast.error("Erreur de téléchargement", {
-        description: error instanceof Error ? error.message : "Impossible de télécharger le document.",
-      });
+      toast({ title: "Erreur", description: error instanceof Error ? error.message : "Impossible de télécharger le document.", variant: "destructive" });
     } finally {
       setDownloadingId(null);
     }
@@ -110,14 +103,10 @@ const TrainingDocumentsSection = ({ trainingId }: TrainingDocumentsSectionProps)
       await deleteTrainingDocumentFile(fileUrl);
       // Then delete the DB record
       await deleteDocument.mutateAsync({ id: docId, trainingId });
-      toast.success("Document supprimé", {
-        description: fileName,
-      });
+      toast({ title: "Succès", description: `Document supprimé : ${fileName}` });
     } catch (error: unknown) {
       console.error("Delete error:", error);
-      toast.error("Erreur de suppression", {
-        description: error instanceof Error ? error.message : "Impossible de supprimer le document.",
-      });
+      toast({ title: "Erreur", description: error instanceof Error ? error.message : "Impossible de supprimer le document.", variant: "destructive" });
     } finally {
       setDeletingId(null);
     }

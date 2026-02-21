@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 import confetti from "canvas-confetti";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -67,6 +67,7 @@ interface NewsletterSectionProps {
 }
 
 const NewsletterSection = ({ onCardClick, refreshKey }: NewsletterSectionProps) => {
+  const { toast } = useToast();
   const [newsletters, setNewsletters] = useState<Newsletter[]>([]);
   const [currentNewsletter, setCurrentNewsletter] = useState<Newsletter | null>(null);
   const [newsletterCards, setNewsletterCards] = useState<NewsletterCard[]>([]);
@@ -203,7 +204,7 @@ const NewsletterSection = ({ onCardClick, refreshKey }: NewsletterSectionProps) 
 
   const handleCreate = async () => {
     if (!newDate) {
-      toast.error("Veuillez sélectionner une date");
+      toast({ title: "Erreur", description: "Veuillez sélectionner une date", variant: "destructive" });
       return;
     }
 
@@ -217,14 +218,14 @@ const NewsletterSection = ({ onCardClick, refreshKey }: NewsletterSectionProps) 
 
       if (error) throw error;
 
-      toast.success("Newsletter programmée");
+      toast({ title: "Succès", description: "Newsletter programmée" });
       setShowCreateDialog(false);
       setNewDate("");
       setNewTitle("");
       await fetchNewsletters();
     } catch (error) {
       console.error("Error creating newsletter:", error);
-      toast.error("Erreur lors de la création");
+      toast({ title: "Erreur", description: "Erreur lors de la création", variant: "destructive" });
     } finally {
       setCreating(false);
     }
@@ -273,7 +274,7 @@ const NewsletterSection = ({ onCardClick, refreshKey }: NewsletterSectionProps) 
 
       setJustSent(true);
       setShowConfirmSend(false);
-      toast.success("Newsletter envoyée !");
+      toast({ title: "Succès", description: "Newsletter envoyée !" });
 
       // Wait a moment then refresh to show next newsletter
       setTimeout(async () => {
@@ -282,7 +283,7 @@ const NewsletterSection = ({ onCardClick, refreshKey }: NewsletterSectionProps) 
       }, 4000);
     } catch (error) {
       console.error("Error marking newsletter as sent:", error);
-      toast.error("Erreur lors de la confirmation");
+      toast({ title: "Erreur", description: "Erreur lors de la confirmation", variant: "destructive" });
     } finally {
       setSending(false);
     }
@@ -355,7 +356,7 @@ const NewsletterSection = ({ onCardClick, refreshKey }: NewsletterSectionProps) 
       }
     } catch (error) {
       console.error("Error removing card:", error);
-      toast.error("Erreur lors du retrait");
+      toast({ title: "Erreur", description: "Erreur lors du retrait", variant: "destructive" });
     }
   };
 

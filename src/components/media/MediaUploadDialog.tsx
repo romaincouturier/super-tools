@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 import { Mission } from "@/types/missions";
 import { useAddMedia, uploadMediaFile, MediaSourceType } from "@/hooks/useMedia";
 import { Button } from "@/components/ui/button";
@@ -34,6 +34,7 @@ interface MediaUploadDialogProps {
 }
 
 const MediaUploadDialog = ({ missions, trainings = [], events = [], crmCards = [] }: MediaUploadDialogProps) => {
+  const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [selectedSourceType, setSelectedSourceType] = useState<MediaSourceType>("mission");
   const [selectedEntityId, setSelectedEntityId] = useState<string>("");
@@ -60,7 +61,7 @@ const MediaUploadDialog = ({ missions, trainings = [], events = [], crmCards = [
 
   const uploadFiles = async (files: FileList | File[]) => {
     if (!selectedEntityId) {
-      toast.error("Veuillez sélectionner une entité");
+      toast({ title: "Erreur", description: "Veuillez sélectionner une entité", variant: "destructive" });
       return;
     }
 
@@ -68,13 +69,13 @@ const MediaUploadDialog = ({ missions, trainings = [], events = [], crmCards = [
     const validFiles = fileArray.filter((f) => getFileType(f) !== null);
 
     if (validFiles.length === 0) {
-      toast.error("Seules les images et vidéos sont acceptées");
+      toast({ title: "Erreur", description: "Seules les images et vidéos sont acceptées", variant: "destructive" });
       return;
     }
 
     const oversized = validFiles.filter((f) => f.size > 50 * 1024 * 1024);
     if (oversized.length > 0) {
-      toast.error("Les fichiers ne doivent pas dépasser 50 Mo");
+      toast({ title: "Erreur", description: "Les fichiers ne doivent pas dépasser 50 Mo", variant: "destructive" });
       return;
     }
 
@@ -102,16 +103,17 @@ const MediaUploadDialog = ({ missions, trainings = [], events = [], crmCards = [
           successCount++;
         } catch (err) {
           console.error("Upload error:", err);
-          toast.error(`Erreur lors de l'upload de ${file.name}`);
+          toast({ title: "Erreur", description: `Erreur lors de l'upload de ${file.name}`, variant: "destructive" });
         }
       }
 
       if (successCount > 0) {
-        toast.success(
-          successCount === 1
+        toast({
+          title: "Succès",
+          description: successCount === 1
             ? "Fichier ajouté"
-            : `${successCount} fichiers ajoutés`
-        );
+            : `${successCount} fichiers ajoutés`,
+        });
         setOpen(false);
         setSelectedEntityId("");
       }
