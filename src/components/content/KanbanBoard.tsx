@@ -1,22 +1,15 @@
 import { useState, useEffect } from "react";
 import {
-  DndContext,
-  DragOverlay,
-  closestCorners,
+  DragStartEvent,
+  DragEndEvent,
+  DragOverEvent,
   KeyboardSensor,
   PointerSensor,
   useSensor,
   useSensors,
-  DragStartEvent,
-  DragEndEvent,
-  DragOverEvent,
 } from "@dnd-kit/core";
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  horizontalListSortingStrategy,
-} from "@dnd-kit/sortable";
+import { arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
+import KanbanLayout from "@/components/kanban/KanbanLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Plus, Loader2, Settings2 } from "lucide-react";
@@ -526,73 +519,63 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
         </Button>
       </div>
 
-      <DndContext
+      <KanbanLayout
         sensors={sensors}
-        collisionDetection={closestCorners}
         onDragStart={handleDragStart}
-        onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
-      >
-        <div className="flex gap-4 overflow-x-auto pb-4 h-full">
-          <SortableContext
-            items={columns.map((c) => `column-${c.id}`)}
-            strategy={horizontalListSortingStrategy}
-          >
-            {columns.map((column) => {
-              // Skip Archive column when not showing published content
-              if (!showPublished && column.name.toLowerCase() === "archive") return null;
-
-              const columnCards = cards.filter((c) => c.column_id === column.id);
-
-              // Apply filters
-              let filteredCards = columnCards;
-              if (filterReviewOnly) {
-                filteredCards = filteredCards.filter((c) => cardIdsInReview.has(c.id));
-              }
-              if (!showPublished) {
-                filteredCards = filteredCards.filter((c) => !cardIdsInSentNewsletter.has(c.id));
-              }
-
-              return (
-                <KanbanColumn
-                  key={column.id}
-                  column={column}
-                  cards={filteredCards}
-                  typeColors={colors}
-                  onRename={handleRenameColumn}
-                  onDelete={handleDeleteColumn}
-                  onAddCard={() => setNewCardColumnId(column.id)}
-                  onEditCard={setEditingCard}
-                  onViewCard={setEditingCard}
-                  onDeleteCard={handleDeleteCard}
-                  onEmojiChange={handleCardEmojiChange}
-                />
-              );
-            })}
-          </SortableContext>
-
-          <div className="flex-shrink-0 w-72">
-            <Button
-              variant="outline"
-              className="w-full h-12 border-dashed"
-              onClick={() => setShowAddColumn(true)}
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Ajouter une colonne
-            </Button>
-          </div>
-        </div>
-
-        <DragOverlay>
-          {activeCard ? (
+        onDragOver={handleDragOver}
+        sortableColumns
+        columnIds={columns.map((c) => `column-${c.id}`)}
+        dragOverlay={
+          activeCard ? (
             <ContentCard card={activeCard} isDragging typeColors={colors} />
           ) : activeColumn ? (
             <div className="flex-shrink-0 w-72 bg-muted/50 rounded-lg p-3 opacity-80 shadow-lg rotate-1">
               <h3 className="font-semibold text-sm">{activeColumn.name}</h3>
             </div>
-          ) : null}
-        </DragOverlay>
-      </DndContext>
+          ) : null
+        }
+      >
+        {columns.map((column) => {
+          if (!showPublished && column.name.toLowerCase() === "archive") return null;
+
+          const columnCards = cards.filter((c) => c.column_id === column.id);
+          let filteredCards = columnCards;
+          if (filterReviewOnly) {
+            filteredCards = filteredCards.filter((c) => cardIdsInReview.has(c.id));
+          }
+          if (!showPublished) {
+            filteredCards = filteredCards.filter((c) => !cardIdsInSentNewsletter.has(c.id));
+          }
+
+          return (
+            <KanbanColumn
+              key={column.id}
+              column={column}
+              cards={filteredCards}
+              typeColors={colors}
+              onRename={handleRenameColumn}
+              onDelete={handleDeleteColumn}
+              onAddCard={() => setNewCardColumnId(column.id)}
+              onEditCard={setEditingCard}
+              onViewCard={setEditingCard}
+              onDeleteCard={handleDeleteCard}
+              onEmojiChange={handleCardEmojiChange}
+            />
+          );
+        })}
+
+        <div className="flex-shrink-0 w-72">
+          <Button
+            variant="outline"
+            className="w-full h-12 border-dashed"
+            onClick={() => setShowAddColumn(true)}
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Ajouter une colonne
+          </Button>
+        </div>
+      </KanbanLayout>
 
       <AddColumnDialog
         open={showAddColumn}

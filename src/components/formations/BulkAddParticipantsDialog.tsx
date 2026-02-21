@@ -16,6 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
+import { capitalizeName } from "@/lib/utils";
 import { subtractWorkingDays, fetchWorkingDays, fetchNeedsSurveyDelay, scheduleTrainerSummaryIfNeeded } from "@/lib/workingDays";
 
 interface BulkAddParticipantsDialogProps {
@@ -25,18 +26,6 @@ interface BulkAddParticipantsDialogProps {
   isInterEntreprise?: boolean;
   formatFormation?: string | null;
 }
-
-const capitalizeName = (name: string): string => {
-  const trimmed = name.trim();
-  if (!trimmed) return "";
-  return trimmed
-    .split(/(\s+|-)/g)
-    .map((part) => {
-      if (part === "-" || /^\s+$/.test(part)) return part;
-      return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase();
-    })
-    .join("");
-};
 
 interface ParsedParticipant {
   email: string;

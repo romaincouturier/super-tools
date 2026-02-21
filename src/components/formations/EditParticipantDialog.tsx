@@ -1,4 +1,7 @@
 import { useState, useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { Pencil, Loader2, FileText, Upload, Trash2, ExternalLink, CheckCircle2, Download, Paperclip, StickyNote } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -35,7 +38,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Check, ChevronsUpDown } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, capitalizeName } from "@/lib/utils";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -48,6 +51,25 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
+
+const editParticipantSchema = z.object({
+  firstName: z.string().default(""),
+  lastName: z.string().default(""),
+  email: z.string().min(1, "L'email est requis").email("Email invalide"),
+  company: z.string().default(""),
+  sponsorFirstName: z.string().default(""),
+  sponsorLastName: z.string().default(""),
+  sponsorEmail: z.string().default(""),
+  financeurSameAsSponsor: z.boolean().default(true),
+  financeurName: z.string().default(""),
+  financeurUrl: z.string().default(""),
+  paymentMode: z.enum(["online", "invoice"]).default("invoice"),
+  soldPriceHt: z.string().default(""),
+  elearningDuration: z.string().default(""),
+  notes: z.string().default(""),
+});
+
+type EditParticipantFormValues = z.infer<typeof editParticipantSchema>;
 
 interface ParticipantFile {
   id: string;
@@ -89,17 +111,7 @@ interface EditParticipantDialogProps {
   onParticipantUpdated: () => void;
 }
 
-const capitalizeName = (name: string): string => {
-  const trimmed = name.trim();
-  if (!trimmed) return "";
-  return trimmed
-    .split(/(\s+|-)/g)
-    .map((part) => {
-      if (part === "-" || /^\s+$/.test(part)) return part;
-      return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase();
-    })
-    .join("");
-};
+// capitalizeName imported from @/lib/utils
 
 const EditParticipantDialog = ({
   participant,
@@ -109,57 +121,61 @@ const EditParticipantDialog = ({
   onParticipantUpdated,
 }: EditParticipantDialogProps) => {
   const [open, setOpen] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [firstName, setFirstName] = useState(participant.first_name || "");
-  const [lastName, setLastName] = useState(participant.last_name || "");
-  const [email, setEmail] = useState(participant.email);
-  const [company, setCompany] = useState(participant.company || "");
-  const [sponsorFirstName, setSponsorFirstName] = useState(participant.sponsor_first_name || "");
-  const [sponsorLastName, setSponsorLastName] = useState(participant.sponsor_last_name || "");
-  const [sponsorEmail, setSponsorEmail] = useState(participant.sponsor_email || "");
-  const [financeurSameAsSponsor, setFinanceurSameAsSponsor] = useState(
-    participant.financeur_same_as_sponsor ?? true
-  );
-  const [financeurName, setFinanceurName] = useState(participant.financeur_name || "");
-  const [financeurUrl, setFinanceurUrl] = useState(participant.financeur_url || "");
-  const [paymentMode, setPaymentMode] = useState<"online" | "invoice">(
-    (participant.payment_mode as "online" | "invoice") || "invoice"
-  );
-  const [soldPriceHt, setSoldPriceHt] = useState(
-    participant.sold_price_ht != null ? String(participant.sold_price_ht) : ""
-  );
-  const [elearningDuration, setElearningDuration] = useState(
-    participant.elearning_duration != null ? String(participant.elearning_duration) : (trainingElearningDuration != null ? String(trainingElearningDuration) : "")
-  );
   const [financeurPopoverOpen, setFinanceurPopoverOpen] = useState(false);
   const [existingFinanceurs, setExistingFinanceurs] = useState<string[]>([]);
   const [signedConventionUrl, setSignedConventionUrl] = useState(participant.signed_convention_url || null);
   const [uploadingConvention, setUploadingConvention] = useState(false);
   const [conventionSignature, setConventionSignature] = useState<ConventionSignatureStatus | null>(null);
-  const [notes, setNotes] = useState(participant.notes || "");
   const [participantFiles, setParticipantFiles] = useState<ParticipantFile[]>([]);
   const [uploadingFile, setUploadingFile] = useState(false);
   const { toast } = useToast();
+
+  const form = useForm<EditParticipantFormValues>({
+    resolver: zodResolver(editParticipantSchema),
+    defaultValues: {
+      firstName: participant.first_name || "",
+      lastName: participant.last_name || "",
+      email: participant.email,
+      company: participant.company || "",
+      sponsorFirstName: participant.sponsor_first_name || "",
+      sponsorLastName: participant.sponsor_last_name || "",
+      sponsorEmail: participant.sponsor_email || "",
+      financeurSameAsSponsor: participant.financeur_same_as_sponsor ?? true,
+      financeurName: participant.financeur_name || "",
+      financeurUrl: participant.financeur_url || "",
+      paymentMode: (participant.payment_mode as "online" | "invoice") || "invoice",
+      soldPriceHt: participant.sold_price_ht != null ? String(participant.sold_price_ht) : "",
+      elearningDuration: participant.elearning_duration != null ? String(participant.elearning_duration) : (trainingElearningDuration != null ? String(trainingElearningDuration) : ""),
+      notes: participant.notes || "",
+    },
+  });
+
+  const { register, handleSubmit, watch, setValue, reset, formState: { isSubmitting, errors } } = form;
+  const financeurSameAsSponsor = watch("financeurSameAsSponsor");
+  const financeurName = watch("financeurName");
+  const paymentMode = watch("paymentMode");
 
   const isInterEntreprise = formatFormation === "inter-entreprises" || formatFormation === "e_learning";
 
   // Reset form values when participant changes
   useEffect(() => {
-    setFirstName(participant.first_name || "");
-    setLastName(participant.last_name || "");
-    setEmail(participant.email);
-    setCompany(participant.company || "");
-    setSponsorFirstName(participant.sponsor_first_name || "");
-    setSponsorLastName(participant.sponsor_last_name || "");
-    setSponsorEmail(participant.sponsor_email || "");
-    setFinanceurSameAsSponsor(participant.financeur_same_as_sponsor ?? true);
-    setFinanceurName(participant.financeur_name || "");
-    setFinanceurUrl(participant.financeur_url || "");
-    setPaymentMode((participant.payment_mode as "online" | "invoice") || "invoice");
-    setSoldPriceHt(participant.sold_price_ht != null ? String(participant.sold_price_ht) : "");
-    setElearningDuration(participant.elearning_duration != null ? String(participant.elearning_duration) : (trainingElearningDuration != null ? String(trainingElearningDuration) : ""));
+    reset({
+      firstName: participant.first_name || "",
+      lastName: participant.last_name || "",
+      email: participant.email,
+      company: participant.company || "",
+      sponsorFirstName: participant.sponsor_first_name || "",
+      sponsorLastName: participant.sponsor_last_name || "",
+      sponsorEmail: participant.sponsor_email || "",
+      financeurSameAsSponsor: participant.financeur_same_as_sponsor ?? true,
+      financeurName: participant.financeur_name || "",
+      financeurUrl: participant.financeur_url || "",
+      paymentMode: (participant.payment_mode as "online" | "invoice") || "invoice",
+      soldPriceHt: participant.sold_price_ht != null ? String(participant.sold_price_ht) : "",
+      elearningDuration: participant.elearning_duration != null ? String(participant.elearning_duration) : (trainingElearningDuration != null ? String(trainingElearningDuration) : ""),
+      notes: participant.notes || "",
+    });
     setSignedConventionUrl(participant.signed_convention_url || null);
-    setNotes(participant.notes || "");
   }, [participant, trainingElearningDuration]);
 
   // Fetch electronic convention signature status
@@ -315,45 +331,27 @@ const EditParticipantDialog = ({
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!email.trim()) {
-      toast({
-        title: "Email requis",
-        description: "L'adresse email est obligatoire.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setSaving(true);
-
+  const onSubmit = async (data: EditParticipantFormValues) => {
     try {
       const updateData: Record<string, unknown> = {
-        first_name: capitalizeName(firstName) || null,
-        last_name: capitalizeName(lastName) || null,
-        email: email.trim().toLowerCase(),
-        company: company.trim() || null,
+        first_name: capitalizeName(data.firstName) || null,
+        last_name: capitalizeName(data.lastName) || null,
+        email: data.email.trim().toLowerCase(),
+        company: data.company.trim() || null,
       };
 
-      // Add notes for inter-enterprise
       if (isInterEntreprise) {
-        updateData.notes = notes.trim() || null;
-      }
-
-      // Add inter-enterprise fields if applicable
-      if (isInterEntreprise) {
-        updateData.sponsor_first_name = sponsorFirstName.trim() || null;
-        updateData.sponsor_last_name = sponsorLastName.trim() || null;
-        updateData.sponsor_email = sponsorEmail.trim().toLowerCase() || null;
-        updateData.financeur_same_as_sponsor = financeurSameAsSponsor;
-        updateData.financeur_name = !financeurSameAsSponsor ? (financeurName.trim() || null) : null;
-        updateData.financeur_url = !financeurSameAsSponsor ? (financeurUrl.trim() || null) : null;
-        updateData.payment_mode = paymentMode;
-        updateData.sold_price_ht = soldPriceHt ? parseFloat(soldPriceHt) : null;
+        updateData.notes = data.notes.trim() || null;
+        updateData.sponsor_first_name = data.sponsorFirstName.trim() || null;
+        updateData.sponsor_last_name = data.sponsorLastName.trim() || null;
+        updateData.sponsor_email = data.sponsorEmail.trim().toLowerCase() || null;
+        updateData.financeur_same_as_sponsor = data.financeurSameAsSponsor;
+        updateData.financeur_name = !data.financeurSameAsSponsor ? (data.financeurName.trim() || null) : null;
+        updateData.financeur_url = !data.financeurSameAsSponsor ? (data.financeurUrl.trim() || null) : null;
+        updateData.payment_mode = data.paymentMode;
+        updateData.sold_price_ht = data.soldPriceHt ? parseFloat(data.soldPriceHt) : null;
         if (formatFormation === "e_learning") {
-          updateData.elearning_duration = elearningDuration ? parseFloat(elearningDuration) : null;
+          updateData.elearning_duration = data.elearningDuration ? parseFloat(data.elearningDuration) : null;
         }
       }
 
@@ -375,34 +373,32 @@ const EditParticipantDialog = ({
         return;
       }
 
-      // Update training_evaluations if participant info changed
       await supabase
         .from("training_evaluations")
         .update({
-          email: email.trim().toLowerCase(),
-          first_name: capitalizeName(firstName) || null,
-          last_name: capitalizeName(lastName) || null,
-          company: company.trim() || null,
+          email: data.email.trim().toLowerCase(),
+          first_name: capitalizeName(data.firstName) || null,
+          last_name: capitalizeName(data.lastName) || null,
+          company: data.company.trim() || null,
         })
         .eq("participant_id", participant.id);
 
-      // Log activity
       await supabase.from("activity_logs").insert({
         action_type: "participant_updated",
-        recipient_email: email.trim().toLowerCase(),
+        recipient_email: data.email.trim().toLowerCase(),
         details: {
           training_id: trainingId,
           participant_id: participant.id,
-          participant_name: `${firstName.trim() || ""} ${lastName.trim() || ""}`.trim() || null,
+          participant_name: `${data.firstName.trim() || ""} ${data.lastName.trim() || ""}`.trim() || null,
           changes: {
-            email_changed: email.trim().toLowerCase() !== participant.email,
+            email_changed: data.email.trim().toLowerCase() !== participant.email,
           },
         },
       });
 
       toast({
         title: "Participant mis à jour",
-        description: `Les informations de ${email} ont été mises à jour.`,
+        description: `Les informations de ${data.email} ont été mises à jour.`,
       });
 
       setOpen(false);
@@ -414,8 +410,6 @@ const EditParticipantDialog = ({
         description: error instanceof Error ? error.message : "Une erreur est survenue.",
         variant: "destructive",
       });
-    } finally {
-      setSaving(false);
     }
   };
 
@@ -438,7 +432,7 @@ const EditParticipantDialog = ({
         </TooltipContent>
       </Tooltip>
       <DialogContent className="max-h-[90vh] overflow-y-auto">
-        <form onSubmit={handleSubmit} id="edit-participant-form">
+        <form onSubmit={handleSubmit(onSubmit)} id="edit-participant-form">
           <DialogHeader>
             <DialogTitle>Modifier le participant</DialogTitle>
             <DialogDescription>
@@ -450,44 +444,23 @@ const EditParticipantDialog = ({
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="edit-firstName">Prénom</Label>
-                <Input
-                  id="edit-firstName"
-                  value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
-                  placeholder="Jean"
-                />
+                <Input id="edit-firstName" {...register("firstName")} placeholder="Jean" />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="edit-lastName">Nom</Label>
-                <Input
-                  id="edit-lastName"
-                  value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
-                  placeholder="Dupont"
-                />
+                <Input id="edit-lastName" {...register("lastName")} placeholder="Dupont" />
               </div>
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="edit-email">Email *</Label>
-              <Input
-                id="edit-email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="jean.dupont@example.com"
-                required
-              />
+              <Input id="edit-email" type="email" {...register("email")} placeholder="jean.dupont@example.com" />
+              {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="edit-company">Société</Label>
-              <Input
-                id="edit-company"
-                value={company}
-                onChange={(e) => setCompany(e.target.value)}
-                placeholder="ACME Corp"
-              />
+              <Input id="edit-company" {...register("company")} placeholder="ACME Corp" />
             </div>
 
             {/* Inter-enterprise specific fields */}
@@ -495,15 +468,7 @@ const EditParticipantDialog = ({
               <>
                 <div className="space-y-2">
                   <Label htmlFor="edit-soldPriceHt">Montant vendu HT (€)</Label>
-                  <Input
-                    id="edit-soldPriceHt"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={soldPriceHt}
-                    onChange={(e) => setSoldPriceHt(e.target.value)}
-                    placeholder="1500.00"
-                  />
+                  <Input id="edit-soldPriceHt" type="number" step="0.01" min="0" {...register("soldPriceHt")} placeholder="1500.00" />
                 </div>
 
                 {formatFormation === "e_learning" && (
@@ -514,8 +479,7 @@ const EditParticipantDialog = ({
                       type="number"
                       step="0.5"
                       min="0"
-                      value={elearningDuration}
-                      onChange={(e) => setElearningDuration(e.target.value)}
+                      {...register("elearningDuration")}
                       placeholder={trainingElearningDuration != null ? String(trainingElearningDuration) : "7"}
                     />
                     <p className="text-xs text-muted-foreground">
@@ -533,32 +497,16 @@ const EditParticipantDialog = ({
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="edit-sponsorFirstName">Prénom</Label>
-                    <Input
-                      id="edit-sponsorFirstName"
-                      value={sponsorFirstName}
-                      onChange={(e) => setSponsorFirstName(e.target.value)}
-                      placeholder="Marie"
-                    />
+                    <Input id="edit-sponsorFirstName" {...register("sponsorFirstName")} placeholder="Marie" />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="edit-sponsorLastName">Nom</Label>
-                    <Input
-                      id="edit-sponsorLastName"
-                      value={sponsorLastName}
-                      onChange={(e) => setSponsorLastName(e.target.value)}
-                      placeholder="Martin"
-                    />
+                    <Input id="edit-sponsorLastName" {...register("sponsorLastName")} placeholder="Martin" />
                   </div>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="edit-sponsorEmail">Email du commanditaire</Label>
-                  <Input
-                    id="edit-sponsorEmail"
-                    type="email"
-                    value={sponsorEmail}
-                    onChange={(e) => setSponsorEmail(e.target.value)}
-                    placeholder="marie.martin@example.com"
-                  />
+                  <Input id="edit-sponsorEmail" type="email" {...register("sponsorEmail")} placeholder="marie.martin@example.com" />
                 </div>
 
                 {/* Funder section for inter-enterprise */}
@@ -569,7 +517,7 @@ const EditParticipantDialog = ({
                   <Checkbox
                     id="edit-financeurSameAsSponsor"
                     checked={financeurSameAsSponsor}
-                    onCheckedChange={(checked) => setFinanceurSameAsSponsor(checked === true)}
+                    onCheckedChange={(checked) => setValue("financeurSameAsSponsor", checked === true)}
                   />
                   <Label
                     htmlFor="edit-financeurSameAsSponsor"
@@ -599,7 +547,7 @@ const EditParticipantDialog = ({
                             <CommandInput
                               placeholder="Rechercher ou saisir un financeur..."
                               value={financeurName}
-                              onValueChange={setFinanceurName}
+                              onValueChange={(v) => setValue("financeurName", v)}
                             />
                             <CommandList>
                               <CommandEmpty>
@@ -613,7 +561,7 @@ const EditParticipantDialog = ({
                                     key={f}
                                     value={f}
                                     onSelect={(value) => {
-                                      setFinanceurName(value);
+                                      setValue("financeurName", value);
                                       setFinanceurPopoverOpen(false);
                                     }}
                                   >
@@ -634,13 +582,7 @@ const EditParticipantDialog = ({
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="edit-financeurUrl">URL du financeur</Label>
-                      <Input
-                        id="edit-financeurUrl"
-                        type="url"
-                        value={financeurUrl}
-                        onChange={(e) => setFinanceurUrl(e.target.value)}
-                        placeholder="https://..."
-                      />
+                      <Input id="edit-financeurUrl" type="url" {...register("financeurUrl")} placeholder="https://..." />
                     </div>
                   </>
                 )}
@@ -653,7 +595,7 @@ const EditParticipantDialog = ({
                 </div>
                 <RadioGroup
                   value={paymentMode}
-                  onValueChange={(v) => setPaymentMode(v as "online" | "invoice")}
+                  onValueChange={(v) => setValue("paymentMode", v as "online" | "invoice")}
                   className="flex gap-4"
                 >
                   <div className="flex items-center space-x-2">
@@ -840,8 +782,7 @@ const EditParticipantDialog = ({
                 </div>
                 <div className="space-y-2">
                   <Textarea
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
+                    {...register("notes")}
                     placeholder="Notes libres sur ce participant..."
                     rows={3}
                   />
@@ -936,12 +877,12 @@ const EditParticipantDialog = ({
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Annuler
             </Button>
-            <Button 
+            <Button
               type="submit"
               form="edit-participant-form"
-              disabled={saving}
+              disabled={isSubmitting}
             >
-              {saving ? (
+              {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Enregistrement...

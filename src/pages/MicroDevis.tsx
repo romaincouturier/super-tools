@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { capitalizeName } from "@/lib/utils";
 import { User } from "@supabase/supabase-js";
 import { Loader2, FileText, ArrowLeft, Send, Settings, Save, X, Plus, Trash2, Star, Eye, Search, ChevronUp, ChevronDown, History, Mail, Copy } from "lucide-react";
 import { format } from "date-fns";
@@ -52,13 +53,6 @@ const LIEUX = [
   "Agile Tribu, 4ter Pass. de la Main d'Or, 75011 Paris",
   "Chez le client",
 ];
-
-/** Capitalize each part of a name/city: "JEAN-PIERRE" → "Jean-Pierre", "LYON" → "Lyon" */
-const capitalizeName = (value: string): string =>
-  value
-    .trim()
-    .toLowerCase()
-    .replace(/(^|[\s-])(\S)/g, (_m, sep, ch) => sep + ch.toUpperCase());
 
 const MicroDevis = () => {
   const [user, setUser] = useState<User | null>(null);

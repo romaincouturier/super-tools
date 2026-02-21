@@ -9,6 +9,7 @@ import { Loader2 } from "lucide-react";
 import { ChatbotProvider } from "@/components/chatbot/ChatbotProvider";
 import { GlobalChunkErrorHandler } from "@/components/GlobalChunkErrorHandler";
 import { RouteErrorBoundary } from "@/components/RouteErrorBoundary";
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { lazyWithRetry } from "@/lib/lazyWithRetry";
 import { createIDBPersister } from "@/lib/queryPersister";
 import OfflineBanner from "@/components/OfflineBanner";
@@ -94,49 +95,49 @@ const App = () => (
         <Suspense fallback={<PageLoader />}>
           <RouteErrorBoundary>
             <Routes>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/certificates" element={<CertificateGenerator />} />
-              <Route path="/micro-devis" element={<MicroDevis />} />
-              <Route path="/historique" element={<Historique />} />
-              <Route path="/parametres" element={<Parametres />} />
-              <Route path="/formations" element={<Formations />} />
-              <Route path="/formations/new" element={<FormationCreate />} />
-              <Route path="/formations/:id" element={<FormationDetail />} />
-              <Route path="/formations/:id/edit" element={<FormationEdit />} />
+              <Route path="/" element={<PageErrorBoundary pageName="Dashboard"><Dashboard /></PageErrorBoundary>} />
+              <Route path="/certificates" element={<PageErrorBoundary pageName="Certificats"><CertificateGenerator /></PageErrorBoundary>} />
+              <Route path="/micro-devis" element={<PageErrorBoundary pageName="Micro-devis"><MicroDevis /></PageErrorBoundary>} />
+              <Route path="/historique" element={<PageErrorBoundary pageName="Historique"><Historique /></PageErrorBoundary>} />
+              <Route path="/parametres" element={<PageErrorBoundary pageName="Paramètres"><Parametres /></PageErrorBoundary>} />
+              <Route path="/formations" element={<PageErrorBoundary pageName="Formations"><Formations /></PageErrorBoundary>} />
+              <Route path="/formations/new" element={<PageErrorBoundary pageName="Nouvelle formation"><FormationCreate /></PageErrorBoundary>} />
+              <Route path="/formations/:id" element={<PageErrorBoundary pageName="Détail formation"><FormationDetail /></PageErrorBoundary>} />
+              <Route path="/formations/:id/edit" element={<PageErrorBoundary pageName="Édition formation"><FormationEdit /></PageErrorBoundary>} />
               {/* Needs summary across all trainings */}
-              <Route path="/besoins" element={<BesoinsParticipants />} />
+              <Route path="/besoins" element={<PageErrorBoundary pageName="Besoins"><BesoinsParticipants /></PageErrorBoundary>} />
               {/* Evaluations dashboard */}
-              <Route path="/evaluations" element={<Evaluations />} />
+              <Route path="/evaluations" element={<PageErrorBoundary pageName="Évaluations"><Evaluations /></PageErrorBoundary>} />
               {/* Improvements tracking */}
-              <Route path="/ameliorations" element={<Ameliorations />} />
+              <Route path="/ameliorations" element={<PageErrorBoundary pageName="Améliorations"><Ameliorations /></PageErrorBoundary>} />
               {/* Content marketing board */}
-              <Route path="/contenu" element={<ContentBoard />} />
+              <Route path="/contenu" element={<PageErrorBoundary pageName="Contenu"><ContentBoard /></PageErrorBoundary>} />
               {/* Chatbot knowledge base admin */}
-              <Route path="/chatbot-admin" element={<ChatbotAdmin />} />
+              <Route path="/chatbot-admin" element={<PageErrorBoundary pageName="Chatbot Admin"><ChatbotAdmin /></PageErrorBoundary>} />
               {/* Inbound emails */}
-              <Route path="/emails" element={<InboundEmails />} />
+              <Route path="/emails" element={<PageErrorBoundary pageName="Emails"><InboundEmails /></PageErrorBoundary>} />
               {/* Statistics dashboard */}
-              <Route path="/statistiques" element={<Statistiques />} />
+              <Route path="/statistiques" element={<PageErrorBoundary pageName="Statistiques"><Statistiques /></PageErrorBoundary>} />
               {/* CRM Kanban */}
-              <Route path="/crm" element={<Crm />} />
-              <Route path="/crm/reports" element={<CrmReports />} />
+              <Route path="/crm" element={<PageErrorBoundary pageName="CRM"><Crm /></PageErrorBoundary>} />
+              <Route path="/crm/reports" element={<PageErrorBoundary pageName="CRM Reports"><CrmReports /></PageErrorBoundary>} />
               {/* Missions Kanban */}
-              <Route path="/missions" element={<Missions />} />
+              <Route path="/missions" element={<PageErrorBoundary pageName="Missions"><Missions /></PageErrorBoundary>} />
               {/* OKR Management */}
-              <Route path="/okr" element={<OKR />} />
+              <Route path="/okr" element={<PageErrorBoundary pageName="OKR"><OKR /></PageErrorBoundary>} />
               {/* Media library */}
-              <Route path="/medias" element={<MediaLibrary />} />
+              <Route path="/medias" element={<PageErrorBoundary pageName="Médiathèque"><MediaLibrary /></PageErrorBoundary>} />
               {/* Events */}
-              <Route path="/events" element={<Events />} />
-              <Route path="/events/new" element={<EventCreate />} />
-              <Route path="/events/:id" element={<EventDetail />} />
-              <Route path="/events/:id/edit" element={<EventEdit />} />
+              <Route path="/events" element={<PageErrorBoundary pageName="Événements"><Events /></PageErrorBoundary>} />
+              <Route path="/events/new" element={<PageErrorBoundary pageName="Nouvel événement"><EventCreate /></PageErrorBoundary>} />
+              <Route path="/events/:id" element={<PageErrorBoundary pageName="Détail événement"><EventDetail /></PageErrorBoundary>} />
+              <Route path="/events/:id/edit" element={<PageErrorBoundary pageName="Édition événement"><EventEdit /></PageErrorBoundary>} />
               {/* Admin monitoring */}
-              <Route path="/monitoring" element={<Monitoring />} />
+              <Route path="/monitoring" element={<PageErrorBoundary pageName="Monitoring"><Monitoring /></PageErrorBoundary>} />
               {/* Training catalog */}
-              <Route path="/catalogue" element={<Catalogue />} />
+              <Route path="/catalogue" element={<PageErrorBoundary pageName="Catalogue"><Catalogue /></PageErrorBoundary>} />
               {/* Failed emails */}
-              <Route path="/emails-erreur" element={<FailedEmails />} />
+              <Route path="/emails-erreur" element={<PageErrorBoundary pageName="Emails en erreur"><FailedEmails /></PageErrorBoundary>} />
               {/* Public needs survey */}
               <Route path="/questionnaire/:token" element={<Questionnaire />} />
               {/* Public evaluation form */}
@@ -158,9 +159,9 @@ const App = () => (
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/force-password-change" element={<ForcePasswordChange />} />
               {/* AI Arena */}
-              <Route path="/arena" element={<ArenaSetup />} />
-              <Route path="/arena/discussion" element={<ArenaDiscussion />} />
-              <Route path="/arena/results" element={<ArenaResults />} />
+              <Route path="/arena" element={<PageErrorBoundary pageName="Arena"><ArenaSetup /></PageErrorBoundary>} />
+              <Route path="/arena/discussion" element={<PageErrorBoundary pageName="Arena Discussion"><ArenaDiscussion /></PageErrorBoundary>} />
+              <Route path="/arena/results" element={<PageErrorBoundary pageName="Arena Résultats"><ArenaResults /></PageErrorBoundary>} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

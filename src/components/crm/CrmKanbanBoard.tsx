@@ -1,22 +1,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
-import {
-  DndContext,
-  DragOverlay,
-  closestCorners,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragStartEvent,
-  DragEndEvent,
-  DragOverEvent,
-} from "@dnd-kit/core";
-import {
-  SortableContext,
-  sortableKeyboardCoordinates,
-  horizontalListSortingStrategy,
-} from "@dnd-kit/sortable";
 import { Plus, Loader2, Search, X, Building, User, Tag, GraduationCap, Briefcase, Filter } from "lucide-react";
+import { useKanbanDnd } from "@/components/kanban/useKanbanDnd";
+import KanbanLayout from "@/components/kanban/KanbanLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -44,7 +29,6 @@ const CrmKanbanBoard = () => {
 
   const serviceTypeColors = crmSettings?.serviceTypeColors;
 
-  const [activeCard, setActiveCard] = useState<CrmCard | null>(null);
   const [selectedCard, setSelectedCard] = useState<CrmCard | null>(null);
   const [showAddColumn, setShowAddColumn] = useState(false);
   const [localCards, setLocalCards] = useState<CrmCard[]>([]);
@@ -112,15 +96,6 @@ const CrmKanbanBoard = () => {
     return boardData?.columns.find((c) => c.id === columnId)?.name || "";
   }, [boardData?.columns]);
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: { distance: 8 },
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  );
-
   // Filter helpers
   const isScheduledInFuture = (card: CrmCard): boolean => {
     if (!card.waiting_next_action_date) return false;
@@ -163,41 +138,29 @@ const CrmKanbanBoard = () => {
   }, [boardData?.cards, filterMode]);
 
 
-  const handleDragStart = (event: DragStartEvent) => {
-    const card = localCards.find((c) => c.id === event.active.id);
-    if (card) setActiveCard(card);
-  };
-
-  const handleDragOver = (event: DragOverEvent) => {
-    const { active, over } = event;
-    if (!over) return;
-
-    const activeCardId = active.id as string;
-    const overId = over.id as string;
-    const activeCard = localCards.find((c) => c.id === activeCardId);
-    if (!activeCard) return;
-
-    // Check if over a column
-    const overColumn = boardData?.columns.find((col) => col.id === overId);
-    if (overColumn && activeCard.column_id !== overColumn.id) {
-      setLocalCards((prev) =>
-        prev.map((c) =>
-          c.id === activeCardId ? { ...c, column_id: overColumn.id } : c
-        )
-      );
-      return;
-    }
-
-    // Check if over another card
-    const overCard = localCards.find((c) => c.id === overId);
-    if (overCard && activeCard.column_id !== overCard.column_id) {
-      setLocalCards((prev) =>
-        prev.map((c) =>
-          c.id === activeCardId ? { ...c, column_id: overCard.column_id } : c
-        )
-      );
-    }
-  };
+  const {
+    sensors,
+    activeItem: dndActiveCard,
+    handleDragStart,
+    handleDragOver: baseDragOver,
+    handleDragEnd: baseDragEnd,
+  } = useKanbanDnd<CrmCard>({
+    items: localCards,
+    getItemColumnId: (card) => card.column_id,
+    columns: columns.map((c) => ({ id: c.id })),
+    onDragOver: ({ activeItem, overColumnId }) => {
+      if (overColumnId && activeItem.column_id !== overColumnId) {
+        setLocalCards((prev) =>
+          prev.map((c) =>
+            c.id === activeItem.id ? { ...c, column_id: overColumnId } : c
+          )
+        );
+      }
+    },
+    onMoveItem: async ({ itemId, targetColumnId, newIndex }) => {
+      await handleMoveCard(itemId, targetColumnId, newIndex);
+    },
+  });
 
   // Handle loss reason dialog confirmation from drag
   const handleDragLossReasonConfirm = async (reason: LossReason, detail: string) => {
@@ -266,40 +229,13 @@ const CrmKanbanBoard = () => {
     frame();
   };
 
-  const handleDragEnd = async (event: DragEndEvent) => {
-    const { active, over } = event;
-    setActiveCard(null);
+  const handleMoveCard = async (activeCardId: string, targetColumnId: string, newIndex: number) => {
+    if (!user?.email) return;
 
-    if (!over || !user?.email) return;
-
-    const activeCardId = active.id as string;
-    const overId = over.id as string;
-    const draggedCard = localCards.find((c) => c.id === activeCardId);
-    if (!draggedCard) return;
-
-    // Determine target column
-    let targetColumnId = draggedCard.column_id;
-    const overColumn = boardData?.columns.find((col) => col.id === overId);
-    const overCard = localCards.find((c) => c.id === overId);
-    let targetColumn = overColumn;
-
-    if (overColumn) {
-      targetColumnId = overColumn.id;
-    } else if (overCard) {
-      targetColumnId = overCard.column_id;
-      targetColumn = boardData?.columns.find((col) => col.id === targetColumnId);
-    }
-
-    // Calculate new position
-    const columnCards = localCards.filter((c) => c.column_id === targetColumnId);
-    const newIndex = overCard
-      ? columnCards.findIndex((c) => c.id === overId)
-      : columnCards.length;
-
-    // Get old column for logging
     const originalCard = boardData?.cards.find((c) => c.id === activeCardId);
     const oldColumnId = originalCard?.column_id || targetColumnId;
     const oldColumn = boardData?.columns.find((col) => col.id === oldColumnId);
+    const targetColumn = boardData?.columns.find((col) => col.id === targetColumnId);
 
     // Check if moving to/from a "won" or "lost" column
     const isWonColumn = targetColumn?.name.toLowerCase().includes("gagné") || false;
@@ -307,15 +243,12 @@ const CrmKanbanBoard = () => {
     const isLostColumn = targetColumn?.name.toLowerCase().includes("perdu") || false;
     const wasInLostColumn = oldColumn?.name.toLowerCase().includes("perdu") || false;
 
-    // Detect transitions
     const movingToWon = isWonColumn && !wasInWonColumn;
     const movingToLost = isLostColumn && !wasInLostColumn;
     const leavingWonColumn = wasInWonColumn && !isWonColumn;
     const leavingLostColumn = wasInLostColumn && !isLostColumn;
 
-    // Determine what updates to apply
     if (movingToLost && originalCard) {
-      // Moving to lost column: intercept with loss reason dialog
       setPendingLossCard({
         cardId: activeCardId,
         targetColumnId,
@@ -324,7 +257,6 @@ const CrmKanbanBoard = () => {
       });
       setShowLossReasonDialog(true);
     } else if (movingToWon) {
-      // Moving to won column: set sales_status to WON + trigger celebration
       await updateCard.mutateAsync({
         id: activeCardId,
         updates: {
@@ -336,18 +268,13 @@ const CrmKanbanBoard = () => {
         actorEmail: user.email,
         oldCard: originalCard!,
       });
-
-      // Celebrate with confetti!
       celebrateWin();
-
-      // Check if card is a formation (or no type set) and prompt for training creation
       const cardServiceType = originalCard?.service_type;
       if (cardServiceType === "formation" || !cardServiceType) {
         setPendingTrainingCard(originalCard!);
         setShowCreateTrainingDialog(true);
       }
     } else if (leavingWonColumn || leavingLostColumn) {
-      // Leaving won/lost column: reset sales_status to OPEN
       await updateCard.mutateAsync({
         id: activeCardId,
         updates: {
@@ -363,7 +290,6 @@ const CrmKanbanBoard = () => {
         oldCard: originalCard!,
       });
     } else {
-      // Regular move (no status change)
       moveCard.mutate({
         cardId: activeCardId,
         newColumnId: targetColumnId,
@@ -580,58 +506,50 @@ const CrmKanbanBoard = () => {
       </div>
       </div>
 
-      <DndContext
+      <KanbanLayout
         sensors={sensors}
-        collisionDetection={closestCorners}
         onDragStart={handleDragStart}
-        onDragOver={handleDragOver}
-        onDragEnd={handleDragEnd}
-      >
-        <div className="flex gap-4 overflow-x-auto pb-4 h-full">
-          <SortableContext
-            items={columns.map((c) => c.id)}
-            strategy={horizontalListSortingStrategy}
-          >
-            {columns.map((column) => {
-              const columnCards = localCards
-                .filter((c) => c.column_id === column.id)
-                .sort((a, b) => a.position - b.position);
-
-              return (
-                <CrmColumn
-                  key={column.id}
-                  column={column}
-                  cards={columnCards}
-                  allColumns={columns}
-                  onCardClick={handleCardClick}
-                  serviceTypeColors={serviceTypeColors}
-                />
-              );
-            })}
-          </SortableContext>
-
-          <div className="flex-shrink-0 w-72">
-            <Button
-              variant="outline"
-              className="w-full h-12 border-dashed"
-              onClick={() => setShowAddColumn(true)}
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Ajouter une colonne
-            </Button>
-          </div>
-        </div>
-
-        <DragOverlay>
-          {activeCard ? (
+        onDragEnd={baseDragEnd}
+        onDragOver={baseDragOver}
+        columnIds={columns.map((c) => c.id)}
+        dragOverlay={
+          dndActiveCard ? (
             <CrmCardComponent
-              card={activeCard}
+              card={dndActiveCard}
               isDragging
               serviceTypeColors={serviceTypeColors}
             />
-          ) : null}
-        </DragOverlay>
-      </DndContext>
+          ) : null
+        }
+      >
+        {columns.map((column) => {
+          const columnCards = localCards
+            .filter((c) => c.column_id === column.id)
+            .sort((a, b) => a.position - b.position);
+
+          return (
+            <CrmColumn
+              key={column.id}
+              column={column}
+              cards={columnCards}
+              allColumns={columns}
+              onCardClick={handleCardClick}
+              serviceTypeColors={serviceTypeColors}
+            />
+          );
+        })}
+
+        <div className="flex-shrink-0 w-72">
+          <Button
+            variant="outline"
+            className="w-full h-12 border-dashed"
+            onClick={() => setShowAddColumn(true)}
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Ajouter une colonne
+          </Button>
+        </div>
+      </KanbanLayout>
 
       <AddColumnDialog
         open={showAddColumn}

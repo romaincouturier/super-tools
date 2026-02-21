@@ -5,6 +5,7 @@ import { User } from "@supabase/supabase-js";
 import { Loader2, ArrowLeft, Calendar, Save, ExternalLink } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
+import { useFormationForm } from "@/hooks/useFormationForm";
 import AppHeader from "@/components/AppHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,150 +32,71 @@ const FormationEdit = () => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [dataLoaded, setDataLoaded] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Form state
-  const [selectedDates, setSelectedDates] = useState<Date[]>([]);
-  const [calendarOpen, setCalendarOpen] = useState(false);
-  const [trainingName, setTrainingName] = useState("");
-  const [location, setLocation] = useState("");
-
-  // E-learning specific fields
-  const [elearningStartDate, setElearningStartDate] = useState<Date | null>(null);
-  const [elearningEndDate, setElearningEndDate] = useState<Date | null>(null);
-  const [elearningDuration, setElearningDuration] = useState<string>("");
-  const [elearningAccessEmailContent, setElearningAccessEmailContent] = useState<string>("");
-  const [clientName, setClientName] = useState("");
-  const [clientAddress, setClientAddress] = useState("");
-  const [soldPriceHt, setSoldPriceHt] = useState<string>("");
-  const [maxParticipants, setMaxParticipants] = useState<string>("");
-  const [formatFormation, setFormatFormation] = useState<string>("");
-  const [prerequisites, setPrerequisites] = useState<string[]>([]);
-  const [objectives, setObjectives] = useState<string[]>([]);
-  const [programFileUrl, setProgramFileUrl] = useState<string>("");
-  const [supertiltLink, setSupertiltLink] = useState<string>("");
-  const [schedules, setSchedules] = useState<Schedule[]>([]);
-  
-  // Sponsor/Commanditaire
-  const [sponsorFirstName, setSponsorFirstName] = useState("");
-  const [sponsorLastName, setSponsorLastName] = useState("");
-  const [sponsorEmail, setSponsorEmail] = useState("");
-  const [sponsorFormalAddress, setSponsorFormalAddress] = useState(true); // true = vouvoiement (default)
-  const [trainerId, setTrainerId] = useState<string | null>(null);
-  const [assignedTo, setAssignedTo] = useState<string | null>(null);
-
-  // Financeur
-  const [financeurSameAsSponsor, setFinanceurSameAsSponsor] = useState(true);
-  const [financeurName, setFinanceurName] = useState("");
-  const [financeurUrl, setFinanceurUrl] = useState("");
-
-  // Catalog
-  const [catalogId, setCatalogId] = useState<string | null>(null);
-
-  // Notes
-  const [trainingNotes, setTrainingNotes] = useState("");
-
-  // Track if data has been loaded (to prevent schedule regeneration)
-  const [dataLoaded, setDataLoaded] = useState(false);
-  
-  // SuperTilt site URL from settings
-  const [supertiltSiteUrl, setSupertiltSiteUrl] = useState<string>("");
+  const form = useFormationForm({ mode: "edit", dataLoaded });
+  const {
+    selectedDates, setSelectedDates, calendarOpen, setCalendarOpen,
+    trainingName, setTrainingName, location, setLocation,
+    elearningStartDate, setElearningStartDate,
+    elearningEndDate, setElearningEndDate, elearningDuration, setElearningDuration,
+    elearningAccessEmailContent, setElearningAccessEmailContent,
+    clientName, setClientName, clientAddress, setClientAddress,
+    soldPriceHt, setSoldPriceHt, maxParticipants, setMaxParticipants,
+    formatFormation, schedules, setSchedules,
+    prerequisites, setPrerequisites, objectives, setObjectives,
+    programFileUrl, setProgramFileUrl, supertiltLink, setSupertiltLink,
+    sponsorFirstName, setSponsorFirstName, sponsorLastName, setSponsorLastName,
+    sponsorEmail, setSponsorEmail, sponsorFormalAddress, setSponsorFormalAddress,
+    financeurSameAsSponsor, setFinanceurSameAsSponsor,
+    financeurName, setFinanceurName, financeurUrl, setFinanceurUrl,
+    trainerId, setTrainerId, assignedTo, setAssignedTo,
+    catalogId, trainingNotes, setTrainingNotes,
+    supertiltSiteUrl, formatSelectedDates, getStartDate, getEndDate,
+    fetchSupertiltSiteUrl, handleFormationSelect, handleFormatChange,
+    populateFromTraining,
+  } = form;
 
   useEffect(() => {
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) {
-        navigate("/auth");
-        return;
-      }
+      if (!session?.user) { navigate("/auth"); return; }
       setUser(session.user);
       await fetchTrainingData();
     };
-
     checkAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        if (!session?.user) {
-          navigate("/auth");
-        } else {
-          setUser(session.user);
-        }
+        if (!session?.user) { navigate("/auth"); } else { setUser(session.user); }
       }
     );
-
     return () => subscription.unsubscribe();
   }, [navigate, id]);
 
   const fetchTrainingData = async () => {
     if (!id) return;
-
     try {
-      // Fetch training
       const { data: training, error: trainingError } = await supabase
-        .from("trainings")
-        .select("*")
-        .eq("id", id)
-        .single();
-
+        .from("trainings").select("*").eq("id", id).single();
       if (trainingError) throw trainingError;
 
-      // Set form values
-      setTrainingName(training.training_name);
-      setLocation(training.location);
-      setClientName(training.client_name);
-      setClientAddress(training.client_address || "");
-      setSoldPriceHt(training.sold_price_ht != null ? String(training.sold_price_ht) : "");
-      setMaxParticipants(training.max_participants != null ? String(training.max_participants) : "");
-      setFormatFormation(training.format_formation || "");
-      setPrerequisites(training.prerequisites || []);
-      setObjectives(training.objectives || []);
-      setProgramFileUrl(training.program_file_url || "");
-      setSupertiltLink(training.supertilt_link || "");
-      setSponsorFirstName(training.sponsor_first_name || "");
-      setSponsorLastName(training.sponsor_last_name || "");
-      setSponsorEmail(training.sponsor_email || "");
-      setSponsorFormalAddress(training.sponsor_formal_address ?? true);
-      setTrainerId(training.trainer_id || null);
-      setAssignedTo((training as any).assigned_to || null);
-      setFinanceurSameAsSponsor(training.financeur_same_as_sponsor ?? true);
-      setFinanceurName(training.financeur_name || "");
-      setFinanceurUrl(training.financeur_url || "");
-      setTrainingNotes((training as any).notes || "");
-      setCatalogId((training as any).catalog_id || null);
+      await populateFromTraining(training);
 
-      // For e-learning, load start/end dates directly (no schedules)
-      if (training.format_formation === "e_learning") {
-        setElearningStartDate(parseISO(training.start_date));
-        if (training.end_date) {
-          setElearningEndDate(parseISO(training.end_date));
-        }
-        setElearningDuration(training.elearning_duration != null ? String(training.elearning_duration) : "");
-        setElearningAccessEmailContent(training.elearning_access_email_content || "");
-        // E-learning has no schedules
-        setSchedules([]);
-        setSelectedDates([]);
-      } else {
-        // Fetch schedules to get actual training days
+      // Load schedules for non-elearning
+      if (training.format_formation !== "e_learning") {
         const { data: schedulesData } = await supabase
           .from("training_schedules")
-          .select("*")
-          .eq("training_id", id)
-          .order("day_date", { ascending: true });
+          .select("*").eq("training_id", id).order("day_date", { ascending: true });
 
         if (schedulesData && schedulesData.length > 0) {
-          // Set selected dates from schedules (actual training days)
-          const dates = schedulesData.map(s => parseISO(s.day_date));
-          setSelectedDates(dates);
-
-          setSchedules(schedulesData.map(s => ({
-            day_date: s.day_date,
-            start_time: s.start_time,
-            end_time: s.end_time,
+          setSelectedDates(schedulesData.map((s) => parseISO(s.day_date)));
+          setSchedules(schedulesData.map((s) => ({
+            day_date: s.day_date, start_time: s.start_time, end_time: s.end_time,
           })));
         } else {
-          // Fallback to start_date if no schedules exist
           const start = parseISO(training.start_date);
           setSelectedDates([start]);
           setSchedules([{
@@ -187,102 +109,13 @@ const FormationEdit = () => {
       }
 
       setDataLoaded(true);
-      
-      // Fetch SuperTilt site URL from settings
-      const { data: settingData } = await supabase
-        .from("app_settings")
-        .select("setting_value")
-        .eq("setting_key", "supertilt_site_url")
-        .maybeSingle();
-      if (settingData?.setting_value) {
-        setSupertiltSiteUrl(settingData.setting_value);
-      }
-      
+      await fetchSupertiltSiteUrl();
       setLoading(false);
     } catch (error: unknown) {
       console.error("Error fetching training:", error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de charger la formation.",
-        variant: "destructive",
-      });
+      toast({ title: "Erreur", description: "Impossible de charger la formation.", variant: "destructive" });
       navigate("/formations");
     }
-  };
-
-  // Generate schedules when selected dates change (only after initial load)
-  useEffect(() => {
-    if (!dataLoaded || selectedDates.length === 0) return;
-
-    // Sort dates chronologically
-    const sortedDates = [...selectedDates].sort((a, b) => a.getTime() - b.getTime());
-
-    // Keep existing schedules and add new ones
-    const newSchedules = sortedDates.map((day, index) => {
-      const dateStr = format(day, "yyyy-MM-dd");
-      const existing = schedules.find(s => s.day_date === dateStr);
-
-      if (existing) {
-        return existing;
-      }
-
-      // For new days, copy session type from first day if available
-      if (index > 0 && schedules.length > 0) {
-        const firstSchedule = schedules[0];
-        return {
-          day_date: dateStr,
-          start_time: firstSchedule.start_time,
-          end_time: firstSchedule.end_time,
-          session_type: firstSchedule.session_type,
-        };
-      }
-
-      // Default to full day (9h-17h = 7h)
-      return {
-        day_date: dateStr,
-        start_time: SESSION_PRESETS.full.start,
-        end_time: SESSION_PRESETS.full.end,
-        session_type: "full" as const,
-      };
-    });
-
-    // Filter to only keep schedules for selected dates
-    const selectedDateStrs = sortedDates.map(d => format(d, "yyyy-MM-dd"));
-    const filteredSchedules = newSchedules.filter(s => selectedDateStrs.includes(s.day_date));
-
-    setSchedules(filteredSchedules);
-  }, [selectedDates, dataLoaded]);
-
-  // Helper to format selected dates for display
-  const formatSelectedDates = (): string => {
-    if (selectedDates.length === 0) return "Sélectionner les jours";
-    if (selectedDates.length === 1) {
-      return format(selectedDates[0], "d MMMM yyyy", { locale: fr });
-    }
-    const sorted = [...selectedDates].sort((a, b) => a.getTime() - b.getTime());
-    return `${selectedDates.length} jours sélectionnés (${format(sorted[0], "d MMM", { locale: fr })} - ${format(sorted[sorted.length - 1], "d MMM", { locale: fr })})`;
-  };
-
-  // Get start and end dates from selected dates
-  const getStartDate = (): Date | null => {
-    if (formatFormation === "e_learning") {
-      return elearningStartDate;
-    }
-    if (selectedDates.length === 0) return null;
-    return selectedDates.reduce((min, d) => d < min ? d : min, selectedDates[0]);
-  };
-
-  const getEndDate = (): Date | null => {
-    if (formatFormation === "e_learning") {
-      return elearningEndDate;
-    }
-    if (selectedDates.length <= 1) return null;
-    return selectedDates.reduce((max, d) => d > max ? d : max, selectedDates[0]);
-  };
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate("/auth");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -472,31 +305,7 @@ const FormationEdit = () => {
                     <TrainingNameCombobox
                       value={trainingName}
                       onChange={setTrainingName}
-                      onFormationSelect={(formation: FormationConfig | null) => {
-                        if (formation) {
-                          setCatalogId(formation.id);
-                          if (formation.programme_url) {
-                            setProgramFileUrl(formation.programme_url);
-                          }
-                          if (formation.objectives?.length) {
-                            setObjectives(formation.objectives);
-                          }
-                          if (formation.prerequisites?.length) {
-                            setPrerequisites(formation.prerequisites);
-                          }
-                          if (formation.supertilt_link) {
-                            setSupertiltLink(formation.supertilt_link);
-                          }
-                          if (formation.elearning_duration) {
-                            setElearningDuration(String(formation.elearning_duration));
-                          }
-                          if (formation.elearning_access_email_content) {
-                            setElearningAccessEmailContent(formation.elearning_access_email_content);
-                          }
-                        } else {
-                          setCatalogId(null);
-                        }
-                      }}
+                      onFormationSelect={handleFormationSelect}
                     />
                   </div>
 
@@ -674,7 +483,7 @@ const FormationEdit = () => {
                   {/* Format */}
                   <div className="space-y-2">
                     <Label htmlFor="format">Format de formation</Label>
-                    <Select value={formatFormation} onValueChange={setFormatFormation}>
+                    <Select value={formatFormation} onValueChange={handleFormatChange}>
                       <SelectTrigger>
                         <SelectValue placeholder="Sélectionner un format" />
                       </SelectTrigger>

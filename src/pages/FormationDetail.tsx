@@ -2,6 +2,22 @@ import { useState, useEffect } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
+import {
+  fetchTraining,
+  fetchTrainingSchedules,
+  fetchTrainingParticipants,
+  fetchAssignedUserName,
+  fetchScheduledActions as fetchActions,
+  saveScheduledActions,
+  toggleActionComplete,
+  deleteAction,
+  updateTrainingField,
+  fetchThankYouSentDate,
+  type Training,
+  type Schedule,
+  type Participant,
+} from "@/data/trainings";
+import { TRAINING_FORMAT_LABELS, DURATION_THRESHOLDS } from "@/lib/constants";
 import { Loader2, ArrowLeft, Calendar, Users, FileText, ExternalLink, Edit2, User as UserIcon, Mail, MapPin, Building, Map, Train, Hotel, UtensilsCrossed, DoorOpen, Clock, Copy, Check, AlertCircle, Share2, CheckCircle2, Euro, StickyNote, Save, MoreHorizontal, Heart, Send, AlertTriangle } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -39,65 +55,6 @@ import ScheduledActionsEditor, { ScheduledAction } from "@/components/formations
 import EntityMediaManager from "@/components/media/EntityMediaManager";
 import ThankYouEmailPreviewDialog from "@/components/formations/ThankYouEmailPreviewDialog";
 import { isToday, isBefore, startOfDay } from "date-fns";
-
-interface Training {
-  id: string;
-  start_date: string;
-  end_date: string | null;
-  training_name: string;
-  location: string;
-  client_name: string;
-  client_address: string | null;
-  sold_price_ht: number | null;
-  evaluation_link: string;
-  program_file_url: string | null;
-  prerequisites: string[];
-  objectives: string[];
-  format_formation: string | null;
-  created_at: string;
-  sponsor_first_name: string | null;
-  sponsor_last_name: string | null;
-  sponsor_email: string | null;
-  sponsor_formal_address: boolean;
-  participants_formal_address: boolean;
-  invoice_file_url: string | null;
-  attendance_sheets_urls: string[];
-  supports_url: string | null;
-  trainer_name: string;
-  train_booked: boolean;
-  hotel_booked: boolean;
-  restaurant_booked: boolean;
-  room_rental_booked: boolean;
-  convention_file_url?: string | null;
-  signed_convention_urls?: string[];
-  elearning_duration?: number | null;
-  notes?: string | null;
-  assigned_to?: string | null;
-}
-
-interface Schedule {
-  id: string;
-  day_date: string;
-  start_time: string;
-  end_time: string;
-}
-
-interface Participant {
-  id: string;
-  first_name: string | null;
-  last_name: string | null;
-  email: string;
-  company: string | null;
-  needs_survey_status: string;
-  needs_survey_sent_at: string | null;
-  added_at: string;
-  sponsor_first_name?: string | null;
-  sponsor_last_name?: string | null;
-  sponsor_email?: string | null;
-  invoice_file_url?: string | null;
-  payment_mode?: string;
-  sold_price_ht?: number | null;
-}
 
 const FormationDetail = () => {
   const isMobile = useIsMobile();
@@ -194,94 +151,43 @@ const FormationDetail = () => {
   const fetchTrainingData = async () => {
     if (!id) return;
 
-    // Fetch training
-    const { data: trainingData, error: trainingError } = await supabase
-      .from("trainings")
-      .select("*")
-      .eq("id", id)
-      .single();
+    try {
+      const trainingData = await fetchTraining(id);
+      setTraining(trainingData);
+      setNotes(trainingData.notes || "");
+      setNotesChanged(false);
 
-    if (trainingError) {
-      console.error("Error fetching training:", trainingError);
-      navigate("/formations");
-      return;
-    }
-
-    setTraining(trainingData);
-    setNotes(trainingData.notes || "");
-    setNotesChanged(false);
-
-    // Fetch assigned user name
-    if ((trainingData as any).assigned_to) {
-      const { data: assignedProfile } = await supabase
-        .from("profiles")
-        .select("first_name, last_name, email")
-        .eq("user_id", (trainingData as any).assigned_to)
-        .maybeSingle();
-      if (assignedProfile) {
-        const name = [assignedProfile.first_name, assignedProfile.last_name].filter(Boolean).join(" ");
-        setAssignedUserName(name || assignedProfile.email.split("@")[0]);
+      // Fetch assigned user name
+      if (trainingData.assigned_to) {
+        const name = await fetchAssignedUserName(trainingData.assigned_to);
+        setAssignedUserName(name);
+      } else {
+        setAssignedUserName(null);
       }
-    } else {
-      setAssignedUserName(null);
+
+      const schedulesData = await fetchTrainingSchedules(id);
+      setSchedules(schedulesData);
+
+      await fetchParticipants();
+      await fetchScheduledActionsData();
+    } catch (error) {
+      console.error("Error fetching training:", error);
+      navigate("/formations");
     }
-
-    // Fetch schedules
-    const { data: schedulesData } = await supabase
-      .from("training_schedules")
-      .select("*")
-      .eq("training_id", id)
-      .order("day_date", { ascending: true });
-
-    setSchedules(schedulesData || []);
-
-    // Fetch participants
-    await fetchParticipants();
-    
-    // Fetch scheduled actions
-    await fetchScheduledActions();
   };
   
-  const fetchScheduledActions = async () => {
+  const fetchScheduledActionsData = async () => {
     if (!id) return;
-    
-    const { data: actionsData } = await supabase
-      .from("training_actions")
-      .select("*")
-      .eq("training_id", id)
-      .order("due_date", { ascending: true });
-    
-    if (actionsData) {
-      setScheduledActions(actionsData.map(action => ({
-        id: action.id,
-        description: action.description,
-        dueDate: new Date(action.due_date),
-        assignedEmail: action.assigned_user_email,
-        assignedName: action.assigned_user_name || "",
-        completed: action.status === "completed",
-      })));
-    }
+    const actions = await fetchActions(id);
+    setScheduledActions(actions);
   };
   
   // Fetch thank-you email sent date
   useEffect(() => {
     if (!id) return;
-    const fetchThankYouSentDate = async () => {
-      const { data } = await supabase
-        .from("activity_logs")
-        .select("created_at")
-        .eq("action_type", "thank_you_email_sent")
-        .order("created_at", { ascending: false })
-        .limit(20);
-      if (data) {
-        const match = data.find((log) => {
-          const details = log.details as { training_id?: string } | null;
-          return details?.training_id === id;
-        });
-        if (match) setThankYouSentAt(match.created_at);
-      }
-    };
-    fetchThankYouSentDate();
+    fetchThankYouSentDate(id).then((date) => {
+      if (date) setThankYouSentAt(date);
+    });
   }, [id]);
 
   const handleSendThankYouEmail = async () => {
@@ -312,67 +218,14 @@ const FormationDetail = () => {
 
   const handleSaveActions = async (actions: ScheduledAction[]) => {
     if (!id || !user) return;
-    
     setSavingActions(true);
-    
     try {
-      // Get current actions from DB
-      const { data: existingActions } = await supabase
-        .from("training_actions")
-        .select("id")
-        .eq("training_id", id);
-      
-      const existingIds = new Set((existingActions || []).map(a => a.id));
-      const newIds = new Set(actions.map(a => a.id));
-      
-      // Delete removed actions
-      const toDelete = [...existingIds].filter(id => !newIds.has(id));
-      if (toDelete.length > 0) {
-        await supabase
-          .from("training_actions")
-          .delete()
-          .in("id", toDelete);
-      }
-      
-      // Upsert actions
-      for (const action of actions) {
-        if (!action.description || !action.dueDate || !action.assignedEmail) continue;
-        
-        // Check if this is an existing action (UUID format) or a new one (generated string)
-        const isExistingAction = existingIds.has(action.id);
-        
-        if (isExistingAction) {
-          // Update existing action
-          await supabase
-            .from("training_actions")
-            .update({
-              description: action.description,
-              due_date: format(action.dueDate, 'yyyy-MM-dd'),
-              assigned_user_email: action.assignedEmail,
-              assigned_user_name: action.assignedName || null,
-            })
-            .eq("id", action.id);
-        } else {
-          // Insert new action - don't include the generated id, let DB create UUID
-          await supabase
-            .from("training_actions")
-            .insert({
-              training_id: id,
-              description: action.description,
-              due_date: format(action.dueDate, 'yyyy-MM-dd'),
-              assigned_user_email: action.assignedEmail,
-              assigned_user_name: action.assignedName || null,
-              created_by: user.id,
-            });
-        }
-      }
-      
+      await saveScheduledActions(id, user.id, actions);
       toast({
         title: "Actions enregistrées",
         description: "Les actions programmées ont été sauvegardées.",
       });
-      
-      await fetchScheduledActions();
+      await fetchScheduledActionsData();
     } catch (error) {
       console.error("Error saving actions:", error);
       toast({
@@ -386,18 +239,8 @@ const FormationDetail = () => {
   };
 
   const handleToggleActionComplete = async (actionId: string, completed: boolean) => {
-    if (!id) return;
     try {
-      const { error } = await supabase
-        .from("training_actions")
-        .update({
-          status: completed ? "completed" : "pending",
-          completed_at: completed ? new Date().toISOString() : null,
-        })
-        .eq("id", actionId);
-
-      if (error) throw error;
-
+      await toggleActionComplete(actionId, completed);
       setScheduledActions((prev) =>
         prev.map((a) => (a.id === actionId ? { ...a, completed } : a))
       );
@@ -415,17 +258,9 @@ const FormationDetail = () => {
     if (!id) return;
     setSavingNotes(true);
     try {
-      const { error } = await supabase
-        .from("trainings")
-        .update({ notes: notes.trim() || null } as any)
-        .eq("id", id);
-
-      if (error) throw error;
-
+      await updateTrainingField(id, { notes: notes.trim() || null });
       setNotesChanged(false);
-      toast({
-        title: "Notes enregistrées",
-      });
+      toast({ title: "Notes enregistrées" });
     } catch (error) {
       console.error("Error saving notes:", error);
       toast({
@@ -440,14 +275,8 @@ const FormationDetail = () => {
 
   const fetchParticipants = async () => {
     if (!id) return;
-
-    const { data: participantsData } = await supabase
-      .from("training_participants")
-      .select("*")
-      .eq("training_id", id)
-      .order("added_at", { ascending: true });
-
-    setParticipants(participantsData || []);
+    const participantsData = await fetchTrainingParticipants(id);
+    setParticipants(participantsData);
   };
 
   const handleLogout = async () => {
@@ -502,18 +331,8 @@ const FormationDetail = () => {
     return `Du ${format(start, "EEEE d MMMM", { locale: fr })} au ${format(end, "EEEE d MMMM yyyy", { locale: fr })}`;
   };
 
-  const getFormatLabel = (formatValue: string | null) => {
-    switch (formatValue) {
-      case "intra":
-        return "Intra-entreprise";
-      case "inter-entreprises":
-        return "Inter-entreprises";
-      case "e_learning":
-        return "E-learning";
-      default:
-        return null;
-    }
-  };
+  const getFormatLabel = (formatValue: string | null) =>
+    formatValue ? TRAINING_FORMAT_LABELS[formatValue] ?? null : null;
 
   const getSponsorName = () => {
     if (training?.sponsor_first_name && training?.sponsor_last_name) {
@@ -524,21 +343,15 @@ const FormationDetail = () => {
     return null;
   };
 
-  // Calculate total training duration in hours based on schedules
-  // Duration logic: sessions ≤4h count as 3.5h, sessions >4h count as 7h
   const calculateTotalDuration = (): number => {
     if (schedules.length === 0) return 0;
-    
     return schedules.reduce((total, schedule) => {
-      const [startHours, startMinutes] = schedule.start_time.split(":").map(Number);
-      const [endHours, endMinutes] = schedule.end_time.split(":").map(Number);
-      
-      const startInMinutes = startHours * 60 + startMinutes;
-      const endInMinutes = endHours * 60 + endMinutes;
-      const durationInHours = (endInMinutes - startInMinutes) / 60;
-      
-      // Normalized duration: ≤4h = 3.5h, >4h = 7h
-      return total + (durationInHours <= 4 ? 3.5 : 7);
+      const [startH, startM] = schedule.start_time.split(":").map(Number);
+      const [endH, endM] = schedule.end_time.split(":").map(Number);
+      const hours = (endH * 60 + endM - startH * 60 - startM) / 60;
+      return total + (hours <= DURATION_THRESHOLDS.HALF_DAY_MAX_HOURS
+        ? DURATION_THRESHOLDS.HALF_DAY_NORMALIZED
+        : DURATION_THRESHOLDS.FULL_DAY_NORMALIZED);
     }, 0);
   };
 
@@ -740,17 +553,14 @@ const FormationDetail = () => {
                     checked={training.train_booked}
                     onCheckedChange={async (checked) => {
                       const newValue = checked === true;
-                      const { error } = await supabase
-                        .from("trainings")
-                        .update({ train_booked: newValue })
-                        .eq("id", training.id);
-                      if (!error) {
+                      try {
+                        await updateTrainingField(training.id, { train_booked: newValue });
                         setTraining({ ...training, train_booked: newValue });
                         toast({
                           title: newValue ? "Train réservé" : "Réservation train annulée",
                           description: newValue ? "La réservation train a été marquée comme effectuée." : "Le statut de réservation a été réinitialisé.",
                         });
-                      }
+                      } catch { /* ignore */ }
                     }}
                     className="ml-1"
                     title="Marquer la réservation comme effectuée"
@@ -788,17 +598,14 @@ const FormationDetail = () => {
                     checked={training.hotel_booked}
                     onCheckedChange={async (checked) => {
                       const newValue = checked === true;
-                      const { error } = await supabase
-                        .from("trainings")
-                        .update({ hotel_booked: newValue })
-                        .eq("id", training.id);
-                      if (!error) {
+                      try {
+                        await updateTrainingField(training.id, { hotel_booked: newValue });
                         setTraining({ ...training, hotel_booked: newValue });
                         toast({
                           title: newValue ? "Hôtel réservé" : "Réservation hôtel annulée",
                           description: newValue ? "La réservation hôtel a été marquée comme effectuée." : "Le statut de réservation a été réinitialisé.",
                         });
-                      }
+                      } catch { /* ignore */ }
                     }}
                     className="ml-1"
                     title="Marquer la réservation comme effectuée"
@@ -836,17 +643,14 @@ const FormationDetail = () => {
                     checked={training.restaurant_booked}
                     onCheckedChange={async (checked) => {
                       const newValue = checked === true;
-                      const { error } = await supabase
-                        .from("trainings")
-                        .update({ restaurant_booked: newValue })
-                        .eq("id", training.id);
-                      if (!error) {
+                      try {
+                        await updateTrainingField(training.id, { restaurant_booked: newValue });
                         setTraining({ ...training, restaurant_booked: newValue });
                         toast({
                           title: newValue ? "Restaurant réservé" : "Réservation restaurant annulée",
                           description: newValue ? "La réservation restaurant a été marquée comme effectuée." : "Le statut de réservation a été réinitialisé.",
                         });
-                      }
+                      } catch { /* ignore */ }
                     }}
                     className="ml-1"
                     title="Marquer la réservation comme effectuée"
@@ -884,17 +688,14 @@ const FormationDetail = () => {
                     checked={training.room_rental_booked}
                     onCheckedChange={async (checked) => {
                       const newValue = checked === true;
-                      const { error } = await supabase
-                        .from("trainings")
-                        .update({ room_rental_booked: newValue } as any)
-                        .eq("id", training.id);
-                      if (!error) {
+                      try {
+                        await updateTrainingField(training.id, { room_rental_booked: newValue });
                         setTraining({ ...training, room_rental_booked: newValue });
                         toast({
                           title: newValue ? "Salle réservée" : "Réservation salle annulée",
                           description: newValue ? "La location de salle a été marquée comme effectuée." : "Le statut de location a été réinitialisé.",
                         });
-                      }
+                      } catch { /* ignore */ }
                     }}
                     className="ml-1"
                     title="Marquer la location comme effectuée"
@@ -1233,13 +1034,10 @@ const FormationDetail = () => {
                     <Switch
                       checked={training.participants_formal_address}
                       onCheckedChange={async (checked) => {
-                        const { error } = await supabase
-                          .from("trainings")
-                          .update({ participants_formal_address: checked })
-                          .eq("id", training.id);
-                        if (!error) {
+                        try {
+                          await updateTrainingField(training.id, { participants_formal_address: checked });
                           setTraining({ ...training, participants_formal_address: checked });
-                        }
+                        } catch { /* ignore */ }
                       }}
                       className="scale-75"
                     />
@@ -1405,7 +1203,7 @@ const FormationDetail = () => {
             onToggleComplete={handleToggleActionComplete}
             onDeleteSaved={async (actionId) => {
               try {
-                await supabase.from("training_actions").delete().eq("id", actionId);
+                await deleteAction(actionId);
               } catch (error) {
                 console.error("Error deleting action:", error);
                 toast({ title: "Erreur", description: "Impossible de supprimer l'action.", variant: "destructive" });

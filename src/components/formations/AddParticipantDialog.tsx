@@ -1,4 +1,7 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { Plus, Loader2, AlertTriangle, ShoppingCart } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { differenceInDays, parseISO, format } from "date-fns";
@@ -31,9 +34,28 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Check, ChevronsUpDown } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, capitalizeName } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { subtractWorkingDays, fetchWorkingDays, fetchNeedsSurveyDelay, scheduleTrainerSummaryIfNeeded } from "@/lib/workingDays";
+
+const addParticipantSchema = z.object({
+  firstName: z.string().default(""),
+  lastName: z.string().default(""),
+  email: z.string().min(1, "L'email est requis").email("Email invalide"),
+  company: z.string().default(""),
+  soldPriceHt: z.string().default(""),
+  sponsorSameAsParticipant: z.boolean().default(false),
+  sponsorFirstName: z.string().default(""),
+  sponsorLastName: z.string().default(""),
+  sponsorEmail: z.string().default(""),
+  financeurSameAsSponsor: z.boolean().default(true),
+  financeurName: z.string().default(""),
+  financeurUrl: z.string().default(""),
+  paymentMode: z.enum(["online", "invoice"]).default("invoice"),
+  generateCoupon: z.boolean().default(true),
+});
+
+type AddParticipantFormValues = z.infer<typeof addParticipantSchema>;
 
 interface AddParticipantDialogProps {
   trainingId: string;
@@ -51,21 +73,7 @@ interface AddParticipantDialogProps {
   onExternalOpenChange?: (open: boolean) => void;
 }
 
-/**
- * Capitalize the first letter of each word in a name, handling compound names (hyphen, space).
- * "jean-pierre" → "Jean-Pierre", "DUPONT" → "Dupont", "marie claire" → "Marie Claire"
- */
-const capitalizeName = (name: string): string => {
-  const trimmed = name.trim();
-  if (!trimmed) return "";
-  return trimmed
-    .split(/(\s+|-)/g) // split keeping delimiters (spaces & hyphens)
-    .map((part) => {
-      if (part === "-" || /^\s+$/.test(part)) return part;
-      return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase();
-    })
-    .join("");
-};
+// capitalizeName imported from @/lib/utils
 
 const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, formatFormation, onParticipantAdded, onScheduledEmailsRefresh, initialFirstName, initialLastName, initialEmail, initialCompany, initialSoldPriceHt, externalOpen, onExternalOpenChange }: AddParticipantDialogProps) => {
   const [internalOpen, setInternalOpen] = useState(false);
@@ -74,41 +82,43 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
     if (onExternalOpenChange) onExternalOpenChange(v);
     setInternalOpen(v);
   };
-  const [saving, setSaving] = useState(false);
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [soldPriceHt, setSoldPriceHt] = useState("");
-  const [email, setEmail] = useState("");
-  const [company, setCompany] = useState("");
-  const [sponsorSameAsParticipant, setSponsorSameAsParticipant] = useState(false);
-  const [sponsorFirstName, setSponsorFirstName] = useState("");
-  const [sponsorLastName, setSponsorLastName] = useState("");
-  const [sponsorEmail, setSponsorEmail] = useState("");
-  const [financeurSameAsSponsor, setFinanceurSameAsSponsor] = useState(true);
-  const [financeurName, setFinanceurName] = useState("");
-  const [financeurUrl, setFinanceurUrl] = useState("");
-  const [paymentMode, setPaymentMode] = useState<"online" | "invoice">("invoice");
-  const [generateCoupon, setGenerateCoupon] = useState(true);
   const [financeurPopoverOpen, setFinanceurPopoverOpen] = useState(false);
   const [existingFinanceurs, setExistingFinanceurs] = useState<string[]>([]);
   const [isManualMode, setIsManualMode] = useState(false);
   const { toast } = useToast();
-  
+
+  const form = useForm<AddParticipantFormValues>({
+    resolver: zodResolver(addParticipantSchema),
+    defaultValues: {
+      firstName: "", lastName: "", email: "", company: "", soldPriceHt: "",
+      sponsorSameAsParticipant: false, sponsorFirstName: "", sponsorLastName: "", sponsorEmail: "",
+      financeurSameAsSponsor: true, financeurName: "", financeurUrl: "",
+      paymentMode: "invoice", generateCoupon: true,
+    },
+  });
+
+  const { register, handleSubmit, watch, setValue, reset, formState: { isSubmitting, errors } } = form;
+  const sponsorSameAsParticipant = watch("sponsorSameAsParticipant");
+  const financeurSameAsSponsor = watch("financeurSameAsSponsor");
+  const paymentMode = watch("paymentMode");
+  const generateCoupon = watch("generateCoupon");
+  const financeurName = watch("financeurName");
+
   const isInterEntreprise = formatFormation === "inter-entreprises" || formatFormation === "e_learning";
 
   // Populate initial values when dialog opens with prefill data
   useEffect(() => {
     if (open) {
-      if (initialFirstName) setFirstName(initialFirstName);
-      if (initialLastName) setLastName(initialLastName);
-      if (initialEmail) setEmail(initialEmail);
-      if (initialCompany) {
-        setCompany(initialCompany);
-      } else if (!isInterEntreprise && clientName) {
-        // For intra trainings, prefill company with the training's client name
-        setCompany(clientName);
-      }
-      if (initialSoldPriceHt) setSoldPriceHt(initialSoldPriceHt);
+      reset({
+        firstName: initialFirstName || "",
+        lastName: initialLastName || "",
+        email: initialEmail || "",
+        company: initialCompany || (!isInterEntreprise && clientName ? clientName : ""),
+        soldPriceHt: initialSoldPriceHt || "",
+        sponsorSameAsParticipant: false, sponsorFirstName: "", sponsorLastName: "", sponsorEmail: "",
+        financeurSameAsSponsor: true, financeurName: "", financeurUrl: "",
+        paymentMode: "invoice", generateCoupon: true,
+      });
     }
   }, [open, initialFirstName, initialLastName, initialEmail, initialCompany, initialSoldPriceHt, clientName, isInterEntreprise]);
 
@@ -119,40 +129,27 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
         supabase.from("trainings").select("financeur_name").not("financeur_name", "is", null).not("financeur_name", "eq", ""),
         supabase.from("training_participants").select("financeur_name").not("financeur_name", "is", null).not("financeur_name", "eq", ""),
       ]);
-      
+
       const allNames = new Set<string>();
       (fromTrainings.data || []).forEach(r => r.financeur_name && allNames.add(r.financeur_name));
       (fromParticipants.data || []).forEach(r => r.financeur_name && allNames.add(r.financeur_name));
       setExistingFinanceurs(Array.from(allNames).sort());
     };
-    
+
     if (open && isInterEntreprise) {
       fetchFinanceurs();
     }
   }, [open, isInterEntreprise]);
 
-  // Determine email scheduling mode based on training date
-  // - If training already started (past date) -> no email
-  // - If training is upcoming -> send welcome email immediately
-  // NOTE: This function is called at submit time, so trainingStartDate should always be defined
-  // We use the prop directly to ensure we have the latest value
   const getEmailMode = (startDateStr: string | undefined): { status: string; sendWelcomeNow: boolean } => {
     if (!startDateStr) {
       return { status: "non_envoye", sendWelcomeNow: false };
     }
-
     const startDate = parseISO(startDateStr);
-    const today = new Date();
-    const daysUntilStart = differenceInDays(startDate, today);
-    
-    // Training already started or is today
+    const daysUntilStart = differenceInDays(startDate, new Date());
     if (daysUntilStart <= 0) {
       return { status: "non_envoye", sendWelcomeNow: false };
     }
-    
-    // Training is in the future -> send welcome email immediately
-    // Initial status is "programme" which means "welcome sent, needs survey scheduled"
-    // The send-welcome-email function will keep the status or update appropriately
     return { status: "programme", sendWelcomeNow: true };
   };
 
@@ -164,70 +161,36 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
   }, [trainingStartDate]);
 
   // Sync sponsor fields when "same as participant" is checked
+  const [watchedFirstName, watchedLastName, watchedEmail] = watch(["firstName", "lastName", "email"]);
   useEffect(() => {
     if (sponsorSameAsParticipant) {
-      setSponsorFirstName(firstName);
-      setSponsorLastName(lastName);
-      setSponsorEmail(email);
+      setValue("sponsorFirstName", watchedFirstName);
+      setValue("sponsorLastName", watchedLastName);
+      setValue("sponsorEmail", watchedEmail);
     }
-  }, [sponsorSameAsParticipant, firstName, lastName, email]);
+  }, [sponsorSameAsParticipant, watchedFirstName, watchedLastName, watchedEmail, setValue]);
 
-  const resetForm = () => {
-    setFirstName("");
-    setLastName("");
-    setEmail("");
-    setCompany("");
-    setSoldPriceHt("");
-    setSponsorSameAsParticipant(false);
-    setSponsorFirstName("");
-    setSponsorLastName("");
-    setSponsorEmail("");
-    setFinanceurSameAsSponsor(true);
-    setFinanceurName("");
-    setFinanceurUrl("");
-    setPaymentMode("invoice");
-    setGenerateCoupon(true);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!email.trim()) {
-      toast({
-        title: "Email requis",
-        description: "L'adresse email est obligatoire.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setSaving(true);
-
+  const onSubmit = async (data: AddParticipantFormValues) => {
     try {
-      // Generate unique token for needs survey
       const token = crypto.randomUUID();
-
-      // Determine initial status and whether to send welcome email
-      // Pass the prop value explicitly to avoid stale closure issues
       const { status, sendWelcomeNow } = getEmailMode(trainingStartDate);
       const participantData = {
         training_id: trainingId,
-        first_name: capitalizeName(firstName) || null,
-        last_name: capitalizeName(lastName) || null,
-        email: email.trim().toLowerCase(),
-        company: company.trim() || null,
+        first_name: capitalizeName(data.firstName) || null,
+        last_name: capitalizeName(data.lastName) || null,
+        email: data.email.trim().toLowerCase(),
+        company: data.company.trim() || null,
         needs_survey_token: token,
         needs_survey_status: status,
-        // For inter-enterprise trainings, add sponsor, funder and payment fields
         ...(isInterEntreprise && {
-          sponsor_first_name: capitalizeName(sponsorFirstName) || null,
-          sponsor_last_name: capitalizeName(sponsorLastName) || null,
-          sponsor_email: sponsorEmail.trim().toLowerCase() || null,
-          financeur_same_as_sponsor: financeurSameAsSponsor,
-          financeur_name: !financeurSameAsSponsor ? (financeurName.trim() || null) : null,
-          financeur_url: !financeurSameAsSponsor ? (financeurUrl.trim() || null) : null,
-          payment_mode: paymentMode,
-          sold_price_ht: soldPriceHt ? parseFloat(soldPriceHt) : null,
+          sponsor_first_name: capitalizeName(data.sponsorFirstName) || null,
+          sponsor_last_name: capitalizeName(data.sponsorLastName) || null,
+          sponsor_email: data.sponsorEmail.trim().toLowerCase() || null,
+          financeur_same_as_sponsor: data.financeurSameAsSponsor,
+          financeur_name: !data.financeurSameAsSponsor ? (data.financeurName.trim() || null) : null,
+          financeur_url: !data.financeurSameAsSponsor ? (data.financeurUrl.trim() || null) : null,
+          payment_mode: data.paymentMode,
+          sold_price_ht: data.soldPriceHt ? parseFloat(data.soldPriceHt) : null,
         }),
       };
 
@@ -254,10 +217,10 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
             training_id: trainingId,
             token,
             etat: "non_envoye",
-            email: email.trim().toLowerCase(),
-            prenom: firstName.trim() || null,
-            nom: lastName.trim() || null,
-            societe: company.trim() || null,
+            email: data.email.trim().toLowerCase(),
+            prenom: data.firstName.trim() || null,
+            nom: data.lastName.trim() || null,
+            societe: data.company.trim() || null,
           });
         } catch (qErr) {
           console.warn("Failed to pre-create questionnaire record:", qErr);
@@ -279,11 +242,11 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
       }
 
       // For e-learning: generate coupon if needed, then send access email
-      if (formatFormation === "e_learning" && paymentMode !== "online" && insertedParticipant) {
+      if (formatFormation === "e_learning" && data.paymentMode !== "online" && insertedParticipant) {
         let couponCode: string | undefined;
 
         // Generate WooCommerce coupon if requested
-        if (generateCoupon) {
+        if (data.generateCoupon) {
           try {
             const { data: couponData, error: couponError } = await supabase.functions.invoke("generate-woocommerce-coupon", {
               body: {
@@ -358,11 +321,11 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
       // Log activity
       await supabase.from("activity_logs").insert({
         action_type: "participant_added",
-        recipient_email: email.trim().toLowerCase(),
+        recipient_email: data.email.trim().toLowerCase(),
         details: {
           training_id: trainingId,
-          participant_name: `${firstName.trim() || ""} ${lastName.trim() || ""}`.trim() || null,
-          company: company.trim() || null,
+          participant_name: `${data.firstName.trim() || ""} ${data.lastName.trim() || ""}`.trim() || null,
+          company: data.company.trim() || null,
         },
       });
 
@@ -377,11 +340,11 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
 
       toast({
         title: "Participant ajouté",
-        description: `${email} a été ajouté. ${statusMessage}`,
+        description: `${data.email} a été ajouté. ${statusMessage}`,
         ...(needsSurveySkipped && { variant: "default" as const, duration: 8000 }),
       });
 
-      resetForm();
+      reset();
       setOpen(false);
       onParticipantAdded();
       // Trigger scheduled emails refresh
@@ -395,8 +358,6 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
         description: error instanceof Error ? error.message : "Une erreur est survenue.",
         variant: "destructive",
       });
-    } finally {
-      setSaving(false);
     }
   };
 
@@ -409,7 +370,7 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
         </Button>
       </DialogTrigger>
       <DialogContent>
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit(onSubmit)}>
           <DialogHeader>
             <DialogTitle>Ajouter un participant</DialogTitle>
             <DialogDescription>
@@ -430,59 +391,30 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="firstName">Prénom</Label>
-                <Input
-                  id="firstName"
-                  value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
-                  placeholder="Jean"
-                />
+                <Input id="firstName" {...register("firstName")} placeholder="Jean" />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="lastName">Nom</Label>
-                <Input
-                  id="lastName"
-                  value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
-                  placeholder="Dupont"
-                />
+                <Input id="lastName" {...register("lastName")} placeholder="Dupont" />
               </div>
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="email">Email *</Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="jean.dupont@example.com"
-                required
-              />
+              <Input id="email" type="email" {...register("email")} placeholder="jean.dupont@example.com" />
+              {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="company">Société</Label>
-              <Input
-                id="company"
-                value={company}
-                onChange={(e) => setCompany(e.target.value)}
-                placeholder="ACME Corp"
-              />
+              <Input id="company" {...register("company")} placeholder="ACME Corp" />
             </div>
 
             {/* Sale amount for inter-enterprise trainings */}
             {isInterEntreprise && (
               <div className="space-y-2">
                 <Label htmlFor="soldPriceHt">Montant vendu HT (€)</Label>
-                <Input
-                  id="soldPriceHt"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={soldPriceHt}
-                  onChange={(e) => setSoldPriceHt(e.target.value)}
-                  placeholder="1500.00"
-                />
+                <Input id="soldPriceHt" type="number" step="0.01" min="0" {...register("soldPriceHt")} placeholder="1500.00" />
               </div>
             )}
 
@@ -496,7 +428,7 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
                   <Checkbox
                     id="sponsorSameAsParticipant"
                     checked={sponsorSameAsParticipant}
-                    onCheckedChange={(checked) => setSponsorSameAsParticipant(checked === true)}
+                    onCheckedChange={(checked) => setValue("sponsorSameAsParticipant", checked === true)}
                   />
                   <Label htmlFor="sponsorSameAsParticipant" className="text-sm font-normal cursor-pointer">
                     Le commanditaire est le participant
@@ -507,32 +439,16 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="sponsorFirstName">Prénom</Label>
-                        <Input
-                          id="sponsorFirstName"
-                          value={sponsorFirstName}
-                          onChange={(e) => setSponsorFirstName(e.target.value)}
-                          placeholder="Marie"
-                        />
+                        <Input id="sponsorFirstName" {...register("sponsorFirstName")} placeholder="Marie" />
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="sponsorLastName">Nom</Label>
-                        <Input
-                          id="sponsorLastName"
-                          value={sponsorLastName}
-                          onChange={(e) => setSponsorLastName(e.target.value)}
-                          placeholder="Martin"
-                        />
+                        <Input id="sponsorLastName" {...register("sponsorLastName")} placeholder="Martin" />
                       </div>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="sponsorEmail">Email du commanditaire</Label>
-                      <Input
-                        id="sponsorEmail"
-                        type="email"
-                        value={sponsorEmail}
-                        onChange={(e) => setSponsorEmail(e.target.value)}
-                        placeholder="marie.martin@example.com"
-                      />
+                      <Input id="sponsorEmail" type="email" {...register("sponsorEmail")} placeholder="marie.martin@example.com" />
                     </div>
                   </>
                 )}
@@ -545,7 +461,7 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
                   <Checkbox
                     id="financeurSameAsSponsor"
                     checked={financeurSameAsSponsor}
-                    onCheckedChange={(checked) => setFinanceurSameAsSponsor(checked === true)}
+                    onCheckedChange={(checked) => setValue("financeurSameAsSponsor", checked === true)}
                   />
                   <Label htmlFor="financeurSameAsSponsor" className="text-sm font-normal cursor-pointer">
                     Le financeur est identique au commanditaire
@@ -569,10 +485,10 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
                         </PopoverTrigger>
                         <PopoverContent className="w-full p-0" align="start">
                           <Command>
-                            <CommandInput 
-                              placeholder="Rechercher ou saisir un financeur..." 
+                            <CommandInput
+                              placeholder="Rechercher ou saisir un financeur..."
                               value={financeurName}
-                              onValueChange={setFinanceurName}
+                              onValueChange={(v) => setValue("financeurName", v)}
                             />
                             <CommandList>
                               <CommandEmpty>
@@ -586,7 +502,7 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
                                     key={f}
                                     value={f}
                                     onSelect={(value) => {
-                                      setFinanceurName(value);
+                                      setValue("financeurName", value);
                                       setFinanceurPopoverOpen(false);
                                     }}
                                   >
@@ -607,13 +523,7 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="financeurUrl">URL du financeur</Label>
-                      <Input
-                        id="financeurUrl"
-                        type="url"
-                        value={financeurUrl}
-                        onChange={(e) => setFinanceurUrl(e.target.value)}
-                        placeholder="https://..."
-                      />
+                      <Input id="financeurUrl" type="url" {...register("financeurUrl")} placeholder="https://..." />
                     </div>
                   </>
                 )}
@@ -622,7 +532,7 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
                 <div className="pt-4 border-t">
                   <Label className="text-sm font-medium text-muted-foreground">Mode de paiement</Label>
                 </div>
-                <RadioGroup value={paymentMode} onValueChange={(v) => setPaymentMode(v as "online" | "invoice")} className="flex gap-4">
+                <RadioGroup value={paymentMode} onValueChange={(v) => setValue("paymentMode", v as "online" | "invoice")} className="flex gap-4">
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="online" id="paymentOnline" />
                     <Label htmlFor="paymentOnline" className="font-normal cursor-pointer">Payé en ligne</Label>
@@ -640,7 +550,7 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
                       <Checkbox
                         id="generateCoupon"
                         checked={generateCoupon}
-                        onCheckedChange={(checked) => setGenerateCoupon(checked === true)}
+                        onCheckedChange={(checked) => setValue("generateCoupon", checked === true)}
                       />
                       <Label htmlFor="generateCoupon" className="text-sm font-normal cursor-pointer flex items-center gap-1.5">
                         <ShoppingCart className="h-3.5 w-3.5" />
@@ -660,8 +570,8 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Annuler
             </Button>
-            <Button type="submit" disabled={saving}>
-              {saving ? (
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Ajout...

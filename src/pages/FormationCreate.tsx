@@ -3,8 +3,10 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 import { Loader2, ArrowLeft, Calendar, Save, ExternalLink } from "lucide-react";
-import { format, parseISO } from "date-fns";
+import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { useFormationForm } from "@/hooks/useFormationForm";
+import { PREDEFINED_LOCATIONS } from "@/lib/constants";
 import AppHeader from "@/components/AppHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,14 +29,6 @@ import SupertiltLinkCombobox from "@/components/formations/SupertiltLinkCombobox
 import ScheduledActionsEditor, { ScheduledAction } from "@/components/formations/ScheduledActionsEditor";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
-const PREDEFINED_LOCATIONS = [
-  { value: "en_ligne", label: "En ligne en accédant à son compte sur supertilt.fr" },
-  { value: "lyon", label: "Espace Gailleton, 2 Pl. Gailleton, 69002 Lyon" },
-  { value: "paris", label: "Agile Tribu, 4ter Pass. de la Main d'Or, 75011 Paris" },
-  { value: "chez_client", label: "Chez le client (adresse du client)" },
-  { value: "autre", label: "Autre" },
-];
-
 const FormationCreate = () => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -43,72 +37,37 @@ const FormationCreate = () => {
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
 
-  // CRM card ID if coming from CRM
   const fromCrmCardId = searchParams.get("fromCrmCardId");
 
-  // Form state
-  const [selectedDates, setSelectedDates] = useState<Date[]>([]);
-  const [calendarOpen, setCalendarOpen] = useState(false);
-  const [trainingName, setTrainingName] = useState("");
+  const form = useFormationForm({ mode: "create" });
+  const {
+    selectedDates, setSelectedDates, calendarOpen, setCalendarOpen,
+    trainingName, setTrainingName, elearningStartDate, setElearningStartDate,
+    elearningEndDate, setElearningEndDate, elearningDuration, setElearningDuration,
+    elearningAccessEmailContent, setElearningAccessEmailContent,
+    locationType, setLocationType, locationCustom, setLocationCustom,
+    clientName, setClientName, clientAddress, setClientAddress,
+    soldPriceHt, setSoldPriceHt, maxParticipants, setMaxParticipants,
+    formatFormation, schedules, setSchedules,
+    prerequisites, setPrerequisites, objectives, setObjectives,
+    programFileUrl, setProgramFileUrl, supertiltLink, setSupertiltLink,
+    sponsorFirstName, setSponsorFirstName, sponsorLastName, setSponsorLastName,
+    sponsorEmail, setSponsorEmail, sponsorFormalAddress, setSponsorFormalAddress,
+    financeurSameAsSponsor, setFinanceurSameAsSponsor,
+    financeurName, setFinanceurName, financeurUrl, setFinanceurUrl,
+    trainerId, setTrainerId, catalogId,
+    supertiltSiteUrl, getFinalLocation, formatSelectedDates,
+    getStartDate, getEndDate, fetchSupertiltSiteUrl,
+    handleFormationSelect, handleFormatChange,
+  } = form;
 
-  // E-learning specific fields (dates without daily schedule)
-  const [elearningStartDate, setElearningStartDate] = useState<Date | null>(null);
-  const [elearningEndDate, setElearningEndDate] = useState<Date | null>(null);
-  const [elearningDuration, setElearningDuration] = useState<string>("");
-  const [elearningAccessEmailContent, setElearningAccessEmailContent] = useState<string>("");
-  const [locationType, setLocationType] = useState<string>("");
-  const [locationCustom, setLocationCustom] = useState("");
-  const [clientName, setClientName] = useState("");
-  const [clientAddress, setClientAddress] = useState("");
-  const [soldPriceHt, setSoldPriceHt] = useState<string>("");
-  const [maxParticipants, setMaxParticipants] = useState<string>("");
-  const [formatFormation, setFormatFormation] = useState<string>("");
-  const [prerequisites, setPrerequisites] = useState<string[]>([]);
-  const [objectives, setObjectives] = useState<string[]>([]);
-  const [programFileUrl, setProgramFileUrl] = useState<string>("");
-  const [supertiltLink, setSupertiltLink] = useState<string>("");
-  const [schedules, setSchedules] = useState<Schedule[]>([]);
-  
-  // Sponsor/Commanditaire
-  const [sponsorFirstName, setSponsorFirstName] = useState("");
-  const [sponsorLastName, setSponsorLastName] = useState("");
-  const [sponsorEmail, setSponsorEmail] = useState("");
-  const [sponsorFormalAddress, setSponsorFormalAddress] = useState(true); // true = vouvoiement (default)
-  
-  // Financeur
-  const [financeurSameAsSponsor, setFinanceurSameAsSponsor] = useState(true);
-  const [financeurName, setFinanceurName] = useState("");
-  const [financeurUrl, setFinanceurUrl] = useState("");
-  
-  // Scheduled actions
+  // Scheduled actions (create-only)
   const [scheduledActions, setScheduledActions] = useState<ScheduledAction[]>([]);
-  
-  // Catalog
-  const [catalogId, setCatalogId] = useState<string | null>(null);
 
-  // Trainer
-  const [trainerId, setTrainerId] = useState<string | null>(null);
+  // Trainer details (for calendar invite)
   const [trainerDetails, setTrainerDetails] = useState<{
-    id: string;
-    first_name: string;
-    last_name: string;
-    email: string;
+    id: string; first_name: string; last_name: string; email: string;
   } | null>(null);
-  
-  // SuperTilt site URL from settings
-  const [supertiltSiteUrl, setSupertiltSiteUrl] = useState<string>("");
-
-  // Get the final location string
-  const getFinalLocation = (): string => {
-    if (locationType === "autre") {
-      return locationCustom;
-    }
-    if (locationType === "chez_client") {
-      return clientAddress || "Chez le client";
-    }
-    const predefined = PREDEFINED_LOCATIONS.find((l) => l.value === locationType);
-    return predefined?.label || "";
-  };
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -119,18 +78,8 @@ const FormationCreate = () => {
       }
       setUser(session.user);
       setLoading(false);
-      
-      // Fetch SuperTilt site URL from settings
-      const { data: settingData } = await supabase
-        .from("app_settings")
-        .select("setting_value")
-        .eq("setting_key", "supertilt_site_url")
-        .maybeSingle();
-      if (settingData?.setting_value) {
-        setSupertiltSiteUrl(settingData.setting_value);
-      }
+      await fetchSupertiltSiteUrl();
     };
-
     checkAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -142,104 +91,18 @@ const FormationCreate = () => {
         }
       }
     );
-
     return () => subscription.unsubscribe();
   }, [navigate]);
 
   // Pre-fill form from URL params (coming from CRM)
   useEffect(() => {
-    const paramClientName = searchParams.get("clientName");
-    const paramSponsorFirstName = searchParams.get("sponsorFirstName");
-    const paramSponsorLastName = searchParams.get("sponsorLastName");
-    const paramSponsorEmail = searchParams.get("sponsorEmail");
-    const paramTrainingName = searchParams.get("trainingName");
-
-    if (paramClientName) setClientName(paramClientName);
-    if (paramSponsorFirstName) setSponsorFirstName(paramSponsorFirstName);
-    if (paramSponsorLastName) setSponsorLastName(paramSponsorLastName);
-    if (paramSponsorEmail) setSponsorEmail(paramSponsorEmail);
-    if (paramTrainingName) setTrainingName(paramTrainingName);
+    const p = (key: string) => searchParams.get(key);
+    if (p("clientName")) setClientName(p("clientName")!);
+    if (p("sponsorFirstName")) setSponsorFirstName(p("sponsorFirstName")!);
+    if (p("sponsorLastName")) setSponsorLastName(p("sponsorLastName")!);
+    if (p("sponsorEmail")) setSponsorEmail(p("sponsorEmail")!);
+    if (p("trainingName")) setTrainingName(p("trainingName")!);
   }, [searchParams]);
-
-  // Generate schedules when selected dates change
-  useEffect(() => {
-    if (selectedDates.length === 0) {
-      setSchedules([]);
-      return;
-    }
-
-    // Sort dates chronologically
-    const sortedDates = [...selectedDates].sort((a, b) => a.getTime() - b.getTime());
-
-    // Keep existing schedules and add new ones
-    const newSchedules = sortedDates.map((day, index) => {
-      const dateStr = format(day, "yyyy-MM-dd");
-      const existing = schedules.find(s => s.day_date === dateStr);
-
-      if (existing) {
-        return existing;
-      }
-
-      // For new days, copy session type from first day if available
-      if (index > 0 && schedules.length > 0) {
-        const firstSchedule = schedules[0];
-        return {
-          day_date: dateStr,
-          start_time: firstSchedule.start_time,
-          end_time: firstSchedule.end_time,
-          session_type: firstSchedule.session_type,
-        };
-      }
-
-      // Default to full day (9h-17h = 7h)
-      return {
-        day_date: dateStr,
-        start_time: SESSION_PRESETS.full.start,
-        end_time: SESSION_PRESETS.full.end,
-        session_type: "full" as const,
-      };
-    });
-
-    // Filter to only keep schedules for selected dates
-    const selectedDateStrs = sortedDates.map(d => format(d, "yyyy-MM-dd"));
-    const filteredSchedules = newSchedules.filter(s => selectedDateStrs.includes(s.day_date));
-
-    setSchedules(filteredSchedules);
-  }, [selectedDates]);
-
-  // Helper to format selected dates for display
-  const formatSelectedDates = (): string => {
-    if (selectedDates.length === 0) return "Sélectionner les jours";
-    if (selectedDates.length === 1) {
-      return format(selectedDates[0], "d MMMM yyyy", { locale: fr });
-    }
-    const sorted = [...selectedDates].sort((a, b) => a.getTime() - b.getTime());
-    return `${selectedDates.length} jours sélectionnés (${format(sorted[0], "d MMM", { locale: fr })} - ${format(sorted[sorted.length - 1], "d MMM", { locale: fr })})`;
-  };
-
-  // Get start and end dates from selected dates
-  const getStartDate = (): Date | null => {
-    // For e-learning, use specific start date
-    if (formatFormation === "e_learning") {
-      return elearningStartDate;
-    }
-    if (selectedDates.length === 0) return null;
-    return selectedDates.reduce((min, d) => d < min ? d : min, selectedDates[0]);
-  };
-
-  const getEndDate = (): Date | null => {
-    // For e-learning, use specific end date
-    if (formatFormation === "e_learning") {
-      return elearningEndDate;
-    }
-    if (selectedDates.length <= 1) return null;
-    return selectedDates.reduce((max, d) => d > max ? d : max, selectedDates[0]);
-  };
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate("/auth");
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -485,60 +348,14 @@ const FormationCreate = () => {
                 <TrainingNameCombobox
                   value={trainingName}
                   onChange={setTrainingName}
-                  onFormationSelect={(formation: FormationConfig | null) => {
-                    if (formation) {
-                      // Link to catalog entry
-                      setCatalogId(formation.id);
-                      // Pre-fill all catalog fields
-                      if (formation.programme_url) {
-                        setProgramFileUrl(formation.programme_url);
-                      }
-                      if (formation.objectives?.length && objectives.length === 0) {
-                        setObjectives(formation.objectives);
-                      }
-                      if (formation.prerequisites?.length && prerequisites.length === 0) {
-                        setPrerequisites(formation.prerequisites);
-                      }
-                      if (formation.supertilt_link) {
-                        setSupertiltLink(formation.supertilt_link);
-                      }
-                      if (formation.elearning_duration) {
-                        setElearningDuration(String(formation.elearning_duration));
-                      }
-                      if (formation.elearning_access_email_content) {
-                        setElearningAccessEmailContent(formation.elearning_access_email_content);
-                      }
-                    } else {
-                      setCatalogId(null);
-                    }
-                  }}
+                  onFormationSelect={handleFormationSelect}
                 />
               </div>
 
               {/* Format - placed before dates so user picks format first */}
               <div className="space-y-2">
                 <Label htmlFor="format">Format de formation</Label>
-                <Select value={formatFormation} onValueChange={async (val) => {
-                  setFormatFormation(val);
-                  // Auto-set location to online for e-learning
-                  if (val === "e_learning" && locationType !== "en_ligne") {
-                    setLocationType("en_ligne");
-                  }
-                  // Pre-fill e-learning access email content from template
-                  if (val === "e_learning" && !elearningAccessEmailContent) {
-                    const templateType = sponsorFormalAddress ? "elearning_access_vous" : "elearning_access_tu";
-                    const { data: template } = await supabase
-                      .from("email_templates")
-                      .select("html_content")
-                      .eq("template_type", templateType)
-                      .order("is_default", { ascending: false })
-                      .limit(1)
-                      .maybeSingle();
-                    if (template?.html_content) {
-                      setElearningAccessEmailContent(template.html_content);
-                    }
-                  }
-                }}>
+                <Select value={formatFormation} onValueChange={handleFormatChange}>
                   <SelectTrigger>
                     <SelectValue placeholder="Sélectionner un format" />
                   </SelectTrigger>
