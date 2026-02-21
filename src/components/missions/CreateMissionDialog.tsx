@@ -1,4 +1,7 @@
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { toast } from "@/hooks/use-toast";
 import {
   Dialog,
@@ -7,11 +10,27 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { MissionStatus } from "@/types/missions";
 import { useCreateMission } from "@/hooks/useMissions";
+
+const createMissionSchema = z.object({
+  title: z.string().min(1, "Le titre est requis").trim(),
+  clientName: z.string().trim().optional(),
+  clientContact: z.string().trim().optional(),
+  totalAmount: z.string().optional(),
+});
+
+type CreateMissionFormValues = z.infer<typeof createMissionSchema>;
 
 interface CreateMissionDialogProps {
   open: boolean;
@@ -33,37 +52,39 @@ const CreateMissionDialog = ({
   prefillTotalAmount,
 }: CreateMissionDialogProps) => {
   const createMission = useCreateMission();
-  const [title, setTitle] = useState("");
-  const [clientName, setClientName] = useState("");
-  const [clientContact, setClientContact] = useState("");
-  const [totalAmount, setTotalAmount] = useState("");
+
+  const form = useForm<CreateMissionFormValues>({
+    resolver: zodResolver(createMissionSchema),
+    defaultValues: {
+      title: "",
+      clientName: "",
+      clientContact: "",
+      totalAmount: "",
+    },
+  });
 
   useEffect(() => {
     if (open) {
-      setTitle(prefillTitle || "");
-      setClientName(prefillClientName || "");
-      setClientContact(prefillClientContact || "");
-      setTotalAmount(prefillTotalAmount || "");
+      form.reset({
+        title: prefillTitle || "",
+        clientName: prefillClientName || "",
+        clientContact: prefillClientContact || "",
+        totalAmount: prefillTotalAmount || "",
+      });
     }
   }, [open, prefillTitle, prefillClientName, prefillClientContact, prefillTotalAmount]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!title.trim()) return;
-
+  const onSubmit = async (values: CreateMissionFormValues) => {
     try {
       await createMission.mutateAsync({
-        title: title.trim(),
-        client_name: clientName.trim() || undefined,
-        client_contact: clientContact.trim() || undefined,
-        initial_amount: totalAmount ? parseFloat(totalAmount) || undefined : undefined,
+        title: values.title,
+        client_name: values.clientName || undefined,
+        client_contact: values.clientContact || undefined,
+        initial_amount: values.totalAmount ? parseFloat(values.totalAmount) || undefined : undefined,
         status: defaultStatus,
       });
 
-      setTitle("");
-      setClientName("");
-      setClientContact("");
-      setTotalAmount("");
+      form.reset();
       onOpenChange(false);
     } catch (error) {
       console.error("Erreur création mission:", error);
@@ -81,55 +102,70 @@ const CreateMissionDialog = ({
         <DialogHeader>
           <DialogTitle>Nouvelle mission</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <Label>Titre de la mission</Label>
-            <Input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Ex: Développement application mobile"
-              autoFocus
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="title"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Titre de la mission</FormLabel>
+                  <FormControl>
+                    <Input {...field} placeholder="Ex: Développement application mobile" autoFocus />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-          </div>
-          <div>
-            <Label>Entreprise</Label>
-            <Input
-              value={clientName}
-              onChange={(e) => setClientName(e.target.value)}
-              placeholder="Nom de l'entreprise"
+            <FormField
+              control={form.control}
+              name="clientName"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Entreprise</FormLabel>
+                  <FormControl>
+                    <Input {...field} placeholder="Nom de l'entreprise" />
+                  </FormControl>
+                </FormItem>
+              )}
             />
-          </div>
-          <div>
-            <Label>Contact (nom, email...)</Label>
-            <Input
-              value={clientContact}
-              onChange={(e) => setClientContact(e.target.value)}
-              placeholder="Ex: Jean Dupont jean@exemple.com"
+            <FormField
+              control={form.control}
+              name="clientContact"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Contact (nom, email...)</FormLabel>
+                  <FormControl>
+                    <Input {...field} placeholder="Ex: Jean Dupont jean@exemple.com" />
+                  </FormControl>
+                </FormItem>
+              )}
             />
-          </div>
-          <div>
-            <Label>Montant initial (€)</Label>
-            <Input
-              type="number"
-              min="0"
-              step="0.01"
-              value={totalAmount}
-              onChange={(e) => setTotalAmount(e.target.value)}
-              placeholder="0"
+            <FormField
+              control={form.control}
+              name="totalAmount"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Montant initial (€)</FormLabel>
+                  <FormControl>
+                    <Input type="number" min="0" step="0.01" {...field} placeholder="0" />
+                  </FormControl>
+                </FormItem>
+              )}
             />
-          </div>
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Annuler
-            </Button>
-            <Button type="submit" disabled={!title.trim() || createMission.isPending}>
-              {createMission.isPending ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : null}
-              Créer
-            </Button>
-          </div>
-        </form>
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                Annuler
+              </Button>
+              <Button type="submit" disabled={!form.formState.isValid || createMission.isPending}>
+                {createMission.isPending ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : null}
+                Créer
+              </Button>
+            </div>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );
