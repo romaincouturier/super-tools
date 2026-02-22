@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { capitalizeName } from "@/lib/utils";
 import { User } from "@supabase/supabase-js";
 import { Loader2, FileText, ArrowLeft, Send, Plus, Eye, Search } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
@@ -12,7 +11,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
-import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
   DialogContent,
@@ -29,80 +27,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Star } from "lucide-react";
-import type { FormationConfig, FormationDate, DevisHistoryItem } from "@/types/micro-devis";
 import { LIEUX } from "@/types/micro-devis";
 import { DevisHistoryDialog } from "@/components/micro-devis/DevisHistoryDialog";
 import { FormationConfigDialog } from "@/components/micro-devis/FormationConfigDialog";
 import { FormationDatesDialog } from "@/components/micro-devis/FormationDatesDialog";
+import { useMicroDevisForm } from "@/hooks/useMicroDevisForm";
 
 const MicroDevis = () => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const { toast } = useToast();
-
-  // Formation configs from DB
-  const [formationConfigs, setFormationConfigs] = useState<FormationConfig[]>([]);
-  const [loadingConfigs, setLoadingConfigs] = useState(true);
-  const [editingFormation, setEditingFormation] = useState<FormationConfig | null>(null);
-  const [configDialogOpen, setConfigDialogOpen] = useState(false);
-  const [newFormation, setNewFormation] = useState<Partial<FormationConfig> | null>(null);
-
-  // Formation dates from DB
-  const [formationDates, setFormationDates] = useState<FormationDate[]>([]);
-  const [loadingDates, setLoadingDates] = useState(true);
-  const [editingDate, setEditingDate] = useState<FormationDate | null>(null);
-  const [datesDialogOpen, setDatesDialogOpen] = useState(false);
-  const [newDate, setNewDate] = useState<Partial<FormationDate> | null>(null);
-  const [jsonPreviewOpen, setJsonPreviewOpen] = useState(false);
-
-  // CRM card link
-  const [crmCardId, setCrmCardId] = useState<string | null>(null);
-
-  // SIREN search
-  const [siren, setSiren] = useState("");
-  const [searchingSiren, setSearchingSiren] = useState(false);
-
-  // Form state - Client info
-  const [nomClient, setNomClient] = useState("");
-  const [adresseClient, setAdresseClient] = useState("");
-  const [codePostalClient, setCodePostalClient] = useState("");
-  const [villeClient, setVilleClient] = useState("");
-  const [pays, setPays] = useState("france");
-  const [paysAutre, setPaysAutre] = useState("");
-  const [emailCommanditaire, setEmailCommanditaire] = useState("");
-  const [adresseCommanditaire, setAdresseCommanditaire] = useState("");
-
-  // Type de devis
-  const [typeDevis, setTypeDevis] = useState<"formation" | "jeu" | "">("");
-  const [isAdministration, setIsAdministration] = useState<"oui" | "non" | "">("");
-  const [noteDevis, setNoteDevis] = useState("");
-
-  // Formation type (intra or inter)
-  const [formatFormation, setFormatFormation] = useState<"intra" | "inter" | "">("");
-
-  // Formation specific
-  const [participants, setParticipants] = useState("");
-  const [formationDemandee, setFormationDemandee] = useState("");
-  const [formationLibre, setFormationLibre] = useState(""); // For intra: free text
-  const [dateFormation, setDateFormation] = useState("");
-  const [dateFormationLibre, setDateFormationLibre] = useState(""); // For intra: free text
-  const [lieu, setLieu] = useState("");
-  const [lieuAutre, setLieuAutre] = useState("");
-  const [includeCadeau, setIncludeCadeau] = useState(false);
-  const [fraisDossier, setFraisDossier] = useState<"oui" | "non" | "">("");
-  const [typeSubrogation, setTypeSubrogation] = useState<"sans" | "avec" | "les2">("les2");
-
-  // Session storage key for persisting form data
-  const STORAGE_KEY = "microDevisFormData";
-
-  // History of sent quotes
-  const [devisHistory, setDevisHistory] = useState<DevisHistoryItem[]>([]);
-  const [loadingHistory, setLoadingHistory] = useState(false);
-  const [historySearch, setHistorySearch] = useState("");
-  const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -126,830 +60,23 @@ const MicroDevis = () => {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
-  // Track if initial defaults have been applied
-  const [initialDefaultsApplied, setInitialDefaultsApplied] = useState(false);
-
-  // Load formation configs from DB
-  useEffect(() => {
-    const loadFormationConfigs = async () => {
-      try {
-        const { data, error } = await supabase
-          .from("formation_configs")
-          .select("*")
-          .order("display_order");
-
-        if (error) throw error;
-
-        if (data && data.length > 0) {
-          const configs = data as FormationConfig[];
-          setFormationConfigs(configs);
-          
-          // Only set default if no value is currently selected AND initial defaults haven't been applied yet
-          if (!initialDefaultsApplied && !formationDemandee) {
-            const defaultFormation = configs.find(f => f.is_default);
-            if (defaultFormation) {
-              setFormationDemandee(defaultFormation.formation_name);
-            }
-          }
-        }
-      } catch (error) {
-        console.error("Error loading formation configs:", error);
-        toast({
-          title: "Erreur",
-          description: "Impossible de charger les configurations de formations",
-          variant: "destructive",
-        });
-      } finally {
-        setLoadingConfigs(false);
-      }
-    };
-
-    if (user) {
-      loadFormationConfigs();
-    }
-  }, [user, toast, initialDefaultsApplied, formationDemandee]);
-
-  // Load formation dates from DB
-  useEffect(() => {
-    const loadFormationDates = async () => {
-      try {
-        const { data, error } = await supabase
-          .from("formation_dates")
-          .select("*")
-          .order("created_at", { ascending: true });
-
-        if (error) throw error;
-
-        if (data && data.length > 0) {
-          setFormationDates(data as FormationDate[]);
-          
-          // Only set default if no value is currently selected AND initial defaults haven't been applied yet
-          if (!initialDefaultsApplied && !dateFormation) {
-            const defaultDate = data.find((d: FormationDate) => d.is_default);
-            if (defaultDate) {
-              setDateFormation(defaultDate.date_label);
-            }
-          }
-        }
-      } catch (error) {
-        console.error("Error loading formation dates:", error);
-        toast({
-          title: "Erreur",
-          description: "Impossible de charger les dates de formations",
-          variant: "destructive",
-        });
-      } finally {
-        setLoadingDates(false);
-      }
-    };
-
-    if (user) {
-      loadFormationDates();
-    }
-  }, [user, toast, initialDefaultsApplied, dateFormation]);
-
-  // Mark initial defaults as applied after first load completes
-  useEffect(() => {
-    if (!loadingConfigs && !loadingDates && !initialDefaultsApplied) {
-      setInitialDefaultsApplied(true);
-    }
-  }, [loadingConfigs, loadingDates, initialDefaultsApplied]);
-
-  // Load form data from sessionStorage on mount (only if NOT coming from CRM)
-  useEffect(() => {
-    // Skip session storage if coming from CRM with prefill data
-    if (searchParams.get("source") === "crm") {
-      return;
-    }
-    
-    try {
-      const saved = sessionStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        const data = JSON.parse(saved);
-        if (data.formatFormation) setFormatFormation(data.formatFormation);
-        if (data.formationDemandee) setFormationDemandee(data.formationDemandee);
-        if (data.formationLibre) setFormationLibre(data.formationLibre);
-        if (data.dateFormation) setDateFormation(data.dateFormation);
-        if (data.dateFormationLibre) setDateFormationLibre(data.dateFormationLibre);
-        if (data.lieu) setLieu(data.lieu);
-        if (data.lieuAutre) setLieuAutre(data.lieuAutre);
-        if (data.nomClient) setNomClient(data.nomClient);
-        if (data.emailCommanditaire) setEmailCommanditaire(data.emailCommanditaire);
-        if (data.typeDevis) setTypeDevis(data.typeDevis);
-      }
-    } catch (e) {
-      console.error("Failed to load saved form data:", e);
-    }
-  }, [searchParams]);
-
-  // Load form data from CRM URL params
-  useEffect(() => {
-    if (searchParams.get("source") !== "crm") {
-      return;
-    }
-
-    const nomClientParam = searchParams.get("nomClient");
-    const emailParam = searchParams.get("emailCommanditaire");
-    const adresseParam = searchParams.get("adresseCommanditaire");
-    const cardIdParam = searchParams.get("crmCardId");
-
-    if (nomClientParam) setNomClient(nomClientParam);
-    if (emailParam) setEmailCommanditaire(emailParam);
-    if (adresseParam) setAdresseCommanditaire(adresseParam);
-    if (cardIdParam) setCrmCardId(cardIdParam);
-
-    // Pre-select "formation" type since coming from CRM with service_type = formation
-    setTypeDevis("formation");
-
-    toast({
-      title: "Données préremplies",
-      description: "Les informations de l'opportunité CRM ont été importées.",
-    });
-  }, [searchParams, toast]);
-
-  // Save form data to sessionStorage when key fields change
-  useEffect(() => {
-    const data = {
-      formatFormation,
-      formationDemandee,
-      formationLibre,
-      dateFormation,
-      dateFormationLibre,
-      lieu,
-      lieuAutre,
-      nomClient,
-      emailCommanditaire,
-      typeDevis,
-    };
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-  }, [formatFormation, formationDemandee, formationLibre, dateFormation, dateFormationLibre, lieu, lieuAutre, nomClient, emailCommanditaire, typeDevis]);
-
-  // Load devis history when dialog opens
-  const loadDevisHistory = async () => {
-    setLoadingHistory(true);
-    try {
-      const { data, error } = await supabase
-        .from("activity_logs")
-        .select("id, created_at, recipient_email, details")
-        .eq("action_type", "micro_devis_sent")
-        .order("created_at", { ascending: false })
-        .limit(100);
-
-      if (error) throw error;
-
-      setDevisHistory((data || []) as unknown as DevisHistoryItem[]);
-    } catch (error) {
-      console.error("Error loading devis history:", error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de charger l'historique des devis",
-        variant: "destructive",
-      });
-    } finally {
-      setLoadingHistory(false);
-    }
-  };
-
-  useEffect(() => {
-    if (historyDialogOpen) {
-      loadDevisHistory();
-    }
-  }, [historyDialogOpen]);
-
-  // Filter history by search term
-  const filteredHistory = devisHistory.filter((item) => {
-    const searchLower = historySearch.toLowerCase();
-    return (
-      item.recipient_email?.toLowerCase().includes(searchLower) ||
-      item.details?.formation_name?.toLowerCase().includes(searchLower) ||
-      item.details?.client_name?.toLowerCase().includes(searchLower)
-    );
-  });
-
-  // Duplicate a devis from history
-  const handleDuplicateDevis = (item: DevisHistoryItem) => {
-    const formData = item.details?.form_data;
-
-    if (formData) {
-      // Pre-fill all form fields from saved form_data
-      setNomClient(formData.nomClient || "");
-      setAdresseClient(formData.adresseClient || "");
-      setCodePostalClient(formData.codePostalClient || "");
-      setVilleClient(formData.villeClient || "");
-      setPays(formData.pays === "France" ? "france" : "autre");
-      if (formData.pays && formData.pays !== "France") {
-        setPaysAutre(formData.pays);
-      }
-      setEmailCommanditaire(formData.emailCommanditaire || "");
-      setAdresseCommanditaire(formData.adresseCommanditaire || "");
-      setTypeDevis(formData.typeDevis || "formation");
-      setIsAdministration(formData.isAdministration ? "oui" : "non");
-      setNoteDevis(formData.noteDevis || "");
-      setFormatFormation(formData.formatFormation || "inter");
-      setFormationDemandee(formData.formationDemandee || "");
-      setFormationLibre(formData.formationLibre || "");
-      setDateFormation(formData.dateFormation || "");
-      setDateFormationLibre(formData.dateFormationLibre || "");
-      setParticipants(formData.participants || "");
-      setIncludeCadeau(formData.includeCadeau || false);
-      setFraisDossier(formData.fraisDossier ? "oui" : "non");
-      setTypeSubrogation(formData.typeSubrogation || "les2");
-
-      // Handle lieu - check if it's a predefined value or custom
-      const lieuValue = formData.lieu || "";
-      if (LIEUX.includes(lieuValue)) {
-        setLieu(lieuValue);
-        setLieuAutre(formData.lieuAutre || "");
-      } else if (lieuValue) {
-        setLieu("autre");
-        setLieuAutre(formData.lieuAutre || lieuValue);
-      } else {
-        setLieu("");
-        setLieuAutre(formData.lieuAutre || "");
-      }
-    } else {
-      // Fallback for old history items without form_data
-      setNomClient(item.details?.client_name || "");
-      setEmailCommanditaire(item.recipient_email || "");
-      setTypeDevis("formation");
-      setFormatFormation("inter");
-      setFormationDemandee(item.details?.formation_name || "");
-      setTypeSubrogation((item.details?.type_subrogation as "sans" | "avec" | "les2") || "les2");
-    }
-
-    // Close the history dialog
-    setHistoryDialogOpen(false);
-
-    toast({
-      title: "Devis dupliqué",
-      description: "Le formulaire a été pré-rempli avec les données du devis sélectionné.",
-    });
-  };
-
-  // Delete a devis from history
-  const handleDeleteDevis = async (item: DevisHistoryItem) => {
-    if (!confirm("Êtes-vous sûr de vouloir supprimer ce devis de l'historique ?")) {
-      return;
-    }
-
-    try {
-      const { error } = await supabase
-        .from("activity_logs")
-        .delete()
-        .eq("id", item.id);
-
-      if (error) throw error;
-
-      // Remove from local state
-      setDevisHistory(prev => prev.filter(d => d.id !== item.id));
-
-      toast({
-        title: "Devis supprimé",
-        description: "Le devis a été supprimé de l'historique.",
-      });
-    } catch (error) {
-      console.error("Error deleting devis:", error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de supprimer le devis.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  // Auto-set lieu when formation contains "en ligne"
-  useEffect(() => {
-    if (formationDemandee.toLowerCase().includes("en ligne")) {
-      setLieu("En ligne en accédant à son compte sur supertilt.fr");
-    }
-  }, [formationDemandee]);
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate("/auth");
-  };
-
-  const handleSearchSiren = async () => {
-    if (!siren || !/^\d{9}$/.test(siren)) {
-      toast({
-        title: "SIREN invalide",
-        description: "Le SIREN doit contenir exactement 9 chiffres",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setSearchingSiren(true);
-    
-    try {
-      const response = await supabase.functions.invoke("search-siren", {
-        body: { siren },
-      });
-
-      // Handle edge function errors (including 503 maintenance)
-      if (response.error) {
-        // Check if there's error data in the response body
-        const errorData = response.data;
-        if (errorData?.error) {
-          // Show warning toast for maintenance/temporary errors
-          toast({
-            title: "Service temporairement indisponible",
-            description: `${errorData.error} Vous pouvez saisir les informations manuellement.`,
-            variant: "default",
-          });
-        } else {
-          toast({
-            title: "Erreur de recherche",
-            description: "Impossible de contacter le service INSEE. Veuillez saisir les informations manuellement.",
-            variant: "default",
-          });
-        }
-        setSearchingSiren(false);
-        return;
-      }
-
-      const data = response.data;
-      
-      if (data?.error) {
-        toast({
-          title: "Recherche SIREN",
-          description: data.error,
-          variant: "default",
-        });
-        setSearchingSiren(false);
-        return;
-      }
-
-      // Auto-fill fields (normalize casing from INSEE API which returns ALL CAPS)
-      if (data?.nomClient) setNomClient(capitalizeName(data.nomClient));
-      if (data?.adresse) setAdresseClient(capitalizeName(data.adresse));
-      if (data?.codePostal) setCodePostalClient(data.codePostal);
-      if (data?.ville) setVilleClient(capitalizeName(data.ville));
-      if (data?.pays && data.pays !== "France") {
-        setPays("autre");
-        setPaysAutre(capitalizeName(data.pays));
-      } else {
-        setPays("france");
-      }
-
-      toast({
-        title: "Entreprise trouvée",
-        description: `${data?.nomClient || "Entreprise"} - ${data?.ville || ""}`,
-      });
-    } catch (error: unknown) {
-      console.error("SIREN search error:", error);
-      // Non-blocking error - show warning and allow manual entry
-      toast({
-        title: "Recherche SIREN indisponible",
-        description: "Le service de recherche est temporairement indisponible. Vous pouvez saisir les informations manuellement.",
-        variant: "default",
-      });
-    }
-    
-    setSearchingSiren(false);
-  };
-
-  const getSelectedFormationConfig = (): FormationConfig | undefined => {
-    return formationConfigs.find(f => f.formation_name === formationDemandee);
-  };
-
-  const countParticipants = (): number => {
-    if (!participants.trim()) return 1;
-    const lines = participants.split(/[,;\n]/).filter(l => l.trim());
-    return Math.max(1, lines.length);
-  };
-
-  // Build the client address string for "Chez le client"
-  const buildClientAddress = () => {
-    const parts = [adresseClient];
-    if (codePostalClient || villeClient) {
-      parts.push(`${codePostalClient} ${villeClient}`.trim());
-    }
-    return parts.filter(p => p).join(", ");
-  };
-
-  const buildPayload = () => {
-    const selectedConfig = getSelectedFormationConfig();
-    if (!selectedConfig) return null;
-    
-    // When "Chez le client" is selected, use client's address
-    const finalLieu = lieu === "autre" 
-      ? lieuAutre 
-      : lieu === "Chez le client" 
-        ? buildClientAddress() 
-        : lieu;
-    const finalPays = pays === "autre" ? paysAutre : "France";
-    const nbParticipants = countParticipants();
-
-    // Parse participants list
-    const participantsList = participants
-      .split(/[,;\n]/)
-      .map(p => p.trim())
-      .filter(p => p.length > 0);
-
-    // Build cadeau text if included
-    const cadeauText = includeCadeau 
-      ? "Chaque participant(e) aura : 1 kit de facilitation graphique ainsi qu'un accès illimité et à vie au e-learning de 25h pour continuer sa formation en facilitation graphique"
-      : "";
-
-    return {
-      // Données envoyées à la fonction
-      requestPayload: {
-        nomClient,
-        adresseClient,
-        codePostalClient,
-        villeClient,
-        pays: finalPays,
-        emailCommanditaire,
-        adresseCommanditaire,
-        isAdministration: isAdministration === "oui",
-        noteDevis,
-        formationDemandee,
-        dateFormation,
-        lieu: finalLieu,
-        includeCadeau,
-        fraisDossier: fraisDossier === "oui",
-        prix: selectedConfig.prix,
-        dureeHeures: selectedConfig.duree_heures,
-        programmeUrl: selectedConfig.programme_url,
-        nbParticipants,
-        participants,
-      },
-      // Payload PDF Monkey (structure attendue par le template)
-      pdfMonkeyPayload: {
-        client: {
-          name: nomClient,
-          address: adresseClient,
-          zip: codePostalClient,
-          city: villeClient,
-          country: finalPays,
-        },
-        note: noteDevis || "",
-        affiche_frais: fraisDossier === "oui" ? "Oui" : "Non",
-        subrogation: "Oui / Non (2 versions)",
-        cadeau: cadeauText,
-        items: [
-          {
-            name: formationDemandee,
-            participant_name: participantsList.length > 0 ? participantsList : [`${adresseCommanditaire} ${emailCommanditaire}`],
-            date: dateFormation,
-            place: finalLieu,
-            duration: `${selectedConfig.duree_heures}h`,
-            quantity: nbParticipants,
-            unit_price: selectedConfig.prix,
-          },
-        ],
-        admin_fee: fraisDossier === "oui" ? 150 : 0,
-        is_administration: isAdministration === "oui",
-      },
-    };
-  };
-
-  const handleSaveFormationConfig = async () => {
-    if (!editingFormation) return;
-
-    try {
-      const { error } = await supabase
-        .from("formation_configs")
-        .update({
-          formation_name: editingFormation.formation_name,
-          prix: editingFormation.prix,
-          duree_heures: editingFormation.duree_heures,
-          programme_url: editingFormation.programme_url,
-        })
-        .eq("id", editingFormation.id);
-
-      if (error) throw error;
-
-      setFormationConfigs(prev => 
-        prev.map(f => f.id === editingFormation.id ? editingFormation : f)
-      );
-
-      toast({
-        title: "Configuration sauvegardée",
-        description: `Les paramètres de "${editingFormation.formation_name}" ont été mis à jour.`,
-      });
-
-      setEditingFormation(null);
-    } catch (error) {
-      console.error("Error saving formation config:", error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de sauvegarder la configuration",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleAddFormation = async () => {
-    if (!newFormation?.formation_name || !newFormation?.programme_url) return;
-
-    try {
-      const { data, error } = await supabase
-        .from("formation_configs")
-        .insert({
-          formation_name: newFormation.formation_name,
-          prix: newFormation.prix || 0,
-          duree_heures: newFormation.duree_heures || 0,
-          programme_url: newFormation.programme_url || null,
-          is_default: false,
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      setFormationConfigs(prev => [...prev, data as FormationConfig].sort((a, b) => 
-        a.formation_name.localeCompare(b.formation_name)
-      ));
-
-      toast({
-        title: "Formation ajoutée",
-        description: `"${newFormation.formation_name}" a été ajoutée.`,
-      });
-
-      setNewFormation(null);
-    } catch (error) {
-      console.error("Error adding formation:", error);
-      toast({
-        title: "Erreur",
-        description: "Impossible d'ajouter la formation",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleDeleteFormation = async (id: string, name: string) => {
-    try {
-      const { error } = await supabase
-        .from("formation_configs")
-        .delete()
-        .eq("id", id);
-
-      if (error) throw error;
-
-      setFormationConfigs(prev => prev.filter(f => f.id !== id));
-
-      toast({
-        title: "Formation supprimée",
-        description: `"${name}" a été supprimée.`,
-      });
-    } catch (error) {
-      console.error("Error deleting formation:", error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de supprimer la formation",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleSetDefault = async (id: string) => {
-    try {
-      // Remove default from all
-      await supabase
-        .from("formation_configs")
-        .update({ is_default: false })
-        .neq("id", "");
-
-      // Set new default
-      const { error } = await supabase
-        .from("formation_configs")
-        .update({ is_default: true })
-        .eq("id", id);
-
-      if (error) throw error;
-
-      setFormationConfigs(prev => 
-        prev.map(f => ({ ...f, is_default: f.id === id }))
-      );
-
-      const formation = formationConfigs.find(f => f.id === id);
-      toast({
-        title: "Formation par défaut",
-        description: `"${formation?.formation_name}" est maintenant la formation par défaut.`,
-      });
-    } catch (error) {
-      console.error("Error setting default:", error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de définir la formation par défaut",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleMoveFormation = async (index: number, direction: "up" | "down") => {
-    const newIndex = direction === "up" ? index - 1 : index + 1;
-    if (newIndex < 0 || newIndex >= formationConfigs.length) return;
-
-    const newConfigs = [...formationConfigs];
-    const temp = newConfigs[index];
-    newConfigs[index] = newConfigs[newIndex];
-    newConfigs[newIndex] = temp;
-
-    // Update display_order for both items
-    const updates = [
-      { id: newConfigs[index].id, display_order: index },
-      { id: newConfigs[newIndex].id, display_order: newIndex },
-    ];
-
-    setFormationConfigs(newConfigs);
-
-    try {
-      for (const update of updates) {
-        const { error } = await supabase
-          .from("formation_configs")
-          .update({ display_order: update.display_order })
-          .eq("id", update.id);
-        if (error) throw error;
-      }
-    } catch (error) {
-      console.error("Error reordering formations:", error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de réorganiser les formations",
-        variant: "destructive",
-      });
-    }
-  };
-
-  // --- Formation dates handlers (extracted from inline JSX) ---
-
-  const handleAddDate = async (label: string) => {
-    try {
-      const { data, error } = await supabase
-        .from("formation_dates")
-        .insert({ date_label: label, is_default: false })
-        .select()
-        .single();
-      if (error) throw error;
-      setFormationDates(prev => [...prev, data as FormationDate]);
-      toast({ title: "Date ajoutée", description: `"${label}" a été ajoutée.` });
-      setNewDate(null);
-    } catch (error) {
-      console.error("Error adding date:", error);
-      toast({ title: "Erreur", description: "Impossible d'ajouter la date", variant: "destructive" });
-    }
-  };
-
-  const handleDeleteDate = async (id: string, label: string) => {
-    try {
-      const { error } = await supabase.from("formation_dates").delete().eq("id", id);
-      if (error) throw error;
-      setFormationDates(prev => prev.filter(d => d.id !== id));
-      toast({ title: "Date supprimée", description: `"${label}" a été supprimée.` });
-    } catch (error) {
-      console.error("Error deleting date:", error);
-      toast({ title: "Erreur", description: "Impossible de supprimer la date", variant: "destructive" });
-    }
-  };
-
-  const handleSetDefaultDate = async (id: string, label: string) => {
-    try {
-      await supabase.from("formation_dates").update({ is_default: false }).neq("id", "");
-      const { error } = await supabase.from("formation_dates").update({ is_default: true }).eq("id", id);
-      if (error) throw error;
-      setFormationDates(prev => prev.map(d => ({ ...d, is_default: d.id === id })));
-      toast({ title: "Date par défaut", description: `"${label}" est maintenant la date par défaut.` });
-    } catch (error) {
-      console.error("Error setting default:", error);
-      toast({ title: "Erreur", description: "Impossible de définir la date par défaut", variant: "destructive" });
-    }
-  };
-
-  const handleSaveDate = async (date: FormationDate) => {
-    try {
-      const { error } = await supabase
-        .from("formation_dates")
-        .update({ date_label: date.date_label })
-        .eq("id", date.id);
-      if (error) throw error;
-      setFormationDates(prev => prev.map(d => d.id === date.id ? date : d));
-      toast({ title: "Date sauvegardée", description: "Les modifications ont été enregistrées." });
-      setEditingDate(null);
-    } catch (error) {
-      console.error("Error saving date:", error);
-      toast({ title: "Erreur", description: "Impossible de sauvegarder la date", variant: "destructive" });
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (typeDevis !== "formation") {
-      toast({
-        title: "Fonctionnalité en développement",
-        description: "La génération de devis pour les jeux sera bientôt disponible.",
-      });
-      return;
-    }
-
-    const selectedConfig = getSelectedFormationConfig();
-    if (!selectedConfig) {
-      toast({
-        title: "Erreur",
-        description: "Veuillez sélectionner une formation",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setSubmitting(true);
-
-    try {
-      const finalLieu = lieu === "autre" ? lieuAutre : lieu;
-      const finalPays = pays === "autre" ? paysAutre : "France";
-
-      const normalizedEmail = emailCommanditaire.trim().toLowerCase();
-
-      const response = await supabase.functions.invoke("generate-micro-devis", {
-        body: {
-          nomClient,
-          adresseClient,
-          codePostalClient,
-          villeClient,
-          pays: finalPays,
-          emailCommanditaire: normalizedEmail,
-          adresseCommanditaire,
-          isAdministration: isAdministration === "oui",
-          noteDevis,
-          formationDemandee,
-          dateFormation,
-          lieu: finalLieu,
-          includeCadeau,
-          fraisDossier: fraisDossier === "oui",
-          prix: selectedConfig.prix,
-          dureeHeures: selectedConfig.duree_heures,
-          programmeUrl: selectedConfig.programme_url,
-          nbParticipants: countParticipants(),
-          participants,
-          typeSubrogation,
-          // Additional fields for duplication feature
-          typeDevis,
-          formatFormation,
-          formationLibre,
-          dateFormationLibre,
-          lieuAutre,
-          // CRM card link
-          ...(crmCardId && { crmCardId, senderEmail: user?.email }),
-        },
-      });
-
-      if (response.error) {
-        throw new Error(response.error.message);
-      }
-
-      const successMessage = typeSubrogation === "les2"
-        ? `Les 2 devis ont été générés et envoyés à ${normalizedEmail}`
-        : `Le devis a été généré et envoyé à ${normalizedEmail}`;
-
-      toast({
-        title: typeSubrogation === "les2" ? "Devis envoyés !" : "Devis envoyé !",
-        description: successMessage,
-      });
-
-      // If opened from CRM, close this tab after a short delay to return to CRM
-      if (searchParams.get("source") === "crm") {
-        setTimeout(() => {
-          window.close();
-        }, 1500);
-        return;
-      }
-
-      // Reset form
-      setNomClient("");
-      setAdresseClient("");
-      setCodePostalClient("");
-      setVilleClient("");
-      setPays("france");
-      setPaysAutre("");
-      setEmailCommanditaire("");
-      setAdresseCommanditaire("");
-      setTypeDevis("");
-      setIsAdministration("");
-      setNoteDevis("");
-      setParticipants("");
-      const defaultFormation = formationConfigs.find(f => f.is_default);
-      setFormationDemandee(defaultFormation?.formation_name || "");
-      setDateFormation("");
-      setLieu("");
-      setLieuAutre("");
-      setIncludeCadeau(false);
-      setFraisDossier("");
-
-    } catch (error: unknown) {
-      console.error("Error generating micro-devis:", error);
-      const errorMessage = error instanceof Error ? error.message : "Une erreur est survenue";
-      toast({
-        title: "Erreur",
-        description: errorMessage,
-        variant: "destructive",
-      });
-    } finally {
-      setSubmitting(false);
-    }
-  };
+  const {
+    form, setField,
+    formationConfigs, loadingConfigs, editingFormation, setEditingFormation,
+    configDialogOpen, setConfigDialogOpen, newFormation, setNewFormation,
+    formationDates, loadingDates, editingDate, setEditingDate,
+    datesDialogOpen, setDatesDialogOpen, newDate, setNewDate,
+    jsonPreviewOpen, setJsonPreviewOpen, submitting,
+    siren, setSiren, searchingSiren,
+    loadingHistory, historySearch, setHistorySearch,
+    historyDialogOpen, setHistoryDialogOpen, filteredHistory,
+    getSelectedFormationConfig, countParticipants,
+    handleSearchSiren, handleDuplicateDevis, handleDeleteDevis,
+    handleSaveFormationConfig, handleAddFormation, handleDeleteFormation,
+    handleSetDefault, handleMoveFormation,
+    handleAddDate, handleDeleteDate, handleSetDefaultDate, handleSaveDate,
+    buildPayload, handleSubmit,
+  } = useMicroDevisForm(user);
 
   if (loading) {
     return (
@@ -963,13 +90,8 @@ const MicroDevis = () => {
     <div className="min-h-screen bg-background">
       <AppHeader />
 
-      {/* Main content */}
       <main className="max-w-4xl mx-auto p-6">
-        <Button
-          variant="ghost"
-          onClick={() => navigate("/")}
-          className="mb-4"
-        >
+        <Button variant="ghost" onClick={() => navigate("/")} className="mb-4">
           <ArrowLeft className="w-4 h-4 mr-2" />
           Retour aux outils
         </Button>
@@ -1003,7 +125,7 @@ const MicroDevis = () => {
               {/* Section: Informations client */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold border-b pb-2">Informations client</h3>
-                
+
                 {/* SIREN search */}
                 <div className="flex gap-2 items-end p-3 bg-muted/50 rounded-lg border">
                   <div className="flex-1 space-y-2">
@@ -1025,61 +147,33 @@ const MicroDevis = () => {
                     onClick={handleSearchSiren}
                     disabled={searchingSiren || siren.length !== 9}
                   >
-                    {searchingSiren ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Search className="w-4 h-4" />
-                    )}
+                    {searchingSiren ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
                     <span className="ml-2">Rechercher</span>
                   </Button>
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="nomClient">Nom du client *</Label>
-                  <Input
-                    id="nomClient"
-                    placeholder="Nom de l'entreprise ou du client"
-                    value={nomClient}
-                    onChange={(e) => setNomClient(e.target.value)}
-                    required
-                  />
+                  <Input id="nomClient" placeholder="Nom de l'entreprise ou du client" value={form.nomClient} onChange={(e) => setField("nomClient", e.target.value)} required />
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="adresseClient">Adresse du client *</Label>
-                  <Input
-                    id="adresseClient"
-                    placeholder="Numéro et nom de rue"
-                    value={adresseClient}
-                    onChange={(e) => setAdresseClient(e.target.value)}
-                    required
-                  />
+                  <Input id="adresseClient" placeholder="Numéro et nom de rue" value={form.adresseClient} onChange={(e) => setField("adresseClient", e.target.value)} required />
                 </div>
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="codePostalClient">Code postal *</Label>
-                    <Input
-                      id="codePostalClient"
-                      placeholder="69000"
-                      value={codePostalClient}
-                      onChange={(e) => setCodePostalClient(e.target.value)}
-                      required
-                    />
+                    <Input id="codePostalClient" placeholder="69000" value={form.codePostalClient} onChange={(e) => setField("codePostalClient", e.target.value)} required />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="villeClient">Ville *</Label>
-                    <Input
-                      id="villeClient"
-                      placeholder="Lyon"
-                      value={villeClient}
-                      onChange={(e) => setVilleClient(e.target.value)}
-                      required
-                    />
+                    <Input id="villeClient" placeholder="Lyon" value={form.villeClient} onChange={(e) => setField("villeClient", e.target.value)} required />
                   </div>
                   <div className="space-y-2 col-span-2">
                     <Label>Pays *</Label>
-                    <RadioGroup value={pays} onValueChange={setPays} className="flex items-center gap-4">
+                    <RadioGroup value={form.pays} onValueChange={(v) => setField("pays", v)} className="flex items-center gap-4">
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="france" id="pays-france" />
                         <Label htmlFor="pays-france" className="font-normal cursor-pointer">France</Label>
@@ -1089,13 +183,13 @@ const MicroDevis = () => {
                         <Label htmlFor="pays-autre" className="font-normal cursor-pointer">Autre :</Label>
                         <Input
                           placeholder="Pays"
-                          value={paysAutre}
+                          value={form.paysAutre}
                           onChange={(e) => {
-                            setPaysAutre(e.target.value);
-                            if (e.target.value) setPays("autre");
+                            setField("paysAutre", e.target.value);
+                            if (e.target.value) setField("pays", "autre");
                           }}
                           className="flex-1"
-                          disabled={pays !== "autre"}
+                          disabled={form.pays !== "autre"}
                         />
                       </div>
                     </RadioGroup>
@@ -1105,27 +199,14 @@ const MicroDevis = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="emailCommanditaire">Email du commanditaire *</Label>
-                    <Input
-                      id="emailCommanditaire"
-                      type="email"
-                      placeholder="email@exemple.com"
-                      value={emailCommanditaire}
-                      onChange={(e) => setEmailCommanditaire(e.target.value)}
-                      required
-                    />
+                    <Input id="emailCommanditaire" type="email" placeholder="email@exemple.com" value={form.emailCommanditaire} onChange={(e) => setField("emailCommanditaire", e.target.value)} required />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="adresseCommanditaire">
                       Comment s'adresser au commanditaire *
                       <span className="text-muted-foreground font-normal text-sm ml-1">(Ex : Mme Poilvert)</span>
                     </Label>
-                    <Input
-                      id="adresseCommanditaire"
-                      placeholder="Mme Dupont"
-                      value={adresseCommanditaire}
-                      onChange={(e) => setAdresseCommanditaire(e.target.value)}
-                      required
-                    />
+                    <Input id="adresseCommanditaire" placeholder="Mme Dupont" value={form.adresseCommanditaire} onChange={(e) => setField("adresseCommanditaire", e.target.value)} required />
                   </div>
                 </div>
               </div>
@@ -1133,11 +214,11 @@ const MicroDevis = () => {
               {/* Section: Type de devis */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold border-b pb-2">Type de devis</h3>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-3">
                     <Label>S'agit-il d'un devis pour</Label>
-                    <RadioGroup value={typeDevis} onValueChange={(v) => setTypeDevis(v as "formation" | "jeu")}>
+                    <RadioGroup value={form.typeDevis} onValueChange={(v) => setField("typeDevis", v as "formation" | "jeu")}>
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="formation" id="type-formation" />
                         <Label htmlFor="type-formation" className="font-normal cursor-pointer">Une formation</Label>
@@ -1151,7 +232,7 @@ const MicroDevis = () => {
 
                   <div className="space-y-3">
                     <Label>Le client est une administration *</Label>
-                    <RadioGroup value={isAdministration} onValueChange={(v) => setIsAdministration(v as "oui" | "non")} className="flex gap-4">
+                    <RadioGroup value={form.isAdministration} onValueChange={(v) => setField("isAdministration", v as "oui" | "non")} className="flex gap-4">
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="oui" id="admin-oui" />
                         <Label htmlFor="admin-oui" className="font-normal cursor-pointer">Oui</Label>
@@ -1169,25 +250,18 @@ const MicroDevis = () => {
                     Note à faire figurer impérativement sur le devis
                     <span className="text-muted-foreground font-normal text-sm ml-1">(facultatif)</span>
                   </Label>
-                  <Textarea
-                    id="noteDevis"
-                    placeholder="Notes ou mentions spéciales à inclure dans le devis..."
-                    value={noteDevis}
-                    onChange={(e) => setNoteDevis(e.target.value)}
-                    className="min-h-[80px]"
-                  />
+                  <Textarea id="noteDevis" placeholder="Notes ou mentions spéciales à inclure dans le devis..." value={form.noteDevis} onChange={(e) => setField("noteDevis", e.target.value)} className="min-h-[80px]" />
                 </div>
               </div>
 
               {/* Section: Formation (conditional) */}
-              {typeDevis === "formation" && (
+              {form.typeDevis === "formation" && (
                 <div className="space-y-4 p-4 bg-primary/5 rounded-lg border border-primary/20">
                   <h3 className="text-lg font-semibold text-primary">Formation</h3>
 
-                  {/* Formation type: intra or inter */}
                   <div className="space-y-3">
                     <Label>Type de formation *</Label>
-                    <RadioGroup value={formatFormation} onValueChange={(v) => setFormatFormation(v as "intra" | "inter")} className="flex gap-6">
+                    <RadioGroup value={form.formatFormation} onValueChange={(v) => setField("formatFormation", v as "intra" | "inter")} className="flex gap-6">
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="intra" id="format-intra" />
                         <Label htmlFor="format-intra" className="font-normal cursor-pointer">
@@ -1211,21 +285,20 @@ const MicroDevis = () => {
                         Liste des participants
                         <span className="text-muted-foreground font-normal text-sm ml-1">(Prénom Nom e-mail ;,)</span>
                       </Label>
-                      {adresseCommanditaire && emailCommanditaire && (
+                      {form.adresseCommanditaire && form.emailCommanditaire && (
                         <Button
                           type="button"
                           variant="ghost"
                           size="sm"
                           className="h-6 px-2 text-xs"
                           onClick={() => {
-                            const commanditaireEntry = `${adresseCommanditaire} ${emailCommanditaire}`;
-                            if (participants.trim()) {
-                              // Add to existing list if not already present
-                              if (!participants.includes(emailCommanditaire)) {
-                                setParticipants(participants + "\n" + commanditaireEntry);
+                            const commanditaireEntry = `${form.adresseCommanditaire} ${form.emailCommanditaire}`;
+                            if (form.participants.trim()) {
+                              if (!form.participants.includes(form.emailCommanditaire)) {
+                                setField("participants", form.participants + "\n" + commanditaireEntry);
                               }
                             } else {
-                              setParticipants(commanditaireEntry);
+                              setField("participants", commanditaireEntry);
                             }
                           }}
                         >
@@ -1234,14 +307,8 @@ const MicroDevis = () => {
                         </Button>
                       )}
                     </div>
-                    <Textarea
-                      id="participants"
-                      placeholder="Jean Dupont jean@exemple.com, Marie Martin marie@exemple.com"
-                      value={participants}
-                      onChange={(e) => setParticipants(e.target.value)}
-                      className="min-h-[100px] font-mono text-sm"
-                    />
-                    {participants && (
+                    <Textarea id="participants" placeholder="Jean Dupont jean@exemple.com, Marie Martin marie@exemple.com" value={form.participants} onChange={(e) => setField("participants", e.target.value)} className="min-h-[100px] font-mono text-sm" />
+                    {form.participants && (
                       <p className="text-sm text-muted-foreground">
                         {countParticipants()} participant(s) détecté(s)
                       </p>
@@ -1268,9 +335,8 @@ const MicroDevis = () => {
                       />
                     </div>
 
-                    {/* Inter-entreprises: select from catalog */}
-                    {formatFormation === "inter" && (
-                      <Select value={formationDemandee} onValueChange={setFormationDemandee}>
+                    {form.formatFormation === "inter" && (
+                      <Select value={form.formationDemandee} onValueChange={(v) => setField("formationDemandee", v)}>
                         <SelectTrigger className="w-full bg-background">
                           <SelectValue placeholder="Sélectionner une formation" />
                         </SelectTrigger>
@@ -1290,22 +356,15 @@ const MicroDevis = () => {
                       </Select>
                     )}
 
-                    {/* Intra-entreprise: free text input */}
-                    {formatFormation === "intra" && (
-                      <Input
-                        placeholder="Nom de la formation souhaitée"
-                        value={formationLibre}
-                        onChange={(e) => setFormationLibre(e.target.value)}
-                        required
-                      />
+                    {form.formatFormation === "intra" && (
+                      <Input placeholder="Nom de la formation souhaitée" value={form.formationLibre} onChange={(e) => setField("formationLibre", e.target.value)} required />
                     )}
                   </div>
 
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <Label>Dates de la formation *</Label>
-                      {/* Only show "Gérer" button for inter-entreprises */}
-                      {formatFormation === "inter" && (
+                      {form.formatFormation === "inter" && (
                         <FormationDatesDialog
                           open={datesDialogOpen}
                           onOpenChange={setDatesDialogOpen}
@@ -1323,11 +382,10 @@ const MicroDevis = () => {
                       )}
                     </div>
 
-                    {/* Inter-entreprises: select from predefined dates */}
-                    {formatFormation === "inter" && (
+                    {form.formatFormation === "inter" && (
                       <>
                         {formationDates.length > 0 ? (
-                          <Select value={dateFormation} onValueChange={setDateFormation}>
+                          <Select value={form.dateFormation} onValueChange={(v) => setField("dateFormation", v)}>
                             <SelectTrigger className="w-full bg-background">
                               <SelectValue placeholder="Sélectionner une date" />
                             </SelectTrigger>
@@ -1343,13 +401,7 @@ const MicroDevis = () => {
                             </SelectContent>
                           </Select>
                         ) : (
-                          <Input
-                            id="dateFormation"
-                            placeholder="Ex: 15 et 16 janvier 2026, ou Du 10 au 14 mars 2026"
-                            value={dateFormation}
-                            onChange={(e) => setDateFormation(e.target.value)}
-                            required
-                          />
+                          <Input id="dateFormation" placeholder="Ex: 15 et 16 janvier 2026, ou Du 10 au 14 mars 2026" value={form.dateFormation} onChange={(e) => setField("dateFormation", e.target.value)} required />
                         )}
                         <p className="text-xs text-muted-foreground">
                           {formationDates.length > 0
@@ -1360,16 +412,9 @@ const MicroDevis = () => {
                       </>
                     )}
 
-                    {/* Intra-entreprise: free text input for dates */}
-                    {formatFormation === "intra" && (
+                    {form.formatFormation === "intra" && (
                       <>
-                        <Input
-                          id="dateFormationLibre"
-                          placeholder="Ex: 15 et 16 janvier 2026, ou Du 10 au 14 mars 2026, ou À définir"
-                          value={dateFormationLibre}
-                          onChange={(e) => setDateFormationLibre(e.target.value)}
-                          required
-                        />
+                        <Input id="dateFormationLibre" placeholder="Ex: 15 et 16 janvier 2026, ou Du 10 au 14 mars 2026, ou À définir" value={form.dateFormationLibre} onChange={(e) => setField("dateFormationLibre", e.target.value)} required />
                         <p className="text-xs text-muted-foreground">
                           Saisissez les dates souhaitées ou "À définir" si pas encore fixées
                         </p>
@@ -1379,13 +424,11 @@ const MicroDevis = () => {
 
                   <div className="space-y-3">
                     <Label>Lieu *</Label>
-                    <RadioGroup value={lieu} onValueChange={setLieu} className="space-y-2">
+                    <RadioGroup value={form.lieu} onValueChange={(v) => setField("lieu", v)} className="space-y-2">
                       {LIEUX.map((l) => (
                         <div key={l} className="flex items-center space-x-2">
                           <RadioGroupItem value={l} id={`lieu-${l}`} />
-                          <Label htmlFor={`lieu-${l}`} className="font-normal cursor-pointer text-sm">
-                            {l}
-                          </Label>
+                          <Label htmlFor={`lieu-${l}`} className="font-normal cursor-pointer text-sm">{l}</Label>
                         </div>
                       ))}
                       <div className="flex items-center space-x-2">
@@ -1393,13 +436,13 @@ const MicroDevis = () => {
                         <Label htmlFor="lieu-autre" className="font-normal cursor-pointer text-sm">Autre :</Label>
                         <Input
                           placeholder="Adresse personnalisée"
-                          value={lieuAutre}
+                          value={form.lieuAutre}
                           onChange={(e) => {
-                            setLieuAutre(e.target.value);
-                            if (e.target.value) setLieu("autre");
+                            setField("lieuAutre", e.target.value);
+                            if (e.target.value) setField("lieu", "autre");
                           }}
                           className="flex-1 max-w-md"
-                          disabled={lieu !== "autre"}
+                          disabled={form.lieu !== "autre"}
                         />
                       </div>
                     </RadioGroup>
@@ -1408,11 +451,7 @@ const MicroDevis = () => {
                   <div className="space-y-3">
                     <Label>Cadeau <span className="text-muted-foreground font-normal text-sm">(ne pas cocher si non applicable)</span></Label>
                     <div className="flex items-start space-x-2">
-                      <Checkbox 
-                        id="cadeau" 
-                        checked={includeCadeau}
-                        onCheckedChange={(checked) => setIncludeCadeau(checked === true)}
-                      />
+                      <Checkbox id="cadeau" checked={form.includeCadeau} onCheckedChange={(checked) => setField("includeCadeau", checked === true)} />
                       <Label htmlFor="cadeau" className="font-normal cursor-pointer text-sm leading-relaxed">
                         Chaque participant(e) aura : 1 kit de facilitation graphique ainsi qu'un accès illimité et à vie au e-learning de 25h pour continuer sa formation à la facilitation graphique
                       </Label>
@@ -1421,7 +460,7 @@ const MicroDevis = () => {
 
                   <div className="space-y-3">
                     <Label>Afficher les frais de dossier dans le devis * <span className="text-muted-foreground font-normal text-sm">(Oui pour appliquer 150 euros de frais)</span></Label>
-                    <RadioGroup value={fraisDossier} onValueChange={(v) => setFraisDossier(v as "oui" | "non")} className="flex gap-4">
+                    <RadioGroup value={form.fraisDossier} onValueChange={(v) => setField("fraisDossier", v as "oui" | "non")} className="flex gap-4">
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="oui" id="frais-oui" />
                         <Label htmlFor="frais-oui" className="font-normal cursor-pointer">Oui</Label>
@@ -1435,7 +474,7 @@ const MicroDevis = () => {
 
                   <div className="space-y-3">
                     <Label>Type de devis à générer *</Label>
-                    <RadioGroup value={typeSubrogation} onValueChange={(v) => setTypeSubrogation(v as "sans" | "avec" | "les2")} className="space-y-2">
+                    <RadioGroup value={form.typeSubrogation} onValueChange={(v) => setField("typeSubrogation", v as "sans" | "avec" | "les2")} className="space-y-2">
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="sans" id="subrogation-sans" />
                         <Label htmlFor="subrogation-sans" className="font-normal cursor-pointer">Devis sans subrogation de paiement</Label>
@@ -1452,17 +491,16 @@ const MicroDevis = () => {
                   </div>
 
                   {/* Summary */}
-                  {formationDemandee && (
-                    <div className="mt-4 p-3 bg-background rounded border" key={`summary-${formationDemandee}-${participants}-${fraisDossier}`}>
+                  {form.formationDemandee && (
+                    <div className="mt-4 p-3 bg-background rounded border" key={`summary-${form.formationDemandee}-${form.participants}-${form.fraisDossier}`}>
                       <h4 className="font-medium text-sm mb-2">Résumé du devis</h4>
                       {(() => {
                         const config = getSelectedFormationConfig();
                         if (!config) return null;
                         const nbParticipants = countParticipants();
                         const prixFormation = config.prix * nbParticipants;
-                        const frais = fraisDossier === "oui" ? 150 : 0;
+                        const frais = form.fraisDossier === "oui" ? 150 : 0;
                         const totalHT = prixFormation + frais;
-                        // TVA à 0% pour les formations
                         const tva = 0;
                         const totalTTC = totalHT + tva;
 
@@ -1482,16 +520,16 @@ const MicroDevis = () => {
               )}
 
               {/* Section: Jeu (conditional) */}
-              {typeDevis === "jeu" && (
+              {form.typeDevis === "jeu" && (
                 <div className="space-y-4 p-4 bg-secondary/50 rounded-lg border border-secondary">
                   <h3 className="text-lg font-semibold">Jeu</h3>
                   <p className="text-muted-foreground">
                     Pour créer un devis pour un jeu, veuillez utiliser notre formulaire dédié :
                   </p>
                   <Button asChild variant="outline" className="w-full">
-                    <a 
-                      href="https://docs.google.com/forms/d/e/1FAIpQLScoZ3qkcJDxbEQYysE2YSkTEV-bfmF6mkAumwQ20Hoqflp7_g/viewform" 
-                      target="_blank" 
+                    <a
+                      href="https://docs.google.com/forms/d/e/1FAIpQLScoZ3qkcJDxbEQYysE2YSkTEV-bfmF6mkAumwQ20Hoqflp7_g/viewform"
+                      target="_blank"
                       rel="noopener noreferrer"
                     >
                       Accéder au formulaire de devis Jeu
@@ -1507,7 +545,7 @@ const MicroDevis = () => {
                       type="button"
                       variant="outline"
                       className="font-semibold py-6"
-                      disabled={!typeDevis || typeDevis !== "formation" || !formationDemandee}
+                      disabled={!form.typeDevis || form.typeDevis !== "formation" || !form.formationDemandee}
                     >
                       <Eye className="w-5 h-5 mr-2" />
                       Prévisualiser JSON
@@ -1531,7 +569,7 @@ const MicroDevis = () => {
                 <Button
                   type="submit"
                   className="flex-1 font-semibold text-lg py-6"
-                  disabled={submitting || !typeDevis}
+                  disabled={submitting || !form.typeDevis}
                 >
                   {submitting ? (
                     <>
