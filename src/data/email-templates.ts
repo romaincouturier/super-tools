@@ -1,67 +1,25 @@
 import { supabase } from "@/integrations/supabase/client";
+import { emailTemplateRepository } from "@/infrastructure/supabase/email-template.repository";
 
-export interface EmailTemplate {
-  id: string;
-  template_type: string;
-  template_name: string;
-  subject: string;
-  html_content: string;
-  is_default: boolean;
-}
+// Re-export domain types for backward compatibility
+export type { EmailTemplate, AddressMode } from "@/domain/entities/email-template";
 
-export type AddressMode = "tu" | "vous";
+// --- CRUD (delegated to repository) ---
 
-/** Fetch all email templates */
-export async function fetchEmailTemplates(): Promise<EmailTemplate[]> {
-  const { data, error } = await supabase
-    .from("email_templates")
-    .select("*");
+export const fetchEmailTemplates = () => emailTemplateRepository.findAll();
 
-  if (error) throw error;
-  return (data || []) as EmailTemplate[];
-}
+export const updateEmailTemplate = (id: string, updates: { subject: string; content: string }) =>
+  emailTemplateRepository.update(id, updates);
 
-/** Update an existing email template */
-export async function updateEmailTemplate(
-  id: string,
-  updates: { subject: string; content: string }
-): Promise<void> {
-  const { error } = await supabase
-    .from("email_templates")
-    .update({
-      subject: updates.subject,
-      html_content: updates.content,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", id);
-
-  if (error) throw error;
-}
-
-/** Create a new email template */
-export async function createEmailTemplate(params: {
+export const createEmailTemplate = (params: {
   templateType: string;
   templateName: string;
   subject: string;
   content: string;
-}): Promise<EmailTemplate> {
-  const { data, error } = await supabase
-    .from("email_templates")
-    .insert({
-      template_type: params.templateType,
-      template_name: params.templateName,
-      subject: params.subject,
-      html_content: params.content,
-      is_default: false,
-    })
-    .select()
-    .single();
+}) => emailTemplateRepository.create(params);
 
-  if (error) throw error;
-  return data as EmailTemplate;
-}
+// --- AI (edge function, stays here as it's not a repository concern) ---
 
-/** Improve email content with AI */
 export async function improveEmailWithAI(params: {
   subject: string;
   content: string;
@@ -71,9 +29,7 @@ export async function improveEmailWithAI(params: {
   const { data, error } = await supabase.functions.invoke("improve-email-content", {
     body: params,
   });
-
   if (error) throw error;
   if (data.error) throw new Error(data.error);
-
   return { subject: data.subject, content: data.content };
 }

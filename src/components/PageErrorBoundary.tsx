@@ -20,7 +20,21 @@ export class PageErrorBoundary extends React.Component<Props, State> {
   }
 
   componentDidCatch(error: unknown, info: React.ErrorInfo) {
-    console.error(`PageErrorBoundary [${this.props.pageName ?? "unknown"}]:`, error, info.componentStack);
+    console.error(
+      `PageErrorBoundary [${this.props.pageName ?? "unknown"}]:`,
+      error,
+      info.componentStack,
+    );
+    // Report to Sentry if available
+    import("@sentry/react")
+      .then((Sentry) => {
+        Sentry.captureException(error, {
+          extra: { pageName: this.props.pageName, componentStack: info.componentStack },
+        });
+      })
+      .catch(() => {
+        /* Sentry not loaded */
+      });
   }
 
   render() {
@@ -38,22 +52,15 @@ export class PageErrorBoundary extends React.Component<Props, State> {
             </h2>
           </div>
           <p className="text-sm text-muted-foreground">
-            Une erreur inattendue s'est produite sur cette page.
-            Essayez de recharger ou revenez à l'accueil.
+            Une erreur inattendue s'est produite sur cette page. Essayez de recharger ou revenez à
+            l'accueil.
           </p>
           <div className="flex gap-2">
-            <Button
-              size="sm"
-              onClick={() => this.setState({ hasError: false, error: undefined })}
-            >
+            <Button size="sm" onClick={() => this.setState({ hasError: false, error: undefined })}>
               <RefreshCw className="h-4 w-4 mr-2" />
               Réessayer
             </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => (window.location.href = "/")}
-            >
+            <Button size="sm" variant="outline" onClick={() => (window.location.href = "/")}>
               <Home className="h-4 w-4 mr-2" />
               Accueil
             </Button>
@@ -72,7 +79,7 @@ export class PageErrorBoundary extends React.Component<Props, State> {
 /** HOC to wrap a lazy-loaded page with an error boundary */
 export function withPageErrorBoundary<P extends object>(
   Component: React.ComponentType<P>,
-  pageName: string
+  pageName: string,
 ): React.FC<P> {
   const Wrapped: React.FC<P> = (props) => (
     <PageErrorBoundary pageName={pageName}>

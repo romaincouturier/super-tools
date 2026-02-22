@@ -14,13 +14,13 @@
 - [x] Kanban générique — Déjà en place (`KanbanLayout` + `useKanbanDnd` dans `components/kanban/`)
 - [x] Mettre en place une CI (lint + tests + build) — `.github/workflows/ci.yml`
 
-## P1 — IMPORTANT (dette structurelle)
+## P1 — IMPORTANT (dette structurelle) — TRAITÉ
 
-- [ ] Créer une couche `domain/` avec les entités métier
-- [ ] Abstraire Supabase derrière des repositories
-- [ ] Ajouter Sentry ou équivalent (observabilité)
+- [x] Créer une couche `domain/` avec les entités métier — `src/domain/entities/` (Training, CRM, Mission, OKR, Event, EmailTemplate)
+- [x] Abstraire Supabase derrière des repositories — `src/domain/repositories/` (interfaces) + `src/infrastructure/supabase/` (implémentations)
+- [x] Ajouter Sentry (observabilité) — `@sentry/react` dans `main.tsx` + report dans `PageErrorBoundary`
 - [x] Remplacer les 44 useState de MicroDevis par un state objet unique (`useMicroDevisForm`)
-- [ ] Ajouter Prettier + Husky + lint-staged
+- [x] Ajouter Prettier + Husky + lint-staged — `.prettierrc` + `.husky/pre-commit` + `lint-staged` dans `package.json`
 
 ## P2 — SOUHAITABLE (qualité long terme)
 
