@@ -1,13 +1,27 @@
+import { useRef, useState, useEffect } from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { MediaItem, useDeleteMedia, deleteMediaFile } from "@/hooks/useMedia";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ImageIcon, Video, Play, Trash2, Briefcase, Download, GraduationCap, CalendarDays, HandCoins } from "lucide-react";
+import {
+  ImageIcon,
+  Video,
+  Play,
+  Trash2,
+  Briefcase,
+  Download,
+  GraduationCap,
+  CalendarDays,
+  HandCoins,
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface MediaGridProps {
   items: MediaItem[];
   onOpenLightbox: (item: MediaItem) => void;
 }
+
+const VIRTUALIZATION_THRESHOLD = 60;
 
 const formatFileSize = (bytes: number | null) => {
   if (!bytes) return "";
@@ -18,25 +32,60 @@ const formatFileSize = (bytes: number | null) => {
 
 const sourceIcon = (sourceType: string) => {
   switch (sourceType) {
-    case "training": return <GraduationCap className="h-2.5 w-2.5" />;
-    case "event": return <CalendarDays className="h-2.5 w-2.5" />;
-    case "crm": return <HandCoins className="h-2.5 w-2.5" />;
-    default: return <Briefcase className="h-2.5 w-2.5" />;
+    case "training":
+      return <GraduationCap className="h-2.5 w-2.5" />;
+    case "event":
+      return <CalendarDays className="h-2.5 w-2.5" />;
+    case "crm":
+      return <HandCoins className="h-2.5 w-2.5" />;
+    default:
+      return <Briefcase className="h-2.5 w-2.5" />;
   }
 };
 
 const sourceIconLarge = (sourceType: string) => {
   switch (sourceType) {
-    case "training": return <GraduationCap className="h-3 w-3 flex-shrink-0" />;
-    case "event": return <CalendarDays className="h-3 w-3 flex-shrink-0" />;
-    case "crm": return <HandCoins className="h-3 w-3 flex-shrink-0" />;
-    default: return <Briefcase className="h-3 w-3 flex-shrink-0" />;
+    case "training":
+      return <GraduationCap className="h-3 w-3 flex-shrink-0" />;
+    case "event":
+      return <CalendarDays className="h-3 w-3 flex-shrink-0" />;
+    case "crm":
+      return <HandCoins className="h-3 w-3 flex-shrink-0" />;
+    default:
+      return <Briefcase className="h-3 w-3 flex-shrink-0" />;
   }
+};
+
+const getColumnCount = () => {
+  if (typeof window === "undefined") return 2;
+  const w = window.innerWidth;
+  if (w >= 1024) return 5;
+  if (w >= 768) return 4;
+  if (w >= 640) return 3;
+  return 2;
 };
 
 const MediaGrid = ({ items, onOpenLightbox }: MediaGridProps) => {
   const { toast } = useToast();
   const deleteMutation = useDeleteMedia();
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [columnCount, setColumnCount] = useState(getColumnCount);
+
+  useEffect(() => {
+    const onResize = () => setColumnCount(getColumnCount());
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  const rowCount = Math.ceil(items.length / columnCount);
+  const shouldVirtualize = items.length > VIRTUALIZATION_THRESHOLD;
+
+  const virtualizer = useVirtualizer({
+    count: shouldVirtualize ? rowCount : 0,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => 200,
+    overscan: 3,
+  });
 
   const downloadFile = async (url: string, fileName: string) => {
     try {
@@ -51,7 +100,11 @@ const MediaGrid = ({ items, onOpenLightbox }: MediaGridProps) => {
       document.body.removeChild(a);
       URL.revokeObjectURL(blobUrl);
     } catch {
-      toast({ title: "Erreur", description: "Erreur lors du téléchargement", variant: "destructive" });
+      toast({
+        title: "Erreur",
+        description: "Erreur lors du téléchargement",
+        variant: "destructive",
+      });
     }
   };
 
@@ -69,9 +122,98 @@ const MediaGrid = ({ items, onOpenLightbox }: MediaGridProps) => {
       toast({ title: "Succès", description: "Fichier supprimé" });
     } catch (error) {
       console.error("Delete error:", error);
-      toast({ title: "Erreur", description: "Erreur lors de la suppression", variant: "destructive" });
+      toast({
+        title: "Erreur",
+        description: "Erreur lors de la suppression",
+        variant: "destructive",
+      });
     }
   };
+
+  const renderItem = (item: MediaItem) => (
+    <div
+      key={item.id}
+      className="group relative aspect-square rounded-lg overflow-hidden border bg-muted cursor-pointer"
+      onClick={() => onOpenLightbox(item)}
+    >
+      {item.file_type === "image" ? (
+        <img
+          src={item.file_url}
+          alt={item.file_name}
+          className="w-full h-full object-cover"
+          loading="lazy"
+        />
+      ) : (
+        <div className="w-full h-full relative">
+          <video
+            src={item.file_url}
+            className="w-full h-full object-cover"
+            preload="metadata"
+            muted
+          />
+          <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+            <Play className="h-10 w-10 text-white drop-shadow" />
+          </div>
+        </div>
+      )}
+
+      {/* Overlay */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-2">
+        <div className="flex items-center justify-between mb-1">
+          <div className="flex items-center gap-1 text-white text-xs truncate">
+            {item.file_type === "image" ? (
+              <ImageIcon className="h-3 w-3 flex-shrink-0" />
+            ) : (
+              <Video className="h-3 w-3 flex-shrink-0" />
+            )}
+            <span className="truncate">{item.file_name}</span>
+          </div>
+          <div className="flex items-center gap-1 flex-shrink-0">
+            <Button
+              variant="secondary"
+              size="icon"
+              className="h-6 w-6"
+              onClick={(e) => {
+                e.stopPropagation();
+                downloadFile(item.file_url, item.file_name);
+              }}
+            >
+              <Download className="h-3 w-3" />
+            </Button>
+            <Button
+              variant="destructive"
+              size="icon"
+              className="h-6 w-6"
+              onClick={(e) => handleDelete(e, item)}
+            >
+              <Trash2 className="h-3 w-3" />
+            </Button>
+          </div>
+        </div>
+        <div className="flex items-center gap-1 text-white/80 text-xs truncate">
+          {sourceIconLarge(item.source_type)}
+          <span className="truncate">
+            {item.source_emoji ? `${item.source_emoji} ` : ""}
+            {item.source_label}
+          </span>
+        </div>
+        {item.file_size && (
+          <span className="text-white/60 text-xs">{formatFileSize(item.file_size)}</span>
+        )}
+      </div>
+
+      {/* Source tag (always visible) */}
+      <div className="absolute top-2 left-2">
+        <Badge
+          variant="secondary"
+          className="text-[10px] px-1.5 py-0 bg-black/50 text-white border-0 backdrop-blur-sm"
+        >
+          {item.source_emoji || sourceIcon(item.source_type)}
+          <span className="ml-1 max-w-[80px] truncate">{item.source_label}</span>
+        </Badge>
+      </div>
+    </div>
+  );
 
   if (items.length === 0) {
     return (
@@ -82,92 +224,48 @@ const MediaGrid = ({ items, onOpenLightbox }: MediaGridProps) => {
     );
   }
 
+  // Below threshold: render normally (no virtualization overhead)
+  if (!shouldVirtualize) {
+    return (
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+        {items.map(renderItem)}
+      </div>
+    );
+  }
+
+  // Above threshold: virtualized grid
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-      {items.map((item) => (
-        <div
-          key={item.id}
-          className="group relative aspect-square rounded-lg overflow-hidden border bg-muted cursor-pointer"
-          onClick={() => onOpenLightbox(item)}
-        >
-          {item.file_type === "image" ? (
-            <img
-              src={item.file_url}
-              alt={item.file_name}
-              className="w-full h-full object-cover"
-              loading="lazy"
-            />
-          ) : (
-            <div className="w-full h-full relative">
-              <video
-                src={item.file_url}
-                className="w-full h-full object-cover"
-                preload="metadata"
-                muted
-              />
-              <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-                <Play className="h-10 w-10 text-white drop-shadow" />
-              </div>
-            </div>
-          )}
+    <div ref={scrollRef} className="max-h-[calc(100vh-280px)] overflow-y-auto rounded-lg">
+      <div
+        style={{
+          height: `${virtualizer.getTotalSize()}px`,
+          width: "100%",
+          position: "relative",
+        }}
+      >
+        {virtualizer.getVirtualItems().map((virtualRow) => {
+          const startIdx = virtualRow.index * columnCount;
+          const rowItems = items.slice(startIdx, startIdx + columnCount);
 
-          {/* Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-2">
-            <div className="flex items-center justify-between mb-1">
-              <div className="flex items-center gap-1 text-white text-xs truncate">
-                {item.file_type === "image" ? (
-                  <ImageIcon className="h-3 w-3 flex-shrink-0" />
-                ) : (
-                  <Video className="h-3 w-3 flex-shrink-0" />
-                )}
-                <span className="truncate">{item.file_name}</span>
-              </div>
-              <div className="flex items-center gap-1 flex-shrink-0">
-                <Button
-                  variant="secondary"
-                  size="icon"
-                  className="h-6 w-6"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    downloadFile(item.file_url, item.file_name);
-                  }}
-                >
-                  <Download className="h-3 w-3" />
-                </Button>
-                <Button
-                  variant="destructive"
-                  size="icon"
-                  className="h-6 w-6"
-                  onClick={(e) => handleDelete(e, item)}
-                >
-                  <Trash2 className="h-3 w-3" />
-                </Button>
-              </div>
-            </div>
-            <div className="flex items-center gap-1 text-white/80 text-xs truncate">
-              {sourceIconLarge(item.source_type)}
-              <span className="truncate">
-                {item.source_emoji ? `${item.source_emoji} ` : ""}
-                {item.source_label}
-              </span>
-            </div>
-            {item.file_size && (
-              <span className="text-white/60 text-xs">{formatFileSize(item.file_size)}</span>
-            )}
-          </div>
-
-          {/* Source tag (always visible) */}
-          <div className="absolute top-2 left-2">
-            <Badge
-              variant="secondary"
-              className="text-[10px] px-1.5 py-0 bg-black/50 text-white border-0 backdrop-blur-sm"
+          return (
+            <div
+              key={virtualRow.key}
+              data-index={virtualRow.index}
+              ref={virtualizer.measureElement}
+              className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 pb-3"
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: "100%",
+                transform: `translateY(${virtualRow.start}px)`,
+              }}
             >
-              {item.source_emoji || sourceIcon(item.source_type)}
-              <span className="ml-1 max-w-[80px] truncate">{item.source_label}</span>
-            </Badge>
-          </div>
-        </div>
-      ))}
+              {rowItems.map(renderItem)}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 };

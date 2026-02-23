@@ -22,10 +22,10 @@
 - [x] Remplacer les 44 useState de MicroDevis par un state objet unique (`useMicroDevisForm`)
 - [x] Ajouter Prettier + Husky + lint-staged — `.prettierrc` + `.husky/pre-commit` + `lint-staged` dans `package.json`
 
-## P2 — SOUHAITABLE (qualité long terme)
+## P2 — SOUHAITABLE (qualité long terme) — TRAITÉ
 
-- [ ] Implémenter CQRS (séparer queries/mutations)
-- [ ] Ajouter la virtualisation des listes longues
-- [ ] Documenter les edge functions Supabase
-- [ ] Créer un ADR (Architecture Decision Record)
-- [ ] Mettre en place des E2E tests (Playwright)
+- [x] Implémenter CQRS (séparer queries/mutations) — `hooks/queries/` + `hooks/mutations/` (4 domaines : CRM, Missions, OKR, Events)
+- [x] Ajouter la virtualisation des listes longues — `@tanstack/react-virtual` + MediaGrid virtualisé (>60 items)
+- [x] Documenter les edge functions Supabase — `docs/EDGE_FUNCTIONS.md` (67 fonctions cataloguées)
+- [x] Créer un ADR (Architecture Decision Record) — `docs/adr/` (8 ADR : Supabase, React Query, Repository, CQRS, Kanban, Sentry, Tests, Prettier)
+- [x] Mettre en place des E2E tests (Playwright) — `playwright.config.ts` + `e2e/` (3 specs : smoke, auth, navigation)
