@@ -44,13 +44,13 @@
 - [x] Étendre les E2E Playwright — `e2e/protected-routes.spec.ts` (redirect auth sur 10 routes protégées, validation formulaire login), `e2e/public-forms.spec.ts` (formulaires publics : signature, questionnaire, évaluation, émargement)
 - [x] Mettre en place un seuil de couverture CI — `@vitest/coverage-v8` installé, `npm run test:coverage` configuré, CI utilise `test:coverage`, config coverage dans `vite.config.ts`
 
-### P3b — Décomposition des gros fichiers (priorité haute)
+### P3b — Décomposition des gros fichiers (priorité haute) ✅ TRAITÉ
 
-- [ ] Décomposer `DocumentsManager.tsx` (1 723 lignes) — extraire la logique d'upload, la liste de documents, et les actions en sous-composants/hooks
-- [ ] Décomposer `ParticipantList.tsx` (1 184 lignes) — finaliser l'intégration de `useParticipantActions` (P0), extraire les dialogues inline
-- [ ] Décomposer `OKRDetailDrawer.tsx` (1 087 lignes) — séparer les onglets (détails, check-ins, historique) en composants dédiés
-- [ ] Décomposer `ArenaDiscussion.tsx` (1 400 lignes) — extraire le panel de chat, les contrôles IA, le rendu des messages
-- [ ] Décomposer `Questionnaire.tsx` (1 337 lignes) — extraire les sections de formulaire, la logique de scoring, la prévisualisation
+- [x] Décomposer `DocumentsManager.tsx` (1 723 → ~770 lignes) — types extraits dans `DocumentsManager.types.ts`, logique extraite dans `useDocumentsManager.ts` (hook custom ~650 lignes)
+- [x] Décomposer `ParticipantList.tsx` (1 184 → ~350 lignes) — types extraits dans `ParticipantList.types.ts`, logique extraite dans `useParticipantList.ts` (hook custom ~480 lignes)
+- [x] Décomposer `OKRDetailDrawer.tsx` (1 087 → ~330 lignes) — sous-composants extraits : `OKRKeyResultCard.tsx`, `OKRKeyResultDialog.tsx`, `OKRCheckInDialog.tsx`, `OKRParticipantSection.tsx`
+- [x] Décomposer `ArenaDiscussion.tsx` (1 401 → ~280 lignes) — logique extraite dans `useArenaDiscussion.ts` (hook custom ~680 lignes, inclut buildSystemPrompt et computeTokensPerAgent)
+- [x] Décomposer `Questionnaire.tsx` (1 337 → ~450 lignes) — types extraits dans `Questionnaire.types.ts`, logique extraite dans `useQuestionnaire.ts` (hook custom ~490 lignes)
 
 ### P3c — Type-safety & qualité du code (priorité moyenne)
 
