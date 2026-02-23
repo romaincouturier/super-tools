@@ -454,11 +454,12 @@ const handler = async (req: Request): Promise<Response> => {
     // Convert PDF to base64 for attachment
     const pdfBase64 = btoa(String.fromCharCode(...pdfBytes));
 
+    const certSubject = `Ton certificat de réalisation pour la formation ${training.training_name}`;
     await resend.emails.send({
       from: senderFrom,
       to: [email],
       bcc: bccList,
-      subject: `Ton certificat de réalisation pour la formation ${training.training_name}`,
+      subject: certSubject,
       html: certificateEmailHtml,
       attachments: [
         {
@@ -466,6 +467,19 @@ const handler = async (req: Request): Promise<Response> => {
           content: pdfBase64,
         },
       ],
+    });
+
+    // Log certificate email
+    await supabase.from("activity_logs").insert({
+      action_type: "certificate_sent",
+      recipient_email: email,
+      details: {
+        evaluation_id: evaluationId,
+        training_id: training.id,
+        training_name: trainingName,
+        participant_name: fullName,
+        email_subject: certSubject,
+      },
     });
 
     // Wait to avoid rate limit (Resend: 2 requests per second)
@@ -508,12 +522,26 @@ const handler = async (req: Request): Promise<Response> => {
         ${signatureHtml}
       `;
 
+      const fgSubject = `Ton accès à la formation en ligne à la Facilitation Graphique`;
       await resend.emails.send({
         from: senderFrom,
         to: [email],
         bcc: bccList,
-        subject: `Ton accès à la formation en ligne à la Facilitation Graphique`,
+        subject: fgSubject,
         html: fgEmailHtml,
+      });
+
+      // Log FG access email
+      await supabase.from("activity_logs").insert({
+        action_type: "elearning_access_email_sent",
+        recipient_email: email,
+        details: {
+          evaluation_id: evaluationId,
+          training_id: training.id,
+          training_name: trainingName,
+          participant_name: fullName,
+          email_subject: fgSubject,
+        },
       });
     }
 

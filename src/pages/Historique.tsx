@@ -107,6 +107,31 @@ const ACTION_LABELS: Record<string, { label: string; icon: React.ReactNode; vari
     icon: <Award className="w-4 h-4" />,
     variant: "default" 
   },
+  elearning_access_email_sent: { 
+    label: "Accès e-learning envoyé", 
+    icon: <Send className="w-4 h-4" />,
+    variant: "secondary" 
+  },
+  attendance_signature_submitted: { 
+    label: "Émargement signé", 
+    icon: <Award className="w-4 h-4" />,
+    variant: "default" 
+  },
+  participant_updated: { 
+    label: "Participant modifié", 
+    icon: <Edit className="w-4 h-4" />,
+    variant: "outline" 
+  },
+  convention_email_sent: { 
+    label: "Convention envoyée", 
+    icon: <Mail className="w-4 h-4" />,
+    variant: "default" 
+  },
+  devis_signature_request_sent: { 
+    label: "Demande de signature devis", 
+    icon: <Send className="w-4 h-4" />,
+    variant: "secondary" 
+  },
 };
 
 const formatDateTime = (dateString: string): string => {
