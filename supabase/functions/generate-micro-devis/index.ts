@@ -195,12 +195,13 @@ function textToHtml(text: string): string {
     .split("\n")
     .map(line => {
       const trimmed = line.trim();
-      if (trimmed === "") return "<br/>";
+      if (trimmed === "") return "";
       // Convert markdown-style list items to HTML
-      if (trimmed.startsWith("- ")) return `<p>${trimmed.substring(2)}</p>`;
-      if (trimmed.startsWith("* ")) return `<p style="padding-left:16px;">${trimmed.substring(2)}</p>`;
-      return `<p>${trimmed}</p>`;
+      if (trimmed.startsWith("- ")) return `<p style="margin:0 0 4px 0;">${trimmed.substring(2)}</p>`;
+      if (trimmed.startsWith("* ")) return `<p style="margin:0 0 4px 0;padding-left:16px;">${trimmed.substring(2)}</p>`;
+      return `<p style="margin:0 0 8px 0;">${trimmed}</p>`;
     })
+    .filter(line => line !== "")
     .join("\n");
 }
 
