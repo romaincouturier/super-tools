@@ -43,6 +43,7 @@ interface Training {
   end_date: string | null;
   location: string;
   program_file_url: string | null;
+  supports_url: string | null;
   trainer_id: string | null;
   objectives: string[] | null;
   prerequisites: string[] | null;
@@ -88,7 +89,7 @@ const TrainingSummary = () => {
       // Fetch training
       const { data: trainingData, error: trainingError } = await supabase
         .from("trainings")
-        .select("id, training_name, client_name, start_date, end_date, location, program_file_url, trainer_id, objectives, prerequisites, format_formation")
+        .select("id, training_name, client_name, start_date, end_date, location, program_file_url, supports_url, trainer_id, objectives, prerequisites, format_formation")
         .eq("id", trainingId)
         .single();
 
@@ -343,7 +344,7 @@ END:VCALENDAR`;
         </div>
 
         {/* Documents: Programme + Règlement intérieur */}
-        {(training.program_file_url || reglementInterieurUrl) && (
+        {(training.program_file_url || training.supports_url || reglementInterieurUrl) && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -362,6 +363,18 @@ END:VCALENDAR`;
                     >
                       <FileText className="h-4 w-4 mr-2" />
                       Consulter le programme
+                    </a>
+                  </Button>
+                )}
+                {training.supports_url && (
+                  <Button variant="outline" asChild>
+                    <a
+                      href={training.supports_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <ExternalLink className="h-4 w-4 mr-2" />
+                      Accéder aux supports
                     </a>
                   </Button>
                 )}
