@@ -1,6 +1,6 @@
 # Plan d'Actions Architecture — super-tools
 
-**Date :** 22/02/2026 | **Score initial : 5.5/10**
+**Date :** 22/02/2026 | **Score initial : 5.5/10** | **Score post-P2 : ~7.5/10**
 
 ---
 
@@ -29,3 +29,44 @@
 - [x] Documenter les edge functions Supabase — `docs/EDGE_FUNCTIONS.md` (67 fonctions cataloguées)
 - [x] Créer un ADR (Architecture Decision Record) — `docs/adr/` (8 ADR : Supabase, React Query, Repository, CQRS, Kanban, Sentry, Tests, Prettier)
 - [x] Mettre en place des E2E tests (Playwright) — `playwright.config.ts` + `e2e/` (3 specs : smoke, auth, navigation)
+
+---
+
+## P3 — CONSOLIDATION (robustesse & maturité) — À TRAITER
+
+> **Audit du 23/02/2026** — Constat : les fondations (P0–P2) sont solides, mais la couverture de tests reste faible (823 lignes / 8 fichiers pour ~56K lignes de code), 36 fichiers dépassent 500 lignes, et 42 casts `as unknown as` fragilisent la type-safety. Aucun diagramme de schéma, aucun runbook de déploiement, aucune documentation composants (Storybook).
+
+### P3a — Tests & couverture (priorité haute)
+
+- [ ] Augmenter la couverture unitaire des hooks critiques — objectif : couvrir `useCrmQueries`, `useCrmMutations`, `useMissionQueries`, `useOKRQueries`, `useEventMutations` (actuellement 5 fichiers de test / 684 lignes)
+- [ ] Ajouter des tests unitaires pour les services — `services/crm-ai.ts`, `services/formations.ts`
+- [ ] Ajouter des tests pour les repositories infrastructure — `infrastructure/supabase/` (4 repositories non testés)
+- [ ] Étendre les E2E Playwright aux workflows métier — CRM kanban (drag & drop, CRUD cartes), Formations (création, participants, documents), OKR (création, check-in) — actuellement 3 specs smoke uniquement
+- [ ] Mettre en place un seuil de couverture CI — ajouter `--coverage` à Vitest, configurer un minimum (ex. 60%) dans `ci.yml`
+
+### P3b — Décomposition des gros fichiers (priorité haute)
+
+- [ ] Décomposer `DocumentsManager.tsx` (1 723 lignes) — extraire la logique d'upload, la liste de documents, et les actions en sous-composants/hooks
+- [ ] Décomposer `ParticipantList.tsx` (1 184 lignes) — finaliser l'intégration de `useParticipantActions` (P0), extraire les dialogues inline
+- [ ] Décomposer `OKRDetailDrawer.tsx` (1 087 lignes) — séparer les onglets (détails, check-ins, historique) en composants dédiés
+- [ ] Décomposer `ArenaDiscussion.tsx` (1 400 lignes) — extraire le panel de chat, les contrôles IA, le rendu des messages
+- [ ] Décomposer `Questionnaire.tsx` (1 337 lignes) — extraire les sections de formulaire, la logique de scoring, la prévisualisation
+
+### P3c — Type-safety & qualité du code (priorité moyenne)
+
+- [ ] Éliminer les 42 casts `as unknown as` — aligner les types domain/ avec le schéma Supabase réel (fichiers principaux : `KnowledgeBaseManager.tsx`, `DocumentsManager.tsx`, `TrainingNameCombobox.tsx`, `useCommercialCoachData.ts`)
+- [ ] Générer les types Supabase automatiquement — `supabase gen types typescript` dans le CI pour détecter les dérives type/schéma
+- [ ] Activer `noUncheckedIndexedAccess` dans tsconfig — renforcer la sécurité des accès tableau/objet
+
+### P3d — Documentation & outillage (priorité moyenne)
+
+- [ ] Créer un diagramme ER du schéma de données — documenter les 157 migrations en un schéma visuel (Mermaid ou dbdiagram.io)
+- [ ] Rédiger un runbook de déploiement production — procédure de déploiement, rollback, variables d'environnement, checklist pré-prod
+- [ ] Documenter les politiques RLS Supabase — vérifier et cataloguer les Row Level Security de chaque table
+- [ ] Évaluer l'ajout de Storybook — catalogue visuel des 32 composants `ui/` + composants métier clés
+
+### P3e — Performance & observabilité (priorité basse)
+
+- [ ] Établir des baselines de performance — mesurer FCP, LCP, TTI, CLS en production via Sentry Performance ou web-vitals
+- [ ] Auditer les bundles — analyser la taille des chunks avec `rollup-plugin-visualizer`, identifier les dépendances surdimensionnées
+- [ ] Étendre la virtualisation — appliquer `@tanstack/react-virtual` aux listes de participants (>100 items) et aux listes CRM
