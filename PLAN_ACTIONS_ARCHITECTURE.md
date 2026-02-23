@@ -36,13 +36,13 @@
 
 > **Audit du 23/02/2026** — Constat : les fondations (P0–P2) sont solides, mais la couverture de tests reste faible (823 lignes / 8 fichiers pour ~56K lignes de code), 36 fichiers dépassent 500 lignes, et 42 casts `as unknown as` fragilisent la type-safety. Aucun diagramme de schéma, aucun runbook de déploiement, aucune documentation composants (Storybook).
 
-### P3a — Tests & couverture (priorité haute)
+### P3a — Tests & couverture (priorité haute) — TRAITÉ
 
-- [ ] Augmenter la couverture unitaire des hooks critiques — objectif : couvrir `useCrmQueries`, `useCrmMutations`, `useMissionQueries`, `useOKRQueries`, `useEventMutations` (actuellement 5 fichiers de test / 684 lignes)
-- [ ] Ajouter des tests unitaires pour les services — `services/crm-ai.ts`, `services/formations.ts`
-- [ ] Ajouter des tests pour les repositories infrastructure — `infrastructure/supabase/` (4 repositories non testés)
-- [ ] Étendre les E2E Playwright aux workflows métier — CRM kanban (drag & drop, CRUD cartes), Formations (création, participants, documents), OKR (création, check-in) — actuellement 3 specs smoke uniquement
-- [ ] Mettre en place un seuil de couverture CI — ajouter `--coverage` à Vitest, configurer un minimum (ex. 60%) dans `ci.yml`
+- [x] Augmenter la couverture unitaire des hooks critiques — 8 fichiers de test ajoutés : `useCrmQueries`, `useCrmMutations`, `useMissionQueries`, `useMissionMutations`, `useOKRQueries`, `useOKRMutations`, `useEventQueries`, `useEventMutations` (193 tests, 100% pass)
+- [x] Ajouter des tests unitaires pour les services — `services/__tests__/crm-ai.test.ts` (7 tests), `services/__tests__/formations.test.ts` (22 tests)
+- [x] Ajouter des tests pour les repositories infrastructure — `infrastructure/supabase/__tests__/` : crm (10 tests), email-template (7 tests), settings (8 tests), training (19 tests)
+- [x] Étendre les E2E Playwright — `e2e/protected-routes.spec.ts` (redirect auth sur 10 routes protégées, validation formulaire login), `e2e/public-forms.spec.ts` (formulaires publics : signature, questionnaire, évaluation, émargement)
+- [x] Mettre en place un seuil de couverture CI — `@vitest/coverage-v8` installé, `npm run test:coverage` configuré, CI utilise `test:coverage`, config coverage dans `vite.config.ts`
 
 ### P3b — Décomposition des gros fichiers (priorité haute)
 

@@ -107,6 +107,17 @@ export default defineConfig(({ mode }) => ({
     environment: "jsdom",
     setupFiles: ["./src/test/setup.ts"],
     include: ["src/**/*.{test,spec}.{ts,tsx}"],
+    coverage: {
+      provider: "v8",
+      include: [
+        "src/hooks/**/*.ts",
+        "src/services/**/*.ts",
+        "src/infrastructure/**/*.ts",
+        "src/data/**/*.ts",
+        "src/lib/**/*.ts",
+      ],
+      exclude: ["src/**/*.test.ts", "src/**/*.test.tsx", "src/test/**"],
+    },
   },
   // Optimize deps for faster dev startup
   optimizeDeps: {
