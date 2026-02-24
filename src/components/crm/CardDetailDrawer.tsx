@@ -125,6 +125,7 @@ import EmailEditor from "./EmailEditor";
 import SentDevisSection from "./SentDevisSection";
 import { CreateTrainingDialog } from "./CreateTrainingDialog";
 import confetti from "canvas-confetti";
+import { useToast } from "@/hooks/use-toast";
 
 interface CardDetailDrawerProps {
   card: CrmCard | null;
@@ -149,6 +150,7 @@ const CardDetailDrawer = ({
   allColumns,
 }: CardDetailDrawerProps) => {
   const { user } = useAuth();
+  const { toast } = useToast();
   const navigate = useNavigate();
   const { data: details, isLoading: detailsLoading } = useCrmCardDetails(card?.id || null);
 
