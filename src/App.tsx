@@ -119,6 +119,7 @@ const App = () => (
               <Route path="/statistiques" element={<Statistiques />} />
               {/* CRM Kanban */}
               <Route path="/crm" element={<Crm />} />
+              <Route path="/crm/card/:cardId" element={<Crm />} />
               <Route path="/crm/reports" element={<CrmReports />} />
               {/* Missions Kanban */}
               <Route path="/missions" element={<Missions />} />

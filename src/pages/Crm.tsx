@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { BarChart3, Sparkles, ArrowLeft, Kanban, BrainCircuit, Settings2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import AppHeader from "@/components/AppHeader";
@@ -12,6 +12,7 @@ import { useCommercialCoachData } from "@/hooks/useCommercialCoachData";
 const Crm = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { cardId } = useParams<{ cardId?: string }>();
   const [showNewOpportunity, setShowNewOpportunity] = useState(false);
   const [showCoachSettings, setShowCoachSettings] = useState(false);
   const { launchCoach, isLoading: isCoachLoading } = useCommercialCoachData();
@@ -81,7 +82,7 @@ const Crm = () => {
 
         {/* Kanban Board */}
         <div className="flex-1 min-h-0">
-          <CrmKanbanBoard />
+          <CrmKanbanBoard initialCardId={cardId} />
         </div>
 
         {/* New Opportunity Dialog */}

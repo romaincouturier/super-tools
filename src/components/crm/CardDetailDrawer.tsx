@@ -202,6 +202,7 @@ const CardDetailDrawer = ({
   // Next action state
   const [nextActionText, setNextActionText] = useState("");
   const [nextActionDone, setNextActionDone] = useState(false);
+  const [nextActionType, setNextActionType] = useState<"email" | "phone" | "other">("other");
 
   // Linked mission state
   const [linkedMissionId, setLinkedMissionId] = useState<string | null>(null);
@@ -236,6 +237,9 @@ const CardDetailDrawer = ({
   const [descriptionSaving, setDescriptionSaving] = useState(false);
   const [descriptionSaved, setDescriptionSaved] = useState(false);
   const descriptionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [fieldSaving, setFieldSaving] = useState(false);
+  const [fieldSaved, setFieldSaved] = useState(false);
+  const fieldTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Email history state
   const [expandedEmailId, setExpandedEmailId] = useState<string | null>(null);
@@ -332,6 +336,7 @@ const CardDetailDrawer = ({
       // Next action
       setNextActionText(card.next_action_text || "");
       setNextActionDone(card.next_action_done || false);
+      setNextActionType((card as any).next_action_type || "other");
       // Linked mission
       setLinkedMissionId(card.linked_mission_id || null);
       setMissionSearchQuery("");
@@ -340,8 +345,46 @@ const CardDetailDrawer = ({
       setAiAnalysis(null);
       setQuoteDescription(null);
       setDescriptionSaved(false);
+      setFieldSaved(false);
+      // Mark card as loaded (skip first auto-save trigger)
+      cardLoadedRef.current = false;
+      setTimeout(() => { cardLoadedRef.current = true; }, 100);
     }
   }, [card]);
+
+  // Track whether card data is loaded (to avoid auto-saving on initial render)
+  const cardLoadedRef = useRef(false);
+
+  // Auto-save all fields (except description which has its own handler)
+  useEffect(() => {
+    if (!cardLoadedRef.current || !card) return;
+    autoSaveField({
+      title: title.trim(),
+      sales_status: salesStatus,
+      estimated_value: Math.round((parseFloat(estimatedValue) || 0) * 100) / 100,
+      quote_url: quoteUrl.trim() || null,
+      column_id: columnId,
+      waiting_next_action_date: scheduledDate || null,
+      waiting_next_action_text: scheduledText.trim() || null,
+      first_name: firstName.trim() || null,
+      last_name: lastName.trim() || null,
+      company: company.trim() || null,
+      email: email.trim() || null,
+      phone: phone.trim() || null,
+      linkedin_url: linkedinUrl.trim() || null,
+      website_url: websiteUrl.trim() || null,
+      service_type: serviceType,
+      next_action_text: nextActionText.trim() || null,
+      next_action_done: nextActionDone,
+      next_action_type: nextActionType,
+      linked_mission_id: linkedMissionId,
+      emoji: cardEmoji,
+      confidence_score: confidenceScore,
+      acquisition_source: acquisitionSource,
+    });
+  }, [title, salesStatus, estimatedValue, quoteUrl, columnId, scheduledDate, scheduledText,
+      firstName, lastName, company, email, phone, linkedinUrl, websiteUrl, serviceType,
+      nextActionText, nextActionDone, nextActionType, linkedMissionId, cardEmoji, confidenceScore, acquisitionSource]);
 
   // Auto-save description with debounce
   const saveDescription = useCallback(async (newDescription: string) => {
@@ -384,11 +427,42 @@ const CardDetailDrawer = ({
   };
 
 
-  // Cleanup timeout on unmount
+  // Generic field auto-save with debounce
+  const autoSaveField = useCallback((updates: Record<string, unknown>) => {
+    if (!card || !user?.email) return;
+
+    if (fieldTimeoutRef.current) {
+      clearTimeout(fieldTimeoutRef.current);
+    }
+
+    fieldTimeoutRef.current = setTimeout(async () => {
+      setFieldSaving(true);
+      setFieldSaved(false);
+      try {
+        await updateCard.mutateAsync({
+          id: card.id,
+          updates: updates as any,
+          actorEmail: user.email!,
+          oldCard: card,
+        });
+        setFieldSaved(true);
+        setTimeout(() => setFieldSaved(false), 2000);
+      } catch (error) {
+        console.error("Failed to auto-save field:", error);
+      } finally {
+        setFieldSaving(false);
+      }
+    }, 1000);
+  }, [card, user?.email, updateCard]);
+
+  // Cleanup timeouts on unmount
   useEffect(() => {
     return () => {
       if (descriptionTimeoutRef.current) {
         clearTimeout(descriptionTimeoutRef.current);
+      }
+      if (fieldTimeoutRef.current) {
+        clearTimeout(fieldTimeoutRef.current);
       }
     };
   }, []);
@@ -671,6 +745,7 @@ const CardDetailDrawer = ({
         service_type: serviceType,
         next_action_text: nextActionText.trim() || null,
         next_action_done: nextActionDone,
+        next_action_type: nextActionType,
         linked_mission_id: linkedMissionId,
         emoji: cardEmoji,
         confidence_score: confidenceScore,
@@ -1019,13 +1094,16 @@ const CardDetailDrawer = ({
                   <Maximize2 className="h-4 w-4" />
                 )}
               </Button>
-              <Button size="sm" onClick={handleSave} disabled={updateCard.isPending}>
-                {updateCard.isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Save className="h-4 w-4" />
-                )}
-              </Button>
+              {(fieldSaving || descriptionSaving) && (
+                <span className="text-xs text-muted-foreground flex items-center gap-1">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                </span>
+              )}
+              {(fieldSaved || descriptionSaved) && !fieldSaving && !descriptionSaving && (
+                <span className="text-xs text-green-600 flex items-center gap-1">
+                  <CheckCircle2 className="h-3 w-3" />
+                </span>
+              )}
             </div>
           </SheetTitle>
         </SheetHeader>
@@ -1605,14 +1683,45 @@ const CardDetailDrawer = ({
                   onCheckedChange={(checked) => setNextActionDone(checked === true)}
                 />
                 <div className="flex-1">
-                  <Label htmlFor="next-action-done" className="text-xs text-muted-foreground mb-1 block">
-                    Prochaine action
-                  </Label>
+                  <div className="flex items-center gap-2 mb-1">
+                    <Label htmlFor="next-action-done" className="text-xs text-muted-foreground">
+                      Prochaine action
+                    </Label>
+                    <div className="flex gap-0.5">
+                      <Button
+                        variant={nextActionType === "email" ? "default" : "ghost"}
+                        size="sm"
+                        className="h-5 px-1.5 text-[10px]"
+                        onClick={() => setNextActionType("email")}
+                        title="Recontacter par email"
+                      >
+                        <Mail className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant={nextActionType === "phone" ? "default" : "ghost"}
+                        size="sm"
+                        className="h-5 px-1.5 text-[10px]"
+                        onClick={() => setNextActionType("phone")}
+                        title="Recontacter par téléphone"
+                      >
+                        <Phone className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant={nextActionType === "other" ? "default" : "ghost"}
+                        size="sm"
+                        className="h-5 px-1.5 text-[10px]"
+                        onClick={() => setNextActionType("other")}
+                        title="Autre action"
+                      >
+                        <Circle className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
                   <div className="flex gap-1.5">
                     <Input
                       value={nextActionText}
                       onChange={(e) => setNextActionText(e.target.value)}
-                      placeholder="Quelle est la prochaine action à faire ?"
+                      placeholder={nextActionType === "email" ? "Recontacter par email..." : nextActionType === "phone" ? "Recontacter par téléphone..." : "Quelle est la prochaine action ?"}
                       className={`h-8 text-sm flex-1 ${nextActionDone ? "line-through text-muted-foreground" : ""}`}
                     />
                     <Button

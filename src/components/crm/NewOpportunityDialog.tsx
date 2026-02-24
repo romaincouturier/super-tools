@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Sparkles, User, Building2, Phone, Mail, Linkedin, FileText } from "lucide-react";
+import { Loader2, Sparkles, User, Building2, Phone, Mail, Linkedin, FileText, Euro } from "lucide-react";
 import { useExtractOpportunity, useCreateCard, useCrmBoard } from "@/hooks/useCrmBoard";
 import { OpportunityExtraction, BriefQuestion } from "@/types/crm";
 
@@ -27,6 +27,7 @@ export function NewOpportunityDialog({ open, onOpenChange, userEmail }: NewOppor
   const [rawInput, setRawInput] = useState("");
   const [extraction, setExtraction] = useState<OpportunityExtraction | null>(null);
   const [editedExtraction, setEditedExtraction] = useState<OpportunityExtraction | null>(null);
+  const [estimatedValue, setEstimatedValue] = useState("");
 
   const { data: boardData } = useCrmBoard();
   const extractMutation = useExtractOpportunity();
@@ -63,6 +64,7 @@ export function NewOpportunityDialog({ open, onOpenChange, userEmail }: NewOppor
           email: editedExtraction.email || undefined,
           linkedin_url: editedExtraction.linkedin_url || undefined,
           service_type: editedExtraction.service_type || undefined,
+          estimated_value: parseFloat(estimatedValue) || 0,
           brief_questions: editedExtraction.brief_questions,
           raw_input: rawInput,
           description_html: rawInput
@@ -90,6 +92,7 @@ export function NewOpportunityDialog({ open, onOpenChange, userEmail }: NewOppor
       setRawInput("");
       setExtraction(null);
       setEditedExtraction(null);
+      setEstimatedValue("");
       onOpenChange(false);
     } catch {
       // Error handled by mutation
@@ -101,6 +104,7 @@ export function NewOpportunityDialog({ open, onOpenChange, userEmail }: NewOppor
     setRawInput("");
     setExtraction(null);
     setEditedExtraction(null);
+    setEstimatedValue("");
     onOpenChange(false);
   };
 
@@ -270,6 +274,23 @@ Tel: 06 12 34 56 78"
                   className="mt-1"
                 />
               </div>
+            </div>
+
+            {/* Estimated value */}
+            <div>
+              <Label className="flex items-center gap-1">
+                <Euro className="h-3 w-3" />
+                Valeur estimée (€)
+              </Label>
+              <Input
+                type="number"
+                min="0"
+                step="100"
+                value={estimatedValue}
+                onChange={(e) => setEstimatedValue(e.target.value)}
+                placeholder="Ex: 2500"
+                className="mt-1"
+              />
             </div>
 
             {/* Brief questions */}
