@@ -14,11 +14,17 @@ import { getSenderEmail } from "../_shared/email-settings.ts";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
+interface EmailAttachment {
+  filename: string;
+  content: string; // Base64 encoded
+}
+
 interface CrmSendEmailRequest {
   card_id: string;
   recipient_email: string;
   subject: string;
   body_html: string;
+  attachments?: EmailAttachment[];
 }
 
 /**
@@ -94,7 +100,7 @@ serve(async (req) => {
       return createErrorResponse("Non autorisé", 401);
     }
 
-    const { card_id, recipient_email, subject, body_html } = await req.json() as CrmSendEmailRequest;
+    const { card_id, recipient_email, subject, body_html, attachments } = await req.json() as CrmSendEmailRequest;
 
     if (!card_id || !recipient_email || !subject) {
       return createErrorResponse("card_id, recipient_email et subject sont requis", 400);
@@ -139,6 +145,7 @@ serve(async (req) => {
       subject: subject,
       html: completeHtml,
       bcc: bccList,
+      attachments: attachments,
     });
 
     if (!emailResult.success) {
@@ -149,12 +156,14 @@ serve(async (req) => {
     console.log("Email sent successfully:", emailResult.id);
 
     // Store the email in crm_card_emails
+    const attachmentNames = attachments?.map((a) => a.filename) || [];
     const { error: insertError } = await supabase.from("crm_card_emails").insert({
       card_id: card_id,
       sender_email: senderEmail,
       recipient_email: recipient_email,
       subject: subject,
       body_html: body_html,
+      attachment_names: attachmentNames,
     });
 
     if (insertError) {
@@ -168,7 +177,7 @@ serve(async (req) => {
       action_type: "email_sent",
       old_value: null,
       new_value: `To: ${recipient_email} - ${subject}`,
-      metadata: { recipient: recipient_email, subject: subject, email_id: emailResult.id },
+      metadata: { recipient: recipient_email, subject: subject, email_id: emailResult.id, attachments: attachmentNames },
       actor_email: senderEmail,
     });
 

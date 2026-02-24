@@ -102,6 +102,7 @@ import {
   LossReason,
   acquisitionSourceConfig,
   lossReasonConfig,
+  EmailAttachment,
 } from "@/types/crm";
 import LossReasonDialog from "./LossReasonDialog";
 import EntityMediaManager from "@/components/media/EntityMediaManager";
@@ -219,6 +220,8 @@ const CardDetailDrawer = ({
   const [emailBodyBeforeAi, setEmailBodyBeforeAi] = useState<string | null>(null);
   const [improvingSubject, setImprovingSubject] = useState(false);
   const [improvingBody, setImprovingBody] = useState(false);
+  const [emailAttachments, setEmailAttachments] = useState<EmailAttachment[]>([]);
+  const emailFileInputRef = useRef<HTMLInputElement>(null);
 
   // UI state
   const [isFullScreen, setIsFullScreen] = useState(false);
@@ -938,6 +941,30 @@ const CardDetailDrawer = ({
     e.target.value = "";
   };
 
+  const handleEmailAttachFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+
+    Array.from(files).forEach((file) => {
+      // Limit to 10MB per file (Resend limit)
+      if (file.size > 10 * 1024 * 1024) {
+        toast({ title: "Fichier trop volumineux", description: `"${file.name}" dépasse 10 Mo.`, variant: "destructive" });
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        const base64 = (reader.result as string).split(",")[1];
+        setEmailAttachments((prev) => [...prev, { filename: file.name, content: base64 }]);
+      };
+      reader.readAsDataURL(file);
+    });
+    e.target.value = "";
+  };
+
+  const handleRemoveAttachment = (index: number) => {
+    setEmailAttachments((prev) => prev.filter((_, i) => i !== index));
+  };
+
   const handleSendEmail = async () => {
     if (!card || !user?.email || !emailTo.trim() || !emailSubject.trim()) return;
     await sendEmail.mutateAsync({
@@ -946,12 +973,14 @@ const CardDetailDrawer = ({
         recipient_email: emailTo.trim(),
         subject: emailSubject.trim(),
         body_html: DOMPurify.sanitize(emailBody),
+        attachments: emailAttachments.length > 0 ? emailAttachments : undefined,
       },
       senderEmail: user.email,
     });
     setEmailTo("");
     setEmailSubject("");
     setEmailBody("");
+    setEmailAttachments([]);
   };
 
   if (!card) return null;
@@ -1923,6 +1952,50 @@ const CardDetailDrawer = ({
                     </Button>
                   </div>
                 </div>
+                {/* Attachments */}
+                <div className="space-y-2">
+                  <input
+                    ref={emailFileInputRef}
+                    type="file"
+                    multiple
+                    className="hidden"
+                    onChange={handleEmailAttachFiles}
+                  />
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-8 text-xs gap-1"
+                      onClick={() => emailFileInputRef.current?.click()}
+                    >
+                      <Paperclip className="h-3.5 w-3.5" />
+                      Joindre un fichier
+                    </Button>
+                    {emailAttachments.length > 0 && (
+                      <span className="text-xs text-muted-foreground">
+                        {emailAttachments.length} fichier{emailAttachments.length > 1 ? "s" : ""}
+                      </span>
+                    )}
+                  </div>
+                  {emailAttachments.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {emailAttachments.map((att, i) => (
+                        <Badge key={i} variant="secondary" className="text-xs gap-1 pr-1">
+                          <Paperclip className="h-3 w-3" />
+                          {att.filename}
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveAttachment(i)}
+                            className="ml-0.5 hover:text-destructive"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                </div>
                 <Button
                   onClick={handleSendEmail}
                   disabled={!emailTo.trim() || !emailSubject.trim() || sendEmail.isPending}
@@ -1933,7 +2006,7 @@ const CardDetailDrawer = ({
                   ) : (
                     <Mail className="h-4 w-4 mr-2" />
                   )}
-                  Envoyer
+                  Envoyer{emailAttachments.length > 0 ? ` (${emailAttachments.length} pièce${emailAttachments.length > 1 ? "s" : ""} jointe${emailAttachments.length > 1 ? "s" : ""})` : ""}
                 </Button>
               </div>
             </div>
@@ -2174,6 +2247,9 @@ const CardDetailDrawer = ({
                           <p className="text-xs text-muted-foreground">
                             À: {email.recipient_email} •{" "}
                             {format(new Date(email.sent_at), "d MMM yyyy HH:mm", { locale: fr })}
+                            {email.attachment_names && email.attachment_names.length > 0 && (
+                              <span> • <Paperclip className="inline h-3 w-3" /> {email.attachment_names.length}</span>
+                            )}
                           </p>
                         </div>
                         <ChevronDown className={cn("h-4 w-4 text-muted-foreground shrink-0 transition-transform mt-0.5", isExpanded && "rotate-180")} />
