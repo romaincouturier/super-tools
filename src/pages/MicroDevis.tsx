@@ -1596,6 +1596,7 @@ const MicroDevis = () => {
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <Label>Dates de la formation *</Label>
+                      {formatFormation === "inter" && (
                       <Dialog open={datesDialogOpen} onOpenChange={setDatesDialogOpen}>
                         <DialogTrigger asChild>
                           <Button variant="ghost" size="sm" className="h-6 px-2">
@@ -1828,40 +1829,61 @@ const MicroDevis = () => {
                           </div>
                         </DialogContent>
                       </Dialog>
+                      )}
                     </div>
 
-                    {/* Select from predefined dates (both intra and inter) */}
-                    {formationDates.length > 0 ? (
-                      <Select value={dateFormation} onValueChange={setDateFormation}>
-                        <SelectTrigger className="w-full bg-background">
-                          <SelectValue placeholder="Sélectionner une date" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-background border shadow-lg z-50">
-                          {formationDates.map((dateConfig) => (
-                            <SelectItem key={dateConfig.id} value={dateConfig.date_label}>
-                              <div className="flex items-center gap-2">
-                                {dateConfig.is_default && <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />}
-                                <span>{dateConfig.date_label}</span>
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    ) : (
-                      <Input
-                        id="dateFormation"
-                        placeholder="Ex: 15 et 16 janvier 2026, ou Du 10 au 14 mars 2026"
-                        value={dateFormation}
-                        onChange={(e) => setDateFormation(e.target.value)}
-                        required
-                      />
+                    {/* Inter-entreprises: select from predefined dates */}
+                    {formatFormation === "inter" && (
+                      <>
+                        {formationDates.length > 0 ? (
+                          <Select value={dateFormation} onValueChange={setDateFormation}>
+                            <SelectTrigger className="w-full bg-background">
+                              <SelectValue placeholder="Sélectionner une date" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-background border shadow-lg z-50">
+                              {formationDates.map((dateConfig) => (
+                                <SelectItem key={dateConfig.id} value={dateConfig.date_label}>
+                                  <div className="flex items-center gap-2">
+                                    {dateConfig.is_default && <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />}
+                                    <span>{dateConfig.date_label}</span>
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <Input
+                            id="dateFormation"
+                            placeholder="Ex: 15 et 16 janvier 2026, ou Du 10 au 14 mars 2026"
+                            value={dateFormation}
+                            onChange={(e) => setDateFormation(e.target.value)}
+                            required
+                          />
+                        )}
+                        <p className="text-xs text-muted-foreground">
+                          {formationDates.length > 0
+                            ? "Sélectionnez une date ou gérez les dates disponibles"
+                            : "Saisissez les dates au format souhaité (ex: \"26 et 27 janvier 2026\")"
+                          }
+                        </p>
+                      </>
                     )}
-                    <p className="text-xs text-muted-foreground">
-                      {formationDates.length > 0
-                        ? "Sélectionnez une date ou gérez les dates disponibles"
-                        : "Saisissez les dates au format souhaité (ex: \"26 et 27 janvier 2026\")"
-                      }
-                    </p>
+
+                    {/* Intra-entreprise: free text input for dates */}
+                    {formatFormation === "intra" && (
+                      <>
+                        <Input
+                          id="dateFormationLibre"
+                          placeholder="Ex: 15 et 16 janvier 2026, ou Du 10 au 14 mars 2026, ou À définir"
+                          value={dateFormationLibre}
+                          onChange={(e) => setDateFormationLibre(e.target.value)}
+                          required
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Saisissez les dates souhaitées ou "À définir" si pas encore fixées
+                        </p>
+                      </>
+                    )}
                   </div>
 
                   <div className="space-y-3">
