@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Receipt, Copy, RefreshCw, FileDown, AlertCircle, Loader2, ChevronDown, Mail, Paperclip } from "lucide-react";
+import { Receipt, Copy, RefreshCw, FileDown, AlertCircle, Loader2, ChevronDown, Mail, Paperclip, Eye, MousePointerClick, CheckCircle2, XCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
@@ -36,6 +36,11 @@ interface CrmEmail {
   body_html: string;
   sent_at: string;
   attachment_names: string[];
+  delivery_status?: string;
+  opened_at?: string | null;
+  open_count?: number;
+  clicked_at?: string | null;
+  click_count?: number;
 }
 
 interface SentDevisSectionProps {
@@ -259,6 +264,7 @@ const SentDevisSection = ({ email, cardId, emails }: SentDevisSectionProps) => {
           if (item.type === "email" && item.email) {
             const emailItem = item.email;
             const isExpanded = expandedId === emailItem.id;
+            const hasTracking = !!emailItem.delivery_status;
             return (
               <div
                 key={`email-${emailItem.id}`}
@@ -273,13 +279,38 @@ const SentDevisSection = ({ email, cardId, emails }: SentDevisSectionProps) => {
                       <Mail className="h-3 w-3 text-blue-500 shrink-0" />
                       {emailItem.subject}
                     </p>
-                    <p className="text-xs text-muted-foreground">
-                      À: {emailItem.recipient_email} •{" "}
-                      {format(new Date(emailItem.sent_at), "d MMM yyyy HH:mm", { locale: fr })}
-                      {emailItem.attachment_names && emailItem.attachment_names.length > 0 && (
-                        <span> • <Paperclip className="inline h-3 w-3" /> {emailItem.attachment_names.length}</span>
+                    <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                      <span className="text-xs text-muted-foreground">
+                        À: {emailItem.recipient_email} •{" "}
+                        {format(new Date(emailItem.sent_at), "d MMM yyyy HH:mm", { locale: fr })}
+                        {emailItem.attachment_names && emailItem.attachment_names.length > 0 && (
+                          <span> • <Paperclip className="inline h-3 w-3" /> {emailItem.attachment_names.length}</span>
+                        )}
+                      </span>
+                      {hasTracking && (
+                        <>
+                          {emailItem.delivery_status === "bounced" ? (
+                            <Badge variant="destructive" className="text-[9px] h-4 px-1 gap-0.5">
+                              <XCircle className="h-2.5 w-2.5" /> Bounced
+                            </Badge>
+                          ) : emailItem.delivery_status === "delivered" ? (
+                            <Badge variant="outline" className="text-[9px] h-4 px-1 gap-0.5 text-green-600 border-green-200 bg-green-50">
+                              <CheckCircle2 className="h-2.5 w-2.5" /> Délivré
+                            </Badge>
+                          ) : null}
+                          {(emailItem.open_count || 0) > 0 && (
+                            <Badge variant="outline" className="text-[9px] h-4 px-1 gap-0.5 text-blue-600 border-blue-200 bg-blue-50">
+                              <Eye className="h-2.5 w-2.5" /> Ouvert{emailItem.open_count! > 1 ? ` ×${emailItem.open_count}` : ""}
+                            </Badge>
+                          )}
+                          {(emailItem.click_count || 0) > 0 && (
+                            <Badge variant="outline" className="text-[9px] h-4 px-1 gap-0.5 text-purple-600 border-purple-200 bg-purple-50">
+                              <MousePointerClick className="h-2.5 w-2.5" /> Clic{emailItem.click_count! > 1 ? ` ×${emailItem.click_count}` : ""}
+                            </Badge>
+                          )}
+                        </>
                       )}
-                    </p>
+                    </div>
                   </div>
                   <ChevronDown className={cn("h-4 w-4 text-muted-foreground shrink-0 transition-transform mt-0.5", isExpanded && "rotate-180")} />
                 </div>

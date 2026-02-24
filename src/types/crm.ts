@@ -117,6 +117,8 @@ export interface CrmComment {
   created_at: string;
 }
 
+export type EmailDeliveryStatus = 'sent' | 'delivered' | 'bounced' | 'complained';
+
 export interface CrmCardEmail {
   id: string;
   card_id: string;
@@ -126,6 +128,13 @@ export interface CrmCardEmail {
   body_html: string;
   sent_at: string;
   attachment_names: string[];
+  resend_email_id: string | null;
+  delivery_status: EmailDeliveryStatus;
+  delivered_at: string | null;
+  opened_at: string | null;
+  open_count: number;
+  clicked_at: string | null;
+  click_count: number;
 }
 
 export type CrmActivityType =
