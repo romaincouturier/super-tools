@@ -163,7 +163,7 @@ serve(async (req) => {
 
     console.log("Email sent successfully:", emailResult.id);
 
-    // Store the email in crm_card_emails
+    // Store the email in crm_card_emails (with Resend ID for tracking)
     const attachmentNames = attachments?.map((a) => a.filename) || [];
     const { error: insertError } = await supabase.from("crm_card_emails").insert({
       card_id: card_id,
@@ -172,6 +172,8 @@ serve(async (req) => {
       subject: subject,
       body_html: body_html,
       attachment_names: attachmentNames,
+      resend_email_id: emailResult.id || null,
+      delivery_status: "sent",
     });
 
     if (insertError) {

@@ -12,9 +12,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Sparkles, User, Building2, Phone, Mail, Linkedin, FileText, Euro } from "lucide-react";
+import { Loader2, Sparkles, User, Building2, Phone, Mail, Linkedin, FileText, Euro, TrendingUp } from "lucide-react";
 import { useExtractOpportunity, useCreateCard, useCrmBoard } from "@/hooks/useCrmBoard";
 import { OpportunityExtraction, BriefQuestion } from "@/types/crm";
+import { supabase } from "@/integrations/supabase/client";
 
 interface NewOpportunityDialogProps {
   open: boolean;
@@ -28,6 +29,7 @@ export function NewOpportunityDialog({ open, onOpenChange, userEmail }: NewOppor
   const [extraction, setExtraction] = useState<OpportunityExtraction | null>(null);
   const [editedExtraction, setEditedExtraction] = useState<OpportunityExtraction | null>(null);
   const [estimatedValue, setEstimatedValue] = useState("");
+  const [valueEstimation, setValueEstimation] = useState<{ value: number; source: string; count: number } | null>(null);
 
   const { data: boardData } = useCrmBoard();
   const extractMutation = useExtractOpportunity();
@@ -35,6 +37,59 @@ export function NewOpportunityDialog({ open, onOpenChange, userEmail }: NewOppor
 
   // Find "Entrant" column (first column for new opportunities)
   const entrantColumn = boardData?.columns.find((col) => col.name === "Entrant") || boardData?.columns[0];
+
+  // Estimate value from CRM history
+  const estimateValueFromHistory = async (extraction: OpportunityExtraction) => {
+    try {
+      const { data } = await supabase
+        .from("crm_cards")
+        .select("estimated_value, service_type, company")
+        .eq("sales_status", "WON")
+        .gt("estimated_value", 0);
+
+      if (!data || data.length === 0) return;
+
+      // Priority 1: same company + same service_type
+      let matches = data.filter(
+        (c) =>
+          extraction.company &&
+          c.company?.toLowerCase() === extraction.company.toLowerCase() &&
+          extraction.service_type &&
+          c.service_type === extraction.service_type
+      );
+      let source = "même entreprise & type";
+
+      // Priority 2: same company only
+      if (matches.length === 0 && extraction.company) {
+        matches = data.filter(
+          (c) => c.company?.toLowerCase() === extraction.company?.toLowerCase()
+        );
+        source = "même entreprise";
+      }
+
+      // Priority 3: same service_type
+      if (matches.length === 0 && extraction.service_type) {
+        matches = data.filter((c) => c.service_type === extraction.service_type);
+        source = extraction.service_type === "formation" ? "formations gagnées" : "missions gagnées";
+      }
+
+      // Priority 4: all won deals
+      if (matches.length === 0) {
+        matches = data;
+        source = "toutes les opportunités gagnées";
+      }
+
+      const avg = matches.reduce((sum, c) => sum + (c.estimated_value || 0), 0) / matches.length;
+      const rounded = Math.round(avg / 100) * 100;
+
+      if (rounded > 0) {
+        setValueEstimation({ value: rounded, source, count: matches.length });
+        setEstimatedValue(String(rounded));
+      }
+    } catch {
+      // Silently fail - estimation is optional
+    }
+  };
 
   const handleExtract = async () => {
     if (!rawInput.trim()) return;
@@ -44,6 +99,8 @@ export function NewOpportunityDialog({ open, onOpenChange, userEmail }: NewOppor
       setExtraction(result);
       setEditedExtraction(result);
       setStep("review");
+      // Auto-estimate value from CRM history
+      estimateValueFromHistory(result);
     } catch {
       // Error handled by mutation
     }
@@ -93,6 +150,7 @@ export function NewOpportunityDialog({ open, onOpenChange, userEmail }: NewOppor
       setExtraction(null);
       setEditedExtraction(null);
       setEstimatedValue("");
+      setValueEstimation(null);
       onOpenChange(false);
     } catch {
       // Error handled by mutation
@@ -105,6 +163,7 @@ export function NewOpportunityDialog({ open, onOpenChange, userEmail }: NewOppor
     setExtraction(null);
     setEditedExtraction(null);
     setEstimatedValue("");
+    setValueEstimation(null);
     onOpenChange(false);
   };
 
@@ -287,10 +346,19 @@ Tel: 06 12 34 56 78"
                 min="0"
                 step="100"
                 value={estimatedValue}
-                onChange={(e) => setEstimatedValue(e.target.value)}
+                onChange={(e) => {
+                  setEstimatedValue(e.target.value);
+                  if (valueEstimation) setValueEstimation(null);
+                }}
                 placeholder="Ex: 2500"
                 className="mt-1"
               />
+              {valueEstimation && (
+                <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                  <TrendingUp className="h-3 w-3 text-green-600" />
+                  Estimation basée sur {valueEstimation.count} {valueEstimation.source} (moyenne : {valueEstimation.value.toLocaleString("fr-FR")} €)
+                </p>
+              )}
             </div>
 
             {/* Brief questions */}
