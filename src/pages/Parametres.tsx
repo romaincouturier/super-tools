@@ -693,6 +693,9 @@ const Parametres = () => {
   // Slack integration
   const [slackCrmWebhookUrl, setSlackCrmWebhookUrl] = useState("");
 
+  // CRM inbound email
+  const [crmInboundEmail, setCrmInboundEmail] = useState("");
+
 
   // Module access check (isAdmin comes from profiles table)
   const { hasAccess, isAdmin, loading: accessLoading } = useModuleAccess();
@@ -746,7 +749,8 @@ const Parametres = () => {
         "post_evaluation_email_training_filter",
         "post_evaluation_email_subject",
         "post_evaluation_email_content",
-        "slack_crm_webhook_url"
+        "slack_crm_webhook_url",
+        "crm_inbound_email"
       ]);
     
     if (error) {
@@ -853,6 +857,9 @@ const Parametres = () => {
         case "slack_crm_webhook_url":
           setSlackCrmWebhookUrl(setting.setting_value || "");
           break;
+        case "crm_inbound_email":
+          setCrmInboundEmail(setting.setting_value || "");
+          break;
       }
     });
   };
@@ -892,6 +899,7 @@ const Parametres = () => {
         { setting_key: "post_evaluation_email_subject", setting_value: postEvalEmailSubject, description: "Sujet de l'email post-évaluation (variables : {{first_name}}, {{training_name}})" },
         { setting_key: "post_evaluation_email_content", setting_value: postEvalEmailContent, description: "Contenu HTML de l'email post-évaluation (variables : {{first_name}}, {{training_name}})" },
         { setting_key: "slack_crm_webhook_url", setting_value: slackCrmWebhookUrl, description: "URL du webhook Slack pour les notifications CRM (opportunités créées/gagnées)" },
+        { setting_key: "crm_inbound_email", setting_value: crmInboundEmail, description: "Adresse email dédiée CRM — les emails reçus à cette adresse créent automatiquement une opportunité" },
       ];
 
       for (const setting of settingsToSave) {
@@ -2286,6 +2294,29 @@ const Parametres = () => {
                     />
                     <p className="text-xs text-muted-foreground">
                       Créez un webhook entrant dans votre espace Slack (Apps &gt; Incoming Webhooks) et collez l'URL ici.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Email entrant → CRM</CardTitle>
+                  <CardDescription>Créez automatiquement une opportunité CRM à chaque email reçu sur une adresse dédiée.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="crm-inbound-email">Adresse email dédiée CRM</Label>
+                    <Input
+                      id="crm-inbound-email"
+                      type="email"
+                      value={crmInboundEmail}
+                      onChange={(e) => setCrmInboundEmail(e.target.value)}
+                      placeholder="crm@votredomaine.fr"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Configurez cette adresse dans Resend (Inbound Emails) avec le webhook pointant vers votre edge function <code>resend-inbound-webhook</code>.
+                      Chaque email reçu à cette adresse sera analysé par l'IA et créera automatiquement une opportunité dans la première colonne du CRM.
                     </p>
                   </div>
                 </CardContent>
