@@ -1572,44 +1572,30 @@ const MicroDevis = () => {
                       </Dialog>
                     </div>
 
-                    {/* Inter-entreprises: select from catalog */}
-                    {formatFormation === "inter" && (
-                      <Select value={formationDemandee} onValueChange={setFormationDemandee}>
-                        <SelectTrigger className="w-full bg-background">
-                          <SelectValue placeholder="Sélectionner une formation" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-background border shadow-lg z-50">
-                          {formationConfigs.map((config) => (
-                            <SelectItem key={config.id} value={config.formation_name}>
-                              <div className="flex items-center gap-2">
-                                {config.is_default && <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />}
-                                <span>{config.formation_name}</span>
-                                <span className="text-muted-foreground text-xs">
-                                  ({config.prix}€ • {config.duree_heures}h)
-                                </span>
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    )}
-
-                    {/* Intra-entreprise: free text input */}
-                    {formatFormation === "intra" && (
-                      <Input
-                        placeholder="Nom de la formation souhaitée"
-                        value={formationLibre}
-                        onChange={(e) => setFormationLibre(e.target.value)}
-                        required
-                      />
-                    )}
+                    {/* Select from catalog (both intra and inter need formation config for pricing/programme) */}
+                    <Select value={formationDemandee} onValueChange={setFormationDemandee}>
+                      <SelectTrigger className="w-full bg-background">
+                        <SelectValue placeholder="Sélectionner une formation" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-background border shadow-lg z-50">
+                        {formationConfigs.map((config) => (
+                          <SelectItem key={config.id} value={config.formation_name}>
+                            <div className="flex items-center gap-2">
+                              {config.is_default && <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />}
+                              <span>{config.formation_name}</span>
+                              <span className="text-muted-foreground text-xs">
+                                ({config.prix}€ • {config.duree_heures}h)
+                              </span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <Label>Dates de la formation *</Label>
-                      {/* Only show "Gérer" button for inter-entreprises */}
-                      {formatFormation === "inter" && (
                       <Dialog open={datesDialogOpen} onOpenChange={setDatesDialogOpen}>
                         <DialogTrigger asChild>
                           <Button variant="ghost" size="sm" className="h-6 px-2">
@@ -1842,61 +1828,40 @@ const MicroDevis = () => {
                           </div>
                         </DialogContent>
                       </Dialog>
-                      )}
                     </div>
 
-                    {/* Inter-entreprises: select from predefined dates */}
-                    {formatFormation === "inter" && (
-                      <>
-                        {formationDates.length > 0 ? (
-                          <Select value={dateFormation} onValueChange={setDateFormation}>
-                            <SelectTrigger className="w-full bg-background">
-                              <SelectValue placeholder="Sélectionner une date" />
-                            </SelectTrigger>
-                            <SelectContent className="bg-background border shadow-lg z-50">
-                              {formationDates.map((dateConfig) => (
-                                <SelectItem key={dateConfig.id} value={dateConfig.date_label}>
-                                  <div className="flex items-center gap-2">
-                                    {dateConfig.is_default && <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />}
-                                    <span>{dateConfig.date_label}</span>
-                                  </div>
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        ) : (
-                          <Input
-                            id="dateFormation"
-                            placeholder="Ex: 15 et 16 janvier 2026, ou Du 10 au 14 mars 2026"
-                            value={dateFormation}
-                            onChange={(e) => setDateFormation(e.target.value)}
-                            required
-                          />
-                        )}
-                        <p className="text-xs text-muted-foreground">
-                          {formationDates.length > 0
-                            ? "Sélectionnez une date ou gérez les dates disponibles"
-                            : "Saisissez les dates au format souhaité (ex: \"26 et 27 janvier 2026\")"
-                          }
-                        </p>
-                      </>
+                    {/* Select from predefined dates (both intra and inter) */}
+                    {formationDates.length > 0 ? (
+                      <Select value={dateFormation} onValueChange={setDateFormation}>
+                        <SelectTrigger className="w-full bg-background">
+                          <SelectValue placeholder="Sélectionner une date" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-background border shadow-lg z-50">
+                          {formationDates.map((dateConfig) => (
+                            <SelectItem key={dateConfig.id} value={dateConfig.date_label}>
+                              <div className="flex items-center gap-2">
+                                {dateConfig.is_default && <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />}
+                                <span>{dateConfig.date_label}</span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Input
+                        id="dateFormation"
+                        placeholder="Ex: 15 et 16 janvier 2026, ou Du 10 au 14 mars 2026"
+                        value={dateFormation}
+                        onChange={(e) => setDateFormation(e.target.value)}
+                        required
+                      />
                     )}
-
-                    {/* Intra-entreprise: free text input for dates */}
-                    {formatFormation === "intra" && (
-                      <>
-                        <Input
-                          id="dateFormationLibre"
-                          placeholder="Ex: 15 et 16 janvier 2026, ou Du 10 au 14 mars 2026, ou À définir"
-                          value={dateFormationLibre}
-                          onChange={(e) => setDateFormationLibre(e.target.value)}
-                          required
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          Saisissez les dates souhaitées ou "À définir" si pas encore fixées
-                        </p>
-                      </>
-                    )}
+                    <p className="text-xs text-muted-foreground">
+                      {formationDates.length > 0
+                        ? "Sélectionnez une date ou gérez les dates disponibles"
+                        : "Saisissez les dates au format souhaité (ex: \"26 et 27 janvier 2026\")"
+                      }
+                    </p>
                   </div>
 
                   <div className="space-y-3">
