@@ -165,6 +165,46 @@ async function generatePdfWithPdfMonkey(
   throw new Error("PDF generation timed out");
 }
 
+/**
+ * Download a PDF from its URL and store it in Supabase Storage.
+ * Returns the storage path, or null on failure.
+ */
+async function persistPdfToStorage(
+  supabase: ReturnType<typeof createClient>,
+  pdfUrl: string,
+  cardId: string | null,
+  suffix: string,
+): Promise<string | null> {
+  try {
+    const response = await fetch(pdfUrl);
+    if (!response.ok) {
+      console.warn(`Failed to download PDF: ${response.status}`);
+      return null;
+    }
+    const pdfBuffer = await response.arrayBuffer();
+    const timestamp = Date.now();
+    const folder = cardId || "unlinked";
+    const storagePath = `${folder}/${timestamp}_${suffix}.pdf`;
+
+    const { error } = await supabase.storage
+      .from("devis-pdfs")
+      .upload(storagePath, pdfBuffer, {
+        contentType: "application/pdf",
+        upsert: false,
+      });
+
+    if (error) {
+      console.warn("Failed to upload PDF to storage:", error);
+      return null;
+    }
+    console.log(`PDF persisted to storage: ${storagePath}`);
+    return storagePath;
+  } catch (err) {
+    console.warn("Error persisting PDF:", err);
+    return null;
+  }
+}
+
 // Process template with variables (same logic as other emails)
 function processTemplate(
   template: string,
@@ -468,6 +508,52 @@ serve(async (req: Request): Promise<Response> => {
       }
     }
 
+    // Persist PDFs to Supabase Storage for permanent access
+    let storageSansPath: string | null = null;
+    let storageAvecPath: string | null = null;
+    if (pdfSansSubrogation?.pdfUrl) {
+      storageSansPath = await persistPdfToStorage(supabase, pdfSansSubrogation.pdfUrl, resolvedCrmCardId, "sans_subrogation");
+    }
+    if (pdfAvecSubrogation?.pdfUrl) {
+      storageAvecPath = await persistPdfToStorage(supabase, pdfAvecSubrogation.pdfUrl, resolvedCrmCardId, "avec_subrogation");
+    }
+
+    // Auto-move CRM card to "Devis envoyé" column if linked
+    if (resolvedCrmCardId) {
+      try {
+        const { data: devisColumn } = await supabase
+          .from("crm_columns")
+          .select("id")
+          .ilike("name", "%devis envoy%")
+          .limit(1)
+          .single();
+        if (devisColumn) {
+          const { data: currentCard } = await supabase
+            .from("crm_cards")
+            .select("column_id")
+            .eq("id", resolvedCrmCardId)
+            .single();
+          if (currentCard && currentCard.column_id !== devisColumn.id) {
+            await supabase.from("crm_cards")
+              .update({ column_id: devisColumn.id })
+              .eq("id", resolvedCrmCardId);
+            // Log column change
+            await supabase.from("crm_activity_log").insert({
+              card_id: resolvedCrmCardId,
+              action_type: "card_moved",
+              old_value: currentCard.column_id,
+              new_value: devisColumn.id,
+              metadata: { source: "auto_devis_sent" },
+              actor_email: body.senderEmail || "system",
+            });
+            console.log(`CRM card ${resolvedCrmCardId} auto-moved to "Devis envoyé" column`);
+          }
+        }
+      } catch (moveErr) {
+        console.warn("Failed to auto-move card to Devis envoyé:", moveErr);
+      }
+    }
+
     // Track email in CRM card if linked
     if (resolvedCrmCardId) {
       try {
@@ -553,6 +639,8 @@ serve(async (req: Request): Promise<Response> => {
           nb_participants: body.nbParticipants,
           pdf_sans_subrogation_url: pdfSansSubrogation?.pdfUrl || null,
           pdf_avec_subrogation_url: pdfAvecSubrogation?.pdfUrl || null,
+          pdf_sans_storage_path: storageSansPath,
+          pdf_avec_storage_path: storageAvecPath,
           // Store all form data for duplication
           form_data: {
             nomClient: body.nomClient,

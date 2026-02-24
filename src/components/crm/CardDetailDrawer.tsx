@@ -85,6 +85,7 @@ import {
   Rocket,
   GraduationCap,
   UserPlus,
+  Pencil,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format, addDays, isAfter, startOfDay, parseISO, isFuture } from "date-fns";
@@ -1206,6 +1207,31 @@ const CardDetailDrawer = ({
           </Button>
         </div>
 
+        {/* Next scheduled action banner (always visible) */}
+        {card?.waiting_next_action_date && !showSchedulePopover && (
+          <div className="mb-3 px-3 py-2 bg-blue-50 rounded-lg border border-blue-200 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 text-sm text-blue-700 min-w-0">
+              <Calendar className="h-4 w-4 shrink-0" />
+              <span className="truncate">
+                <span className="font-medium">
+                  {format(new Date(card.waiting_next_action_date), "d MMM yyyy", { locale: fr })}
+                </span>
+                {card.waiting_next_action_text && (
+                  <span> — {card.waiting_next_action_text}</span>
+                )}
+              </span>
+            </div>
+            <div className="flex items-center gap-1 shrink-0">
+              <Button variant="ghost" size="sm" className="h-6 px-2 text-xs text-blue-700 hover:text-blue-900" onClick={() => setShowSchedulePopover(true)}>
+                <Pencil className="h-3 w-3" />
+              </Button>
+              <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-blue-500 hover:text-blue-700" onClick={handleClearSchedule}>
+                <X className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          </div>
+        )}
+
         {/* Schedule action popover */}
         {showSchedulePopover && (
           <div className="mb-4 p-4 bg-blue-50 rounded-lg space-y-3 border border-blue-200">
@@ -1331,7 +1357,15 @@ const CardDetailDrawer = ({
                   </Label>
                   <Input
                     value={company}
-                    onChange={(e) => setCompany(e.target.value)}
+                    onChange={(e) => {
+                      const newCompany = e.target.value;
+                      setCompany(newCompany);
+                      // Regenerate title: replace (OLD_COMPANY) prefix with (NEW_COMPANY)
+                      const companyRegex = /^\([^)]*\)\s*/;
+                      const titleWithoutCompany = title.replace(companyRegex, "").trim();
+                      const newPrefix = newCompany.trim() ? `(${newCompany.trim().toUpperCase()}) ` : "";
+                      setTitle(`${newPrefix}${titleWithoutCompany}`);
+                    }}
                     placeholder="Nom de l'entreprise"
                     className="h-8"
                   />
@@ -1644,7 +1678,7 @@ const CardDetailDrawer = ({
             </div>
 
             {/* Sent devis list */}
-            <SentDevisSection email={email || null} cardId={card?.id || null} />
+            <SentDevisSection email={email || null} cardId={card?.id || null} emails={details?.emails} />
 
             <div>
               <Label>Titre</Label>
@@ -2331,56 +2365,7 @@ const CardDetailDrawer = ({
               </div>
             ))}
 
-            {/* Emails sent */}
-            {details?.emails && details.emails.length > 0 && (
-              <div className="mt-4 pt-4 border-t">
-                <h4 className="font-medium mb-2 flex items-center gap-2">
-                  <Mail className="h-4 w-4" />
-                  Emails envoyés ({details.emails.length})
-                </h4>
-                {details.emails.map((email) => {
-                  const isExpanded = expandedEmailId === email.id;
-                  return (
-                    <div
-                      key={email.id}
-                      className="border rounded-lg mb-2 overflow-hidden"
-                    >
-                      <div
-                        className="flex items-start justify-between gap-2 p-3 cursor-pointer hover:bg-muted/50 transition-colors"
-                        onClick={() => setExpandedEmailId(isExpanded ? null : email.id)}
-                      >
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">{email.subject}</p>
-                          <p className="text-xs text-muted-foreground">
-                            À: {email.recipient_email} •{" "}
-                            {format(new Date(email.sent_at), "d MMM yyyy HH:mm", { locale: fr })}
-                            {email.attachment_names && email.attachment_names.length > 0 && (
-                              <span> • <Paperclip className="inline h-3 w-3" /> {email.attachment_names.length}</span>
-                            )}
-                          </p>
-                        </div>
-                        <ChevronDown className={cn("h-4 w-4 text-muted-foreground shrink-0 transition-transform mt-0.5", isExpanded && "rotate-180")} />
-                      </div>
-                      {isExpanded && email.body_html && (
-                        <div
-                          className="px-4 pb-4 pt-2 border-t bg-background prose prose-sm dark:prose-invert max-w-none [&_a]:text-primary [&_a]:underline"
-                          dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(email.body_html, { ADD_ATTR: ["target"], ALLOW_DATA_ATTR: false }) }}
-                          onClick={(e) => {
-                            const target = e.target as HTMLElement;
-                            if (target.tagName === "A") {
-                              e.stopPropagation();
-                              const href = target.getAttribute("href");
-                              if (href) window.open(href, "_blank", "noopener");
-                              e.preventDefault();
-                            }
-                          }}
-                        />
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+            {/* Emails and devis are now shown in the unified SentDevisSection in the Details tab */}
           </TabsContent>
         </Tabs>
 
