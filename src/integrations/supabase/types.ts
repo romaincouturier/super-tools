@@ -685,7 +685,7 @@ export type Database = {
       }
       crm_card_emails: {
         Row: {
-          attachment_names: string[]
+          attachment_names: string[] | null
           body_html: string
           card_id: string
           id: string
@@ -695,7 +695,7 @@ export type Database = {
           subject: string
         }
         Insert: {
-          attachment_names?: string[]
+          attachment_names?: string[] | null
           body_html: string
           card_id: string
           id?: string
@@ -705,7 +705,7 @@ export type Database = {
           subject: string
         }
         Update: {
-          attachment_names?: string[]
+          attachment_names?: string[] | null
           body_html?: string
           card_id?: string
           id?: string
@@ -779,6 +779,7 @@ export type Database = {
           lost_at: string | null
           next_action_done: boolean | null
           next_action_text: string | null
+          next_action_type: string | null
           phone: string | null
           position: number
           quote_url: string | null
@@ -814,6 +815,7 @@ export type Database = {
           lost_at?: string | null
           next_action_done?: boolean | null
           next_action_text?: string | null
+          next_action_type?: string | null
           phone?: string | null
           position?: number
           quote_url?: string | null
@@ -849,6 +851,7 @@ export type Database = {
           lost_at?: string | null
           next_action_done?: boolean | null
           next_action_text?: string | null
+          next_action_type?: string | null
           phone?: string | null
           position?: number
           quote_url?: string | null
