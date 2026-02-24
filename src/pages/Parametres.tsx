@@ -690,6 +690,9 @@ const Parametres = () => {
   const [reglementInterieurUrl, setReglementInterieurUrl] = useState<string | null>(null);
   const [uploadingReglement, setUploadingReglement] = useState(false);
 
+  // Slack integration
+  const [slackCrmWebhookUrl, setSlackCrmWebhookUrl] = useState("");
+
 
   // Module access check (isAdmin comes from profiles table)
   const { hasAccess, isAdmin, loading: accessLoading } = useModuleAccess();
@@ -742,7 +745,8 @@ const Parametres = () => {
         "reglement_interieur_url",
         "post_evaluation_email_training_filter",
         "post_evaluation_email_subject",
-        "post_evaluation_email_content"
+        "post_evaluation_email_content",
+        "slack_crm_webhook_url"
       ]);
     
     if (error) {
@@ -846,6 +850,9 @@ const Parametres = () => {
         case "post_evaluation_email_content":
           setPostEvalEmailContent(setting.setting_value || "");
           break;
+        case "slack_crm_webhook_url":
+          setSlackCrmWebhookUrl(setting.setting_value || "");
+          break;
       }
     });
   };
@@ -884,6 +891,7 @@ const Parametres = () => {
         { setting_key: "post_evaluation_email_training_filter", setting_value: postEvalTrainingFilter, description: "Filtre sur le nom de la formation pour envoyer l'email post-évaluation (ex: facilitation graphique)" },
         { setting_key: "post_evaluation_email_subject", setting_value: postEvalEmailSubject, description: "Sujet de l'email post-évaluation (variables : {{first_name}}, {{training_name}})" },
         { setting_key: "post_evaluation_email_content", setting_value: postEvalEmailContent, description: "Contenu HTML de l'email post-évaluation (variables : {{first_name}}, {{training_name}})" },
+        { setting_key: "slack_crm_webhook_url", setting_value: slackCrmWebhookUrl, description: "URL du webhook Slack pour les notifications CRM (opportunités créées/gagnées)" },
       ];
 
       for (const setting of settingsToSave) {
@@ -2257,6 +2265,28 @@ const Parametres = () => {
                       <p className="text-xs text-muted-foreground">Agenda utilisé par le coach commercial pour contextualiser les recommandations</p>
                     </div>
                     <GoogleCalendarConnect />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Slack</CardTitle>
+                  <CardDescription>Recevez une notification Slack quand une opportunité CRM est créée ou gagnée.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="slack-webhook">URL du Webhook Slack</Label>
+                    <Input
+                      id="slack-webhook"
+                      type="url"
+                      value={slackCrmWebhookUrl}
+                      onChange={(e) => setSlackCrmWebhookUrl(e.target.value)}
+                      placeholder="https://hooks.slack.com/services/..."
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Créez un webhook entrant dans votre espace Slack (Apps &gt; Incoming Webhooks) et collez l'URL ici.
+                    </p>
                   </div>
                 </CardContent>
               </Card>

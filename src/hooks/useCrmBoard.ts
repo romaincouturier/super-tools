@@ -211,6 +211,29 @@ export const useCrmCardDetails = (cardId: string | null) => {
   });
 };
 
+// Fire-and-forget Slack notification
+const notifySlack = async (
+  type: "opportunity_created" | "opportunity_won",
+  card: {
+    title: string;
+    company?: string;
+    first_name?: string;
+    last_name?: string;
+    service_type?: string;
+    estimated_value?: number;
+    email?: string;
+  },
+  actorEmail?: string
+) => {
+  try {
+    await supabase.functions.invoke("crm-slack-notify", {
+      body: { type, card, actor_email: actorEmail },
+    });
+  } catch {
+    // Silently fail - Slack is non-critical
+  }
+};
+
 // Helper to log activity
 const logActivity = async (
   cardId: string,
@@ -364,6 +387,18 @@ export const useCreateCard = () => {
       if (error) throw error;
 
       await logActivity(data.id, "card_created", actorEmail, null, input.title);
+
+      // Slack notification (fire-and-forget)
+      notifySlack("opportunity_created", {
+        title: input.title,
+        company: input.company || undefined,
+        first_name: input.first_name || undefined,
+        last_name: input.last_name || undefined,
+        service_type: input.service_type || undefined,
+        estimated_value: input.estimated_value,
+        email: input.email || undefined,
+      }, actorEmail);
+
       return data;
     },
     onSuccess: () => {
@@ -415,6 +450,19 @@ export const useUpdateCard = () => {
       }
       if (updates.sales_status && updates.sales_status !== oldCard.sales_status) {
         await logActivity(id, "sales_status_changed", actorEmail, oldCard.sales_status, updates.sales_status);
+
+        // Slack notification for WON
+        if (updates.sales_status === "WON") {
+          notifySlack("opportunity_won", {
+            title: oldCard.title,
+            company: (updates.company as string) || oldCard.company || undefined,
+            first_name: (updates.first_name as string) || oldCard.first_name || undefined,
+            last_name: (updates.last_name as string) || oldCard.last_name || undefined,
+            service_type: (updates.service_type as string) || oldCard.service_type || undefined,
+            estimated_value: (updates.estimated_value as number) ?? oldCard.estimated_value,
+            email: (updates.email as string) || oldCard.email || undefined,
+          }, actorEmail);
+        }
       }
       if (updates.estimated_value !== undefined && updates.estimated_value !== oldCard.estimated_value) {
         await logActivity(

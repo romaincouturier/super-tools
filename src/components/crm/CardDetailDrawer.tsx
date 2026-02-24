@@ -1328,629 +1328,465 @@ const CardDetailDrawer = ({
           </div>
         )}
 
-        <Tabs defaultValue="details" className="mt-4">
-          <TabsList className="grid grid-cols-5 w-full">
-            <TabsTrigger value="details">
-              <FileText className="h-4 w-4" />
-            </TabsTrigger>
-            <TabsTrigger value="tags">
-              <Tag className="h-4 w-4" />
-            </TabsTrigger>
-            <TabsTrigger value="comments">
-              <MessageSquare className="h-4 w-4" />
-            </TabsTrigger>
-            <TabsTrigger value="attachments">
-              <Paperclip className="h-4 w-4" />
-            </TabsTrigger>
-            <TabsTrigger value="media">
-              <ImageIcon className="h-4 w-4" />
-            </TabsTrigger>
-            <TabsTrigger value="activity">
-              <History className="h-4 w-4" />
-            </TabsTrigger>
-          </TabsList>
 
-          {/* Details Tab */}
-          <TabsContent value="details" className="space-y-4 mt-4">
-            {/* Contact info section - Editable */}
-            <div className="p-4 bg-muted/50 rounded-lg space-y-3">
-              <h4 className="font-medium text-sm flex items-center gap-2">
-                <User className="h-4 w-4" />
-                Contact
-              </h4>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label className="text-xs">Prénom</Label>
-                  <Input
-                    value={firstName}
-                    onChange={(e) => setFirstName(e.target.value)}
-                    placeholder="Prénom"
-                    className="h-8"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Nom</Label>
-                  <Input
-                    value={lastName}
-                    onChange={(e) => setLastName(e.target.value)}
-                    placeholder="Nom"
-                    className="h-8"
-                  />
-                </div>
-                <div className="space-y-1 col-span-2">
-                  <Label className="text-xs flex items-center gap-1">
-                    <Building2 className="h-3 w-3" />
-                    Entreprise
-                  </Label>
-                  <Input
-                    value={company}
-                    onChange={(e) => {
-                      const newCompany = e.target.value;
-                      setCompany(newCompany);
-                      // Regenerate title: replace (OLD_COMPANY) prefix with (NEW_COMPANY)
-                      const companyRegex = /^\([^)]*\)\s*/;
-                      const titleWithoutCompany = title.replace(companyRegex, "").trim();
-                      const newPrefix = newCompany.trim() ? `(${newCompany.trim().toUpperCase()}) ` : "";
-                      setTitle(`${newPrefix}${titleWithoutCompany}`);
-                    }}
-                    placeholder="Nom de l'entreprise"
-                    className="h-8"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs flex items-center gap-1">
-                    <Mail className="h-3 w-3" />
-                    Email
-                  </Label>
-                  <div className="flex gap-1">
-                    <Input
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="email@exemple.com"
-                      className="h-8 flex-1"
-                    />
-                    {email.trim() && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 shrink-0"
-                        onClick={() => copyToClipboard(email)}
-                        title="Copier l'email"
-                      >
-                        <Copy className="h-3.5 w-3.5" />
-                      </Button>
-                    )}
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs flex items-center gap-1">
-                    <Phone className="h-3 w-3" />
-                    Téléphone
-                  </Label>
-                  <div className="flex items-center gap-2">
-                    <Input
-                      type="tel"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      placeholder="06 12 34 56 78"
-                      className="h-8 flex-1"
-                    />
-                    {phone.trim() && (
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button variant="outline" size="icon" className="h-8 w-8 shrink-0" title="QR Code téléphone">
-                            <Phone className="h-3.5 w-3.5" />
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-4" align="end">
-                          <div className="flex flex-col items-center gap-2">
-                            <QRCodeSVG value={`tel:${phone.trim()}`} size={140} />
-                            <span className="text-xs text-muted-foreground">Scannez pour appeler</span>
-                          </div>
-                        </PopoverContent>
-                      </Popover>
-                    )}
-                  </div>
-                </div>
-                <div className="space-y-1 col-span-2">
-                  <Label className="text-xs flex items-center gap-1">
-                    <Linkedin className="h-3 w-3" />
-                    LinkedIn
-                  </Label>
-                  <div className="flex gap-2">
-                    <Input
-                      value={linkedinUrl}
-                      onChange={(e) => setLinkedinUrl(e.target.value)}
-                      placeholder="URL du profil LinkedIn"
-                      className="h-8 flex-1"
-                    />
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        const url = generateLinkedInSearchUrl();
-                        if (url) {
-                          setLinkedinUrl(url);
-                        }
-                      }}
-                      disabled={!firstName && !lastName}
-                      title="Générer un lien de recherche LinkedIn"
-                    >
-                      <Sparkles className="h-3 w-3" />
-                    </Button>
-                    {linkedinUrl && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        asChild
-                      >
-                        <a href={linkedinUrl} target="_blank" rel="noopener noreferrer">
-                          <ExternalLink className="h-3 w-3" />
-                        </a>
-                      </Button>
-                    )}
-                  </div>
-                </div>
-                <div className="space-y-1 col-span-2">
-                  <Label className="text-xs flex items-center gap-1">
-                    <Globe className="h-3 w-3" />
-                    Site web
-                  </Label>
-                  <div className="flex gap-2">
-                    <Input
-                      type="url"
-                      value={websiteUrl}
-                      onChange={(e) => setWebsiteUrl(e.target.value)}
-                      placeholder="https://www.exemple.com"
-                      className="h-8 flex-1"
-                    />
-                    {websiteUrl && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        asChild
-                      >
-                        <a href={websiteUrl} target="_blank" rel="noopener noreferrer">
-                          <ExternalLink className="h-3 w-3" />
-                        </a>
-                      </Button>
-                    )}
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Type de prestation</Label>
-                  <Select
-                    value={serviceType || ""}
-                    onValueChange={(v) => setServiceType(v as "formation" | "mission" | null)}
-                  >
-                    <SelectTrigger className="h-8">
-                      <SelectValue placeholder="Non défini" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="formation">Formation</SelectItem>
-                      <SelectItem value="mission">Mission</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Source d'acquisition</Label>
-                  <Select
-                    value={acquisitionSource || ""}
-                    onValueChange={(v) => setAcquisitionSource(v as AcquisitionSource)}
-                  >
-                    <SelectTrigger className="h-8">
-                      <SelectValue placeholder="Non définie" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {(Object.entries(acquisitionSourceConfig) as [AcquisitionSource, string][]).map(([key, label]) => (
-                        <SelectItem key={key} value={key}>{label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+        {/* ═══ TITLE & TYPE ═══ */}
+        <div className="mt-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <EmojiPickerButton emoji={cardEmoji} onEmojiChange={setCardEmoji} size="md" />
+            <Input value={title} onChange={(e) => setTitle(e.target.value)} className="flex-1" />
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <Select
+              value={serviceType || ""}
+              onValueChange={(v) => setServiceType(v as "formation" | "mission" | null)}
+            >
+              <SelectTrigger className="h-7 w-auto text-xs gap-1">
+                <SelectValue placeholder="Type de prestation" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="formation">Formation</SelectItem>
+                <SelectItem value="mission">Mission</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select
+              value={acquisitionSource || ""}
+              onValueChange={(v) => setAcquisitionSource(v as AcquisitionSource)}
+            >
+              <SelectTrigger className="h-7 w-auto text-xs gap-1">
+                <SelectValue placeholder="Source d'acquisition" />
+              </SelectTrigger>
+              <SelectContent>
+                {(Object.entries(acquisitionSourceConfig) as [AcquisitionSource, string][]).map(([key, label]) => (
+                  <SelectItem key={key} value={key}>{label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {/* ═══ CONTACT ═══ */}
+        <div className="p-4 bg-muted/50 rounded-lg space-y-3 mt-4">
+          <h4 className="font-medium text-sm flex items-center gap-2">
+            <User className="h-4 w-4" />
+            Contact
+          </h4>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label className="text-xs">Prénom</Label>
+              <Input
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                placeholder="Prénom"
+                className="h-8"
+              />
             </div>
-
-            {/* Linked Mission */}
-            {serviceType === "mission" && (
-              <div className="p-4 bg-purple-50 rounded-lg space-y-3">
-                <h4 className="font-medium text-sm flex items-center gap-2">
-                  <Briefcase className="h-4 w-4" />
-                  Mission liée
-                </h4>
-                {linkedMissionId ? (
-                  <div className="flex items-center justify-between p-2 bg-white rounded border">
-                    <span className="text-sm">Mission #{linkedMissionId.slice(0, 8)}</span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setLinkedMissionId(null)}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    <div className="flex gap-2">
-                      <Input
-                        value={missionSearchQuery}
-                        onChange={(e) => {
-                          setMissionSearchQuery(e.target.value);
-                          setShowMissionSearch(true);
-                        }}
-                        placeholder="Rechercher une mission..."
-                        className="h-8"
-                      />
-                      {searchingMissions && <Loader2 className="h-4 w-4 animate-spin" />}
-                    </div>
-                    {showMissionSearch && missionSearchResults && missionSearchResults.length > 0 && (
-                      <div className="border rounded bg-white max-h-40 overflow-y-auto">
-                        {missionSearchResults.map((mission) => (
-                          <button
-                            key={mission.id}
-                            className="w-full text-left p-2 hover:bg-muted text-sm border-b last:border-b-0"
-                            onClick={() => {
-                              setLinkedMissionId(mission.id);
-                              setMissionSearchQuery("");
-                              setShowMissionSearch(false);
-                            }}
-                          >
-                            <div className="font-medium">{mission.title}</div>
-                            <div className="text-xs text-muted-foreground flex items-center gap-2">
-                              {mission.client_name && <span>{mission.client_name}</span>}
-                              <span
-                                className="px-1.5 py-0.5 rounded text-[10px]"
-                                style={{
-                                  backgroundColor: missionStatusConfig[mission.status].color + "20",
-                                  color: missionStatusConfig[mission.status].color,
-                                }}
-                              >
-                                {missionStatusConfig[mission.status].label}
-                              </span>
-                            </div>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                    {showMissionSearch && missionSearchQuery.length >= 2 && missionSearchResults?.length === 0 && (
-                      <p className="text-xs text-muted-foreground">Aucune mission trouvée</p>
-                    )}
-                  </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Nom</Label>
+              <Input
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                placeholder="Nom"
+                className="h-8"
+              />
+            </div>
+            <div className="space-y-1 col-span-2">
+              <Label className="text-xs flex items-center gap-1">
+                <Building2 className="h-3 w-3" />
+                Entreprise
+              </Label>
+              <Input
+                value={company}
+                onChange={(e) => {
+                  const newCompany = e.target.value;
+                  setCompany(newCompany);
+                  const companyRegex = /^\([^)]*\)\s*/;
+                  const titleWithoutCompany = title.replace(companyRegex, "").trim();
+                  const newPrefix = newCompany.trim() ? `(${newCompany.trim().toUpperCase()}) ` : "";
+                  setTitle(`${newPrefix}${titleWithoutCompany}`);
+                }}
+                placeholder="Nom de l'entreprise"
+                className="h-8"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs flex items-center gap-1">
+                <Mail className="h-3 w-3" />
+                Email
+              </Label>
+              <div className="flex gap-1">
+                <Input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="email@exemple.com"
+                  className="h-8 flex-1"
+                />
+                {email.trim() && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 shrink-0"
+                    onClick={() => copyToClipboard(email)}
+                    title="Copier l'email"
+                  >
+                    <Copy className="h-3.5 w-3.5" />
+                  </Button>
                 )}
               </div>
-            )}
-
-            {/* Brief questions */}
-            {card.brief_questions && card.brief_questions.length > 0 && (
-              <div className="p-4 bg-amber-50 rounded-lg space-y-2">
-                <h4 className="font-medium text-sm flex items-center gap-2">
-                  <FileText className="h-4 w-4" />
-                  Questions pour le brief
-                  <span className="text-xs text-muted-foreground font-normal">
-                    ({card.brief_questions.filter((q: BriefQuestion) => q.answered).length}/{card.brief_questions.length})
-                  </span>
-                </h4>
-                <ul className="space-y-1.5">
-                  {card.brief_questions.map((q: BriefQuestion) => (
-                    <li key={q.id} className="flex items-start gap-2.5 text-sm">
-                      <Checkbox
-                        id={`brief-${q.id}`}
-                        checked={q.answered}
-                        onCheckedChange={() => {
-                          if (!user?.email) return;
-                          const updatedQuestions = card.brief_questions.map((bq: BriefQuestion) =>
-                            bq.id === q.id ? { ...bq, answered: !bq.answered } : bq
-                          );
-                          updateCard.mutate({
-                            id: card.id,
-                            updates: { brief_questions: updatedQuestions },
-                            actorEmail: user.email,
-                            oldCard: card,
-                          });
-                        }}
-                        className="mt-0.5"
-                      />
-                      <label
-                        htmlFor={`brief-${q.id}`}
-                        className={cn("cursor-pointer flex-1", q.answered && "text-muted-foreground line-through")}
-                      >
-                        {q.question}
-                      </label>
-                    </li>
-                  ))}
-                </ul>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs flex items-center gap-1">
+                <Phone className="h-3 w-3" />
+                Téléphone
+              </Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="06 12 34 56 78"
+                  className="h-8 flex-1"
+                />
+                {phone.trim() && (
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" size="icon" className="h-8 w-8 shrink-0" title="QR Code téléphone">
+                        <Phone className="h-3.5 w-3.5" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-4" align="end">
+                      <div className="flex flex-col items-center gap-2">
+                        <QRCodeSVG value={`tel:${phone.trim()}`} size={140} />
+                        <span className="text-xs text-muted-foreground">Scannez pour appeler</span>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                )}
               </div>
-            )}
-
-            {/* Quote buttons */}
-            <div className="flex gap-2 flex-wrap">
-              {serviceType === "formation" && (
+            </div>
+            <div className="space-y-1 col-span-2">
+              <Label className="text-xs flex items-center gap-1">
+                <Linkedin className="h-3 w-3" />
+                LinkedIn
+              </Label>
+              <div className="flex gap-2">
+                <Input
+                  value={linkedinUrl}
+                  onChange={(e) => setLinkedinUrl(e.target.value)}
+                  placeholder="URL du profil LinkedIn"
+                  className="h-8 flex-1"
+                />
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => {
-                    const params = new URLSearchParams({
-                      ...(company && { nomClient: company }),
-                      ...(email && { emailCommanditaire: email }),
-                      ...((firstName || lastName) && { adresseCommanditaire: [firstName, lastName].filter(Boolean).join(" ") }),
-                      ...(card?.id && { crmCardId: card.id }),
-                      source: "crm",
-                    });
-                    window.open(`/micro-devis?${params.toString()}`, "_blank");
+                    const url = generateLinkedInSearchUrl();
+                    if (url) {
+                      setLinkedinUrl(url);
+                    }
                   }}
+                  disabled={!firstName && !lastName}
+                  title="Générer un lien de recherche LinkedIn"
                 >
-                  <Receipt className="h-4 w-4 mr-2" />
-                  Créer un devis formation
+                  <Sparkles className="h-3 w-3" />
                 </Button>
-              )}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  const url = prompt("URL du devis existant :", quoteUrl);
-                  if (url !== null) {
-                    setQuoteUrl(url);
-                  }
-                }}
-              >
-                <LinkIcon className="h-4 w-4 mr-2" />
-                Lier à un devis existant
-              </Button>
-              {quoteUrl && (
-                <Button asChild variant="outline" size="sm">
-                  <a href={quoteUrl} target="_blank" rel="noopener noreferrer">
-                    <ExternalLink className="h-4 w-4 mr-2" />
-                    Voir le devis
-                  </a>
-                </Button>
-              )}
-            </div>
-
-            {/* Sent devis list */}
-            <SentDevisSection email={email || null} cardId={card?.id || null} emails={details?.emails} />
-
-            <div>
-              <Label>Titre</Label>
-              <div className="flex items-center gap-2">
-                <EmojiPickerButton emoji={cardEmoji} onEmojiChange={setCardEmoji} size="md" />
-                <Input value={title} onChange={(e) => setTitle(e.target.value)} className="flex-1" />
+                {linkedinUrl && (
+                  <Button variant="outline" size="sm" asChild>
+                    <a href={linkedinUrl} target="_blank" rel="noopener noreferrer">
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
+                  </Button>
+                )}
               </div>
             </div>
-
-            {/* Description with auto-save and AI */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <Label className="flex items-center gap-2">
-                  Description / Notes
-                  {descriptionSaving && (
-                    <span className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Loader2 className="h-3 w-3 animate-spin" />
-                      Enregistrement...
-                    </span>
-                  )}
-                  {descriptionSaved && !descriptionSaving && (
-                    <span className="text-xs text-green-600 flex items-center gap-1">
-                      <Check className="h-3 w-3" />
-                      Enregistré
-                    </span>
-                  )}
-                </Label>
-              </div>
-              <CrmDescriptionEditor
-                content={descriptionHtml}
-                onChange={handleDescriptionChange}
-                cardId={card?.id}
-              />
-
-              {/* Next action checkbox */}
-              <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
-                <Checkbox
-                  id="next-action-done"
-                  checked={nextActionDone}
-                  onCheckedChange={(checked) => setNextActionDone(checked === true)}
+            <div className="space-y-1 col-span-2">
+              <Label className="text-xs flex items-center gap-1">
+                <Globe className="h-3 w-3" />
+                Site web
+              </Label>
+              <div className="flex gap-2">
+                <Input
+                  type="url"
+                  value={websiteUrl}
+                  onChange={(e) => setWebsiteUrl(e.target.value)}
+                  placeholder="https://www.exemple.com"
+                  className="h-8 flex-1"
                 />
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Label htmlFor="next-action-done" className="text-xs text-muted-foreground">
-                      Prochaine action
-                    </Label>
-                    <div className="flex gap-0.5">
-                      <Button
-                        variant={nextActionType === "email" ? "default" : "ghost"}
-                        size="sm"
-                        className="h-5 px-1.5 text-[10px]"
-                        onClick={() => setNextActionType("email")}
-                        title="Recontacter par email"
-                      >
-                        <Mail className="h-3 w-3" />
-                      </Button>
-                      <Button
-                        variant={nextActionType === "phone" ? "default" : "ghost"}
-                        size="sm"
-                        className="h-5 px-1.5 text-[10px]"
-                        onClick={() => setNextActionType("phone")}
-                        title="Recontacter par téléphone"
-                      >
-                        <Phone className="h-3 w-3" />
-                      </Button>
-                      <Button
-                        variant={nextActionType === "other" ? "default" : "ghost"}
-                        size="sm"
-                        className="h-5 px-1.5 text-[10px]"
-                        onClick={() => setNextActionType("other")}
-                        title="Autre action"
-                      >
-                        <Circle className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  </div>
-                  <div className="flex gap-1.5">
-                    <Input
-                      value={nextActionText}
-                      onChange={(e) => setNextActionText(e.target.value)}
-                      placeholder={nextActionType === "email" ? "Recontacter par email..." : nextActionType === "phone" ? "Recontacter par téléphone..." : "Quelle est la prochaine action ?"}
-                      className={`h-8 text-sm flex-1 ${nextActionDone ? "line-through text-muted-foreground" : ""}`}
+                {websiteUrl && (
+                  <Button variant="outline" size="sm" asChild>
+                    <a href={websiteUrl} target="_blank" rel="noopener noreferrer">
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ═══ QUALIFICATION ═══ */}
+        <div className="space-y-4 mt-6">
+          <h4 className="font-medium text-xs text-muted-foreground uppercase tracking-wider">
+            Qualification
+          </h4>
+
+          {/* Brief questions */}
+          {card.brief_questions && card.brief_questions.length > 0 && (
+            <div className="p-4 bg-amber-50 rounded-lg space-y-2">
+              <h4 className="font-medium text-sm flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                Questions pour le brief
+                <span className="text-xs text-muted-foreground font-normal">
+                  ({card.brief_questions.filter((q: BriefQuestion) => q.answered).length}/{card.brief_questions.length})
+                </span>
+              </h4>
+              <ul className="space-y-1.5">
+                {card.brief_questions.map((q: BriefQuestion) => (
+                  <li key={q.id} className="flex items-start gap-2.5 text-sm">
+                    <Checkbox
+                      id={`brief-${q.id}`}
+                      checked={q.answered}
+                      onCheckedChange={() => {
+                        if (!user?.email) return;
+                        const updatedQuestions = card.brief_questions.map((bq: BriefQuestion) =>
+                          bq.id === q.id ? { ...bq, answered: !bq.answered } : bq
+                        );
+                        updateCard.mutate({
+                          id: card.id,
+                          updates: { brief_questions: updatedQuestions },
+                          actorEmail: user.email,
+                          oldCard: card,
+                        });
+                      }}
+                      className="mt-0.5"
                     />
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 px-2 text-purple-600 hover:text-purple-700 hover:bg-purple-50"
-                      onClick={handleSuggestNextAction}
-                      disabled={nextActionSuggesting}
-                      title="Suggérer avec l'IA"
+                    <label
+                      htmlFor={`brief-${q.id}`}
+                      className={cn("cursor-pointer flex-1", q.answered && "text-muted-foreground line-through")}
                     >
-                      {nextActionSuggesting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Wand2 className="h-3.5 w-3.5" />}
-                    </Button>
-                  </div>
+                      {q.question}
+                    </label>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Description / Notes */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label className="flex items-center gap-2">
+                Description / Notes
+                {descriptionSaving && (
+                  <span className="text-xs text-muted-foreground flex items-center gap-1">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    Enregistrement...
+                  </span>
+                )}
+                {descriptionSaved && !descriptionSaving && (
+                  <span className="text-xs text-green-600 flex items-center gap-1">
+                    <Check className="h-3 w-3" />
+                    Enregistré
+                  </span>
+                )}
+              </Label>
+            </div>
+            <CrmDescriptionEditor
+              content={descriptionHtml}
+              onChange={handleDescriptionChange}
+              cardId={card?.id}
+            />
+          </div>
+
+          {/* Next action checkbox */}
+          <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+            <Checkbox
+              id="next-action-done"
+              checked={nextActionDone}
+              onCheckedChange={(checked) => setNextActionDone(checked === true)}
+            />
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-1">
+                <Label htmlFor="next-action-done" className="text-xs text-muted-foreground">
+                  Prochaine action
+                </Label>
+                <div className="flex gap-0.5">
+                  <Button
+                    variant={nextActionType === "email" ? "default" : "ghost"}
+                    size="sm"
+                    className="h-5 px-1.5 text-[10px]"
+                    onClick={() => setNextActionType("email")}
+                    title="Recontacter par email"
+                  >
+                    <Mail className="h-3 w-3" />
+                  </Button>
+                  <Button
+                    variant={nextActionType === "phone" ? "default" : "ghost"}
+                    size="sm"
+                    className="h-5 px-1.5 text-[10px]"
+                    onClick={() => setNextActionType("phone")}
+                    title="Recontacter par téléphone"
+                  >
+                    <Phone className="h-3 w-3" />
+                  </Button>
+                  <Button
+                    variant={nextActionType === "other" ? "default" : "ghost"}
+                    size="sm"
+                    className="h-5 px-1.5 text-[10px]"
+                    onClick={() => setNextActionType("other")}
+                    title="Autre action"
+                  >
+                    <Circle className="h-3 w-3" />
+                  </Button>
                 </div>
               </div>
-
-              {/* AI next action suggestion */}
-              {nextActionSuggestion && (
-                <div className="p-3 bg-purple-50 rounded-lg border border-purple-200 text-sm">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="font-medium text-purple-700 text-xs">Suggestion IA</span>
-                    <div className="flex gap-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-5 px-1.5 text-[10px] text-purple-700"
-                        onClick={() => { setNextActionText(nextActionSuggestion); setNextActionSuggestion(null); }}
-                      >
-                        <Check className="h-3 w-3 mr-0.5" />
-                        Appliquer
-                      </Button>
-                      <Button variant="ghost" size="sm" className="h-5 px-1" onClick={() => setNextActionSuggestion(null)}>
-                        <X className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  </div>
-                  <p className="text-purple-900">{nextActionSuggestion}</p>
-                </div>
-              )}
-
-              {/* AI buttons */}
-              <div className="flex gap-2 flex-wrap">
+              <div className="flex gap-1.5">
+                <Input
+                  value={nextActionText}
+                  onChange={(e) => setNextActionText(e.target.value)}
+                  placeholder={nextActionType === "email" ? "Recontacter par email..." : nextActionType === "phone" ? "Recontacter par téléphone..." : "Quelle est la prochaine action ?"}
+                  className={`h-8 text-sm flex-1 ${nextActionDone ? "line-through text-muted-foreground" : ""}`}
+                />
                 <Button
-                  variant="outline"
+                  variant="ghost"
                   size="sm"
-                  onClick={handleAiAnalysis}
-                  disabled={aiAnalyzing || !descriptionHtml.trim()}
+                  className="h-8 px-2 text-purple-600 hover:text-purple-700 hover:bg-purple-50"
+                  onClick={handleSuggestNextAction}
+                  disabled={nextActionSuggesting}
+                  title="Suggérer avec l'IA"
                 >
-                  {aiAnalyzing ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <Brain className="h-4 w-4 mr-2" />
-                  )}
-                  Analyser avec l'IA
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleGenerateQuoteDescription}
-                  disabled={quoteGenerating || !descriptionHtml.trim()}
-                >
-                  {quoteGenerating ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <FileSignature className="h-4 w-4 mr-2" />
-                  )}
-                  Générer descriptif devis
+                  {nextActionSuggesting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Wand2 className="h-3.5 w-3.5" />}
                 </Button>
               </div>
+            </div>
+          </div>
 
-              {/* AI Analysis result */}
-              {aiAnalysis && (
-                <div className="p-4 bg-purple-50 rounded-lg space-y-2">
-                  <div className="flex items-center justify-between">
-                    <h4 className="font-medium text-sm flex items-center gap-2 text-purple-700">
-                      <Brain className="h-4 w-4" />
-                      Analyse IA
-                    </h4>
-                    <div className="flex gap-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => copyToClipboard(aiAnalysis)}
-                        title="Copier"
-                      >
-                        <FileText className="h-3 w-3" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setAiAnalysis(null)}
-                      >
-                        <X className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  </div>
-                  <div className="text-sm whitespace-pre-wrap text-purple-900">
-                    {aiAnalysis}
-                  </div>
+          {/* AI next action suggestion */}
+          {nextActionSuggestion && (
+            <div className="p-3 bg-purple-50 rounded-lg border border-purple-200 text-sm">
+              <div className="flex items-center justify-between mb-1">
+                <span className="font-medium text-purple-700 text-xs">Suggestion IA</span>
+                <div className="flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-5 px-1.5 text-[10px] text-purple-700"
+                    onClick={() => { setNextActionText(nextActionSuggestion); setNextActionSuggestion(null); }}
+                  >
+                    <Check className="h-3 w-3 mr-0.5" />
+                    Appliquer
+                  </Button>
+                  <Button variant="ghost" size="sm" className="h-5 px-1" onClick={() => setNextActionSuggestion(null)}>
+                    <X className="h-3 w-3" />
+                  </Button>
                 </div>
-              )}
+              </div>
+              <p className="text-purple-900">{nextActionSuggestion}</p>
+            </div>
+          )}
 
-              {/* Quote description result */}
-              {quoteDescription && (
-                <div className="p-4 bg-emerald-50 rounded-lg space-y-2">
-                  <div className="flex items-center justify-between">
-                    <h4 className="font-medium text-sm flex items-center gap-2 text-emerald-700">
-                      <FileSignature className="h-4 w-4" />
-                      Descriptif pour devis
-                    </h4>
-                    <div className="flex gap-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => copyToClipboard(quoteDescription)}
-                        title="Copier"
-                      >
-                        <FileText className="h-3 w-3" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setQuoteDescription(null)}
-                      >
-                        <X className="h-3 w-3" />
-                      </Button>
+          {/* Linked Mission */}
+          {serviceType === "mission" && (
+            <div className="p-4 bg-purple-50 rounded-lg space-y-3">
+              <h4 className="font-medium text-sm flex items-center gap-2">
+                <Briefcase className="h-4 w-4" />
+                Mission liée
+              </h4>
+              {linkedMissionId ? (
+                <div className="flex items-center justify-between p-2 bg-white rounded border">
+                  <span className="text-sm">Mission #{linkedMissionId.slice(0, 8)}</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setLinkedMissionId(null)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <Input
+                      value={missionSearchQuery}
+                      onChange={(e) => {
+                        setMissionSearchQuery(e.target.value);
+                        setShowMissionSearch(true);
+                      }}
+                      placeholder="Rechercher une mission..."
+                      className="h-8"
+                    />
+                    {searchingMissions && <Loader2 className="h-4 w-4 animate-spin" />}
+                  </div>
+                  {showMissionSearch && missionSearchResults && missionSearchResults.length > 0 && (
+                    <div className="border rounded bg-white max-h-40 overflow-y-auto">
+                      {missionSearchResults.map((mission) => (
+                        <button
+                          key={mission.id}
+                          className="w-full text-left p-2 hover:bg-muted text-sm border-b last:border-b-0"
+                          onClick={() => {
+                            setLinkedMissionId(mission.id);
+                            setMissionSearchQuery("");
+                            setShowMissionSearch(false);
+                          }}
+                        >
+                          <div className="font-medium">{mission.title}</div>
+                          <div className="text-xs text-muted-foreground flex items-center gap-2">
+                            {mission.client_name && <span>{mission.client_name}</span>}
+                            <span
+                              className="px-1.5 py-0.5 rounded text-[10px]"
+                              style={{
+                                backgroundColor: missionStatusConfig[mission.status].color + "20",
+                                color: missionStatusConfig[mission.status].color,
+                              }}
+                            >
+                              {missionStatusConfig[mission.status].label}
+                            </span>
+                          </div>
+                        </button>
+                      ))}
                     </div>
-                  </div>
-                  <div className="text-sm whitespace-pre-wrap text-emerald-900">
-                    {quoteDescription}
-                  </div>
+                  )}
+                  {showMissionSearch && missionSearchQuery.length >= 2 && missionSearchResults?.length === 0 && (
+                    <p className="text-xs text-muted-foreground">Aucune mission trouvée</p>
+                  )}
                 </div>
               )}
             </div>
+          )}
+        </div>
 
+        {/* ═══ COMMERCIAL ═══ */}
+        <div className="space-y-4 mt-6 border-t pt-4">
+          <h4 className="font-medium text-xs text-muted-foreground uppercase tracking-wider">
+            Commercial
+          </h4>
+
+          <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label>Valeur estimée (€)</Label>
+              <Label className="text-xs">Valeur estimée (€)</Label>
               <Input
                 type="number"
                 min="0"
                 step="0.01"
                 value={estimatedValue}
                 onChange={(e) => setEstimatedValue(e.target.value)}
+                className="h-8 mt-1"
               />
             </div>
-
-            {/* Confidence score */}
             <div>
-              <Label className="flex items-center justify-between">
-                <span>Indice de confiance</span>
+              <Label className="text-xs flex items-center justify-between">
+                <span>Confiance</span>
                 <span className={cn(
-                  "text-xs font-medium px-1.5 py-0.5 rounded",
+                  "font-medium px-1.5 py-0.5 rounded",
                   confidenceScore === null && "text-muted-foreground",
                   confidenceScore !== null && confidenceScore >= 70 && "text-green-700 bg-green-50",
                   confidenceScore !== null && confidenceScore >= 40 && confidenceScore < 70 && "text-orange-700 bg-orange-50",
                   confidenceScore !== null && confidenceScore < 40 && "text-red-700 bg-red-50",
                 )}>
-                  {confidenceScore !== null ? `${confidenceScore}%` : "Non défini"}
+                  {confidenceScore !== null ? `${confidenceScore}%` : "—"}
                 </span>
               </Label>
-              <div className="flex items-center gap-3 mt-1.5">
+              <div className="flex items-center gap-2 mt-1">
                 <input
                   type="range"
                   min="0"
@@ -1972,270 +1808,432 @@ const CardDetailDrawer = ({
                   </Button>
                 )}
               </div>
-              <div className="flex justify-between text-[10px] text-muted-foreground mt-0.5 px-0.5">
-                <span>Peu probable</span>
-                <span>Très probable</span>
-              </div>
             </div>
+          </div>
 
-            {/* Email section */}
-            <div className="border-t pt-4 mt-4">
-              <h4 className="font-medium mb-3 flex items-center gap-2">
-                <Mail className="h-4 w-4" />
-                Envoyer un email
-              </h4>
-              <div className="space-y-3">
-                {/* Email templates */}
-                <div className="flex items-center gap-2">
-                  <Label className="text-xs text-muted-foreground whitespace-nowrap">Modèle</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" size="sm" className="h-8 text-xs gap-1 flex-1">
-                        <FileText className="h-3.5 w-3.5" />
-                        Choisir un modèle
-                        <ChevronDown className="h-3 w-3 ml-auto" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-80 p-0" align="start">
-                      <div className="p-2 border-b">
-                        <p className="text-sm font-medium">Modèles d'email</p>
-                        <p className="text-xs text-muted-foreground">Cliquez pour pré-remplir le message</p>
-                      </div>
-                      <div className="divide-y">
-                        {crmEmailTemplates && crmEmailTemplates.length > 0 ? (
-                          crmEmailTemplates.map((tpl) => {
-                            const vars = {
-                              company: company || undefined,
-                              first_name: firstName || undefined,
-                              last_name: lastName || undefined,
-                              title: card?.title ? card.title.toLowerCase() : undefined,
-                              email: email || undefined,
-                            };
-                            return (
-                              <button
-                                key={tpl.id}
-                                className="w-full text-left px-3 py-2.5 text-sm hover:bg-muted transition-colors"
-                                onClick={() => {
-                                  setEmailSubject(replaceCrmVariables(tpl.subject, vars));
-                                  setEmailBody(replaceCrmVariables(tpl.html_content, vars));
-                                }}
-                              >
-                                <div className="font-medium text-sm">{tpl.template_name}</div>
-                              </button>
-                            );
-                          })
-                        ) : (
-                          <div className="p-4 text-center text-sm text-muted-foreground">
-                            Aucun modèle configuré. Ajoutez-en dans Paramètres &gt; CRM.
-                          </div>
-                        )}
-                      </div>
-                    </PopoverContent>
-                  </Popover>
-                </div>
+          {/* Devis buttons */}
+          <div className="flex gap-2 flex-wrap">
+            {serviceType === "formation" && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const params = new URLSearchParams({
+                    ...(company && { nomClient: company }),
+                    ...(email && { emailCommanditaire: email }),
+                    ...((firstName || lastName) && { adresseCommanditaire: [firstName, lastName].filter(Boolean).join(" ") }),
+                    ...(card?.id && { crmCardId: card.id }),
+                    source: "crm",
+                  });
+                  window.open(`/micro-devis?${params.toString()}`, "_blank");
+                }}
+              >
+                <Receipt className="h-4 w-4 mr-2" />
+                Créer un devis formation
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const url = prompt("URL du devis existant :", quoteUrl);
+                if (url !== null) {
+                  setQuoteUrl(url);
+                }
+              }}
+            >
+              <LinkIcon className="h-4 w-4 mr-2" />
+              Lier à un devis existant
+            </Button>
+            {quoteUrl && (
+              <Button asChild variant="outline" size="sm">
+                <a href={quoteUrl} target="_blank" rel="noopener noreferrer">
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Voir le devis
+                </a>
+              </Button>
+            )}
+          </div>
 
-                <div className="flex items-center gap-2">
-                  <Label className="text-xs text-muted-foreground whitespace-nowrap flex items-center gap-1">
-                    Destinataire
-                    {email && email !== emailTo && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setEmailTo(email)}
-                        title={`Utiliser ${email}`}
-                        className="h-5 px-1.5 text-[10px] text-primary"
-                      >
-                        <Copy className="h-3 w-3 mr-0.5" />
-                        Client
-                      </Button>
-                    )}
-                  </Label>
-                  <Input
-                    placeholder="email@exemple.com"
-                    value={emailTo}
-                    onChange={(e) => setEmailTo(e.target.value)}
-                    className="flex-1"
-                  />
-                </div>
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Sujet"
-                    value={emailSubject}
-                    onChange={(e) => setEmailSubject(e.target.value)}
-                    className="flex-1"
-                  />
-                  {emailSubjectBeforeAi ? (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleUndoSubjectAi}
-                      title="Annuler l'amélioration"
-                    >
-                      <Undo2 className="h-4 w-4" />
-                    </Button>
-                  ) : (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleImproveEmailSubject}
-                      disabled={!emailSubject.trim() || improvingSubject}
-                      title="Améliorer avec l'IA"
-                    >
-                      {improvingSubject ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Wand2 className="h-4 w-4" />
-                      )}
-                    </Button>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <EmailEditor
-                    content={emailBody}
-                    onChange={(content) => setEmailBody(content)}
-                    placeholder="Corps du message..."
-                    variables={{
-                      first_name: firstName || undefined,
-                      last_name: lastName || undefined,
-                      company: company || undefined,
-                    }}
-                  />
-                  <div className="flex justify-end gap-2">
-                    {emailBodyBeforeAi && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleUndoBodyAi}
-                        title="Annuler l'amélioration"
-                      >
-                        <Undo2 className="h-4 w-4 mr-1" />
-                        Annuler IA
-                      </Button>
-                    )}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleImproveEmailBody}
-                      disabled={!emailBody.trim() || improvingBody}
-                      title="Améliorer avec l'IA"
-                    >
-                      {improvingBody ? (
-                        <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                      ) : (
-                        <Wand2 className="h-4 w-4 mr-1" />
-                      )}
-                      Améliorer avec l'IA
-                    </Button>
-                  </div>
-                </div>
-                {/* Attachments */}
-                <div className="space-y-2">
-                  <input
-                    ref={emailFileInputRef}
-                    type="file"
-                    multiple
-                    className="hidden"
-                    onChange={handleEmailAttachFiles}
-                  />
-                  <div className="flex items-center gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="h-8 text-xs gap-1"
-                      onClick={() => emailFileInputRef.current?.click()}
-                    >
-                      <Paperclip className="h-3.5 w-3.5" />
-                      Joindre un fichier
-                    </Button>
-                    {emailAttachments.length > 0 && (
-                      <span className="text-xs text-muted-foreground">
-                        {emailAttachments.length} fichier{emailAttachments.length > 1 ? "s" : ""}
-                      </span>
-                    )}
-                  </div>
-                  {emailAttachments.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5">
-                      {emailAttachments.map((att, i) => (
-                        <Badge key={i} variant="secondary" className="text-xs gap-1 pr-1">
-                          <Paperclip className="h-3 w-3" />
-                          {att.filename}
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveAttachment(i)}
-                            className="ml-0.5 hover:text-destructive"
-                          >
-                            <X className="h-3 w-3" />
-                          </button>
-                        </Badge>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <div className="flex gap-2">
+          {/* AI buttons */}
+          <div className="flex gap-2 flex-wrap">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleAiAnalysis}
+              disabled={aiAnalyzing || !descriptionHtml.trim()}
+            >
+              {aiAnalyzing ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Brain className="h-4 w-4 mr-2" />
+              )}
+              Analyser avec l'IA
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleGenerateQuoteDescription}
+              disabled={quoteGenerating || !descriptionHtml.trim()}
+            >
+              {quoteGenerating ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <FileSignature className="h-4 w-4 mr-2" />
+              )}
+              Générer descriptif devis
+            </Button>
+          </div>
+
+          {/* AI Analysis result */}
+          {aiAnalysis && (
+            <div className="p-4 bg-purple-50 rounded-lg space-y-2">
+              <div className="flex items-center justify-between">
+                <h4 className="font-medium text-sm flex items-center gap-2 text-purple-700">
+                  <Brain className="h-4 w-4" />
+                  Analyse IA
+                </h4>
+                <div className="flex gap-1">
                   <Button
-                    onClick={handleSendEmail}
-                    disabled={!emailTo.trim() || !emailSubject.trim() || sendEmail.isPending}
-                    className="flex-1"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => copyToClipboard(aiAnalysis)}
+                    title="Copier"
                   >
-                    {sendEmail.isPending ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <Mail className="h-4 w-4 mr-2" />
-                    )}
-                    Envoyer{emailAttachments.length > 0 ? ` (${emailAttachments.length} pièce${emailAttachments.length > 1 ? "s" : ""} jointe${emailAttachments.length > 1 ? "s" : ""})` : ""}
+                    <FileText className="h-3 w-3" />
                   </Button>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="outline"
-                        disabled={!emailTo.trim() || !emailSubject.trim() || sendEmail.isPending}
-                        className="px-2"
-                      >
-                        <Calendar className="h-4 w-4" />
-                        <ChevronDown className="h-3 w-3 ml-1" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      {[
-                        { label: "Demain 8h", hours: (() => { const d = addDays(new Date(), 1); d.setHours(8, 0, 0, 0); return d; })() },
-                        { label: "Dans 3 jours ouvrés 8h", hours: (() => { let d = new Date(); let r = 3; while (r > 0) { d = addDays(d, 1); if (d.getDay() !== 0 && d.getDay() !== 6) r--; } d.setHours(8, 0, 0, 0); return d; })() },
-                        { label: "Dans 5 jours ouvrés 8h", hours: (() => { let d = new Date(); let r = 5; while (r > 0) { d = addDays(d, 1); if (d.getDay() !== 0 && d.getDay() !== 6) r--; } d.setHours(8, 0, 0, 0); return d; })() },
-                      ].map(({ label, hours }) => (
-                        <DropdownMenuItem
-                          key={label}
-                          onClick={async () => {
-                            if (!card || !user?.email || !emailTo.trim() || !emailSubject.trim()) return;
-                            try {
-                              await supabase.from("crm_scheduled_emails").insert({
-                                card_id: card.id,
-                                recipient_email: emailTo.trim(),
-                                subject: emailSubject.trim(),
-                                body_html: DOMPurify.sanitize(emailBody),
-                                scheduled_at: hours.toISOString(),
-                                sender_email: user.email,
-                                attachments: emailAttachments.length > 0 ? emailAttachments : null,
-                              });
-                              toast({ title: "Email programmé", description: `Envoi prévu le ${format(hours, "d MMM yyyy 'à' HH:mm", { locale: fr })}` });
-                              setEmailTo(""); setEmailSubject(""); setEmailBody(""); setEmailAttachments([]);
-                            } catch {
-                              toast({ title: "Erreur", description: "Impossible de programmer l'email.", variant: "destructive" });
-                            }
-                          }}
-                        >
-                          <Calendar className="h-4 w-4 mr-2" />
-                          {label}
-                          <span className="ml-auto text-xs text-muted-foreground">
-                            {format(hours, "d MMM HH:mm", { locale: fr })}
-                          </span>
-                        </DropdownMenuItem>
-                      ))}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setAiAnalysis(null)}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
                 </div>
               </div>
+              <div className="text-sm whitespace-pre-wrap text-purple-900">
+                {aiAnalysis}
+              </div>
             </div>
-          </TabsContent>
+          )}
+
+          {/* Quote description result */}
+          {quoteDescription && (
+            <div className="p-4 bg-emerald-50 rounded-lg space-y-2">
+              <div className="flex items-center justify-between">
+                <h4 className="font-medium text-sm flex items-center gap-2 text-emerald-700">
+                  <FileSignature className="h-4 w-4" />
+                  Descriptif pour devis
+                </h4>
+                <div className="flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => copyToClipboard(quoteDescription)}
+                    title="Copier"
+                  >
+                    <FileText className="h-3 w-3" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setQuoteDescription(null)}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
+              <div className="text-sm whitespace-pre-wrap text-emerald-900">
+                {quoteDescription}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ═══ COMMUNICATION ═══ */}
+        <div className="space-y-4 mt-6 border-t pt-4">
+          <h4 className="font-medium text-xs text-muted-foreground uppercase tracking-wider">
+            Communication
+          </h4>
+
+          {/* Email composer */}
+          <div className="space-y-3">
+            {/* Email templates */}
+            <div className="flex items-center gap-2">
+              <Label className="text-xs text-muted-foreground whitespace-nowrap">Modèle</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-8 text-xs gap-1 flex-1">
+                    <FileText className="h-3.5 w-3.5" />
+                    Choisir un modèle
+                    <ChevronDown className="h-3 w-3 ml-auto" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80 p-0" align="start">
+                  <div className="p-2 border-b">
+                    <p className="text-sm font-medium">Modèles d'email</p>
+                    <p className="text-xs text-muted-foreground">Cliquez pour pré-remplir le message</p>
+                  </div>
+                  <div className="divide-y">
+                    {crmEmailTemplates && crmEmailTemplates.length > 0 ? (
+                      crmEmailTemplates.map((tpl) => {
+                        const vars = {
+                          company: company || undefined,
+                          first_name: firstName || undefined,
+                          last_name: lastName || undefined,
+                          title: card?.title ? card.title.toLowerCase() : undefined,
+                          email: email || undefined,
+                        };
+                        return (
+                          <button
+                            key={tpl.id}
+                            className="w-full text-left px-3 py-2.5 text-sm hover:bg-muted transition-colors"
+                            onClick={() => {
+                              setEmailSubject(replaceCrmVariables(tpl.subject, vars));
+                              setEmailBody(replaceCrmVariables(tpl.html_content, vars));
+                            }}
+                          >
+                            <div className="font-medium text-sm">{tpl.template_name}</div>
+                          </button>
+                        );
+                      })
+                    ) : (
+                      <div className="p-4 text-center text-sm text-muted-foreground">
+                        Aucun modèle configuré. Ajoutez-en dans Paramètres &gt; CRM.
+                      </div>
+                    )}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Label className="text-xs text-muted-foreground whitespace-nowrap flex items-center gap-1">
+                Destinataire
+                {email && email !== emailTo && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setEmailTo(email)}
+                    title={`Utiliser ${email}`}
+                    className="h-5 px-1.5 text-[10px] text-primary"
+                  >
+                    <Copy className="h-3 w-3 mr-0.5" />
+                    Client
+                  </Button>
+                )}
+              </Label>
+              <Input
+                placeholder="email@exemple.com"
+                value={emailTo}
+                onChange={(e) => setEmailTo(e.target.value)}
+                className="flex-1"
+              />
+            </div>
+            <div className="flex gap-2">
+              <Input
+                placeholder="Sujet"
+                value={emailSubject}
+                onChange={(e) => setEmailSubject(e.target.value)}
+                className="flex-1"
+              />
+              {emailSubjectBeforeAi ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleUndoSubjectAi}
+                  title="Annuler l'amélioration"
+                >
+                  <Undo2 className="h-4 w-4" />
+                </Button>
+              ) : (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleImproveEmailSubject}
+                  disabled={!emailSubject.trim() || improvingSubject}
+                  title="Améliorer avec l'IA"
+                >
+                  {improvingSubject ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Wand2 className="h-4 w-4" />
+                  )}
+                </Button>
+              )}
+            </div>
+            <div className="space-y-2">
+              <EmailEditor
+                content={emailBody}
+                onChange={(content) => setEmailBody(content)}
+                placeholder="Corps du message..."
+                variables={{
+                  first_name: firstName || undefined,
+                  last_name: lastName || undefined,
+                  company: company || undefined,
+                }}
+              />
+              <div className="flex justify-end gap-2">
+                {emailBodyBeforeAi && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleUndoBodyAi}
+                    title="Annuler l'amélioration"
+                  >
+                    <Undo2 className="h-4 w-4 mr-1" />
+                    Annuler IA
+                  </Button>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleImproveEmailBody}
+                  disabled={!emailBody.trim() || improvingBody}
+                  title="Améliorer avec l'IA"
+                >
+                  {improvingBody ? (
+                    <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                  ) : (
+                    <Wand2 className="h-4 w-4 mr-1" />
+                  )}
+                  Améliorer avec l'IA
+                </Button>
+              </div>
+            </div>
+            {/* Attachments */}
+            <div className="space-y-2">
+              <input
+                ref={emailFileInputRef}
+                type="file"
+                multiple
+                className="hidden"
+                onChange={handleEmailAttachFiles}
+              />
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-8 text-xs gap-1"
+                  onClick={() => emailFileInputRef.current?.click()}
+                >
+                  <Paperclip className="h-3.5 w-3.5" />
+                  Joindre un fichier
+                </Button>
+                {emailAttachments.length > 0 && (
+                  <span className="text-xs text-muted-foreground">
+                    {emailAttachments.length} fichier{emailAttachments.length > 1 ? "s" : ""}
+                  </span>
+                )}
+              </div>
+              {emailAttachments.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {emailAttachments.map((att, i) => (
+                    <Badge key={i} variant="secondary" className="text-xs gap-1 pr-1">
+                      <Paperclip className="h-3 w-3" />
+                      {att.filename}
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveAttachment(i)}
+                        className="ml-0.5 hover:text-destructive"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <Button
+                onClick={handleSendEmail}
+                disabled={!emailTo.trim() || !emailSubject.trim() || sendEmail.isPending}
+                className="flex-1"
+              >
+                {sendEmail.isPending ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Mail className="h-4 w-4 mr-2" />
+                )}
+                Envoyer{emailAttachments.length > 0 ? ` (${emailAttachments.length} pièce${emailAttachments.length > 1 ? "s" : ""} jointe${emailAttachments.length > 1 ? "s" : ""})` : ""}
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    disabled={!emailTo.trim() || !emailSubject.trim() || sendEmail.isPending}
+                    className="px-2"
+                  >
+                    <Calendar className="h-4 w-4" />
+                    <ChevronDown className="h-3 w-3 ml-1" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {[
+                    { label: "Demain 8h", hours: (() => { const d = addDays(new Date(), 1); d.setHours(8, 0, 0, 0); return d; })() },
+                    { label: "Dans 3 jours ouvrés 8h", hours: (() => { let d = new Date(); let r = 3; while (r > 0) { d = addDays(d, 1); if (d.getDay() !== 0 && d.getDay() !== 6) r--; } d.setHours(8, 0, 0, 0); return d; })() },
+                    { label: "Dans 5 jours ouvrés 8h", hours: (() => { let d = new Date(); let r = 5; while (r > 0) { d = addDays(d, 1); if (d.getDay() !== 0 && d.getDay() !== 6) r--; } d.setHours(8, 0, 0, 0); return d; })() },
+                  ].map(({ label, hours }) => (
+                    <DropdownMenuItem
+                      key={label}
+                      onClick={async () => {
+                        if (!card || !user?.email || !emailTo.trim() || !emailSubject.trim()) return;
+                        try {
+                          await supabase.from("crm_scheduled_emails").insert({
+                            card_id: card.id,
+                            recipient_email: emailTo.trim(),
+                            subject: emailSubject.trim(),
+                            body_html: DOMPurify.sanitize(emailBody),
+                            scheduled_at: hours.toISOString(),
+                            sender_email: user.email,
+                            attachments: emailAttachments.length > 0 ? emailAttachments : null,
+                          });
+                          toast({ title: "Email programmé", description: `Envoi prévu le ${format(hours, "d MMM yyyy 'à' HH:mm", { locale: fr })}` });
+                          setEmailTo(""); setEmailSubject(""); setEmailBody(""); setEmailAttachments([]);
+                        } catch {
+                          toast({ title: "Erreur", description: "Impossible de programmer l'email.", variant: "destructive" });
+                        }
+                      }}
+                    >
+                      <Calendar className="h-4 w-4 mr-2" />
+                      {label}
+                      <span className="ml-auto text-xs text-muted-foreground">
+                        {format(hours, "d MMM HH:mm", { locale: fr })}
+                      </span>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+
+          {/* Unified email & devis history */}
+          <SentDevisSection email={email || null} cardId={card?.id || null} emails={details?.emails} />
+        </div>
+
+        {/* ═══ COMPLÉMENTS ═══ */}
+        <Tabs defaultValue="tags" className="mt-6 border-t pt-4">
+          <h4 className="font-medium text-xs text-muted-foreground uppercase tracking-wider mb-3">
+            Compléments
+          </h4>
+          <TabsList className="grid grid-cols-5 w-full">
+            <TabsTrigger value="tags">
+              <Tag className="h-4 w-4" />
+            </TabsTrigger>
+            <TabsTrigger value="comments">
+              <MessageSquare className="h-4 w-4" />
+            </TabsTrigger>
+            <TabsTrigger value="attachments">
+              <Paperclip className="h-4 w-4" />
+            </TabsTrigger>
+            <TabsTrigger value="media">
+              <ImageIcon className="h-4 w-4" />
+            </TabsTrigger>
+            <TabsTrigger value="activity">
+              <History className="h-4 w-4" />
+            </TabsTrigger>
+          </TabsList>
 
           {/* Tags Tab */}
           <TabsContent value="tags" className="space-y-4 mt-4">
@@ -2448,8 +2446,6 @@ const CardDetailDrawer = ({
                 </p>
               </div>
             ))}
-
-            {/* Emails and devis are now shown in the unified SentDevisSection in the Details tab */}
           </TabsContent>
         </Tabs>
 
