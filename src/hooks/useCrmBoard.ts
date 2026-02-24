@@ -18,6 +18,31 @@ import {
   OpportunityExtraction,
 } from "@/types/crm";
 
+// ─── Mutation factory to eliminate repeated queryClient/toast/onSuccess/onError boilerplate ───
+function useCrmMutation<TInput, TOutput = void>(
+  mutationFn: (input: TInput) => Promise<TOutput>,
+  options?: {
+    successMessage?: string;
+    invalidateKey?: string[];
+  }
+) {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: options?.invalidateKey ?? [CRM_QUERY_KEY] });
+      if (options?.successMessage) {
+        toast({ title: options.successMessage });
+      }
+    },
+    onError: (error: Error) => {
+      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+    },
+  });
+}
+
 /** Capitalize each part of a name: "jean-pierre" → "Jean-Pierre", "DE LA FONTAINE" → "De La Fontaine" */
 const capitalizeName = (name: string | null | undefined): string | null => {
   if (!name) return null;
@@ -254,91 +279,43 @@ const logActivity = async (
 };
 
 // Column mutations
-export const useCreateColumn = () => {
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
+export const useCreateColumn = () =>
+  useCrmMutation(async (input: CreateColumnInput) => {
+    const { data: cols } = await supabase
+      .from("crm_columns")
+      .select("position")
+      .order("position", { ascending: false })
+      .limit(1);
+    const maxPos = cols?.[0]?.position ?? -1;
 
-  return useMutation({
-    mutationFn: async (input: CreateColumnInput) => {
-      // Get max position
-      const { data: cols } = await supabase
-        .from("crm_columns")
-        .select("position")
-        .order("position", { ascending: false })
-        .limit(1);
-      const maxPos = cols?.[0]?.position ?? -1;
+    const { data, error } = await supabase
+      .from("crm_columns")
+      .insert({ name: input.name, position: input.position ?? maxPos + 1 })
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  }, { successMessage: "Colonne créée" });
 
-      const { data, error } = await supabase
-        .from("crm_columns")
-        .insert({ name: input.name, position: input.position ?? maxPos + 1 })
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [CRM_QUERY_KEY] });
-      toast({ title: "Colonne créée" });
-    },
-    onError: (error) => {
-      toast({ title: "Erreur", description: error.message, variant: "destructive" });
-    },
+export const useUpdateColumn = () =>
+  useCrmMutation(async ({ id, ...updates }: Partial<CrmColumn> & { id: string }) => {
+    const { error } = await supabase.from("crm_columns").update(updates).eq("id", id);
+    if (error) throw error;
   });
-};
 
-export const useUpdateColumn = () => {
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
+export const useArchiveColumn = () =>
+  useCrmMutation(async (id: string) => {
+    const { error } = await supabase.from("crm_columns").update({ is_archived: true }).eq("id", id);
+    if (error) throw error;
+  }, { successMessage: "Colonne archivée" });
 
-  return useMutation({
-    mutationFn: async ({ id, ...updates }: Partial<CrmColumn> & { id: string }) => {
-      const { error } = await supabase.from("crm_columns").update(updates).eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [CRM_QUERY_KEY] });
-    },
-    onError: (error) => {
-      toast({ title: "Erreur", description: error.message, variant: "destructive" });
-    },
+export const useReorderColumns = () =>
+  useCrmMutation(async (columns: { id: string; position: number }[]) => {
+    const updates = columns.map((col) =>
+      supabase.from("crm_columns").update({ position: col.position }).eq("id", col.id)
+    );
+    await Promise.all(updates);
   });
-};
-
-export const useArchiveColumn = () => {
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
-
-  return useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("crm_columns").update({ is_archived: true }).eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [CRM_QUERY_KEY] });
-      toast({ title: "Colonne archivée" });
-    },
-    onError: (error) => {
-      toast({ title: "Erreur", description: error.message, variant: "destructive" });
-    },
-  });
-};
-
-export const useReorderColumns = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (columns: { id: string; position: number }[]) => {
-      const updates = columns.map((col) =>
-        supabase.from("crm_columns").update({ position: col.position }).eq("id", col.id)
-      );
-      await Promise.all(updates);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [CRM_QUERY_KEY] });
-    },
-  });
-};
 
 // Card mutations
 export const useCreateCard = () => {
@@ -516,304 +493,103 @@ export const useMoveCard = () => {
   });
 };
 
-export const useDeleteCard = () => {
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
-
-  return useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("crm_cards").delete().eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [CRM_QUERY_KEY] });
-      toast({ title: "Opportunité supprimée" });
-    },
-    onError: (error) => {
-      toast({ title: "Erreur", description: error.message, variant: "destructive" });
-    },
-  });
-};
+export const useDeleteCard = () =>
+  useCrmMutation(async (id: string) => {
+    const { error } = await supabase.from("crm_cards").delete().eq("id", id);
+    if (error) throw error;
+  }, { successMessage: "Opportunité supprimée" });
 
 // Tag mutations
-export const useCreateTag = () => {
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
+export const useCreateTag = () =>
+  useCrmMutation(async (input: CreateTagInput) => {
+    const { data, error } = await supabase
+      .from("crm_tags")
+      .insert({
+        name: input.name,
+        color: input.color || "#3b82f6",
+        category: input.category || null,
+      })
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  }, { successMessage: "Tag créé" });
 
-  return useMutation({
-    mutationFn: async (input: CreateTagInput) => {
-      const { data, error } = await supabase
-        .from("crm_tags")
-        .insert({
-          name: input.name,
-          color: input.color || "#3b82f6",
-          category: input.category || null,
-        })
-        .select()
-        .single();
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [CRM_QUERY_KEY] });
-      toast({ title: "Tag créé" });
-    },
-    onError: (error) => {
-      toast({ title: "Erreur", description: error.message, variant: "destructive" });
-    },
+export const useDeleteTag = () =>
+  useCrmMutation(async (id: string) => {
+    const { error } = await supabase.from("crm_tags").delete().eq("id", id);
+    if (error) throw error;
+  }, { successMessage: "Tag supprimé" });
+
+export const useAssignTag = () =>
+  useCrmMutation(async ({ cardId, tagId, actorEmail }: { cardId: string; tagId: string; actorEmail: string }) => {
+    const { error } = await supabase.from("crm_card_tags").insert({ card_id: cardId, tag_id: tagId });
+    if (error) throw error;
+    const { data: tag } = await supabase.from("crm_tags").select("name").eq("id", tagId).single();
+    await logActivity(cardId, "tag_added", actorEmail, null, tag?.name);
   });
-};
 
-export const useDeleteTag = () => {
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
-
-  return useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("crm_tags").delete().eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [CRM_QUERY_KEY] });
-      toast({ title: "Tag supprimé" });
-    },
-    onError: (error) => {
-      toast({ title: "Erreur", description: error.message, variant: "destructive" });
-    },
+export const useUnassignTag = () =>
+  useCrmMutation(async ({ cardId, tagId, actorEmail }: { cardId: string; tagId: string; actorEmail: string }) => {
+    const { data: tag } = await supabase.from("crm_tags").select("name").eq("id", tagId).single();
+    const { error } = await supabase.from("crm_card_tags").delete().eq("card_id", cardId).eq("tag_id", tagId);
+    if (error) throw error;
+    await logActivity(cardId, "tag_removed", actorEmail, tag?.name, null);
   });
-};
-
-export const useAssignTag = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({
-      cardId,
-      tagId,
-      actorEmail,
-    }: {
-      cardId: string;
-      tagId: string;
-      actorEmail: string;
-    }) => {
-      const { error } = await supabase.from("crm_card_tags").insert({ card_id: cardId, tag_id: tagId });
-      if (error) throw error;
-
-      // Get tag name for logging
-      const { data: tag } = await supabase.from("crm_tags").select("name").eq("id", tagId).single();
-      await logActivity(cardId, "tag_added", actorEmail, null, tag?.name);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [CRM_QUERY_KEY] });
-    },
-  });
-};
-
-export const useUnassignTag = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({
-      cardId,
-      tagId,
-      actorEmail,
-    }: {
-      cardId: string;
-      tagId: string;
-      actorEmail: string;
-    }) => {
-      // Get tag name for logging
-      const { data: tag } = await supabase.from("crm_tags").select("name").eq("id", tagId).single();
-
-      const { error } = await supabase
-        .from("crm_card_tags")
-        .delete()
-        .eq("card_id", cardId)
-        .eq("tag_id", tagId);
-      if (error) throw error;
-
-      await logActivity(cardId, "tag_removed", actorEmail, tag?.name, null);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [CRM_QUERY_KEY] });
-    },
-  });
-};
 
 // Comment mutations
-export const useAddComment = () => {
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
+export const useAddComment = () =>
+  useCrmMutation(async ({ cardId, content, authorEmail }: { cardId: string; content: string; authorEmail: string }) => {
+    const { error } = await supabase.from("crm_comments").insert({ card_id: cardId, content, author_email: authorEmail });
+    if (error) throw error;
+    await logActivity(cardId, "comment_added", authorEmail, null, content.substring(0, 100));
+  }, { successMessage: "Commentaire ajouté" });
 
-  return useMutation({
-    mutationFn: async ({
-      cardId,
-      content,
-      authorEmail,
-    }: {
-      cardId: string;
-      content: string;
-      authorEmail: string;
-    }) => {
-      const { error } = await supabase.from("crm_comments").insert({
-        card_id: cardId,
-        content,
-        author_email: authorEmail,
-      });
-      if (error) throw error;
-
-      await logActivity(cardId, "comment_added", authorEmail, null, content.substring(0, 100));
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [CRM_QUERY_KEY] });
-      toast({ title: "Commentaire ajouté" });
-    },
-    onError: (error) => {
-      toast({ title: "Erreur", description: error.message, variant: "destructive" });
-    },
+export const useDeleteComment = () =>
+  useCrmMutation(async (id: string) => {
+    const { error } = await supabase.from("crm_comments").update({ is_deleted: true }).eq("id", id);
+    if (error) throw error;
   });
-};
-
-export const useDeleteComment = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("crm_comments").update({ is_deleted: true }).eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [CRM_QUERY_KEY] });
-    },
-  });
-};
 
 // Attachment mutations
-export const useAddAttachment = () => {
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
+export const useAddAttachment = () =>
+  useCrmMutation(async ({ cardId, file, actorEmail }: { cardId: string; file: File; actorEmail: string }) => {
+    const filePath = `${cardId}/${Date.now()}_${file.name}`;
+    const { error: uploadError } = await supabase.storage.from("crm-attachments").upload(filePath, file);
+    if (uploadError) {
+      console.warn("Storage upload failed, storing reference only:", uploadError);
+    }
+    const { error } = await supabase.from("crm_attachments").insert({
+      card_id: cardId, file_name: file.name, file_path: filePath, file_size: file.size, mime_type: file.type,
+    });
+    if (error) throw error;
+    await logActivity(cardId, "attachment_added", actorEmail, null, file.name);
+  }, { successMessage: "Fichier ajouté" });
 
-  return useMutation({
-    mutationFn: async ({
-      cardId,
-      file,
-      actorEmail,
-    }: {
-      cardId: string;
-      file: File;
-      actorEmail: string;
-    }) => {
-      // Upload to Supabase Storage (crm-attachments bucket)
-      const filePath = `${cardId}/${Date.now()}_${file.name}`;
-      const { error: uploadError } = await supabase.storage
-        .from("crm-attachments")
-        .upload(filePath, file);
-
-      if (uploadError) {
-        // If bucket doesn't exist, store reference only (local path)
-        console.warn("Storage upload failed, storing reference only:", uploadError);
-      }
-
-      const { error } = await supabase.from("crm_attachments").insert({
-        card_id: cardId,
-        file_name: file.name,
-        file_path: filePath,
-        file_size: file.size,
-        mime_type: file.type,
-      });
-      if (error) throw error;
-
-      await logActivity(cardId, "attachment_added", actorEmail, null, file.name);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [CRM_QUERY_KEY] });
-      toast({ title: "Fichier ajouté" });
-    },
-    onError: (error) => {
-      toast({ title: "Erreur", description: error.message, variant: "destructive" });
-    },
-  });
-};
-
-export const useDeleteAttachment = () => {
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
-
-  return useMutation({
-    mutationFn: async ({
-      id,
-      cardId,
-      fileName,
-      filePath,
-      actorEmail,
-    }: {
-      id: string;
-      cardId: string;
-      fileName: string;
-      filePath: string;
-      actorEmail: string;
-    }) => {
-      // Try to delete from storage
-      await supabase.storage.from("crm-attachments").remove([filePath]);
-
-      const { error } = await supabase.from("crm_attachments").delete().eq("id", id);
-      if (error) throw error;
-
-      await logActivity(cardId, "attachment_removed", actorEmail, fileName, null);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [CRM_QUERY_KEY] });
-      toast({ title: "Fichier supprimé" });
-    },
-    onError: (error) => {
-      toast({ title: "Erreur", description: error.message, variant: "destructive" });
-    },
-  });
-};
+export const useDeleteAttachment = () =>
+  useCrmMutation(async ({ id, cardId, fileName, filePath, actorEmail }: { id: string; cardId: string; fileName: string; filePath: string; actorEmail: string }) => {
+    await supabase.storage.from("crm-attachments").remove([filePath]);
+    const { error } = await supabase.from("crm_attachments").delete().eq("id", id);
+    if (error) throw error;
+    await logActivity(cardId, "attachment_removed", actorEmail, fileName, null);
+  }, { successMessage: "Fichier supprimé" });
 
 // Email mutations (real send via edge function)
-export const useSendEmail = () => {
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
-
-  return useMutation({
-    mutationFn: async ({
-      input,
-      senderEmail,
-    }: {
-      input: SendEmailInput;
-      senderEmail: string;
-    }) => {
-      // Send email via edge function
-      const { data, error } = await supabase.functions.invoke("crm-send-email", {
-        body: {
-          card_id: input.card_id,
-          recipient_email: input.recipient_email,
-          subject: input.subject,
-          body_html: input.body_html,
-          attachments: input.attachments,
-        },
-      });
-
-      if (error) {
-        throw new Error(error.message || "Échec de l'envoi de l'email");
-      }
-
-      if (!data?.success) {
-        throw new Error(data?.message || "Erreur lors de l'envoi de l'email");
-      }
-
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [CRM_QUERY_KEY] });
-      toast({ title: "Email envoyé", description: "L'email a été envoyé avec succès." });
-    },
-    onError: (error) => {
-      toast({ title: "Erreur", description: error.message, variant: "destructive" });
-    },
-  });
-};
+export const useSendEmail = () =>
+  useCrmMutation(async ({ input, senderEmail }: { input: SendEmailInput; senderEmail: string }) => {
+    const { data, error } = await supabase.functions.invoke("crm-send-email", {
+      body: {
+        card_id: input.card_id,
+        recipient_email: input.recipient_email,
+        subject: input.subject,
+        body_html: input.body_html,
+        attachments: input.attachments,
+      },
+    });
+    if (error) throw new Error(error.message || "Échec de l'envoi de l'email");
+    if (!data?.success) throw new Error(data?.message || "Erreur lors de l'envoi de l'email");
+    return data;
+  }, { successMessage: "Email envoyé" });
 
 // AI Extraction
 export const useExtractOpportunity = () => {
@@ -952,33 +728,13 @@ export const useCrmSettings = () => {
 };
 
 // Update CRM settings
-export const useUpdateCrmSettings = () => {
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
-
-  return useMutation({
-    mutationFn: async ({
-      key,
-      value,
-    }: {
-      key: string;
-      value: unknown;
-    }) => {
-      // Use raw query for crm_settings table (not yet in generated types)
-      const { error } = await (supabase as unknown as { from: (table: string) => { upsert: (data: Record<string, unknown>, options: { onConflict: string }) => Promise<{ error: Error | null }> } })
-        .from("crm_settings")
-        .upsert(
-          { setting_key: key, setting_value: value, updated_at: new Date().toISOString() },
-          { onConflict: "setting_key" }
-        );
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [CRM_QUERY_KEY, "settings"] });
-      toast({ title: "Paramètres enregistrés" });
-    },
-    onError: (error) => {
-      toast({ title: "Erreur", description: error.message, variant: "destructive" });
-    },
-  });
-};
+export const useUpdateCrmSettings = () =>
+  useCrmMutation(async ({ key, value }: { key: string; value: unknown }) => {
+    const { error } = await (supabase as unknown as { from: (table: string) => { upsert: (data: Record<string, unknown>, options: { onConflict: string }) => Promise<{ error: Error | null }> } })
+      .from("crm_settings")
+      .upsert(
+        { setting_key: key, setting_value: value, updated_at: new Date().toISOString() },
+        { onConflict: "setting_key" }
+      );
+    if (error) throw error;
+  }, { successMessage: "Paramètres enregistrés", invalidateKey: [CRM_QUERY_KEY, "settings"] });

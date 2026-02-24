@@ -366,7 +366,7 @@ const CardDetailDrawer = ({
     autoSaveField({
       title: title.trim(),
       sales_status: salesStatus,
-      estimated_value: Math.round((parseFloat(estimatedValue) || 0) * 100) / 100,
+      estimated_value: parseValue(),
       quote_url: quoteUrl.trim() || null,
       column_id: columnId,
       waiting_next_action_date: scheduledDate || null,
@@ -472,6 +472,21 @@ const CardDetailDrawer = ({
     };
   }, []);
 
+  // Shared helpers to avoid duplication
+  const parseValue = () => parseValue();
+
+  const buildCardDataForAi = () => ({
+    title: card?.title ?? "",
+    description: descriptionHtml,
+    company,
+    first_name: firstName,
+    last_name: lastName,
+    service_type: serviceType,
+    estimated_value: parseValue(),
+    comments: details?.comments || [],
+    brief_questions: card?.brief_questions || [],
+  });
+
   // AI Analysis function
   const handleAiAnalysis = async () => {
     if (!card) return;
@@ -483,17 +498,7 @@ const CardDetailDrawer = ({
       const { data, error } = await supabase.functions.invoke("crm-ai-assist", {
         body: {
           action: "analyze_exchanges",
-          card_data: {
-            title: card.title,
-            description: descriptionHtml,
-            company,
-            first_name: firstName,
-            last_name: lastName,
-            service_type: serviceType,
-            estimated_value: Math.round((parseFloat(estimatedValue) || 0) * 100) / 100,
-            comments: details?.comments || [],
-            brief_questions: card.brief_questions || [],
-          },
+          card_data: buildCardDataForAi(),
         },
       });
 
@@ -518,17 +523,7 @@ const CardDetailDrawer = ({
       const { data, error } = await supabase.functions.invoke("crm-ai-assist", {
         body: {
           action: "generate_quote_description",
-          card_data: {
-            title: card.title,
-            description: descriptionHtml,
-            company,
-            first_name: firstName,
-            last_name: lastName,
-            service_type: serviceType,
-            estimated_value: Math.round((parseFloat(estimatedValue) || 0) * 100) / 100,
-            comments: details?.comments || [],
-            brief_questions: card.brief_questions || [],
-          },
+          card_data: buildCardDataForAi(),
         },
       });
 
@@ -552,12 +547,7 @@ const CardDetailDrawer = ({
       const { data, error } = await supabase.functions.invoke("crm-ai-assist", {
         body: {
           action: "improve_email_subject",
-          card_data: {
-            subject: emailSubject,
-            company,
-            first_name: firstName,
-            context: descriptionHtml,
-          },
+          card_data: { ...buildCardDataForAi(), subject: emailSubject },
         },
       });
 
@@ -581,13 +571,7 @@ const CardDetailDrawer = ({
       const { data, error } = await supabase.functions.invoke("crm-ai-assist", {
         body: {
           action: "improve_email_body",
-          card_data: {
-            body: emailBody,
-            subject: emailSubject,
-            company,
-            first_name: firstName,
-            context: descriptionHtml,
-          },
+          card_data: { ...buildCardDataForAi(), body: emailBody, subject: emailSubject },
         },
       });
 
@@ -628,15 +612,7 @@ const CardDetailDrawer = ({
         body: {
           action: "suggest_next_action",
           card_data: {
-            title: card.title,
-            description: descriptionHtml,
-            company,
-            first_name: firstName,
-            last_name: lastName,
-            service_type: serviceType,
-            estimated_value: Math.round((parseFloat(estimatedValue) || 0) * 100) / 100,
-            comments: details?.comments || [],
-            brief_questions: card.brief_questions || [],
+            ...buildCardDataForAi(),
             confidence_score: confidenceScore,
             current_next_action: nextActionText,
             days_in_pipeline: card.created_at ? Math.floor((Date.now() - new Date(card.created_at).getTime()) / (1000 * 60 * 60 * 24)) : null,
@@ -734,7 +710,7 @@ const CardDetailDrawer = ({
         title: title.trim(),
         description_html: DOMPurify.sanitize(descriptionHtml),
         sales_status: salesStatus,
-        estimated_value: Math.round((parseFloat(estimatedValue) || 0) * 100) / 100,
+        estimated_value: parseValue(),
         quote_url: quoteUrl.trim() || null,
         column_id: columnId,
         waiting_next_action_date: scheduledDate || null,
