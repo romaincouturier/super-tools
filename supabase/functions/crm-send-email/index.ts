@@ -100,7 +100,15 @@ serve(async (req) => {
       return createErrorResponse("Non autorisé", 401);
     }
 
-    const { card_id, recipient_email, subject, body_html, attachments } = await req.json() as CrmSendEmailRequest;
+    const body = await req.json() as CrmSendEmailRequest;
+    const { card_id, recipient_email, subject, body_html, attachments } = body;
+
+    console.log("Request received - attachments present:", !!attachments, "count:", attachments?.length || 0);
+    if (attachments && attachments.length > 0) {
+      attachments.forEach((a, i) => {
+        console.log(`Attachment ${i}: filename="${a.filename}", content length=${a.content?.length || 0}`);
+      });
+    }
 
     if (!card_id || !recipient_email || !subject) {
       return createErrorResponse("card_id, recipient_email et subject sont requis", 400);
