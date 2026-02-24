@@ -14,11 +14,17 @@ import { getSenderEmail } from "../_shared/email-settings.ts";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
+interface EmailAttachment {
+  filename: string;
+  content: string; // Base64 encoded
+}
+
 interface CrmSendEmailRequest {
   card_id: string;
   recipient_email: string;
   subject: string;
   body_html: string;
+  attachments?: EmailAttachment[];
 }
 
 /**
@@ -94,7 +100,7 @@ serve(async (req) => {
       return createErrorResponse("Non autorisé", 401);
     }
 
-    const { card_id, recipient_email, subject, body_html } = await req.json() as CrmSendEmailRequest;
+    const { card_id, recipient_email, subject, body_html, attachments } = await req.json() as CrmSendEmailRequest;
 
     if (!card_id || !recipient_email || !subject) {
       return createErrorResponse("card_id, recipient_email et subject sont requis", 400);
@@ -139,6 +145,7 @@ serve(async (req) => {
       subject: subject,
       html: completeHtml,
       bcc: bccList,
+      attachments: attachments,
     });
 
     if (!emailResult.success) {

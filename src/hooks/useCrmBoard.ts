@@ -742,6 +742,7 @@ export const useSendEmail = () => {
           recipient_email: input.recipient_email,
           subject: input.subject,
           body_html: input.body_html,
+          attachments: input.attachments,
         },
       });
 

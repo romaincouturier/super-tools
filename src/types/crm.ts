@@ -272,11 +272,17 @@ export interface CreateTagInput {
   category?: string;
 }
 
+export interface EmailAttachment {
+  filename: string;
+  content: string; // Base64 encoded
+}
+
 export interface SendEmailInput {
   card_id: string;
   recipient_email: string;
   subject: string;
   body_html: string;
+  attachments?: EmailAttachment[];
 }
 
 // Board state type
