@@ -163,9 +163,37 @@ serve(async (req) => {
 
     console.log("Email sent successfully:", emailResult.id);
 
-    // Store the email in crm_card_emails (with Resend ID for tracking)
+    // Generate email record ID upfront so we can use it as the storage folder
+    const emailRecordId = crypto.randomUUID();
+
+    // Store attachments in Supabase Storage for later download
     const attachmentNames = attachments?.map((a) => a.filename) || [];
+    if (attachments && attachments.length > 0) {
+      for (const att of attachments) {
+        try {
+          const binaryString = atob(att.content);
+          const bytes = new Uint8Array(binaryString.length);
+          for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+          }
+          const storagePath = `email-attachments/${emailRecordId}/${att.filename}`;
+          const { error: uploadError } = await supabase.storage
+            .from("crm-attachments")
+            .upload(storagePath, bytes, { upsert: false });
+          if (uploadError) {
+            console.warn(`Failed to upload attachment "${att.filename}":`, uploadError);
+          } else {
+            console.log(`Attachment stored: ${storagePath}`);
+          }
+        } catch (e) {
+          console.warn(`Failed to upload attachment "${att.filename}":`, e);
+        }
+      }
+    }
+
+    // Store the email in crm_card_emails (with Resend ID for tracking)
     const { error: insertError } = await supabase.from("crm_card_emails").insert({
+      id: emailRecordId,
       card_id: card_id,
       sender_email: senderEmail,
       recipient_email: recipient_email,

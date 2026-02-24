@@ -329,6 +329,41 @@ const SentDevisSection = ({ email, cardId, emails }: SentDevisSectionProps) => {
                     }}
                   />
                 )}
+                {isExpanded && emailItem.attachment_names && emailItem.attachment_names.length > 0 && (
+                  <div className="px-4 pb-3 border-t bg-muted/30">
+                    <p className="text-[11px] font-medium text-muted-foreground pt-2 pb-1.5 flex items-center gap-1">
+                      <Paperclip className="h-3 w-3" />
+                      Pièces jointes ({emailItem.attachment_names.length})
+                    </p>
+                    <div className="flex flex-col gap-1">
+                      {emailItem.attachment_names.map((name, idx) => (
+                        <button
+                          key={idx}
+                          className="flex items-center gap-2 text-xs text-primary hover:underline text-left py-0.5"
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            const storagePath = `email-attachments/${emailItem.id}/${name}`;
+                            try {
+                              const { data, error } = await supabase.storage
+                                .from("crm-attachments")
+                                .createSignedUrl(storagePath, 3600);
+                              if (data?.signedUrl && !error) {
+                                window.open(data.signedUrl, "_blank", "noopener");
+                              } else {
+                                toast.error("Pièce jointe indisponible (email envoyé avant la mise à jour)");
+                              }
+                            } catch {
+                              toast.error("Erreur lors de l'ouverture de la pièce jointe");
+                            }
+                          }}
+                        >
+                          <FileDown className="h-3 w-3 shrink-0" />
+                          {name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             );
           }

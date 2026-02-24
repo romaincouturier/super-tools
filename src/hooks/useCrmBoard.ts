@@ -228,6 +228,13 @@ export const useCrmCardDetails = (cardId: string | null) => {
         body_html: e.body_html,
         sent_at: e.sent_at,
         attachment_names: (e as any).attachment_names || [],
+        resend_email_id: (e as any).resend_email_id || null,
+        delivery_status: (e as any).delivery_status || "sent",
+        delivered_at: (e as any).delivered_at || null,
+        opened_at: (e as any).opened_at || null,
+        open_count: (e as any).open_count || 0,
+        clicked_at: (e as any).clicked_at || null,
+        click_count: (e as any).click_count || 0,
       }));
 
       return { attachments, comments, activity, emails };
