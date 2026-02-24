@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Trash2, Loader2, X, Plus, Clock, FileText, Settings, ImageIcon, Share2, Check, Sparkles } from "lucide-react";
+import { Trash2, Loader2, X, Plus, Clock, FileText, Settings, ImageIcon, Share2, Check, Sparkles, MapPin } from "lucide-react";
 import { Mission, MissionStatus, missionStatusConfig } from "@/types/missions";
 import { useUpdateMission, useDeleteMission } from "@/hooks/useMissions";
 import { useToast } from "@/hooks/use-toast";
@@ -27,6 +27,7 @@ import EntityMediaManager from "@/components/media/EntityMediaManager";
 import MissionContacts from "./MissionContacts";
 import EmojiPickerButton from "@/components/ui/emoji-picker-button";
 import { supabase } from "@/integrations/supabase/client";
+import LogisticsBookingButtons from "@/components/shared/LogisticsBookingButtons";
 
 interface MissionDetailDrawerProps {
   mission: Mission | null;
@@ -101,6 +102,9 @@ const MissionDetailDrawer = ({
   const [newTag, setNewTag] = useState("");
   const [color, setColor] = useState("#6b7280");
   const [missionEmoji, setMissionEmoji] = useState<string | null>(null);
+  const [location, setLocation] = useState("");
+  const [trainBooked, setTrainBooked] = useState(false);
+  const [hotelBooked, setHotelBooked] = useState(false);
   const [activeTab, setActiveTab] = useState("activities");
   const [activityPageRequest, setActivityPageRequest] = useState<{ activityId: string; description: string } | null>(null);
 
@@ -121,6 +125,9 @@ const MissionDetailDrawer = ({
       setTags(mission.tags || []);
       setColor(mission.color);
       setMissionEmoji(mission.emoji || null);
+      setLocation(mission.location || "");
+      setTrainBooked(mission.train_booked ?? false);
+      setHotelBooked(mission.hotel_booked ?? false);
     }
   }, [mission]);
 
@@ -149,12 +156,13 @@ const MissionDetailDrawer = ({
           tags,
           color,
           emoji: missionEmoji,
+          location: location.trim() || null,
         },
       });
     }, 800);
 
     return () => { if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current); };
-  }, [title, description, clientName, status, startDate, endDate, dailyRate, totalDays, initialAmount, tags, color, missionEmoji]);
+  }, [title, description, clientName, status, startDate, endDate, dailyRate, totalDays, initialAmount, tags, color, missionEmoji, location]);
 
   const handleDelete = async () => {
     if (!mission) return;
@@ -224,6 +232,27 @@ const MissionDetailDrawer = ({
               Synthèse IA de la mission
             </div>
             <div className="text-purple-900 whitespace-pre-wrap leading-relaxed pr-6">{aiSummary}</div>
+          </div>
+        )}
+
+        {/* Logistics booking buttons — visible on all tabs */}
+        {location && (
+          <div className="mt-3 flex items-center gap-3">
+            <span className="text-xs text-muted-foreground flex items-center gap-1">
+              <MapPin className="h-3 w-3" />
+              {location}
+            </span>
+            <LogisticsBookingButtons
+              table="missions"
+              entityId={mission.id}
+              location={location}
+              trainBooked={trainBooked}
+              hotelBooked={hotelBooked}
+              onUpdate={(field, value) => {
+                if (field === "train_booked") setTrainBooked(value);
+                if (field === "hotel_booked") setHotelBooked(value);
+              }}
+            />
           </div>
         )}
 
@@ -331,6 +360,19 @@ const MissionDetailDrawer = ({
                 onChange={(e) => setClientName(e.target.value)}
                 placeholder="Nom de l'entreprise"
               />
+            </div>
+
+            {/* Location */}
+            <div>
+              <Label>Lieu</Label>
+              <div className="flex items-center gap-2">
+                <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
+                <Input
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  placeholder="Ville ou adresse (ex: Lyon, Paris...)"
+                />
+              </div>
             </div>
 
             {/* Multi-contact management */}
