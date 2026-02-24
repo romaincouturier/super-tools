@@ -28,6 +28,7 @@ import { ApiKeyManager } from "@/components/settings/ApiKeyManager";
 import CrmTagManager from "@/components/settings/CrmTagManager";
 import CrmColorSettings from "@/components/settings/CrmColorSettings";
 import EmailSnippetManager from "@/components/settings/EmailSnippetManager";
+import CrmEmailTemplateManager from "@/components/settings/CrmEmailTemplateManager";
 import GoogleDriveConnect from "@/components/GoogleDriveConnect";
 import GoogleCalendarConnect from "@/components/GoogleCalendarConnect";
 import { useModuleAccess } from "@/hooks/useModuleAccess";
@@ -1977,6 +1978,7 @@ const Parametres = () => {
           <TabsContent value="crm" className="space-y-6">
             <CrmColorSettings />
             <CrmTagManager />
+            <CrmEmailTemplateManager />
             <EmailSnippetManager />
           </TabsContent>
 

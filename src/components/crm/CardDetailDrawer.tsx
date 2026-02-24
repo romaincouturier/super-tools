@@ -125,6 +125,7 @@ import EmailEditor from "./EmailEditor";
 import SentDevisSection from "./SentDevisSection";
 import { CreateTrainingDialog } from "./CreateTrainingDialog";
 import confetti from "canvas-confetti";
+import { useCrmEmailTemplates, replaceCrmVariables } from "@/hooks/useCrmEmailTemplates";
 
 interface CardDetailDrawerProps {
   card: CrmCard | null;
@@ -161,6 +162,7 @@ const CardDetailDrawer = ({
   const addAttachment = useAddAttachment();
   const deleteAttachment = useDeleteAttachment();
   const sendEmail = useSendEmail();
+  const { data: crmEmailTemplates } = useCrmEmailTemplates();
 
   // Form state
   const [title, setTitle] = useState("");
@@ -1934,39 +1936,33 @@ const CardDetailDrawer = ({
                         <p className="text-xs text-muted-foreground">Cliquez pour pré-remplir le message</p>
                       </div>
                       <div className="divide-y">
-                        {[
-                          {
-                            name: "Relance devis",
-                            subject: `Suivi de votre demande${company ? ` – ${company}` : ""}`,
-                            body: `<p>Bonjour${firstName ? ` ${firstName}` : ""},</p><p>Je reviens vers vous concernant le devis que je vous ai transmis${card?.title ? ` pour votre demande de ${card.title.toLowerCase()}` : ""}.</p><p>Je voulais m'assurer que vous aviez bien reçu tous les éléments et que tout était clair pour vous.</p><p>Je reste à votre disposition pour répondre à vos questions et vous aider à finaliser votre décision.</p><p>Bonne journée,</p>`,
-                          },
-                          {
-                            name: "Premier contact",
-                            subject: `${company ? company + " – " : ""}Prise de contact SuperTilt`,
-                            body: `<p>Bonjour${firstName ? ` ${firstName}` : ""},</p><p>Je me permets de vous contacter suite à votre demande concernant ${card?.title || "notre offre de formation"}.</p><p>Je serais ravi(e) d'échanger avec vous pour mieux comprendre vos besoins et vous proposer la solution la plus adaptée.</p><p>Seriez-vous disponible pour un appel de 15 minutes cette semaine ?</p><p>Bonne journée,</p>`,
-                          },
-                          {
-                            name: "Envoi de devis",
-                            subject: `Votre devis${company ? ` – ${company}` : ""}`,
-                            body: `<p>Bonjour${firstName ? ` ${firstName}` : ""},</p><p>Suite à notre échange, veuillez trouver ci-joint votre devis pour ${card?.title || "la prestation demandée"}.</p><p>Ce document détaille l'ensemble des éléments convenus. N'hésitez pas à me revenir si vous souhaitez apporter des ajustements.</p><p>Dans l'attente de votre retour,</p>`,
-                          },
-                          {
-                            name: "Confirmation de formation",
-                            subject: `Confirmation de votre inscription${company ? ` – ${company}` : ""}`,
-                            body: `<p>Bonjour${firstName ? ` ${firstName}` : ""},</p><p>Je suis ravi(e) de confirmer votre participation à ${card?.title || "la formation"}.</p><p>Vous recevrez prochainement tous les documents nécessaires (convention, programme, modalités pratiques).</p><p>En attendant, n'hésitez pas à me contacter pour toute question.</p><p>À très bientôt,</p>`,
-                          },
-                        ].map((template) => (
-                          <button
-                            key={template.name}
-                            className="w-full text-left px-3 py-2.5 text-sm hover:bg-muted transition-colors"
-                            onClick={() => {
-                              setEmailSubject(template.subject);
-                              setEmailBody(template.body);
-                            }}
-                          >
-                            <div className="font-medium text-sm">{template.name}</div>
-                          </button>
-                        ))}
+                        {crmEmailTemplates && crmEmailTemplates.length > 0 ? (
+                          crmEmailTemplates.map((tpl) => {
+                            const vars = {
+                              company: company || undefined,
+                              first_name: firstName || undefined,
+                              last_name: lastName || undefined,
+                              title: card?.title ? card.title.toLowerCase() : undefined,
+                              email: email || undefined,
+                            };
+                            return (
+                              <button
+                                key={tpl.id}
+                                className="w-full text-left px-3 py-2.5 text-sm hover:bg-muted transition-colors"
+                                onClick={() => {
+                                  setEmailSubject(replaceCrmVariables(tpl.subject, vars));
+                                  setEmailBody(replaceCrmVariables(tpl.html_content, vars));
+                                }}
+                              >
+                                <div className="font-medium text-sm">{tpl.template_name}</div>
+                              </button>
+                            );
+                          })
+                        ) : (
+                          <div className="p-4 text-center text-sm text-muted-foreground">
+                            Aucun modèle configuré. Ajoutez-en dans Paramètres &gt; CRM.
+                          </div>
+                        )}
                       </div>
                     </PopoverContent>
                   </Popover>
