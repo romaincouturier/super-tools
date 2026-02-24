@@ -18,6 +18,108 @@ function formatDate(dateString: string): string {
   });
 }
 
+interface ReminderResult {
+  entity_type: "training" | "mission";
+  entity_id: string;
+  entity_name: string;
+  recipient_email: string;
+  success: boolean;
+  error?: string;
+}
+
+interface BookingReminder {
+  entityType: "training" | "mission";
+  entityId: string;
+  entityName: string;
+  recipientEmail: string;
+  recipientFirstName: string;
+  location: string;
+  clientName: string;
+  startDate: string;
+  daysUntil: number;
+  bookingItems: string[];
+  extraHtml?: string;
+}
+
+async function sendBookingReminderEmail(
+  reminder: BookingReminder,
+  resendApiKey: string,
+  senderFrom: string,
+  bccList: string[],
+  signature: string,
+): Promise<ReminderResult> {
+  const bookingText = reminder.bookingItems.join(" et ");
+  const typeLabel = reminder.entityType === "training" ? "la formation" : "la mission";
+
+  const subject = `Rappel : Réservation pour ${typeLabel} "${reminder.entityName}"`;
+
+  const htmlContent = `
+    <p>Bonjour ${reminder.recipientFirstName},</p>
+
+    <p>Ceci est un rappel automatique concernant ${typeLabel} <strong>"${reminder.entityName}"</strong> prévue le <strong>${formatDate(reminder.startDate)}</strong> à <strong>${reminder.location}</strong> pour ${reminder.clientName}.</p>
+
+    <p style="background-color: #fff3cd; border: 1px solid #ffc107; padding: 15px; border-radius: 4px;">
+      <strong>⚠️ À réserver :</strong> ${bookingText}<br/>
+      <em>${typeLabel.charAt(0).toUpperCase() + typeLabel.slice(1)} a lieu dans ${reminder.daysUntil} jour${reminder.daysUntil > 1 ? 's' : ''}.</em>
+    </p>
+    ${reminder.extraHtml || ''}
+    <p>Merci de procéder à la réservation dès que possible et de cocher les cases correspondantes dans l'interface de gestion.</p>
+
+    <p>Ce rappel sera envoyé chaque lundi jusqu'à ce que les réservations soient confirmées.</p>
+
+    ${signature}
+  `;
+
+  try {
+    const emailResponse = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${resendApiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: senderFrom,
+        to: [reminder.recipientEmail],
+        bcc: bccList,
+        subject,
+        html: htmlContent,
+      }),
+    });
+
+    if (!emailResponse.ok) {
+      const errorText = await emailResponse.text();
+      console.error(`Resend error for ${reminder.entityType} ${reminder.entityId}:`, errorText);
+      return {
+        entity_type: reminder.entityType,
+        entity_id: reminder.entityId,
+        entity_name: reminder.entityName,
+        recipient_email: reminder.recipientEmail,
+        success: false,
+        error: errorText,
+      };
+    }
+
+    console.log(`Reminder sent for ${reminder.entityType} ${reminder.entityId} to ${reminder.recipientEmail}`);
+    return {
+      entity_type: reminder.entityType,
+      entity_id: reminder.entityId,
+      entity_name: reminder.entityName,
+      recipient_email: reminder.recipientEmail,
+      success: true,
+    };
+  } catch (error) {
+    console.error(`Error sending reminder for ${reminder.entityType} ${reminder.entityId}:`, error);
+    return {
+      entity_type: reminder.entityType,
+      entity_id: reminder.entityId,
+      entity_name: reminder.entityName,
+      recipient_email: reminder.recipientEmail,
+      success: false,
+      error: String(error),
+    };
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -33,41 +135,25 @@ serve(async (req) => {
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // Fetch BCC settings
     const bccList = await getBccList();
+    const signature = await getSigniticSignature();
+    const senderFrom = await getSenderFrom();
 
-    // Calculate dates for different reminder windows
     const now = new Date();
     const threeMonthsFromNow = new Date(now);
     threeMonthsFromNow.setMonth(threeMonthsFromNow.getMonth() + 3);
-    
-    // For restaurant: 2 weeks and 1 week before
-    const twoWeeksFromNow = new Date(now);
-    twoWeeksFromNow.setDate(twoWeeksFromNow.getDate() + 14);
-    const oneWeekFromNow = new Date(now);
-    oneWeekFromNow.setDate(oneWeekFromNow.getDate() + 7);
 
-    // Fetch trainings starting within 3 months where train or hotel is not booked
+    const results: ReminderResult[] = [];
+
+    // ─── TRAININGS ───────────────────────────────────────────────────────
+
     const { data: trainings, error: trainingsError } = await supabase
       .from("trainings")
       .select(`
-        id,
-        training_name,
-        start_date,
-        end_date,
-        location,
-        client_name,
-        hotel_booked,
-        train_booked,
-        restaurant_booked,
-        format_formation,
+        id, training_name, start_date, end_date, location, client_name,
+        hotel_booked, train_booked, restaurant_booked, format_formation,
         trainer_id,
-        trainers!trainings_trainer_id_fkey (
-          id,
-          first_name,
-          last_name,
-          email
-        )
+        trainers!trainings_trainer_id_fkey ( id, first_name, last_name, email )
       `)
       .gte("start_date", now.toISOString().split("T")[0])
       .lte("start_date", threeMonthsFromNow.toISOString().split("T")[0])
@@ -78,166 +164,143 @@ serve(async (req) => {
       throw trainingsError;
     }
 
-    if (!trainings || trainings.length === 0) {
-      console.log("No trainings require booking reminders");
-      return new Response(
-        JSON.stringify({ success: true, reminders_sent: 0, message: "No trainings require reminders" }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    console.log(`Found ${trainings?.length || 0} trainings requiring booking reminders`);
 
-    console.log(`Found ${trainings.length} trainings requiring booking reminders`);
+    for (const training of (trainings || [])) {
+      if (training.format_formation === "e_learning") continue;
 
-    // Get Signitic signature and sender from
-    const signature = await getSigniticSignature();
-    const senderFrom = await getSenderFrom();
-
-    const results: { training_id: string; training_name: string; trainer_email: string; success: boolean; error?: string }[] = [];
-
-    for (const training of trainings) {
-      // Skip e-learning trainings - they don't need transport/accommodation booking
-      if (training.format_formation === "e_learning") {
-        console.log(`Skipping e-learning training ${training.id}`);
-        continue;
-      }
-
-      // Check if trainer exists
-      // The trainers field can be an object (single relation) or array depending on query
+      // Resolve trainer
       const trainersData = training.trainers;
       let trainer: { id: string; first_name: string; last_name: string; email: string } | null = null;
-
       if (trainersData) {
         if (Array.isArray(trainersData) && trainersData.length > 0) {
-          trainer = trainersData[0] as { id: string; first_name: string; last_name: string; email: string };
+          trainer = trainersData[0] as typeof trainer;
         } else if (typeof trainersData === 'object' && !Array.isArray(trainersData)) {
-          trainer = trainersData as { id: string; first_name: string; last_name: string; email: string };
+          trainer = trainersData as typeof trainer;
         }
       }
 
-      if (!trainer || !trainer.email) {
-        console.warn(`Training ${training.id} has no trainer or trainer email`);
+      if (!trainer?.email) {
         results.push({
-          training_id: training.id,
-          training_name: training.training_name,
-          trainer_email: "N/A",
+          entity_type: "training",
+          entity_id: training.id,
+          entity_name: training.training_name,
+          recipient_email: "N/A",
           success: false,
           error: "No trainer email",
         });
         continue;
       }
 
-      // Calculate days until training
       const trainingDate = new Date(training.start_date);
       const daysUntil = Math.ceil((trainingDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-      
-      // Determine what needs to be booked
-      // Hotel: remind up to 3 months before
-      // Train: remind only within 2 months (SNCF bookings open ~60 days before)
+
       const needsHotel = !training.hotel_booked;
       const needsTrain = !training.train_booked && daysUntil <= 60;
-      
-      // Restaurant reminder only for inter-entreprises, 2 weeks or 1 week before
       const isInterEntreprise = training.format_formation === "inter-entreprises";
       const needsRestaurant = isInterEntreprise && !training.restaurant_booked && daysUntil <= 14;
 
-      // Build the booking list for transport (train/hotel)
-      const transportItems: string[] = [];
-      if (needsTrain) transportItems.push("le train");
-      if (needsHotel) transportItems.push("l'hôtel");
-      
-      // Build the booking list for restaurant
-      const restaurantItems: string[] = [];
-      if (needsRestaurant) restaurantItems.push("le restaurant");
+      const bookingItems: string[] = [];
+      if (needsTrain) bookingItems.push("le train");
+      if (needsHotel) bookingItems.push("l'hôtel");
+      if (needsRestaurant) bookingItems.push("le restaurant");
 
-      // Skip if nothing needs to be booked
-      if (transportItems.length === 0 && restaurantItems.length === 0) {
-        continue;
-      }
+      if (bookingItems.length === 0) continue;
 
-      // Combine all items for email
-      const allBookingItems = [...transportItems, ...restaurantItems];
-      const bookingText = allBookingItems.join(" et ");
-
-      // Customize subject based on what needs booking
-      let subject: string;
-      if (restaurantItems.length > 0 && transportItems.length === 0) {
-        subject = `🍽️ Rappel : Réservation restaurant pour "${training.training_name}"`;
-      } else if (restaurantItems.length > 0 && transportItems.length > 0) {
-        subject = `Rappel : Réservations pour la formation "${training.training_name}"`;
-      } else {
-        subject = `Rappel : Réservation pour la formation "${training.training_name}"`;
-      }
-      
-      const htmlContent = `
-        <p>Bonjour ${trainer.first_name},</p>
-        
-        <p>Ceci est un rappel automatique concernant la formation <strong>"${training.training_name}"</strong> prévue le <strong>${formatDate(training.start_date)}</strong> à <strong>${training.location}</strong> pour ${training.client_name}.</p>
-        
-        <p style="background-color: #fff3cd; border: 1px solid #ffc107; padding: 15px; border-radius: 4px;">
-          <strong>⚠️ À réserver :</strong> ${bookingText}<br/>
-          <em>La formation a lieu dans ${daysUntil} jour${daysUntil > 1 ? 's' : ''}.</em>
-        </p>
-        ${needsRestaurant ? `
+      const extraHtml = needsRestaurant ? `
         <p style="background-color: #e8f5e9; border: 1px solid #4caf50; padding: 15px; border-radius: 4px;">
           <strong>🍽️ Restaurant :</strong> Pour les formations inter-entreprises, pensez à réserver un restaurant pour le déjeuner avec les participants.
         </p>
-        ` : ''}
-        <p>Merci de procéder à la réservation dès que possible et de cocher les cases correspondantes dans l'interface de gestion.</p>
-        
-        <p>Ce rappel sera envoyé chaque lundi jusqu'à ce que les réservations soient confirmées.</p>
-        
-        ${signature}
-      `;
+      ` : '';
 
-      try {
-        const emailResponse = await fetch("https://api.resend.com/emails", {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${RESEND_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            from: senderFrom,
-            to: [trainer.email],
-            bcc: bccList,
-            subject,
-            html: htmlContent,
-          }),
-        });
-
-        if (!emailResponse.ok) {
-          const errorText = await emailResponse.text();
-          console.error(`Resend error for training ${training.id}:`, errorText);
-          results.push({
-            training_id: training.id,
-            training_name: training.training_name,
-            trainer_email: trainer.email,
-            success: false,
-            error: errorText,
-          });
-        } else {
-          console.log(`Reminder sent for training ${training.id} to ${trainer.email}`);
-          results.push({
-            training_id: training.id,
-            training_name: training.training_name,
-            trainer_email: trainer.email,
-            success: true,
-          });
-        }
-
-        // Rate limiting: wait 600ms between emails
-        await new Promise((resolve) => setTimeout(resolve, 600));
-      } catch (error) {
-        console.error(`Error sending reminder for training ${training.id}:`, error);
-        results.push({
-          training_id: training.id,
-          training_name: training.training_name,
-          trainer_email: trainer.email,
-          success: false,
-          error: String(error),
-        });
-      }
+      const result = await sendBookingReminderEmail(
+        {
+          entityType: "training",
+          entityId: training.id,
+          entityName: training.training_name,
+          recipientEmail: trainer.email,
+          recipientFirstName: trainer.first_name,
+          location: training.location,
+          clientName: training.client_name,
+          startDate: training.start_date,
+          daysUntil,
+          bookingItems,
+          extraHtml,
+        },
+        RESEND_API_KEY,
+        senderFrom,
+        bccList,
+        signature,
+      );
+      results.push(result);
+      await new Promise((resolve) => setTimeout(resolve, 600));
     }
+
+    // ─── MISSIONS ────────────────────────────────────────────────────────
+
+    const { data: missions, error: missionsError } = await supabase
+      .from("missions")
+      .select("id, title, start_date, location, client_name, train_booked, hotel_booked, status, created_by")
+      .not("location", "is", null)
+      .in("status", ["not_started", "in_progress"])
+      .gte("start_date", now.toISOString().split("T")[0])
+      .lte("start_date", threeMonthsFromNow.toISOString().split("T")[0])
+      .or("hotel_booked.is.null,hotel_booked.eq.false,train_booked.is.null,train_booked.eq.false");
+
+    if (missionsError) {
+      console.error("Error fetching missions:", missionsError);
+      // Don't throw — trainings were already processed
+    }
+
+    console.log(`Found ${missions?.length || 0} missions requiring booking reminders`);
+
+    // Get the admin user email for sending mission reminders
+    const { data: settingsData } = await supabase
+      .from("app_settings")
+      .select("setting_value")
+      .eq("setting_key", "sender_email")
+      .single();
+    const adminEmail = settingsData?.setting_value || "romain@supertilt.fr";
+    const adminFirstName = "Romain"; // Fallback
+
+    for (const mission of (missions || [])) {
+      if (!mission.location) continue;
+
+      const missionDate = new Date(mission.start_date);
+      const daysUntil = Math.ceil((missionDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+
+      const needsHotel = !mission.hotel_booked;
+      const needsTrain = !mission.train_booked && daysUntil <= 60;
+
+      const bookingItems: string[] = [];
+      if (needsTrain) bookingItems.push("le train");
+      if (needsHotel) bookingItems.push("l'hôtel");
+
+      if (bookingItems.length === 0) continue;
+
+      const result = await sendBookingReminderEmail(
+        {
+          entityType: "mission",
+          entityId: mission.id,
+          entityName: mission.title,
+          recipientEmail: adminEmail,
+          recipientFirstName: adminFirstName,
+          location: mission.location,
+          clientName: mission.client_name || "Client",
+          startDate: mission.start_date,
+          daysUntil,
+          bookingItems,
+        },
+        RESEND_API_KEY,
+        senderFrom,
+        bccList,
+        signature,
+      );
+      results.push(result);
+      await new Promise((resolve) => setTimeout(resolve, 600));
+    }
+
+    // ─── RESPONSE ────────────────────────────────────────────────────────
 
     const successCount = results.filter((r) => r.success).length;
     console.log(`Booking reminders sent: ${successCount}/${results.length}`);
@@ -246,7 +309,7 @@ serve(async (req) => {
       JSON.stringify({
         success: true,
         reminders_sent: successCount,
-        total_trainings: results.length,
+        total: results.length,
         details: results,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }

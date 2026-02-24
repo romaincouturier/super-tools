@@ -24,6 +24,9 @@ export interface Mission {
   language: string;
   testimonial_status: string;
   testimonial_last_sent_at: string | null;
+  location: string | null;
+  train_booked: boolean;
+  hotel_booked: boolean;
   created_at: string;
   updated_at: string;
   created_by: string | null;
@@ -60,6 +63,9 @@ export interface UpdateMissionInput {
   position?: number;
   emoji?: string | null;
   language?: string;
+  location?: string | null;
+  train_booked?: boolean;
+  hotel_booked?: boolean;
 }
 
 export interface MissionContact {
