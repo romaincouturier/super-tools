@@ -123,6 +123,7 @@ export interface CrmCardEmail {
   subject: string;
   body_html: string;
   sent_at: string;
+  attachment_names: string[];
 }
 
 export type CrmActivityType =

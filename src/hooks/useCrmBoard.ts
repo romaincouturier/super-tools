@@ -202,6 +202,7 @@ export const useCrmCardDetails = (cardId: string | null) => {
         subject: e.subject,
         body_html: e.body_html,
         sent_at: e.sent_at,
+        attachment_names: (e as any).attachment_names || [],
       }));
 
       return { attachments, comments, activity, emails };

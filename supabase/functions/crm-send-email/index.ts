@@ -156,12 +156,14 @@ serve(async (req) => {
     console.log("Email sent successfully:", emailResult.id);
 
     // Store the email in crm_card_emails
+    const attachmentNames = attachments?.map((a) => a.filename) || [];
     const { error: insertError } = await supabase.from("crm_card_emails").insert({
       card_id: card_id,
       sender_email: senderEmail,
       recipient_email: recipient_email,
       subject: subject,
       body_html: body_html,
+      attachment_names: attachmentNames,
     });
 
     if (insertError) {
@@ -175,7 +177,7 @@ serve(async (req) => {
       action_type: "email_sent",
       old_value: null,
       new_value: `To: ${recipient_email} - ${subject}`,
-      metadata: { recipient: recipient_email, subject: subject, email_id: emailResult.id },
+      metadata: { recipient: recipient_email, subject: subject, email_id: emailResult.id, attachments: attachmentNames },
       actor_email: senderEmail,
     });
 

@@ -2247,6 +2247,9 @@ const CardDetailDrawer = ({
                           <p className="text-xs text-muted-foreground">
                             À: {email.recipient_email} •{" "}
                             {format(new Date(email.sent_at), "d MMM yyyy HH:mm", { locale: fr })}
+                            {email.attachment_names && email.attachment_names.length > 0 && (
+                              <span> • <Paperclip className="inline h-3 w-3" /> {email.attachment_names.length}</span>
+                            )}
                           </p>
                         </div>
                         <ChevronDown className={cn("h-4 w-4 text-muted-foreground shrink-0 transition-transform mt-0.5", isExpanded && "rotate-180")} />
