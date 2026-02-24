@@ -277,7 +277,7 @@ async function sendEmailWithResend(
   pdfUrlSansSubrogation: string | null,
   pdfUrlAvecSubrogation: string | null,
   typeSubrogation: "sans" | "avec" | "les2"
-): Promise<{ subject: string; htmlContent: string; attachmentNames: string[] }> {
+): Promise<{ subject: string; htmlContent: string; attachmentNames: string[]; resendEmailId: string | null }> {
   const resendApiKey = Deno.env.get("RESEND_API_KEY");
   
   if (!resendApiKey) {
@@ -435,6 +435,7 @@ async function sendEmailWithResend(
     subject,
     htmlContent,
     attachmentNames: attachments.map((a) => a.filename),
+    resendEmailId: (emailResponse as any)?.id || null,
   };
 }
 
@@ -572,6 +573,9 @@ serve(async (req: Request): Promise<Response> => {
           recipient_email: body.emailCommanditaire,
           subject: emailResult.subject,
           body_html: bodyWithAttachments,
+          attachment_names: emailResult.attachmentNames,
+          resend_email_id: emailResult.resendEmailId,
+          delivery_status: "sent",
         });
 
         // Log activity
