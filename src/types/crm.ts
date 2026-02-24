@@ -3,7 +3,7 @@
 export type StatusOperational = 'TODAY' | 'WAITING';
 export type SalesStatus = 'OPEN' | 'WON' | 'LOST' | 'CANCELED';
 export type ServiceType = 'formation' | 'mission';
-export type AcquisitionSource = 'recommandation' | 'linkedin' | 'site_web' | 'evenement' | 'appel_froid' | 'email_entrant' | 'partenaire' | 'nouvelle_mission' | 'ancien_client' | 'autre';
+export type AcquisitionSource = 'recommandation' | 'linkedin' | 'site_web' | 'evenement' | 'appel_froid' | 'email_entrant' | 'partenaire' | 'nouvelle_mission' | 'ancien_client' | 'recherche_google' | 'reseau' | 'autre';
 export type LossReason = 'prix' | 'timing' | 'concurrent' | 'besoin_non_qualifie' | 'pas_de_budget' | 'pas_de_reponse' | 'autre';
 export type NextActionType = 'email' | 'phone' | 'other';
 
@@ -243,15 +243,17 @@ export interface CommercialCoachContext {
 
 // Config objects for acquisition sources and loss reasons
 export const acquisitionSourceConfig: Record<AcquisitionSource, string> = {
-  recommandation: 'Recommandation',
-  linkedin: 'LinkedIn',
+  recherche_google: 'Recherche Google',
   site_web: 'Site web',
+  recommandation: 'Recommandation',
+  reseau: 'Réseau',
+  linkedin: 'LinkedIn',
+  ancien_client: 'Client existant',
+  nouvelle_mission: 'Nouvelle mission',
+  partenaire: 'Partenaire',
+  email_entrant: 'Email entrant',
   evenement: 'Événement',
   appel_froid: 'Appel à froid',
-  email_entrant: 'Email entrant',
-  partenaire: 'Partenaire',
-  nouvelle_mission: 'Nouvelle mission',
-  ancien_client: 'Ancien client',
   autre: 'Autre',
 };
 

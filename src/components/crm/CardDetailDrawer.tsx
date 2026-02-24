@@ -1255,33 +1255,60 @@ const CardDetailDrawer = ({
                 </Button>
               </div>
             )}
-            <div className="flex flex-wrap gap-1">
-              <Button type="button" variant="outline" size="sm" className="text-xs h-7" onClick={() => setScheduledText("Envoyer un devis")}>
-                Envoyer un devis
-              </Button>
-              <Button type="button" variant="outline" size="sm" className="text-xs h-7" onClick={() => setScheduledText("Faire un retour après consultation interne")}>
-                Retour après consultation
-              </Button>
-              <Button type="button" variant="outline" size="sm" className="text-xs h-7" onClick={() => setScheduledText("Relancer le client")}>
-                Relancer le client
-              </Button>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <Label className="text-xs">Action</Label>
-                <Input
-                  value={scheduledText}
-                  onChange={(e) => setScheduledText(e.target.value)}
-                  placeholder="Relancer le client"
-                />
+            {/* Action presets */}
+            <div>
+              <Label className="text-xs mb-1.5 block">Action</Label>
+              <div className="flex flex-wrap gap-1 mb-2">
+                {["Relancer le client", "Envoyer un devis", "Retour après consultation", "Appeler"].map((action) => (
+                  <Button
+                    key={action}
+                    type="button"
+                    variant={scheduledText === action ? "default" : "outline"}
+                    size="sm"
+                    className="text-xs h-7"
+                    onClick={() => setScheduledText(action)}
+                  >
+                    {action}
+                  </Button>
+                ))}
               </div>
-              <div>
-                <Label className="text-xs">Date (à partir de demain)</Label>
+              <Input
+                value={scheduledText}
+                onChange={(e) => setScheduledText(e.target.value)}
+                placeholder="Action personnalisée..."
+                className="h-8"
+              />
+            </div>
+            {/* Date presets */}
+            <div>
+              <Label className="text-xs mb-1.5 block">Quand</Label>
+              <div className="flex flex-wrap gap-1 mb-2">
+                {[
+                  { label: "Demain", days: 1 },
+                  { label: "J+3", days: 3 },
+                  { label: "J+7", days: 7 },
+                  { label: "J+14", days: 14 },
+                ].map(({ label, days }) => {
+                  const targetDate = format(addDays(new Date(), days), "yyyy-MM-dd");
+                  return (
+                    <Button
+                      key={label}
+                      type="button"
+                      variant={scheduledDate === targetDate ? "default" : "outline"}
+                      size="sm"
+                      className="text-xs h-7"
+                      onClick={() => setScheduledDate(targetDate)}
+                    >
+                      {label}
+                    </Button>
+                  );
+                })}
                 <Input
                   type="date"
                   min={tomorrow}
                   value={scheduledDate}
                   onChange={(e) => setScheduledDate(e.target.value)}
+                  className="h-7 w-36 text-xs"
                 />
               </div>
             </div>
@@ -1600,33 +1627,36 @@ const CardDetailDrawer = ({
                 <h4 className="font-medium text-sm flex items-center gap-2">
                   <FileText className="h-4 w-4" />
                   Questions pour le brief
+                  <span className="text-xs text-muted-foreground font-normal">
+                    ({card.brief_questions.filter((q: BriefQuestion) => q.answered).length}/{card.brief_questions.length})
+                  </span>
                 </h4>
                 <ul className="space-y-1.5">
                   {card.brief_questions.map((q: BriefQuestion) => (
-                    <li
-                      key={q.id}
-                      className="flex items-start gap-2 text-sm cursor-pointer hover:bg-amber-100/50 rounded px-1 py-0.5 -mx-1 transition-colors"
-                      onClick={() => {
-                        if (!user?.email) return;
-                        const updatedQuestions = card.brief_questions.map((bq: BriefQuestion) =>
-                          bq.id === q.id ? { ...bq, answered: !bq.answered } : bq
-                        );
-                        updateCard.mutate({
-                          id: card.id,
-                          updates: { brief_questions: updatedQuestions },
-                          actorEmail: user.email,
-                          oldCard: card,
-                        });
-                      }}
-                    >
-                      {q.answered ? (
-                        <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                      ) : (
-                        <Circle className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                      )}
-                      <span className={q.answered ? "text-muted-foreground line-through" : ""}>
+                    <li key={q.id} className="flex items-start gap-2.5 text-sm">
+                      <Checkbox
+                        id={`brief-${q.id}`}
+                        checked={q.answered}
+                        onCheckedChange={() => {
+                          if (!user?.email) return;
+                          const updatedQuestions = card.brief_questions.map((bq: BriefQuestion) =>
+                            bq.id === q.id ? { ...bq, answered: !bq.answered } : bq
+                          );
+                          updateCard.mutate({
+                            id: card.id,
+                            updates: { brief_questions: updatedQuestions },
+                            actorEmail: user.email,
+                            oldCard: card,
+                          });
+                        }}
+                        className="mt-0.5"
+                      />
+                      <label
+                        htmlFor={`brief-${q.id}`}
+                        className={cn("cursor-pointer flex-1", q.answered && "text-muted-foreground line-through")}
+                      >
                         {q.question}
-                      </span>
+                      </label>
                     </li>
                   ))}
                 </ul>
@@ -2064,6 +2094,11 @@ const CardDetailDrawer = ({
                     content={emailBody}
                     onChange={(content) => setEmailBody(content)}
                     placeholder="Corps du message..."
+                    variables={{
+                      first_name: firstName || undefined,
+                      last_name: lastName || undefined,
+                      company: company || undefined,
+                    }}
                   />
                   <div className="flex justify-end gap-2">
                     {emailBodyBeforeAi && (
@@ -2137,18 +2172,67 @@ const CardDetailDrawer = ({
                     </div>
                   )}
                 </div>
-                <Button
-                  onClick={handleSendEmail}
-                  disabled={!emailTo.trim() || !emailSubject.trim() || sendEmail.isPending}
-                  className="w-full"
-                >
-                  {sendEmail.isPending ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <Mail className="h-4 w-4 mr-2" />
-                  )}
-                  Envoyer{emailAttachments.length > 0 ? ` (${emailAttachments.length} pièce${emailAttachments.length > 1 ? "s" : ""} jointe${emailAttachments.length > 1 ? "s" : ""})` : ""}
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    onClick={handleSendEmail}
+                    disabled={!emailTo.trim() || !emailSubject.trim() || sendEmail.isPending}
+                    className="flex-1"
+                  >
+                    {sendEmail.isPending ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Mail className="h-4 w-4 mr-2" />
+                    )}
+                    Envoyer{emailAttachments.length > 0 ? ` (${emailAttachments.length} pièce${emailAttachments.length > 1 ? "s" : ""} jointe${emailAttachments.length > 1 ? "s" : ""})` : ""}
+                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="outline"
+                        disabled={!emailTo.trim() || !emailSubject.trim() || sendEmail.isPending}
+                        className="px-2"
+                      >
+                        <Calendar className="h-4 w-4" />
+                        <ChevronDown className="h-3 w-3 ml-1" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      {[
+                        { label: "Demain 8h", hours: (() => { const d = addDays(new Date(), 1); d.setHours(8, 0, 0, 0); return d; })() },
+                        { label: "Dans 3 jours ouvrés 8h", hours: (() => { let d = new Date(); let r = 3; while (r > 0) { d = addDays(d, 1); if (d.getDay() !== 0 && d.getDay() !== 6) r--; } d.setHours(8, 0, 0, 0); return d; })() },
+                        { label: "Dans 5 jours ouvrés 8h", hours: (() => { let d = new Date(); let r = 5; while (r > 0) { d = addDays(d, 1); if (d.getDay() !== 0 && d.getDay() !== 6) r--; } d.setHours(8, 0, 0, 0); return d; })() },
+                      ].map(({ label, hours }) => (
+                        <DropdownMenuItem
+                          key={label}
+                          onClick={async () => {
+                            if (!card || !user?.email || !emailTo.trim() || !emailSubject.trim()) return;
+                            try {
+                              await supabase.from("crm_scheduled_emails").insert({
+                                card_id: card.id,
+                                recipient_email: emailTo.trim(),
+                                subject: emailSubject.trim(),
+                                body_html: DOMPurify.sanitize(emailBody),
+                                scheduled_at: hours.toISOString(),
+                                sender_email: user.email,
+                                attachments: emailAttachments.length > 0 ? emailAttachments : null,
+                              });
+                              toast({ title: "Email programmé", description: `Envoi prévu le ${format(hours, "d MMM yyyy 'à' HH:mm", { locale: fr })}` });
+                              setEmailTo(""); setEmailSubject(""); setEmailBody(""); setEmailAttachments([]);
+                            } catch {
+                              toast({ title: "Erreur", description: "Impossible de programmer l'email.", variant: "destructive" });
+                            }
+                          }}
+                        >
+                          <Calendar className="h-4 w-4 mr-2" />
+                          {label}
+                          <span className="ml-auto text-xs text-muted-foreground">
+                            {format(hours, "d MMM HH:mm", { locale: fr })}
+                          </span>
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               </div>
             </div>
           </TabsContent>
