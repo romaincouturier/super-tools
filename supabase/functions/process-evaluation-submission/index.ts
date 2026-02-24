@@ -493,45 +493,56 @@ const handler = async (req: Request): Promise<Response> => {
     const greetingFirstName = firstName ? `Bonjour ${firstName},` : "Bonjour,";
 
     // ========================================
-    // 5. Special case: Facilitation graphique
+    // 5. Post-evaluation email (configurable via app_settings)
     // ========================================
-    if (trainingName.toLowerCase().includes("facilitation graphique")) {
-      // Wait to avoid rate limit before sending another email
-      await sleep(1000);
-      
-      console.log("Sending special Facilitation Graphique email...");
+    // Check if a post-evaluation email is configured for this training
+    const { data: postEvalSettings } = await supabase
+      .from("app_settings")
+      .select("setting_key, setting_value")
+      .in("setting_key", [
+        "post_evaluation_email_subject",
+        "post_evaluation_email_content",
+        "post_evaluation_email_training_filter",
+      ]);
 
-      const fgEmailHtml = `
+    const postEvalSettingsMap: Record<string, string> = {};
+    for (const s of postEvalSettings || []) {
+      postEvalSettingsMap[s.setting_key] = s.setting_value;
+    }
+
+    const postEvalFilter = (postEvalSettingsMap.post_evaluation_email_training_filter || "").trim().toLowerCase();
+    const postEvalSubject = postEvalSettingsMap.post_evaluation_email_subject || "";
+    const postEvalContent = postEvalSettingsMap.post_evaluation_email_content || "";
+
+    // Send only if all three are configured and the training name matches the filter
+    if (postEvalFilter && postEvalSubject && postEvalContent && trainingName.toLowerCase().includes(postEvalFilter)) {
+      await sleep(1000);
+
+      console.log(`Sending post-evaluation email (filter matched: "${postEvalFilter}")...`);
+
+      // Replace variables in subject and content
+      const finalSubject = postEvalSubject
+        .replace(/\{\{first_name\}\}/g, firstName || "")
+        .replace(/\{\{training_name\}\}/g, trainingName);
+
+      const finalContent = postEvalContent
+        .replace(/\{\{first_name\}\}/g, firstName || "")
+        .replace(/\{\{training_name\}\}/g, trainingName);
+
+      const postEvalHtml = `
         <p>${greetingFirstName}</p>
-        <p>Je te remercie pour ton évaluation. Pour avoir accès aux supports de la formation en ligne, voici un code de remise : <strong>FG4FREE</strong>, ce qui te permet d'avoir accès à la formation Facilitateur graphique gratuitement. Ce code est aussi valable sur l'offre Facilitateur graphique coaché.</p>
-        <p>Voici les étapes à suivre pour utiliser ton code :</p>
-        <ol>
-          <li>Rends-toi sur <a href="https://supertilt.fr/boutique/formation-en-ligne-facilitation-graphique-offre-facilitateur-graphique-en-herbe/">https://supertilt.fr/boutique/formation-en-ligne-facilitation-graphique-offre-facilitateur-graphique-en-herbe/</a></li>
-          <li>Si tu veux la formation gratuite, choisis le pack "Facilitateur graphique"</li>
-          <li>Si tu veux 1h30 de coaching visuel, choisis le pack Facilitateur graphique coaché, tu auras une remise de 249€</li>
-          <li>Clique sur "S'inscrire"</li>
-          <li>Sur la page de la commande en haut tu trouveras un lien "Cliquez ici pour entrer votre code"</li>
-          <li>Ajoute le code <strong>FG4FREE</strong></li>
-          <li>Ton panier est mis à jour avec le code promo</li>
-          <li>Saisis tes informations normalement comme tu le ferais sur n'importe quel site marchand</li>
-          <li>Après la confirmation de ta commande, tu recevras un mail qui t'indiquera comment accéder à la formation</li>
-        </ol>
-        <p>Et voilà :-) Si tu as le moindre souci, demande-moi</p>
-        <p><em>Ce code n'est valable que pour toi. En cas d'utilisation de ce code par une autre personne que toi, les accès seraient retirés.</em></p>
-        <p>Je te souhaite une belle journée et à bientôt !</p>
+        ${finalContent}
         ${signatureHtml}
       `;
 
-      const fgSubject = `Ton accès à la formation en ligne à la Facilitation Graphique`;
       await resend.emails.send({
         from: senderFrom,
         to: [email],
         bcc: bccList,
-        subject: fgSubject,
-        html: fgEmailHtml,
+        subject: finalSubject,
+        html: postEvalHtml,
       });
 
-      // Log FG access email
       await supabase.from("activity_logs").insert({
         action_type: "elearning_access_email_sent",
         recipient_email: email,
@@ -540,7 +551,7 @@ const handler = async (req: Request): Promise<Response> => {
           training_id: training.id,
           training_name: trainingName,
           participant_name: fullName,
-          email_subject: fgSubject,
+          email_subject: finalSubject,
         },
       });
     }

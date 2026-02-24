@@ -28,6 +28,7 @@ import { ApiKeyManager } from "@/components/settings/ApiKeyManager";
 import CrmTagManager from "@/components/settings/CrmTagManager";
 import CrmColorSettings from "@/components/settings/CrmColorSettings";
 import EmailSnippetManager from "@/components/settings/EmailSnippetManager";
+import CrmEmailTemplateManager from "@/components/settings/CrmEmailTemplateManager";
 import GoogleDriveConnect from "@/components/GoogleDriveConnect";
 import GoogleCalendarConnect from "@/components/GoogleCalendarConnect";
 import { useModuleAccess } from "@/hooks/useModuleAccess";
@@ -677,6 +678,11 @@ const Parametres = () => {
   const [delayConventionReminder1, setDelayConventionReminder1] = useState("3");
   const [delayConventionReminder2, setDelayConventionReminder2] = useState("7");
 
+  // Post-evaluation email settings
+  const [postEvalTrainingFilter, setPostEvalTrainingFilter] = useState("");
+  const [postEvalEmailSubject, setPostEvalEmailSubject] = useState("");
+  const [postEvalEmailContent, setPostEvalEmailContent] = useState("");
+
   // Permissions
   const [canDeleteEvaluationsEmails, setCanDeleteEvaluationsEmails] = useState("");
 
@@ -733,7 +739,10 @@ const Parametres = () => {
         "delay_evaluation_reminder_1_days", "delay_evaluation_reminder_2_days",
         "delay_convention_reminder_1_days", "delay_convention_reminder_2_days",
         "can_delete_evaluations_emails",
-        "reglement_interieur_url"
+        "reglement_interieur_url",
+        "post_evaluation_email_training_filter",
+        "post_evaluation_email_subject",
+        "post_evaluation_email_content"
       ]);
     
     if (error) {
@@ -828,6 +837,15 @@ const Parametres = () => {
         case "reglement_interieur_url":
           setReglementInterieurUrl(setting.setting_value || null);
           break;
+        case "post_evaluation_email_training_filter":
+          setPostEvalTrainingFilter(setting.setting_value || "");
+          break;
+        case "post_evaluation_email_subject":
+          setPostEvalEmailSubject(setting.setting_value || "");
+          break;
+        case "post_evaluation_email_content":
+          setPostEvalEmailContent(setting.setting_value || "");
+          break;
       }
     });
   };
@@ -863,6 +881,9 @@ const Parametres = () => {
         { setting_key: "delay_convention_reminder_2_days", setting_value: delayConventionReminder2, description: "Délai en jours ouvrés pour la 2ème relance convention de formation" },
         { setting_key: "can_delete_evaluations_emails", setting_value: canDeleteEvaluationsEmails, description: "Emails des utilisateurs autorisés à supprimer des évaluations (séparés par des virgules)" },
         { setting_key: "reglement_interieur_url", setting_value: reglementInterieurUrl || "", description: "URL du règlement intérieur des formations (PDF uploadé)" },
+        { setting_key: "post_evaluation_email_training_filter", setting_value: postEvalTrainingFilter, description: "Filtre sur le nom de la formation pour envoyer l'email post-évaluation (ex: facilitation graphique)" },
+        { setting_key: "post_evaluation_email_subject", setting_value: postEvalEmailSubject, description: "Sujet de l'email post-évaluation (variables : {{first_name}}, {{training_name}})" },
+        { setting_key: "post_evaluation_email_content", setting_value: postEvalEmailContent, description: "Contenu HTML de l'email post-évaluation (variables : {{first_name}}, {{training_name}})" },
       ];
 
       for (const setting of settingsToSave) {
@@ -1957,6 +1978,7 @@ const Parametres = () => {
           <TabsContent value="crm" className="space-y-6">
             <CrmColorSettings />
             <CrmTagManager />
+            <CrmEmailTemplateManager />
             <EmailSnippetManager />
           </TabsContent>
 
@@ -2155,6 +2177,52 @@ const Parametres = () => {
                         );
                       })}
                   </Accordion>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Post-evaluation email configuration */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Email post-évaluation</CardTitle>
+                <CardDescription>
+                  Email envoyé automatiquement après qu'un participant a rempli son évaluation,
+                  si le nom de la formation correspond au filtre ci-dessous.
+                  Variables disponibles : {"{{first_name}}"}, {"{{training_name}}"}.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Filtre sur le nom de la formation</Label>
+                  <Input
+                    placeholder="Ex: facilitation graphique"
+                    value={postEvalTrainingFilter}
+                    onChange={(e) => setPostEvalTrainingFilter(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    L'email sera envoyé si le nom de la formation contient ce texte (insensible à la casse). Laissez vide pour désactiver.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label>Sujet de l'email</Label>
+                  <Input
+                    placeholder="Ex: Ton accès à la formation en ligne {{training_name}}"
+                    value={postEvalEmailSubject}
+                    onChange={(e) => setPostEvalEmailSubject(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Contenu de l'email (HTML)</Label>
+                  <Textarea
+                    placeholder="Contenu HTML de l'email post-évaluation..."
+                    value={postEvalEmailContent}
+                    onChange={(e) => setPostEvalEmailContent(e.target.value)}
+                    className="min-h-[200px] font-mono text-sm"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Le contenu est inséré après la salutation et avant la signature. Vous pouvez utiliser du HTML
+                    ({"<p>"}, {"<strong>"}, {"<a href>"}, {"<ol>"}, {"<li>"}, etc.).
+                  </p>
                 </div>
               </CardContent>
             </Card>

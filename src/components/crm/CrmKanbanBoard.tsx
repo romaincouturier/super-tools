@@ -33,7 +33,11 @@ import { useNavigate } from "react-router-dom";
 import { isAfter, startOfDay } from "date-fns";
 import confetti from "canvas-confetti";
 
-const CrmKanbanBoard = () => {
+interface CrmKanbanBoardProps {
+  initialCardId?: string | null;
+}
+
+const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { data: boardData, isLoading } = useCrmBoard();
@@ -56,6 +60,18 @@ const CrmKanbanBoard = () => {
   // Loss reason dialog state (for drag-to-lost)
   const [showLossReasonDialog, setShowLossReasonDialog] = useState(false);
   const [pendingLossCard, setPendingLossCard] = useState<{ cardId: string; targetColumnId: string; newIndex: number; oldCard: CrmCard } | null>(null);
+
+  // Auto-open card from URL
+  const [initialCardOpened, setInitialCardOpened] = useState(false);
+  useEffect(() => {
+    if (initialCardId && boardData?.cards && !initialCardOpened) {
+      const card = boardData.cards.find((c) => c.id === initialCardId);
+      if (card) {
+        setSelectedCard(card);
+        setInitialCardOpened(true);
+      }
+    }
+  }, [initialCardId, boardData?.cards, initialCardOpened]);
 
   // Search state
   const [searchQuery, setSearchQuery] = useState("");

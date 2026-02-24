@@ -3,12 +3,19 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getSenderFrom } from "../_shared/email-settings.ts";
 
 /**
- * Process Logistics & Convention Reminders — Per-user edition
+ * Consolidated Daily Digest
  *
  * Called daily at 7:00 AM by a cron job.
- * Sends individual digest emails to each user based on their assigned trainings.
- * Admins receive ALL alerts; non-admin users receive only alerts
- * for trainings where assigned_to = their user_id.
+ * Sends a SINGLE digest email per user with all alerts, in this order:
+ *   1. Missions à facturer
+ *   2. Devis à faire (colonne contacté)
+ *   3. Opportunités à traiter (première colonne)
+ *   4. Devis à relancer (devis envoyé)
+ *   5. Formations à traiter (conventions manquantes + signature en attente)
+ *   6. Articles à relire
+ *   7. Événements approchant (< 15 jours)
+ *
+ * Admins see everything; non-admins see only their assigned trainings.
  */
 
 const corsHeaders = {
@@ -17,7 +24,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-const VERSION = "process-logistics-reminders@3.0.0";
+const VERSION = "process-logistics-reminders@4.0.0";
 
 // ─── Types ───
 interface AlertRecipient {
@@ -33,8 +40,33 @@ interface TrainingAlert {
   html: string;
 }
 
+// ─── Styles ───
+const COLORS = {
+  primary: "#1a1a2e",
+  accent: "#e6bc00",
+  green: "#22c55e",
+  blue: "#3b82f6",
+  orange: "#F97316",
+  red: "#EF4444",
+  purple: "#8B5CF6",
+  teal: "#14b8a6",
+  amber: "#F59E0B",
+};
+
+function sectionHtml(emoji: string, title: string, color: string, items: string[], count?: number): string {
+  const countLabel = count !== undefined ? ` (${count})` : "";
+  return `
+    <div style="margin-bottom: 28px;">
+      <h3 style="color: ${color}; margin: 0 0 10px 0; font-size: 15px; font-weight: 600; border-bottom: 2px solid ${color}; padding-bottom: 6px;">
+        ${emoji} ${title}${countLabel}
+      </h3>
+      <ul style="margin: 0; padding-left: 20px; font-size: 14px; line-height: 1.6;">${items.join("")}</ul>
+    </div>
+  `;
+}
+
 serve(async (req) => {
-  console.log(`[${VERSION}] Starting...`);
+  console.log(`[${VERSION}] Starting consolidated daily digest...`);
 
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -49,22 +81,25 @@ serve(async (req) => {
 
     const today = new Date().toISOString().split("T")[0];
     const todayDate = new Date(today);
-    console.log(`[${VERSION}] Checking for trainings starting after ${today}`);
 
-    // ── Fetch all recipients: users with 'formations' module access OR admins ──
+    // ── Fetch all recipients: admins OR users with formations/crm/missions module access ──
     const { data: allProfiles } = await supabase
       .from("profiles")
       .select("user_id, email, first_name, is_admin");
 
     const { data: moduleAccess } = await supabase
       .from("user_module_access")
-      .select("user_id")
-      .eq("module", "formations");
+      .select("user_id, module");
 
-    const formationsUserIds = new Set((moduleAccess || []).map((m: any) => m.user_id));
+    const moduleUserIds = new Set<string>();
+    (moduleAccess || []).forEach((m: any) => {
+      if (["formations", "crm", "missions", "contenu", "events"].includes(m.module)) {
+        moduleUserIds.add(m.user_id);
+      }
+    });
 
     const recipients: AlertRecipient[] = (allProfiles || [])
-      .filter((p: any) => p.is_admin || formationsUserIds.has(p.user_id))
+      .filter((p: any) => p.is_admin || moduleUserIds.has(p.user_id))
       .map((p: any) => ({
         userId: p.user_id,
         email: p.email,
@@ -82,21 +117,118 @@ serve(async (req) => {
 
     console.log(`[${VERSION}] Found ${recipients.length} recipient(s)`);
 
-    // ── Fetch all future trainings (with assigned_to) ──
-    const { data: allTrainings, error: fetchError } = await supabase
-      .from("trainings")
-      .select("id, training_name, start_date, location, train_booked, hotel_booked, format_formation, convention_file_url, signed_convention_urls, sponsor_email, assigned_to")
-      .gt("start_date", today);
+    // ════════════════════════════════════════════
+    // 1. MISSIONS À FACTURER
+    // ════════════════════════════════════════════
+    const { data: missionsToInvoice } = await supabase
+      .from("missions")
+      .select("id, title, client_name, consumed_amount, billed_amount, emoji")
+      .in("status", ["in_progress", "completed"]);
 
-    if (fetchError) {
-      console.error(`[${VERSION}] Error fetching trainings:`, fetchError);
-      throw fetchError;
+    const missionAlerts: string[] = [];
+    if (missionsToInvoice) {
+      for (const m of missionsToInvoice) {
+        const consumed = Number(m.consumed_amount) || 0;
+        const billed = Number(m.billed_amount) || 0;
+        if (consumed <= 0 || billed >= consumed) continue;
+        const remaining = consumed - billed;
+        const label = m.client_name ? `${m.client_name} — ${m.title}` : m.title;
+        const emojiPrefix = m.emoji ? `${m.emoji} ` : "";
+        missionAlerts.push(
+          `<li>${emojiPrefix}<a href="${appUrl}/missions/${m.id}" style="color: ${COLORS.primary}; text-decoration: underline;">${label}</a> — <strong>${remaining.toLocaleString("fr-FR")} € à facturer</strong> (${billed.toLocaleString("fr-FR")} € facturé / ${consumed.toLocaleString("fr-FR")} € consommé)</li>`
+        );
+      }
     }
+    console.log(`[${VERSION}] Missions à facturer: ${missionAlerts.length}`);
+
+    // ════════════════════════════════════════════
+    // 2-4. CRM: Devis à faire, Opportunités, Devis à relancer
+    // ════════════════════════════════════════════
+    // Fetch CRM columns to find the target columns dynamically
+    const { data: crmColumns } = await supabase
+      .from("crm_columns")
+      .select("id, name, position")
+      .eq("is_archived", false)
+      .order("position", { ascending: true });
+
+    const columns = crmColumns || [];
+    const firstColumn = columns.length > 0 ? columns[0] : null;
+    const contacteColumn = columns.find((c: any) => c.name.toLowerCase().includes("contact"));
+    const devisEnvoyeColumn = columns.find((c: any) => c.name.toLowerCase().includes("devis envoy"));
+
+    // Collect target column IDs
+    const targetColumnIds = new Set<string>();
+    if (firstColumn) targetColumnIds.add(firstColumn.id);
+    if (contacteColumn) targetColumnIds.add(contacteColumn.id);
+    if (devisEnvoyeColumn) targetColumnIds.add(devisEnvoyeColumn.id);
+
+    // Fetch OPEN CRM cards in target columns
+    let crmCards: any[] = [];
+    if (targetColumnIds.size > 0) {
+      const { data: cards } = await supabase
+        .from("crm_cards")
+        .select("id, title, company, first_name, last_name, email, phone, column_id, estimated_value, emoji, created_at")
+        .eq("sales_status", "OPEN")
+        .in("column_id", [...targetColumnIds]);
+      crmCards = cards || [];
+    }
+
+    // Group CRM cards by column
+    const cardsByColumn = new Map<string, typeof crmCards>();
+    for (const card of crmCards) {
+      const list = cardsByColumn.get(card.column_id) || [];
+      list.push(card);
+      cardsByColumn.set(card.column_id, list);
+    }
+
+    // Helper to format a CRM card as HTML list item
+    const formatCrmCard = (card: any): string => {
+      const contactName = [card.first_name, card.last_name].filter(Boolean).join(" ");
+      const label = card.company ? `${card.company} — ${card.title}` : card.title;
+      const emojiPrefix = card.emoji ? `${card.emoji} ` : "";
+      const value = card.estimated_value && Number(card.estimated_value) > 0
+        ? ` — <strong>${Number(card.estimated_value).toLocaleString("fr-FR")} €</strong>`
+        : "";
+      const contactParts: string[] = [];
+      if (contactName) contactParts.push(`<span style="color: #374151;">${contactName}</span>`);
+      if (card.phone) contactParts.push(`<a href="tel:${card.phone.replace(/\s/g, "")}" style="color: #2563eb; text-decoration: none;">📞 ${card.phone}</a>`);
+      if (card.email) contactParts.push(`<a href="mailto:${card.email}" style="color: #2563eb; text-decoration: none;">✉️ ${card.email}</a>`);
+      const contactHtml = contactParts.length > 0 ? `<br/><span style="font-size: 13px;">${contactParts.join(" · ")}</span>` : "";
+      return `<li style="margin-bottom: 6px;">${emojiPrefix}<a href="${appUrl}/crm" style="color: ${COLORS.primary}; text-decoration: underline;">${label}</a>${value}${contactHtml}</li>`;
+    };
+
+    // 2. Devis à faire (colonne contacté)
+    const devisAFaireCards = contacteColumn ? (cardsByColumn.get(contacteColumn.id) || []) : [];
+    const devisAFaireAlerts = devisAFaireCards.map(formatCrmCard);
+    console.log(`[${VERSION}] Devis à faire (contacté): ${devisAFaireAlerts.length}`);
+
+    // 3. Opportunités à traiter (première colonne)
+    // Avoid duplicates if first column = contacté column
+    const firstColumnCards = firstColumn && firstColumn.id !== contacteColumn?.id
+      ? (cardsByColumn.get(firstColumn.id) || [])
+      : firstColumn && firstColumn.id === contacteColumn?.id
+        ? [] // already shown in devis à faire
+        : [];
+    const opportunitesAlerts = firstColumnCards.map(formatCrmCard);
+    console.log(`[${VERSION}] Opportunités à traiter: ${opportunitesAlerts.length}`);
+
+    // 4. Devis à relancer (devis envoyé)
+    const devisRelanceCards = devisEnvoyeColumn ? (cardsByColumn.get(devisEnvoyeColumn.id) || []) : [];
+    const devisRelanceAlerts = devisRelanceCards.map(formatCrmCard);
+    console.log(`[${VERSION}] Devis à relancer (envoyé): ${devisRelanceAlerts.length}`);
+
+    // ════════════════════════════════════════════
+    // 5. FORMATIONS À TRAITER (conventions)
+    // ════════════════════════════════════════════
+    const { data: allTrainings } = await supabase
+      .from("trainings")
+      .select("id, training_name, start_date, location, format_formation, convention_file_url, signed_convention_urls, sponsor_email, assigned_to")
+      .gt("start_date", today);
 
     const trainings = allTrainings || [];
     const trainingIds = trainings.map((t) => t.id);
 
-    // ── Fetch participants and signatures in bulk ──
+    // Fetch participants and signatures in bulk
     const { data: allParticipants } = trainingIds.length > 0
       ? await supabase
           .from("training_participants")
@@ -126,49 +258,23 @@ serve(async (req) => {
       signaturesByKey.set(`${sig.training_id}:${sig.recipient_email}`, sig.status);
     }
 
-    // ── Build per-training alerts ──
-    // Each alert carries its trainingId and assigned_to so we can route it
-
-    // Helper to check if a user should see a training alert
     const userCanSeeTraining = (recipient: AlertRecipient, assignedTo: string | null): boolean => {
       if (recipient.isAdmin) return true;
       return assignedTo === recipient.userId;
     };
 
-    // 1. LOGISTICS ALERTS (per training)
-    const logisticsAlertsByTraining: TrainingAlert[] = [];
-    for (const t of trainings) {
-      if (t.format_formation === "e_learning") continue;
-      const missing: string[] = [];
-      const startDate = new Date(t.start_date);
-      const daysUntilTraining = Math.ceil((startDate.getTime() - todayDate.getTime()) / (1000 * 60 * 60 * 24));
-      if (!t.train_booked && daysUntilTraining <= 60) missing.push("Train");
-      if (!t.hotel_booked) missing.push("Hôtel");
-      if (missing.length === 0) continue;
-
-      const trainingDate = new Date(t.start_date).toLocaleDateString("fr-FR", {
-        weekday: "long", day: "numeric", month: "long",
-      });
-
-      logisticsAlertsByTraining.push({
-        trainingId: t.id,
-        assignedTo: t.assigned_to,
-        html: `<li><a href="${appUrl}/formations/${t.id}" style="color: #1a1a2e; text-decoration: underline;">${t.training_name}</a> (${trainingDate}, ${t.location}) — <strong>${missing.join(" et ")}</strong> non réservé${missing.length > 1 ? "s" : ""}</li>`,
-      });
-    }
-
-    // 2. CONVENTION NOT GENERATED (per training)
-    const conventionNotGenAlertsByTraining: TrainingAlert[] = [];
+    // 5a. Conventions non générées
+    const conventionNotGenAlerts: TrainingAlert[] = [];
     for (const t of trainings) {
       const isIntra = t.format_formation === "intra";
       const isInterOrElearning = t.format_formation === "inter-entreprises" || t.format_formation === "e_learning";
 
       if (isIntra && !t.convention_file_url) {
         const trainingDate = new Date(t.start_date).toLocaleDateString("fr-FR", { day: "numeric", month: "long" });
-        conventionNotGenAlertsByTraining.push({
+        conventionNotGenAlerts.push({
           trainingId: t.id,
           assignedTo: t.assigned_to,
-          html: `<li><a href="${appUrl}/formations/${t.id}" style="color: #1a1a2e; text-decoration: underline;">${t.training_name}</a> (${trainingDate}) — Convention de formation non générée</li>`,
+          html: `<li><a href="${appUrl}/formations/${t.id}" style="color: ${COLORS.primary}; text-decoration: underline;">${t.training_name}</a> (${trainingDate}) — Convention non générée</li>`,
         });
       } else if (isInterOrElearning) {
         const tParticipants = participantsByTraining.get(t.id) || [];
@@ -180,17 +286,17 @@ serve(async (req) => {
             (p) => `${p.first_name || ""} ${p.last_name || ""}`.trim() || p.email
           );
           const trainingDate = new Date(t.start_date).toLocaleDateString("fr-FR", { day: "numeric", month: "long" });
-          conventionNotGenAlertsByTraining.push({
+          conventionNotGenAlerts.push({
             trainingId: t.id,
             assignedTo: t.assigned_to,
-            html: `<li><a href="${appUrl}/formations/${t.id}" style="color: #1a1a2e; text-decoration: underline;">${t.training_name}</a> (${trainingDate}) — Convention non générée pour : ${names.join(", ")}</li>`,
+            html: `<li><a href="${appUrl}/formations/${t.id}" style="color: ${COLORS.primary}; text-decoration: underline;">${t.training_name}</a> (${trainingDate}) — Convention non générée pour : ${names.join(", ")}</li>`,
           });
         }
       }
     }
 
-    // 3. CONVENTION NOT SIGNED (per training)
-    const conventionNotSignedAlertsByTraining: TrainingAlert[] = [];
+    // 5b. Conventions non signées
+    const conventionNotSignedAlerts: TrainingAlert[] = [];
     for (const t of trainings) {
       const isIntra = t.format_formation === "intra";
       const isInterOrElearning = t.format_formation === "inter-entreprises" || t.format_formation === "e_learning";
@@ -203,15 +309,15 @@ serve(async (req) => {
           const label = sigStatus === "signed"
             ? null
             : sigStatus === "pending"
-              ? "En attente de signature électronique"
-              : "Convention non signée (aucun retour)";
+              ? "Signature électronique en attente"
+              : "Convention non signée";
 
           if (label) {
             const trainingDate = new Date(t.start_date).toLocaleDateString("fr-FR", { day: "numeric", month: "long" });
-            conventionNotSignedAlertsByTraining.push({
+            conventionNotSignedAlerts.push({
               trainingId: t.id,
               assignedTo: t.assigned_to,
-              html: `<li><a href="${appUrl}/formations/${t.id}" style="color: #1a1a2e; text-decoration: underline;">${t.training_name}</a> (${trainingDate}) — ${label}</li>`,
+              html: `<li><a href="${appUrl}/formations/${t.id}" style="color: ${COLORS.primary}; text-decoration: underline;">${t.training_name}</a> (${trainingDate}) — ${label}</li>`,
             });
           }
         }
@@ -229,17 +335,69 @@ serve(async (req) => {
         }
         if (unsignedNames.length > 0) {
           const trainingDate = new Date(t.start_date).toLocaleDateString("fr-FR", { day: "numeric", month: "long" });
-          conventionNotSignedAlertsByTraining.push({
+          conventionNotSignedAlerts.push({
             trainingId: t.id,
             assignedTo: t.assigned_to,
-            html: `<li><a href="${appUrl}/formations/${t.id}" style="color: #1a1a2e; text-decoration: underline;">${t.training_name}</a> (${trainingDate}) — Convention non signée pour : ${unsignedNames.join(", ")}</li>`,
+            html: `<li><a href="${appUrl}/formations/${t.id}" style="color: ${COLORS.primary}; text-decoration: underline;">${t.training_name}</a> (${trainingDate}) — Convention non signée pour : ${unsignedNames.join(", ")}</li>`,
           });
         }
       }
     }
+    console.log(`[${VERSION}] Conventions non générées: ${conventionNotGenAlerts.length}, non signées: ${conventionNotSignedAlerts.length}`);
 
-    // 6. TRAININGS FINISHED WITHOUT INVOICE (per training)
-    const invoiceAlertsByTraining: TrainingAlert[] = [];
+    // ════════════════════════════════════════════
+    // 6. ARTICLES À RELIRE
+    // ════════════════════════════════════════════
+    const { data: pendingReviews } = await supabase
+      .from("content_reviews")
+      .select("id, card_id, reviewer_email, status, created_at, content_cards(title)")
+      .in("status", ["pending", "in_review"])
+      .order("created_at", { ascending: true });
+
+    const reviewsByReviewerEmail = new Map<string, any[]>();
+    if (pendingReviews) {
+      for (const review of pendingReviews) {
+        const email = review.reviewer_email || "";
+        const list = reviewsByReviewerEmail.get(email) || [];
+        list.push(review);
+        reviewsByReviewerEmail.set(email, list);
+      }
+    }
+    console.log(`[${VERSION}] Articles à relire: ${pendingReviews?.length || 0}`);
+
+    // ════════════════════════════════════════════
+    // 7. ÉVÉNEMENTS APPROCHANT (< 15 jours)
+    // ════════════════════════════════════════════
+    const fifteenDaysFromNow = new Date(todayDate);
+    fifteenDaysFromNow.setDate(fifteenDaysFromNow.getDate() + 15);
+    const maxEventDate = fifteenDaysFromNow.toISOString().split("T")[0];
+
+    const { data: upcomingEvents } = await supabase
+      .from("events")
+      .select("id, title, event_date, event_time, location, location_type")
+      .gte("event_date", today)
+      .lte("event_date", maxEventDate)
+      .order("event_date", { ascending: true });
+
+    const eventAlerts: string[] = [];
+    if (upcomingEvents) {
+      for (const ev of upcomingEvents) {
+        const daysUntil = Math.ceil((new Date(ev.event_date).getTime() - todayDate.getTime()) / (1000 * 60 * 60 * 24));
+        const eventDate = new Date(ev.event_date).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" });
+        const timeStr = ev.event_time ? ` à ${ev.event_time.substring(0, 5)}` : "";
+        const locationStr = ev.location ? ` — ${ev.location}` : "";
+        const daysLabel = daysUntil === 0 ? "Aujourd'hui" : daysUntil === 1 ? "Demain" : `Dans ${daysUntil}j`;
+        eventAlerts.push(
+          `<li><a href="${appUrl}/evenements" style="color: ${COLORS.primary}; text-decoration: underline;">${ev.title}</a> — ${eventDate}${timeStr}${locationStr} <strong>(${daysLabel})</strong></li>`
+        );
+      }
+    }
+    console.log(`[${VERSION}] Événements approchant: ${eventAlerts.length}`);
+
+    // ════════════════════════════════════════════
+    // EXTRA: Formations terminées sans facture
+    // ════════════════════════════════════════════
+    const invoiceAlerts: TrainingAlert[] = [];
     const { data: pastTrainings } = await supabase
       .from("trainings")
       .select("id, training_name, start_date, end_date, invoice_file_url, assigned_to")
@@ -250,208 +408,141 @@ serve(async (req) => {
       for (const t of pastTrainings) {
         const endDate = t.end_date || t.start_date;
         if (new Date(endDate) >= new Date(today)) continue;
-
         const daysAgo = Math.ceil((Date.now() - new Date(endDate).getTime()) / (1000 * 60 * 60 * 24));
         const formattedDate = new Date(endDate).toLocaleDateString("fr-FR", { day: "numeric", month: "long" });
-
-        invoiceAlertsByTraining.push({
+        invoiceAlerts.push({
           trainingId: t.id,
           assignedTo: t.assigned_to,
-          html: `<li><a href="${appUrl}/formations/${t.id}" style="color: #1a1a2e; text-decoration: underline;">${t.training_name}</a> — terminée le ${formattedDate} (il y a ${daysAgo}j)</li>`,
+          html: `<li><a href="${appUrl}/formations/${t.id}" style="color: ${COLORS.primary}; text-decoration: underline;">${t.training_name}</a> — terminée le ${formattedDate} (il y a ${daysAgo}j)</li>`,
         });
       }
     }
 
-    // ── 4. FAILED EMAILS (admin-only, not per-training) ──
-    const failedEmailAlerts: string[] = [];
-
-    const { data: failedScheduled } = await supabase
-      .from("scheduled_emails")
-      .select("id, email_type, training_id, created_at, error_message, trainings(training_name)")
-      .eq("status", "failed")
-      .order("created_at", { ascending: false })
-      .limit(20);
-
-    if (failedScheduled && failedScheduled.length > 0) {
-      for (const fe of failedScheduled) {
-        const trainingName = (fe as any).trainings?.training_name || "—";
-        const date = new Date(fe.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
-        failedEmailAlerts.push(
-          `<li><strong>${fe.email_type}</strong> — ${trainingName} (${date})<br/><span style="color: #999; font-size: 12px;">${fe.error_message || "Erreur inconnue"}</span></li>`
-        );
-      }
-    }
-
-    const { data: failedAdhoc } = await supabase
-      .from("failed_emails")
-      .select("id, recipient_email, subject, error_message, email_type, created_at")
-      .eq("status", "failed")
-      .order("created_at", { ascending: false })
-      .limit(20);
-
-    if (failedAdhoc && failedAdhoc.length > 0) {
-      for (const fe of failedAdhoc) {
-        const date = new Date(fe.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
-        failedEmailAlerts.push(
-          `<li><strong>${fe.subject}</strong> → ${fe.recipient_email} (${date})<br/><span style="color: #999; font-size: 12px;">${fe.error_message || "Erreur inconnue"}</span></li>`
-        );
-      }
-    }
-
-    // ── 5. PENDING CONTENT REVIEWS (per-reviewer) ──
-    const { data: pendingReviews } = await supabase
-      .from("content_reviews")
-      .select("id, card_id, reviewer_email, status, created_at, content_cards(title)")
-      .in("status", ["pending", "in_review"])
-      .order("created_at", { ascending: true });
-
-    // Group reviews by reviewer email
-    const reviewsByReviewerEmail = new Map<string, typeof pendingReviews>();
-    if (pendingReviews) {
-      for (const review of pendingReviews) {
-        const email = review.reviewer_email || "";
-        const list = reviewsByReviewerEmail.get(email) || [];
-        list.push(review);
-        reviewsByReviewerEmail.set(email, list);
-      }
-    }
-
-    // ── SEND PER-USER DIGEST EMAILS ──
+    // ════════════════════════════════════════════
+    // SEND PER-USER DIGEST EMAIL
+    // ════════════════════════════════════════════
     const senderFrom = await getSenderFrom();
     let emailsSent = 0;
     let totalAlertsSent = 0;
 
     for (const recipient of recipients) {
       const sections: string[] = [];
+      let alertCount = 0;
 
-      // Filter training alerts for this user
-      const userLogistics = logisticsAlertsByTraining.filter(
+      // 1. Missions à facturer (visible to all)
+      if (missionAlerts.length > 0) {
+        sections.push(sectionHtml("💰", "Missions à facturer", COLORS.green, missionAlerts, missionAlerts.length));
+        alertCount += missionAlerts.length;
+      }
+
+      // 2. Devis à faire (colonne contacté)
+      if (devisAFaireAlerts.length > 0) {
+        sections.push(sectionHtml("📝", "Devis à faire", COLORS.blue, devisAFaireAlerts, devisAFaireAlerts.length));
+        alertCount += devisAFaireAlerts.length;
+      }
+
+      // 3. Opportunités à traiter (première colonne)
+      if (opportunitesAlerts.length > 0) {
+        const colName = firstColumn?.name || "Nouvelles";
+        sections.push(sectionHtml("🎯", `Opportunités à traiter (${colName})`, COLORS.amber, opportunitesAlerts, opportunitesAlerts.length));
+        alertCount += opportunitesAlerts.length;
+      }
+
+      // 4. Devis à relancer (devis envoyé)
+      if (devisRelanceAlerts.length > 0) {
+        sections.push(sectionHtml("🔄", "Devis à relancer", COLORS.orange, devisRelanceAlerts, devisRelanceAlerts.length));
+        alertCount += devisRelanceAlerts.length;
+      }
+
+      // 5. Formations à traiter (conventions)
+      const userConvNotGen = conventionNotGenAlerts.filter(
         (a) => userCanSeeTraining(recipient, a.assignedTo)
       );
-      if (userLogistics.length > 0) {
-        sections.push(`
-          <div style="margin-bottom: 24px;">
-            <h3 style="color: #F59E0B; margin: 0 0 8px 0; font-size: 16px;">🚆 Réservations en attente</h3>
-            <ul style="margin: 0; padding-left: 20px;">${userLogistics.map((a) => a.html).join("")}</ul>
-          </div>
-        `);
-      }
-
-      const userConvNotGen = conventionNotGenAlertsByTraining.filter(
+      const userConvNotSigned = conventionNotSignedAlerts.filter(
         (a) => userCanSeeTraining(recipient, a.assignedTo)
       );
-      if (userConvNotGen.length > 0) {
-        sections.push(`
-          <div style="margin-bottom: 24px;">
-            <h3 style="color: #EF4444; margin: 0 0 8px 0; font-size: 16px;">📄 Conventions non générées</h3>
-            <ul style="margin: 0; padding-left: 20px;">${userConvNotGen.map((a) => a.html).join("")}</ul>
-          </div>
-        `);
+      const formationItems = [
+        ...userConvNotGen.map((a) => a.html),
+        ...userConvNotSigned.map((a) => a.html),
+      ];
+      if (formationItems.length > 0) {
+        sections.push(sectionHtml("🎓", "Formations à traiter", COLORS.red, formationItems, formationItems.length));
+        alertCount += formationItems.length;
       }
 
-      const userConvNotSigned = conventionNotSignedAlertsByTraining.filter(
-        (a) => userCanSeeTraining(recipient, a.assignedTo)
-      );
-      if (userConvNotSigned.length > 0) {
-        sections.push(`
-          <div style="margin-bottom: 24px;">
-            <h3 style="color: #F97316; margin: 0 0 8px 0; font-size: 16px;">✍️ Conventions en attente de signature</h3>
-            <ul style="margin: 0; padding-left: 20px;">${userConvNotSigned.map((a) => a.html).join("")}</ul>
-          </div>
-        `);
-      }
-
-      // Failed emails — admin only
-      if (recipient.isAdmin && failedEmailAlerts.length > 0) {
-        sections.push(`
-          <div style="margin-bottom: 24px;">
-            <h3 style="color: #DC2626; margin: 0 0 8px 0; font-size: 16px;">❌ Emails en erreur (${failedEmailAlerts.length})</h3>
-            <ul style="margin: 0; padding-left: 20px;">${failedEmailAlerts.join("")}</ul>
-            <p style="margin-top: 8px;"><a href="${appUrl}/emails-erreur" style="color: #1a1a2e; text-decoration: underline; font-size: 14px;">Voir le détail →</a></p>
-          </div>
-        `);
-      }
-
-      // Pending reviews — show the user's own reviews, or all for admin
+      // 6. Articles à relire
       const userReviews = reviewsByReviewerEmail.get(recipient.email);
       if (recipient.isAdmin && pendingReviews && pendingReviews.length > 0) {
-        // Admin sees all pending reviews grouped by reviewer
         const reviewItems: string[] = [];
         for (const [reviewer, reviews] of reviewsByReviewerEmail) {
           const items = reviews.map((r: any) => {
             const cardTitle = r.content_cards?.title || "Sans titre";
             const daysAgo = Math.ceil((Date.now() - new Date(r.created_at).getTime()) / (1000 * 60 * 60 * 24));
-            const statusLabel = r.status === "pending" ? "En attente" : "En cours";
-            return `<a href="${appUrl}/contenu?card=${r.card_id}" style="color: #1a1a2e; text-decoration: underline;">${cardTitle}</a> — ${statusLabel} (${daysAgo}j)`;
+            return `<a href="${appUrl}/contenu?card=${r.card_id}" style="color: ${COLORS.primary}; text-decoration: underline;">${cardTitle}</a> (${daysAgo}j)`;
           });
           reviewItems.push(
             `<li><strong>${reviewer}</strong> : ${items.join(" · ")}</li>`
           );
         }
-        sections.push(`
-          <div style="margin-bottom: 24px;">
-            <h3 style="color: #8B5CF6; margin: 0 0 8px 0; font-size: 16px;">📋 Relectures en attente</h3>
-            <ul style="margin: 0; padding-left: 20px;">${reviewItems.join("")}</ul>
-            <p style="margin-top: 8px;"><a href="${appUrl}/contenu" style="color: #1a1a2e; text-decoration: underline; font-size: 14px;">Voir le tableau de contenu →</a></p>
-          </div>
-        `);
+        sections.push(sectionHtml("📋", "Articles à relire", COLORS.purple, reviewItems, pendingReviews.length));
+        alertCount += pendingReviews.length;
       } else if (userReviews && userReviews.length > 0) {
-        // Non-admin sees only their own reviews
         const items = userReviews.map((r: any) => {
           const cardTitle = r.content_cards?.title || "Sans titre";
           const daysAgo = Math.ceil((Date.now() - new Date(r.created_at).getTime()) / (1000 * 60 * 60 * 24));
-          const statusLabel = r.status === "pending" ? "En attente" : "En cours";
-          return `<li><a href="${appUrl}/contenu?card=${r.card_id}" style="color: #1a1a2e; text-decoration: underline;">${cardTitle}</a> — ${statusLabel} (${daysAgo}j)</li>`;
+          return `<li><a href="${appUrl}/contenu?card=${r.card_id}" style="color: ${COLORS.primary}; text-decoration: underline;">${cardTitle}</a> — En attente depuis ${daysAgo}j</li>`;
         });
-        sections.push(`
-          <div style="margin-bottom: 24px;">
-            <h3 style="color: #8B5CF6; margin: 0 0 8px 0; font-size: 16px;">📋 Tes relectures en attente</h3>
-            <ul style="margin: 0; padding-left: 20px;">${items.join("")}</ul>
-            <p style="margin-top: 8px;"><a href="${appUrl}/contenu" style="color: #1a1a2e; text-decoration: underline; font-size: 14px;">Voir le tableau de contenu →</a></p>
-          </div>
-        `);
+        sections.push(sectionHtml("📋", "Articles à relire", COLORS.purple, items, userReviews.length));
+        alertCount += userReviews.length;
       }
 
-      // Invoice alerts (per training)
-      const userInvoiceAlerts = invoiceAlertsByTraining.filter(
+      // 7. Événements approchant
+      if (eventAlerts.length > 0) {
+        sections.push(sectionHtml("📅", "Événements approchant", COLORS.teal, eventAlerts, eventAlerts.length));
+        alertCount += eventAlerts.length;
+      }
+
+      // EXTRA: Formations terminées sans facture
+      const userInvoiceAlerts = invoiceAlerts.filter(
         (a) => userCanSeeTraining(recipient, a.assignedTo)
       );
       if (userInvoiceAlerts.length > 0) {
-        sections.push(`
-          <div style="margin-bottom: 24px;">
-            <h3 style="color: #EF4444; margin: 0 0 8px 0; font-size: 16px;">🧾 Formations terminées sans facture (${userInvoiceAlerts.length})</h3>
-            <ul style="margin: 0; padding-left: 20px;">${userInvoiceAlerts.map((a) => a.html).join("")}</ul>
-          </div>
-        `);
+        sections.push(sectionHtml("🧾", "Formations terminées sans facture", COLORS.red, userInvoiceAlerts.map((a) => a.html), userInvoiceAlerts.length));
+        alertCount += userInvoiceAlerts.length;
       }
 
       // Skip if no alerts for this user
       if (sections.length === 0) continue;
 
-      const alertCount =
-        userLogistics.length +
-        userConvNotGen.length +
-        userConvNotSigned.length +
-        (recipient.isAdmin ? failedEmailAlerts.length : 0) +
-        (recipient.isAdmin
-          ? (pendingReviews?.length || 0)
-          : (userReviews?.length || 0)) +
-        userInvoiceAlerts.length;
-
       const htmlContent = `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <p>Bonjour ${recipient.firstName},</p>
-          <p>Voici le récapitulatif de tes alertes :</p>
-          ${sections.join("")}
-          <p>
-            <a href="${appUrl}/formations" style="display: inline-block; background-color: #1a1a2e; color: white; padding: 10px 20px; text-decoration: none; border-radius: 6px;">
-              Voir toutes les formations
-            </a>
-          </p>
-          <p style="color: #666; font-size: 14px; margin-top: 20px;">
-            <strong>SuperTools</strong> — Alertes automatiques
-          </p>
-        </div>
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin: 0; padding: 0; background-color: #f9fafb;">
+  <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; max-width: 640px; margin: 0 auto; padding: 20px;">
+    <div style="background: linear-gradient(135deg, ${COLORS.primary} 0%, #2d2d5e 100%); border-radius: 12px 12px 0 0; padding: 24px 28px;">
+      <h1 style="color: white; margin: 0; font-size: 20px; font-weight: 600;">
+        🔔 Récapitulatif quotidien
+      </h1>
+      <p style="color: #c4c4d4; margin: 6px 0 0 0; font-size: 14px;">
+        ${alertCount} alerte${alertCount > 1 ? "s" : ""} pour aujourd'hui
+      </p>
+    </div>
+    <div style="background: white; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 12px 12px; padding: 28px;">
+      <p style="margin: 0 0 24px 0; font-size: 15px; color: #374151;">Bonjour ${recipient.firstName},</p>
+      ${sections.join("")}
+      <div style="text-align: center; margin-top: 32px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
+        <a href="${appUrl}" style="display: inline-block; background-color: ${COLORS.accent}; color: ${COLORS.primary}; padding: 12px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 14px;">
+          Ouvrir SuperTools
+        </a>
+      </div>
+    </div>
+    <p style="text-align: center; color: #9ca3af; font-size: 12px; margin-top: 16px;">
+      SuperTools — Alertes automatiques
+    </p>
+  </div>
+</body>
+</html>
       `;
 
       try {
@@ -464,7 +555,7 @@ serve(async (req) => {
           body: JSON.stringify({
             from: senderFrom,
             to: [recipient.email],
-            subject: `🔔 ${alertCount} alerte${alertCount > 1 ? "s" : ""} formation${alertCount > 1 ? "s" : ""}`,
+            subject: `🔔 ${alertCount} alerte${alertCount > 1 ? "s" : ""} — Récapitulatif quotidien`,
             html: htmlContent,
           }),
         });

@@ -125,6 +125,7 @@ import EmailEditor from "./EmailEditor";
 import SentDevisSection from "./SentDevisSection";
 import { CreateTrainingDialog } from "./CreateTrainingDialog";
 import confetti from "canvas-confetti";
+import { useCrmEmailTemplates, replaceCrmVariables } from "@/hooks/useCrmEmailTemplates";
 import { useToast } from "@/hooks/use-toast";
 
 interface CardDetailDrawerProps {
@@ -163,6 +164,7 @@ const CardDetailDrawer = ({
   const addAttachment = useAddAttachment();
   const deleteAttachment = useDeleteAttachment();
   const sendEmail = useSendEmail();
+  const { data: crmEmailTemplates } = useCrmEmailTemplates();
 
   // Form state
   const [title, setTitle] = useState("");
@@ -204,6 +206,7 @@ const CardDetailDrawer = ({
   // Next action state
   const [nextActionText, setNextActionText] = useState("");
   const [nextActionDone, setNextActionDone] = useState(false);
+  const [nextActionType, setNextActionType] = useState<"email" | "phone" | "other">("other");
 
   // Linked mission state
   const [linkedMissionId, setLinkedMissionId] = useState<string | null>(null);
@@ -238,6 +241,9 @@ const CardDetailDrawer = ({
   const [descriptionSaving, setDescriptionSaving] = useState(false);
   const [descriptionSaved, setDescriptionSaved] = useState(false);
   const descriptionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [fieldSaving, setFieldSaving] = useState(false);
+  const [fieldSaved, setFieldSaved] = useState(false);
+  const fieldTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Email history state
   const [expandedEmailId, setExpandedEmailId] = useState<string | null>(null);
@@ -334,6 +340,7 @@ const CardDetailDrawer = ({
       // Next action
       setNextActionText(card.next_action_text || "");
       setNextActionDone(card.next_action_done || false);
+      setNextActionType((card as any).next_action_type || "other");
       // Linked mission
       setLinkedMissionId(card.linked_mission_id || null);
       setMissionSearchQuery("");
@@ -342,8 +349,46 @@ const CardDetailDrawer = ({
       setAiAnalysis(null);
       setQuoteDescription(null);
       setDescriptionSaved(false);
+      setFieldSaved(false);
+      // Mark card as loaded (skip first auto-save trigger)
+      cardLoadedRef.current = false;
+      setTimeout(() => { cardLoadedRef.current = true; }, 100);
     }
   }, [card]);
+
+  // Track whether card data is loaded (to avoid auto-saving on initial render)
+  const cardLoadedRef = useRef(false);
+
+  // Auto-save all fields (except description which has its own handler)
+  useEffect(() => {
+    if (!cardLoadedRef.current || !card) return;
+    autoSaveField({
+      title: title.trim(),
+      sales_status: salesStatus,
+      estimated_value: Math.round((parseFloat(estimatedValue) || 0) * 100) / 100,
+      quote_url: quoteUrl.trim() || null,
+      column_id: columnId,
+      waiting_next_action_date: scheduledDate || null,
+      waiting_next_action_text: scheduledText.trim() || null,
+      first_name: firstName.trim() || null,
+      last_name: lastName.trim() || null,
+      company: company.trim() || null,
+      email: email.trim() || null,
+      phone: phone.trim() || null,
+      linkedin_url: linkedinUrl.trim() || null,
+      website_url: websiteUrl.trim() || null,
+      service_type: serviceType,
+      next_action_text: nextActionText.trim() || null,
+      next_action_done: nextActionDone,
+      next_action_type: nextActionType,
+      linked_mission_id: linkedMissionId,
+      emoji: cardEmoji,
+      confidence_score: confidenceScore,
+      acquisition_source: acquisitionSource,
+    });
+  }, [title, salesStatus, estimatedValue, quoteUrl, columnId, scheduledDate, scheduledText,
+      firstName, lastName, company, email, phone, linkedinUrl, websiteUrl, serviceType,
+      nextActionText, nextActionDone, nextActionType, linkedMissionId, cardEmoji, confidenceScore, acquisitionSource]);
 
   // Auto-save description with debounce
   const saveDescription = useCallback(async (newDescription: string) => {
@@ -386,11 +431,42 @@ const CardDetailDrawer = ({
   };
 
 
-  // Cleanup timeout on unmount
+  // Generic field auto-save with debounce
+  const autoSaveField = useCallback((updates: Record<string, unknown>) => {
+    if (!card || !user?.email) return;
+
+    if (fieldTimeoutRef.current) {
+      clearTimeout(fieldTimeoutRef.current);
+    }
+
+    fieldTimeoutRef.current = setTimeout(async () => {
+      setFieldSaving(true);
+      setFieldSaved(false);
+      try {
+        await updateCard.mutateAsync({
+          id: card.id,
+          updates: updates as any,
+          actorEmail: user.email!,
+          oldCard: card,
+        });
+        setFieldSaved(true);
+        setTimeout(() => setFieldSaved(false), 2000);
+      } catch (error) {
+        console.error("Failed to auto-save field:", error);
+      } finally {
+        setFieldSaving(false);
+      }
+    }, 1000);
+  }, [card, user?.email, updateCard]);
+
+  // Cleanup timeouts on unmount
   useEffect(() => {
     return () => {
       if (descriptionTimeoutRef.current) {
         clearTimeout(descriptionTimeoutRef.current);
+      }
+      if (fieldTimeoutRef.current) {
+        clearTimeout(fieldTimeoutRef.current);
       }
     };
   }, []);
@@ -673,6 +749,7 @@ const CardDetailDrawer = ({
         service_type: serviceType,
         next_action_text: nextActionText.trim() || null,
         next_action_done: nextActionDone,
+        next_action_type: nextActionType,
         linked_mission_id: linkedMissionId,
         emoji: cardEmoji,
         confidence_score: confidenceScore,
@@ -1021,13 +1098,16 @@ const CardDetailDrawer = ({
                   <Maximize2 className="h-4 w-4" />
                 )}
               </Button>
-              <Button size="sm" onClick={handleSave} disabled={updateCard.isPending}>
-                {updateCard.isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Save className="h-4 w-4" />
-                )}
-              </Button>
+              {(fieldSaving || descriptionSaving) && (
+                <span className="text-xs text-muted-foreground flex items-center gap-1">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                </span>
+              )}
+              {(fieldSaved || descriptionSaved) && !fieldSaving && !descriptionSaving && (
+                <span className="text-xs text-green-600 flex items-center gap-1">
+                  <CheckCircle2 className="h-3 w-3" />
+                </span>
+              )}
             </div>
           </SheetTitle>
         </SheetHeader>
@@ -1607,14 +1687,45 @@ const CardDetailDrawer = ({
                   onCheckedChange={(checked) => setNextActionDone(checked === true)}
                 />
                 <div className="flex-1">
-                  <Label htmlFor="next-action-done" className="text-xs text-muted-foreground mb-1 block">
-                    Prochaine action
-                  </Label>
+                  <div className="flex items-center gap-2 mb-1">
+                    <Label htmlFor="next-action-done" className="text-xs text-muted-foreground">
+                      Prochaine action
+                    </Label>
+                    <div className="flex gap-0.5">
+                      <Button
+                        variant={nextActionType === "email" ? "default" : "ghost"}
+                        size="sm"
+                        className="h-5 px-1.5 text-[10px]"
+                        onClick={() => setNextActionType("email")}
+                        title="Recontacter par email"
+                      >
+                        <Mail className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant={nextActionType === "phone" ? "default" : "ghost"}
+                        size="sm"
+                        className="h-5 px-1.5 text-[10px]"
+                        onClick={() => setNextActionType("phone")}
+                        title="Recontacter par téléphone"
+                      >
+                        <Phone className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant={nextActionType === "other" ? "default" : "ghost"}
+                        size="sm"
+                        className="h-5 px-1.5 text-[10px]"
+                        onClick={() => setNextActionType("other")}
+                        title="Autre action"
+                      >
+                        <Circle className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
                   <div className="flex gap-1.5">
                     <Input
                       value={nextActionText}
                       onChange={(e) => setNextActionText(e.target.value)}
-                      placeholder="Quelle est la prochaine action à faire ?"
+                      placeholder={nextActionType === "email" ? "Recontacter par email..." : nextActionType === "phone" ? "Recontacter par téléphone..." : "Quelle est la prochaine action ?"}
                       className={`h-8 text-sm flex-1 ${nextActionDone ? "line-through text-muted-foreground" : ""}`}
                     />
                     <Button
@@ -1827,39 +1938,33 @@ const CardDetailDrawer = ({
                         <p className="text-xs text-muted-foreground">Cliquez pour pré-remplir le message</p>
                       </div>
                       <div className="divide-y">
-                        {[
-                          {
-                            name: "Relance devis",
-                            subject: `Suivi de votre demande${company ? ` – ${company}` : ""}`,
-                            body: `<p>Bonjour${firstName ? ` ${firstName}` : ""},</p><p>Je reviens vers vous concernant le devis que je vous ai transmis${card?.title ? ` pour votre demande de ${card.title.toLowerCase()}` : ""}.</p><p>Je voulais m'assurer que vous aviez bien reçu tous les éléments et que tout était clair pour vous.</p><p>Je reste à votre disposition pour répondre à vos questions et vous aider à finaliser votre décision.</p><p>Bonne journée,</p>`,
-                          },
-                          {
-                            name: "Premier contact",
-                            subject: `${company ? company + " – " : ""}Prise de contact SuperTilt`,
-                            body: `<p>Bonjour${firstName ? ` ${firstName}` : ""},</p><p>Je me permets de vous contacter suite à votre demande concernant ${card?.title || "notre offre de formation"}.</p><p>Je serais ravi(e) d'échanger avec vous pour mieux comprendre vos besoins et vous proposer la solution la plus adaptée.</p><p>Seriez-vous disponible pour un appel de 15 minutes cette semaine ?</p><p>Bonne journée,</p>`,
-                          },
-                          {
-                            name: "Envoi de devis",
-                            subject: `Votre devis${company ? ` – ${company}` : ""}`,
-                            body: `<p>Bonjour${firstName ? ` ${firstName}` : ""},</p><p>Suite à notre échange, veuillez trouver ci-joint votre devis pour ${card?.title || "la prestation demandée"}.</p><p>Ce document détaille l'ensemble des éléments convenus. N'hésitez pas à me revenir si vous souhaitez apporter des ajustements.</p><p>Dans l'attente de votre retour,</p>`,
-                          },
-                          {
-                            name: "Confirmation de formation",
-                            subject: `Confirmation de votre inscription${company ? ` – ${company}` : ""}`,
-                            body: `<p>Bonjour${firstName ? ` ${firstName}` : ""},</p><p>Je suis ravi(e) de confirmer votre participation à ${card?.title || "la formation"}.</p><p>Vous recevrez prochainement tous les documents nécessaires (convention, programme, modalités pratiques).</p><p>En attendant, n'hésitez pas à me contacter pour toute question.</p><p>À très bientôt,</p>`,
-                          },
-                        ].map((template) => (
-                          <button
-                            key={template.name}
-                            className="w-full text-left px-3 py-2.5 text-sm hover:bg-muted transition-colors"
-                            onClick={() => {
-                              setEmailSubject(template.subject);
-                              setEmailBody(template.body);
-                            }}
-                          >
-                            <div className="font-medium text-sm">{template.name}</div>
-                          </button>
-                        ))}
+                        {crmEmailTemplates && crmEmailTemplates.length > 0 ? (
+                          crmEmailTemplates.map((tpl) => {
+                            const vars = {
+                              company: company || undefined,
+                              first_name: firstName || undefined,
+                              last_name: lastName || undefined,
+                              title: card?.title ? card.title.toLowerCase() : undefined,
+                              email: email || undefined,
+                            };
+                            return (
+                              <button
+                                key={tpl.id}
+                                className="w-full text-left px-3 py-2.5 text-sm hover:bg-muted transition-colors"
+                                onClick={() => {
+                                  setEmailSubject(replaceCrmVariables(tpl.subject, vars));
+                                  setEmailBody(replaceCrmVariables(tpl.html_content, vars));
+                                }}
+                              >
+                                <div className="font-medium text-sm">{tpl.template_name}</div>
+                              </button>
+                            );
+                          })
+                        ) : (
+                          <div className="p-4 text-center text-sm text-muted-foreground">
+                            Aucun modèle configuré. Ajoutez-en dans Paramètres &gt; CRM.
+                          </div>
+                        )}
                       </div>
                     </PopoverContent>
                   </Popover>

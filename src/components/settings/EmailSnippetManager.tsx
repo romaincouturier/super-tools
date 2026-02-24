@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,6 +49,7 @@ const EmailSnippetManager = () => {
   const [category, setCategory] = useState("");
 
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const loadSnippets = async () => {
     setLoading(true);
@@ -123,6 +125,7 @@ const EmailSnippetManager = () => {
     setSaving(false);
     setDialogOpen(false);
     loadSnippets();
+    queryClient.invalidateQueries({ queryKey: ["email-snippets"] });
   };
 
   const handleDelete = async () => {
@@ -139,6 +142,7 @@ const EmailSnippetManager = () => {
     }
     setDeleteId(null);
     loadSnippets();
+    queryClient.invalidateQueries({ queryKey: ["email-snippets"] });
   };
 
   // Group by category
