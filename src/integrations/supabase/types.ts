@@ -1954,9 +1954,11 @@ export type Database = {
           description: string | null
           emoji: string | null
           end_date: string | null
+          hotel_booked: boolean | null
           id: string
           initial_amount: number | null
           language: string | null
+          location: string | null
           position: number
           start_date: string | null
           status: string
@@ -1966,6 +1968,7 @@ export type Database = {
           title: string
           total_amount: number | null
           total_days: number | null
+          train_booked: boolean | null
           updated_at: string | null
         }
         Insert: {
@@ -1980,9 +1983,11 @@ export type Database = {
           description?: string | null
           emoji?: string | null
           end_date?: string | null
+          hotel_booked?: boolean | null
           id?: string
           initial_amount?: number | null
           language?: string | null
+          location?: string | null
           position?: number
           start_date?: string | null
           status?: string
@@ -1992,6 +1997,7 @@ export type Database = {
           title: string
           total_amount?: number | null
           total_days?: number | null
+          train_booked?: boolean | null
           updated_at?: string | null
         }
         Update: {
@@ -2006,9 +2012,11 @@ export type Database = {
           description?: string | null
           emoji?: string | null
           end_date?: string | null
+          hotel_booked?: boolean | null
           id?: string
           initial_amount?: number | null
           language?: string | null
+          location?: string | null
           position?: number
           start_date?: string | null
           status?: string
@@ -2018,6 +2026,7 @@ export type Database = {
           title?: string
           total_amount?: number | null
           total_days?: number | null
+          train_booked?: boolean | null
           updated_at?: string | null
         }
         Relationships: []

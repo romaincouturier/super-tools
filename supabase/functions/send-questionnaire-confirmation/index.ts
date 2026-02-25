@@ -24,9 +24,9 @@ function generatePerDayCalendarLinks(
   location: string,
   startDate: string,
   endDate: string,
-  schedules: Array<{ day_date: string; start_time: string; end_time: string }>
+  schedules: Array<{ day_date: string; start_time: string; end_time: string }>,
+  senderEmail: string
 ): Array<{ label: string; google: string; outlook: string }> {
-  const senderEmail = await getSenderEmail();
   const description = `Formation Supertilt: ${trainingName}\n\nEmail: ${senderEmail}`;
   
   const sortedSchedules = schedules && schedules.length > 0
@@ -145,18 +145,21 @@ serve(async (req) => {
       .order("day_date", { ascending: true });
 
     // Generate per-day calendar links
+    // Get sender email first so we can pass it to calendar link generator
+    const senderEmail = await getSenderEmail();
+
     const calendarDays = generatePerDayCalendarLinks(
       trainingName,
       location,
       startDate,
       endDate,
-      schedules || []
+      schedules || [],
+      senderEmail
     );
 
     // Get signature and sender info
-    const [signature, senderEmail, senderFrom] = await Promise.all([
+    const [signature, senderFrom] = await Promise.all([
       getSigniticSignature(),
-      getSenderEmail(),
       getSenderFrom(),
     ]);
 
