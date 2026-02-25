@@ -1336,9 +1336,14 @@ const FormationDetail = () => {
           <AttendanceSignatureBlock
             trainingId={training.id}
             trainingName={training.training_name}
+            trainerName={training.trainer_name}
             schedules={schedules}
             participantsCount={participants.length}
             participants={participants}
+            location={training.location}
+            startDate={training.start_date}
+            endDate={training.end_date}
+            onUpdate={fetchTrainingData}
           />
         </div>
 
