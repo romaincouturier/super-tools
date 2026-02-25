@@ -311,9 +311,11 @@ const CardDetailDrawer = ({
   // Get tomorrow's date as minimum for scheduling
   const tomorrow = format(addDays(new Date(), 1), "yyyy-MM-dd");
 
-  // Initialize form when card changes
+  // Initialize form when a DIFFERENT card is opened (not on every refetch)
+  const prevCardIdRef = useRef<string | null>(null);
   useEffect(() => {
-    if (card) {
+    if (card && card.id !== prevCardIdRef.current) {
+      prevCardIdRef.current = card.id;
       setTitle(card.title);
       setCardEmoji(card.emoji || null);
       setDescriptionHtml(card.description_html || "");
@@ -356,6 +358,13 @@ const CardDetailDrawer = ({
       setTimeout(() => { cardLoadedRef.current = true; }, 100);
     }
   }, [card]);
+
+  // Reset tracking when drawer closes so re-opening the same card reinitializes
+  useEffect(() => {
+    if (!open) {
+      prevCardIdRef.current = null;
+    }
+  }, [open]);
 
   // Track whether card data is loaded (to avoid auto-saving on initial render)
   const cardLoadedRef = useRef(false);
