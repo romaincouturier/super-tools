@@ -2156,7 +2156,7 @@ const CardDetailDrawer = ({
                       onClick={async () => {
                         if (!card || !user?.email || !emailTo.trim() || !emailSubject.trim()) return;
                         try {
-                          await supabase.from("crm_scheduled_emails").insert({
+                          await (supabase as any).from("crm_scheduled_emails").insert({
                             card_id: card.id,
                             recipient_email: emailTo.trim(),
                             subject: emailSubject.trim(),
