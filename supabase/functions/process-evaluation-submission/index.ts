@@ -476,7 +476,7 @@ const handler = async (req: Request): Promise<Response> => {
       details: {
         evaluation_id: evaluationId,
         training_id: training.id,
-        training_name: trainingName,
+        training_name: training.training_name,
         participant_name: fullName,
         email_subject: certSubject,
       },
