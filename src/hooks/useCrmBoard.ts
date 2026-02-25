@@ -386,8 +386,8 @@ export const useCreateCard = () => {
 
       return data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [CRM_QUERY_KEY] });
+    onSuccess: async () => {
+      await queryClient.refetchQueries({ queryKey: [CRM_QUERY_KEY], exact: true });
       toast({ title: "Opportunité créée" });
     },
     onError: (error) => {
