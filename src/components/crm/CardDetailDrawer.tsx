@@ -473,7 +473,7 @@ const CardDetailDrawer = ({
   }, []);
 
   // Shared helpers to avoid duplication
-  const parseValue = () => parseValue();
+  const parseValue = () => parseFloat(estimatedValue) || 0;
 
   const buildCardDataForAi = () => ({
     title: card?.title ?? "",
