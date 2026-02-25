@@ -227,14 +227,12 @@ const Evaluation = () => {
       if (upErr) throw upErr;
 
       // Trigger post-evaluation processing (certificate, emails, etc.)
-      try {
-        await supabase.functions.invoke("process-evaluation-submission", {
-          body: { evaluationId: evaluation.id },
-        });
-      } catch (processError) {
+      // Fire-and-forget: don't await to avoid edge function timeout blocking the UI
+      supabase.functions.invoke("process-evaluation-submission", {
+        body: { evaluationId: evaluation.id },
+      }).catch((processError) => {
         console.error("Post-evaluation processing failed:", processError);
-        // Don't fail the submission if post-processing fails
-      }
+      });
 
       toast({
         title: "Merci !",

@@ -253,47 +253,6 @@ export type Database = {
           },
         ]
       }
-      trainer_attendance_signatures: {
-        Row: {
-          id: string
-          training_id: string
-          schedule_date: string
-          period: string
-          signature_data: string | null
-          signed_at: string | null
-          trainer_name: string | null
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          training_id: string
-          schedule_date: string
-          period: string
-          signature_data?: string | null
-          signed_at?: string | null
-          trainer_name?: string | null
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          training_id?: string
-          schedule_date?: string
-          period?: string
-          signature_data?: string | null
-          signed_at?: string | null
-          trainer_name?: string | null
-          created_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "trainer_attendance_signatures_training_id_fkey"
-            columns: ["training_id"]
-            isOneToOne: false
-            referencedRelation: "trainings"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       chatbot_conversations: {
         Row: {
           answer: string
@@ -2881,6 +2840,47 @@ export type Database = {
           },
           {
             foreignKeyName: "sponsor_cold_evaluations_training_id_fkey"
+            columns: ["training_id"]
+            isOneToOne: false
+            referencedRelation: "trainings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trainer_attendance_signatures: {
+        Row: {
+          created_at: string | null
+          id: string
+          period: string
+          schedule_date: string
+          signature_data: string | null
+          signed_at: string | null
+          trainer_name: string | null
+          training_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          period: string
+          schedule_date: string
+          signature_data?: string | null
+          signed_at?: string | null
+          trainer_name?: string | null
+          training_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          period?: string
+          schedule_date?: string
+          signature_data?: string | null
+          signed_at?: string | null
+          trainer_name?: string | null
+          training_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trainer_attendance_signatures_training_id_fkey"
             columns: ["training_id"]
             isOneToOne: false
             referencedRelation: "trainings"
