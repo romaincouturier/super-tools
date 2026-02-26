@@ -364,8 +364,10 @@ const ParticipantList = ({
               prenom: participant.first_name || "",
               nom: participant.last_name || "",
               email: participant.email,
+              participantId: participant.id,
             }],
             userId: session.data.session?.user?.id,
+            trainingId,
           }),
         }
       );
