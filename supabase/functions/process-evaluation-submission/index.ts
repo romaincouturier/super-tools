@@ -46,7 +46,13 @@ const getGoogleAccessToken = async (): Promise<string> => {
     throw new Error("GOOGLE_SERVICE_ACCOUNT_JSON not configured");
   }
 
-  const serviceAccount = JSON.parse(GOOGLE_SERVICE_ACCOUNT_JSON);
+  // Handle potential double-encoding or extra wrapping of the JSON secret
+  let rawJson = GOOGLE_SERVICE_ACCOUNT_JSON.trim();
+  // If the value is wrapped in extra quotes (double-encoded), unwrap it
+  if (rawJson.startsWith('"') && rawJson.endsWith('"')) {
+    rawJson = JSON.parse(rawJson);
+  }
+  const serviceAccount = typeof rawJson === 'string' ? JSON.parse(rawJson) : rawJson;
   const now = Math.floor(Date.now() / 1000);
 
   // Create JWT header and claims
