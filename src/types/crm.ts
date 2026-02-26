@@ -54,7 +54,7 @@ export interface CrmCard {
   waiting_next_action_date: string | null;
   waiting_next_action_text: string | null;
   sales_status: SalesStatus;
-  estimated_value: number;
+  estimated_value: number | null;
   quote_url: string | null;
   position: number;
   created_at: string;

@@ -67,7 +67,7 @@ function makeCard(overrides: Partial<CrmCard> = {}): CrmCard {
     email: null,
     linkedin_url: null,
     website_url: null,
-    estimated_value: 0,
+    estimated_value: null,
     quote_url: null,
     confidence_score: null,
     won_at: null,
@@ -424,10 +424,12 @@ describe("buildCRMContext", () => {
       });
       const result = buildCRMContext([col1], [card]);
       expect(result).toContain("Pipeline ouvert");
-      expect(result).toContain("Prospection");
-      expect(result).toContain(`1 opportunite(s) (5${S}000€)`);
+      expect(result).toContain(`Prospection: 1 opportunite(s) (5${S}000€)`);
       expect(result).toContain("Acme");
       expect(result).toContain(`Total pipeline ouvert: 5${S}000€ (1 deals)`);
+      // Negative: open deal must NOT appear in WON or LOST sections
+      expect(result).toContain("Deals GAGNES: Aucun deal gagne");
+      expect(result).not.toContain("Deals PERDUS (");
     });
 
     it("affiche les deals gagnés", () => {
@@ -440,6 +442,8 @@ describe("buildCRMContext", () => {
       const result = buildCRMContext([col1], [card]);
       expect(result).toContain(`Deals GAGNES (1 deals, total: 8${S}000€)`);
       expect(result).toContain("WinCo");
+      // Negative: WON deal must NOT appear in open pipeline
+      expect(result).toContain("Total pipeline ouvert: 0€ (0 deals)");
     });
 
     it("affiche les deals perdus avec raisons", () => {
@@ -450,9 +454,12 @@ describe("buildCRMContext", () => {
         loss_reason_detail: "Trop cher",
       });
       const result = buildCRMContext([col1], [card]);
-      expect(result).toContain("Deals PERDUS");
+      expect(result).toContain(`Deals PERDUS (1, total perdu: 3${S}000€)`);
       expect(result).toContain("Trop cher");
       expect(result).toContain("Repartition des raisons de perte");
+      // Negative: LOST deal must NOT appear in open pipeline or WON
+      expect(result).toContain("Total pipeline ouvert: 0€ (0 deals)");
+      expect(result).toContain("Deals GAGNES: Aucun deal gagne");
     });
 
     it("affiche le pipeline pondéré par confiance", () => {
@@ -482,8 +489,8 @@ describe("buildCRMContext", () => {
       const won = makeCard({ sales_status: "WON" });
       const lost = makeCard({ id: "c2", sales_status: "LOST" });
       const result = buildCRMContext([col1], [won, lost]);
-      expect(result).toContain("Taux de conversion: 50%");
-      expect(result).toContain("1 gagnes / 2 clotures");
+      // Exact line verification to prevent partial match false positives
+      expect(result).toContain("Taux de conversion: 50% (1 gagnes / 2 clotures)");
     });
 
     it("affiche la vélocité — délai moyen de closing", () => {
@@ -537,6 +544,14 @@ describe("buildCRMContext", () => {
       const result = buildCRMContext([col1], [card]);
       expect(result).toContain("Pipeline ouvert");
       expect(result).toContain("Total pipeline ouvert: 0€ (1 deals)");
+      // Negative: 0-value deal must not trigger "Deals a risque" even with low confidence
+      expect(result).not.toContain("Deals a risque");
+    });
+
+    it("gère des cartes avec estimated_value null", () => {
+      const card = makeCard({ estimated_value: null });
+      const result = buildCRMContext([col1], [card]);
+      expect(result).toContain("Total pipeline ouvert: 0€ (1 deals)");
     });
 
     it("gère une carte sans company", () => {
@@ -581,7 +596,16 @@ describe("buildCRMContext", () => {
     it("taux de conversion 0% quand seulement des deals ouverts", () => {
       const card = makeCard({ sales_status: "OPEN" });
       const result = buildCRMContext([col1], [card]);
-      expect(result).toContain("Taux de conversion: 0%");
+      expect(result).toContain("Taux de conversion: 0% (0 gagnes / 0 clotures)");
+    });
+
+    it("gère une carte sans created_at", () => {
+      const card = makeCard({ created_at: null as unknown as string });
+      const result = buildCRMContext([col1], [card]);
+      // Should not crash — daysInPipeline is null, no stagnation alert
+      expect(result).toContain("Deal Alpha");
+      expect(result).not.toContain("ALERTE STAGNATION");
+      expect(result).not.toContain("dans le pipeline");
     });
 
     it("gère un grand nombre de cartes mixées", () => {
@@ -619,8 +643,9 @@ describe("buildAcquisitionContext", () => {
         makeCard({ id: "c2", service_type: "mission", sales_status: "WON", estimated_value: 10000 }),
       ];
       const result = buildAcquisitionContext(cards, []);
-      expect(result).toContain("Formations: 1 total");
-      expect(result).toContain("Missions: 1 total");
+      // Full lines to verify counts are correct
+      expect(result).toContain("Formations: 1 total (1 en cours, 0 gagnes, 0 perdus)");
+      expect(result).toContain("Missions: 1 total (0 en cours, 1 gagnes, 0 perdus)");
     });
 
     it("affiche le panier moyen des deals gagnés", () => {
@@ -1043,8 +1068,8 @@ describe("buildCrmEmailsContext", () => {
         { card_id: "card-1", sender_email: "me@co.com", recipient_email: "c@d.com", subject: "Test", sent_at: recent },
       ];
       const result = buildCrmEmailsContext(emails, [card]);
-      expect(result).toContain("1 emails cette semaine");
-      expect(result).toContain("1 ce mois-ci");
+      expect(result).toContain("1 emails ces 7 derniers jours");
+      expect(result).toContain("1 ces 30 derniers jours");
     });
   });
 
@@ -1332,8 +1357,8 @@ describe("buildCrmActivityLogContext", () => {
     it("affiche la cadence d'engagement", () => {
       const result = buildCrmActivityLogContext([baseLog], [card]);
       expect(result).toContain("Cadence:");
-      expect(result).toContain("1 actions cette semaine");
-      expect(result).toContain("1 ce mois-ci");
+      expect(result).toContain("1 actions ces 7 derniers jours");
+      expect(result).toContain("1 ces 30 derniers jours");
     });
   });
 
@@ -1357,8 +1382,8 @@ describe("buildCrmActivityLogContext", () => {
     it("gère les logs anciens (hors 7j et 30j)", () => {
       const oldLog = { ...baseLog, created_at: "2024-01-01T00:00:00Z" };
       const result = buildCrmActivityLogContext([oldLog], [card]);
-      expect(result).toContain("0 actions cette semaine");
-      expect(result).toContain("0 ce mois-ci");
+      expect(result).toContain("0 actions ces 7 derniers jours");
+      expect(result).toContain("0 ces 30 derniers jours");
     });
   });
 });
@@ -1764,6 +1789,6 @@ describe("buildCrmEmailsContext — cadence déterministe", () => {
       { card_id: "card-1", sender_email: "me@co.com", recipient_email: "a@b.com", subject: "Old", sent_at: "2025-01-14T10:00:00Z" },
     ];
     const result = buildCrmEmailsContext(emails, [card]);
-    expect(result).toContain("Frequence: 1 emails cette semaine, 2 ce mois-ci.");
+    expect(result).toContain("Frequence: 1 emails ces 7 derniers jours, 2 ces 30 derniers jours.");
   });
 });

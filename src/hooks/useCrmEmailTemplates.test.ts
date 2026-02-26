@@ -1,11 +1,53 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 
-// Mock Supabase client (loaded at module top-level by useCrmEmailTemplates)
-vi.mock("@/integrations/supabase/client", () => ({
-  supabase: {},
+// ── Supabase mock with chainable query builder ──────────────────────────────
+const mockSingle = vi.fn();
+const mockSelect = vi.fn(() => ({ single: mockSingle }));
+const mockOrder = vi.fn(() => ({ data: [], error: null }));
+const mockLike = vi.fn(() => ({ order: mockOrder }));
+const mockSelectAll = vi.fn(() => ({ like: mockLike }));
+const mockInsert = vi.fn(() => ({ select: mockSelect }));
+const mockUpdate = vi.fn(() => ({ eq: vi.fn(() => ({ select: mockSelect })) }));
+const mockDeleteEq = vi.fn(() => ({ data: null, error: null }));
+const mockDelete = vi.fn(() => ({ eq: mockDeleteEq }));
+const mockFrom = vi.fn(() => ({
+  select: mockSelectAll,
+  insert: mockInsert,
+  update: mockUpdate,
+  delete: mockDelete,
 }));
 
-const { replaceCrmVariables, generateTemplateSlug } = await import("./useCrmEmailTemplates");
+vi.mock("@/integrations/supabase/client", () => ({
+  supabase: { from: mockFrom },
+}));
+
+// ── React Query mock that captures hook configs ─────────────────────────────
+let capturedQueryConfig: Record<string, unknown> | null = null;
+let capturedMutationConfig: Record<string, unknown> | null = null;
+const mockInvalidateQueries = vi.fn();
+
+vi.mock("@tanstack/react-query", () => ({
+  useQuery: (config: Record<string, unknown>) => {
+    capturedQueryConfig = config;
+    return { data: undefined, isLoading: false };
+  },
+  useMutation: (config: Record<string, unknown>) => {
+    capturedMutationConfig = config;
+    return { mutate: vi.fn(), mutateAsync: vi.fn() };
+  },
+  useQueryClient: () => ({
+    invalidateQueries: mockInvalidateQueries,
+  }),
+}));
+
+const {
+  replaceCrmVariables,
+  generateTemplateSlug,
+  useCrmEmailTemplates,
+  useCreateCrmTemplate,
+  useUpdateCrmTemplate,
+  useDeleteCrmTemplate,
+} = await import("./useCrmEmailTemplates");
 
 describe("replaceCrmVariables", () => {
   // ═══════════════════════════════════════════════════════════════════
@@ -316,6 +358,47 @@ describe("replaceCrmVariables", () => {
         }),
       ).toBe("a b");
     });
+
+    it("ignores variables with hyphens (not matched by \\w+)", () => {
+      expect(
+        replaceCrmVariables("{{nom-variable}}", { "nom-variable": "valeur" }),
+      ).toBe("{{nom-variable}}");
+    });
+
+    it("ignores variables with dots (not matched by \\w+)", () => {
+      expect(
+        replaceCrmVariables("{{obj.prop}}", { "obj.prop": "valeur" }),
+      ).toBe("{{obj.prop}}");
+    });
+
+    it("handles adversarial long variable name in template without ReDoS", () => {
+      const longVar = "a".repeat(1000);
+      const template = `{{${longVar}}}`;
+      const start = Date.now();
+      const result = replaceCrmVariables(template, {});
+      const elapsed = Date.now() - start;
+      expect(result).toBe("");
+      expect(elapsed).toBeLessThan(100); // Should be nearly instant
+    });
+
+    it("handles adversarial nested-looking braces without ReDoS", () => {
+      // Stress test: many {{ patterns that don't form valid placeholders
+      const template = "{{".repeat(500) + "}}".repeat(500);
+      const start = Date.now();
+      replaceCrmVariables(template, {});
+      const elapsed = Date.now() - start;
+      expect(elapsed).toBeLessThan(200);
+    });
+
+    it("handles adversarial long conditional content without ReDoS", () => {
+      const longContent = "x".repeat(5000);
+      const template = `{{flag?${longContent}}}`;
+      const start = Date.now();
+      const result = replaceCrmVariables(template, { flag: "1" });
+      const elapsed = Date.now() - start;
+      expect(result).toBe(longContent);
+      expect(elapsed).toBeLessThan(100);
+    });
   });
 
   // ═══════════════════════════════════════════════════════════════════
@@ -465,6 +548,161 @@ describe("generateTemplateSlug", () => {
 
     it("handles unicode beyond Latin accents (e.g. cedilla)", () => {
       expect(generateTemplateSlug("Reçu façade")).toBe("recu_facade");
+    });
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Hook integration tests — query/mutation contracts
+// ═══════════════════════════════════════════════════════════════════════════════
+
+describe("useCrmEmailTemplates (hook)", () => {
+  beforeEach(() => {
+    capturedQueryConfig = null;
+    vi.clearAllMocks();
+  });
+
+  it("uses the correct query key", () => {
+    useCrmEmailTemplates();
+    expect(capturedQueryConfig).not.toBeNull();
+    expect(capturedQueryConfig!.queryKey).toEqual(["crm-email-templates"]);
+  });
+
+  it("queryFn calls supabase with correct table and filter", async () => {
+    const mockData = [{ id: "t1", template_name: "Test" }];
+    mockOrder.mockReturnValueOnce({ data: mockData, error: null });
+
+    useCrmEmailTemplates();
+    const queryFn = capturedQueryConfig!.queryFn as () => Promise<unknown>;
+    const result = await queryFn();
+
+    expect(mockFrom).toHaveBeenCalledWith("email_templates");
+    expect(mockLike).toHaveBeenCalledWith("template_type", "crm_%");
+    expect(mockOrder).toHaveBeenCalledWith("template_name");
+    expect(result).toEqual(mockData);
+  });
+
+  it("queryFn throws on Supabase error", async () => {
+    mockOrder.mockReturnValueOnce({ data: null, error: new Error("DB error") });
+
+    useCrmEmailTemplates();
+    const queryFn = capturedQueryConfig!.queryFn as () => Promise<unknown>;
+    await expect(queryFn()).rejects.toThrow("DB error");
+  });
+});
+
+describe("useCreateCrmTemplate (hook)", () => {
+  beforeEach(() => {
+    capturedMutationConfig = null;
+    vi.clearAllMocks();
+  });
+
+  it("mutationFn inserts with correct template_type using generateTemplateSlug", async () => {
+    const insertedData = { id: "new-1", template_type: "crm_relance_ete" };
+    mockSingle.mockResolvedValueOnce({ data: insertedData, error: null });
+
+    useCreateCrmTemplate();
+    const mutationFn = capturedMutationConfig!.mutationFn as (input: unknown) => Promise<unknown>;
+    const result = await mutationFn({
+      template_name: "Relance été",
+      subject: "Bonjour",
+      html_content: "<p>Test</p>",
+    });
+
+    expect(mockFrom).toHaveBeenCalledWith("email_templates");
+    expect(mockInsert).toHaveBeenCalledWith({
+      template_type: "crm_relance_ete",
+      template_name: "Relance été",
+      subject: "Bonjour",
+      html_content: "<p>Test</p>",
+      is_default: false,
+    });
+    expect(result).toEqual(insertedData);
+  });
+
+  it("mutationFn throws on Supabase error", async () => {
+    mockSingle.mockResolvedValueOnce({ data: null, error: new Error("Insert failed") });
+
+    useCreateCrmTemplate();
+    const mutationFn = capturedMutationConfig!.mutationFn as (input: unknown) => Promise<unknown>;
+    await expect(
+      mutationFn({ template_name: "Test", subject: "s", html_content: "c" }),
+    ).rejects.toThrow("Insert failed");
+  });
+
+  it("onSuccess invalidates the correct query key", () => {
+    useCreateCrmTemplate();
+    const onSuccess = capturedMutationConfig!.onSuccess as () => void;
+    onSuccess();
+    expect(mockInvalidateQueries).toHaveBeenCalledWith({
+      queryKey: ["crm-email-templates"],
+    });
+  });
+});
+
+describe("useUpdateCrmTemplate (hook)", () => {
+  beforeEach(() => {
+    capturedMutationConfig = null;
+    vi.clearAllMocks();
+  });
+
+  it("mutationFn calls update with correct id and fields", async () => {
+    const mockEq = vi.fn(() => ({ select: vi.fn(() => ({ single: vi.fn().mockResolvedValue({ data: { id: "t1" }, error: null }) })) }));
+    mockFrom.mockReturnValueOnce({
+      update: vi.fn((updates) => {
+        expect(updates).toEqual({ subject: "New Subject" });
+        return { eq: mockEq };
+      }),
+    } as any);
+
+    useUpdateCrmTemplate();
+    const mutationFn = capturedMutationConfig!.mutationFn as (input: unknown) => Promise<unknown>;
+    await mutationFn({ id: "t1", updates: { subject: "New Subject" } });
+
+    expect(mockEq).toHaveBeenCalledWith("id", "t1");
+  });
+
+  it("onSuccess invalidates the correct query key", () => {
+    useUpdateCrmTemplate();
+    const onSuccess = capturedMutationConfig!.onSuccess as () => void;
+    onSuccess();
+    expect(mockInvalidateQueries).toHaveBeenCalledWith({
+      queryKey: ["crm-email-templates"],
+    });
+  });
+});
+
+describe("useDeleteCrmTemplate (hook)", () => {
+  beforeEach(() => {
+    capturedMutationConfig = null;
+    vi.clearAllMocks();
+  });
+
+  it("mutationFn calls delete with correct id", async () => {
+    mockDeleteEq.mockResolvedValueOnce({ error: null });
+
+    useDeleteCrmTemplate();
+    const mutationFn = capturedMutationConfig!.mutationFn as (id: string) => Promise<void>;
+    await mutationFn("template-42");
+
+    expect(mockFrom).toHaveBeenCalledWith("email_templates");
+    expect(mockDeleteEq).toHaveBeenCalledWith("id", "template-42");
+  });
+
+  it("mutationFn throws on Supabase error", async () => {
+    mockDeleteEq.mockResolvedValueOnce({ error: new Error("Delete failed") });
+
+    useDeleteCrmTemplate();
+    const mutationFn = capturedMutationConfig!.mutationFn as (id: string) => Promise<void>;
+    await expect(mutationFn("bad-id")).rejects.toThrow("Delete failed");
+  });
+
+  it("onSuccess invalidates the correct query key", () => {
+    useDeleteCrmTemplate();
+    const onSuccess = capturedMutationConfig!.onSuccess as () => void;
+    onSuccess();
+    expect(mockInvalidateQueries).toHaveBeenCalledWith({
+      queryKey: ["crm-email-templates"],
     });
   });
 });

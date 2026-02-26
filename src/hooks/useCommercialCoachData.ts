@@ -616,7 +616,7 @@ export function buildCrmEmailsContext(
   const now = Date.now();
   const last7d = emails.filter((e) => now - new Date(e.sent_at).getTime() < 7 * 24 * 60 * 60 * 1000).length;
   const last30d = emails.filter((e) => now - new Date(e.sent_at).getTime() < 30 * 24 * 60 * 60 * 1000).length;
-  result += `\nFrequence: ${last7d} emails cette semaine, ${last30d} ce mois-ci.\n`;
+  result += `\nFrequence: ${last7d} emails ces 7 derniers jours, ${last30d} ces 30 derniers jours.\n`;
 
   return result;
 }
@@ -842,7 +842,7 @@ export function buildCrmActivityLogContext(
   const now = Date.now();
   const last7d = logs.filter((l) => now - new Date(l.created_at).getTime() < 7 * 24 * 60 * 60 * 1000).length;
   const last30d = logs.filter((l) => now - new Date(l.created_at).getTime() < 30 * 24 * 60 * 60 * 1000).length;
-  result += `\nCadence: ${last7d} actions cette semaine, ${last30d} ce mois-ci.\n`;
+  result += `\nCadence: ${last7d} actions ces 7 derniers jours, ${last30d} ces 30 derniers jours.\n`;
 
   return result;
 }
