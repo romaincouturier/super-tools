@@ -517,6 +517,90 @@ serve(async (req) => {
       }
     }
 
+    // ========================================
+    // TRAINER EVALUATION: Create record + send email to trainer
+    // ========================================
+    try {
+      // Look up trainer email from trainers table
+      let trainerEmail: string | null = null;
+      if (training.trainer_id) {
+        const { data: trainerData } = await supabase
+          .from("trainers")
+          .select("email, first_name, last_name")
+          .eq("id", training.trainer_id)
+          .maybeSingle();
+        trainerEmail = trainerData?.email || null;
+      }
+
+      if (trainerEmail) {
+        // Check if trainer evaluation already exists for this training
+        const { data: existingTrainerEval } = await supabase
+          .from("trainer_evaluations")
+          .select("id")
+          .eq("training_id", trainingId)
+          .maybeSingle();
+
+        if (!existingTrainerEval) {
+          const trainerToken = crypto.randomUUID();
+          const { error: trainerEvalError } = await supabase
+            .from("trainer_evaluations")
+            .insert({
+              training_id: trainingId,
+              trainer_name: training.trainer_name,
+              trainer_email: trainerEmail,
+              token: trainerToken,
+              status: "envoye",
+              email_sent_at: new Date().toISOString(),
+            });
+
+          if (trainerEvalError) {
+            console.error("Failed to create trainer evaluation:", trainerEvalError);
+          } else {
+            // Send email to trainer
+            const trainerEvalLink = `${baseUrl}/evaluation-formateur/${trainerToken}`;
+            const trainerHtml = `
+              <p>Bonjour ${training.trainer_name},</p>
+              <p>La formation « <strong>${trainingName}</strong> » est maintenant terminée.</p>
+              <p>Merci de prendre quelques minutes pour donner votre retour sur cette session en cliquant sur le lien ci-dessous :</p>
+              <p><a href="${trainerEvalLink}" style="display:inline-block;padding:12px 24px;background-color:#2563eb;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:600;">Donner mon retour</a></p>
+              <p>Ce formulaire prend environ 2 minutes.</p>
+              <p>Merci,<br/>L'équipe SuperTilt</p>
+              ${signature}
+            `;
+
+            const trainerResult = await sendEmail({
+              to: [trainerEmail],
+              subject: `Votre retour sur la formation « ${trainingName} »`,
+              html: trainerHtml,
+            });
+
+            if (trainerResult.success) {
+              console.log("Trainer evaluation email sent to:", trainerEmail);
+            } else {
+              console.error("Failed to send trainer evaluation email:", trainerResult.error);
+            }
+
+            // Log activity
+            await supabase.from("activity_logs").insert({
+              action_type: "trainer_evaluation_sent",
+              recipient_email: trainerEmail,
+              details: {
+                training_id: trainingId,
+                training_name: trainingName,
+                trainer_name: training.trainer_name,
+              },
+            });
+          }
+        } else {
+          console.log("Trainer evaluation already exists for training", trainingId);
+        }
+      } else {
+        console.log("No trainer email found, skipping trainer evaluation");
+      }
+    } catch (trainerError) {
+      console.warn("Trainer evaluation scheduling failed (non-blocking):", trainerError);
+    }
+
     // Log activity for each recipient
     const emailSubject = processTemplate(subjectTemplate, { training_name: trainingName }, false);
 

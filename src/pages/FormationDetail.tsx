@@ -1352,7 +1352,7 @@ const FormationDetail = () => {
         {/* Row 4: Trainer Adequacy + Trainer Evaluation */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           <TrainerAdequacy trainingId={training.id} trainerName={training.trainer_name} />
-          <TrainerEvaluationBlock trainingId={training.id} trainerName={training.trainer_name} />
+          <TrainerEvaluationBlock trainingId={training.id} trainerName={training.trainer_name} trainerId={(training as any).trainer_id} />
         </div>
 
         {/* Row 5: Photos & Videos */}
