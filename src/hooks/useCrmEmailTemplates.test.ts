@@ -679,7 +679,7 @@ describe("useDeleteCrmTemplate (hook)", () => {
   });
 
   it("mutationFn calls delete with correct id", async () => {
-    mockDeleteEq.mockResolvedValueOnce({ error: null });
+    mockDeleteEq.mockResolvedValueOnce({ data: null, error: null });
 
     useDeleteCrmTemplate();
     const mutationFn = capturedMutationConfig!.mutationFn as (id: string) => Promise<void>;
@@ -690,7 +690,7 @@ describe("useDeleteCrmTemplate (hook)", () => {
   });
 
   it("mutationFn throws on Supabase error", async () => {
-    mockDeleteEq.mockResolvedValueOnce({ error: new Error("Delete failed") });
+    mockDeleteEq.mockResolvedValueOnce({ data: null, error: new Error("Delete failed") });
 
     useDeleteCrmTemplate();
     const mutationFn = capturedMutationConfig!.mutationFn as (id: string) => Promise<void>;

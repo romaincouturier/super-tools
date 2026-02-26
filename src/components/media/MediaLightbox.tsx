@@ -15,6 +15,13 @@ const sourceIcon = (sourceType: string) => {
   }
 };
 
+interface MediaLightboxProps {
+  item: MediaItem;
+  items: MediaItem[];
+  onClose: () => void;
+  onNavigate: (item: MediaItem) => void;
+}
+
 const MediaLightbox = ({ item, items, onClose, onNavigate }: MediaLightboxProps) => {
   const currentIndex = items.findIndex((i) => i.id === item.id);
   const hasPrev = currentIndex > 0;
