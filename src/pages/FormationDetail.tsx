@@ -37,6 +37,7 @@ import AttendanceSignatureBlock from "@/components/formations/AttendanceSignatur
 import TrainingDocumentsSection from "@/components/formations/TrainingDocumentsSection";
 import ScheduledActionsEditor, { ScheduledAction } from "@/components/formations/ScheduledActionsEditor";
 import EntityMediaManager from "@/components/media/EntityMediaManager";
+import TrainerAdequacy from "@/components/formations/TrainerAdequacy";
 import ThankYouEmailPreviewDialog from "@/components/formations/ThankYouEmailPreviewDialog";
 import LogisticsBookingButtons from "@/components/shared/LogisticsBookingButtons";
 import { isToday, isBefore, startOfDay } from "date-fns";
@@ -1347,8 +1348,9 @@ const FormationDetail = () => {
           />
         </div>
 
-        {/* Row 4: Photos & Videos */}
-        <div className="mb-6">
+        {/* Row 4: Trainer Adequacy + Photos & Videos */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          <TrainerAdequacy trainingId={training.id} trainerName={training.trainer_name} />
           <EntityMediaManager
             sourceType="training"
             sourceId={training.id}

@@ -229,6 +229,14 @@ const tools: Tool[] = [
     path: "/reclamations",
     module: "reclamations",
   },
+  {
+    id: "appreciations",
+    name: "Appréciations",
+    description: "Recueil des appréciations parties prenantes (Qualiopi – Indicateur 30)",
+    icon: <BarChart3 />,
+    path: "/appreciations",
+    module: "appreciations",
+  },
 ];
 
 // ---------- size helpers ----------

@@ -61,6 +61,8 @@ const ArenaResults = lazy(() => import("./pages/ArenaResults"));
 const Catalogue = lazy(() => import("./pages/Catalogue"));
 const ReclamationPublic = lazy(() => import("./pages/ReclamationPublic"));
 const Reclamations = lazy(() => import("./pages/Reclamations"));
+const Appreciations = lazy(() => import("./pages/Appreciations"));
+const AppreciationPublic = lazy(() => import("./pages/AppreciationPublic"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -167,6 +169,9 @@ const App = () => (
               {/* Reclamations */}
               <Route path="/reclamation/:token" element={<ReclamationPublic />} />
               <Route path="/reclamations" element={<Reclamations />} />
+              {/* Appreciations */}
+              <Route path="/appreciations" element={<Appreciations />} />
+              <Route path="/appreciation/:token" element={<AppreciationPublic />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

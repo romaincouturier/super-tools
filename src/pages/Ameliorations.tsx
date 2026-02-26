@@ -58,6 +58,11 @@ interface Improvement {
   created_at: string;
   updated_at: string;
   completed_at: string | null;
+  source_type: string | null;
+  source_description: string | null;
+  priority: string | null;
+  deadline: string | null;
+  responsible: string | null;
   trainings?: {
     training_name: string;
   } | null;
@@ -99,6 +104,11 @@ const Ameliorations = () => {
     title: "",
     description: "",
     category: "recommendation",
+    source_type: "",
+    source_description: "",
+    priority: "",
+    deadline: "",
+    responsible: "",
   });
   const [saving, setSaving] = useState(false);
   const navigate = useNavigate();
@@ -253,7 +263,12 @@ const Ameliorations = () => {
         category: newImprovement.category,
         status: "pending",
         created_by: user?.id,
-      });
+        source_type: newImprovement.source_type || null,
+        source_description: newImprovement.source_description.trim() || null,
+        priority: newImprovement.priority || null,
+        deadline: newImprovement.deadline || null,
+        responsible: newImprovement.responsible.trim() || null,
+      } as any);
 
       if (error) throw error;
 
@@ -268,6 +283,11 @@ const Ameliorations = () => {
         title: "",
         description: "",
         category: "recommendation",
+        source_type: "",
+        source_description: "",
+        priority: "",
+        deadline: "",
+        responsible: "",
       });
       fetchImprovements(selectedTraining, selectedStatus);
     } catch (error: any) {
@@ -439,6 +459,16 @@ const Ameliorations = () => {
                             {statusConfig[improvement.status]?.icon}
                             {statusConfig[improvement.status]?.label}
                           </span>
+                          {(improvement as any).priority && (
+                            <Badge variant={(improvement as any).priority === "haute" ? "destructive" : "outline"} className="text-xs">
+                              {(improvement as any).priority}
+                            </Badge>
+                          )}
+                          {(improvement as any).source_type && (
+                            <Badge variant="secondary" className="text-xs">
+                              Source : {(improvement as any).source_type}
+                            </Badge>
+                          )}
                         </div>
                         {improvement.trainings && (
                           <div className="text-sm text-muted-foreground mt-1">
@@ -446,6 +476,17 @@ const Ameliorations = () => {
                           </div>
                         )}
                         <p className="text-sm mt-2">{improvement.description}</p>
+                        {(improvement as any).source_description && (
+                          <p className="text-xs text-muted-foreground mt-1 italic">
+                            Source : {(improvement as any).source_description}
+                          </p>
+                        )}
+                        {((improvement as any).responsible || (improvement as any).deadline) && (
+                          <div className="text-xs text-muted-foreground mt-1 flex gap-3">
+                            {(improvement as any).responsible && <span>Responsable : {(improvement as any).responsible}</span>}
+                            {(improvement as any).deadline && <span>Échéance : {new Date((improvement as any).deadline).toLocaleDateString("fr-FR")}</span>}
+                          </div>
+                        )}
                         <div className="text-xs text-muted-foreground mt-2">
                           Créée le{" "}
                           {new Date(improvement.created_at).toLocaleDateString("fr-FR")}
@@ -585,6 +626,69 @@ const Ameliorations = () => {
                 placeholder="Décrivez l'amélioration à apporter..."
                 rows={4}
                 maxLength={1000}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Source</Label>
+              <Select
+                value={newImprovement.source_type}
+                onValueChange={(v) => setNewImprovement({ ...newImprovement, source_type: v })}
+              >
+                <SelectTrigger><SelectValue placeholder="Type de source" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Aucune</SelectItem>
+                  <SelectItem value="reclamation">Réclamation</SelectItem>
+                  <SelectItem value="appreciation">Appréciation</SelectItem>
+                  <SelectItem value="evaluation">Évaluation</SelectItem>
+                  <SelectItem value="alea">Aléa</SelectItem>
+                  <SelectItem value="audit">Audit</SelectItem>
+                  <SelectItem value="autre">Autre</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Description de la source</Label>
+              <Input
+                value={newImprovement.source_description}
+                onChange={(e) => setNewImprovement({ ...newImprovement, source_description: e.target.value })}
+                placeholder="Ex: Réclamation client X du 15/01"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Priorité</Label>
+                <Select
+                  value={newImprovement.priority}
+                  onValueChange={(v) => setNewImprovement({ ...newImprovement, priority: v })}
+                >
+                  <SelectTrigger><SelectValue placeholder="Priorité" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Non définie</SelectItem>
+                    <SelectItem value="haute">Haute</SelectItem>
+                    <SelectItem value="moyenne">Moyenne</SelectItem>
+                    <SelectItem value="basse">Basse</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Échéance</Label>
+                <Input
+                  type="date"
+                  value={newImprovement.deadline}
+                  onChange={(e) => setNewImprovement({ ...newImprovement, deadline: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Responsable</Label>
+              <Input
+                value={newImprovement.responsible}
+                onChange={(e) => setNewImprovement({ ...newImprovement, responsible: e.target.value })}
+                placeholder="Nom du responsable"
               />
             </div>
           </div>

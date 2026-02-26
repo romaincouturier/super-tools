@@ -1544,9 +1544,15 @@ export type Database = {
           completed_at: string | null
           created_at: string
           created_by: string | null
+          deadline: string | null
           description: string
           id: string
+          priority: string | null
+          responsible: string | null
           source_analysis_id: string | null
+          source_description: string | null
+          source_id: string | null
+          source_type: string | null
           status: string
           title: string
           training_id: string | null
@@ -1557,9 +1563,15 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           created_by?: string | null
+          deadline?: string | null
           description: string
           id?: string
+          priority?: string | null
+          responsible?: string | null
           source_analysis_id?: string | null
+          source_description?: string | null
+          source_id?: string | null
+          source_type?: string | null
           status?: string
           title: string
           training_id?: string | null
@@ -1570,9 +1582,15 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           created_by?: string | null
+          deadline?: string | null
           description?: string
           id?: string
+          priority?: string | null
+          responsible?: string | null
           source_analysis_id?: string | null
+          source_description?: string | null
+          source_id?: string | null
+          source_type?: string | null
           status?: string
           title?: string
           training_id?: string | null
@@ -3110,6 +3128,74 @@ export type Database = {
           },
         ]
       }
+      stakeholder_appreciations: {
+        Row: {
+          axes_amelioration: string | null
+          commentaires: string | null
+          created_at: string
+          created_by: string | null
+          date_envoi: string | null
+          date_reception: string | null
+          id: string
+          points_forts: string | null
+          satisfaction_globale: number | null
+          stakeholder_email: string | null
+          stakeholder_name: string
+          stakeholder_type: string
+          status: string
+          token: string
+          training_id: string | null
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          axes_amelioration?: string | null
+          commentaires?: string | null
+          created_at?: string
+          created_by?: string | null
+          date_envoi?: string | null
+          date_reception?: string | null
+          id?: string
+          points_forts?: string | null
+          satisfaction_globale?: number | null
+          stakeholder_email?: string | null
+          stakeholder_name: string
+          stakeholder_type: string
+          status?: string
+          token: string
+          training_id?: string | null
+          updated_at?: string
+          year?: number
+        }
+        Update: {
+          axes_amelioration?: string | null
+          commentaires?: string | null
+          created_at?: string
+          created_by?: string | null
+          date_envoi?: string | null
+          date_reception?: string | null
+          id?: string
+          points_forts?: string | null
+          satisfaction_globale?: number | null
+          stakeholder_email?: string | null
+          stakeholder_name?: string
+          stakeholder_type?: string
+          status?: string
+          token?: string
+          training_id?: string | null
+          updated_at?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stakeholder_appreciations_training_id_fkey"
+            columns: ["training_id"]
+            isOneToOne: false
+            referencedRelation: "trainings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trainer_attendance_signatures: {
         Row: {
           created_at: string | null
@@ -3151,12 +3237,95 @@ export type Database = {
           },
         ]
       }
-      trainers: {
+      trainer_documents: {
         Row: {
           created_at: string
+          document_type: string
+          file_name: string
+          file_url: string
+          id: string
+          trainer_id: string
+        }
+        Insert: {
+          created_at?: string
+          document_type?: string
+          file_name: string
+          file_url: string
+          id?: string
+          trainer_id: string
+        }
+        Update: {
+          created_at?: string
+          document_type?: string
+          file_name?: string
+          file_url?: string
+          id?: string
+          trainer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trainer_documents_trainer_id_fkey"
+            columns: ["trainer_id"]
+            isOneToOne: false
+            referencedRelation: "trainers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trainer_training_adequacy: {
+        Row: {
+          created_at: string
+          id: string
+          notes: string | null
+          trainer_id: string
+          training_id: string
+          validated_at: string
+          validated_by: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          trainer_id: string
+          training_id: string
+          validated_at?: string
+          validated_by: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          trainer_id?: string
+          training_id?: string
+          validated_at?: string
+          validated_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trainer_training_adequacy_trainer_id_fkey"
+            columns: ["trainer_id"]
+            isOneToOne: false
+            referencedRelation: "trainers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trainer_training_adequacy_training_id_fkey"
+            columns: ["training_id"]
+            isOneToOne: false
+            referencedRelation: "trainings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trainers: {
+        Row: {
+          competences: string[] | null
+          created_at: string
           cv_url: string | null
+          diplomes_certifications: string | null
           email: string
           first_name: string
+          formations_suivies: Json | null
           id: string
           is_default: boolean | null
           last_name: string
@@ -3166,10 +3335,13 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          competences?: string[] | null
           created_at?: string
           cv_url?: string | null
+          diplomes_certifications?: string | null
           email: string
           first_name: string
+          formations_suivies?: Json | null
           id?: string
           is_default?: boolean | null
           last_name: string
@@ -3179,10 +3351,13 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          competences?: string[] | null
           created_at?: string
           cv_url?: string | null
+          diplomes_certifications?: string | null
           email?: string
           first_name?: string
+          formations_suivies?: Json | null
           id?: string
           is_default?: boolean | null
           last_name?: string
@@ -3850,6 +4025,7 @@ export type Database = {
         | "monitoring"
         | "arena"
         | "reclamations"
+        | "appreciations"
       notification_type:
         | "review_requested"
         | "comment_added"
@@ -4002,6 +4178,7 @@ export const Constants = {
         "monitoring",
         "arena",
         "reclamations",
+        "appreciations",
       ],
       notification_type: [
         "review_requested",
