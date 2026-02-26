@@ -632,12 +632,12 @@ const Ameliorations = () => {
             <div className="space-y-2">
               <Label>Source</Label>
               <Select
-                value={newImprovement.source_type}
-                onValueChange={(v) => setNewImprovement({ ...newImprovement, source_type: v })}
+                value={newImprovement.source_type || "none"}
+                onValueChange={(v) => setNewImprovement({ ...newImprovement, source_type: v === "none" ? "" : v })}
               >
                 <SelectTrigger><SelectValue placeholder="Type de source" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Aucune</SelectItem>
+                  <SelectItem value="none">Aucune</SelectItem>
                   <SelectItem value="reclamation">Réclamation</SelectItem>
                   <SelectItem value="appreciation">Appréciation</SelectItem>
                   <SelectItem value="evaluation">Évaluation</SelectItem>
@@ -661,12 +661,12 @@ const Ameliorations = () => {
               <div className="space-y-2">
                 <Label>Priorité</Label>
                 <Select
-                  value={newImprovement.priority}
-                  onValueChange={(v) => setNewImprovement({ ...newImprovement, priority: v })}
+                  value={newImprovement.priority || "none"}
+                  onValueChange={(v) => setNewImprovement({ ...newImprovement, priority: v === "none" ? "" : v })}
                 >
                   <SelectTrigger><SelectValue placeholder="Priorité" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Non définie</SelectItem>
+                    <SelectItem value="none">Non définie</SelectItem>
                     <SelectItem value="haute">Haute</SelectItem>
                     <SelectItem value="moyenne">Moyenne</SelectItem>
                     <SelectItem value="basse">Basse</SelectItem>
