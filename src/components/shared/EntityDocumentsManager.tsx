@@ -51,10 +51,11 @@ const EntityDocumentsManager = ({
   const deleteDocument = useDeleteEntityDocument(entityType);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    console.log("[EntityDocumentsManager] File input changed, files:", files?.length, "entityId:", entityId);
-    if (!files || files.length === 0) return;
+    const fileList = e.target.files;
+    if (!fileList || fileList.length === 0) return;
 
+    // Capture files BEFORE clearing the input (clearing empties the FileList reference)
+    const files = Array.from(fileList);
     if (fileInputRef.current) fileInputRef.current.value = "";
 
     setUploading(true);
@@ -70,16 +71,13 @@ const EntityDocumentsManager = ({
         }
 
         try {
-          console.log("[EntityDocumentsManager] Uploading file:", file.name, "size:", file.size);
           const fileUrl = await uploadEntityDocument(file, entityType, entityId);
-          console.log("[EntityDocumentsManager] Upload OK, URL:", fileUrl);
           await addDocument.mutateAsync({
             entityId,
             file_name: file.name,
             file_url: fileUrl,
             file_size: file.size,
           });
-          console.log("[EntityDocumentsManager] DB insert OK for:", file.name);
           successCount++;
         } catch (err: any) {
           console.error("[EntityDocumentsManager] Upload error:", err);
