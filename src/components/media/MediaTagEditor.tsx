@@ -16,9 +16,10 @@ interface MediaTagEditorProps {
   tags: string[];
   allTags: string[];
   compact?: boolean;
+  triggerClassName?: string;
 }
 
-const MediaTagEditor = ({ mediaId, tags = [], allTags = [], compact }: MediaTagEditorProps) => {
+const MediaTagEditor = ({ mediaId, tags = [], allTags = [], compact, triggerClassName }: MediaTagEditorProps) => {
   const [open, setOpen] = useState(false);
   const [newTag, setNewTag] = useState("");
   const updateTags = useUpdateMediaTags();
@@ -58,9 +59,9 @@ const MediaTagEditor = ({ mediaId, tags = [], allTags = [], compact }: MediaTagE
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
-          variant="ghost"
+          variant="secondary"
           size={compact ? "icon" : "sm"}
-          className={compact ? "h-6 w-6" : "h-7 gap-1 text-xs"}
+          className={triggerClassName || (compact ? "h-6 w-6" : "h-7 gap-1 text-xs")}
           onClick={(e) => e.stopPropagation()}
         >
           <Tag className="h-3 w-3" />
