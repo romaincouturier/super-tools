@@ -454,6 +454,21 @@ const handler = async (req: Request): Promise<Response> => {
     // ========================================
     console.log("Sending certificate to participant...");
 
+    // For inter/e-learning, also send certificate copy to sponsor
+    let sponsorEmail: string | null = null;
+    const isInterOrElearning = ["inter-entreprises", "e_learning"].includes(training.format_formation || "");
+    if (isInterOrElearning && evaluation.participant_id) {
+      const { data: participant } = await supabase
+        .from("training_participants")
+        .select("sponsor_email")
+        .eq("id", evaluation.participant_id)
+        .maybeSingle();
+      sponsorEmail = participant?.sponsor_email || null;
+      if (sponsorEmail) {
+        console.log(`Inter/e-learning format: will CC certificate to sponsor ${sponsorEmail}`);
+      }
+    }
+
     const greetingParticipant = firstName ? `Bonjour ${firstName},` : "Bonjour,";
 
     const certificateEmailHtml = `
@@ -469,10 +484,14 @@ const handler = async (req: Request): Promise<Response> => {
     // Convert PDF to base64 for attachment
     const pdfBase64 = btoa(String.fromCharCode(...pdfBytes));
 
+    // Build CC list: add sponsor for inter/e-learning
+    const ccList = sponsorEmail ? [sponsorEmail] : [];
+
     const certSubject = `Ton certificat de réalisation pour la formation ${training.training_name}`;
     await resend.emails.send({
       from: senderFrom,
       to: [email],
+      cc: ccList,
       bcc: bccList,
       subject: certSubject,
       html: certificateEmailHtml,
@@ -494,6 +513,7 @@ const handler = async (req: Request): Promise<Response> => {
         training_name: training.training_name,
         participant_name: fullName,
         email_subject: certSubject,
+        sponsor_cc: sponsorEmail || null,
       },
     });
 
