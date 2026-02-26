@@ -9,9 +9,6 @@ import {
   Filter,
   Sparkles,
   Check,
-  X,
-  ThumbsUp,
-  ThumbsDown,
   AlertCircle,
   TrendingUp,
   Lightbulb,
@@ -37,6 +34,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import EvaluationDetailDialog from "@/components/formations/EvaluationDetailDialog";
 
 interface Training {
   id: string;
@@ -536,230 +534,12 @@ const Evaluations = () => {
         </Card>
 
         {/* Evaluation Detail Dialog */}
-        <Dialog open={showDetail} onOpenChange={setShowDetail}>
-          <DialogContent className="max-w-3xl max-h-[85vh]">
-            <DialogHeader>
-              <DialogTitle>Détail de l'évaluation</DialogTitle>
-              <DialogDescription>
-                {selectedEvaluation?.first_name || selectedEvaluation?.last_name
-                  ? `${selectedEvaluation?.first_name || ""} ${selectedEvaluation?.last_name || ""}`
-                  : "Anonyme"}
-                {selectedEvaluation?.company && ` - ${selectedEvaluation.company}`}
-                {" • "}
-                {selectedEvaluation?.trainings.training_name}
-              </DialogDescription>
-            </DialogHeader>
-
-            <ScrollArea className="max-h-[65vh] pr-4">
-              {selectedEvaluation && (
-                <div className="space-y-6">
-                  {/* Informations participant */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-muted/50 rounded-lg">
-                    <div>
-                      <span className="text-sm text-muted-foreground">Email</span>
-                      <p className="font-medium">{selectedEvaluation.email || "—"}</p>
-                    </div>
-                    <div>
-                      <span className="text-sm text-muted-foreground">Date de soumission</span>
-                      <p className="font-medium">
-                        {selectedEvaluation.date_soumission
-                          ? new Date(selectedEvaluation.date_soumission).toLocaleDateString("fr-FR", {
-                              day: "numeric",
-                              month: "long",
-                              year: "numeric",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })
-                          : "—"}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Appréciation générale */}
-                  <div>
-                    <h3 className="font-semibold mb-2">Appréciation générale</h3>
-                    <div className="flex items-center gap-4">
-                      <div className="flex">{getStars(selectedEvaluation.appreciation_generale)}</div>
-                      <span className="text-lg font-bold">{selectedEvaluation.appreciation_generale}/5</span>
-                      {getRecommandationBadge(selectedEvaluation.recommandation)}
-                    </div>
-                  </div>
-
-                  {/* Objectifs pédagogiques */}
-                  {selectedEvaluation.objectifs_evaluation && selectedEvaluation.objectifs_evaluation.length > 0 && (
-                    <div>
-                      <h3 className="font-semibold mb-2">Atteinte des objectifs pédagogiques</h3>
-                      <div className="space-y-2">
-                        {selectedEvaluation.objectifs_evaluation.map((obj, idx) => (
-                          <div key={idx} className="flex items-center justify-between p-2 border rounded">
-                            <span className="text-sm flex-1">{obj.objectif}</span>
-                            <div className="flex items-center gap-2">
-                              <div className="flex">
-                                {Array.from({ length: 5 }, (_, i) => (
-                                  <Star
-                                    key={i}
-                                    className={`h-3 w-3 ${i < obj.niveau ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground"}`}
-                                  />
-                                ))}
-                              </div>
-                              <span className="text-sm font-medium w-8">{obj.niveau}/5</span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                      {selectedEvaluation.objectif_prioritaire && (
-                        <p className="text-sm mt-2">
-                          <span className="text-muted-foreground">Objectif prioritaire :</span>{" "}
-                          <span className="font-medium">{selectedEvaluation.objectif_prioritaire}</span>
-                        </p>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Application pratique */}
-                  <div>
-                    <h3 className="font-semibold mb-2">Application pratique</h3>
-                    <div className="grid grid-cols-1 gap-2">
-                      {selectedEvaluation.delai_application && (
-                        <p className="text-sm">
-                          <span className="text-muted-foreground">Délai d'application :</span>{" "}
-                          <Badge variant="outline">
-                            {selectedEvaluation.delai_application === "cette_semaine"
-                              ? "Cette semaine"
-                              : selectedEvaluation.delai_application === "ce_mois"
-                                ? "Ce mois-ci"
-                                : selectedEvaluation.delai_application === "3_mois"
-                                  ? "Dans les 3 mois"
-                                  : "Application incertaine"}
-                          </Badge>
-                        </p>
-                      )}
-                      {selectedEvaluation.freins_application && (
-                        <p className="text-sm">
-                          <span className="text-muted-foreground">Freins à l'application :</span>{" "}
-                          <span className="italic">"{selectedEvaluation.freins_application}"</span>
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Qualité pédagogique */}
-                  <div>
-                    <h3 className="font-semibold mb-2">Qualité pédagogique</h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {selectedEvaluation.rythme && (
-                        <p className="text-sm">
-                          <span className="text-muted-foreground">Rythme :</span>{" "}
-                          <Badge variant={selectedEvaluation.rythme === "adapte" ? "default" : "secondary"}>
-                            {selectedEvaluation.rythme === "trop_lent"
-                              ? "Trop lent"
-                              : selectedEvaluation.rythme === "adapte"
-                                ? "Adapté"
-                                : "Trop rapide"}
-                          </Badge>
-                        </p>
-                      )}
-                      {selectedEvaluation.equilibre_theorie_pratique && (
-                        <p className="text-sm">
-                          <span className="text-muted-foreground">Équilibre théorie/pratique :</span>{" "}
-                          <Badge variant={selectedEvaluation.equilibre_theorie_pratique === "equilibre" ? "default" : "secondary"}>
-                            {selectedEvaluation.equilibre_theorie_pratique === "trop_theorique"
-                              ? "Trop théorique"
-                              : selectedEvaluation.equilibre_theorie_pratique === "equilibre"
-                                ? "Équilibré"
-                                : "Pas assez structuré"}
-                          </Badge>
-                        </p>
-                      )}
-                    </div>
-                    {selectedEvaluation.amelioration_suggeree && (
-                      <p className="text-sm mt-2">
-                        <span className="text-muted-foreground">Amélioration suggérée :</span>{" "}
-                        <span className="italic">"{selectedEvaluation.amelioration_suggeree}"</span>
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Conformité Qualiopi */}
-                  <div>
-                    <h3 className="font-semibold mb-2">Conformité et organisation</h3>
-                    <div className="grid grid-cols-1 gap-2">
-                      <p className="text-sm flex items-center gap-2">
-                        <span className="text-muted-foreground">Conditions d'information satisfaisantes :</span>
-                        {selectedEvaluation.conditions_info_satisfaisantes === true ? (
-                          <Badge variant="default" className="bg-green-600">Oui</Badge>
-                        ) : selectedEvaluation.conditions_info_satisfaisantes === false ? (
-                          <Badge variant="destructive">Non</Badge>
-                        ) : (
-                          <span>—</span>
-                        )}
-                      </p>
-                      <p className="text-sm flex items-center gap-2">
-                        <span className="text-muted-foreground">Formation adaptée au public :</span>
-                        {selectedEvaluation.formation_adaptee_public === true ? (
-                          <Badge variant="default" className="bg-green-600">Oui</Badge>
-                        ) : selectedEvaluation.formation_adaptee_public === false ? (
-                          <Badge variant="destructive">Non</Badge>
-                        ) : (
-                          <span>—</span>
-                        )}
-                      </p>
-                      <p className="text-sm flex items-center gap-2">
-                        <span className="text-muted-foreground">Qualification intervenant adéquate :</span>
-                        {selectedEvaluation.qualification_intervenant_adequate === true ? (
-                          <Badge variant="default" className="bg-green-600">Oui</Badge>
-                        ) : selectedEvaluation.qualification_intervenant_adequate === false ? (
-                          <Badge variant="destructive">Non</Badge>
-                        ) : (
-                          <span>—</span>
-                        )}
-                      </p>
-                      {selectedEvaluation.appreciations_prises_en_compte && (
-                        <p className="text-sm flex items-center gap-2">
-                          <span className="text-muted-foreground">Appréciations prises en compte :</span>
-                          <Badge variant="outline">
-                            {selectedEvaluation.appreciations_prises_en_compte === "oui"
-                              ? "Oui"
-                              : selectedEvaluation.appreciations_prises_en_compte === "non"
-                                ? "Non"
-                                : "Sans objet"}
-                          </Badge>
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Témoignage */}
-                  {selectedEvaluation.message_recommandation && (
-                    <div>
-                      <h3 className="font-semibold mb-2">Témoignage</h3>
-                      <blockquote className="border-l-4 border-primary pl-4 italic text-muted-foreground">
-                        "{selectedEvaluation.message_recommandation}"
-                      </blockquote>
-                      {selectedEvaluation.consent_publication !== null && (
-                        <p className="text-xs mt-2 text-muted-foreground">
-                          {selectedEvaluation.consent_publication
-                            ? "✓ Consent à la publication"
-                            : "✗ Ne consent pas à la publication"}
-                        </p>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Remarques libres */}
-                  {selectedEvaluation.remarques_libres && (
-                    <div>
-                      <h3 className="font-semibold mb-2">Remarques libres</h3>
-                      <p className="text-sm italic text-muted-foreground">
-                        "{selectedEvaluation.remarques_libres}"
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
-            </ScrollArea>
-          </DialogContent>
-        </Dialog>
+        <EvaluationDetailDialog
+          open={showDetail}
+          onOpenChange={setShowDetail}
+          evaluation={selectedEvaluation}
+          trainingName={selectedEvaluation?.trainings.training_name}
+        />
 
         {/* Analysis Dialog */}
         <Dialog open={showAnalysis} onOpenChange={setShowAnalysis}>

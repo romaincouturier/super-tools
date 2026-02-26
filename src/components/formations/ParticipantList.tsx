@@ -1,4 +1,4 @@
-import { HelpCircle, Mail, MailCheck, Clock, CheckCircle, AlertTriangle, Trash2, Loader2, Send, RefreshCw, Receipt, Building, Scroll, Award, Download, Forward, UserCheck, RotateCw, FileSignature, Eye, BellRing, StickyNote, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { HelpCircle, Mail, MailCheck, Clock, CheckCircle, AlertTriangle, Trash2, Loader2, Send, RefreshCw, Receipt, Building, Scroll, Award, Download, Forward, UserCheck, RotateCw, FileSignature, Eye, BellRing, StickyNote, ArrowUpDown, ArrowUp, ArrowDown, ClipboardCheck, Star } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -39,6 +39,7 @@ import {
 import ViewQuestionnaireDialog from "./ViewQuestionnaireDialog";
 import ParticipantDocumentsDialog from "./ParticipantDocumentsDialog";
 import EditParticipantDialog from "./EditParticipantDialog";
+import EvaluationDetailDialog, { type EvaluationData } from "./EvaluationDetailDialog";
 
 interface Participant {
   id: string;
@@ -159,6 +160,15 @@ interface CertificateInfo {
   certificateUrl: string | null;
 }
 
+interface EvaluationInfo {
+  evaluationId: string;
+  etat: string;
+  date_soumission: string | null;
+  appreciation_generale: number | null;
+  recommandation: string | null;
+  fullData: EvaluationData | null;
+}
+
 interface ConventionSignatureInfo {
   status: string;
   signed_at: string | null;
@@ -191,34 +201,82 @@ const ParticipantList = ({
   const [conventionRemindingId, setConventionRemindingId] = useState<string | null>(null);
   const [sortField, setSortField] = useState<"last_name" | "first_name" | "email" | "amount" | null>(null);
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const [evaluationsByParticipant, setEvaluationsByParticipant] = useState<Map<string, EvaluationInfo>>(new Map());
+  const [selectedEvaluation, setSelectedEvaluation] = useState<EvaluationData | null>(null);
+  const [showEvaluationDetail, setShowEvaluationDetail] = useState(false);
   const { toast } = useToast();
 
   const isInterEntreprise = formatFormation === "inter-entreprises" || formatFormation === "e_learning";
   const isIndividualConvention = formatFormation === "inter-entreprises" || formatFormation === "e_learning";
 
-  // Fetch evaluation certificate URLs for all participants
+  // Fetch all evaluations (certificates + status) for all participants
   useEffect(() => {
-    const fetchCertificates = async () => {
+    const fetchEvaluations = async () => {
       const { data, error } = await (supabase as any)
         .from("training_evaluations")
-        .select("id, participant_id, certificate_url, etat")
-        .eq("training_id", trainingId)
-        .eq("etat", "soumis");
+        .select(`
+          id, participant_id, certificate_url, etat, date_soumission,
+          first_name, last_name, company, email,
+          appreciation_generale, recommandation, message_recommandation,
+          objectifs_evaluation, objectif_prioritaire, delai_application,
+          freins_application, rythme, equilibre_theorie_pratique,
+          amelioration_suggeree, conditions_info_satisfaisantes,
+          formation_adaptee_public, qualification_intervenant_adequate,
+          appreciations_prises_en_compte, consent_publication, remarques_libres
+        `)
+        .eq("training_id", trainingId);
 
       if (!error && data) {
-        const map = new Map<string, CertificateInfo>();
+        const certMap = new Map<string, CertificateInfo>();
+        const evalMap = new Map<string, EvaluationInfo>();
         for (const ev of data) {
           if (ev.participant_id) {
-            map.set(ev.participant_id, {
+            // Certificates (only for submitted evaluations)
+            if (ev.etat === "soumis") {
+              certMap.set(ev.participant_id, {
+                evaluationId: ev.id,
+                certificateUrl: ev.certificate_url || null,
+              });
+            }
+            // Evaluation status (all states)
+            evalMap.set(ev.participant_id, {
               evaluationId: ev.id,
-              certificateUrl: ev.certificate_url || null,
+              etat: ev.etat,
+              date_soumission: ev.date_soumission,
+              appreciation_generale: ev.appreciation_generale,
+              recommandation: ev.recommandation,
+              fullData: ev.etat === "soumis" ? {
+                id: ev.id,
+                first_name: ev.first_name,
+                last_name: ev.last_name,
+                company: ev.company,
+                email: ev.email,
+                appreciation_generale: ev.appreciation_generale,
+                recommandation: ev.recommandation,
+                message_recommandation: ev.message_recommandation,
+                objectifs_evaluation: ev.objectifs_evaluation,
+                objectif_prioritaire: ev.objectif_prioritaire,
+                delai_application: ev.delai_application,
+                freins_application: ev.freins_application,
+                rythme: ev.rythme,
+                equilibre_theorie_pratique: ev.equilibre_theorie_pratique,
+                amelioration_suggeree: ev.amelioration_suggeree,
+                conditions_info_satisfaisantes: ev.conditions_info_satisfaisantes,
+                formation_adaptee_public: ev.formation_adaptee_public,
+                qualification_intervenant_adequate: ev.qualification_intervenant_adequate,
+                appreciations_prises_en_compte: ev.appreciations_prises_en_compte,
+                consent_publication: ev.consent_publication,
+                remarques_libres: ev.remarques_libres,
+                date_soumission: ev.date_soumission,
+              } : null,
             });
           }
         }
-        setCertificatesByParticipant(map);
+        setCertificatesByParticipant(certMap);
+        setEvaluationsByParticipant(evalMap);
       }
     };
-    fetchCertificates();
+    fetchEvaluations();
   }, [trainingId, participants]);
 
   // Fetch convention signature statuses for inter/e-learning participants
@@ -940,6 +998,56 @@ const ParticipantList = ({
         );
       })()}
 
+      {/* Evaluation status button */}
+      {(() => {
+        const evalInfo = evaluationsByParticipant.get(participant.id);
+        if (!evalInfo) return null;
+
+        if (evalInfo.etat === "soumis") {
+          return (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-green-600 hover:text-green-700"
+                  onClick={() => {
+                    if (evalInfo.fullData) {
+                      setSelectedEvaluation(evalInfo.fullData);
+                      setShowEvaluationDetail(true);
+                    }
+                  }}
+                >
+                  <ClipboardCheck className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>
+                  Évaluation soumise
+                  {evalInfo.appreciation_generale ? ` — ${evalInfo.appreciation_generale}/5` : ""}
+                  {" · Cliquer pour voir le détail"}
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          );
+        }
+
+        return (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="inline-flex items-center justify-center h-8 w-8">
+                <ClipboardCheck className="h-4 w-4 text-muted-foreground/50" />
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>
+                Évaluation {evalInfo.etat === "envoye" ? "envoyée — en attente de réponse" : evalInfo.etat}
+              </p>
+            </TooltipContent>
+          </Tooltip>
+        );
+      })()}
+
       {/* Edit participant button */}
       <EditParticipantDialog
         participant={participant}
@@ -986,8 +1094,48 @@ const ParticipantList = ({
     </div>
   );
 
+  // Evaluation summary stats
+  const evalTotal = evaluationsByParticipant.size;
+  const evalSoumis = Array.from(evaluationsByParticipant.values()).filter(e => e.etat === "soumis").length;
+  const evalEnvoye = Array.from(evaluationsByParticipant.values()).filter(e => e.etat === "envoye").length;
+  const avgRating = evalSoumis > 0
+    ? Array.from(evaluationsByParticipant.values())
+        .filter(e => e.etat === "soumis" && e.appreciation_generale)
+        .reduce((sum, e) => sum + (e.appreciation_generale || 0), 0) /
+      Array.from(evaluationsByParticipant.values()).filter(e => e.etat === "soumis" && e.appreciation_generale).length
+    : 0;
+
   return (
     <>
+      {/* Evaluation summary bar */}
+      {evalTotal > 0 && (
+        <div className="flex flex-wrap items-center gap-3 mb-3 p-3 bg-muted/50 rounded-lg text-sm">
+          <ClipboardCheck className="h-4 w-4 text-muted-foreground" />
+          <span className="font-medium">Évaluations :</span>
+          <Badge variant={evalSoumis === participants.length ? "default" : "secondary"} className="gap-1">
+            <CheckCircle className="h-3 w-3" />
+            {evalSoumis} soumise{evalSoumis !== 1 ? "s" : ""}
+          </Badge>
+          {evalEnvoye > 0 && (
+            <Badge variant="outline" className="gap-1">
+              <Clock className="h-3 w-3" />
+              {evalEnvoye} en attente
+            </Badge>
+          )}
+          {participants.length - evalTotal > 0 && (
+            <span className="text-muted-foreground">
+              {participants.length - evalTotal} non envoyée{participants.length - evalTotal !== 1 ? "s" : ""}
+            </span>
+          )}
+          {avgRating > 0 && (
+            <span className="flex items-center gap-1 ml-auto">
+              <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
+              <span className="font-medium">{avgRating.toFixed(1)}/5</span>
+            </span>
+          )}
+        </div>
+      )}
+
       {isMobile ? (
         /* Mobile: card list for participants */
         <div className="space-y-3">
@@ -1177,6 +1325,14 @@ const ParticipantList = ({
           onUpdate={onParticipantUpdated}
         />
       )}
+
+      {/* Evaluation detail dialog */}
+      <EvaluationDetailDialog
+        open={showEvaluationDetail}
+        onOpenChange={setShowEvaluationDetail}
+        evaluation={selectedEvaluation}
+        trainingName={trainingName}
+      />
     </>
   );
 };
