@@ -22,8 +22,16 @@ export function computeCanvasDimensions(canvas: HTMLCanvasElement): {
   width: number;
   height: number;
 } | null {
-  const cssWidth = canvas.offsetWidth;
-  const cssHeight = canvas.offsetHeight;
+  let cssWidth = canvas.offsetWidth;
+  let cssHeight = canvas.offsetHeight;
+
+  // Fallback to getBoundingClientRect when offsetWidth/Height are 0
+  // (e.g. during Radix Dialog animation or zoom edge cases)
+  if (cssWidth === 0 || cssHeight === 0) {
+    const rect = canvas.getBoundingClientRect();
+    cssWidth = rect.width;
+    cssHeight = rect.height;
+  }
 
   if (cssWidth === 0 || cssHeight === 0) {
     return null;

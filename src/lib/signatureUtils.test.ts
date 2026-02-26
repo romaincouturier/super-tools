@@ -8,11 +8,24 @@ import {
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-const makeCanvas = (width: number, height: number): HTMLCanvasElement => {
+const makeCanvas = (
+  width: number,
+  height: number,
+  rectWidth?: number,
+  rectHeight?: number,
+): HTMLCanvasElement => {
   const canvas = document.createElement("canvas");
-  // happy-dom doesn't set offsetWidth/offsetHeight from CSS, so we stub them
   Object.defineProperty(canvas, "offsetWidth", { value: width, configurable: true });
   Object.defineProperty(canvas, "offsetHeight", { value: height, configurable: true });
+  // Allow getBoundingClientRect fallback testing
+  if (rectWidth !== undefined || rectHeight !== undefined) {
+    vi.spyOn(canvas, "getBoundingClientRect").mockReturnValue({
+      width: rectWidth ?? 0,
+      height: rectHeight ?? 0,
+      x: 0, y: 0, top: 0, left: 0, bottom: rectHeight ?? 0, right: rectWidth ?? 0,
+      toJSON: () => {},
+    });
+  }
   return canvas;
 };
 
@@ -20,7 +33,6 @@ const makeCanvas = (width: number, height: number): HTMLCanvasElement => {
 
 describe("computeCanvasDimensions", () => {
   beforeEach(() => {
-    // Default DPR = 1
     Object.defineProperty(window, "devicePixelRatio", { value: 1, configurable: true });
   });
 
@@ -66,6 +78,17 @@ describe("computeCanvasDimensions", () => {
     const result = computeCanvasDimensions(canvas);
     expect(result).toEqual({ ratio: 1.5, width: 600, height: 270 });
   });
+
+  it("falls back to getBoundingClientRect when offset dimensions are 0", () => {
+    const canvas = makeCanvas(0, 0, 400, 180);
+    const result = computeCanvasDimensions(canvas);
+    expect(result).toEqual({ ratio: 1, width: 400, height: 180 });
+  });
+
+  it("returns null when both offset and bounding rect are 0", () => {
+    const canvas = makeCanvas(0, 0, 0, 0);
+    expect(computeCanvasDimensions(canvas)).toBeNull();
+  });
 });
 
 // ── applyCanvasDimensions ────────────────────────────────────────────────────
@@ -108,6 +131,14 @@ describe("applyCanvasDimensions", () => {
     applyCanvasDimensions(canvas);
     expect(mockScale).toHaveBeenCalledWith(2, 2);
   });
+
+  it("works via getBoundingClientRect fallback", () => {
+    const canvas = makeCanvas(0, 0, 300, 150);
+    const result = applyCanvasDimensions(canvas);
+    expect(result).toBe(true);
+    expect(canvas.width).toBe(300);
+    expect(canvas.height).toBe(150);
+  });
 });
 
 // ── waitForCanvasReady ───────────────────────────────────────────────────────
@@ -120,10 +151,7 @@ describe("waitForCanvasReady", () => {
   it("resolves true immediately when canvas has dimensions", async () => {
     const canvas = makeCanvas(400, 180);
 
-    // Mock requestAnimationFrame to run synchronously
-    let rafCallback: FrameRequestCallback | null = null;
     vi.spyOn(window, "requestAnimationFrame").mockImplementation((cb) => {
-      rafCallback = cb;
       cb(0);
       return 0;
     });
@@ -164,5 +192,17 @@ describe("waitForCanvasReady", () => {
     expect(result).toBe(true);
     expect(canvas.width).toBe(400);
     expect(callCount).toBe(3);
+  });
+
+  it("does not throw unhandled exceptions during polling", async () => {
+    const canvas = makeCanvas(0, 0);
+
+    vi.spyOn(window, "requestAnimationFrame").mockImplementation((cb) => {
+      cb(0);
+      return 0;
+    });
+
+    // Should resolve cleanly without throwing
+    await expect(waitForCanvasReady(canvas, 2)).resolves.toBe(false);
   });
 });

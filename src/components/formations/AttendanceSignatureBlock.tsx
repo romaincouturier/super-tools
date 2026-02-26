@@ -88,6 +88,8 @@ const AttendanceSignatureBlock = ({
   const [showTrainerSignDialog, setShowTrainerSignDialog] = useState(false);
   const [signingSlot, setSigningSlot] = useState<{ date: string; period: "AM" | "PM" } | null>(null);
   const [savingTrainerSig, setSavingTrainerSig] = useState(false);
+  const [signaturePadReady, setSignaturePadReady] = useState(false);
+  const [signatureInitError, setSignatureInitError] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const signaturePadRef = useRef<SignaturePad | null>(null);
   const { toast } = useToast();
@@ -103,50 +105,120 @@ const AttendanceSignatureBlock = ({
   }, [trainingId, schedules]);
 
   // Initialize signature pad when dialog opens.
-  // Wait until canvas has layout dimensions, then size it and mount SignaturePad.
-  useEffect(() => {
+  // Robust 3-level strategy: poll for dimensions → init with try/catch → error fallback.
+  const initSignaturePad = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) {
+      setSignatureInitError(true);
+      return () => {};
+    }
+
+    setSignaturePadReady(false);
+    setSignatureInitError(false);
+
+    // Destroy previous instance
+    if (signaturePadRef.current) {
+      signaturePadRef.current.off();
+      signaturePadRef.current = null;
+    }
+
     let cancelled = false;
+    let attempts = 0;
+    const maxAttempts = 30; // ~500ms at 60fps
 
-    if (showTrainerSignDialog && canvasRef.current) {
-      const canvas = canvasRef.current;
-      let attempts = 0;
-      const maxAttempts = 24;
+    const tryInit = () => {
+      if (cancelled) return;
 
-      const init = () => {
-        if (cancelled) return;
+      try {
+        // Use offsetWidth first, fallback to getBoundingClientRect
+        let cssWidth = canvas.offsetWidth;
+        let cssHeight = canvas.offsetHeight;
 
-        const cssWidth = canvas.offsetWidth;
-        const cssHeight = canvas.offsetHeight;
+        if (cssWidth === 0 || cssHeight === 0) {
+          const rect = canvas.getBoundingClientRect();
+          cssWidth = rect.width;
+          cssHeight = rect.height;
+        }
 
         if (cssWidth > 0 && cssHeight > 0) {
           const ratio = Math.max(window.devicePixelRatio || 1, 1);
           canvas.width = cssWidth * ratio;
           canvas.height = cssHeight * ratio;
           const ctx = canvas.getContext("2d");
-          ctx?.setTransform(ratio, 0, 0, ratio, 0, 0);
+          if (!ctx) {
+            console.error("[Signature] Canvas 2D context unavailable");
+            setSignatureInitError(true);
+            return;
+          }
+          // Reset any previous transform then apply HiDPI scale
+          ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
 
+          // Create SignaturePad AFTER canvas is properly sized
           signaturePadRef.current = new SignaturePad(canvas, {
             backgroundColor: "rgb(255, 255, 255)",
             penColor: "rgb(0, 0, 0)",
           });
           signaturePadRef.current.clear();
+
+          console.debug("[Signature] Pad ready", {
+            cssWidth, cssHeight, ratio,
+            canvasWidth: canvas.width, canvasHeight: canvas.height,
+          });
+
+          setSignaturePadReady(true);
           return;
         }
 
         attempts += 1;
         if (attempts < maxAttempts) {
-          requestAnimationFrame(init);
+          requestAnimationFrame(tryInit);
+        } else {
+          console.error("[Signature] Canvas never got dimensions after", maxAttempts, "frames");
+          setSignatureInitError(true);
         }
-      };
+      } catch (err) {
+        console.error("[Signature] Init error:", err);
+        setSignatureInitError(true);
+      }
+    };
 
-      requestAnimationFrame(init);
-    }
+    // Start polling on next frame (Radix Dialog animation)
+    requestAnimationFrame(tryInit);
 
     return () => {
       cancelled = true;
-      signaturePadRef.current = null;
+      if (signaturePadRef.current) {
+        signaturePadRef.current.off();
+        signaturePadRef.current = null;
+      }
     };
-  }, [showTrainerSignDialog]);
+  }, []);
+
+  useEffect(() => {
+    if (!showTrainerSignDialog) {
+      setSignaturePadReady(false);
+      setSignatureInitError(false);
+      if (signaturePadRef.current) {
+        signaturePadRef.current.off();
+        signaturePadRef.current = null;
+      }
+      return;
+    }
+
+    // Small delay to let Radix Dialog finish mounting & animating
+    const timer = setTimeout(() => {
+      const cleanup = initSignaturePad();
+      return cleanup;
+    }, 100);
+
+    return () => {
+      clearTimeout(timer);
+      if (signaturePadRef.current) {
+        signaturePadRef.current.off();
+        signaturePadRef.current = null;
+      }
+    };
+  }, [showTrainerSignDialog, initSignaturePad]);
 
   const fetchSignatureStatuses = async () => {
     try {
@@ -992,12 +1064,35 @@ const AttendanceSignatureBlock = ({
             </DialogDescription>
           </DialogHeader>
 
-          <div className="border rounded-lg overflow-hidden bg-white">
+          <div className="border rounded-lg overflow-hidden bg-white relative">
             <canvas
               ref={canvasRef}
               className="w-full"
               style={{ height: "180px", touchAction: "none" }}
             />
+            {!signaturePadReady && !signatureInitError && (
+              <div className="absolute inset-0 flex items-center justify-center bg-white/80">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Initialisation de la zone de signature…
+                </div>
+              </div>
+            )}
+            {signatureInitError && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/90 gap-2">
+                <p className="text-sm text-destructive">
+                  Impossible d'initialiser la zone de signature.
+                </p>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => initSignaturePad()}
+                >
+                  <RefreshCw className="h-4 w-4 mr-1" />
+                  Réessayer
+                </Button>
+              </div>
+            )}
           </div>
 
           <DialogFooter className="flex-row justify-between sm:justify-between">
@@ -1005,6 +1100,7 @@ const AttendanceSignatureBlock = ({
               variant="ghost"
               size="sm"
               onClick={() => signaturePadRef.current?.clear()}
+              disabled={!signaturePadReady}
             >
               Effacer
             </Button>
@@ -1020,7 +1116,7 @@ const AttendanceSignatureBlock = ({
               </Button>
               <Button
                 onClick={signingSlot ? handleSaveTrainerSignature : handleSignAllSlots}
-                disabled={savingTrainerSig}
+                disabled={savingTrainerSig || !signaturePadReady}
               >
                 {savingTrainerSig ? (
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
