@@ -18,6 +18,7 @@ interface Participant {
   prenom: string;
   nom: string;
   email: string;
+  participantId?: string;
 }
 
 interface RequestBody {
@@ -30,6 +31,7 @@ interface RequestBody {
   emailDestinataire: string;
   emailCommanditaire?: string;
   participants: Participant[];
+  trainingId?: string; // For storing certificate_url in training_evaluations
 }
 
 interface PdfData {
@@ -620,7 +622,7 @@ serve(async (req: Request): Promise<Response> => {
     // --- End authentication check ---
 
     const body: RequestBody = await req.json();
-    const { formationName, entreprise, duree, dateDebut, dateFin, emailDestinataire, emailCommanditaire, participants, userId } = body;
+    const { formationName, entreprise, duree, dateDebut, dateFin, emailDestinataire, emailCommanditaire, participants, userId, trainingId } = body;
 
     console.log(`Processing ${participants.length} participants for formation: ${formationName}`);
     if (userId) {
@@ -704,15 +706,67 @@ serve(async (req: Request): Promise<Response> => {
           }
 
           if (pdfGenerated && pdfUrl) {
+            // Download PDF content
+            let pdfBuffer: Uint8Array | null = null;
+            try {
+              const pdfResponse = await fetch(pdfUrl);
+              pdfBuffer = new Uint8Array(await pdfResponse.arrayBuffer());
+            } catch (dlErr: any) {
+              console.warn(`Failed to download PDF for ${participantName}:`, dlErr.message);
+            }
+
+            // Store in Supabase Storage + update certificate_url if trainingId is provided
+            if (pdfBuffer && trainingId) {
+              try {
+                const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+                const participantId = participant.participantId || participant.email;
+                const storagePath = `${trainingId}/${participantId}.pdf`;
+
+                await supabaseAdmin.storage
+                  .from("certificates")
+                  .upload(storagePath, pdfBuffer, { contentType: "application/pdf", upsert: true });
+
+                const { data: publicData } = supabaseAdmin.storage
+                  .from("certificates")
+                  .getPublicUrl(storagePath);
+
+                const certificateStorageUrl = publicData.publicUrl;
+
+                // Update certificate_url on matching evaluation
+                if (participant.participantId) {
+                  await supabaseAdmin
+                    .from("training_evaluations")
+                    .update({ certificate_url: certificateStorageUrl })
+                    .eq("training_id", trainingId)
+                    .eq("participant_id", participant.participantId);
+                } else {
+                  await supabaseAdmin
+                    .from("training_evaluations")
+                    .update({ certificate_url: certificateStorageUrl })
+                    .eq("training_id", trainingId)
+                    .eq("email", participant.email);
+                }
+
+                console.log(`Certificate stored: ${certificateStorageUrl}`);
+              } catch (storeErr: any) {
+                console.warn(`Failed to store certificate: ${storeErr.message}`);
+              }
+            }
+
             // Download PDF for ZIP if commanditaire email is set
             if (emailCommanditaire) {
-              try {
-                const pdfResponse = await fetch(pdfUrl);
-                const pdfBuffer = new Uint8Array(await pdfResponse.arrayBuffer());
+              if (pdfBuffer) {
                 const fileName = `Certificat_${participant.prenom}_${participant.nom}.pdf`;
                 pdfDataList.push({ fileName, pdfBuffer });
-              } catch (error: any) {
-                console.warn(`Failed to download PDF for ZIP: ${error.message}`);
+              } else {
+                try {
+                  const pdfResponse2 = await fetch(pdfUrl);
+                  const buf = new Uint8Array(await pdfResponse2.arrayBuffer());
+                  const fileName = `Certificat_${participant.prenom}_${participant.nom}.pdf`;
+                  pdfDataList.push({ fileName, pdfBuffer: buf });
+                } catch (error: any) {
+                  console.warn(`Failed to download PDF for ZIP: ${error.message}`);
+                }
               }
             }
 
