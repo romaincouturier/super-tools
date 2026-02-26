@@ -38,6 +38,7 @@ import TrainingDocumentsSection from "@/components/formations/TrainingDocumentsS
 import ScheduledActionsEditor, { ScheduledAction } from "@/components/formations/ScheduledActionsEditor";
 import EntityMediaManager from "@/components/media/EntityMediaManager";
 import TrainerAdequacy from "@/components/formations/TrainerAdequacy";
+import TrainerEvaluationBlock from "@/components/formations/TrainerEvaluationBlock";
 import ThankYouEmailPreviewDialog from "@/components/formations/ThankYouEmailPreviewDialog";
 import LogisticsBookingButtons from "@/components/shared/LogisticsBookingButtons";
 import { isToday, isBefore, startOfDay } from "date-fns";
@@ -1348,9 +1349,14 @@ const FormationDetail = () => {
           />
         </div>
 
-        {/* Row 4: Trainer Adequacy + Photos & Videos */}
+        {/* Row 4: Trainer Adequacy + Trainer Evaluation */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           <TrainerAdequacy trainingId={training.id} trainerName={training.trainer_name} />
+          <TrainerEvaluationBlock trainingId={training.id} trainerName={training.trainer_name} />
+        </div>
+
+        {/* Row 5: Photos & Videos */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           <EntityMediaManager
             sourceType="training"
             sourceId={training.id}
@@ -1358,8 +1364,43 @@ const FormationDetail = () => {
           />
         </div>
 
-        {/* Row 5: Notes */}
+        {/* Row 6: Funder Appreciation + Notes */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          {/* Funder Appreciation */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Euro className="h-5 w-5" />
+                Appréciation financeur
+                <span className="text-sm font-normal text-muted-foreground">(Indicateur 30)</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Textarea
+                placeholder="Retour du financeur (OPCO, France Travail…) sur cette formation..."
+                value={(training as any).funder_appreciation || ""}
+                onChange={(e) => {
+                  setTraining({ ...training, funder_appreciation: e.target.value } as any);
+                }}
+                onBlur={async () => {
+                  const val = ((training as any).funder_appreciation || "").trim();
+                  await supabase
+                    .from("trainings")
+                    .update({ funder_appreciation: val || null, funder_appreciation_date: val ? new Date().toISOString().split("T")[0] : null } as any)
+                    .eq("id", training.id);
+                }}
+                className="min-h-[80px] resize-y"
+              />
+              {(training as any).funder_appreciation_date && (
+                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                  <CheckCircle2 className="h-3 w-3 text-primary" />
+                  Renseigné le {new Date((training as any).funder_appreciation_date).toLocaleDateString("fr-FR")}
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Notes */}
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">

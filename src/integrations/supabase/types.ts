@@ -3272,6 +3272,68 @@ export type Database = {
           },
         ]
       }
+      trainer_evaluations: {
+        Row: {
+          axes_amelioration: string | null
+          commentaires: string | null
+          created_at: string
+          created_by: string | null
+          date_submitted: string | null
+          email_sent_at: string | null
+          id: string
+          points_forts: string | null
+          satisfaction_globale: number | null
+          status: string
+          token: string
+          trainer_email: string | null
+          trainer_name: string
+          training_id: string
+          updated_at: string
+        }
+        Insert: {
+          axes_amelioration?: string | null
+          commentaires?: string | null
+          created_at?: string
+          created_by?: string | null
+          date_submitted?: string | null
+          email_sent_at?: string | null
+          id?: string
+          points_forts?: string | null
+          satisfaction_globale?: number | null
+          status?: string
+          token: string
+          trainer_email?: string | null
+          trainer_name: string
+          training_id: string
+          updated_at?: string
+        }
+        Update: {
+          axes_amelioration?: string | null
+          commentaires?: string | null
+          created_at?: string
+          created_by?: string | null
+          date_submitted?: string | null
+          email_sent_at?: string | null
+          id?: string
+          points_forts?: string | null
+          satisfaction_globale?: number | null
+          status?: string
+          token?: string
+          trainer_email?: string | null
+          trainer_name?: string
+          training_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trainer_evaluations_training_id_fkey"
+            columns: ["training_id"]
+            isOneToOne: false
+            referencedRelation: "trainings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trainer_training_adequacy: {
         Row: {
           created_at: string
@@ -3762,6 +3824,8 @@ export type Database = {
           financeur_same_as_sponsor: boolean
           financeur_url: string | null
           format_formation: string | null
+          funder_appreciation: string | null
+          funder_appreciation_date: string | null
           hotel_booked: boolean | null
           id: string
           invoice_file_url: string | null
@@ -3806,6 +3870,8 @@ export type Database = {
           financeur_same_as_sponsor?: boolean
           financeur_url?: string | null
           format_formation?: string | null
+          funder_appreciation?: string | null
+          funder_appreciation_date?: string | null
           hotel_booked?: boolean | null
           id?: string
           invoice_file_url?: string | null
@@ -3850,6 +3916,8 @@ export type Database = {
           financeur_same_as_sponsor?: boolean
           financeur_url?: string | null
           format_formation?: string | null
+          funder_appreciation?: string | null
+          funder_appreciation_date?: string | null
           hotel_booked?: boolean | null
           id?: string
           invoice_file_url?: string | null
