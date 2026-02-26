@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getSenderFrom, getBccList } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
+import { processTemplate, textToHtml } from "../_shared/templates.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -9,44 +10,39 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-// Format date for display (e.g., "15 janvier 2025")
-function formatDateFr(dateStr: string): string {
-  const date = new Date(dateStr);
-  return new Intl.DateTimeFormat("fr-FR", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  }).format(date);
+// Format date range for display (e.g., "du 15 au 17 janvier 2025")
+function formatDateRangeForDisplay(startDate: string, endDate: string | null): string {
+  const start = new Date(startDate);
+  const end = endDate ? new Date(endDate) : null;
+
+  if (!end || start.getTime() === end.getTime()) {
+    return `le ${new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long", year: "numeric" }).format(start)}`;
+  }
+
+  const startFmt = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long" }).format(start);
+  const endFmt = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long", year: "numeric" }).format(end);
+  return `du ${startFmt} au ${endFmt}`;
 }
 
 // Format date range for subject line
 function formatDateRangeForSubject(startDate: string, endDate: string | null): string {
   const start = new Date(startDate);
   const end = endDate ? new Date(endDate) : null;
-  
-  const formatOptions: Intl.DateTimeFormatOptions = {
-    day: "numeric",
-    month: "long",
-  };
-  
+
+  const formatOptions: Intl.DateTimeFormatOptions = { day: "numeric", month: "long" };
+
   if (!end || start.getTime() === end.getTime()) {
-    // Single day
     return new Intl.DateTimeFormat("fr-FR", formatOptions).format(start);
   }
-  
-  // Date range
+
   const startFormatted = new Intl.DateTimeFormat("fr-FR", formatOptions).format(start);
   const endFormatted = new Intl.DateTimeFormat("fr-FR", formatOptions).format(end);
-  
   return `${startFormatted} - ${endFormatted}`;
 }
 
 // Strip HTML tags for plain text version
 function stripHtml(html: string): string {
-  return html
-    .replace(/<[^>]*>/g, '')
-    .replace(/\s+/g, ' ')
-    .trim();
+  return html.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
 }
 
 serve(async (req) => {
@@ -68,7 +64,7 @@ serve(async (req) => {
       attendanceSheetsUrls,
       certificateUrls,
       ccEmail,
-      formalAddress = true // default to vouvoiement
+      formalAddress = true
     } = await req.json();
 
     if (!recipientEmail) {
@@ -87,165 +83,130 @@ serve(async (req) => {
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // Fetch BCC settings
-    const bccList = await getBccList();
+    // Determine template type suffix based on formal address
+    const templateTypeSuffix = formalAddress ? "_vous" : "_tu";
+    const templateType = `training_documents${templateTypeSuffix}`;
 
-    // Get Signitic signature
-    const signature = await getSigniticSignature();
+    // Fetch template, BCC, and signature in parallel
+    const [templateResult, bccList, signature] = await Promise.all([
+      supabase
+        .from("email_templates")
+        .select("subject, html_content")
+        .eq("template_type", templateType)
+        .maybeSingle(),
+      getBccList(),
+      getSigniticSignature(),
+    ]);
 
-    // Build email content based on document type
-    let subject = "";
-    let htmlContent = "";
+    const customTemplate = templateResult.data;
+
+    // Default templates
+    const defaultSubjectTu = "Documents de la formation \"{{training_name}}\"";
+    const defaultSubjectVous = "Documents de la formation \"{{training_name}}\"";
+    const defaultContentTu = `{{greeting}},
+
+Voici les documents relatifs à la formation "{{training_name}}" qui s'est déroulée {{training_dates}}.
+{{#has_invoice}}
+- La facture
+{{/has_invoice}}
+{{#has_sheets}}
+- Les feuilles d'émargement signées
+{{/has_sheets}}
+{{#has_certificates}}
+- Les certificats de réalisation
+{{/has_certificates}}
+
+N'hésite pas à me contacter si tu as des questions.
+
+Bonne réception.`;
+    const defaultContentVous = `{{greeting}},
+
+Veuillez trouver ci-joint les documents relatifs à la formation "{{training_name}}" qui s'est déroulée {{training_dates}}.
+{{#has_invoice}}
+- La facture
+{{/has_invoice}}
+{{#has_sheets}}
+- Les feuilles d'émargement signées
+{{/has_sheets}}
+{{#has_certificates}}
+- Les certificats de réalisation
+{{/has_certificates}}
+
+N'hésitez pas à me contacter si vous avez des questions.
+
+Bonne réception.`;
+
+    const defaultSubject = formalAddress ? defaultSubjectVous : defaultSubjectTu;
+    const defaultContent = formalAddress ? defaultContentVous : defaultContentTu;
+
+    const subjectTemplate = customTemplate?.subject || defaultSubject;
+    const contentTemplate = customTemplate?.html_content || defaultContent;
+
+    console.log("Using template:", customTemplate ? "custom" : "default", "mode:", formalAddress ? "vouvoiement" : "tutoiement");
+
+    // Build greeting
+    const firstName = recipientFirstName || (recipientName ? recipientName.split(" ")[0] : null);
+    const greeting = formalAddress ? "Bonjour" : (firstName ? `Bonjour ${firstName}` : "Bonjour");
+
+    // Build date info
+    const trainingDates = startDate ? formatDateRangeForDisplay(startDate, endDate) : "";
+    const dateInfo = startDate ? formatDateRangeForSubject(startDate, endDate) : "";
+
+    // Determine which documents are present
+    const hasInvoice = documentType === "invoice" || (documentType === "all" && !!invoiceUrl);
+    const hasSheets = documentType === "sheets" || (documentType === "all" && attendanceSheetsUrls?.length > 0);
+    const hasCertificates = documentType === "certificates" || (documentType === "all" && certificateUrls?.length > 0);
+
+    // Build template variables
+    const variables = {
+      greeting,
+      first_name: firstName,
+      training_name: trainingName || "",
+      training_dates: trainingDates,
+      has_invoice: hasInvoice ? "true" : null,
+      has_sheets: hasSheets ? "true" : null,
+      has_certificates: hasCertificates ? "true" : null,
+    };
+
+    // Process subject with training name and date info
+    let subject = processTemplate(subjectTemplate, variables, false);
+    // Append date info to subject if available
+    if (dateInfo && !subject.includes(dateInfo)) {
+      // Build a more specific subject for single doc types
+      if (documentType === "invoice") {
+        subject = `Facture - ${trainingName || ""}${dateInfo ? ` - ${dateInfo}` : ""} - Supertilt`;
+      } else if (documentType === "sheets") {
+        subject = `Émargements - ${trainingName || ""}${dateInfo ? ` - ${dateInfo}` : ""} - Supertilt`;
+      } else if (documentType === "certificates") {
+        subject = `Certificats de réalisation - ${trainingName || ""}${dateInfo ? ` - ${dateInfo}` : ""} - Supertilt`;
+      }
+    }
+
+    // Process content template
+    const contentText = processTemplate(contentTemplate, variables, false);
+    const contentHtml = textToHtml(contentText);
+
+    const htmlContent = `${contentHtml}\n${signature}`;
+
+    // Build attachments
     const attachments: Array<{ filename: string; path: string }> = [];
 
-    // Use recipientFirstName if provided, otherwise extract from recipientName
-    const firstName = recipientFirstName || (recipientName ? recipientName.split(" ")[0] : null);
-    console.log("DEBUG - recipientFirstName:", recipientFirstName, "recipientName:", recipientName, "firstName:", firstName, "formalAddress:", formalAddress);
-    // Tutoiement: "Bonjour Prénom," / Vouvoiement: "Bonjour,"
-    const greeting = formalAddress ? "Bonjour," : (firstName ? `Bonjour ${firstName},` : "Bonjour,");
-    console.log("DEBUG - greeting:", greeting);
-    
-    // Generate phrases based on formal/informal address
-    const hopePhrase = formalAddress 
-      ? "J'espère que vous allez bien !"
-      : "J'espère que tu vas bien !";
-    const availabilityPhrase = formalAddress
-      ? "Je reste à votre disposition si vous avez la moindre question."
-      : "Je reste à ta disposition si tu as la moindre question.";
-    const thanksPhrase = formalAddress
-      ? "Merci encore pour votre confiance, c'est toujours un plaisir de collaborer avec vous !"
-      : "Merci encore pour ta confiance, c'est toujours un plaisir de collaborer avec toi !";
-
-    // Format date string for subject
-    const dateInfo = startDate ? formatDateRangeForSubject(startDate, endDate) : "";
-    const trainingInfo = trainingName ? `${trainingName}${dateInfo ? ` - ${dateInfo}` : ""}` : "";
-
-    if (documentType === "invoice" && invoiceUrl) {
-      subject = trainingInfo 
-        ? `Facture - ${trainingInfo} - Supertilt`
-        : "Votre facture de formation - Supertilt";
-      const invoiceText = formalAddress
-        ? "Veuillez trouver ci-joint la facture correspondant à notre récente formation."
-        : "Tu trouveras ci-joint la facture correspondant à notre récente formation.";
-      htmlContent = `
-        <p>${greeting}</p>
-        <p>${hopePhrase}</p>
-        <p>${invoiceText} ${availabilityPhrase}</p>
-        <p>${thanksPhrase}</p>
-        <p>Belle journée,</p>
-        ${signature}
-      `;
-      attachments.push({
-        filename: "Facture.pdf",
-        path: invoiceUrl,
-      });
-    } else if (documentType === "sheets" && attendanceSheetsUrls?.length > 0) {
-      const sheetsCount = attendanceSheetsUrls.length;
-      const sheetsText = sheetsCount > 1 ? "les feuilles d'émargement" : "la feuille d'émargement";
-      const docText = sheetsCount > 1 ? "les documents" : "le document";
-      
-      subject = trainingInfo 
-        ? `Émargements - ${trainingInfo} - Supertilt`
-        : "Feuilles d'émargement - Supertilt";
-      const transmitText = formalAddress
-        ? `Comme convenu, je vous transmets ${sheetsText} de notre formation. Vous trouverez ${docText} en pièce jointe.`
-        : `Comme convenu, je te transmets ${sheetsText} de notre formation. Tu trouveras ${docText} en pièce jointe.`;
-      const needText = formalAddress
-        ? "N'hésitez pas à me faire signe si vous avez besoin de quoi que ce soit d'autre."
-        : "N'hésite pas à me faire signe si tu as besoin de quoi que ce soit d'autre.";
-      htmlContent = `
-        <p>${greeting}</p>
-        <p>${hopePhrase}</p>
-        <p>${transmitText}</p>
-        <p>${needText}</p>
-        <p>À très bientôt,</p>
-        ${signature}
-      `;
+    if ((documentType === "invoice" || documentType === "all") && invoiceUrl) {
+      attachments.push({ filename: "Facture.pdf", path: invoiceUrl });
+    }
+    if ((documentType === "sheets" || documentType === "all") && attendanceSheetsUrls?.length > 0) {
       attendanceSheetsUrls.forEach((url: string, index: number) => {
-        // Detect file extension from URL
         const extension = url.toLowerCase().match(/\.(pdf|jpg|jpeg|png|gif|webp)$/)?.[1] || "pdf";
-        attachments.push({
-          filename: `Feuille_emargement_${index + 1}.${extension}`,
-          path: url,
-        });
+        attachments.push({ filename: `Feuille_emargement_${index + 1}.${extension}`, path: url });
       });
-    } else if (documentType === "certificates" && certificateUrls?.length > 0) {
-      const certCount = certificateUrls.length;
-      subject = trainingInfo 
-        ? `Certificats de réalisation - ${trainingInfo} - Supertilt`
-        : "Certificats de réalisation - Supertilt";
-      const certText = formalAddress
-        ? `Veuillez trouver ci-joint ${certCount > 1 ? "les certificats de réalisation" : "le certificat de réalisation"} de notre formation.`
-        : `Tu trouveras ci-joint ${certCount > 1 ? "les certificats de réalisation" : "le certificat de réalisation"} de notre formation.`;
-      htmlContent = `
-        <p>${greeting}</p>
-        <p>${hopePhrase}</p>
-        <p>${certText} ${availabilityPhrase}</p>
-        <p>${thanksPhrase}</p>
-        <p>Belle journée,</p>
-        ${signature}
-      `;
+    }
+    if ((documentType === "certificates" || documentType === "all") && certificateUrls?.length > 0) {
       certificateUrls.forEach((url: string, index: number) => {
-        attachments.push({
-          filename: `Certificat_${index + 1}.pdf`,
-          path: url,
-        });
+        attachments.push({ filename: `Certificat_${index + 1}.pdf`, path: url });
       });
-    } else if (documentType === "all") {
-      const sheetsCount = attendanceSheetsUrls?.length || 0;
-      const certCount = certificateUrls?.length || 0;
-      
-      // Build subject
-      const parts: string[] = [];
-      if (invoiceUrl) parts.push("Facture");
-      if (sheetsCount > 0) parts.push("émargements");
-      if (certCount > 0) parts.push("certificats");
-      
-      subject = trainingInfo 
-        ? `${parts.join(", ")} - ${trainingInfo} - Supertilt`
-        : `${parts.join(", ")} - Supertilt`;
-      if (!subject || parts.length === 0) subject = `Documents - ${trainingInfo} - Supertilt`;
+    }
 
-      const findText = formalAddress
-        ? "Veuillez trouver ci-joint les documents relatifs à notre formation :"
-        : "Tu trouveras ci-joint les documents relatifs à notre formation :";
-      const questionsText = formalAddress
-        ? "Je reste disponible si vous avez des questions ou besoin d'informations complémentaires."
-        : "Je reste disponible si tu as des questions ou besoin d'informations complémentaires.";
-      htmlContent = `
-        <p>${greeting}</p>
-        <p>${hopePhrase}</p>
-        <p>${findText}</p>
-        <ul style="margin: 10px 0;">
-          ${invoiceUrl ? "<li>La facture</li>" : ""}
-          ${sheetsCount > 0 ? `<li>${sheetsCount > 1 ? "Les feuilles d'émargement" : "La feuille d'émargement"}</li>` : ""}
-          ${certCount > 0 ? `<li>${certCount > 1 ? "Les certificats de réalisation" : "Le certificat de réalisation"}</li>` : ""}
-        </ul>
-        <p>${questionsText}</p>
-        <p>Merci encore pour cette belle collaboration !</p>
-        <p>À très bientôt,</p>
-        ${signature}
-      `;
-      if (invoiceUrl) {
-        attachments.push({
-          filename: "Facture.pdf",
-          path: invoiceUrl,
-        });
-      }
-      attendanceSheetsUrls?.forEach((url: string, index: number) => {
-        const extension = url.toLowerCase().match(/\.(pdf|jpg|jpeg|png|gif|webp)$/)?.[1] || "pdf";
-        attachments.push({
-          filename: `Feuille_emargement_${index + 1}.${extension}`,
-          path: url,
-        });
-      });
-      certificateUrls?.forEach((url: string, index: number) => {
-        attachments.push({
-          filename: `Certificat_${index + 1}.pdf`,
-          path: url,
-        });
-      });
-    } else {
+    if (attachments.length === 0) {
       return new Response(
         JSON.stringify({ error: "No documents to send" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -292,7 +253,7 @@ serve(async (req) => {
     const result = await emailResponse.json();
     console.log("Email sent successfully:", result);
 
-    // Log activity with email subject and content
+    // Log activity
     try {
       await supabase.from("activity_logs").insert({
         action_type: "training_documents_sent",

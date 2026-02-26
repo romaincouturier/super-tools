@@ -461,6 +461,9 @@ Voici les documents relatifs à la formation "{{training_name}}" qui s'est déro
 {{#has_sheets}}
 - Les feuilles d'émargement signées
 {{/has_sheets}}
+{{#has_certificates}}
+- Les certificats de réalisation
+{{/has_certificates}}
 
 N'hésite pas à me contacter si tu as des questions.
 
@@ -475,12 +478,15 @@ Veuillez trouver ci-joint les documents relatifs à la formation "{{training_nam
 {{#has_sheets}}
 - Les feuilles d'émargement signées
 {{/has_sheets}}
+{{#has_certificates}}
+- Les certificats de réalisation
+{{/has_certificates}}
 
 N'hésitez pas à me contacter si vous avez des questions.
 
 Bonne réception.`,
     },
-    variables: ["greeting", "training_name", "training_dates", "has_invoice", "has_sheets"],
+    variables: ["greeting", "training_name", "training_dates", "has_invoice", "has_sheets", "has_certificates"],
   },
   micro_devis: {
     name: "Envoi de micro-devis",
