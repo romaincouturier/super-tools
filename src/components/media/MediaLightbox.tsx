@@ -4,20 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { X, Briefcase, ChevronLeft, ChevronRight, Download, GraduationCap, CalendarDays, HandCoins } from "lucide-react";
 import { toast } from "sonner";
 import { useEffect, useCallback } from "react";
-
-interface MediaLightboxProps {
-  item: MediaItem;
-  items: MediaItem[];
-  onClose: () => void;
-  onNavigate: (item: MediaItem) => void;
-}
-
-const formatFileSize = (bytes: number | null) => {
-  if (!bytes) return "";
-  if (bytes < 1024) return `${bytes} o`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} Ko`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`;
-};
+import { formatFileSize } from "@/lib/file-utils";
 
 const sourceIcon = (sourceType: string) => {
   switch (sourceType) {

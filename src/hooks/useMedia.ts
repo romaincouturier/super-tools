@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { sanitizeFileName } from "@/lib/file-utils";
 
 export type MediaSourceType = "mission" | "event" | "training" | "crm";
 
@@ -187,12 +188,7 @@ export const useDeleteMedia = () => {
 const STORAGE_BUCKET = "media";
 
 export const uploadMediaFile = async (file: File, sourceType: MediaSourceType, sourceId: string) => {
-  const sanitized = file.name
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-zA-Z0-9._-]/g, "_")
-    .toLowerCase();
-  const path = `${sourceType}/${sourceId}/${Date.now()}_${sanitized}`;
+  const path = `${sourceType}/${sourceId}/${Date.now()}_${sanitizeFileName(file.name)}`;
 
   const { error: uploadError } = await supabase.storage
     .from(STORAGE_BUCKET)

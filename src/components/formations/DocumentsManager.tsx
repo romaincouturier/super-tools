@@ -38,6 +38,7 @@ import {
 } from "@/components/ui/dialog";
 import ThankYouEmailPreviewDialog from "@/components/formations/ThankYouEmailPreviewDialog";
 import AttendanceSheetGenerator from "@/components/formations/AttendanceSheetGenerator";
+import { sanitizeFileName } from "@/lib/file-utils";
 
 interface DocumentSentInfo {
   invoice: string | null;
@@ -421,15 +422,6 @@ const DocumentsManager = ({
     } finally {
       setSendingConventionReminder(false);
     }
-  };
-
-  const sanitizeFileName = (name: string): string => {
-    return name
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/[()[\]{}]/g, "")
-      .replace(/\s+/g, "_")
-      .replace(/[^a-zA-Z0-9_.-]/g, "");
   };
 
   const handleInvoiceUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {

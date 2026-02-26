@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from "react";
+import { formatFileSize } from "@/lib/file-utils";
 import { useEditor, EditorContent, Node, mergeAttributes } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import LinkExtension from "@tiptap/extension-link";
@@ -648,11 +649,6 @@ const getFileIcon = (name: string) => {
   return "📎";
 };
 
-const formatFileSize = (bytes: number) => {
-  if (bytes < 1024) return `${bytes} o`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} Ko`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`;
-};
 
 // ─── Main Component ─────────────────────────────────────
 

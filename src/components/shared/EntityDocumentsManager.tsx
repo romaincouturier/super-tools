@@ -1,0 +1,266 @@
+/**
+ * Reusable document manager for any entity (missions, trainings, etc.).
+ * Handles upload, download, delete with consistent UI.
+ */
+import { useRef, useState } from "react";
+import { FileText, Upload, Download, Trash2, Loader2 } from "lucide-react";
+import { format, parseISO } from "date-fns";
+import { fr } from "date-fns/locale";
+import { toast } from "sonner";
+
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatFileSize, downloadFile } from "@/lib/file-utils";
+import {
+  DocumentEntityType,
+  useEntityDocuments,
+  useAddEntityDocument,
+  useDeleteEntityDocument,
+  uploadEntityDocument,
+  deleteEntityDocumentFile,
+} from "@/hooks/useEntityDocuments";
+
+interface EntityDocumentsManagerProps {
+  entityType: DocumentEntityType;
+  entityId: string;
+  /** Card or bare (for embedding in tabs) */
+  variant?: "card" | "bare";
+  /** Maximum file size in bytes (default 20 MB) */
+  maxFileSize?: number;
+  /** Accepted MIME types (default: all) */
+  accept?: string;
+  /** Custom title */
+  title?: string;
+}
+
+const EntityDocumentsManager = ({
+  entityType,
+  entityId,
+  variant = "card",
+  maxFileSize = 20 * 1024 * 1024,
+  accept,
+  title = "Documents",
+}: EntityDocumentsManagerProps) => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+
+  const { data: documents = [], isLoading } = useEntityDocuments(entityType, entityId);
+  const addDocument = useAddEntityDocument(entityType);
+  const deleteDocument = useDeleteEntityDocument(entityType);
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    if (fileInputRef.current) fileInputRef.current.value = "";
+
+    setUploading(true);
+    let successCount = 0;
+
+    try {
+      for (const file of Array.from(files)) {
+        if (file.size > maxFileSize) {
+          toast.error("Fichier trop volumineux", {
+            description: `${file.name} dépasse la limite de ${formatFileSize(maxFileSize)}.`,
+          });
+          continue;
+        }
+
+        try {
+          const fileUrl = await uploadEntityDocument(file, entityType, entityId);
+          await addDocument.mutateAsync({
+            entityId,
+            file_name: file.name,
+            file_url: fileUrl,
+            file_size: file.size,
+          });
+          successCount++;
+        } catch (err: any) {
+          console.error("Upload error:", err);
+          toast.error(`Erreur lors de l'upload de ${file.name}`, {
+            description: err.message,
+          });
+        }
+      }
+
+      if (successCount > 0) {
+        toast.success(
+          successCount === 1
+            ? "Document ajouté"
+            : `${successCount} documents ajoutés`,
+        );
+      }
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleDownload = async (docId: string, fileUrl: string, fileName: string) => {
+    setDownloadingId(docId);
+    try {
+      await downloadFile(fileUrl, fileName);
+    } catch (err: any) {
+      console.error("Download error:", err);
+      toast.error("Erreur de téléchargement", {
+        description: err.message || "Impossible de télécharger le document.",
+      });
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
+  const handleDelete = async (docId: string, fileUrl: string, fileName: string) => {
+    if (!confirm(`Supprimer le document "${fileName}" ?`)) return;
+
+    setDeletingId(docId);
+    try {
+      await deleteEntityDocumentFile(fileUrl, entityType);
+      await deleteDocument.mutateAsync({ id: docId, entityId });
+      toast.success("Document supprimé", { description: fileName });
+    } catch (err: any) {
+      console.error("Delete error:", err);
+      toast.error("Erreur de suppression", {
+        description: err.message || "Impossible de supprimer le document.",
+      });
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const content = (
+    <>
+      <input
+        ref={fileInputRef}
+        type="file"
+        multiple
+        className="hidden"
+        accept={accept}
+        onChange={handleFileSelect}
+      />
+
+      {isLoading ? (
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
+      ) : documents.length === 0 ? (
+        <div
+          className="border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer border-muted-foreground/25 hover:border-primary/50"
+          onClick={() => fileInputRef.current?.click()}
+        >
+          {uploading ? (
+            <div className="flex flex-col items-center gap-2">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <p className="text-sm text-muted-foreground">Upload en cours...</p>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center gap-2">
+              <Upload className="h-8 w-8 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">
+                Cliquez pour ajouter des documents
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Plusieurs fichiers à la fois — max {formatFileSize(maxFileSize)} par fichier
+              </p>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {documents.map((doc) => (
+            <div
+              key={doc.id}
+              className="flex items-center justify-between gap-2 py-2 px-3 rounded-md bg-muted/50 hover:bg-muted transition-colors"
+            >
+              <div className="flex items-center gap-3 min-w-0 flex-1">
+                <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-sm font-medium truncate">{doc.file_name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {formatFileSize(doc.file_size)}
+                    {doc.created_at && (
+                      <>
+                        {" "}&middot;{" "}
+                        {format(parseISO(doc.created_at), "d MMM yyyy", { locale: fr })}
+                      </>
+                    )}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-1 shrink-0">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  title="Télécharger"
+                  disabled={downloadingId === doc.id}
+                  onClick={() => handleDownload(doc.id, doc.file_url, doc.file_name)}
+                >
+                  {downloadingId === doc.id ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Download className="h-4 w-4" />
+                  )}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-destructive hover:text-destructive"
+                  title="Supprimer"
+                  disabled={deletingId === doc.id}
+                  onClick={() => handleDelete(doc.id, doc.file_url, doc.file_name)}
+                >
+                  {deletingId === doc.id ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+            </div>
+          ))}
+
+          {/* Add more button */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+            className="w-full"
+          >
+            {uploading ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Upload className="h-4 w-4 mr-2" />
+            )}
+            {uploading ? "Upload en cours..." : "Ajouter un document"}
+          </Button>
+        </div>
+      )}
+    </>
+  );
+
+  if (variant === "bare") {
+    return <div className="space-y-4">{content}</div>;
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <FileText className="h-5 w-5" />
+          {title}
+          {documents.length > 0 && (
+            <span className="text-sm font-normal text-muted-foreground">
+              ({documents.length})
+            </span>
+          )}
+        </CardTitle>
+      </CardHeader>
+      <CardContent>{content}</CardContent>
+    </Card>
+  );
+};
+
+export default EntityDocumentsManager;
