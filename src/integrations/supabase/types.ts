@@ -2783,6 +2783,93 @@ export type Database = {
           },
         ]
       }
+      reclamations: {
+        Row: {
+          actions_decided: string | null
+          ai_analysis: string | null
+          ai_response_draft: string | null
+          canal: string | null
+          client_email: string | null
+          client_name: string | null
+          created_at: string
+          created_by: string | null
+          date_reclamation: string | null
+          description: string | null
+          id: string
+          mission_id: string | null
+          problem_type: string | null
+          qualiopi_summary: string | null
+          response_date: string | null
+          response_sent: string | null
+          severity: string | null
+          status: string
+          token: string
+          training_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          actions_decided?: string | null
+          ai_analysis?: string | null
+          ai_response_draft?: string | null
+          canal?: string | null
+          client_email?: string | null
+          client_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          date_reclamation?: string | null
+          description?: string | null
+          id?: string
+          mission_id?: string | null
+          problem_type?: string | null
+          qualiopi_summary?: string | null
+          response_date?: string | null
+          response_sent?: string | null
+          severity?: string | null
+          status?: string
+          token: string
+          training_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          actions_decided?: string | null
+          ai_analysis?: string | null
+          ai_response_draft?: string | null
+          canal?: string | null
+          client_email?: string | null
+          client_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          date_reclamation?: string | null
+          description?: string | null
+          id?: string
+          mission_id?: string | null
+          problem_type?: string | null
+          qualiopi_summary?: string | null
+          response_date?: string | null
+          response_sent?: string | null
+          severity?: string | null
+          status?: string
+          token?: string
+          training_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reclamations_mission_id_fkey"
+            columns: ["mission_id"]
+            isOneToOne: false
+            referencedRelation: "missions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reclamations_training_id_fkey"
+            columns: ["training_id"]
+            isOneToOne: false
+            referencedRelation: "trainings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       review_comments: {
         Row: {
           author_id: string
@@ -3762,6 +3849,7 @@ export type Database = {
         | "medias"
         | "monitoring"
         | "arena"
+        | "reclamations"
       notification_type:
         | "review_requested"
         | "comment_added"
@@ -3913,6 +4001,7 @@ export const Constants = {
         "medias",
         "monitoring",
         "arena",
+        "reclamations",
       ],
       notification_type: [
         "review_requested",
