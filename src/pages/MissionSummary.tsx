@@ -57,6 +57,24 @@ interface MissionDocument {
   file_name: string;
   file_url: string;
   file_size: number | null;
+  is_deliverable: boolean;
+}
+
+interface MissionMedia {
+  id: string;
+  file_name: string;
+  file_url: string;
+  file_size: number | null;
+  file_type: string;
+  is_deliverable: boolean;
+}
+
+interface Deliverable {
+  id: string;
+  file_name: string;
+  file_url: string;
+  file_size: number | null;
+  source: "document" | "media";
 }
 
 interface MissionAction {
@@ -211,11 +229,11 @@ const ActionsKanbanColumn = ({ title, items, color, icon }: ActionsKanbanColumnP
 // ---------- Deliverables Block ----------
 
 interface DeliverablesBlockProps {
-  documents: MissionDocument[];
+  deliverables: Deliverable[];
   lang: Lang;
 }
 
-const DeliverablesBlock = ({ documents, lang }: DeliverablesBlockProps) => {
+const DeliverablesBlock = ({ deliverables, lang }: DeliverablesBlockProps) => {
   const L = t[lang];
   const [downloadingAll, setDownloadingAll] = useState(false);
 
@@ -223,7 +241,7 @@ const DeliverablesBlock = ({ documents, lang }: DeliverablesBlockProps) => {
     setDownloadingAll(true);
     try {
       // Download files one by one (no JSZip dependency needed for summary page)
-      for (const doc of documents) {
+      for (const doc of deliverables) {
         const link = document.createElement("a");
         link.href = doc.file_url;
         link.download = doc.file_name;
@@ -247,9 +265,9 @@ const DeliverablesBlock = ({ documents, lang }: DeliverablesBlockProps) => {
           <CardTitle className="flex items-center gap-2 text-lg">
             <Package className="h-5 w-5 text-primary" />
             {L.deliverables}
-            <Badge variant="secondary" className="text-xs ml-1">{documents.length}</Badge>
+            <Badge variant="secondary" className="text-xs ml-1">{deliverables.length}</Badge>
           </CardTitle>
-          {documents.length > 1 && (
+          {deliverables.length > 1 && (
             <Button
               variant="outline"
               size="sm"
@@ -265,7 +283,7 @@ const DeliverablesBlock = ({ documents, lang }: DeliverablesBlockProps) => {
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-          {documents.map((doc) => {
+          {deliverables.map((doc) => {
             const isImage = isImageFile(doc.file_name);
             return (
               <div
@@ -322,6 +340,7 @@ const MissionSummary = () => {
   const [mission, setMission] = useState<MissionData | null>(null);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [documents, setDocuments] = useState<MissionDocument[]>([]);
+  const [mediaItems, setMediaItems] = useState<MissionMedia[]>([]);
   const [actions, setActions] = useState<MissionAction[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -331,7 +350,7 @@ const MissionSummary = () => {
     if (!missionId) return;
     const fetchData = async () => {
       try {
-        const [missionRes, activitiesRes, documentsRes, actionsRes] = await Promise.all([
+        const [missionRes, activitiesRes, documentsRes, actionsRes, mediaRes] = await Promise.all([
           (supabase as any)
             .from("missions")
             .select("id, title, description, client_name, status, start_date, end_date, initial_amount, daily_rate, total_days, emoji")
@@ -344,7 +363,7 @@ const MissionSummary = () => {
             .order("activity_date", { ascending: true }),
           (supabase as any)
             .from("mission_documents")
-            .select("id, file_name, file_url, file_size")
+            .select("id, file_name, file_url, file_size, is_deliverable")
             .eq("mission_id", missionId)
             .order("created_at", { ascending: true }),
           (supabase as any)
@@ -352,6 +371,12 @@ const MissionSummary = () => {
             .select("id, title, status, position")
             .eq("mission_id", missionId)
             .order("position", { ascending: true }),
+          (supabase as any)
+            .from("media")
+            .select("id, file_name, file_url, file_size, file_type, is_deliverable")
+            .eq("source_type", "mission")
+            .eq("source_id", missionId)
+            .order("created_at", { ascending: true }),
         ]);
 
         if (missionRes.error || !missionRes.data) {
@@ -363,6 +388,7 @@ const MissionSummary = () => {
         setMission(missionRes.data);
         setActivities(activitiesRes.data || []);
         setDocuments(documentsRes.data || []);
+        setMediaItems(mediaRes.data || []);
         setActions(actionsRes.data || []);
       } catch {
         setError(true);
@@ -380,6 +406,17 @@ const MissionSummary = () => {
     const done = actions.filter((a) => a.status === "done");
     return { todo, inProgress, done };
   }, [actions]);
+
+  // Deliverables: combine documents and media marked as deliverables
+  const deliverables: Deliverable[] = useMemo(() => {
+    const fromDocs: Deliverable[] = documents
+      .filter((d) => d.is_deliverable)
+      .map((d) => ({ id: d.id, file_name: d.file_name, file_url: d.file_url, file_size: d.file_size, source: "document" as const }));
+    const fromMedia: Deliverable[] = mediaItems
+      .filter((m) => m.is_deliverable)
+      .map((m) => ({ id: m.id, file_name: m.file_name, file_url: m.file_url, file_size: m.file_size, source: "media" as const }));
+    return [...fromDocs, ...fromMedia];
+  }, [documents, mediaItems]);
 
   // Financial calculations
   const totalConsumed = activities.reduce((sum, a) => sum + (a.billable_amount || 0), 0);
@@ -473,9 +510,9 @@ const MissionSummary = () => {
 
         <Separator />
 
-        {/* Deliverables (only if there are documents) */}
-        {documents.length > 0 && (
-          <DeliverablesBlock documents={documents} lang={lang} />
+        {/* Deliverables (only if there are any marked) */}
+        {deliverables.length > 0 && (
+          <DeliverablesBlock deliverables={deliverables} lang={lang} />
         )}
 
         {/* Financial Summary */}

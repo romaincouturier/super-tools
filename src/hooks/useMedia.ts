@@ -16,6 +16,7 @@ export interface MediaItem {
   source_id: string;
   created_at: string;
   created_by: string | null;
+  is_deliverable: boolean;
   // Joined label for display in gallery
   source_label: string;
   source_emoji: string | null;
@@ -104,6 +105,7 @@ export const useMediaLibrary = () => {
           source_id: row.source_id,
           created_at: row.created_at,
           created_by: row.created_by,
+          is_deliverable: row.is_deliverable ?? false,
           source_label: info.label,
           source_emoji: info.emoji,
           source_color: info.color,
@@ -173,6 +175,25 @@ export const useDeleteMedia = () => {
       const { error } = await (supabase as any)
         .from("media")
         .delete()
+        .eq("id", id);
+      if (error) throw error;
+      return { sourceType, sourceId };
+    },
+    onSuccess: ({ sourceType, sourceId }) => {
+      queryClient.invalidateQueries({ queryKey: [ENTITY_MEDIA_KEY, sourceType, sourceId] });
+      queryClient.invalidateQueries({ queryKey: [MEDIA_LIBRARY_KEY] });
+    },
+  });
+};
+
+// ── Toggle deliverable ───────────────────────────────────────────────
+export const useToggleMediaDeliverable = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, sourceType, sourceId, is_deliverable }: { id: string; sourceType: MediaSourceType; sourceId: string; is_deliverable: boolean }) => {
+      const { error } = await (supabase as any)
+        .from("media")
+        .update({ is_deliverable })
         .eq("id", id);
       if (error) throw error;
       return { sourceType, sourceId };
