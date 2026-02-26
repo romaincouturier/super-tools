@@ -24,6 +24,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import SignaturePad from "signature_pad";
+import { waitForCanvasReady } from "@/lib/signatureUtils";
 import { jsPDF } from "jspdf";
 import supertiltLogoJpg from "@/assets/supertilt-logo-anthracite.jpg";
 
@@ -101,21 +102,25 @@ const AttendanceSignatureBlock = ({
     }
   }, [trainingId, schedules]);
 
-  // Initialize signature pad when dialog opens
+  // Initialize signature pad when dialog opens.
+  // Uses waitForCanvasReady to handle Radix Dialog animation delay —
+  // without this, canvas.offsetWidth is 0 and strokes render as invisible.
   useEffect(() => {
+    let cancelled = false;
+
     if (showTrainerSignDialog && canvasRef.current) {
       const canvas = canvasRef.current;
-      const ratio = Math.max(window.devicePixelRatio || 1, 1);
-      canvas.width = canvas.offsetWidth * ratio;
-      canvas.height = canvas.offsetHeight * ratio;
-      canvas.getContext("2d")?.scale(ratio, ratio);
-
-      signaturePadRef.current = new SignaturePad(canvas, {
-        backgroundColor: "rgb(255, 255, 255)",
-        penColor: "rgb(0, 0, 0)",
+      waitForCanvasReady(canvas).then((ready) => {
+        if (cancelled || !ready) return;
+        signaturePadRef.current = new SignaturePad(canvas, {
+          backgroundColor: "rgb(255, 255, 255)",
+          penColor: "rgb(0, 0, 0)",
+        });
       });
     }
+
     return () => {
+      cancelled = true;
       signaturePadRef.current = null;
     };
   }, [showTrainerSignDialog]);

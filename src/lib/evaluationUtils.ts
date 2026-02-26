@@ -6,13 +6,39 @@
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
+/** Full evaluation data shape used by EvaluationDetailDialog. */
+export interface EvaluationData {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+  company: string | null;
+  email: string | null;
+  appreciation_generale: number | null;
+  recommandation: string | null;
+  message_recommandation: string | null;
+  objectifs_evaluation: { objectif: string; niveau: number }[] | null;
+  objectif_prioritaire: string | null;
+  delai_application: string | null;
+  freins_application: string | null;
+  rythme: string | null;
+  equilibre_theorie_pratique: string | null;
+  amelioration_suggeree: string | null;
+  conditions_info_satisfaisantes: boolean | null;
+  formation_adaptee_public: boolean | null;
+  qualification_intervenant_adequate: boolean | null;
+  appreciations_prises_en_compte: string | null;
+  consent_publication: boolean | null;
+  remarques_libres: string | null;
+  date_soumission: string | null;
+}
+
 export interface EvaluationInfo {
   evaluationId: string;
   etat: string;
   date_soumission: string | null;
   appreciation_generale: number | null;
   recommandation: string | null;
-  fullData: unknown | null;
+  fullData: EvaluationData | null;
 }
 
 export interface CertificateInfo {
@@ -116,6 +142,36 @@ interface RawEvaluationRow {
 }
 
 /**
+ * Extract a typed EvaluationData from a raw Supabase row.
+ */
+function extractEvaluationData(ev: RawEvaluationRow): EvaluationData {
+  return {
+    id: ev.id,
+    first_name: (ev.first_name as string | null) ?? null,
+    last_name: (ev.last_name as string | null) ?? null,
+    company: (ev.company as string | null) ?? null,
+    email: (ev.email as string | null) ?? null,
+    appreciation_generale: ev.appreciation_generale,
+    recommandation: ev.recommandation,
+    message_recommandation: (ev.message_recommandation as string | null) ?? null,
+    objectifs_evaluation: (ev.objectifs_evaluation as EvaluationData["objectifs_evaluation"]) ?? null,
+    objectif_prioritaire: (ev.objectif_prioritaire as string | null) ?? null,
+    delai_application: (ev.delai_application as string | null) ?? null,
+    freins_application: (ev.freins_application as string | null) ?? null,
+    rythme: (ev.rythme as string | null) ?? null,
+    equilibre_theorie_pratique: (ev.equilibre_theorie_pratique as string | null) ?? null,
+    amelioration_suggeree: (ev.amelioration_suggeree as string | null) ?? null,
+    conditions_info_satisfaisantes: (ev.conditions_info_satisfaisantes as boolean | null) ?? null,
+    formation_adaptee_public: (ev.formation_adaptee_public as boolean | null) ?? null,
+    qualification_intervenant_adequate: (ev.qualification_intervenant_adequate as boolean | null) ?? null,
+    appreciations_prises_en_compte: (ev.appreciations_prises_en_compte as string | null) ?? null,
+    consent_publication: (ev.consent_publication as boolean | null) ?? null,
+    remarques_libres: (ev.remarques_libres as string | null) ?? null,
+    date_soumission: ev.date_soumission,
+  };
+}
+
+/**
  * Build certificate & evaluation Maps from raw Supabase rows.
  */
 export function buildEvaluationMaps(rows: RawEvaluationRow[]): {
@@ -141,7 +197,7 @@ export function buildEvaluationMaps(rows: RawEvaluationRow[]): {
       date_soumission: ev.date_soumission,
       appreciation_generale: ev.appreciation_generale,
       recommandation: ev.recommandation,
-      fullData: ev.etat === "soumis" ? ev : null,
+      fullData: ev.etat === "soumis" ? extractEvaluationData(ev) : null,
     });
   }
 

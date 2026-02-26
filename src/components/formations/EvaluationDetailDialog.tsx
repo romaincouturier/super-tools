@@ -9,6 +9,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
+  type EvaluationData,
   getRecommandationLabel,
   getRecommandationVariant,
   getDelaiApplicationLabel,
@@ -18,30 +19,8 @@ import {
   formatEvaluationDisplayName,
 } from "@/lib/evaluationUtils";
 
-export interface EvaluationData {
-  id: string;
-  first_name: string | null;
-  last_name: string | null;
-  company: string | null;
-  email: string | null;
-  appreciation_generale: number | null;
-  recommandation: string | null;
-  message_recommandation: string | null;
-  objectifs_evaluation: { objectif: string; niveau: number }[] | null;
-  objectif_prioritaire: string | null;
-  delai_application: string | null;
-  freins_application: string | null;
-  rythme: string | null;
-  equilibre_theorie_pratique: string | null;
-  amelioration_suggeree: string | null;
-  conditions_info_satisfaisantes: boolean | null;
-  formation_adaptee_public: boolean | null;
-  qualification_intervenant_adequate: boolean | null;
-  appreciations_prises_en_compte: string | null;
-  consent_publication: boolean | null;
-  remarques_libres: string | null;
-  date_soumission: string | null;
-}
+// Re-export for consumers that import from this file
+export type { EvaluationData };
 
 interface EvaluationDetailDialogProps {
   open: boolean;
