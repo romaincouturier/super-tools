@@ -736,6 +736,39 @@ Dans l'attente de votre retour, je reste à votre disposition pour toute questio
     },
     variables: ["first_name", "training_name", "accessibility_needs"],
   },
+  mission_deliverables: {
+    name: "Envoi des livrables de mission",
+    timing: "manual",
+    subject: {
+      tu: "Vos livrables sont disponibles - {{mission_title}}",
+      vous: "Vos livrables sont disponibles - {{mission_title}}",
+    },
+    content: {
+      tu: `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
+
+Bonne nouvelle ! Les livrables de la mission "{{mission_title}}" sont prêts pour toi.
+
+Tu peux les consulter et les télécharger à tout moment en cliquant ci-dessous :
+
+<p style="margin: 20px 0;"><a href="{{deliverables_link}}" style="display: inline-block; padding: 12px 24px; background-color: #e6bc00; color: #000; text-decoration: none; border-radius: 6px; font-weight: bold;">📦 Accéder aux livrables</a></p>
+
+N'hésite pas à revenir vers moi si tu as la moindre question.
+
+À très bientôt !`,
+      vous: `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
+
+Bonne nouvelle ! Les livrables de la mission "{{mission_title}}" sont disponibles.
+
+Vous pouvez les consulter et les télécharger à tout moment en cliquant ci-dessous :
+
+<p style="margin: 20px 0;"><a href="{{deliverables_link}}" style="display: inline-block; padding: 12px 24px; background-color: #e6bc00; color: #000; text-decoration: none; border-radius: 6px; font-weight: bold;">📦 Accéder aux livrables</a></p>
+
+N'hésitez pas à revenir vers moi si vous avez la moindre question.
+
+Cordialement,`,
+    },
+    variables: ["first_name", "mission_title", "deliverables_link"],
+  },
 };
 const Parametres = () => {
   const [user, setUser] = useState<User | null>(null);

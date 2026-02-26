@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Trash2, Loader2, X, Plus, Clock, FileText, Settings, ImageIcon, Share2, Check, Sparkles, MapPin, FolderOpen, CheckCircle2 } from "lucide-react";
+import { Trash2, Loader2, X, Plus, Clock, FileText, Settings, ImageIcon, Share2, Check, Sparkles, MapPin, FolderOpen, CheckCircle2, Package } from "lucide-react";
 import { Mission, MissionStatus, missionStatusConfig } from "@/types/missions";
 import { useUpdateMission, useDeleteMission } from "@/hooks/useMissions";
 import { useToast } from "@/hooks/use-toast";
@@ -30,6 +30,7 @@ import { supabase } from "@/integrations/supabase/client";
 import LogisticsBookingButtons from "@/components/shared/LogisticsBookingButtons";
 import EntityDocumentsManager from "@/components/shared/EntityDocumentsManager";
 import MissionActionsManager from "./MissionActionsManager";
+import SendDeliverablesDialog from "./SendDeliverablesDialog";
 
 interface MissionDetailDrawerProps {
   mission: Mission | null;
@@ -58,6 +59,7 @@ const MissionDetailDrawer = ({
   const deleteMission = useDeleteMission();
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
+  const [showDeliverables, setShowDeliverables] = useState(false);
   const [aiSummary, setAiSummary] = useState<string | null>(null);
   const [aiSummaryLoading, setAiSummaryLoading] = useState(false);
   const skipNextSaveRef = useRef(true);
@@ -212,6 +214,9 @@ const MissionDetailDrawer = ({
                 className={aiSummary ? "border-purple-300 text-purple-700" : ""}
               >
                 {aiSummaryLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => setShowDeliverables(true)} title="Envoyer les livrables">
+                <Package className="h-4 w-4" />
               </Button>
               <Button size="sm" variant="outline" onClick={handleShareLink} title="Copier le lien de partage">
                 {copied ? <Check className="h-4 w-4 text-green-600" /> : <Share2 className="h-4 w-4" />}
@@ -534,6 +539,13 @@ const MissionDetailDrawer = ({
             </div>
           </TabsContent>
         </Tabs>
+
+        <SendDeliverablesDialog
+          missionId={mission.id}
+          missionTitle={mission.title}
+          open={showDeliverables}
+          onOpenChange={setShowDeliverables}
+        />
       </SheetContent>
     </Sheet>
   );
