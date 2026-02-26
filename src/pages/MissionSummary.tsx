@@ -12,7 +12,10 @@ import {
   Receipt,
   FileText,
   ExternalLink,
-  Globe,
+  Download,
+  Package,
+  Image as ImageIcon,
+  CheckCircle2,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -49,6 +52,20 @@ interface Activity {
   notes: string | null;
 }
 
+interface MissionDocument {
+  id: string;
+  file_name: string;
+  file_url: string;
+  file_size: number | null;
+}
+
+interface MissionAction {
+  id: string;
+  title: string;
+  status: string;
+  position: number;
+}
+
 type Lang = "fr" | "en";
 type KanbanStatus = "todo" | "in_progress" | "done";
 
@@ -64,7 +81,7 @@ const t: Record<Lang, Record<string, string>> = {
     period: "Période",
     to: "au",
     ongoing: "En cours",
-    actions: "Actions",
+    actionsTitle: "Actions",
     todo: "À faire",
     inProgress: "En cours",
     done: "Terminé",
@@ -88,6 +105,10 @@ const t: Record<Lang, Record<string, string>> = {
     days: "j",
     viewInvoice: "Voir la facture",
     progress: "Avancement",
+    deliverables: "Livrables",
+    downloadAll: "Télécharger tout",
+    download: "Télécharger",
+    noActions: "Aucune action définie",
   },
   en: {
     loading: "Loading...",
@@ -98,7 +119,7 @@ const t: Record<Lang, Record<string, string>> = {
     period: "Period",
     to: "to",
     ongoing: "Ongoing",
-    actions: "Actions",
+    actionsTitle: "Actions",
     todo: "To Do",
     inProgress: "In Progress",
     done: "Done",
@@ -122,18 +143,14 @@ const t: Record<Lang, Record<string, string>> = {
     days: "d",
     viewInvoice: "View invoice",
     progress: "Progress",
+    deliverables: "Deliverables",
+    downloadAll: "Download all",
+    download: "Download",
+    noActions: "No actions defined",
   },
 };
 
 // ---------- Helpers ----------
-
-function classifyActivity(activity: Activity): KanbanStatus {
-  if (activity.is_billed) return "done";
-  const today = startOfDay(new Date());
-  const actDate = startOfDay(parseISO(activity.activity_date));
-  if (isAfter(actDate, today)) return "todo";
-  return "in_progress";
-}
 
 function formatCurrency(amount: number, lang: Lang): string {
   return amount.toLocaleString(lang === "fr" ? "fr-FR" : "en-US", {
@@ -142,61 +159,159 @@ function formatCurrency(amount: number, lang: Lang): string {
   });
 }
 
-// ---------- Kanban Column ----------
+function isImageFile(fileName: string): boolean {
+  return /\.(jpg|jpeg|png|gif|webp|svg|bmp)$/i.test(fileName);
+}
 
-interface KanbanColumnProps {
+function formatFileSize(bytes: number | null): string {
+  if (!bytes) return "";
+  if (bytes < 1024) return `${bytes} o`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} Ko`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`;
+}
+
+// ---------- Actions Kanban Column ----------
+
+interface ActionsKanbanColumnProps {
   title: string;
-  items: Activity[];
+  items: MissionAction[];
   color: string;
-  bgColor: string;
+  icon: React.ReactNode;
+}
+
+const ActionsKanbanColumn = ({ title, items, color, icon }: ActionsKanbanColumnProps) => (
+  <div className="flex-1 min-w-[200px]">
+    <div className="flex items-center gap-2 mb-3">
+      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
+      <h4 className="text-sm font-semibold">{title}</h4>
+      <Badge variant="secondary" className="text-xs h-5 px-1.5">
+        {items.length}
+      </Badge>
+    </div>
+    <div className="space-y-2">
+      {items.sort((a, b) => a.position - b.position).map((item) => (
+        <Card key={item.id} className="border shadow-sm">
+          <CardContent className="p-3">
+            <p className="text-sm font-medium leading-snug">{item.title}</p>
+          </CardContent>
+        </Card>
+      ))}
+      {items.length === 0 && (
+        <div
+          className="border border-dashed rounded-lg p-4 text-center text-xs text-muted-foreground"
+          style={{ borderColor: color + "40" }}
+        >
+          —
+        </div>
+      )}
+    </div>
+  </div>
+);
+
+// ---------- Deliverables Block ----------
+
+interface DeliverablesBlockProps {
+  documents: MissionDocument[];
   lang: Lang;
 }
 
-const KanbanColumn = ({ title, items, color, bgColor, lang }: KanbanColumnProps) => {
-  const locale = lang === "fr" ? fr : enUS;
+const DeliverablesBlock = ({ documents, lang }: DeliverablesBlockProps) => {
+  const L = t[lang];
+  const [downloadingAll, setDownloadingAll] = useState(false);
+
+  const handleDownloadAll = async () => {
+    setDownloadingAll(true);
+    try {
+      // Download files one by one (no JSZip dependency needed for summary page)
+      for (const doc of documents) {
+        const link = document.createElement("a");
+        link.href = doc.file_url;
+        link.download = doc.file_name;
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        // Small delay between downloads
+        await new Promise((r) => setTimeout(r, 300));
+      }
+    } finally {
+      setDownloadingAll(false);
+    }
+  };
 
   return (
-    <div className="flex-1 min-w-[200px]">
-      <div className="flex items-center gap-2 mb-3">
-        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
-        <h4 className="text-sm font-semibold">{title}</h4>
-        <Badge variant="secondary" className="text-xs h-5 px-1.5">
-          {items.length}
-        </Badge>
-      </div>
-      <div className="space-y-2">
-        {items.map((item) => (
-          <Card key={item.id} className="border shadow-sm">
-            <CardContent className="p-3 space-y-1.5">
-              <p className="text-sm font-medium leading-snug">{item.description}</p>
-              <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                <span className="flex items-center gap-1">
-                  <Calendar className="h-3 w-3" />
-                  {format(parseISO(item.activity_date), "d MMM yyyy", { locale })}
-                </span>
-                <span className="flex items-center gap-1">
-                  <Clock className="h-3 w-3" />
-                  {item.duration}{t[lang][item.duration_type === "hours" ? "hours" : "days"]}
-                </span>
-              </div>
-              {item.billable_amount != null && item.billable_amount > 0 && (
-                <div className="text-xs font-semibold" style={{ color }}>
-                  {formatCurrency(item.billable_amount, lang)} €
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Package className="h-5 w-5 text-primary" />
+            {L.deliverables}
+            <Badge variant="secondary" className="text-xs ml-1">{documents.length}</Badge>
+          </CardTitle>
+          {documents.length > 1 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleDownloadAll}
+              disabled={downloadingAll}
+              className="gap-2"
+            >
+              <Download className="h-4 w-4" />
+              {L.downloadAll}
+            </Button>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+          {documents.map((doc) => {
+            const isImage = isImageFile(doc.file_name);
+            return (
+              <div
+                key={doc.id}
+                className="group border rounded-lg overflow-hidden hover:shadow-md transition-shadow"
+              >
+                {isImage ? (
+                  <div className="aspect-video bg-muted relative overflow-hidden">
+                    <img
+                      src={doc.file_url}
+                      alt={doc.file_name}
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                    />
+                  </div>
+                ) : (
+                  <div className="aspect-video bg-muted/50 flex items-center justify-center">
+                    <FileText className="h-10 w-10 text-muted-foreground/50" />
+                  </div>
+                )}
+                <div className="p-3 space-y-1.5">
+                  <p className="text-sm font-medium truncate" title={doc.file_name}>
+                    {doc.file_name}
+                  </p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">
+                      {formatFileSize(doc.file_size)}
+                    </span>
+                    <a
+                      href={doc.file_url}
+                      download={doc.file_name}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-primary hover:underline flex items-center gap-1"
+                    >
+                      <Download className="h-3 w-3" />
+                      {L.download}
+                    </a>
+                  </div>
                 </div>
-              )}
-              {item.notes && (
-                <p className="text-xs text-muted-foreground italic">{item.notes}</p>
-              )}
-            </CardContent>
-          </Card>
-        ))}
-        {items.length === 0 && (
-          <div className="border border-dashed rounded-lg p-4 text-center text-xs text-muted-foreground" style={{ borderColor: color + "40" }}>
-            —
-          </div>
-        )}
-      </div>
-    </div>
+              </div>
+            );
+          })}
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 
@@ -206,6 +321,8 @@ const MissionSummary = () => {
   const { missionId } = useParams<{ missionId: string }>();
   const [mission, setMission] = useState<MissionData | null>(null);
   const [activities, setActivities] = useState<Activity[]>([]);
+  const [documents, setDocuments] = useState<MissionDocument[]>([]);
+  const [actions, setActions] = useState<MissionAction[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [lang, setLang] = useState<Lang>("fr");
@@ -214,27 +331,39 @@ const MissionSummary = () => {
     if (!missionId) return;
     const fetchData = async () => {
       try {
-        const { data: missionData, error: missionError } = await (supabase as any)
-          .from("missions")
-          .select("id, title, description, client_name, status, start_date, end_date, initial_amount, daily_rate, total_days, emoji")
-          .eq("id", missionId)
-          .single();
+        const [missionRes, activitiesRes, documentsRes, actionsRes] = await Promise.all([
+          (supabase as any)
+            .from("missions")
+            .select("id, title, description, client_name, status, start_date, end_date, initial_amount, daily_rate, total_days, emoji")
+            .eq("id", missionId)
+            .single(),
+          (supabase as any)
+            .from("mission_activities")
+            .select("*")
+            .eq("mission_id", missionId)
+            .order("activity_date", { ascending: true }),
+          (supabase as any)
+            .from("mission_documents")
+            .select("id, file_name, file_url, file_size")
+            .eq("mission_id", missionId)
+            .order("created_at", { ascending: true }),
+          (supabase as any)
+            .from("mission_actions")
+            .select("id, title, status, position")
+            .eq("mission_id", missionId)
+            .order("position", { ascending: true }),
+        ]);
 
-        if (missionError || !missionData) {
+        if (missionRes.error || !missionRes.data) {
           setError(true);
           setLoading(false);
           return;
         }
 
-        setMission(missionData);
-
-        const { data: activitiesData } = await (supabase as any)
-          .from("mission_activities")
-          .select("*")
-          .eq("mission_id", missionId)
-          .order("activity_date", { ascending: true });
-
-        setActivities(activitiesData || []);
+        setMission(missionRes.data);
+        setActivities(activitiesRes.data || []);
+        setDocuments(documentsRes.data || []);
+        setActions(actionsRes.data || []);
       } catch {
         setError(true);
       } finally {
@@ -244,21 +373,13 @@ const MissionSummary = () => {
     fetchData();
   }, [missionId]);
 
-  // Kanban columns
-  const kanban = useMemo(() => {
-    const todo: Activity[] = [];
-    const inProgress: Activity[] = [];
-    const done: Activity[] = [];
-
-    activities.forEach((a) => {
-      const status = classifyActivity(a);
-      if (status === "todo") todo.push(a);
-      else if (status === "in_progress") inProgress.push(a);
-      else done.push(a);
-    });
-
+  // Actions kanban
+  const actionsKanban = useMemo(() => {
+    const todo = actions.filter((a) => a.status === "todo");
+    const inProgress = actions.filter((a) => a.status === "in_progress");
+    const done = actions.filter((a) => a.status === "done");
     return { todo, inProgress, done };
-  }, [activities]);
+  }, [actions]);
 
   // Financial calculations
   const totalConsumed = activities.reduce((sum, a) => sum + (a.billable_amount || 0), 0);
@@ -352,6 +473,11 @@ const MissionSummary = () => {
 
         <Separator />
 
+        {/* Deliverables (only if there are documents) */}
+        {documents.length > 0 && (
+          <DeliverablesBlock documents={documents} lang={lang} />
+        )}
+
         {/* Financial Summary */}
         <Card>
           <CardHeader>
@@ -400,44 +526,39 @@ const MissionSummary = () => {
           </CardContent>
         </Card>
 
-        {/* Kanban Actions */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Clock className="h-5 w-5 text-primary" />
-              {L.actions}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {activities.length === 0 ? (
-              <p className="text-center text-muted-foreground py-6">{L.noActivities}</p>
-            ) : (
+        {/* Actions Kanban (mission_actions, not activities) */}
+        {actions.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <CheckCircle2 className="h-5 w-5 text-primary" />
+                {L.actionsTitle}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
               <div className="flex gap-4 overflow-x-auto pb-2">
-                <KanbanColumn
+                <ActionsKanbanColumn
                   title={L.todo}
-                  items={kanban.todo}
+                  items={actionsKanban.todo}
                   color="#6b7280"
-                  bgColor="#f3f4f6"
-                  lang={lang}
+                  icon={<Clock className="h-3 w-3" />}
                 />
-                <KanbanColumn
+                <ActionsKanbanColumn
                   title={L.inProgress}
-                  items={kanban.inProgress}
+                  items={actionsKanban.inProgress}
                   color="#3b82f6"
-                  bgColor="#eff6ff"
-                  lang={lang}
+                  icon={<Clock className="h-3 w-3" />}
                 />
-                <KanbanColumn
+                <ActionsKanbanColumn
                   title={L.done}
-                  items={kanban.done}
+                  items={actionsKanban.done}
                   color="#22c55e"
-                  bgColor="#f0fdf4"
-                  lang={lang}
+                  icon={<CheckCircle2 className="h-3 w-3" />}
                 />
               </div>
-            )}
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Invoices Table */}
         <Card>

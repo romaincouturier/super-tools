@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Trash2, Loader2, X, Plus, Clock, FileText, Settings, ImageIcon, Share2, Check, Sparkles, MapPin, FolderOpen } from "lucide-react";
+import { Trash2, Loader2, X, Plus, Clock, FileText, Settings, ImageIcon, Share2, Check, Sparkles, MapPin, FolderOpen, CheckCircle2 } from "lucide-react";
 import { Mission, MissionStatus, missionStatusConfig } from "@/types/missions";
 import { useUpdateMission, useDeleteMission } from "@/hooks/useMissions";
 import { useToast } from "@/hooks/use-toast";
@@ -29,6 +29,7 @@ import EmojiPickerButton from "@/components/ui/emoji-picker-button";
 import { supabase } from "@/integrations/supabase/client";
 import LogisticsBookingButtons from "@/components/shared/LogisticsBookingButtons";
 import EntityDocumentsManager from "@/components/shared/EntityDocumentsManager";
+import MissionActionsManager from "./MissionActionsManager";
 
 interface MissionDetailDrawerProps {
   mission: Mission | null;
@@ -258,10 +259,14 @@ const MissionDetailDrawer = ({
         )}
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="activities" className="flex items-center gap-2">
               <Clock className="h-4 w-4" />
               Activités
+            </TabsTrigger>
+            <TabsTrigger value="actions" className="flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4" />
+              Actions
             </TabsTrigger>
             <TabsTrigger value="pages" className="flex items-center gap-2">
               <FileText className="h-4 w-4" />
@@ -290,6 +295,11 @@ const MissionDetailDrawer = ({
                 setActiveTab("pages");
               }}
             />
+          </TabsContent>
+
+          {/* Actions Tab */}
+          <TabsContent value="actions" className="mt-4">
+            <MissionActionsManager missionId={mission.id} />
           </TabsContent>
 
           {/* Pages Tab */}
