@@ -792,7 +792,7 @@ const AttendanceSignatureBlock = ({
       doc.setFontSize(7);
       doc.setTextColor(150, 150, 150);
       doc.text(
-        `Document généré le ${new Date().toLocaleString("fr-FR")} — SuperTilt Formation`,
+        `Document généré le ${new Date().toLocaleString("fr-FR")} — SuperTilt`,
         pageWidth / 2, yPos, { align: "center" }
       );
       doc.setTextColor(0, 0, 0);
