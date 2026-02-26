@@ -19,7 +19,8 @@ export type AppModule =
   | "events"
   | "monitoring"
   | "parametres"
-  | "arena";
+  | "arena"
+  | "reclamations";
 
 export const ALL_MODULES: AppModule[] = [
   "micro_devis",
@@ -40,6 +41,7 @@ export const ALL_MODULES: AppModule[] = [
   "monitoring",
   "parametres",
   "arena",
+  "reclamations",
 ];
 
 export const MODULE_LABELS: Record<AppModule, string> = {
@@ -61,6 +63,7 @@ export const MODULE_LABELS: Record<AppModule, string> = {
   monitoring: "Monitoring",
   parametres: "Paramètres généraux",
   arena: "AI Arena",
+  reclamations: "Réclamations",
 };
 
 export function useModuleAccess() {

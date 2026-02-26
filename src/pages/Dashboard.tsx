@@ -19,6 +19,7 @@ import {
   CalendarDays,
   Database,
   Sparkles,
+  MessageSquareWarning,
   Maximize2,
   Square,
   LayoutGrid,
@@ -219,6 +220,14 @@ const tools: Tool[] = [
     icon: <Sparkles />,
     path: "/arena",
     module: "arena",
+  },
+  {
+    id: "reclamations",
+    name: "Réclamations",
+    description: "Gérer les réclamations clients (Qualiopi – Indicateur 31)",
+    icon: <MessageSquareWarning />,
+    path: "/reclamations",
+    module: "reclamations",
   },
 ];
 
