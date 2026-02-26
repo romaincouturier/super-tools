@@ -381,7 +381,7 @@ async function sendEmailWithResend(
   const fallbackSignature = `
     <p style="margin-top: 20px;">
       <strong>Romain</strong><br>
-      <a href="https://www.supertilt.fr" style="color: #666; text-decoration: underline;">SuperTilt Formation</a>
+      <a href="https://www.supertilt.fr" style="color: #666; text-decoration: underline;">SuperTilt</a>
     </p>
   `;
 
