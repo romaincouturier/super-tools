@@ -102,10 +102,10 @@ const TrainerEvaluationBlock = ({ trainingId, trainerName, trainerId }: Props) =
     try {
       const evalLink = `${window.location.origin}/evaluation-formateur/${evaluation.token}`;
 
-      // Fetch training name
+      // Fetch training details
       const { data: training } = await supabase
         .from("trainings")
-        .select("training_name")
+        .select("training_name, client_name, start_date, end_date")
         .eq("id", trainingId)
         .maybeSingle();
 
@@ -118,6 +118,9 @@ const TrainerEvaluationBlock = ({ trainingId, trainerName, trainerId }: Props) =
           trainingName: trainingNameLabel,
           evaluationLink: evalLink,
           evaluationId: evaluation.id,
+          clientName: training?.client_name,
+          startDate: training?.start_date,
+          endDate: training?.end_date,
         },
       });
 

@@ -13,7 +13,16 @@ serve(async (req) => {
   if (corsResponse) return corsResponse;
 
   try {
-    const { trainerEmail, trainerName, trainingName, evaluationLink, evaluationId } = await req.json();
+    const {
+      trainerEmail,
+      trainerName,
+      trainingName,
+      evaluationLink,
+      evaluationId,
+      clientName,
+      startDate,
+      endDate,
+    } = await req.json();
 
     if (!trainerEmail || !evaluationLink) {
       return createErrorResponse("trainerEmail and evaluationLink are required", 400);
@@ -21,9 +30,31 @@ serve(async (req) => {
 
     const signature = await getSigniticSignature();
 
+    const formatDate = (date: string | null | undefined) => {
+      if (!date) return "";
+      return new Date(date).toLocaleDateString("fr-FR", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      });
+    };
+
+    const startDateFormatted = formatDate(startDate);
+    const endDateFormatted = formatDate(endDate);
+    const dateLine = endDateFormatted
+      ? `du ${startDateFormatted} au ${endDateFormatted}`
+      : startDateFormatted
+        ? `le ${startDateFormatted}`
+        : "";
+
     const html = `
       <p>Bonjour ${trainerName || ""},</p>
-      <p>La formation « <strong>${trainingName}</strong> » est maintenant terminée.</p>
+      <p>
+        La formation « <strong>${trainingName}</strong> »
+        ${clientName ? `pour <strong>${clientName}</strong>` : ""}
+        ${dateLine ? `(${dateLine})` : ""}
+        est maintenant terminée.
+      </p>
       <p>Merci de prendre quelques minutes pour donner votre retour sur cette session en cliquant sur le lien ci-dessous :</p>
       <p><a href="${evaluationLink}" style="display:inline-block;padding:12px 24px;background-color:#2563eb;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:600;">Donner mon retour</a></p>
       <p>Ce formulaire prend environ 2 minutes.</p>
@@ -33,7 +64,7 @@ serve(async (req) => {
 
     const result = await sendEmail({
       to: [trainerEmail],
-      subject: `Votre retour sur la formation « ${trainingName} »`,
+      subject: `Votre retour – ${trainingName}${clientName ? ` (${clientName})` : ""}${dateLine ? ` – ${dateLine}` : ""}`,
       html,
     });
 
@@ -50,6 +81,9 @@ serve(async (req) => {
         training_name: trainingName,
         trainer_name: trainerName,
         evaluation_id: evaluationId,
+        client_name: clientName,
+        start_date: startDate,
+        end_date: endDate,
       },
     });
 
