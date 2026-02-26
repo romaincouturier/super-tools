@@ -40,6 +40,12 @@ import ViewQuestionnaireDialog from "./ViewQuestionnaireDialog";
 import ParticipantDocumentsDialog from "./ParticipantDocumentsDialog";
 import EditParticipantDialog from "./EditParticipantDialog";
 import EvaluationDetailDialog, { type EvaluationData } from "./EvaluationDetailDialog";
+import {
+  type EvaluationInfo,
+  type CertificateInfo as CertInfo,
+  computeEvaluationStats,
+  buildEvaluationMaps,
+} from "@/lib/evaluationUtils";
 
 interface Participant {
   id: string;
@@ -155,20 +161,6 @@ const getStatusConfig = (status: string) => {
   }
 };
 
-interface CertificateInfo {
-  evaluationId: string;
-  certificateUrl: string | null;
-}
-
-interface EvaluationInfo {
-  evaluationId: string;
-  etat: string;
-  date_soumission: string | null;
-  appreciation_generale: number | null;
-  recommandation: string | null;
-  fullData: EvaluationData | null;
-}
-
 interface ConventionSignatureInfo {
   status: string;
   signed_at: string | null;
@@ -193,7 +185,7 @@ const ParticipantList = ({
   const [remindingId, setRemindingId] = useState<string | null>(null);
   const [generatingConventionId, setGeneratingConventionId] = useState<string | null>(null);
   const [documentsParticipant, setDocumentsParticipant] = useState<Participant | null>(null);
-  const [certificatesByParticipant, setCertificatesByParticipant] = useState<Map<string, CertificateInfo>>(new Map());
+  const [certificatesByParticipant, setCertificatesByParticipant] = useState<Map<string, CertInfo>>(new Map());
   const [conventionSignatures, setConventionSignatures] = useState<Map<string, ConventionSignatureInfo>>(new Map());
   const [sendingCertId, setSendingCertId] = useState<string | null>(null);
   const [generatingCertId, setGeneratingCertId] = useState<string | null>(null);
@@ -227,53 +219,9 @@ const ParticipantList = ({
         .eq("training_id", trainingId);
 
       if (!error && data) {
-        const certMap = new Map<string, CertificateInfo>();
-        const evalMap = new Map<string, EvaluationInfo>();
-        for (const ev of data) {
-          if (ev.participant_id) {
-            // Certificates (only for submitted evaluations)
-            if (ev.etat === "soumis") {
-              certMap.set(ev.participant_id, {
-                evaluationId: ev.id,
-                certificateUrl: ev.certificate_url || null,
-              });
-            }
-            // Evaluation status (all states)
-            evalMap.set(ev.participant_id, {
-              evaluationId: ev.id,
-              etat: ev.etat,
-              date_soumission: ev.date_soumission,
-              appreciation_generale: ev.appreciation_generale,
-              recommandation: ev.recommandation,
-              fullData: ev.etat === "soumis" ? {
-                id: ev.id,
-                first_name: ev.first_name,
-                last_name: ev.last_name,
-                company: ev.company,
-                email: ev.email,
-                appreciation_generale: ev.appreciation_generale,
-                recommandation: ev.recommandation,
-                message_recommandation: ev.message_recommandation,
-                objectifs_evaluation: ev.objectifs_evaluation,
-                objectif_prioritaire: ev.objectif_prioritaire,
-                delai_application: ev.delai_application,
-                freins_application: ev.freins_application,
-                rythme: ev.rythme,
-                equilibre_theorie_pratique: ev.equilibre_theorie_pratique,
-                amelioration_suggeree: ev.amelioration_suggeree,
-                conditions_info_satisfaisantes: ev.conditions_info_satisfaisantes,
-                formation_adaptee_public: ev.formation_adaptee_public,
-                qualification_intervenant_adequate: ev.qualification_intervenant_adequate,
-                appreciations_prises_en_compte: ev.appreciations_prises_en_compte,
-                consent_publication: ev.consent_publication,
-                remarques_libres: ev.remarques_libres,
-                date_soumission: ev.date_soumission,
-              } : null,
-            });
-          }
-        }
-        setCertificatesByParticipant(certMap);
-        setEvaluationsByParticipant(evalMap);
+        const { certificateMap, evaluationMap } = buildEvaluationMaps(data);
+        setCertificatesByParticipant(certificateMap);
+        setEvaluationsByParticipant(evaluationMap);
       }
     };
     fetchEvaluations();
@@ -1094,16 +1042,9 @@ const ParticipantList = ({
     </div>
   );
 
-  // Evaluation summary stats
-  const evalTotal = evaluationsByParticipant.size;
-  const evalSoumis = Array.from(evaluationsByParticipant.values()).filter(e => e.etat === "soumis").length;
-  const evalEnvoye = Array.from(evaluationsByParticipant.values()).filter(e => e.etat === "envoye").length;
-  const avgRating = evalSoumis > 0
-    ? Array.from(evaluationsByParticipant.values())
-        .filter(e => e.etat === "soumis" && e.appreciation_generale)
-        .reduce((sum, e) => sum + (e.appreciation_generale || 0), 0) /
-      Array.from(evaluationsByParticipant.values()).filter(e => e.etat === "soumis" && e.appreciation_generale).length
-    : 0;
+  // Evaluation summary stats (delegated to pure function)
+  const { total: evalTotal, soumis: evalSoumis, envoye: evalEnvoye, avgRating } =
+    computeEvaluationStats(evaluationsByParticipant, participants.length);
 
   return (
     <>
