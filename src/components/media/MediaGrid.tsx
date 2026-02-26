@@ -164,9 +164,9 @@ const MediaGrid = ({ items, onOpenLightbox, allTags }: MediaGridProps) => {
           </div>
 
           {/* Media tags (always visible) */}
-          {item.tags.length > 0 && (
+          {(item.tags || []).length > 0 && (
             <div className="absolute top-2 right-2 flex flex-col items-end gap-0.5">
-              {item.tags.slice(0, 2).map((tag) => (
+              {(item.tags || []).slice(0, 2).map((tag) => (
                 <Badge
                   key={tag}
                   variant="secondary"
@@ -175,12 +175,12 @@ const MediaGrid = ({ items, onOpenLightbox, allTags }: MediaGridProps) => {
                   {tag}
                 </Badge>
               ))}
-              {item.tags.length > 2 && (
+              {(item.tags || []).length > 2 && (
                 <Badge
                   variant="secondary"
                   className="text-[10px] px-1.5 py-0 bg-black/50 text-white border-0 backdrop-blur-sm"
                 >
-                  +{item.tags.length - 2}
+                  +{(item.tags || []).length - 2}
                 </Badge>
               )}
             </div>
