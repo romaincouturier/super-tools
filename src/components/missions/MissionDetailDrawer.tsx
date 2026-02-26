@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import {
   Sheet,
   SheetContent,
@@ -64,6 +64,7 @@ const MissionDetailDrawer = ({
   const [aiSummaryLoading, setAiSummaryLoading] = useState(false);
   const skipNextSaveRef = useRef(true);
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingUpdatesRef = useRef<{ id: string; updates: Record<string, unknown> } | null>(null);
 
   const handleShareLink = () => {
     if (!mission) return;
@@ -135,6 +136,23 @@ const MissionDetailDrawer = ({
     }
   }, [mission]);
 
+  // Flush any pending save immediately
+  const flushSave = useCallback(() => {
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+      saveTimeoutRef.current = null;
+    }
+    if (pendingUpdatesRef.current) {
+      updateMission.mutate(pendingUpdatesRef.current);
+      pendingUpdatesRef.current = null;
+    }
+  }, [updateMission]);
+
+  // Flush pending save when drawer closes
+  useEffect(() => {
+    if (!open) flushSave();
+  }, [open, flushSave]);
+
   // Auto-save settings with debounce
   useEffect(() => {
     if (skipNextSaveRef.current) {
@@ -143,26 +161,32 @@ const MissionDetailDrawer = ({
     }
     if (!mission) return;
 
+    const payload = {
+      id: mission.id,
+      updates: {
+        title: title.trim(),
+        description: description.trim() || null,
+        client_name: clientName.trim() || null,
+        status,
+        start_date: startDate || null,
+        end_date: endDate || null,
+        daily_rate: dailyRate ? parseFloat(dailyRate) : null,
+        total_days: totalDays ? parseInt(totalDays) : null,
+        initial_amount: initialAmount ? parseFloat(initialAmount) : null,
+        tags,
+        color,
+        emoji: missionEmoji,
+        location: location.trim() || null,
+      },
+    };
+
+    pendingUpdatesRef.current = payload;
+
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     saveTimeoutRef.current = setTimeout(() => {
-      updateMission.mutate({
-        id: mission.id,
-        updates: {
-          title: title.trim(),
-          description: description.trim() || null,
-          client_name: clientName.trim() || null,
-          status,
-          start_date: startDate || null,
-          end_date: endDate || null,
-          daily_rate: dailyRate ? parseFloat(dailyRate) : null,
-          total_days: totalDays ? parseInt(totalDays) : null,
-          initial_amount: initialAmount ? parseFloat(initialAmount) : null,
-          tags,
-          color,
-          emoji: missionEmoji,
-          location: location.trim() || null,
-        },
-      });
+      updateMission.mutate(payload);
+      pendingUpdatesRef.current = null;
+      saveTimeoutRef.current = null;
     }, 800);
 
     return () => { if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current); };
