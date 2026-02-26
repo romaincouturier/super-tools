@@ -10,8 +10,6 @@ import {
   Receipt,
   Loader2,
   ExternalLink,
-  Share2,
-  Check,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -67,7 +65,7 @@ const MissionActivityTracker = ({ mission, onCreatePageForActivity }: MissionAct
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showInvoiceDialog, setShowInvoiceDialog] = useState(false);
   const [editingActivity, setEditingActivity] = useState<MissionActivity | null>(null);
-  const [copiedLink, setCopiedLink] = useState(false);
+  
 
   // Form state
   const [description, setDescription] = useState("");
@@ -173,13 +171,6 @@ const MissionActivityTracker = ({ mission, onCreatePageForActivity }: MissionAct
     }
   };
 
-  const handleCopyShareLink = () => {
-    const url = `${window.location.origin}/mission-info/${mission.id}`;
-    navigator.clipboard.writeText(url);
-    setCopiedLink(true);
-    toast({ title: "Lien copié", description: "Le lien récapitulatif de la mission a été copié." });
-    setTimeout(() => setCopiedLink(false), 2000);
-  };
 
   // Calculate totals
   const totalConsumed = activities?.reduce((sum, a) => sum + (a.billable_amount || 0), 0) || 0;
@@ -219,22 +210,16 @@ const MissionActivityTracker = ({ mission, onCreatePageForActivity }: MissionAct
         </div>
       </div>
 
-      {/* Time Summary + Share Link */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-          <span className="flex items-center gap-1">
-            <Clock className="h-4 w-4" />
-            {totalHours}h
-          </span>
-          <span className="flex items-center gap-1">
-            <Calendar className="h-4 w-4" />
-            {totalDays}j
-          </span>
-        </div>
-        <Button variant="ghost" size="sm" onClick={handleCopyShareLink} className="text-muted-foreground">
-          {copiedLink ? <Check className="h-4 w-4 mr-1 text-green-600" /> : <Share2 className="h-4 w-4 mr-1" />}
-          Lien récapitulatif client
-        </Button>
+      {/* Time Summary */}
+      <div className="flex items-center gap-4 text-sm text-muted-foreground">
+        <span className="flex items-center gap-1">
+          <Clock className="h-4 w-4" />
+          {totalHours}h
+        </span>
+        <span className="flex items-center gap-1">
+          <Calendar className="h-4 w-4" />
+          {totalDays}j
+        </span>
       </div>
 
       {/* Activity List Header */}

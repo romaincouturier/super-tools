@@ -18,6 +18,7 @@ export interface EntityDocument {
   file_size: number | null;
   uploaded_by: string | null;
   created_at: string;
+  is_deliverable: boolean;
 }
 
 // ── Config per entity type ───────────────────────────────────────────
@@ -68,6 +69,7 @@ export const useEntityDocuments = (entityType: DocumentEntityType, entityId: str
         file_size: row.file_size,
         uploaded_by: row.uploaded_by,
         created_at: row.created_at,
+        is_deliverable: row.is_deliverable ?? false,
       }));
     },
   });
@@ -121,6 +123,29 @@ export const useDeleteEntityDocument = (entityType: DocumentEntityType) => {
       const { error } = await (supabase as any)
         .from(config.table)
         .delete()
+        .eq("id", id);
+      if (error) throw error;
+      return entityId;
+    },
+    onSuccess: (entityId) => {
+      queryClient.invalidateQueries({
+        queryKey: [config.queryKey, entityId],
+      });
+    },
+  });
+};
+
+// ── Toggle deliverable status ────────────────────────────────────────
+
+export const useToggleDocumentDeliverable = (entityType: DocumentEntityType) => {
+  const config = configs[entityType];
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, entityId, is_deliverable }: { id: string; entityId: string; is_deliverable: boolean }) => {
+      const { error } = await (supabase as any)
+        .from(config.table)
+        .update({ is_deliverable })
         .eq("id", id);
       if (error) throw error;
       return entityId;

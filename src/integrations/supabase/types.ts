@@ -1708,6 +1708,7 @@ export type Database = {
           file_type: string
           file_url: string
           id: string
+          is_deliverable: boolean
           mime_type: string | null
           position: number
           source_id: string
@@ -1721,6 +1722,7 @@ export type Database = {
           file_type: string
           file_url: string
           id?: string
+          is_deliverable?: boolean
           mime_type?: string | null
           position?: number
           source_id: string
@@ -1734,6 +1736,7 @@ export type Database = {
           file_type?: string
           file_url?: string
           id?: string
+          is_deliverable?: boolean
           mime_type?: string | null
           position?: number
           source_id?: string
@@ -1842,6 +1845,7 @@ export type Database = {
           file_size: number | null
           file_url: string
           id: string
+          is_deliverable: boolean
           mission_id: string
           uploaded_by: string | null
         }
@@ -1851,6 +1855,7 @@ export type Database = {
           file_size?: number | null
           file_url: string
           id?: string
+          is_deliverable?: boolean
           mission_id: string
           uploaded_by?: string | null
         }
@@ -1860,6 +1865,7 @@ export type Database = {
           file_size?: number | null
           file_url?: string
           id?: string
+          is_deliverable?: boolean
           mission_id?: string
           uploaded_by?: string | null
         }

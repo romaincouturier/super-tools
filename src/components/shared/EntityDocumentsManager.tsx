@@ -3,7 +3,7 @@
  * Handles upload, download, delete with consistent UI.
  */
 import { useRef, useState } from "react";
-import { FileText, Upload, Download, Trash2, Loader2 } from "lucide-react";
+import { FileText, Upload, Download, Trash2, Loader2, Package } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import { toast } from "sonner";
@@ -16,9 +16,12 @@ import {
   useEntityDocuments,
   useAddEntityDocument,
   useDeleteEntityDocument,
+  useToggleDocumentDeliverable,
   uploadEntityDocument,
   deleteEntityDocumentFile,
 } from "@/hooks/useEntityDocuments";
+import { Toggle } from "@/components/ui/toggle";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface EntityDocumentsManagerProps {
   entityType: DocumentEntityType;
@@ -49,6 +52,7 @@ const EntityDocumentsManager = ({
   const { data: documents = [], isLoading } = useEntityDocuments(entityType, entityId);
   const addDocument = useAddEntityDocument(entityType);
   const deleteDocument = useDeleteEntityDocument(entityType);
+  const toggleDeliverable = useToggleDocumentDeliverable(entityType);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const fileList = e.target.files;
@@ -191,6 +195,30 @@ const EntityDocumentsManager = ({
                 </div>
               </div>
               <div className="flex items-center gap-1 shrink-0">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={() =>
+                        toggleDeliverable.mutate({
+                          id: doc.id,
+                          entityId,
+                          is_deliverable: !doc.is_deliverable,
+                        })
+                      }
+                      className={`h-8 w-8 flex items-center justify-center rounded-md transition-colors ${
+                        doc.is_deliverable
+                          ? "text-primary bg-primary/10"
+                          : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                      }`}
+                      title={doc.is_deliverable ? "Retirer des livrables" : "Marquer comme livrable"}
+                    >
+                      <Package className="h-4 w-4" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {doc.is_deliverable ? "Retirer des livrables" : "Marquer comme livrable"}
+                  </TooltipContent>
+                </Tooltip>
                 <Button
                   variant="ghost"
                   size="icon"

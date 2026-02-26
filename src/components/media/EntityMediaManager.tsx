@@ -4,6 +4,7 @@ import {
   useEntityMedia,
   useAddMedia,
   useDeleteMedia,
+  useToggleMediaDeliverable,
   uploadMediaFile,
   deleteMediaFile,
   MediaSourceType,
@@ -13,7 +14,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { formatFileSize, downloadFile as downloadFileUtil } from "@/lib/file-utils";
-import { ImageIcon, Video, Plus, Loader2, Upload, Trash2, Play, Download } from "lucide-react";
+import { ImageIcon, Video, Plus, Loader2, Upload, Trash2, Play, Download, Package } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import MediaLightbox from "@/components/media/MediaLightbox";
 
 interface EntityMediaManagerProps {
@@ -45,6 +47,7 @@ const EntityMediaManager = ({
   const { data: media = [], isLoading } = useEntityMedia(sourceType, sourceId);
   const addMedia = useAddMedia();
   const deleteMutation = useDeleteMedia();
+  const toggleDeliverable = useToggleMediaDeliverable();
 
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
@@ -265,6 +268,29 @@ const EntityMediaManager = ({
 
                 {/* Hover overlay */}
                 <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant={item.is_deliverable ? "default" : "secondary"}
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleDeliverable.mutate({
+                            id: item.id,
+                            sourceType: item.source_type,
+                            sourceId: item.source_id,
+                            is_deliverable: !item.is_deliverable,
+                          });
+                        }}
+                      >
+                        <Package className="h-3.5 w-3.5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      {item.is_deliverable ? "Retirer des livrables" : "Marquer comme livrable"}
+                    </TooltipContent>
+                  </Tooltip>
                   <Button
                     variant="secondary"
                     size="icon"
@@ -282,6 +308,13 @@ const EntityMediaManager = ({
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>
                 </div>
+
+                {/* Deliverable badge */}
+                {item.is_deliverable && (
+                  <div className="absolute top-1 left-1">
+                    <Package className="h-3.5 w-3.5 text-white drop-shadow" />
+                  </div>
+                )}
 
                 {item.file_type === "video" && (
                   <div className="absolute top-1 right-1">
