@@ -1731,6 +1731,7 @@ export type Database = {
           position: number
           source_id: string
           source_type: string
+          tags: string[] | null
         }
         Insert: {
           created_at?: string | null
@@ -1745,6 +1746,7 @@ export type Database = {
           position?: number
           source_id: string
           source_type: string
+          tags?: string[] | null
         }
         Update: {
           created_at?: string | null
@@ -1759,6 +1761,7 @@ export type Database = {
           position?: number
           source_id?: string
           source_type?: string
+          tags?: string[] | null
         }
         Relationships: []
       }

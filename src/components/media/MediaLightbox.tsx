@@ -123,12 +123,21 @@ const MediaLightbox = ({ item, items, onClose, onNavigate }: MediaLightboxProps)
       </div>
 
       {/* Info bar */}
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-3 bg-black/60 backdrop-blur-sm px-4 py-2 rounded-lg">
+      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-3 bg-black/60 backdrop-blur-sm px-4 py-2 rounded-lg flex-wrap justify-center">
         <Badge variant="secondary" className="bg-white/20 text-white border-0 text-xs">
           {sourceIcon(item.source_type)}
           {item.source_emoji ? `${item.source_emoji} ` : ""}
           {item.source_label}
         </Badge>
+        {(item.tags || []).length > 0 && (
+          <div className="flex items-center gap-1">
+            {item.tags.map((tag) => (
+              <Badge key={tag} variant="secondary" className="bg-primary/60 text-white border-0 text-xs">
+                {tag}
+              </Badge>
+            ))}
+          </div>
+        )}
         <span className="text-white text-sm">{item.file_name}</span>
         {item.file_size && (
           <span className="text-white/60 text-sm">{formatFileSize(item.file_size)}</span>

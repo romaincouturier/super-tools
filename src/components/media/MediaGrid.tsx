@@ -1,9 +1,10 @@
 import { MediaItem, useDeleteMedia, deleteMediaFile } from "@/hooks/useMedia";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ImageIcon, Video, Play, Trash2, Briefcase, Download, GraduationCap, CalendarDays, HandCoins } from "lucide-react";
+import { ImageIcon, Video, Play, Trash2, Briefcase, Download, GraduationCap, CalendarDays, HandCoins, Tag } from "lucide-react";
 import { toast } from "sonner";
 import { formatFileSize } from "@/lib/file-utils";
+import MediaTagEditor from "./MediaTagEditor";
 
 const sourceIcon = (sourceType: string) => {
   switch (sourceType) {
@@ -26,9 +27,10 @@ const sourceIconLarge = (sourceType: string) => {
 interface MediaGridProps {
   items: MediaItem[];
   onOpenLightbox: (item: MediaItem) => void;
+  allTags: string[];
 }
 
-const MediaGrid = ({ items, onOpenLightbox }: MediaGridProps) => {
+const MediaGrid = ({ items, onOpenLightbox, allTags }: MediaGridProps) => {
   const deleteMutation = useDeleteMedia();
 
   const downloadFile = async (url: string, fileName: string) => {
@@ -116,6 +118,7 @@ const MediaGrid = ({ items, onOpenLightbox }: MediaGridProps) => {
                 <span className="truncate">{item.file_name}</span>
               </div>
               <div className="flex items-center gap-1 flex-shrink-0">
+                <MediaTagEditor mediaId={item.id} tags={item.tags} allTags={allTags} compact />
                 <Button
                   variant="secondary"
                   size="icon"
@@ -159,6 +162,29 @@ const MediaGrid = ({ items, onOpenLightbox }: MediaGridProps) => {
               <span className="ml-1 max-w-[80px] truncate">{item.source_label}</span>
             </Badge>
           </div>
+
+          {/* Media tags (always visible) */}
+          {item.tags.length > 0 && (
+            <div className="absolute top-2 right-2 flex flex-col items-end gap-0.5">
+              {item.tags.slice(0, 2).map((tag) => (
+                <Badge
+                  key={tag}
+                  variant="secondary"
+                  className="text-[10px] px-1.5 py-0 bg-primary/80 text-primary-foreground border-0 backdrop-blur-sm"
+                >
+                  {tag}
+                </Badge>
+              ))}
+              {item.tags.length > 2 && (
+                <Badge
+                  variant="secondary"
+                  className="text-[10px] px-1.5 py-0 bg-black/50 text-white border-0 backdrop-blur-sm"
+                >
+                  +{item.tags.length - 2}
+                </Badge>
+              )}
+            </div>
+          )}
         </div>
       ))}
     </div>

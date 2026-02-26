@@ -87,11 +87,11 @@ const MediaLibrary = () => {
     return sourcesWithMedia.filter((s) => s.sourceType === selectedSourceType);
   }, [sourcesWithMedia, selectedSourceType]);
 
-  // Extract unique tags
+  // Extract unique media-level tags
   const allTags = useMemo(() => {
     const tagSet = new Set<string>();
     displayMedia.forEach((item) => {
-      item.source_tags.forEach((tag) => tagSet.add(tag));
+      (item.tags || []).forEach((tag: string) => tagSet.add(tag));
     });
     return Array.from(tagSet).sort();
   }, [displayMedia]);
@@ -99,8 +99,12 @@ const MediaLibrary = () => {
   // Filter media
   const filteredMedia = useMemo(() => {
     return displayMedia.filter((item) => {
-      if (search && !item.file_name.toLowerCase().includes(search.toLowerCase())) {
-        return false;
+      if (search) {
+        const q = search.toLowerCase();
+        const matchesName = item.file_name.toLowerCase().includes(q);
+        const matchesTags = (item.tags || []).some((t: string) => t.toLowerCase().includes(q));
+        const matchesSource = item.source_label.toLowerCase().includes(q);
+        if (!matchesName && !matchesTags && !matchesSource) return false;
       }
       if (selectedSourceType !== "all" && item.source_type !== selectedSourceType) {
         return false;
@@ -108,7 +112,7 @@ const MediaLibrary = () => {
       if (selectedSource !== "all" && item.source_id !== selectedSource) {
         return false;
       }
-      if (selectedTag && !item.source_tags.includes(selectedTag)) {
+      if (selectedTag && !(item.tags || []).includes(selectedTag)) {
         return false;
       }
       if (selectedType !== "all" && item.file_type !== selectedType) {
@@ -197,7 +201,7 @@ const MediaLibrary = () => {
         />
 
         {/* Grid */}
-        <MediaGrid items={filteredMedia} onOpenLightbox={setLightboxItem} />
+        <MediaGrid items={filteredMedia} onOpenLightbox={setLightboxItem} allTags={allTags} />
 
         {/* Lightbox */}
         {lightboxItem && (
