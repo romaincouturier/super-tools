@@ -1,0 +1,1 @@
+ALTER TABLE public.training_evaluations ADD COLUMN certificate_url text;

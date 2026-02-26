@@ -3061,6 +3061,7 @@ export type Database = {
           amelioration_suggeree: string | null
           appreciation_generale: number | null
           appreciations_prises_en_compte: string | null
+          certificate_url: string | null
           company: string | null
           conditions_info_satisfaisantes: boolean | null
           consent_publication: boolean | null
@@ -3093,6 +3094,7 @@ export type Database = {
           amelioration_suggeree?: string | null
           appreciation_generale?: number | null
           appreciations_prises_en_compte?: string | null
+          certificate_url?: string | null
           company?: string | null
           conditions_info_satisfaisantes?: boolean | null
           consent_publication?: boolean | null
@@ -3125,6 +3127,7 @@ export type Database = {
           amelioration_suggeree?: string | null
           appreciation_generale?: number | null
           appreciations_prises_en_compte?: string | null
+          certificate_url?: string | null
           company?: string | null
           conditions_info_satisfaisantes?: boolean | null
           consent_publication?: boolean | null
