@@ -24,9 +24,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import SignaturePad from "signature_pad";
-import { waitForCanvasReady } from "@/lib/signatureUtils";
 import { jsPDF } from "jspdf";
 import supertiltLogoJpg from "@/assets/supertilt-logo-anthracite.jpg";
+import { waitForCanvasReady } from "@/lib/signatureUtils";
 
 interface AttendanceSignatureBlockProps {
   trainingId: string;
