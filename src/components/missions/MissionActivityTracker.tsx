@@ -185,25 +185,25 @@ const MissionActivityTracker = ({ mission, onCreatePageForActivity }: MissionAct
       {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="p-3 bg-blue-50 rounded-lg border border-blue-100">
-          <div className="text-xs text-blue-600 font-medium">Budget initial</div>
+          <div className="text-xs text-blue-600 font-medium">Budget initial HT</div>
           <div className="text-lg font-bold text-blue-700">
             {mission.initial_amount?.toLocaleString("fr-FR") || "0"} €
           </div>
         </div>
         <div className="p-3 bg-orange-50 rounded-lg border border-orange-100">
-          <div className="text-xs text-orange-600 font-medium">Consommé</div>
+          <div className="text-xs text-orange-600 font-medium">Consommé HT</div>
           <div className="text-lg font-bold text-orange-700">
             {totalConsumed.toLocaleString("fr-FR")} €
           </div>
         </div>
         <div className="p-3 bg-green-50 rounded-lg border border-green-100">
-          <div className="text-xs text-green-600 font-medium">Facturé</div>
+          <div className="text-xs text-green-600 font-medium">Facturé HT</div>
           <div className="text-lg font-bold text-green-700">
             {totalBilled.toLocaleString("fr-FR")} €
           </div>
         </div>
         <div className="p-3 bg-purple-50 rounded-lg border border-purple-100">
-          <div className="text-xs text-purple-600 font-medium">Reste à facturer</div>
+          <div className="text-xs text-purple-600 font-medium">Reste à facturer HT</div>
           <div className="text-lg font-bold text-purple-700">
             {remainingToBill.toLocaleString("fr-FR")} €
           </div>
