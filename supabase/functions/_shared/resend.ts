@@ -85,36 +85,52 @@ export async function sendEmail(options: SendEmailOptions): Promise<SendEmailRes
 
   try {
     const defaultFrom = await getSenderFrom();
+    const MAX_RETRIES = 3;
 
-    const response = await fetch(RESEND_API_URL, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${resendApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from: options.from || defaultFrom,
-        to: toArray,
-        cc: options.cc,
-        bcc: options.bcc,
-        reply_to: options.replyTo,
-        subject: options.subject,
-        html: options.html,
-        attachments: options.attachments,
-      }),
-    });
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      const response = await fetch(RESEND_API_URL, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${resendApiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          from: options.from || defaultFrom,
+          to: toArray,
+          cc: options.cc,
+          bcc: options.bcc,
+          reply_to: options.replyTo,
+          subject: options.subject,
+          html: options.html,
+          attachments: options.attachments,
+        }),
+      });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      const errorMessage = `Resend API error: ${response.status} — ${errorText}`;
-      console.error(errorMessage);
-      await logFailure(options, errorMessage);
-      return { success: false, error: `Resend API error: ${response.status}` };
+      if (response.status === 429 && attempt < MAX_RETRIES) {
+        const delay = 1000 * (attempt + 1); // 1s, 2s, 3s
+        console.warn(`Rate limited (429), retrying in ${delay}ms (attempt ${attempt + 1}/${MAX_RETRIES})`);
+        await new Promise((r) => setTimeout(r, delay));
+        continue;
+      }
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        const errorMessage = `Resend API error: ${response.status} — ${errorText}`;
+        console.error(errorMessage);
+        await logFailure(options, errorMessage);
+        return { success: false, error: `Resend API error: ${response.status}` };
+      }
+
+      const data = await response.json();
+      console.log("Email sent successfully:", data.id);
+      return { success: true, id: data.id };
     }
 
-    const data = await response.json();
-    console.log("Email sent successfully:", data.id);
-    return { success: true, id: data.id };
+    // All retries exhausted (should not reach here, but safety net)
+    const errorMessage = "Rate limit exceeded after all retries";
+    console.error(errorMessage);
+    await logFailure(options, errorMessage);
+    return { success: false, error: errorMessage };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
     console.error("Error sending email:", errorMessage);
