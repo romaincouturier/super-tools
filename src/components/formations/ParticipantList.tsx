@@ -191,6 +191,7 @@ const ParticipantList = ({
   const [generatingCertId, setGeneratingCertId] = useState<string | null>(null);
   const [downloadingConventionId, setDownloadingConventionId] = useState<string | null>(null);
   const [conventionRemindingId, setConventionRemindingId] = useState<string | null>(null);
+  const [participantsWithSignatures, setParticipantsWithSignatures] = useState<Set<string>>(new Set());
   const [sortField, setSortField] = useState<"last_name" | "first_name" | "email" | "amount" | null>(null);
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [evaluationsByParticipant, setEvaluationsByParticipant] = useState<Map<string, EvaluationInfo>>(new Map());
@@ -225,6 +226,23 @@ const ParticipantList = ({
       }
     };
     fetchEvaluations();
+  }, [trainingId, participants]);
+
+  // Fetch attendance signatures to block deletion for participants who signed
+  useEffect(() => {
+    const fetchAttendanceSignatures = async () => {
+      const { data, error } = await (supabase as any)
+        .from("attendance_signatures")
+        .select("participant_id")
+        .eq("training_id", trainingId)
+        .not("signed_at", "is", null);
+
+      if (!error && data) {
+        const ids = new Set<string>(data.map((r: any) => r.participant_id));
+        setParticipantsWithSignatures(ids);
+      }
+    };
+    fetchAttendanceSignatures();
   }, [trainingId, participants]);
 
   // Fetch convention signature statuses for inter/e-learning participants
@@ -1007,40 +1025,60 @@ const ParticipantList = ({
         onParticipantUpdated={onParticipantUpdated}
       />
 
-      <AlertDialog>
-        <AlertDialogTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 text-muted-foreground hover:text-destructive"
-            disabled={deletingId === participant.id}
-          >
-            {deletingId === participant.id ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Trash2 className="h-4 w-4" />
-            )}
-          </Button>
-        </AlertDialogTrigger>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Supprimer ce participant ?</AlertDialogTitle>
-            <AlertDialogDescription>
-              {displayName} sera définitivement retiré de cette formation.
-              Ses réponses au questionnaire seront également supprimées.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Annuler</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => handleDelete(participant)}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+      {participantsWithSignatures.has(participant.id) ? (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-muted-foreground cursor-not-allowed opacity-50"
+                disabled
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Ce participant a signé l'émargement et ne peut plus être supprimé</p>
+          </TooltipContent>
+        </Tooltip>
+      ) : (
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-muted-foreground hover:text-destructive"
+              disabled={deletingId === participant.id}
             >
-              Supprimer
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+              {deletingId === participant.id ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Trash2 className="h-4 w-4" />
+              )}
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Supprimer ce participant ?</AlertDialogTitle>
+              <AlertDialogDescription>
+                {displayName} sera définitivement retiré de cette formation.
+                Ses réponses au questionnaire seront également supprimées.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Annuler</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => handleDelete(participant)}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Supprimer
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
     </div>
   );
 
