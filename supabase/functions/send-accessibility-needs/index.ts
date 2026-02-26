@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getSenderFrom, getSenderEmail, getBccList } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
+import { processTemplate, textToHtml } from "../_shared/templates.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -9,13 +10,43 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+// Default templates
+const DEFAULT_SUBJECT_TU = "Tes besoins spécifiques pour la formation \"{{training_name}}\"";
+const DEFAULT_SUBJECT_VOUS = "Vos besoins spécifiques pour la formation \"{{training_name}}\"";
+
+const DEFAULT_CONTENT_TU = `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
+
+Merci d'avoir pris le temps de remplir le formulaire de recueil des besoins pour notre formation à venir. Je suis soucieux de proposer un environnement d'apprentissage adapté à chacun de mes participants.
+
+J'ai bien pris en compte ton besoin spécifique :
+"{{accessibility_needs}}"
+
+Je souhaite t'offrir la meilleure expérience possible lors de cette formation et m'adapter au mieux à tes besoins.
+
+Pourrais-tu m'indiquer les adaptations nécessaires que je pourrais mettre en place pour te permettre de suivre la formation dans les meilleures conditions ?
+
+Dans l'attente de ton retour, je reste à ta disposition pour toute question ou information complémentaire.`;
+
+const DEFAULT_CONTENT_VOUS = `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
+
+Merci d'avoir pris le temps de remplir le formulaire de recueil des besoins pour notre formation à venir. Je suis soucieux de proposer un environnement d'apprentissage adapté à chacun de mes participants.
+
+J'ai bien pris en compte votre besoin spécifique :
+"{{accessibility_needs}}"
+
+Je souhaite vous offrir la meilleure expérience possible lors de cette formation et m'adapter au mieux à vos besoins.
+
+Pourriez-vous m'indiquer les adaptations nécessaires que je pourrais mettre en place pour vous permettre de suivre la formation dans les meilleures conditions ?
+
+Dans l'attente de votre retour, je reste à votre disposition pour toute question ou information complémentaire.`;
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { questionnaireId, trainingId, participantEmail, participantFirstName, accessibilityNeeds, trainingName } = await req.json();
+    const { questionnaireId, trainingId, participantEmail, participantFirstName, accessibilityNeeds, trainingName, formalAddress } = await req.json();
 
     if (!participantEmail || !accessibilityNeeds) {
       return new Response(
@@ -33,54 +64,58 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Fetch BCC settings and sender info
-    const bccList = await getBccList();
-    const senderFrom = await getSenderFrom();
-    const senderEmail = await getSenderEmail();
-
-    // Fetch training name if not provided
+    // Fetch training to get formal address setting
+    let useTutoiement = formalAddress === false;
     let finalTrainingName = trainingName || "Formation";
-    if (!trainingName && trainingId) {
+    
+    if (trainingId) {
       const { data: training } = await supabase
         .from("trainings")
-        .select("training_name")
+        .select("training_name, participants_formal_address")
         .eq("id", trainingId)
         .single();
       
       if (training) {
-        finalTrainingName = training.training_name;
+        finalTrainingName = training.training_name || finalTrainingName;
+        useTutoiement = training.participants_formal_address === false;
       }
     }
 
-    // Get signature
-    const signature = await getSigniticSignature();
+    const templateTypeSuffix = useTutoiement ? "_tu" : "_vous";
+    const templateType = `accessibility_needs${templateTypeSuffix}`;
 
-    const firstName = participantFirstName || "";
-    const greeting = firstName ? `Bonjour ${firstName},` : "Bonjour,";
+    // Fetch template, BCC, signature, and sender in parallel
+    const [templateResult, bccList, signature, senderFrom, senderEmail] = await Promise.all([
+      supabase
+        .from("email_templates")
+        .select("subject, html_content")
+        .eq("template_type", templateType)
+        .maybeSingle(),
+      getBccList(),
+      getSigniticSignature(),
+      getSenderFrom(),
+      getSenderEmail(),
+    ]);
 
-    const htmlContent = `
-      <p>${greeting}</p>
-      
-      <p>Merci d'avoir pris le temps de remplir le formulaire de recueil des besoins pour notre formation à venir. Je suis soucieux de proposer un environnement d'apprentissage adapté à chacun de mes participants.</p>
+    const customTemplate = templateResult.data;
+    const defaultSubject = useTutoiement ? DEFAULT_SUBJECT_TU : DEFAULT_SUBJECT_VOUS;
+    const defaultContent = useTutoiement ? DEFAULT_CONTENT_TU : DEFAULT_CONTENT_VOUS;
+    const subjectTemplate = customTemplate?.subject || defaultSubject;
+    const contentTemplate = customTemplate?.html_content || defaultContent;
 
-      <p>J'ai bien pris en compte ton besoin spécifique :</p>
-      
-      <blockquote style="background-color: #f9f9f9; padding: 15px; border-left: 4px solid #e6bc00; margin: 20px 0; font-style: italic;">
-        ${accessibilityNeeds}
-      </blockquote>
+    console.log("Using template:", customTemplate ? "custom" : "default", "mode:", useTutoiement ? "tutoiement" : "vouvoiement");
 
-      <p>Je souhaite t'offrir la meilleure expérience possible lors de cette formation et m'adapter au mieux à tes besoins.</p>
+    // Process template
+    const variables = {
+      first_name: participantFirstName || null,
+      training_name: finalTrainingName,
+      accessibility_needs: accessibilityNeeds,
+    };
 
-      <p>À cet effet, pourrais-tu m'indiquer les adaptations nécessaires que je pourrais mettre en place pour te permettre de suivre la formation dans les meilleures conditions ? Par exemple, aurais-tu besoin d'un matériel particulier, d'aménagements horaires, d'un accompagnement spécifique, etc. ?</p>
-
-      <p>Tes suggestions et recommandations me seront précieuses pour préparer au mieux cette formation et te garantir un apprentissage optimal.</p>
-
-      <p>Dans l'attente de ton retour, je reste à ta disposition pour toute question ou information complémentaire.</p>
-
-      <p>Bonne journée,</p>
-      
-      ${signature}
-    `;
+    const emailSubject = processTemplate(subjectTemplate, variables, false);
+    const contentText = processTemplate(contentTemplate, variables, false);
+    const contentHtml = textToHtml(contentText);
+    const htmlContent = `${contentHtml}\n${signature}`;
 
     // Send email
     const emailResponse = await fetch("https://api.resend.com/emails", {
@@ -93,7 +128,7 @@ serve(async (req) => {
         from: senderFrom,
         to: [participantEmail],
         bcc: bccList,
-        subject: `Tes besoins spécifiques pour la formation "${finalTrainingName}"`,
+        subject: emailSubject,
         html: htmlContent,
         reply_to: senderEmail,
       }),
@@ -109,9 +144,6 @@ serve(async (req) => {
     console.log("Accessibility needs email sent to:", participantEmail, result);
 
     // Log activity
-    const emailSubject = `Tes besoins spécifiques pour la formation "${finalTrainingName}"`;
-    const emailContentText = `${greeting}\n\nMerci d'avoir pris le temps de remplir le formulaire de recueil des besoins pour notre formation à venir. Je suis soucieux de proposer un environnement d'apprentissage adapté à chacun de mes participants.\n\nJ'ai bien pris en compte ton besoin spécifique :\n"${accessibilityNeeds}"\n\nJe souhaite t'offrir la meilleure expérience possible lors de cette formation et m'adapter au mieux à tes besoins.\n\nPourrais-tu m'indiquer les adaptations nécessaires que je pourrais mettre en place pour te permettre de suivre la formation dans les meilleures conditions ?\n\nDans l'attente de ton retour, je reste à ta disposition pour toute question ou information complémentaire.`;
-    
     try {
       await supabase.from("activity_logs").insert({
         action_type: "accessibility_needs_email_sent",
@@ -122,7 +154,7 @@ serve(async (req) => {
           questionnaire_id: questionnaireId,
           accessibility_needs: accessibilityNeeds,
           email_subject: emailSubject,
-          email_content: emailContentText,
+          email_content: contentText,
         },
       });
     } catch (logError) {

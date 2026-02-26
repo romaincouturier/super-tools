@@ -9,6 +9,31 @@ import {
   sendEmail,
   formatDateWithDayFr,
 } from "../_shared/mod.ts";
+import { processTemplate, textToHtml } from "../_shared/templates.ts";
+
+// Default templates (fallback if no custom template in DB)
+const DEFAULT_SUBJECT_TU = "Rappel : Prépare ta formation \"{{training_name}}\"";
+const DEFAULT_SUBJECT_VOUS = "Rappel : Préparez votre formation \"{{training_name}}\"";
+
+const DEFAULT_CONTENT_TU = `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
+
+Je me permets de te relancer concernant le questionnaire de préparation pour la formation "{{training_name}}".
+
+Ton retour m'est précieux pour adapter au mieux le contenu à tes besoins.
+
+{{questionnaire_link}}
+
+Merci d'avance pour ta participation !`;
+
+const DEFAULT_CONTENT_VOUS = `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
+
+Je me permets de vous relancer concernant le questionnaire de préparation pour la formation "{{training_name}}".
+
+Votre retour m'est précieux pour adapter au mieux le contenu à vos besoins.
+
+{{questionnaire_link}}
+
+Merci d'avance pour votre participation !`;
 
 serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
@@ -23,12 +48,6 @@ serve(async (req) => {
 
     const supabase = getSupabaseClient();
     const appUrl = Deno.env.get("APP_URL") || "https://super-tools.lovable.app";
-
-    // Fetch BCC settings and signature in parallel
-    const [bccList, signature] = await Promise.all([
-      getBccSettings(supabase),
-      getSigniticSignature(),
-    ]);
 
     // Fetch participant and training info
     const { data: participant, error: participantError } = await supabase
@@ -51,14 +70,37 @@ serve(async (req) => {
       throw new Error("Training not found");
     }
 
-    // Fetch training schedules for times
-    const { data: schedules } = await supabase
-      .from("training_schedules")
-      .select("*")
-      .eq("training_id", trainingId)
-      .order("day_date", { ascending: true });
+    // Determine tu/vous
+    const useTutoiement = training.participants_formal_address === false;
+    const templateTypeSuffix = useTutoiement ? "_tu" : "_vous";
+    const templateType = `needs_survey_reminder${templateTypeSuffix}`;
 
-    // Check if questionnaire exists and get token - PGRST116 means no rows
+    // Fetch template, BCC, signature, and schedules in parallel
+    const [templateResult, bccList, signature, schedulesResult] = await Promise.all([
+      supabase
+        .from("email_templates")
+        .select("subject, html_content")
+        .eq("template_type", templateType)
+        .maybeSingle(),
+      getBccSettings(supabase),
+      getSigniticSignature(),
+      supabase
+        .from("training_schedules")
+        .select("*")
+        .eq("training_id", trainingId)
+        .order("day_date", { ascending: true }),
+    ]);
+
+    const customTemplate = templateResult.data;
+    const schedules = schedulesResult.data;
+    const defaultSubject = useTutoiement ? DEFAULT_SUBJECT_TU : DEFAULT_SUBJECT_VOUS;
+    const defaultContent = useTutoiement ? DEFAULT_CONTENT_TU : DEFAULT_CONTENT_VOUS;
+    const subjectTemplate = customTemplate?.subject || defaultSubject;
+    const contentTemplate = customTemplate?.html_content || defaultContent;
+
+    console.log("Using template:", customTemplate ? "custom" : "default", "mode:", useTutoiement ? "tutoiement" : "vouvoiement");
+
+    // Check if questionnaire exists and get token
     const { data: existingQuestionnaire, error: fetchError } = await supabase
       .from("questionnaire_besoins")
       .select("*")
@@ -76,7 +118,6 @@ serve(async (req) => {
       token = existingQuestionnaire.token;
       console.log("Using existing questionnaire with token:", token);
     } else {
-      // Create new questionnaire with token if doesn't exist
       token = crypto.randomUUID();
       console.log("Creating new questionnaire with token:", token);
 
@@ -125,41 +166,23 @@ serve(async (req) => {
 
     // Build questionnaire URL
     const questionnaireUrl = `${appUrl}/questionnaire/${token}`;
-
-    // Format training dates
     const formattedDate = formatDateWithDayFr(training.start_date);
 
-    // Get schedule times
-    let scheduleText = "";
-    if (schedules && schedules.length > 0) {
-      const firstSchedule = schedules[0];
-      const startTime = firstSchedule.start_time.slice(0, 5);
-      const endTime = firstSchedule.end_time.slice(0, 5);
-      scheduleText = ` (${startTime} - ${endTime})`;
-    }
+    // Process template
+    const variables = {
+      first_name: participant.first_name || null,
+      training_name: training.training_name,
+      training_date: formattedDate,
+      training_location: training.location || "",
+      questionnaire_link: questionnaireUrl,
+    };
 
-    // Build friendly email
-    const firstName = participant.first_name || "";
-    const greeting = firstName ? `Bonjour ${firstName},` : "Bonjour,";
-
-    const htmlContent = `
-      <p>${greeting}</p>
-      <p>J'espère que tu vas bien ! 😊</p>
-      <p>Je me permets de te relancer au sujet du <strong>questionnaire de recueil des besoins</strong> pour la formation <strong>"${training.training_name}"</strong>.</p>
-      <p>Pour rappel, cette formation aura lieu <strong>le ${formattedDate}${scheduleText}</strong> à <strong>${training.location}</strong>.</p>
-      <p>Ce questionnaire me permet de personnaliser le contenu de la formation en fonction de tes attentes et de ton contexte. Ça prend environ 5 minutes, promis ! 🙂</p>
-      <p style="margin: 24px 0;">
-        <a href="${questionnaireUrl}" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
-          ✏️ Remplir le questionnaire
-        </a>
-      </p>
-      <p>Si tu as des questions ou si tu rencontres un souci technique, n'hésite surtout pas à me contacter !</p>
-      <p>Merci d'avance et à très bientôt,</p>
-      ${signature}
-    `;
+    const emailSubject = processTemplate(subjectTemplate, variables, false);
+    const contentText = processTemplate(contentTemplate, variables, false);
+    const contentHtml = textToHtml(contentText);
+    const htmlContent = `${contentHtml}\n${signature}`;
 
     // Send email
-    const emailSubject = `Petit rappel : questionnaire pour la formation "${training.training_name}"`;
     const result = await sendEmail({
       to: [participant.email],
       bcc: bccList,
@@ -182,6 +205,8 @@ serve(async (req) => {
           training_id: trainingId,
           training_name: training.training_name,
           participant_name: `${participant.first_name || ""} ${participant.last_name || ""}`.trim() || null,
+          email_subject: emailSubject,
+          email_content: contentText,
         },
       });
     } catch (logError) {

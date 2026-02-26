@@ -7,13 +7,27 @@ import {
   handleCorsPreflightIfNeeded,
 } from "../_shared/cors.ts";
 import { getSupabaseClient, verifyAuth } from "../_shared/supabase-client.ts";
+import { getSigniticSignature } from "../_shared/signitic.ts";
+import { getSenderFrom, getBccList } from "../_shared/email-settings.ts";
+import { processTemplate, textToHtml } from "../_shared/templates.ts";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
-// Get Signitic signature using shared module
-import { getSigniticSignature } from "../_shared/signitic.ts";
-import { getSenderFrom, getBccList } from "../_shared/email-settings.ts";
-const getSignature = getSigniticSignature;
+// Default templates
+const DEFAULT_SUBJECT_TU = "Certificat de réalisation - {{training_name}} - {{participant_name}}";
+const DEFAULT_SUBJECT_VOUS = "Certificat de réalisation - {{training_name}} - {{participant_name}}";
+
+const DEFAULT_CONTENT_TU = `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
+
+Tu trouveras en pièce jointe le certificat de réalisation de {{participant_name}} pour la formation "{{training_name}}".
+
+Bonne réception et à bientôt !`;
+
+const DEFAULT_CONTENT_VOUS = `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
+
+Veuillez trouver en pièce jointe le certificat de réalisation de {{participant_name}} pour la formation "{{training_name}}".
+
+Bonne réception et à bientôt !`;
 
 serve(async (req: Request): Promise<Response> => {
   const preflight = handleCorsPreflightIfNeeded(req);
@@ -52,13 +66,52 @@ serve(async (req: Request): Promise<Response> => {
     // Fetch training info
     const { data: training, error: trainingError } = await supabase
       .from("trainings")
-      .select("training_name")
+      .select("training_name, participants_formal_address")
       .eq("id", evaluation.training_id)
       .single();
 
     if (trainingError || !training) {
       return createErrorResponse("Training not found", 404);
     }
+
+    // Determine tu/vous - for manual send to sponsor, default to vous
+    const useTutoiement = training.participants_formal_address === false;
+    const templateTypeSuffix = useTutoiement ? "_tu" : "_vous";
+    const templateType = `certificate_sponsor${templateTypeSuffix}`;
+
+    // Fetch template, signature, sender, and BCC in parallel
+    const [templateResult, signatureHtml, senderFrom, bccList] = await Promise.all([
+      supabase
+        .from("email_templates")
+        .select("subject, html_content")
+        .eq("template_type", templateType)
+        .maybeSingle(),
+      getSigniticSignature(),
+      getSenderFrom(),
+      getBccList(),
+    ]);
+
+    const customTemplate = templateResult.data;
+    const defaultSubject = useTutoiement ? DEFAULT_SUBJECT_TU : DEFAULT_SUBJECT_VOUS;
+    const defaultContent = useTutoiement ? DEFAULT_CONTENT_TU : DEFAULT_CONTENT_VOUS;
+    const subjectTemplate = customTemplate?.subject || defaultSubject;
+    const contentTemplate = customTemplate?.html_content || defaultContent;
+
+    const participantName = [evaluation.first_name, evaluation.last_name]
+      .filter(Boolean)
+      .join(" ") || "le participant";
+
+    // Process template
+    const variables = {
+      first_name: recipientName || null,
+      training_name: training.training_name,
+      participant_name: participantName,
+    };
+
+    const subject = processTemplate(subjectTemplate, variables, false);
+    const contentText = processTemplate(contentTemplate, variables, false);
+    const contentHtml = textToHtml(contentText);
+    const emailHtml = `${contentHtml}\n${signatureHtml}`;
 
     // Download PDF from storage
     const pdfResponse = await fetch(certificateUrl);
@@ -69,31 +122,13 @@ serve(async (req: Request): Promise<Response> => {
     const pdfBytes = new Uint8Array(pdfArrayBuffer);
     const pdfBase64 = btoa(String.fromCharCode(...pdfBytes));
 
-    const signatureHtml = await getSignature();
-
-    const participantName = [evaluation.first_name, evaluation.last_name]
-      .filter(Boolean)
-      .join(" ") || "le participant";
-
-    const greeting = recipientName ? `Bonjour ${recipientName},` : "Bonjour,";
-
-    const emailHtml = `
-      <p>${greeting}</p>
-      <p>Veuillez trouver en pièce jointe le certificat de réalisation de <strong>${participantName}</strong> pour la formation <strong>${training.training_name}</strong>.</p>
-      <p>Bonne réception et à bientôt !</p>
-      ${signatureHtml}
-    `;
-
     const fileName = `Certificat_${training.training_name.replace(/[^a-zA-Z0-9]/g, "_")}_${participantName.replace(/\s+/g, "_")}.pdf`;
-
-    const senderFrom = await getSenderFrom();
-    const bccList = await getBccList();
 
     await resend.emails.send({
       from: senderFrom,
       to: [recipientEmail],
       bcc: bccList,
-      subject: `Certificat de réalisation - ${training.training_name} - ${participantName}`,
+      subject,
       html: emailHtml,
       attachments: [{ filename: fileName, content: pdfBase64 }],
     });
@@ -108,6 +143,7 @@ serve(async (req: Request): Promise<Response> => {
         training_name: training.training_name,
         participant_name: participantName,
         sent_to: recipientEmail,
+        email_subject: subject,
       },
     });
 
