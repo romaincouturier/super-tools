@@ -17,6 +17,7 @@ export interface MediaItem {
   created_at: string;
   created_by: string | null;
   is_deliverable: boolean;
+  tags: string[];
   // Joined label for display in gallery
   source_label: string;
   source_emoji: string | null;
@@ -106,6 +107,7 @@ export const useMediaLibrary = () => {
           created_at: row.created_at,
           created_by: row.created_by,
           is_deliverable: row.is_deliverable ?? false,
+          tags: row.tags || [],
           source_label: info.label,
           source_emoji: info.emoji,
           source_color: info.color,
@@ -182,6 +184,24 @@ export const useDeleteMedia = () => {
     onSuccess: ({ sourceType, sourceId }) => {
       queryClient.invalidateQueries({ queryKey: [ENTITY_MEDIA_KEY, sourceType, sourceId] });
       queryClient.invalidateQueries({ queryKey: [MEDIA_LIBRARY_KEY] });
+    },
+  });
+};
+
+// ── Update media tags ────────────────────────────────────────────────
+export const useUpdateMediaTags = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, tags }: { id: string; tags: string[] }) => {
+      const { error } = await (supabase as any)
+        .from("media")
+        .update({ tags })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [MEDIA_LIBRARY_KEY] });
+      queryClient.invalidateQueries({ queryKey: [ENTITY_MEDIA_KEY] });
     },
   });
 };
