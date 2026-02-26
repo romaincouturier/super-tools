@@ -109,7 +109,8 @@ export function replaceCrmVariables(
   let result = template;
 
   // 1. Conditional blocks: {{var? ...content...}}
-  result = result.replace(/\{\{(\w+)\?\s*(.*?)\}\}/g, (_match, varName, content) => {
+  // Content may contain inner {{var}} references; we match non-brace chars or complete {{word}} groups
+  result = result.replace(/\{\{(\w+)\?((?:[^{}]|\{\{\w+\}\})*)\}\}/g, (_match, varName, content) => {
     const value = variables[varName];
     if (!value) return "";
     // Replace inner {{var}} references within the conditional block
