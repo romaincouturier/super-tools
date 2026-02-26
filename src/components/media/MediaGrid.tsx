@@ -23,6 +23,11 @@ const sourceIconLarge = (sourceType: string) => {
   }
 };
 
+interface MediaGridProps {
+  items: MediaItem[];
+  onOpenLightbox: (item: MediaItem) => void;
+}
+
 const MediaGrid = ({ items, onOpenLightbox }: MediaGridProps) => {
   const deleteMutation = useDeleteMedia();
 
