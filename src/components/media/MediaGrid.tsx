@@ -118,7 +118,7 @@ const MediaGrid = ({ items, onOpenLightbox, allTags }: MediaGridProps) => {
                 <span className="truncate">{item.file_name}</span>
               </div>
               <div className="flex items-center gap-1 flex-shrink-0">
-                <MediaTagEditor mediaId={item.id} tags={item.tags} allTags={allTags} compact />
+                <MediaTagEditor mediaId={item.id} tags={item.tags} allTags={allTags} compact triggerClassName="h-6 w-6 bg-secondary text-secondary-foreground hover:bg-secondary/80" />
                 <Button
                   variant="secondary"
                   size="icon"
