@@ -243,10 +243,11 @@ const Evaluation = () => {
         prev ? { ...prev, etat: "soumis", date_soumission: nowIso } : prev
       );
     } catch (e: any) {
-      console.error("Submit failed", e);
+      const errorDetail = e?.message || e?.code || JSON.stringify(e);
+      console.error("Submit failed — detail:", errorDetail, "full:", e);
       toast({
         title: "Erreur",
-        description: "Impossible de soumettre l'évaluation. Réessayez.",
+        description: `Impossible de soumettre l'évaluation. ${errorDetail ? `(${errorDetail})` : ""} Réessayez.`,
         variant: "destructive",
       });
     } finally {
