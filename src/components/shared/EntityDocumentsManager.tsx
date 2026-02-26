@@ -174,7 +174,7 @@ const EntityDocumentsManager = ({
         </div>
       ) : (
         <div className="space-y-2">
-          {documents.map((doc) => (
+          {[...documents].sort((a, b) => (b.is_deliverable ? 1 : 0) - (a.is_deliverable ? 1 : 0)).map((doc) => (
             <div
               key={doc.id}
               className="flex items-center justify-between gap-2 py-2 px-3 rounded-md bg-muted/50 hover:bg-muted transition-colors"

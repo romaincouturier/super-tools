@@ -239,7 +239,7 @@ const EntityMediaManager = ({
       ) : (
         <div className="space-y-3">
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
-            {media.filter((m) => m.file_type !== "video_link").map((item) => (
+            {[...media].filter((m) => m.file_type !== "video_link").sort((a, b) => (b.is_deliverable ? 1 : 0) - (a.is_deliverable ? 1 : 0)).map((item) => (
               <div
                 key={item.id}
                 className="group relative aspect-square rounded-lg overflow-hidden border bg-muted cursor-pointer"

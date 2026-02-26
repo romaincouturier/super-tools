@@ -426,7 +426,7 @@ const MissionDetailDrawer = ({
 
             {/* Financials */}
             <div className="p-4 bg-muted/50 rounded-lg space-y-3">
-              <h4 className="font-medium text-sm">Facturation</h4>
+              <h4 className="font-medium text-sm">Facturation (HT)</h4>
               <div className="grid grid-cols-3 gap-3">
                 <div>
                   <Label className="text-xs">TJM (€)</Label>
