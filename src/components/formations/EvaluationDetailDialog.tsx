@@ -8,31 +8,19 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  type EvaluationData,
+  getRecommandationLabel,
+  getRecommandationVariant,
+  getDelaiApplicationLabel,
+  getRythmeLabel,
+  getEquilibreLabel,
+  getAppreciationsLabel,
+  formatEvaluationDisplayName,
+} from "@/lib/evaluationUtils";
 
-export interface EvaluationData {
-  id: string;
-  first_name: string | null;
-  last_name: string | null;
-  company: string | null;
-  email: string | null;
-  appreciation_generale: number | null;
-  recommandation: string | null;
-  message_recommandation: string | null;
-  objectifs_evaluation: { objectif: string; niveau: number }[] | null;
-  objectif_prioritaire: string | null;
-  delai_application: string | null;
-  freins_application: string | null;
-  rythme: string | null;
-  equilibre_theorie_pratique: string | null;
-  amelioration_suggeree: string | null;
-  conditions_info_satisfaisantes: boolean | null;
-  formation_adaptee_public: boolean | null;
-  qualification_intervenant_adequate: boolean | null;
-  appreciations_prises_en_compte: string | null;
-  consent_publication: boolean | null;
-  remarques_libres: string | null;
-  date_soumission: string | null;
-}
+// Re-export for consumers that import from this file
+export type { EvaluationData };
 
 interface EvaluationDetailDialogProps {
   open: boolean;
@@ -51,21 +39,12 @@ const getStars = (rating: number | null) => {
   ));
 };
 
-const getRecommandationBadge = (recommandation: string | null) => {
-  if (!recommandation) return null;
-  const variants: Record<string, "default" | "secondary" | "destructive"> = {
-    oui_avec_enthousiasme: "default",
-    oui: "secondary",
-    non: "destructive",
-  };
-  const labels: Record<string, string> = {
-    oui_avec_enthousiasme: "Recommande vivement",
-    oui: "Recommande",
-    non: "Ne recommande pas",
-  };
+const RecommandationBadge = ({ recommandation }: { recommandation: string | null }) => {
+  const label = getRecommandationLabel(recommandation);
+  if (!label) return null;
   return (
-    <Badge variant={variants[recommandation] || "secondary"}>
-      {labels[recommandation] || recommandation}
+    <Badge variant={getRecommandationVariant(recommandation)}>
+      {label}
     </Badge>
   );
 };
@@ -84,10 +63,10 @@ const EvaluationDetailDialog = ({
 }: EvaluationDetailDialogProps) => {
   if (!evaluation) return null;
 
-  const displayName =
-    evaluation.first_name || evaluation.last_name
-      ? `${evaluation.first_name || ""} ${evaluation.last_name || ""}`.trim()
-      : "Anonyme";
+  const displayName = formatEvaluationDisplayName(
+    evaluation.first_name,
+    evaluation.last_name,
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -131,7 +110,7 @@ const EvaluationDetailDialog = ({
               <div className="flex items-center gap-4">
                 <div className="flex">{getStars(evaluation.appreciation_generale)}</div>
                 <span className="text-lg font-bold">{evaluation.appreciation_generale}/5</span>
-                {getRecommandationBadge(evaluation.recommandation)}
+                <RecommandationBadge recommandation={evaluation.recommandation} />
               </div>
             </div>
 
@@ -174,13 +153,7 @@ const EvaluationDetailDialog = ({
                   <p className="text-sm">
                     <span className="text-muted-foreground">Délai d'application :</span>{" "}
                     <Badge variant="outline">
-                      {evaluation.delai_application === "cette_semaine"
-                        ? "Cette semaine"
-                        : evaluation.delai_application === "ce_mois"
-                          ? "Ce mois-ci"
-                          : evaluation.delai_application === "3_mois"
-                            ? "Dans les 3 mois"
-                            : "Application incertaine"}
+                      {getDelaiApplicationLabel(evaluation.delai_application)}
                     </Badge>
                   </p>
                 )}
@@ -201,11 +174,7 @@ const EvaluationDetailDialog = ({
                   <p className="text-sm">
                     <span className="text-muted-foreground">Rythme :</span>{" "}
                     <Badge variant={evaluation.rythme === "adapte" ? "default" : "secondary"}>
-                      {evaluation.rythme === "trop_lent"
-                        ? "Trop lent"
-                        : evaluation.rythme === "adapte"
-                          ? "Adapté"
-                          : "Trop rapide"}
+                      {getRythmeLabel(evaluation.rythme)}
                     </Badge>
                   </p>
                 )}
@@ -213,11 +182,7 @@ const EvaluationDetailDialog = ({
                   <p className="text-sm">
                     <span className="text-muted-foreground">Équilibre théorie/pratique :</span>{" "}
                     <Badge variant={evaluation.equilibre_theorie_pratique === "equilibre" ? "default" : "secondary"}>
-                      {evaluation.equilibre_theorie_pratique === "trop_theorique"
-                        ? "Trop théorique"
-                        : evaluation.equilibre_theorie_pratique === "equilibre"
-                          ? "Équilibré"
-                          : "Pas assez structuré"}
+                      {getEquilibreLabel(evaluation.equilibre_theorie_pratique)}
                     </Badge>
                   </p>
                 )}
@@ -250,11 +215,7 @@ const EvaluationDetailDialog = ({
                   <p className="text-sm flex items-center gap-2">
                     <span className="text-muted-foreground">Appréciations prises en compte :</span>
                     <Badge variant="outline">
-                      {evaluation.appreciations_prises_en_compte === "oui"
-                        ? "Oui"
-                        : evaluation.appreciations_prises_en_compte === "non"
-                          ? "Non"
-                          : "Sans objet"}
+                      {getAppreciationsLabel(evaluation.appreciations_prises_en_compte)}
                     </Badge>
                   </p>
                 )}

@@ -35,6 +35,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import EvaluationDetailDialog from "@/components/formations/EvaluationDetailDialog";
+import { computeAvgRating, computeRecommendationRate } from "@/lib/evaluationUtils";
 
 interface Training {
   id: string;
@@ -423,10 +424,7 @@ const Evaluations = () => {
               <CardDescription>Note moyenne</CardDescription>
               <CardTitle className="text-3xl flex items-center gap-2">
                 {evaluations.length > 0
-                  ? (
-                      evaluations.reduce((sum, e) => sum + (e.appreciation_generale || 0), 0) /
-                      evaluations.filter((e) => e.appreciation_generale).length
-                    ).toFixed(1)
+                  ? computeAvgRating(evaluations).toFixed(1)
                   : "-"}
                 <Star className="h-6 w-6 fill-yellow-400 text-yellow-400" />
               </CardTitle>
@@ -437,15 +435,7 @@ const Evaluations = () => {
               <CardDescription>Taux de recommandation</CardDescription>
               <CardTitle className="text-3xl">
                 {evaluations.length > 0
-                  ? Math.round(
-                      (evaluations.filter(
-                        (e) =>
-                          e.recommandation === "oui" ||
-                          e.recommandation === "oui_avec_enthousiasme"
-                      ).length /
-                        evaluations.filter((e) => e.recommandation).length) *
-                        100
-                    )
+                  ? computeRecommendationRate(evaluations)
                   : 0}
                 %
               </CardTitle>
