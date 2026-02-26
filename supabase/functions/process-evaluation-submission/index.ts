@@ -516,7 +516,7 @@ const handler = async (req: Request): Promise<Response> => {
 
       await sleep(1000);
 
-      console.log(`Sending post-evaluation email (filter matched: "${filter}")...`);
+      console.log(`Sending post-evaluation email (catalog matched: "${postEval.catalog_id}")...`);
 
       const finalSubject = postEval.subject
         .replace(/\{\{first_name\}\}/g, firstName || "")
@@ -549,7 +549,7 @@ const handler = async (req: Request): Promise<Response> => {
           training_name: trainingName,
           participant_name: fullName,
           email_subject: finalSubject,
-          filter_matched: filter,
+          catalog_id_matched: postEval.catalog_id,
         },
       });
     }
