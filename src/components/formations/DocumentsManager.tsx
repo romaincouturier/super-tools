@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Upload, FileText, Trash2, Loader2, Send, Receipt, ClipboardList, Mail, Link, Heart, CheckCircle, FileDown, Scroll, PenLine, Shield, ChevronDown, ChevronUp, Eye, BellRing } from "lucide-react";
+import { Upload, FileText, Trash2, Loader2, Send, Receipt, ClipboardList, Mail, Link, Heart, CheckCircle, FileDown, Scroll, PenLine, Shield, ChevronDown, ChevronUp, Eye, BellRing, Award } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -152,7 +152,8 @@ const DocumentsManager = ({
   const [ccEmail, setCcEmail] = useState("");
   const [showCustomRecipientDialog, setShowCustomRecipientDialog] = useState(false);
   const [sendingConventionReminder, setSendingConventionReminder] = useState(false);
-  const [pendingDocumentType, setPendingDocumentType] = useState<"invoice" | "sheets" | "all" | null>(null);
+  const [pendingDocumentType, setPendingDocumentType] = useState<"invoice" | "sheets" | "certificates" | "all" | null>(null);
+  const [certificateUrls, setCertificateUrls] = useState<string[]>([]);
   const [sendToSponsorWithOptions, setSendToSponsorWithOptions] = useState(false);
   const [showThankYouPreview, setShowThankYouPreview] = useState(false);
   const [showAuditPanel, setShowAuditPanel] = useState(false);
@@ -240,6 +241,28 @@ const DocumentsManager = ({
 
     fetchConventionSignatureStatus();
   }, [trainingId]);
+
+  // Fetch certificate URLs for all participants
+  useEffect(() => {
+    const fetchCertificates = async () => {
+      const { data, error } = await supabase
+        .from("training_evaluations")
+        .select("certificate_url, first_name, last_name")
+        .eq("training_id", trainingId)
+        .not("certificate_url", "is", null);
+
+      if (!error && data) {
+        const urls = data
+          .map((e: any) => e.certificate_url as string)
+          .filter(Boolean);
+        setCertificateUrls(urls);
+      }
+    };
+
+    fetchCertificates();
+  }, [trainingId]);
+
+  const hasCertificates = certificateUrls.length > 0;
 
   const formatSentDate = (dateStr: string): string => {
     return format(parseISO(dateStr), "d MMM à HH:mm", { locale: fr });
@@ -671,7 +694,7 @@ const DocumentsManager = ({
     }
   };
 
-  const handleSendDocuments = async (type: "invoice" | "sheets" | "all", recipientEmail?: string, cc?: string) => {
+  const handleSendDocuments = async (type: "invoice" | "sheets" | "certificates" | "all", recipientEmail?: string, cc?: string) => {
     const targetEmail = recipientEmail || sponsorEmail;
     
     if (!targetEmail) {
@@ -717,8 +740,9 @@ const DocumentsManager = ({
           recipientName: recipientEmail ? null : sponsorName,
           recipientFirstName: recipientEmail ? null : sponsorFirstName,
           documentType: type,
-          invoiceUrl: type === "sheets" ? null : invoiceFileUrl,
-          attendanceSheetsUrls: type === "invoice" ? [] : attendanceSheetsUrls,
+          invoiceUrl: type === "sheets" || type === "certificates" ? null : invoiceFileUrl,
+          attendanceSheetsUrls: type === "invoice" || type === "certificates" ? [] : attendanceSheetsUrls,
+          certificateUrls: type === "certificates" || type === "all" ? certificateUrls : [],
           ccEmail: cc || null,
           formalAddress: sponsorFormalAddress,
         },
@@ -922,7 +946,7 @@ const DocumentsManager = ({
     }
   };
 
-  const openCustomRecipientDialog = (type: "invoice" | "sheets" | "all", toSponsor: boolean = false) => {
+  const openCustomRecipientDialog = (type: "invoice" | "sheets" | "certificates" | "all", toSponsor: boolean = false) => {
     setPendingDocumentType(type);
     setSendToSponsorWithOptions(toSponsor);
     if (toSponsor && sponsorEmail) {
@@ -1499,8 +1523,8 @@ const DocumentsManager = ({
           {/* Send Documents Section - For inter-entreprise, only show sheets (invoices managed per participant) */}
           <div className="pt-4 border-t space-y-3">
             {isInterEntreprise ? (
-              // Inter-entreprise: only attendance sheets can be sent globally
-              attendanceSheetsUrls.length > 0 ? (
+              // Inter-entreprise: attendance sheets + certificates can be sent globally
+              (attendanceSheetsUrls.length > 0 || hasCertificates) ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button
@@ -1514,17 +1538,25 @@ const DocumentsManager = ({
                       ) : (
                         <Send className="h-4 w-4 mr-2" />
                       )}
-                      Envoyer les émargements
+                      Envoyer les documents
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-72">
                     <p className="px-2 py-1.5 text-xs text-muted-foreground font-medium">
                       Envoyer à un destinataire
                     </p>
-                    <DropdownMenuItem onClick={() => openCustomRecipientDialog("sheets", false)}>
-                      <Mail className="h-4 w-4 mr-2" />
-                      Feuilles d'émargement
-                    </DropdownMenuItem>
+                    {attendanceSheetsUrls.length > 0 && (
+                      <DropdownMenuItem onClick={() => openCustomRecipientDialog("sheets", false)}>
+                        <ClipboardList className="h-4 w-4 mr-2" />
+                        Feuilles d'émargement
+                      </DropdownMenuItem>
+                    )}
+                    {hasCertificates && (
+                      <DropdownMenuItem onClick={() => openCustomRecipientDialog("certificates", false)}>
+                        <Award className="h-4 w-4 mr-2" />
+                        Certificats ({certificateUrls.length})
+                      </DropdownMenuItem>
+                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
               ) : (
@@ -1535,12 +1567,12 @@ const DocumentsManager = ({
                   disabled
                 >
                   <Send className="h-4 w-4 mr-2" />
-                  Envoyer les émargements
+                  Envoyer les documents
                 </Button>
               )
             ) : (
               // Standard: full send options
-              (invoiceFileUrl || attendanceSheetsUrls.length > 0) ? (
+              (invoiceFileUrl || attendanceSheetsUrls.length > 0 || hasCertificates) ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button
@@ -1578,7 +1610,13 @@ const DocumentsManager = ({
                             Feuilles d'émargement
                           </DropdownMenuItem>
                         )}
-                        {invoiceFileUrl && attendanceSheetsUrls.length > 0 && (
+                        {hasCertificates && (
+                          <DropdownMenuItem onClick={() => openCustomRecipientDialog("certificates", true)}>
+                            <Award className="h-4 w-4 mr-2" />
+                            Certificats ({certificateUrls.length})
+                          </DropdownMenuItem>
+                        )}
+                        {(invoiceFileUrl ? 1 : 0) + (attendanceSheetsUrls.length > 0 ? 1 : 0) + (hasCertificates ? 1 : 0) >= 2 && (
                           <DropdownMenuItem onClick={() => openCustomRecipientDialog("all", true)}>
                             <FileText className="h-4 w-4 mr-2" />
                             Tous les documents
@@ -1602,7 +1640,13 @@ const DocumentsManager = ({
                         Émargements → autre email
                       </DropdownMenuItem>
                     )}
-                    {invoiceFileUrl && attendanceSheetsUrls.length > 0 && (
+                    {hasCertificates && (
+                      <DropdownMenuItem onClick={() => openCustomRecipientDialog("certificates", false)}>
+                        <Mail className="h-4 w-4 mr-2" />
+                        Certificats → autre email
+                      </DropdownMenuItem>
+                    )}
+                    {(invoiceFileUrl ? 1 : 0) + (attendanceSheetsUrls.length > 0 ? 1 : 0) + (hasCertificates ? 1 : 0) >= 2 && (
                       <DropdownMenuItem onClick={() => openCustomRecipientDialog("all", false)}>
                         <Mail className="h-4 w-4 mr-2" />
                         Tous → autre email
@@ -1646,8 +1690,8 @@ const DocumentsManager = ({
             </DialogTitle>
             <DialogDescription>
               {sendToSponsorWithOptions 
-                ? `Envoi de ${pendingDocumentType === "invoice" ? "la facture" : pendingDocumentType === "sheets" ? "les feuilles d'émargement" : "tous les documents"} au commanditaire. Vous pouvez ajouter un email en copie.`
-                : `Entrez l'adresse email du destinataire pour ${pendingDocumentType === "invoice" ? "la facture" : pendingDocumentType === "sheets" ? "les feuilles d'émargement" : "tous les documents"}.`
+                ? `Envoi de ${pendingDocumentType === "invoice" ? "la facture" : pendingDocumentType === "sheets" ? "les feuilles d'émargement" : pendingDocumentType === "certificates" ? "les certificats" : "tous les documents"} au commanditaire. Vous pouvez ajouter un email en copie.`
+                : `Entrez l'adresse email du destinataire pour ${pendingDocumentType === "invoice" ? "la facture" : pendingDocumentType === "sheets" ? "les feuilles d'émargement" : pendingDocumentType === "certificates" ? "les certificats" : "tous les documents"}.`
               }
             </DialogDescription>
           </DialogHeader>
