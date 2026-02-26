@@ -113,7 +113,28 @@ export const useCreateMission = () => {
         .single();
 
       if (error) throw error;
-      return data as Mission;
+      const mission = data as Mission;
+
+      // Auto-create a contact from client_contact if provided
+      if (input.client_contact?.trim()) {
+        const contactStr = input.client_contact.trim();
+        // Try to extract email
+        const emailMatch = contactStr.match(/[\w.+-]+@[\w.-]+\.\w+/);
+        const email = emailMatch ? emailMatch[0] : null;
+        // Remove email from string to get name
+        const namePart = contactStr.replace(/[\w.+-]+@[\w.-]+\.\w+/, "").trim();
+
+        await (supabase as any).from("mission_contacts").insert({
+          mission_id: mission.id,
+          first_name: namePart || null,
+          email: email,
+          is_primary: true,
+          language: "fr",
+          position: 0,
+        });
+      }
+
+      return mission;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [MISSIONS_QUERY_KEY] });
