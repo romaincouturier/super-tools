@@ -48,6 +48,7 @@ const Index = () => {
   const [customFormationName, setCustomFormationName] = useState("");
   const [entreprise, setEntreprise] = useState("");
   const [duree, setDuree] = useState("");
+  const [formatFormation, setFormatFormation] = useState("presentiel");
   const [dateDebut, setDateDebut] = useState("");
   const [dateFin, setDateFin] = useState("");
   const [participants, setParticipants] = useState("");
@@ -204,7 +205,7 @@ const Index = () => {
           body: JSON.stringify({
             formationName: actualFormationName,
             entreprise,
-            duree: `${duree}h`,
+            duree: `${duree}h en ${formatFormation === "presentiel" ? "présentiel" : formatFormation === "classe_virtuelle" ? "classe virtuelle" : "e-learning"}`,
             dateDebut,
             dateFin,
             emailDestinataire: user?.email || "",
@@ -275,6 +276,7 @@ const Index = () => {
         setCustomFormationName("");
         setEntreprise("");
         setDuree("");
+        setFormatFormation("presentiel");
         setDateDebut("");
         setDateFin("");
         setParticipants("");
@@ -381,7 +383,7 @@ const Index = () => {
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-5 gap-4">
-                <div className="space-y-2 col-span-1">
+                <div className="space-y-2">
                   <Label htmlFor="duree">Durée (heures)</Label>
                   <div className="relative">
                     <Input
@@ -398,6 +400,19 @@ const Index = () => {
                       h
                     </span>
                   </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Format</Label>
+                  <Select value={formatFormation} onValueChange={setFormatFormation}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="presentiel">Présentiel</SelectItem>
+                      <SelectItem value="classe_virtuelle">Classe virtuelle</SelectItem>
+                      <SelectItem value="e_learning">E-learning</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2 col-span-1 sm:col-span-2">
                   <Label htmlFor="dateDebut">Date de début</Label>
