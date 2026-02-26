@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Save, Trash2, Mail } from "lucide-react";
+import { Plus, Save, Trash2, Mail, Copy } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -128,6 +128,20 @@ const PostEvaluationEmailManager = () => {
     setSaving(null);
   };
 
+  const handleDuplicate = (email: PostEvalEmail) => {
+    setEmails(prev => [
+      ...prev,
+      {
+        id: `new-${Date.now()}`,
+        catalog_id: email.catalog_id,
+        subject: email.subject,
+        html_content: email.html_content,
+        is_active: email.is_active,
+      },
+    ]);
+    toast({ title: "Dupliqué", description: "Email dupliqué. Pensez à le sauvegarder." });
+  };
+
   const handleDelete = async (id: string) => {
     if (id.startsWith("new-")) {
       setEmails(prev => prev.filter(e => e.id !== id));
@@ -191,6 +205,14 @@ const PostEvaluationEmailManager = () => {
                 >
                   <Save className="h-4 w-4 mr-1" />
                   {saving === email.id ? "..." : "Sauvegarder"}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleDuplicate(email)}
+                  title="Dupliquer"
+                >
+                  <Copy className="h-4 w-4" />
                 </Button>
                 <Button
                   size="sm"
