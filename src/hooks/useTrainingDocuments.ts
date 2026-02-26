@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { sanitizeFileName, extractStoragePath } from "@/lib/file-utils";
 
 export interface TrainingDocument {
   id: string;
@@ -91,12 +92,7 @@ export const uploadTrainingDocument = async (
   file: File,
   trainingId: string
 ): Promise<string> => {
-  const sanitized = file.name
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-zA-Z0-9._-]/g, "_")
-    .toLowerCase();
-  const path = `${trainingId}/docs/${Date.now()}_${sanitized}`;
+  const path = `${trainingId}/docs/${Date.now()}_${sanitizeFileName(file.name)}`;
 
   const { error: uploadError } = await supabase.storage
     .from(STORAGE_BUCKET)
@@ -115,13 +111,8 @@ export const uploadTrainingDocument = async (
 export const deleteTrainingDocumentFile = async (
   fileUrl: string
 ): Promise<void> => {
-  const url = new URL(fileUrl);
-  const marker = `/${STORAGE_BUCKET}/`;
-  const idx = url.pathname.indexOf(marker);
-  if (idx !== -1) {
-    const filePath = decodeURIComponent(
-      url.pathname.slice(idx + marker.length)
-    );
+  const filePath = extractStoragePath(fileUrl, STORAGE_BUCKET);
+  if (filePath) {
     await supabase.storage.from(STORAGE_BUCKET).remove([filePath]);
   }
 };

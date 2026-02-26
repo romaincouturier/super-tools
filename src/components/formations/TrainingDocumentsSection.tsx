@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatFileSize, downloadFile } from "@/lib/file-utils";
 
 import {
   useTrainingDocuments,
@@ -16,13 +17,6 @@ import {
 } from "@/hooks/useTrainingDocuments";
 
 const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20 Mo
-
-function formatFileSize(bytes: number | null): string {
-  if (bytes === null || bytes === undefined) return "";
-  if (bytes < 1024) return `${bytes} octets`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} Ko`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`;
-}
 
 interface TrainingDocumentsSectionProps {
   trainingId: string;
@@ -77,17 +71,7 @@ const TrainingDocumentsSection = ({ trainingId }: TrainingDocumentsSectionProps)
   const handleDownload = async (docId: string, fileUrl: string, fileName: string) => {
     setDownloadingId(docId);
     try {
-      const response = await fetch(fileUrl);
-      if (!response.ok) throw new Error("Erreur de téléchargement");
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = fileName;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      await downloadFile(fileUrl, fileName);
     } catch (error: any) {
       console.error("Download error:", error);
       toast.error("Erreur de téléchargement", {

@@ -12,16 +12,16 @@ import type { Mission } from "@/types/missions";
 import { useToast } from "@/hooks/use-toast";
 
 // Format a number as euros
-const fmtEuro = (v: number | null | undefined) =>
+export const fmtEuro = (v: number | null | undefined) =>
   v != null ? `${v.toLocaleString("fr-FR")}€` : "—";
 
 // Claude is always available via server-side key
-function hasAnyProvider(_keys: ApiKeys): boolean {
+export function hasAnyProvider(_keys: ApiKeys): boolean {
   return true;
 }
 
 // Build annual ambition context from configurable text + OKRs
-function buildAmbitionContext(
+export function buildAmbitionContext(
   objectives: (OKRObjective & { okr_key_results: OKRKeyResult[] })[],
   ambitionText?: string
 ): string {
@@ -67,7 +67,7 @@ function buildAmbitionContext(
 }
 
 // Build OKR context block from live data (non-annual objectives for current year)
-function buildOKRContext(
+export function buildOKRContext(
   objectives: (OKRObjective & { okr_key_results: OKRKeyResult[] })[]
 ): string {
   const currentYear = new Date().getFullYear();
@@ -94,7 +94,7 @@ function buildOKRContext(
 }
 
 // Build CRM pipeline context from live data — with dedicated won/lost sections & confidence
-function buildCRMContext(columns: CrmColumn[], cards: CrmCard[]): string {
+export function buildCRMContext(columns: CrmColumn[], cards: CrmCard[]): string {
   if (!cards.length) return "Pipeline vide.";
 
   const colMap = new Map(columns.map((c) => [c.id, c.name]));
@@ -296,7 +296,7 @@ function buildCRMContext(columns: CrmColumn[], cards: CrmCard[]): string {
 }
 
 // Build acquisition structure analysis
-function buildAcquisitionContext(cards: CrmCard[], missions: Mission[], acquisitionText?: string): string {
+export function buildAcquisitionContext(cards: CrmCard[], missions: Mission[], acquisitionText?: string): string {
   let result = "";
 
   // User-defined acquisition structure description (from settings)
@@ -395,7 +395,7 @@ function buildAcquisitionContext(cards: CrmCard[], missions: Mission[], acquisit
 }
 
 // Build revenue target context
-function buildRevenueTargetContext(
+export function buildRevenueTargetContext(
   targets: CrmRevenueTarget[],
   wonCards: CrmCard[]
 ): string {
@@ -454,7 +454,7 @@ function buildRevenueTargetContext(
 }
 
 // Build calendar context from upcoming events
-function buildCalendarContext(
+export function buildCalendarContext(
   events: { summary: string; start: string; end: string; allDay: boolean; attendees: string[] }[]
 ): string {
   if (!events.length) return "Aucun evenement a venir dans les 14 prochains jours.";
@@ -472,7 +472,7 @@ function buildCalendarContext(
 }
 
 // Build missions context from live data
-function buildMissionsContext(missions: Mission[]): string {
+export function buildMissionsContext(missions: Mission[]): string {
   if (!missions.length) return "Aucune mission.";
 
   const byStatus: Record<string, Mission[]> = {};
@@ -518,7 +518,7 @@ function buildMissionsContext(missions: Mission[]): string {
 }
 
 // Build formations context from live data
-function buildFormationsContext(
+export function buildFormationsContext(
   trainings: { id: string; training_name: string; client_name: string; start_date: string; end_date: string | null; sold_price_ht: number | null }[],
   catalogue: { formation_name: string; prix: number | null; duree_heures: number | null }[]
 ): string {
@@ -552,7 +552,7 @@ function buildFormationsContext(
 }
 
 // Build CRM comments context — recent discussion threads on deals
-function buildCrmCommentsContext(
+export function buildCrmCommentsContext(
   comments: { card_id: string; author_email: string; content: string; created_at: string }[],
   cards: CrmCard[]
 ): string {
@@ -585,7 +585,7 @@ function buildCrmCommentsContext(
 }
 
 // Build CRM email outreach context
-function buildCrmEmailsContext(
+export function buildCrmEmailsContext(
   emails: { card_id: string; sender_email: string; recipient_email: string; subject: string; sent_at: string }[],
   cards: CrmCard[]
 ): string {
@@ -616,13 +616,13 @@ function buildCrmEmailsContext(
   const now = Date.now();
   const last7d = emails.filter((e) => now - new Date(e.sent_at).getTime() < 7 * 24 * 60 * 60 * 1000).length;
   const last30d = emails.filter((e) => now - new Date(e.sent_at).getTime() < 30 * 24 * 60 * 60 * 1000).length;
-  result += `\nFrequence: ${last7d} emails cette semaine, ${last30d} ce mois-ci.\n`;
+  result += `\nFrequence: ${last7d} emails ces 7 derniers jours, ${last30d} ces 30 derniers jours.\n`;
 
   return result;
 }
 
 // Build training evaluations context — satisfaction summary
-function buildTrainingEvaluationsContext(
+export function buildTrainingEvaluationsContext(
   evaluations: {
     training_name: string;
     appreciation_generale: number | null;
@@ -687,7 +687,7 @@ function buildTrainingEvaluationsContext(
 }
 
 // Build sponsor evaluations context — decision-maker satisfaction
-function buildSponsorEvaluationsContext(
+export function buildSponsorEvaluationsContext(
   evaluations: {
     training_name: string;
     sponsor_name: string | null;
@@ -737,7 +737,7 @@ function buildSponsorEvaluationsContext(
 }
 
 // Build mission activities context — delivery and billing tracking
-function buildMissionActivitiesContext(
+export function buildMissionActivitiesContext(
   activities: {
     mission_title: string;
     description: string;
@@ -789,7 +789,7 @@ function buildMissionActivitiesContext(
 }
 
 // Build CRM activity log context — sales engagement metrics
-function buildCrmActivityLogContext(
+export function buildCrmActivityLogContext(
   logs: { card_id: string; action_type: string; old_value: string | null; new_value: string | null; created_at: string }[],
   cards: CrmCard[]
 ): string {
@@ -842,7 +842,7 @@ function buildCrmActivityLogContext(
   const now = Date.now();
   const last7d = logs.filter((l) => now - new Date(l.created_at).getTime() < 7 * 24 * 60 * 60 * 1000).length;
   const last30d = logs.filter((l) => now - new Date(l.created_at).getTime() < 30 * 24 * 60 * 60 * 1000).length;
-  result += `\nCadence: ${last7d} actions cette semaine, ${last30d} ce mois-ci.\n`;
+  result += `\nCadence: ${last7d} actions ces 7 derniers jours, ${last30d} ces 30 derniers jours.\n`;
 
   return result;
 }

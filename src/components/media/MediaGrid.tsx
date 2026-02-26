@@ -3,18 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ImageIcon, Video, Play, Trash2, Briefcase, Download, GraduationCap, CalendarDays, HandCoins } from "lucide-react";
 import { toast } from "sonner";
-
-interface MediaGridProps {
-  items: MediaItem[];
-  onOpenLightbox: (item: MediaItem) => void;
-}
-
-const formatFileSize = (bytes: number | null) => {
-  if (!bytes) return "";
-  if (bytes < 1024) return `${bytes} o`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} Ko`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`;
-};
+import { formatFileSize } from "@/lib/file-utils";
 
 const sourceIcon = (sourceType: string) => {
   switch (sourceType) {

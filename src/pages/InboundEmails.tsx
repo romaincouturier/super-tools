@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { formatFileSize } from "@/lib/file-utils";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -152,12 +153,6 @@ export default function InboundEmails() {
       default:
         return <Badge>{status}</Badge>;
     }
-  };
-
-  const formatFileSize = (bytes: number) => {
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
   if (authLoading) {

@@ -32,13 +32,7 @@ export const useCreateCrmTemplate = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (template: { template_name: string; subject: string; html_content: string }) => {
-      // Generate a slug from the name for template_type
-      const slug = template.template_name
-        .toLowerCase()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .replace(/[^a-z0-9]+/g, "_")
-        .replace(/^_|_$/g, "");
+      const slug = generateTemplateSlug(template.template_name);
       const { data, error } = await supabase
         .from("email_templates")
         .insert({
@@ -95,6 +89,19 @@ export const useDeleteCrmTemplate = () => {
 };
 
 /**
+ * Generate a URL-safe slug from a template name.
+ * Used to build the `template_type` column value (`crm_<slug>`).
+ */
+export function generateTemplateSlug(name: string): string {
+  return name
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_|_$/g, "");
+}
+
+/**
  * Replace template variables in a string.
  *
  * Supported syntax:
@@ -109,7 +116,8 @@ export function replaceCrmVariables(
   let result = template;
 
   // 1. Conditional blocks: {{var? ...content...}}
-  result = result.replace(/\{\{(\w+)\?\s*(.*?)\}\}/g, (_match, varName, content) => {
+  // Content may contain inner {{var}} references; we match non-brace chars or complete {{word}} groups
+  result = result.replace(/\{\{(\w+)\?((?:[^{}]|\{\{\w+\}\})*)\}\}/g, (_match, varName, content) => {
     const value = variables[varName];
     if (!value) return "";
     // Replace inner {{var}} references within the conditional block

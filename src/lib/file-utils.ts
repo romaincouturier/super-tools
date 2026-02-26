@@ -1,0 +1,65 @@
+/**
+ * Shared file utilities — single source of truth for file operations
+ * used across the entire application (missions, trainings, CRM, media, etc.)
+ */
+
+/**
+ * Format a file size in bytes to a human-readable French string.
+ * Examples: "1.2 Mo", "340 Ko", "128 octets"
+ */
+export function formatFileSize(bytes: number | null | undefined): string {
+  if (bytes == null) return "";
+  if (bytes < 1024) return `${bytes} octets`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} Ko`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`;
+}
+
+/**
+ * Sanitize a file name for safe storage: strip accents, special chars,
+ * lowercase. Returns a filesystem-safe string.
+ */
+export function sanitizeFileName(name: string): string {
+  return name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9._-]/g, "_")
+    .toLowerCase();
+}
+
+/**
+ * Download a file from a URL by fetching it as a blob and triggering
+ * a browser download with the given file name.
+ */
+export async function downloadFile(url: string, fileName: string): Promise<void> {
+  const response = await fetch(url);
+  if (!response.ok) throw new Error("Erreur de téléchargement");
+  const blob = await response.blob();
+  const blobUrl = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = blobUrl;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(blobUrl);
+}
+
+/**
+ * Build a storage path for a file upload.
+ * Format: {entityType}/{entityId}/{timestamp}_{sanitizedName}
+ */
+export function buildStoragePath(entityType: string, entityId: string, fileName: string): string {
+  return `${entityType}/${entityId}/${Date.now()}_${sanitizeFileName(fileName)}`;
+}
+
+/**
+ * Extract the storage file path from a public URL, given the bucket name.
+ * Returns null if the bucket marker is not found in the URL.
+ */
+export function extractStoragePath(fileUrl: string, bucket: string): string | null {
+  const url = new URL(fileUrl);
+  const marker = `/${bucket}/`;
+  const idx = url.pathname.indexOf(marker);
+  if (idx === -1) return null;
+  return decodeURIComponent(url.pathname.slice(idx + marker.length));
+}

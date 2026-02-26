@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Trash2, Loader2, X, Plus, Clock, FileText, Settings, ImageIcon, Share2, Check, Sparkles, MapPin } from "lucide-react";
+import { Trash2, Loader2, X, Plus, Clock, FileText, Settings, ImageIcon, Share2, Check, Sparkles, MapPin, FolderOpen } from "lucide-react";
 import { Mission, MissionStatus, missionStatusConfig } from "@/types/missions";
 import { useUpdateMission, useDeleteMission } from "@/hooks/useMissions";
 import { useToast } from "@/hooks/use-toast";
@@ -28,6 +28,7 @@ import MissionContacts from "./MissionContacts";
 import EmojiPickerButton from "@/components/ui/emoji-picker-button";
 import { supabase } from "@/integrations/supabase/client";
 import LogisticsBookingButtons from "@/components/shared/LogisticsBookingButtons";
+import EntityDocumentsManager from "@/components/shared/EntityDocumentsManager";
 
 interface MissionDetailDrawerProps {
   mission: Mission | null;
@@ -257,7 +258,7 @@ const MissionDetailDrawer = ({
         )}
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="activities" className="flex items-center gap-2">
               <Clock className="h-4 w-4" />
               Activités
@@ -265,6 +266,10 @@ const MissionDetailDrawer = ({
             <TabsTrigger value="pages" className="flex items-center gap-2">
               <FileText className="h-4 w-4" />
               Pages
+            </TabsTrigger>
+            <TabsTrigger value="documents" className="flex items-center gap-2">
+              <FolderOpen className="h-4 w-4" />
+              Documents
             </TabsTrigger>
             <TabsTrigger value="gallery" className="flex items-center gap-2">
               <ImageIcon className="h-4 w-4" />
@@ -293,6 +298,17 @@ const MissionDetailDrawer = ({
               mission={mission}
               initialActivityPageRequest={activityPageRequest}
               onActivityPageCreated={() => setActivityPageRequest(null)}
+            />
+          </TabsContent>
+
+          {/* Documents Tab */}
+          <TabsContent value="documents" className="mt-4">
+            <EntityDocumentsManager
+              entityType="mission"
+              entityId={mission.id}
+              variant="bare"
+              title="Documents contractuels"
+              accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.webp"
             />
           </TabsContent>
 

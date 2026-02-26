@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { formatFileSize, downloadFile as downloadFileUtil } from "@/lib/file-utils";
 import { ImageIcon, Video, Plus, Loader2, Upload, Trash2, Play, Download } from "lucide-react";
 import MediaLightbox from "@/components/media/MediaLightbox";
 
@@ -31,13 +32,6 @@ const getFileType = (file: File): "image" | "video" | null => {
   if (file.type.startsWith("image/")) return "image";
   if (file.type.startsWith("video/")) return "video";
   return null;
-};
-
-const formatFileSize = (bytes: number | null) => {
-  if (!bytes) return "";
-  if (bytes < 1024) return `${bytes} o`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} Ko`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`;
 };
 
 const EntityMediaManager = ({
@@ -136,19 +130,10 @@ const EntityMediaManager = ({
     }
   };
 
-  const downloadFile = async (e: React.MouseEvent, url: string, fileName: string) => {
+  const handleDownloadFile = async (e: React.MouseEvent, url: string, fileName: string) => {
     e.stopPropagation();
     try {
-      const response = await fetch(url);
-      const blob = await response.blob();
-      const blobUrl = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = blobUrl;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(blobUrl);
+      await downloadFileUtil(url, fileName);
     } catch {
       toast.error("Erreur lors du téléchargement");
     }
@@ -284,7 +269,7 @@ const EntityMediaManager = ({
                     variant="secondary"
                     size="icon"
                     className="h-7 w-7"
-                    onClick={(e) => downloadFile(e, item.file_url, item.file_name)}
+                    onClick={(e) => handleDownloadFile(e, item.file_url, item.file_name)}
                   >
                     <Download className="h-3.5 w-3.5" />
                   </Button>
