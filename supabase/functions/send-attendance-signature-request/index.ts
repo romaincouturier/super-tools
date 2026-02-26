@@ -2,12 +2,37 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getSenderFrom, getBccList } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
+import { processTemplate, textToHtml } from "../_shared/templates.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
+
+// Default templates
+const DEFAULT_SUBJECT_TU = "Signature d'émargement - {{training_name}}";
+const DEFAULT_SUBJECT_VOUS = "Signature d'émargement - {{training_name}}";
+
+const DEFAULT_CONTENT_TU = `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
+
+Merci de bien vouloir signer ta feuille d'émargement pour la formation "{{training_name}}" du {{session_date}}.
+
+{{signature_link}}
+
+Cette signature atteste de ta présence à la formation.
+
+Merci !`;
+
+const DEFAULT_CONTENT_VOUS = `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
+
+Merci de bien vouloir signer votre feuille d'émargement pour la formation "{{training_name}}" du {{session_date}}.
+
+{{signature_link}}
+
+Cette signature atteste de votre présence à la formation.
+
+Merci !`;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -40,9 +65,6 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Fetch BCC settings
-    const bccList = await getBccList();
-
     // Fetch training info
     const { data: training, error: trainingError } = await supabase
       .from("trainings")
@@ -54,13 +76,38 @@ serve(async (req) => {
       throw new Error("Training not found");
     }
 
-    // Fetch all participants for this training
-    const { data: participants, error: participantsError } = await supabase
-      .from("training_participants")
-      .select("*")
-      .eq("training_id", trainingId);
+    // Determine tu/vous
+    const useTutoiement = training.participants_formal_address === false;
+    const templateTypeSuffix = useTutoiement ? "_tu" : "_vous";
+    const templateType = `attendance_signature${templateTypeSuffix}`;
 
-    if (participantsError) {
+    // Fetch template, participants, BCC, signature, and schedule in parallel
+    const [templateResult, participantsResult, bccList, signature, senderFrom, scheduleResult] = await Promise.all([
+      supabase
+        .from("email_templates")
+        .select("subject, html_content")
+        .eq("template_type", templateType)
+        .maybeSingle(),
+      supabase
+        .from("training_participants")
+        .select("*")
+        .eq("training_id", trainingId),
+      getBccList(),
+      getSigniticSignature(),
+      getSenderFrom(),
+      supabase
+        .from("training_schedules")
+        .select("start_time, end_time")
+        .eq("training_id", trainingId)
+        .eq("day_date", scheduleDate)
+        .maybeSingle(),
+    ]);
+
+    const customTemplate = templateResult.data;
+    const participants = participantsResult.data;
+    const schedule = scheduleResult.data;
+
+    if (participantsResult.error) {
       throw new Error("Failed to fetch participants");
     }
 
@@ -71,17 +118,12 @@ serve(async (req) => {
       );
     }
 
-    // Fetch schedule for this date to get times
-    const { data: schedule } = await supabase
-      .from("training_schedules")
-      .select("start_time, end_time")
-      .eq("training_id", trainingId)
-      .eq("day_date", scheduleDate)
-      .maybeSingle();
+    const defaultSubject = useTutoiement ? DEFAULT_SUBJECT_TU : DEFAULT_SUBJECT_VOUS;
+    const defaultContent = useTutoiement ? DEFAULT_CONTENT_TU : DEFAULT_CONTENT_VOUS;
+    const subjectTemplate = customTemplate?.subject || defaultSubject;
+    const contentTemplate = customTemplate?.html_content || defaultContent;
 
-    // Get signature and sender from
-    const signature = await getSigniticSignature();
-    const senderFrom = await getSenderFrom();
+    console.log("Using template:", customTemplate ? "custom" : "default", "mode:", useTutoiement ? "tutoiement" : "vouvoiement");
 
     // Format date
     const dateObj = new Date(scheduleDate);
@@ -111,7 +153,6 @@ serve(async (req) => {
     for (let i = 0; i < participants.length; i++) {
       const participant = participants[i];
 
-      // Rate-limit: 300ms delay between emails (except before the first)
       if (i > 0) {
         await new Promise((resolve) => setTimeout(resolve, 300));
       }
@@ -129,14 +170,12 @@ serve(async (req) => {
         let token: string;
 
         if (existingSignature) {
-          // If already signed, skip
           if (existingSignature.signed_at) {
             console.log(`Skipping ${participant.email} - already signed`);
             continue;
           }
           token = existingSignature.token;
         } else {
-          // Create new signature record (without email_sent_at yet)
           token = crypto.randomUUID();
           
           const { error: insertError } = await supabase
@@ -156,29 +195,21 @@ serve(async (req) => {
           }
         }
 
-        // Build email
+        // Build email from template
         const signatureUrl = `${baseUrl}/emargement/${token}`;
-        const firstName = participant.first_name || "";
-        const greeting = firstName ? `Bonjour ${firstName},` : "Bonjour,";
 
-        const htmlContent = `
-          <p>${greeting}</p>
-          <p>Merci de bien vouloir signer ta présence pour la formation <strong>"${training.training_name}"</strong>.</p>
-          <ul style="list-style: none; padding: 0; margin: 20px 0;">
-            <li>📍 <strong>Lieu :</strong> ${training.location}</li>
-            <li>📅 <strong>Date :</strong> ${formattedDate}</li>
-            <li>🕐 <strong>Horaire :</strong> ${periodLabel} (${timeRange})</li>
-          </ul>
-          <p style="margin: 25px 0;">
-            <a href="${signatureUrl}" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold;">
-              ✍️ Signer ma présence
-            </a>
-          </p>
-          <p style="font-size: 12px; color: #666;">
-            Cette signature électronique a valeur légale conformément au règlement européen eIDAS.
-          </p>
-          ${signature}
-        `;
+        const variables = {
+          first_name: participant.first_name || null,
+          training_name: training.training_name,
+          session_date: `${formattedDate} - ${periodLabel} (${timeRange})`,
+          signature_link: signatureUrl,
+          training_location: training.location || "",
+        };
+
+        const emailSubject = processTemplate(subjectTemplate, variables, false);
+        const contentText = processTemplate(contentTemplate, variables, false);
+        const contentHtml = textToHtml(contentText);
+        const htmlContent = `${contentHtml}\n${signature}`;
 
         // Send email
         const emailResponse = await fetch("https://api.resend.com/emails", {
@@ -191,7 +222,7 @@ serve(async (req) => {
             from: senderFrom,
             to: [participant.email],
             bcc: bccList,
-            subject: `✍️ Émargement – ${training.training_name} – ${formattedDate} ${periodLabel}`,
+            subject: emailSubject,
             html: htmlContent,
           }),
         });
@@ -216,9 +247,6 @@ serve(async (req) => {
           .eq("period", period);
 
         // Log activity
-        const emailSubject = `✍️ Émargement – ${training.training_name} – ${formattedDate} ${periodLabel}`;
-        const emailContentText = `${greeting}\n\nMerci de bien vouloir signer ta présence pour la formation "${training.training_name}".\n\n📍 Lieu : ${training.location}\n📅 Date : ${formattedDate}\n🕐 Horaire : ${periodLabel} (${timeRange})\n\nCette signature électronique a valeur légale conformément au règlement européen eIDAS.`;
-        
         try {
           await supabase.from("activity_logs").insert({
             action_type: "attendance_signature_request_sent",
@@ -230,7 +258,7 @@ serve(async (req) => {
               period,
               participant_name: `${participant.first_name || ""} ${participant.last_name || ""}`.trim() || null,
               email_subject: emailSubject,
-              email_content: emailContentText,
+              email_content: contentText,
             },
           });
         } catch (logError) {

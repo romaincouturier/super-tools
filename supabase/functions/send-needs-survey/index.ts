@@ -7,9 +7,39 @@ import {
   getBccSettings,
   getSupabaseClient,
   sendEmail,
-  escapeHtml,
   formatDateWithDayFr,
 } from "../_shared/mod.ts";
+import { processTemplate, textToHtml } from "../_shared/templates.ts";
+
+// Default templates (fallback if no custom template in DB)
+const DEFAULT_SUBJECT_TU = "Prépare ta formation \"{{training_name}}\"";
+const DEFAULT_SUBJECT_VOUS = "Préparez votre formation \"{{training_name}}\"";
+
+const DEFAULT_CONTENT_TU = `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
+
+Tu es inscrit(e) à la formation "{{training_name}}" qui aura lieu le {{training_date}}.
+
+Afin de personnaliser au mieux cette formation, je t'invite à remplir ce court questionnaire de recueil des besoins :
+{{questionnaire_link}}
+
+Ce questionnaire me permettra de mieux comprendre tes attentes et d'adapter le contenu de la formation à tes besoins spécifiques.
+
+Je te remercie de le compléter avant le {{deadline_date}}.
+
+À très bientôt !`;
+
+const DEFAULT_CONTENT_VOUS = `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
+
+Vous êtes inscrit(e) à la formation "{{training_name}}" qui aura lieu le {{training_date}}.
+
+Afin de personnaliser au mieux cette formation, je vous invite à remplir ce court questionnaire de recueil des besoins :
+{{questionnaire_link}}
+
+Ce questionnaire me permettra de mieux comprendre vos attentes et d'adapter le contenu de la formation à vos besoins spécifiques.
+
+Je vous remercie de le compléter avant le {{deadline_date}}.
+
+À très bientôt !`;
 
 serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
@@ -24,12 +54,6 @@ serve(async (req) => {
 
     const supabase = getSupabaseClient();
     const appUrl = Deno.env.get("APP_URL") || "https://super-tools.lovable.app";
-
-    // Fetch BCC settings and signature in parallel
-    const [bccList, signature] = await Promise.all([
-      getBccSettings(supabase),
-      getSigniticSignature(),
-    ]);
 
     // Fetch participant and training info
     const { data: participant, error: participantError } = await supabase
@@ -52,6 +76,30 @@ serve(async (req) => {
       throw new Error("Training not found");
     }
 
+    // Determine tu/vous
+    const useTutoiement = training.participants_formal_address === false;
+    const templateTypeSuffix = useTutoiement ? "_tu" : "_vous";
+    const templateType = `needs_survey${templateTypeSuffix}`;
+
+    // Fetch template, BCC, and signature in parallel
+    const [templateResult, bccList, signature] = await Promise.all([
+      supabase
+        .from("email_templates")
+        .select("subject, html_content")
+        .eq("template_type", templateType)
+        .maybeSingle(),
+      getBccSettings(supabase),
+      getSigniticSignature(),
+    ]);
+
+    const customTemplate = templateResult.data;
+    const defaultSubject = useTutoiement ? DEFAULT_SUBJECT_TU : DEFAULT_SUBJECT_VOUS;
+    const defaultContent = useTutoiement ? DEFAULT_CONTENT_TU : DEFAULT_CONTENT_VOUS;
+    const subjectTemplate = customTemplate?.subject || defaultSubject;
+    const contentTemplate = customTemplate?.html_content || defaultContent;
+
+    console.log("Using template:", customTemplate ? "custom" : "default", "mode:", useTutoiement ? "tutoiement" : "vouvoiement");
+
     // Check if questionnaire already exists
     const { data: existingQuestionnaire, error: fetchError } = await supabase
       .from("questionnaire_besoins")
@@ -60,7 +108,6 @@ serve(async (req) => {
       .eq("training_id", trainingId)
       .single();
 
-    // PGRST116 means no rows returned, which is fine for our use case
     if (fetchError && fetchError.code !== "PGRST116") {
       console.error("Error fetching existing questionnaire:", fetchError);
     }
@@ -68,11 +115,9 @@ serve(async (req) => {
     let token: string;
 
     if (existingQuestionnaire) {
-      // Use existing token
       token = existingQuestionnaire.token;
       console.log("Using existing questionnaire with token:", token);
     } else {
-      // Create new questionnaire with token
       token = crypto.randomUUID();
       console.log("Creating new questionnaire with token:", token);
 
@@ -134,33 +179,31 @@ serve(async (req) => {
       }
     }
 
-    // Build questionnaire URL - use published domain
+    // Build questionnaire URL
     const questionnaireUrl = `${appUrl}/questionnaire/${token}`;
-
-    // Format training date
     const formattedDate = formatDateWithDayFr(training.start_date);
 
-    // Build email
-    const firstName = participant.first_name || "";
-    const greeting = firstName ? `Bonjour ${escapeHtml(firstName)},` : "Bonjour,";
-    const safeTrainingName = escapeHtml(training.training_name);
+    // Calculate deadline (2 days before training)
+    const trainingDate = new Date(training.start_date);
+    const deadlineDate = new Date(trainingDate);
+    deadlineDate.setDate(deadlineDate.getDate() - 2);
+    const formattedDeadline = formatDateWithDayFr(deadlineDate.toISOString().split("T")[0]);
 
-    const htmlContent = `
-      <p>${greeting}</p>
-      <p>Vous êtes inscrit(e) à la formation <strong>"${safeTrainingName}"</strong> qui aura lieu le <strong>${formattedDate}</strong>.</p>
-      <p>Afin de personnaliser cette formation à vos attentes, je vous invite à remplir un court questionnaire de recueil des besoins :</p>
-      <p style="margin: 20px 0;">
-        <a href="${questionnaireUrl}" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">
-          Accéder au questionnaire
-        </a>
-      </p>
-      <p>Ce questionnaire vous prendra environ 5 minutes et me permettra d'adapter le contenu de la formation à vos besoins spécifiques.</p>
-      <p>Merci de le compléter <strong>au moins 2 jours avant la formation</strong>.</p>
-      ${signature}
-    `;
+    // Process template
+    const variables = {
+      first_name: participant.first_name || null,
+      training_name: training.training_name,
+      training_date: formattedDate,
+      questionnaire_link: questionnaireUrl,
+      deadline_date: formattedDeadline,
+    };
+
+    const emailSubject = processTemplate(subjectTemplate, variables, false);
+    const contentText = processTemplate(contentTemplate, variables, false);
+    const contentHtml = textToHtml(contentText);
+    const htmlContent = `${contentHtml}\n${signature}`;
 
     // Send email
-    const emailSubject = `Questionnaire de recueil des besoins - ${training.training_name}`;
     const result = await sendEmail({
       to: [participant.email],
       bcc: bccList,
@@ -184,7 +227,7 @@ serve(async (req) => {
           training_name: training.training_name,
           participant_name: `${participant.first_name || ""} ${participant.last_name || ""}`.trim() || null,
           email_subject: emailSubject,
-          email_content: `${firstName ? `Bonjour ${firstName},` : "Bonjour,"}\n\nVous êtes inscrit(e) à la formation "${training.training_name}" qui aura lieu le ${formattedDate}.\n\nAfin de personnaliser cette formation à vos attentes, je vous invite à remplir un court questionnaire de recueil des besoins.\n\nCe questionnaire vous prendra environ 5 minutes et me permettra d'adapter le contenu de la formation à vos besoins spécifiques.\n\nMerci de le compléter au moins 2 jours avant la formation.`,
+          email_content: contentText,
         },
       });
     } catch (logError) {

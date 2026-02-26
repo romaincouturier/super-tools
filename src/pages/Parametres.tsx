@@ -643,6 +643,99 @@ Cordialement,`,
     },
     variables: ["first_name", "training_name", "training_date", "signature_link"],
   },
+  certificate: {
+    name: "Envoi du certificat de réalisation",
+    timing: "after",
+    subject: {
+      tu: "Ton certificat de réalisation pour la formation {{training_name}}",
+      vous: "Votre certificat de réalisation pour la formation {{training_name}}",
+    },
+    content: {
+      tu: `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
+
+Je te remercie pour ton évaluation.
+
+Tu trouveras en pièce jointe ton certificat de réalisation pour la formation "{{training_name}}".
+
+Je te souhaite de bien exploiter tout ce que tu as vu pendant la formation !
+
+{{#website_url}}
+Si tu souhaites aller plus loin, je t'invite à te rendre régulièrement sur {{website_url}}.
+{{/website_url}}
+
+Bonne continuation et à bientôt !`,
+      vous: `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
+
+Je vous remercie pour votre évaluation.
+
+Vous trouverez en pièce jointe votre certificat de réalisation pour la formation "{{training_name}}".
+
+Je vous souhaite de bien exploiter tout ce que vous avez vu pendant la formation !
+
+{{#website_url}}
+Si vous souhaitez aller plus loin, je vous invite à vous rendre régulièrement sur {{website_url}}.
+{{/website_url}}
+
+Bonne continuation et à bientôt !`,
+    },
+    variables: ["first_name", "training_name", "website_url"],
+  },
+  certificate_sponsor: {
+    name: "Envoi du certificat au commanditaire",
+    timing: "manual",
+    subject: {
+      tu: "Certificat de réalisation - {{training_name}} - {{participant_name}}",
+      vous: "Certificat de réalisation - {{training_name}} - {{participant_name}}",
+    },
+    content: {
+      tu: `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
+
+Tu trouveras en pièce jointe le certificat de réalisation de {{participant_name}} pour la formation "{{training_name}}".
+
+Bonne réception et à bientôt !`,
+      vous: `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
+
+Veuillez trouver en pièce jointe le certificat de réalisation de {{participant_name}} pour la formation "{{training_name}}".
+
+Bonne réception et à bientôt !`,
+    },
+    variables: ["first_name", "training_name", "participant_name"],
+  },
+  accessibility_needs: {
+    name: "Besoins d'accessibilité",
+    timing: "manual",
+    subject: {
+      tu: "Tes besoins spécifiques pour la formation \"{{training_name}}\"",
+      vous: "Vos besoins spécifiques pour la formation \"{{training_name}}\"",
+    },
+    content: {
+      tu: `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
+
+Merci d'avoir pris le temps de remplir le formulaire de recueil des besoins pour notre formation à venir. Je suis soucieux de proposer un environnement d'apprentissage adapté à chacun de mes participants.
+
+J'ai bien pris en compte ton besoin spécifique :
+"{{accessibility_needs}}"
+
+Je souhaite t'offrir la meilleure expérience possible lors de cette formation et m'adapter au mieux à tes besoins.
+
+Pourrais-tu m'indiquer les adaptations nécessaires que je pourrais mettre en place pour te permettre de suivre la formation dans les meilleures conditions ?
+
+Dans l'attente de ton retour, je reste à ta disposition pour toute question ou information complémentaire.`,
+      vous: `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
+
+Merci d'avoir pris le temps de remplir le formulaire de recueil des besoins pour notre formation à venir. Je suis soucieux de proposer un environnement d'apprentissage adapté à chacun de mes participants.
+
+J'ai bien pris en compte votre besoin spécifique :
+"{{accessibility_needs}}"
+
+Je souhaite vous offrir la meilleure expérience possible lors de cette formation et m'adapter au mieux à vos besoins.
+
+Pourriez-vous m'indiquer les adaptations nécessaires que je pourrais mettre en place pour vous permettre de suivre la formation dans les meilleures conditions ?
+
+Dans l'attente de votre retour, je reste à votre disposition pour toute question ou information complémentaire.`,
+    },
+    variables: ["first_name", "training_name", "accessibility_needs"],
+  },
 };
 const Parametres = () => {
   const [user, setUser] = useState<User | null>(null);

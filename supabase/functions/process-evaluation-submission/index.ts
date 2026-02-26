@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { getSenderFrom, getBccList, getSenderEmail } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
+import { processTemplate, textToHtml } from "../_shared/templates.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -471,15 +472,59 @@ const handler = async (req: Request): Promise<Response> => {
 
     const greetingParticipant = firstName ? `Bonjour ${firstName},` : "Bonjour,";
 
-    const certificateEmailHtml = `
-      <p>${greetingParticipant}</p>
-      <p>Je te remercie pour ton évaluation.</p>
-      <p>Tu trouveras en pièce jointe ton certificat de réalisation pour la formation <strong>${training.training_name}</strong>.</p>
-      <p>Je te souhaite de bien exploiter tout ce que tu as vu pendant la formation !</p>
-      <p>Si tu souhaites aller plus loin, je t'invite à te rendre régulièrement sur <a href="${websiteUrl}">${websiteUrl.replace(/^https?:\/\/(www\.)?/, "")}</a> et à consulter ma <a href="${youtubeUrl}">chaîne YouTube</a>.</p>
-      <p>Bonne continuation et à bientôt !</p>
-      ${signatureHtml}
-    `;
+    // Fetch certificate email template
+    const useTutoiement = training.participants_formal_address === false;
+    const certTemplateSuffix = useTutoiement ? "_tu" : "_vous";
+    const certTemplateType = `certificate${certTemplateSuffix}`;
+
+    const { data: certTemplate } = await supabase
+      .from("email_templates")
+      .select("subject, html_content")
+      .eq("template_type", certTemplateType)
+      .maybeSingle();
+
+    const defaultCertSubjectTu = "Ton certificat de réalisation pour la formation {{training_name}}";
+    const defaultCertSubjectVous = "Votre certificat de réalisation pour la formation {{training_name}}";
+    const defaultCertContentTu = `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
+
+Je te remercie pour ton évaluation.
+
+Tu trouveras en pièce jointe ton certificat de réalisation pour la formation "{{training_name}}".
+
+Je te souhaite de bien exploiter tout ce que tu as vu pendant la formation !
+
+{{#website_url}}
+Si tu souhaites aller plus loin, je t'invite à te rendre régulièrement sur {{website_url}}.
+{{/website_url}}
+
+Bonne continuation et à bientôt !`;
+    const defaultCertContentVous = `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
+
+Je vous remercie pour votre évaluation.
+
+Vous trouverez en pièce jointe votre certificat de réalisation pour la formation "{{training_name}}".
+
+Je vous souhaite de bien exploiter tout ce que vous avez vu pendant la formation !
+
+{{#website_url}}
+Si vous souhaitez aller plus loin, je vous invite à vous rendre régulièrement sur {{website_url}}.
+{{/website_url}}
+
+Bonne continuation et à bientôt !`;
+
+    const certSubjectTemplate = certTemplate?.subject || (useTutoiement ? defaultCertSubjectTu : defaultCertSubjectVous);
+    const certContentTemplate = certTemplate?.html_content || (useTutoiement ? defaultCertContentTu : defaultCertContentVous);
+
+    const certVariables = {
+      first_name: firstName || null,
+      training_name: training.training_name,
+      website_url: websiteUrl,
+    };
+
+    const certSubject = processTemplate(certSubjectTemplate, certVariables, false);
+    const certContentText = processTemplate(certContentTemplate, certVariables, false);
+    const certContentHtml = textToHtml(certContentText);
+    const certificateEmailHtml = `${certContentHtml}\n${signatureHtml}`;
 
     // Convert PDF to base64 for attachment
     const pdfBase64 = btoa(String.fromCharCode(...pdfBytes));
@@ -487,7 +532,6 @@ const handler = async (req: Request): Promise<Response> => {
     // Build CC list: add sponsor for inter/e-learning
     const ccList = sponsorEmail ? [sponsorEmail] : [];
 
-    const certSubject = `Ton certificat de réalisation pour la formation ${training.training_name}`;
     await resend.emails.send({
       from: senderFrom,
       to: [email],
