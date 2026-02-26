@@ -106,7 +106,15 @@ serve(async (req) => {
 
       // Check if template already contains HTML tags
       const hasHtml = /<[a-z][\s\S]*>/i.test(contentText);
-      const contentHtml = hasHtml ? contentText : textToHtml(contentText);
+      // For mixed content (HTML + plain text), convert remaining newlines to <br>
+      // For pure plain text, use full textToHtml conversion
+      const contentHtml = hasHtml
+        ? contentText.split(/\n\n+/).map((p: string) => {
+            if (/<[a-z][\s\S]*>/i.test(p)) return p;
+            const lines = p.split(/\n/).map((l: string) => l.trim()).filter(Boolean);
+            return `<p>${lines.join("<br>")}</p>`;
+          }).join("")
+        : textToHtml(contentText);
 
       const fullHtml = wrapEmailHtml(contentHtml, signature);
 
