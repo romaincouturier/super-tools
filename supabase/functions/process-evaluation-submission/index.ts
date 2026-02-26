@@ -269,8 +269,17 @@ const handler = async (req: Request): Promise<Response> => {
       }
     }
 
-    // Format duration
-    const dureeStr = `${totalHours}h en présentiel`;
+    // Format duration with training format
+    const formatLabel = (() => {
+      switch (training.format_formation) {
+        case "classe_virtuelle": return "classe virtuelle";
+        case "e_learning": return "e-learning";
+        case "intra":
+        case "inter-entreprises":
+        default: return "présentiel";
+      }
+    })();
+    const dureeStr = `${totalHours}h en ${formatLabel}`;
     const todayFormatted = new Date().toLocaleDateString("fr-FR");
 
     // ========================================
