@@ -18,9 +18,6 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import ScheduleEditor, { Schedule, SESSION_PRESETS } from "@/components/formations/ScheduleEditor";
-import PrerequisitesEditor from "@/components/formations/PrerequisitesEditor";
-import ProgramSelector from "@/components/formations/ProgramSelector";
-import ObjectivesEditor from "@/components/formations/ObjectivesEditor";
 import TrainingNameCombobox, { FormationConfig } from "@/components/formations/TrainingNameCombobox";
 import TrainerSelector from "@/components/formations/TrainerSelector";
 import SupertiltLinkCombobox from "@/components/formations/SupertiltLinkCombobox";
@@ -442,7 +439,7 @@ const FormationCreate = () => {
                 <div className="p-2 rounded-lg bg-primary/10">
                   <Calendar className="h-6 w-6 text-primary" />
                 </div>
-                <h1 className="text-2xl font-bold">Nouvelle formation</h1>
+                <h1 className="text-2xl font-bold">Nouvelle session de formation</h1>
               </div>
             </div>
             <div className="flex gap-4">
@@ -462,7 +459,7 @@ const FormationCreate = () => {
                 ) : (
                   <>
                     <Save className="mr-2 h-4 w-4" />
-                    Créer la formation
+                    Créer la session
                   </>
                 )}
               </Button>
@@ -491,14 +488,14 @@ const FormationCreate = () => {
                     if (formation) {
                       // Link to catalog entry
                       setCatalogId(formation.id);
-                      // Pre-fill all catalog fields
+                      // Pre-fill all catalog fields (denormalized on session for backward compat)
                       if (formation.programme_url) {
                         setProgramFileUrl(formation.programme_url);
                       }
-                      if (formation.objectives?.length && objectives.length === 0) {
+                      if (formation.objectives?.length) {
                         setObjectives(formation.objectives);
                       }
-                      if (formation.prerequisites?.length && prerequisites.length === 0) {
+                      if (formation.prerequisites?.length) {
                         setPrerequisites(formation.prerequisites);
                       }
                       if (formation.supertilt_link) {
@@ -510,6 +507,14 @@ const FormationCreate = () => {
                       if (formation.elearning_access_email_content) {
                         setElearningAccessEmailContent(formation.elearning_access_email_content);
                       }
+                      // Auto-set format from catalog
+                      if (formation.format_formation) {
+                        setFormatFormation(formation.format_formation);
+                        // Auto-set location to online for e-learning
+                        if (formation.format_formation === "e_learning") {
+                          setLocationType("en_ligne");
+                        }
+                      }
                     } else {
                       setCatalogId(null);
                     }
@@ -517,16 +522,14 @@ const FormationCreate = () => {
                 />
               </div>
 
-              {/* Format - placed before dates so user picks format first */}
+              {/* Format - auto-set from catalog but editable if no catalog */}
               <div className="space-y-2">
                 <Label htmlFor="format">Format de formation</Label>
                 <Select value={formatFormation} onValueChange={async (val) => {
                   setFormatFormation(val);
-                  // Auto-set location to online for e-learning
                   if (val === "e_learning" && locationType !== "en_ligne") {
                     setLocationType("en_ligne");
                   }
-                  // Pre-fill e-learning access email content from template
                   if (val === "e_learning" && !elearningAccessEmailContent) {
                     const templateType = sponsorFormalAddress ? "elearning_access_vous" : "elearning_access_tu";
                     const { data: template } = await supabase
@@ -540,7 +543,7 @@ const FormationCreate = () => {
                       setElearningAccessEmailContent(template.html_content);
                     }
                   }
-                }}>
+                }} disabled={!!catalogId}>
                   <SelectTrigger>
                     <SelectValue placeholder="Sélectionner un format" />
                   </SelectTrigger>
@@ -551,6 +554,11 @@ const FormationCreate = () => {
                     <SelectItem value="e_learning">E-learning</SelectItem>
                   </SelectContent>
                 </Select>
+                {catalogId && (
+                  <p className="text-xs text-muted-foreground">
+                    Défini par le catalogue. Modifiable depuis la page Catalogue.
+                  </p>
+                )}
               </div>
 
               {/* Dates - different UI for e-learning vs regular training */}
@@ -783,27 +791,6 @@ const FormationCreate = () => {
                 </p>
               </div>
 
-              {/* SuperTilt Link */}
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <Label htmlFor="supertiltLink">Lien SuperTilt de la formation</Label>
-                  {supertiltSiteUrl && (
-                    <a
-                      href={supertiltSiteUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-muted-foreground hover:text-primary transition-colors"
-                      title="Ouvrir le site SuperTilt"
-                    >
-                      <ExternalLink className="h-4 w-4" />
-                    </a>
-                  )}
-                </div>
-                <SupertiltLinkCombobox
-                  value={supertiltLink}
-                  onChange={setSupertiltLink}
-                />
-              </div>
 
               {/* Trainer selector */}
               <div className="space-y-2">
@@ -928,35 +915,62 @@ const FormationCreate = () => {
           </Card>
             </div>
 
-            {/* Right Column */}
+            {/* Right Column - Catalog summary (read-only) */}
             <div className="space-y-6">
-              {/* Program - before Prerequisites */}
-              <ProgramSelector
-                programFileUrl={programFileUrl}
-                onProgramChange={setProgramFileUrl}
-                onPrerequisitesExtracted={(extracted) => {
-                  // Merge with existing prerequisites, avoiding duplicates
-                  setPrerequisites((prev) => {
-                    const combined = [...prev, ...extracted];
-                    return [...new Set(combined)];
-                  });
-                }}
-                userId={user?.id || ""}
-              />
-
-              {/* Prerequisites */}
-              <PrerequisitesEditor
-                prerequisites={prerequisites}
-                onPrerequisitesChange={setPrerequisites}
-                programFileUrl={programFileUrl}
-              />
-
-              {/* Objectives */}
-              <ObjectivesEditor
-                objectives={objectives}
-                onObjectivesChange={setObjectives}
-                programFileUrl={programFileUrl}
-              />
+              {catalogId ? (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Infos du catalogue</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {programFileUrl && (
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Programme</Label>
+                        <a href={programFileUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline block truncate">
+                          {programFileUrl.split("/").pop() || "Voir le programme"}
+                        </a>
+                      </div>
+                    )}
+                    {objectives.length > 0 && (
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Objectifs ({objectives.length})</Label>
+                        <ul className="text-sm list-disc list-inside space-y-0.5">
+                          {objectives.map((o, i) => (
+                            <li key={i} className="text-muted-foreground">{o}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {prerequisites.length > 0 && (
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Prérequis ({prerequisites.length})</Label>
+                        <ul className="text-sm list-disc list-inside space-y-0.5">
+                          {prerequisites.map((p, i) => (
+                            <li key={i} className="text-muted-foreground">{p}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {supertiltLink && (
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Lien SuperTilt</Label>
+                        <a href={supertiltLink} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline block truncate">
+                          {supertiltLink}
+                        </a>
+                      </div>
+                    )}
+                    <p className="text-xs text-muted-foreground italic pt-2 border-t">
+                      Ces informations proviennent du catalogue et sont modifiables depuis la page Catalogue.
+                    </p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <Card>
+                  <CardContent className="py-8 text-center text-muted-foreground">
+                    <p className="text-sm">Sélectionnez une formation du catalogue pour voir les objectifs, prérequis et programme.</p>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           </div>
 

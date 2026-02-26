@@ -510,8 +510,9 @@ const handler = async (req: Request): Promise<Response> => {
       .eq("is_active", true);
 
     for (const postEval of postEvalEmails || []) {
-      const filter = (postEval.training_filter || "").trim().toLowerCase();
-      if (!filter || !trainingName.toLowerCase().includes(filter)) continue;
+      // Match by catalog_id if the session has one
+      const catalogId = (training as any).catalog_id;
+      if (!postEval.catalog_id || !catalogId || postEval.catalog_id !== catalogId) continue;
 
       await sleep(1000);
 
