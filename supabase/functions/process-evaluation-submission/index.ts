@@ -502,39 +502,26 @@ const handler = async (req: Request): Promise<Response> => {
     const greetingFirstName = firstName ? `Bonjour ${firstName},` : "Bonjour,";
 
     // ========================================
-    // 5. Post-evaluation email (configurable via app_settings)
+    // 5. Post-evaluation emails (from post_evaluation_emails table)
     // ========================================
-    // Check if a post-evaluation email is configured for this training
-    const { data: postEvalSettings } = await supabase
-      .from("app_settings")
-      .select("setting_key, setting_value")
-      .in("setting_key", [
-        "post_evaluation_email_subject",
-        "post_evaluation_email_content",
-        "post_evaluation_email_training_filter",
-      ]);
+    const { data: postEvalEmails } = await supabase
+      .from("post_evaluation_emails")
+      .select("*")
+      .eq("is_active", true);
 
-    const postEvalSettingsMap: Record<string, string> = {};
-    for (const s of postEvalSettings || []) {
-      postEvalSettingsMap[s.setting_key] = s.setting_value;
-    }
+    for (const postEval of postEvalEmails || []) {
+      const filter = (postEval.training_filter || "").trim().toLowerCase();
+      if (!filter || !trainingName.toLowerCase().includes(filter)) continue;
 
-    const postEvalFilter = (postEvalSettingsMap.post_evaluation_email_training_filter || "").trim().toLowerCase();
-    const postEvalSubject = postEvalSettingsMap.post_evaluation_email_subject || "";
-    const postEvalContent = postEvalSettingsMap.post_evaluation_email_content || "";
-
-    // Send only if all three are configured and the training name matches the filter
-    if (postEvalFilter && postEvalSubject && postEvalContent && trainingName.toLowerCase().includes(postEvalFilter)) {
       await sleep(1000);
 
-      console.log(`Sending post-evaluation email (filter matched: "${postEvalFilter}")...`);
+      console.log(`Sending post-evaluation email (filter matched: "${filter}")...`);
 
-      // Replace variables in subject and content
-      const finalSubject = postEvalSubject
+      const finalSubject = postEval.subject
         .replace(/\{\{first_name\}\}/g, firstName || "")
         .replace(/\{\{training_name\}\}/g, trainingName);
 
-      const finalContent = postEvalContent
+      const finalContent = postEval.html_content
         .replace(/\{\{first_name\}\}/g, firstName || "")
         .replace(/\{\{training_name\}\}/g, trainingName);
 
@@ -553,7 +540,7 @@ const handler = async (req: Request): Promise<Response> => {
       });
 
       await supabase.from("activity_logs").insert({
-        action_type: "elearning_access_email_sent",
+        action_type: "post_evaluation_email_sent",
         recipient_email: email,
         details: {
           evaluation_id: evaluationId,
@@ -561,6 +548,7 @@ const handler = async (req: Request): Promise<Response> => {
           training_name: trainingName,
           participant_name: fullName,
           email_subject: finalSubject,
+          filter_matched: filter,
         },
       });
     }
