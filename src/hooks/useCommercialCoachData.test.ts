@@ -1,4 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import type { CrmCard, CrmColumn, CrmRevenueTarget } from "@/types/crm";
+import type { OKRObjective, OKRKeyResult } from "@/types/okr";
+import type { Mission } from "@/types/missions";
 
 // ── Mocks ────────────────────────────────────────────────────────────────────
 vi.mock("@/integrations/supabase/client", () => ({ supabase: {} }));
@@ -28,17 +31,35 @@ const {
   buildCrmActivityLogContext,
 } = await import("./useCommercialCoachData");
 
-// ── Factories ────────────────────────────────────────────────────────────────
+// ── Fixed time ───────────────────────────────────────────────────────────────
+// All tests run at 2025-03-15 12:00:00 UTC for determinism
+const FIXED_NOW = new Date("2025-03-15T12:00:00Z");
+const FIXED_YEAR = 2025;
 
-function makeCard(overrides: Record<string, unknown> = {}) {
+beforeEach(() => {
+  vi.useFakeTimers();
+  vi.setSystemTime(FIXED_NOW);
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+});
+
+// ── Typed Factories ──────────────────────────────────────────────────────────
+
+type ObjWithKR = OKRObjective & { okr_key_results: OKRKeyResult[] };
+
+function makeCard(overrides: Partial<CrmCard> = {}): CrmCard {
   return {
     id: "card-1",
     title: "Deal Alpha",
     description_html: null,
     position: 0,
     column_id: "col-1",
-    status_operational: "TODAY" as const,
-    sales_status: "OPEN" as const,
+    status_operational: "TODAY",
+    waiting_next_action_date: null,
+    waiting_next_action_text: null,
+    sales_status: "OPEN",
     first_name: null,
     last_name: null,
     phone: null,
@@ -46,7 +67,7 @@ function makeCard(overrides: Record<string, unknown> = {}) {
     email: null,
     linkedin_url: null,
     website_url: null,
-    estimated_value: null,
+    estimated_value: 0,
     quote_url: null,
     confidence_score: null,
     won_at: null,
@@ -56,19 +77,19 @@ function makeCard(overrides: Record<string, unknown> = {}) {
     loss_reason_detail: null,
     next_action_text: null,
     next_action_done: false,
-    next_action_type: null,
+    next_action_type: "other",
     linked_mission_id: null,
     service_type: null,
-    brief_questions: null,
+    brief_questions: [],
+    raw_input: null,
     tags: [],
     created_at: "2025-01-15T10:00:00Z",
     updated_at: "2025-01-15T10:00:00Z",
-    created_by: "user-1",
     ...overrides,
   };
 }
 
-function makeColumn(overrides: Record<string, unknown> = {}) {
+function makeColumn(overrides: Partial<CrmColumn> = {}): CrmColumn {
   return {
     id: "col-1",
     name: "Prospection",
@@ -80,17 +101,17 @@ function makeColumn(overrides: Record<string, unknown> = {}) {
   };
 }
 
-function makeObjective(overrides: Record<string, unknown> = {}) {
-  const currentYear = new Date().getFullYear();
+function makeObjective(overrides: Partial<ObjWithKR> = {}): ObjWithKR {
   return {
     id: "obj-1",
     title: "Croissance CA",
     description: "Doubler le CA",
-    time_target: "annual" as const,
-    target_year: currentYear,
-    status: "active" as const,
-    cadence: "monthly" as const,
+    time_target: "annual",
+    target_year: FIXED_YEAR,
+    status: "active",
+    cadence: "monthly",
     is_favorite: false,
+    favorite_position: null,
     progress_percentage: 50,
     confidence_level: 70,
     owner_email: "test@test.com",
@@ -106,7 +127,7 @@ function makeObjective(overrides: Record<string, unknown> = {}) {
   };
 }
 
-function makeKeyResult(overrides: Record<string, unknown> = {}) {
+function makeKeyResult(overrides: Partial<OKRKeyResult> = {}): OKRKeyResult {
   return {
     id: "kr-1",
     objective_id: "obj-1",
@@ -124,12 +145,12 @@ function makeKeyResult(overrides: Record<string, unknown> = {}) {
   };
 }
 
-function makeMission(overrides: Record<string, unknown> = {}) {
+function makeMission(overrides: Partial<Mission> = {}): Mission {
   return {
     id: "mission-1",
     title: "Mission Coaching",
     description: "Coaching agile",
-    status: "in_progress" as const,
+    status: "in_progress",
     client_name: "ClientCo",
     client_contact: "Jean Martin",
     start_date: "2025-02-01",
@@ -141,11 +162,10 @@ function makeMission(overrides: Record<string, unknown> = {}) {
     consumed_amount: 8000,
     billed_amount: 6000,
     tags: [],
-    color: null,
+    color: "#3b82f6",
     position: 0,
-    emoji: null,
     language: "fr",
-    testimonial_status: null,
+    testimonial_status: "none",
     testimonial_last_sent_at: null,
     location: null,
     train_booked: false,
@@ -157,10 +177,10 @@ function makeMission(overrides: Record<string, unknown> = {}) {
   };
 }
 
-function makeRevenueTarget(overrides: Record<string, unknown> = {}) {
+function makeRevenueTarget(overrides: Partial<CrmRevenueTarget> = {}): CrmRevenueTarget {
   return {
     id: "target-1",
-    period_type: "monthly" as const,
+    period_type: "monthly",
     period_start: "2025-06-01",
     target_amount: 10000,
     created_at: "2025-01-01T00:00:00Z",
@@ -236,7 +256,8 @@ describe("hasAnyProvider", () => {
 // ═════════════════════════════════════════════════════════════════════════════
 
 describe("buildAmbitionContext", () => {
-  const currentYear = new Date().getFullYear();
+  // Use FIXED_YEAR — new Date().getFullYear() at describe scope runs before fake timers
+  const currentYear = FIXED_YEAR;
 
   describe("cas nominaux", () => {
     it("affiche le texte d'ambition utilisateur", () => {
@@ -250,7 +271,7 @@ describe("buildAmbitionContext", () => {
       const obj = makeObjective({
         okr_key_results: [makeKeyResult()],
       });
-      const result = buildAmbitionContext([obj] as any);
+      const result = buildAmbitionContext([obj]);
       expect(result).toContain("OKR annuels");
       expect(result).toContain("Croissance CA");
       expect(result).toContain("Progression: 50%");
@@ -259,7 +280,7 @@ describe("buildAmbitionContext", () => {
 
     it("affiche ambition + OKR combinés", () => {
       const obj = makeObjective({ okr_key_results: [makeKeyResult()] });
-      const result = buildAmbitionContext([obj] as any, "Mon ambition");
+      const result = buildAmbitionContext([obj], "Mon ambition");
       expect(result).toContain("Mon ambition");
       expect(result).toContain("OKR annuels");
       expect(result).toContain("Croissance CA");
@@ -268,7 +289,7 @@ describe("buildAmbitionContext", () => {
     it("affiche les résultats clés avec valeurs", () => {
       const kr = makeKeyResult({ target_value: 10, current_value: 5, unit: "deals" });
       const obj = makeObjective({ okr_key_results: [kr] });
-      const result = buildAmbitionContext([obj] as any);
+      const result = buildAmbitionContext([obj]);
       expect(result).toContain("5/10 deals");
       expect(result).toContain("50%");
     });
@@ -276,7 +297,7 @@ describe("buildAmbitionContext", () => {
     it("affiche le pourcentage quand target_value est null", () => {
       const kr = makeKeyResult({ target_value: null, progress_percentage: 75 });
       const obj = makeObjective({ okr_key_results: [kr] });
-      const result = buildAmbitionContext([obj] as any);
+      const result = buildAmbitionContext([obj]);
       expect(result).toContain("75%");
     });
   });
@@ -294,26 +315,26 @@ describe("buildAmbitionContext", () => {
 
     it("ignore les OKR d'une autre année", () => {
       const obj = makeObjective({ target_year: currentYear - 1 });
-      const result = buildAmbitionContext([obj] as any);
+      const result = buildAmbitionContext([obj]);
       expect(result).toContain("Aucune ambition");
     });
 
     it("ignore les OKR non-annuels", () => {
       const obj = makeObjective({ time_target: "Q1" });
-      const result = buildAmbitionContext([obj] as any);
+      const result = buildAmbitionContext([obj]);
       expect(result).toContain("Aucune ambition");
     });
 
     it("gère un objectif sans key_results", () => {
       const obj = makeObjective({ okr_key_results: [] });
-      const result = buildAmbitionContext([obj] as any);
+      const result = buildAmbitionContext([obj]);
       expect(result).toContain("Croissance CA");
       expect(result).not.toContain("Resultats cles");
     });
 
     it("gère un objectif sans description", () => {
       const obj = makeObjective({ description: null, okr_key_results: [] });
-      const result = buildAmbitionContext([obj] as any);
+      const result = buildAmbitionContext([obj]);
       expect(result).not.toContain("Vision:");
     });
   });
@@ -324,7 +345,8 @@ describe("buildAmbitionContext", () => {
 // ═════════════════════════════════════════════════════════════════════════════
 
 describe("buildOKRContext", () => {
-  const currentYear = new Date().getFullYear();
+  // Use FIXED_YEAR — new Date().getFullYear() at describe scope runs before fake timers
+  const currentYear = FIXED_YEAR;
 
   describe("cas nominaux", () => {
     it("affiche les OKR non-annuels", () => {
@@ -333,7 +355,7 @@ describe("buildOKRContext", () => {
         title: "OKR Q1",
         okr_key_results: [makeKeyResult()],
       });
-      const result = buildOKRContext([obj] as any);
+      const result = buildOKRContext([obj]);
       expect(result).toContain("OKR Q1");
       expect(result).toContain("Q1");
       expect(result).toContain("Signer 10 deals");
@@ -346,7 +368,7 @@ describe("buildOKRContext", () => {
         title: "Ancien objectif",
         okr_key_results: [],
       });
-      const result = buildOKRContext([obj] as any);
+      const result = buildOKRContext([obj]);
       expect(result).toContain("Ancien objectif");
     });
 
@@ -357,7 +379,7 @@ describe("buildOKRContext", () => {
         confidence_level: 90,
         okr_key_results: [],
       });
-      const result = buildOKRContext([obj] as any);
+      const result = buildOKRContext([obj]);
       expect(result).toContain("progression: 80%");
       expect(result).toContain("confiance: 90%");
     });
@@ -373,13 +395,13 @@ describe("buildOKRContext", () => {
         time_target: "annual",
         target_year: currentYear,
       });
-      expect(buildOKRContext([annual] as any)).toBe("Aucun OKR periodique actif.");
+      expect(buildOKRContext([annual])).toBe("Aucun OKR periodique actif.");
     });
 
     it("gère un KR sans target_value", () => {
       const kr = makeKeyResult({ target_value: null, progress_percentage: 33 });
       const obj = makeObjective({ time_target: "Q2", okr_key_results: [kr] });
-      const result = buildOKRContext([obj] as any);
+      const result = buildOKRContext([obj]);
       expect(result).toContain("33%");
     });
   });
@@ -400,7 +422,7 @@ describe("buildCRMContext", () => {
         estimated_value: 5000,
         company: "Acme",
       });
-      const result = buildCRMContext([col1] as any, [card] as any);
+      const result = buildCRMContext([col1], [card]);
       expect(result).toContain("Pipeline ouvert");
       expect(result).toContain("Prospection");
       expect(result).toContain(`1 opportunite(s) (5${S}000€)`);
@@ -415,7 +437,7 @@ describe("buildCRMContext", () => {
         company: "WinCo",
         service_type: "formation",
       });
-      const result = buildCRMContext([col1] as any, [card] as any);
+      const result = buildCRMContext([col1], [card]);
       expect(result).toContain(`Deals GAGNES (1 deals, total: 8${S}000€)`);
       expect(result).toContain("WinCo");
     });
@@ -427,7 +449,7 @@ describe("buildCRMContext", () => {
         loss_reason: "prix",
         loss_reason_detail: "Trop cher",
       });
-      const result = buildCRMContext([col1] as any, [card] as any);
+      const result = buildCRMContext([col1], [card]);
       expect(result).toContain("Deals PERDUS");
       expect(result).toContain("Trop cher");
       expect(result).toContain("Repartition des raisons de perte");
@@ -438,7 +460,7 @@ describe("buildCRMContext", () => {
         estimated_value: 10000,
         confidence_score: 60,
       });
-      const result = buildCRMContext([col1] as any, [card] as any);
+      const result = buildCRMContext([col1], [card]);
       // 10000 * 60% = 6000
       expect(result).toContain(`Pipeline pondere (confiance): 6${S}000€ (confiance moyenne: 60%)`);
     });
@@ -449,7 +471,7 @@ describe("buildCRMContext", () => {
         confidence_score: 20,
         title: "Deal risqué",
       });
-      const result = buildCRMContext([col1] as any, [card] as any);
+      const result = buildCRMContext([col1], [card]);
       expect(result).toContain("Deals a risque (confiance < 40%)");
       expect(result).toContain(`Deal risqué`);
       expect(result).toContain(`15${S}000€`);
@@ -459,7 +481,7 @@ describe("buildCRMContext", () => {
     it("affiche le taux de conversion", () => {
       const won = makeCard({ sales_status: "WON" });
       const lost = makeCard({ id: "c2", sales_status: "LOST" });
-      const result = buildCRMContext([col1] as any, [won, lost] as any);
+      const result = buildCRMContext([col1], [won, lost]);
       expect(result).toContain("Taux de conversion: 50%");
       expect(result).toContain("1 gagnes / 2 clotures");
     });
@@ -470,7 +492,7 @@ describe("buildCRMContext", () => {
         created_at: "2025-01-01T00:00:00Z",
         won_at: "2025-01-15T00:00:00Z",
       });
-      const result = buildCRMContext([col1] as any, [card] as any);
+      const result = buildCRMContext([col1], [card]);
       expect(result).toContain("Velocite commerciale");
       expect(result).toContain("Delai moyen de closing");
       expect(result).toContain("14 jours");
@@ -482,7 +504,7 @@ describe("buildCRMContext", () => {
         created_at: "2025-03-01T00:00:00Z",
         lost_at: "2025-03-11T00:00:00Z",
       });
-      const result = buildCRMContext([col1] as any, [card] as any);
+      const result = buildCRMContext([col1], [card]);
       expect(result).toContain("Delai moyen de perte");
       expect(result).toContain("10 jours");
     });
@@ -493,72 +515,72 @@ describe("buildCRMContext", () => {
         created_at: oldDate,
         title: "Vieux deal",
       });
-      const result = buildCRMContext([col1] as any, [card] as any);
+      const result = buildCRMContext([col1], [card]);
       expect(result).toContain("ALERTE STAGNATION");
       expect(result).toContain("Vieux deal");
     });
 
     it("affiche les sources d'acquisition", () => {
       const card = makeCard({ acquisition_source: "linkedin" });
-      const result = buildCRMContext([col1] as any, [card] as any);
+      const result = buildCRMContext([col1], [card]);
       expect(result).toContain("Sources d'acquisition");
     });
   });
 
   describe("cas aux limites", () => {
     it("retourne 'Pipeline vide' sans cartes", () => {
-      expect(buildCRMContext([col1] as any, [])).toBe("Pipeline vide.");
+      expect(buildCRMContext([col1], [])).toBe("Pipeline vide.");
     });
 
-    it("gère des cartes sans valeur estimée", () => {
-      const card = makeCard({ estimated_value: null });
-      const result = buildCRMContext([col1] as any, [card] as any);
+    it("gère des cartes avec valeur estimée à 0", () => {
+      const card = makeCard({ estimated_value: 0 });
+      const result = buildCRMContext([col1], [card]);
       expect(result).toContain("Pipeline ouvert");
-      expect(result).toContain("0€"); // total is 0
+      expect(result).toContain("Total pipeline ouvert: 0€ (1 deals)");
     });
 
     it("gère une carte sans company", () => {
       const card = makeCard({ company: null });
-      const result = buildCRMContext([col1] as any, [card] as any);
+      const result = buildCRMContext([col1], [card]);
       expect(result).toContain("Deal Alpha");
       expect(result).not.toContain("(null)");
     });
 
     it("gère une carte avec colonne inconnue", () => {
       const card = makeCard({ column_id: "col-unknown" });
-      const result = buildCRMContext([col1] as any, [card] as any);
+      const result = buildCRMContext([col1], [card]);
       // Should still render without crashing
       expect(result).toContain("Pipeline ouvert");
     });
 
     it("n'affiche pas le pipeline pondéré sans confidence_score", () => {
       const card = makeCard({ estimated_value: 5000, confidence_score: null });
-      const result = buildCRMContext([col1] as any, [card] as any);
+      const result = buildCRMContext([col1], [card]);
       expect(result).not.toContain("Pipeline pondere");
     });
 
     it("n'affiche pas 'Deals à risque' si confidence >= 40%", () => {
       const card = makeCard({ estimated_value: 5000, confidence_score: 50 });
-      const result = buildCRMContext([col1] as any, [card] as any);
+      const result = buildCRMContext([col1], [card]);
       expect(result).not.toContain("Deals a risque");
     });
 
     it("n'affiche pas 'Deals à risque' si estimated_value = 0", () => {
       const card = makeCard({ estimated_value: 0, confidence_score: 10 });
-      const result = buildCRMContext([col1] as any, [card] as any);
+      const result = buildCRMContext([col1], [card]);
       expect(result).not.toContain("Deals a risque");
     });
 
     it("n'affiche pas l'alerte stagnation pour deals < 30 jours", () => {
       const recentDate = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString();
       const card = makeCard({ created_at: recentDate });
-      const result = buildCRMContext([col1] as any, [card] as any);
+      const result = buildCRMContext([col1], [card]);
       expect(result).not.toContain("ALERTE STAGNATION");
     });
 
     it("taux de conversion 0% quand seulement des deals ouverts", () => {
       const card = makeCard({ sales_status: "OPEN" });
-      const result = buildCRMContext([col1] as any, [card] as any);
+      const result = buildCRMContext([col1], [card]);
       expect(result).toContain("Taux de conversion: 0%");
     });
 
@@ -569,7 +591,7 @@ describe("buildCRMContext", () => {
         makeCard({ id: "c3", sales_status: "WON", estimated_value: 5000, won_at: "2025-02-01T00:00:00Z" }),
         makeCard({ id: "c4", sales_status: "LOST", estimated_value: 3000, loss_reason: "prix" }),
       ];
-      const result = buildCRMContext([col1, col2] as any, cards as any);
+      const result = buildCRMContext([col1, col2], cards);
       expect(result).toContain("Prospection: 1 opportunite(s)");
       expect(result).toContain("Négociation: 1 opportunite(s)");
       expect(result).toContain("Deals GAGNES");
@@ -596,7 +618,7 @@ describe("buildAcquisitionContext", () => {
         makeCard({ service_type: "formation", sales_status: "OPEN", estimated_value: 2000 }),
         makeCard({ id: "c2", service_type: "mission", sales_status: "WON", estimated_value: 10000 }),
       ];
-      const result = buildAcquisitionContext(cards as any, []);
+      const result = buildAcquisitionContext(cards, []);
       expect(result).toContain("Formations: 1 total");
       expect(result).toContain("Missions: 1 total");
     });
@@ -606,7 +628,7 @@ describe("buildAcquisitionContext", () => {
         makeCard({ id: "c1", sales_status: "WON", estimated_value: 5000 }),
         makeCard({ id: "c2", sales_status: "WON", estimated_value: 15000 }),
       ];
-      const result = buildAcquisitionContext(cards as any, []);
+      const result = buildAcquisitionContext(cards, []);
       // (5000 + 15000) / 2 = 10000
       expect(result).toContain(`Panier moyen deals gagnes: 10${S}000€`);
     });
@@ -617,7 +639,7 @@ describe("buildAcquisitionContext", () => {
         makeCard({ id: "c2", company: "BigCo", estimated_value: 10000, sales_status: "WON" }),
         makeCard({ id: "c3", company: "SmallCo", estimated_value: 1000 }),
       ];
-      const result = buildAcquisitionContext(cards as any, []);
+      const result = buildAcquisitionContext(cards, []);
       expect(result).toContain("Top clients par valeur");
       // BigCo: 2 opportunités, 1 gagné, 30000€ total
       expect(result).toContain(`bigco: 2 opportunites, 1 gagnes, 30${S}000€ total`);
@@ -629,7 +651,7 @@ describe("buildAcquisitionContext", () => {
         makeMission({ status: "in_progress", total_amount: 20000, consumed_amount: 5000 }),
         makeMission({ id: "m2", status: "completed", total_amount: 10000 }),
       ];
-      const result = buildAcquisitionContext([], missions as any);
+      const result = buildAcquisitionContext([], missions);
       expect(result).toContain("Capacite de delivery");
       expect(result).toContain("Missions actives: 1");
       expect(result).toContain("Missions terminees: 1");
@@ -642,7 +664,7 @@ describe("buildAcquisitionContext", () => {
         makeCard({ id: "c1", service_type: "formation", sales_status: "WON" }),
         makeCard({ id: "c2", service_type: "formation", sales_status: "LOST" }),
       ];
-      const result = buildAcquisitionContext(cards as any, []);
+      const result = buildAcquisitionContext(cards, []);
       expect(result).toContain("Taux conversion: 50%");
     });
   });
@@ -662,19 +684,19 @@ describe("buildAcquisitionContext", () => {
 
     it("affiche les cartes non classifiées", () => {
       const card = makeCard({ service_type: null });
-      const result = buildAcquisitionContext([card] as any, []);
+      const result = buildAcquisitionContext([card], []);
       expect(result).toContain("Non classifie: 1 opportunites");
     });
 
     it("n'affiche pas le panier moyen sans deals gagnés", () => {
       const card = makeCard({ sales_status: "OPEN" });
-      const result = buildAcquisitionContext([card] as any, []);
+      const result = buildAcquisitionContext([card], []);
       expect(result).not.toContain("Panier moyen");
     });
 
     it("gère les missions avec montants nuls", () => {
       const mission = makeMission({ total_amount: 0, consumed_amount: 0 });
-      const result = buildAcquisitionContext([], [mission] as any);
+      const result = buildAcquisitionContext([], [mission]);
       expect(result).toContain("0% consomme");
     });
   });
@@ -697,7 +719,7 @@ describe("buildRevenueTargetContext", () => {
         estimated_value: 4000,
         won_at: "2025-03-15T00:00:00Z",
       });
-      const result = buildRevenueTargetContext([target] as any, [wonCard] as any);
+      const result = buildRevenueTargetContext([target], [wonCard]);
       expect(result).toContain("Objectifs de chiffre d'affaires");
       expect(result).toContain("40%");
     });
@@ -708,7 +730,7 @@ describe("buildRevenueTargetContext", () => {
         period_start: "2025-04-01",
         target_amount: 30000,
       });
-      const result = buildRevenueTargetContext([target] as any, []);
+      const result = buildRevenueTargetContext([target], []);
       expect(result).toContain("T2 2025");
     });
 
@@ -718,7 +740,7 @@ describe("buildRevenueTargetContext", () => {
         period_start: "2025-01-01",
         target_amount: 120000,
       });
-      const result = buildRevenueTargetContext([target] as any, []);
+      const result = buildRevenueTargetContext([target], []);
       expect(result).toContain("Annee 2025");
     });
   });
@@ -731,7 +753,7 @@ describe("buildRevenueTargetContext", () => {
 
     it("gère un target_amount à 0 (division par zéro)", () => {
       const target = makeRevenueTarget({ target_amount: 0 });
-      const result = buildRevenueTargetContext([target] as any, []);
+      const result = buildRevenueTargetContext([target], []);
       expect(result).toContain("0%");
       // No crash
     });
@@ -748,7 +770,7 @@ describe("buildRevenueTargetContext", () => {
         estimated_value: 5000,
         won_at: "2025-02-15T00:00:00Z",
       });
-      const result = buildRevenueTargetContext([target] as any, [wonCard] as any);
+      const result = buildRevenueTargetContext([target], [wonCard]);
       expect(result).toContain("0%");
     });
 
@@ -763,7 +785,7 @@ describe("buildRevenueTargetContext", () => {
         estimated_value: 5000,
         won_at: null,
       });
-      const result = buildRevenueTargetContext([target] as any, [wonCard] as any);
+      const result = buildRevenueTargetContext([target], [wonCard]);
       expect(result).toContain("0%");
     });
   });
@@ -835,7 +857,7 @@ describe("buildMissionsContext", () => {
         makeMission({ id: "m2", status: "completed", title: "Mission B" }),
         makeMission({ id: "m3", status: "not_started", title: "Mission C" }),
       ];
-      const result = buildMissionsContext(missions as any);
+      const result = buildMissionsContext(missions);
       expect(result).toContain("En cours: 1 mission(s)");
       expect(result).toContain("Mission A");
       expect(result).toContain("Terminee: 1 mission(s)");
@@ -846,7 +868,7 @@ describe("buildMissionsContext", () => {
 
     it("affiche les montants des missions", () => {
       const mission = makeMission({ total_amount: 24000, consumed_amount: 8000, billed_amount: 6000 });
-      const result = buildMissionsContext([mission] as any);
+      const result = buildMissionsContext([mission]);
       expect(result).toContain(`Montant: 24${S}000€`);
       expect(result).toContain(`Consomme: 8${S}000€`);
       expect(result).toContain(`Facture: 6${S}000€`);
@@ -857,7 +879,7 @@ describe("buildMissionsContext", () => {
         makeMission({ status: "in_progress", total_amount: 20000, billed_amount: 5000 }),
         makeMission({ id: "m2", status: "not_started", total_amount: 10000, billed_amount: 0 }),
       ];
-      const result = buildMissionsContext(missions as any);
+      const result = buildMissionsContext(missions);
       expect(result).toContain("Resume missions actives: 2 missions");
       expect(result).toContain(`montant total 30${S}000€`);
       expect(result).toContain(`facture 5${S}000€`);
@@ -871,20 +893,20 @@ describe("buildMissionsContext", () => {
 
     it("gère une mission sans client_name", () => {
       const mission = makeMission({ client_name: null });
-      const result = buildMissionsContext([mission] as any);
+      const result = buildMissionsContext([mission]);
       expect(result).toContain("Mission Coaching");
       expect(result).not.toContain("(null)");
     });
 
     it("gère une mission sans montants", () => {
       const mission = makeMission({ total_amount: null, consumed_amount: null, billed_amount: null });
-      const result = buildMissionsContext([mission] as any);
+      const result = buildMissionsContext([mission]);
       expect(result).toContain("Mission Coaching");
     });
 
     it("gère le statut cancelled", () => {
       const mission = makeMission({ status: "cancelled", title: "Annulée" });
-      const result = buildMissionsContext([mission] as any);
+      const result = buildMissionsContext([mission]);
       expect(result).toContain("Annulee: 1 mission(s)");
     });
   });
@@ -949,7 +971,7 @@ describe("buildCrmCommentsContext", () => {
         { card_id: "card-1", author_email: "a@b.com", content: "Premier contact positif", created_at: "2025-02-01T10:00:00Z" },
         { card_id: "card-1", author_email: "a@b.com", content: "Relance effectuée", created_at: "2025-02-05T10:00:00Z" },
       ];
-      const result = buildCrmCommentsContext(comments, [card] as any);
+      const result = buildCrmCommentsContext(comments, [card]);
       expect(result).toContain("2 commentaires sur 1 deals");
       expect(result).toContain("Deal Test (TestCo)");
       expect(result).toContain("Premier contact positif");
@@ -961,7 +983,7 @@ describe("buildCrmCommentsContext", () => {
       const comments = [
         { card_id: "card-1", author_email: "a@b.com", content: longContent, created_at: "2025-02-01T10:00:00Z" },
       ];
-      const result = buildCrmCommentsContext(comments, [card] as any);
+      const result = buildCrmCommentsContext(comments, [card]);
       expect(result).toContain("...");
       expect(result).not.toContain("A".repeat(200));
     });
@@ -973,7 +995,7 @@ describe("buildCrmCommentsContext", () => {
         content: `Comment ${i + 1}`,
         created_at: `2025-02-0${i + 1}T10:00:00Z`,
       }));
-      const result = buildCrmCommentsContext(comments, [card] as any);
+      const result = buildCrmCommentsContext(comments, [card]);
       expect(result).toContain("Comment 1");
       expect(result).toContain("Comment 3");
       expect(result).not.toContain("Comment 4");
@@ -982,14 +1004,14 @@ describe("buildCrmCommentsContext", () => {
 
   describe("cas aux limites", () => {
     it("retourne message par défaut sans commentaires", () => {
-      expect(buildCrmCommentsContext([], [card] as any)).toBe("Aucun commentaire CRM enregistre.");
+      expect(buildCrmCommentsContext([], [card])).toBe("Aucun commentaire CRM enregistre.");
     });
 
     it("affiche l'ID si la carte est inconnue", () => {
       const comments = [
         { card_id: "unknown-id", author_email: "a@b.com", content: "test", created_at: "2025-02-01T10:00:00Z" },
       ];
-      const result = buildCrmCommentsContext(comments, [card] as any);
+      const result = buildCrmCommentsContext(comments, [card]);
       expect(result).toContain("unknown-id");
     });
   });
@@ -1007,7 +1029,7 @@ describe("buildCrmEmailsContext", () => {
       const emails = [
         { card_id: "card-1", sender_email: "me@co.com", recipient_email: "client@co.com", subject: "Proposition", sent_at: "2025-02-10T10:00:00Z" },
       ];
-      const result = buildCrmEmailsContext(emails, [card] as any);
+      const result = buildCrmEmailsContext(emails, [card]);
       expect(result).toContain("1 emails sur 1 deals");
       expect(result).toContain("Deal Email (MailCo)");
       expect(result).toContain("Proposition");
@@ -1020,7 +1042,7 @@ describe("buildCrmEmailsContext", () => {
       const emails = [
         { card_id: "card-1", sender_email: "me@co.com", recipient_email: "c@d.com", subject: "Test", sent_at: recent },
       ];
-      const result = buildCrmEmailsContext(emails, [card] as any);
+      const result = buildCrmEmailsContext(emails, [card]);
       expect(result).toContain("1 emails cette semaine");
       expect(result).toContain("1 ce mois-ci");
     });
@@ -1028,7 +1050,7 @@ describe("buildCrmEmailsContext", () => {
 
   describe("cas aux limites", () => {
     it("retourne message par défaut sans emails", () => {
-      expect(buildCrmEmailsContext([], [card] as any)).toBe("Aucun email CRM enregistre.");
+      expect(buildCrmEmailsContext([], [card])).toBe("Aucun email CRM enregistre.");
     });
 
     it("limite à 3 emails par deal", () => {
@@ -1039,7 +1061,7 @@ describe("buildCrmEmailsContext", () => {
         subject: `Email ${i + 1}`,
         sent_at: `2025-02-0${i + 1}T10:00:00Z`,
       }));
-      const result = buildCrmEmailsContext(emails, [card] as any);
+      const result = buildCrmEmailsContext(emails, [card]);
       expect(result).toContain("Email 1");
       expect(result).toContain("Email 3");
       expect(result).not.toContain("Email 4");
@@ -1288,7 +1310,7 @@ describe("buildCrmActivityLogContext", () => {
         { ...baseLog, action_type: "card_moved", old_value: "Nego", new_value: "Closing" },
         { ...baseLog, action_type: "email_sent" },
       ];
-      const result = buildCrmActivityLogContext(logs, [card] as any);
+      const result = buildCrmActivityLogContext(logs, [card]);
       expect(result).toContain("4 actions recentes");
       expect(result).toContain("Deplacements pipeline: 2");
       expect(result).toContain("Opportunites creees: 1");
@@ -1300,7 +1322,7 @@ describe("buildCrmActivityLogContext", () => {
         { ...baseLog, action_type: "card_moved", old_value: "Prospection", new_value: "Nego" },
         { ...baseLog, action_type: "sales_status_changed", old_value: "OPEN", new_value: "WON" },
       ];
-      const result = buildCrmActivityLogContext(logs, [card] as any);
+      const result = buildCrmActivityLogContext(logs, [card]);
       expect(result).toContain("Derniers mouvements pipeline");
       expect(result).toContain("Deal Log (LogCo)");
       expect(result).toContain("Prospection");
@@ -1308,7 +1330,7 @@ describe("buildCrmActivityLogContext", () => {
     });
 
     it("affiche la cadence d'engagement", () => {
-      const result = buildCrmActivityLogContext([baseLog], [card] as any);
+      const result = buildCrmActivityLogContext([baseLog], [card]);
       expect(result).toContain("Cadence:");
       expect(result).toContain("1 actions cette semaine");
       expect(result).toContain("1 ce mois-ci");
@@ -1317,24 +1339,24 @@ describe("buildCrmActivityLogContext", () => {
 
   describe("cas aux limites", () => {
     it("retourne message par défaut sans logs", () => {
-      expect(buildCrmActivityLogContext([], [card] as any)).toBe("Aucune activite CRM enregistree.");
+      expect(buildCrmActivityLogContext([], [card])).toBe("Aucune activite CRM enregistree.");
     });
 
     it("affiche 'Deal inconnu' si la carte n'existe pas", () => {
       const log = { ...baseLog, card_id: "unknown", action_type: "card_moved", old_value: "A", new_value: "B" };
-      const result = buildCrmActivityLogContext([log], [card] as any);
+      const result = buildCrmActivityLogContext([log], [card]);
       expect(result).toContain("Deal inconnu");
     });
 
     it("utilise le action_type brut pour types inconnus", () => {
       const log = { ...baseLog, action_type: "custom_action" };
-      const result = buildCrmActivityLogContext([log], [card] as any);
+      const result = buildCrmActivityLogContext([log], [card]);
       expect(result).toContain("custom_action: 1");
     });
 
     it("gère les logs anciens (hors 7j et 30j)", () => {
       const oldLog = { ...baseLog, created_at: "2024-01-01T00:00:00Z" };
-      const result = buildCrmActivityLogContext([oldLog], [card] as any);
+      const result = buildCrmActivityLogContext([oldLog], [card]);
       expect(result).toContain("0 actions cette semaine");
       expect(result).toContain("0 ce mois-ci");
     });
@@ -1354,8 +1376,8 @@ describe("intégration cross-module CRM", () => {
     ];
     const col = makeColumn({ id: "col-1", name: "Pipeline" });
 
-    const crmCtx = buildCRMContext([col] as any, cards as any);
-    const acqCtx = buildAcquisitionContext(cards as any, []);
+    const crmCtx = buildCRMContext([col], cards);
+    const acqCtx = buildAcquisitionContext(cards, []);
 
     // CRM doit voir 1 open, 1 won, 1 lost
     expect(crmCtx).toContain("1 opportunite(s)");
@@ -1378,7 +1400,7 @@ describe("intégration cross-module CRM", () => {
       makeCard({ id: "c2", sales_status: "WON", estimated_value: 5000, won_at: "2025-03-20T00:00:00Z" }),
     ];
 
-    const revenueCtx = buildRevenueTargetContext([target] as any, wonCards as any);
+    const revenueCtx = buildRevenueTargetContext([target], wonCards);
 
     // 13000 / 20000 = 65%
     expect(revenueCtx).toContain(`13${S}000€`);
@@ -1411,7 +1433,7 @@ describe("intégration cross-module CRM", () => {
       },
     ];
 
-    const missionsCtx = buildMissionsContext(missions as any);
+    const missionsCtx = buildMissionsContext(missions);
     const activitiesCtx = buildMissionActivitiesContext(activities);
 
     // Missions shows the high-level view
@@ -1436,8 +1458,8 @@ describe("intégration cross-module CRM", () => {
       { card_id: "c1", sender_email: "me@co.com", recipient_email: "client@bigclient.com", subject: "Proposition commerciale", sent_at: "2025-02-18T10:00:00Z" },
     ];
 
-    const commentsCtx = buildCrmCommentsContext(comments, cards as any);
-    const emailsCtx = buildCrmEmailsContext(emails, cards as any);
+    const commentsCtx = buildCrmCommentsContext(comments, cards);
+    const emailsCtx = buildCrmEmailsContext(emails, cards);
 
     expect(commentsCtx).toContain("Deal Important (BigClient)");
     expect(commentsCtx).toContain("Client très intéressé");
@@ -1481,7 +1503,7 @@ describe("intégration cross-module CRM", () => {
     expect(sponsorCtx).toContain("Impact competences valide par 1/1 sponsors");
   });
 
-  it("scénario complet : pipeline vide + pas de missions = contextes dégradés cohérents", () => {
+  it("scénario complet : pipeline vide + pas de missions = contextes dégradés cohérents (assertions exactes)", () => {
     const crmCtx = buildCRMContext([], []);
     const missionsCtx = buildMissionsContext([]);
     const acqCtx = buildAcquisitionContext([], []);
@@ -1510,5 +1532,238 @@ describe("intégration cross-module CRM", () => {
     expect(logCtx).toContain("Aucune activite CRM");
     expect(ambCtx).toContain("Aucune ambition");
     expect(okrCtx).toContain("Aucun OKR periodique");
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// STATUT CANCELED — angle mort identifié par l'audit
+// ═════════════════════════════════════════════════════════════════════════════
+
+describe("gestion du statut CANCELED", () => {
+  const col1 = makeColumn();
+
+  it("une carte CANCELED n'apparaît pas dans OPEN, WON, ni LOST", () => {
+    const card = makeCard({ sales_status: "CANCELED", estimated_value: 5000 });
+    const result = buildCRMContext([col1], [card]);
+    expect(result).toContain("Total pipeline ouvert: 0€ (0 deals)");
+    expect(result).toContain("Deals GAGNES: Aucun deal gagne");
+    expect(result).not.toContain("Deals PERDUS (");
+  });
+
+  it("CANCELED n'est pas compté dans le taux de conversion", () => {
+    const won = makeCard({ id: "c1", sales_status: "WON" });
+    const canceled = makeCard({ id: "c2", sales_status: "CANCELED" });
+    const result = buildCRMContext([col1], [won, canceled]);
+    // Won=1, Lost=0, Canceled filtered out → winRate = 1/(1+0) = 100%
+    expect(result).toContain("Taux de conversion: 100% (1 gagnes / 1 clotures)");
+  });
+
+  it("CANCELED avec service_type est compté dans les totaux par type dans buildAcquisitionContext", () => {
+    // Documenter le comportement actuel : CANCELED est inclus car le filtre est par service_type, pas par sales_status
+    const card = makeCard({ sales_status: "CANCELED", service_type: "formation", estimated_value: 3000 });
+    const result = buildAcquisitionContext([card], []);
+    // Le code filtre par service_type sans exclure CANCELED → la carte est comptée
+    expect(result).toContain("Formations: 1 total");
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// BRANCHE "PERIODE EN COURS" — buildRevenueTargetContext
+// ═════════════════════════════════════════════════════════════════════════════
+
+describe("buildRevenueTargetContext — période en cours", () => {
+  it("affiche le marqueur PERIODE EN COURS et le reste à réaliser", () => {
+    // FIXED_NOW = 2025-03-15, donc mars 2025 est la période en cours
+    const target = makeRevenueTarget({
+      period_type: "monthly",
+      period_start: "2025-03-01",
+      target_amount: 20000,
+    });
+    const wonCard = makeCard({
+      sales_status: "WON",
+      estimated_value: 8000,
+      won_at: "2025-03-10T00:00:00Z",
+    });
+    const result = buildRevenueTargetContext([target], [wonCard]);
+    expect(result).toContain("PERIODE EN COURS");
+    expect(result).toContain(`Reste 12${S}000€ a realiser en`);
+    expect(result).toMatch(/en \d+ jours/);
+  });
+
+  it("n'affiche pas PERIODE EN COURS pour une période passée", () => {
+    const target = makeRevenueTarget({
+      period_type: "monthly",
+      period_start: "2025-01-01",
+      target_amount: 10000,
+    });
+    const result = buildRevenueTargetContext([target], []);
+    expect(result).not.toContain("PERIODE EN COURS");
+  });
+
+  it("n'affiche pas 'Reste' quand l'objectif est dépassé", () => {
+    const target = makeRevenueTarget({
+      period_type: "monthly",
+      period_start: "2025-03-01",
+      target_amount: 5000,
+    });
+    const wonCard = makeCard({
+      sales_status: "WON",
+      estimated_value: 8000,
+      won_at: "2025-03-10T00:00:00Z",
+    });
+    const result = buildRevenueTargetContext([target], [wonCard]);
+    expect(result).toContain("PERIODE EN COURS");
+    expect(result).not.toContain("Reste");
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// STAGNATION — vérification déterministe avec temps figé
+// ═════════════════════════════════════════════════════════════════════════════
+
+describe("buildCRMContext — stagnation déterministe", () => {
+  const col1 = makeColumn();
+
+  it("affiche le nombre exact de jours de stagnation", () => {
+    // FIXED_NOW = 2025-03-15, card created 2025-01-15 = 59 days ago
+    const card = makeCard({ created_at: "2025-01-15T10:00:00Z", title: "Vieux deal" });
+    const result = buildCRMContext([col1], [card]);
+    expect(result).toContain("ALERTE STAGNATION");
+    expect(result).toContain("59 jours");
+    expect(result).toContain("Vieux deal");
+  });
+
+  it("n'affiche pas l'alerte à exactement 30 jours", () => {
+    // 30 days before FIXED_NOW = 2025-02-13
+    const card = makeCard({ created_at: "2025-02-13T12:00:00Z" });
+    const result = buildCRMContext([col1], [card]);
+    expect(result).not.toContain("ALERTE STAGNATION");
+  });
+
+  it("affiche l'alerte à 31 jours", () => {
+    // 31 days before FIXED_NOW = 2025-02-12
+    const card = makeCard({ created_at: "2025-02-12T12:00:00Z" });
+    const result = buildCRMContext([col1], [card]);
+    expect(result).toContain("ALERTE STAGNATION");
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// RATIOS DE CONVERSION NON-TRIVIAUX
+// ═════════════════════════════════════════════════════════════════════════════
+
+describe("buildCRMContext — taux de conversion non-triviaux", () => {
+  const col1 = makeColumn();
+
+  it("calcule 75% avec 3 won / 1 lost", () => {
+    const cards = [
+      makeCard({ id: "c1", sales_status: "WON" }),
+      makeCard({ id: "c2", sales_status: "WON" }),
+      makeCard({ id: "c3", sales_status: "WON" }),
+      makeCard({ id: "c4", sales_status: "LOST" }),
+    ];
+    const result = buildCRMContext([col1], cards);
+    expect(result).toContain("Taux de conversion: 75%");
+    expect(result).toContain("3 gagnes / 4 clotures");
+  });
+
+  it("calcule 33% avec 1 won / 2 lost", () => {
+    const cards = [
+      makeCard({ id: "c1", sales_status: "WON" }),
+      makeCard({ id: "c2", sales_status: "LOST" }),
+      makeCard({ id: "c3", sales_status: "LOST" }),
+    ];
+    const result = buildCRMContext([col1], cards);
+    expect(result).toContain("Taux de conversion: 33%");
+    expect(result).toContain("1 gagnes / 3 clotures");
+  });
+
+  it("calcule 100% avec uniquement des WON", () => {
+    const cards = [
+      makeCard({ id: "c1", sales_status: "WON" }),
+      makeCard({ id: "c2", sales_status: "WON" }),
+    ];
+    const result = buildCRMContext([col1], cards);
+    expect(result).toContain("Taux de conversion: 100%");
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// ORDRE DES SECTIONS — buildCRMContext
+// ═════════════════════════════════════════════════════════════════════════════
+
+describe("buildCRMContext — ordre des sections", () => {
+  it("les sections sont dans l'ordre correct : pipeline > won > lost > velocité > conversion", () => {
+    const col1 = makeColumn();
+    const cards = [
+      makeCard({ id: "c1", sales_status: "OPEN", estimated_value: 1000 }),
+      makeCard({ id: "c2", sales_status: "WON", estimated_value: 2000, won_at: "2025-03-01T00:00:00Z", created_at: "2025-02-01T00:00:00Z" }),
+      makeCard({ id: "c3", sales_status: "LOST", estimated_value: 500, lost_at: "2025-03-01T00:00:00Z", created_at: "2025-02-15T00:00:00Z" }),
+    ];
+    const result = buildCRMContext([col1], cards);
+
+    const pipelinePos = result.indexOf("Pipeline ouvert");
+    const wonPos = result.indexOf("Deals GAGNES");
+    const lostPos = result.indexOf("Deals PERDUS");
+    const velocityPos = result.indexOf("Velocite commerciale");
+    const conversionPos = result.indexOf("Metriques de conversion");
+
+    expect(pipelinePos).toBeGreaterThan(-1);
+    expect(wonPos).toBeGreaterThan(pipelinePos);
+    expect(lostPos).toBeGreaterThan(wonPos);
+    expect(velocityPos).toBeGreaterThan(lostPos);
+    expect(conversionPos).toBeGreaterThan(velocityPos);
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// TEST DE VOLUME — 200+ cartes
+// ═════════════════════════════════════════════════════════════════════════════
+
+describe("buildCRMContext — volume", () => {
+  it("gère 200 cartes sans crash et avec métriques correctes", () => {
+    const col1 = makeColumn({ id: "col-1", name: "Pipeline" });
+    const col2 = makeColumn({ id: "col-2", name: "Nego" });
+    const cards: CrmCard[] = Array.from({ length: 200 }, (_, i) =>
+      makeCard({
+        id: `c-${i}`,
+        column_id: i % 2 === 0 ? "col-1" : "col-2",
+        sales_status: i < 150 ? "OPEN" : i < 180 ? "WON" : "LOST",
+        estimated_value: 1000,
+        company: `Company ${i % 10}`,
+        won_at: i >= 150 && i < 180 ? "2025-03-01T00:00:00Z" : null,
+        lost_at: i >= 180 ? "2025-03-01T00:00:00Z" : null,
+        created_at: "2025-03-01T00:00:00Z",
+      }),
+    );
+    const result = buildCRMContext([col1, col2], cards);
+
+    expect(result).toContain("150 deals"); // open count in total
+    expect(result).toContain(`Deals GAGNES (30 deals, total: 30${S}000€)`);
+    expect(result).toContain("Deals PERDUS (20,");
+    // 30 / (30+20) = 60%
+    expect(result).toContain("Taux de conversion: 60%");
+    expect(result).toContain("30 gagnes / 50 clotures");
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// CADENCE EMAILS — déterministe avec temps figé
+// ═════════════════════════════════════════════════════════════════════════════
+
+describe("buildCrmEmailsContext — cadence déterministe", () => {
+  const card = makeCard({ id: "card-1", title: "Deal", company: "Co" });
+
+  it("distingue les emails des 7 derniers jours vs 30 derniers jours", () => {
+    const emails = [
+      // 2 days ago → dans 7j ET 30j
+      { card_id: "card-1", sender_email: "me@co.com", recipient_email: "a@b.com", subject: "Recent", sent_at: "2025-03-13T10:00:00Z" },
+      // 20 days ago → dans 30j mais PAS dans 7j
+      { card_id: "card-1", sender_email: "me@co.com", recipient_email: "a@b.com", subject: "Older", sent_at: "2025-02-23T10:00:00Z" },
+      // 60 days ago → ni l'un ni l'autre
+      { card_id: "card-1", sender_email: "me@co.com", recipient_email: "a@b.com", subject: "Old", sent_at: "2025-01-14T10:00:00Z" },
+    ];
+    const result = buildCrmEmailsContext(emails, [card]);
+    expect(result).toContain("Frequence: 1 emails cette semaine, 2 ce mois-ci.");
   });
 });

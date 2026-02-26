@@ -5,7 +5,7 @@ vi.mock("@/integrations/supabase/client", () => ({
   supabase: {},
 }));
 
-const { replaceCrmVariables } = await import("./useCrmEmailTemplates");
+const { replaceCrmVariables, generateTemplateSlug } = await import("./useCrmEmailTemplates");
 
 describe("replaceCrmVariables", () => {
   // ═══════════════════════════════════════════════════════════════════
@@ -230,6 +230,21 @@ describe("replaceCrmVariables", () => {
         replaceCrmVariables(template, {}),
       ).toBe(" inconnu ");
     });
+
+    it("conditional block with fallback inner variable works correctly", () => {
+      // The conditional is processed FIRST — inner {{var}} resolved within it
+      // Then fallback syntax is resolved on the remaining template
+      // This proves order matters: if fallback ran first, {{name||X}} inside
+      // a conditional block would be consumed before the conditional is evaluated.
+      const template = "{{show?Nom: {{name}}}} — {{title||M.}}";
+      expect(
+        replaceCrmVariables(template, { show: "1", name: "Alice", title: "Dr." }),
+      ).toBe("Nom: Alice — Dr.");
+      // show absent → conditional stripped, then fallback applies
+      expect(
+        replaceCrmVariables(template, {}),
+      ).toBe(" — M.");
+    });
   });
 
   // ═══════════════════════════════════════════════════════════════════
@@ -330,13 +345,18 @@ describe("replaceCrmVariables", () => {
         signature: "Romain Couturier",
       });
 
-      expect(result).toContain("M. Martin");
-      expect(result).toContain("TechCorp");
-      expect(result).toContain("formation React");
-      expect(result).toContain("3 500€ HT");
-      expect(result).toContain("Romain Couturier");
-      // Default fallback for canal
-      expect(result).toContain("échange");
+      expect(result).toBe(
+        "Bonjour M. Martin,\n" +
+        "\n" +
+        "Je me permets de vous contacter concernant TechCorp.\n" +
+        "\n" +
+        "Suite à notre échange, je souhaitais vous présenter notre offre formation React.\n" +
+        "\n" +
+        "Le montant estimé est de 3 500€ HT.\n" +
+        "\n" +
+        "Cordialement,\n" +
+        "Romain Couturier",
+      );
     });
 
     it("renders same template with minimal data", () => {
@@ -349,11 +369,12 @@ describe("replaceCrmVariables", () => {
 
       const result = replaceCrmVariables(template, {});
 
-      expect(result).toContain("Madame, Monsieur");
-      expect(result).not.toContain("Concernant");
-      expect(result).toContain("de service");
-      expect(result).not.toContain("Budget");
-      expect(result).toContain("L'équipe");
+      expect(result).toBe(
+        "Bonjour Madame, Monsieur,\n" +
+        "voici notre proposition de service.\n" +
+        "\n" +
+        "Cordialement, L'équipe",
+      );
     });
 
     it("handles convention email template with participant data", () => {
@@ -373,10 +394,12 @@ describe("replaceCrmVariables", () => {
         horaires: "9h00-17h30",
       });
 
-      expect(full).toContain("Mme Sophie Bernard");
-      expect(full).toContain("Management Agile");
-      expect(full).toContain("Paris - La Défense");
-      expect(full).toContain("9h00-17h30");
+      expect(full).toBe(
+        "Mme Sophie Bernard,\n" +
+        "Votre formation «Management Agile» débutera le 15 mars 2024.\n" +
+        "Lieu : Paris - La Défense\n" +
+        "Horaires : 9h00-17h30\n",
+      );
 
       const minimal = replaceCrmVariables(template, {
         prenom: "Jean",
@@ -385,9 +408,63 @@ describe("replaceCrmVariables", () => {
         date: "20 avril 2024",
       });
 
-      expect(minimal).toContain(" Jean Dupont");
-      expect(minimal).not.toContain("Lieu");
-      expect(minimal).not.toContain("Horaires");
+      expect(minimal).toBe(
+        " Jean Dupont,\n" +
+        "Votre formation «Excel» débutera le 20 avril 2024.\n",
+      );
+    });
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// generateTemplateSlug
+// ═══════════════════════════════════════════════════════════════════════════════
+
+describe("generateTemplateSlug", () => {
+  describe("cas nominaux", () => {
+    it("converts simple name to lowercase slug", () => {
+      expect(generateTemplateSlug("Relance Client")).toBe("relance_client");
+    });
+
+    it("removes accents (NFD normalization)", () => {
+      expect(generateTemplateSlug("Relance échéance")).toBe("relance_echeance");
+    });
+
+    it("handles multiple special characters", () => {
+      expect(generateTemplateSlug("Offre & Devis (v2)")).toBe("offre_devis_v2");
+    });
+
+    it("collapses consecutive non-alnum chars into single underscore", () => {
+      expect(generateTemplateSlug("a---b___c   d")).toBe("a_b_c_d");
+    });
+  });
+
+  describe("cas aux limites", () => {
+    it("strips leading and trailing underscores", () => {
+      expect(generateTemplateSlug("  Hello  ")).toBe("hello");
+      expect(generateTemplateSlug("___test___")).toBe("test");
+    });
+
+    it("handles purely numeric name", () => {
+      expect(generateTemplateSlug("123")).toBe("123");
+    });
+
+    it("handles name with only special characters", () => {
+      expect(generateTemplateSlug("---")).toBe("");
+    });
+
+    it("handles empty string", () => {
+      expect(generateTemplateSlug("")).toBe("");
+    });
+
+    it("handles complex French accented name", () => {
+      expect(generateTemplateSlug("Réunion préparatoire à l'été")).toBe(
+        "reunion_preparatoire_a_l_ete",
+      );
+    });
+
+    it("handles unicode beyond Latin accents (e.g. cedilla)", () => {
+      expect(generateTemplateSlug("Reçu façade")).toBe("recu_facade");
     });
   });
 });
