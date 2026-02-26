@@ -1,84 +1,146 @@
 
 
-# Envoi des livrables de mission par email
+# Module Reclamations -- Indicateur 31 Qualiopi
 
 ## Vue d'ensemble
 
-Ajout d'un bouton dans le drawer de mission pour envoyer un email de livraison aux contacts choisis, avec preview du mail. Le template de cet email sera configurable dans les parametres generaux (onglet Emails), comme tous les autres templates.
+Deux volets :
+1. **Formulaire public** (`/reclamation/:token`) : un client peut deposer une reclamation sans authentification, via un lien unique (meme pattern que `/questionnaire/:token` ou `/evaluation/:token`).
+2. **Page interne** (`/reclamations`) : le formateur gere, traite et cloture les reclamations avec assistance IA.
 
-## Composants a creer / modifier
+---
 
-### 1. Template email dans Parametres (`src/pages/Parametres.tsx`)
+## 1. Base de donnees (migration SQL)
 
-Ajout d'une entree `mission_deliverables` dans `DEFAULT_TEMPLATES` (avant la fermeture du `Record`, ligne ~739) :
+### Table `reclamations`
 
-- **Timing** : `"manual"`
-- **Variables** : `first_name`, `mission_title`, `deliverables_link`
-- **Contenu FR (tu)** : Message chaleureux invitant a telecharger les livrables via le lien de synthese
-- **Contenu FR (vous)** : Version formelle equivalente
-- **Objet** : "Vos livrables sont disponibles - {{mission_title}}"
+| Colonne | Type | Notes |
+|---|---|---|
+| id | uuid PK | gen_random_uuid() |
+| token | text UNIQUE NOT NULL | lien public d'acces |
+| date_reclamation | date | date de la reclamation |
+| client_name | text | nom client / structure |
+| client_email | text | email du reclamant |
+| canal | text | mail, telephone, formulaire, autre |
+| problem_type | text | contenu, organisation, logistique, technique, facturation, relationnel, autre |
+| description | text | description du probleme |
+| severity | text | mineure, significative, majeure |
+| status | text DEFAULT 'open' | open, in_progress, closed |
+| actions_decided | text | actions decidees par le formateur |
+| response_sent | text | message de reponse envoye |
+| response_date | date | date de reponse |
+| ai_analysis | text | analyse IA |
+| ai_response_draft | text | brouillon reponse IA |
+| qualiopi_summary | text | resume 3-5 lignes Qualiopi |
+| training_id | uuid FK trainings | lien optionnel formation |
+| mission_id | uuid FK missions | lien optionnel mission |
+| created_by | uuid | null si soumis par le public |
+| created_at | timestamptz DEFAULT now() | |
+| updated_at | timestamptz DEFAULT now() | |
 
-Ce template sera editable dans l'onglet "Emails" des parametres, comme tous les autres.
+### RLS
 
-### 2. Nouveau composant : `src/components/missions/SendDeliverablesDialog.tsx`
+- SELECT/INSERT/UPDATE/DELETE pour les utilisateurs authentifies (meme pattern que `improvements`)
+- SELECT + INSERT public (anon) filtre par token : permet au formulaire public de lire sa propre reclamation et d'en creer une nouvelle
 
-Dialog modale avec :
-- Chargement des contacts de la mission via `useMissionContacts(missionId)`
-- Checkboxes pour selectionner les destinataires (seuls ceux avec un email sont affichables ; le contact primaire est pre-coche)
-- Champ objet pre-rempli (editable)
-- Preview HTML du mail en temps reel (adapte au premier contact selectionne : prenom + langue)
-- Bouton "Envoyer" qui appelle `supabase.functions.invoke("send-mission-deliverables", ...)`
-- Toast de succes/erreur
+### Enum
 
-### 3. Nouvelle edge function : `supabase/functions/send-mission-deliverables/index.ts`
+- Ajout de `'reclamations'` a l'enum `app_module`
 
-- Recoit : `mission_id`, `recipients: { email, first_name, language }[]`, `subject`
-- Charge le template depuis `email_templates` (type `mission_deliverables_tu` / `mission_deliverables_vous`), avec fallback sur le contenu par defaut
-- Construit le lien : `APP_URL/mission-info/{mission_id}`
-- Pour chaque destinataire : personnalise le HTML (prenom), ajoute signature Signitic + BCC
-- Envoi sequentiel avec delai 600ms (rate limit Resend)
-- Utilise les modules partages existants : `sendEmail`, `getSigniticSignature`, `getBccSettings`, `processTemplate`, `textToHtml`
+### Trigger
 
-### 4. Modification : `src/components/missions/MissionDetailDrawer.tsx`
+- `updated_at` auto-update via `update_updated_at_column()`
 
-- Import `Package` (lucide-react) et `SendDeliverablesDialog`
-- Ajout d'un bouton `Package` dans le header (a cote des boutons IA et partage)
-- State `showDeliverables` pour ouvrir/fermer le dialog
+---
 
-### 5. Configuration : `supabase/config.toml`
+## 2. Module access (`src/hooks/useModuleAccess.ts`)
 
-Ajout de :
-```toml
-[functions.send-mission-deliverables]
-verify_jwt = false
-```
+- Ajout `"reclamations"` au type `AppModule`, `ALL_MODULES` et `MODULE_LABELS` ("Reclamations")
 
-## Contenu par defaut du mail
+---
 
-**Version tutoiement :**
-```
-Bonjour{{#first_name}} {{first_name}}{{/first_name}},
+## 3. Page publique : `src/pages/ReclamationPublic.tsx`
 
-Bonne nouvelle ! Les livrables de la mission "{{mission_title}}" sont prets pour toi.
+Formulaire public accessible via `/reclamation/:token`, sans authentification. Pattern identique a `Questionnaire.tsx` / `Evaluation.tsx` :
 
-Tu peux les consulter et les telecharger a tout moment en cliquant ci-dessous :
+- Chargement de la reclamation par token (si existante, affiche confirmation "deja soumise")
+- Si token valide et non soumis : formulaire avec les champs :
+  - Nom / structure (pre-rempli si lie a un training/mission)
+  - Email
+  - Canal (select)
+  - Type de probleme (select)
+  - Description (textarea)
+  - Gravite estimee (radio)
+- Soumission : update de la ligne `reclamations` avec les donnees du formulaire, passage du status a `open`
+- Page de confirmation apres soumission
+- Logo Supertilt en haut, lien politique de confidentialite en bas
 
-[Acceder aux livrables] -> {{deliverables_link}}
+---
 
-N'hesite pas a revenir vers moi si tu as la moindre question.
+## 4. Page interne : `src/pages/Reclamations.tsx`
 
-A tres bientot !
-```
+Page admin (authentifiee) avec :
 
-**Version vouvoiement :** equivalente avec formules de politesse adaptees.
+- **Stats** : cartes ouvertes / en cours / cloturees
+- **Filtres** : statut, type de probleme, gravite
+- **Liste** des reclamations avec badges (gravite, statut, canal)
+- **Bouton "Nouvelle reclamation"** : dialog pour creer manuellement (genere un token pour le lien public)
+- **Bouton "Generer un lien de reclamation"** : cree une ligne vide avec un token, copie le lien `/reclamation/:token` dans le presse-papier pour l'envoyer au client
+- **Detail / edition** : drawer ou section inline pour :
+  - Voir la fiche complete
+  - Ajouter les actions decidees, la reponse, le resume Qualiopi
+  - Changer le statut
+  - **Bouton "Assistance IA"** qui genere analyse + brouillon de reponse + resume Qualiopi
+- **Export registre** : bouton pour copier un tableau recapitulatif (date | client | type | gravite | actions | statut)
 
-## Resume des fichiers
+---
+
+## 5. Edge function IA : `supabase/functions/reclamation-ai-assist/index.ts`
+
+- Actions : `analyze`, `draft_response`, `qualiopi_summary`, `annual_report`
+- Utilise Lovable AI Gateway (`google/gemini-2.5-flash`)
+- Prompts en francais, contexte petit organisme de formation
+- CORS + verify_jwt = false
+
+---
+
+## 6. Routing (`src/App.tsx`)
+
+- Lazy imports : `ReclamationPublic`, `Reclamations`
+- Routes :
+  - `/reclamation/:token` -- formulaire public
+  - `/reclamations` -- page interne
+
+---
+
+## 7. Dashboard (`src/pages/Dashboard.tsx`)
+
+- Nouvelle tuile "Reclamations" avec icone `MessageSquareWarning` et module `"reclamations"`
+
+---
+
+## Fichiers concernes
 
 | Fichier | Action |
 |---|---|
-| `src/pages/Parametres.tsx` | Ajout template `mission_deliverables` dans `DEFAULT_TEMPLATES` |
-| `src/components/missions/SendDeliverablesDialog.tsx` | Creation (dialog selection contacts + preview + envoi) |
-| `supabase/functions/send-mission-deliverables/index.ts` | Creation (edge function envoi via Resend) |
-| `src/components/missions/MissionDetailDrawer.tsx` | Ajout bouton + import dialog |
-| `supabase/config.toml` | Ajout config fonction |
+| Migration SQL | Table `reclamations`, RLS, enum, trigger |
+| `src/hooks/useModuleAccess.ts` | Ajout module |
+| `src/pages/ReclamationPublic.tsx` | Creation -- formulaire public |
+| `src/pages/Reclamations.tsx` | Creation -- page admin |
+| `supabase/functions/reclamation-ai-assist/index.ts` | Creation -- edge function IA |
+| `src/App.tsx` | Ajout 2 routes + lazy imports |
+| `src/pages/Dashboard.tsx` | Ajout tuile |
+
+---
+
+## Workflow complet
+
+1. Le formateur ouvre le module Reclamations et clique "Generer un lien"
+2. Un token est cree en base, le lien `/reclamation/:token` est copie
+3. Le formateur envoie ce lien au client (par mail, message, etc.)
+4. Le client remplit le formulaire public (nom, email, description, type, gravite)
+5. Le formateur voit la reclamation apparaitre dans sa liste
+6. Il clique "Assistance IA" pour obtenir une analyse et un brouillon de reponse
+7. Il adapte, envoie la reponse, genere le resume Qualiopi et cloture
+8. En fin d'annee, il genere le bilan annuel
 
