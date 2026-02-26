@@ -260,7 +260,7 @@ const DocumentsManager = ({
     };
 
     fetchCertificates();
-  }, [trainingId]);
+  }, [trainingId, participants]);
 
   const hasCertificates = certificateUrls.length > 0;
 
