@@ -1,63 +1,87 @@
 
-# Acceder a la convention envoyee par participant (inter-entreprise)
+Objectif
+- Éliminer définitivement l’écran/bloc blanc dans “Signature du formateur” depuis une fiche formation.
+- Vérifier de façon explicite si une partie du problème peut venir du navigateur/appareil utilisateur, sans renvoyer la charge au user.
 
-## Constat actuel
+Constat actuel (à partir du replay, logs, code)
+- Le dialogue s’ouvre correctement et le canvas est visible.
+- L’utilisateur interagit bien avec le canvas, mais le trait n’apparaît pas.
+- Aucun crash JS bloquant n’apparaît dans les logs au moment de l’action (seulement des warnings de refs sur ScheduledEmailsSummary).
+- Le flux “public signature” (autres pages de signature) fonctionne avec un pattern d’initialisation canvas plus stable.
 
-Aujourd'hui, quand une convention est generee pour un participant en inter-entreprise :
-- Le PDF est telecharge localement et envoye par email au commanditaire
-- Mais **aucune trace n'est conservee** sur le participant (pas de colonne `convention_file_url` dans `training_participants`)
-- L'icone convention (parchemin) affiche toujours "Generer la convention", sans distinction entre "deja generee" et "a generer"
-- Impossible de retrouver ou re-telecharger une convention deja envoyee
+Do I know what the issue is?
+- Oui, suffisamment pour corriger: l’initialisation de SignaturePad dans AttendanceSignatureBlock reste fragile au timing d’ouverture de la modale (animation/render), et n’offre pas de fallback robuste si le pad n’est pas prêt.  
+- En plus, les warnings de refs (Dialog/AlertDialog headers/footers non forwardRef) polluent le debug et peuvent masquer les vrais signaux d’erreur.
 
-## Solution proposee
+Plan de correction
+1) Rendre l’initialisation du pad robuste et observable
+- Fichier: `src/components/formations/AttendanceSignatureBlock.tsx`
+- Remplacer l’init “best effort” actuelle par une stratégie en 3 niveaux:
+  1. attente dimensionnelle fiable (canvas réellement mesuré),
+  2. initialisation contrôlée avec garde anti double-init,
+  3. fallback utilisateur si init impossible.
+- Détails techniques:
+  - Ajouter un état `signaturePadReady` et `signatureInitError`.
+  - Initialiser uniquement quand `showTrainerSignDialog === true` ET `canvasRef.current` présent.
+  - Utiliser une logique de retry avec limite + délai (rAF + timeout de secours), puis basculer en erreur lisible si échec.
+  - Encapsuler toute l’initialisation dans `try/catch` (y compris callback async/rAF) pour éviter qu’une erreur non capturée casse l’UI.
+  - Détruire proprement l’instance en cleanup via `signaturePadRef.current?.off()` avant reset.
+  - Mettre `Effacer`/`Valider` désactivés tant que `signaturePadReady` est faux.
+  - Afficher un message in-dialog “Initialisation de la zone de signature…” puis “Impossible d’initialiser, Réessayer”.
 
-Adopter le meme pattern ergonomique que l'attestation (icone Award) : une icone qui change d'apparence selon l'etat, avec un menu deroulant offrant les actions contextuelles.
+2) Uniformiser la logique HiDPI avec les utilitaires existants
+- Fichiers:  
+  - `src/lib/signatureUtils.ts`  
+  - `src/components/formations/AttendanceSignatureBlock.tsx`
+- Réutiliser les utilitaires de dimensionnement (déjà présents) pour éviter les divergences entre pages.
+- Garantir l’ordre:
+  - canvas dimensionné/scalé correctement,
+  - puis création de `SignaturePad`,
+  - puis `clear()` initial.
+- Ajouter fallback sur `getBoundingClientRect()` si `offsetWidth/offsetHeight` restent à 0 (cas devices/zoom/animation).
 
-### Comportement visuel
+3) Ajouter un diagnostic “côté utilisateur” non intrusif
+- Fichier: `src/components/formations/AttendanceSignatureBlock.tsx`
+- Au moment où la modale s’ouvre, collecter (console debug + état interne) :
+  - dimensions CSS et internes canvas,
+  - devicePixelRatio,
+  - disponibilité contexte 2D,
+  - statut ready/error.
+- Si le navigateur est dans un cas limite (canvas/context indisponible), montrer un message clair dans la modale (au lieu d’un “blanc” silencieux), avec action “Réessayer”.
+- Cela permettra de prouver rapidement si l’environnement utilisateur est en cause.
 
-- **Convention non generee** : icone parchemin grisee (comme aujourd'hui), clic = generer
-- **Convention generee** : icone parchemin en couleur primaire, clic = menu deroulant avec :
-  - "Telecharger la convention" (re-telechargement via l'URL stockee, avec refresh automatique si l'URL S3 a expire)
-  - "Re-generer la convention" (ecrase et re-envoie)
-  - "Voir le statut de signature" (si une signature en ligne a ete demandee, affiche le statut : en attente / signee)
+4) Corriger les warnings React de refs (stabilité/debug)
+- Fichier: `src/components/ui/alert-dialog.tsx`
+- Convertir `AlertDialogHeader` et `AlertDialogFooter` en `React.forwardRef` (comme déjà fait pour `DialogHeader`/`DialogFooter`).
+- Effet attendu: logs plus propres, tri plus facile des erreurs réellement liées à la signature.
 
-## Details techniques
+5) Renforcer les tests unitaires
+- Fichier: `src/lib/signatureUtils.test.ts`
+- Ajouter des cas qui reproduisent le comportement “modale animée / dimensions tardives”:
+  - init réussie après plusieurs frames,
+  - fallback `getBoundingClientRect`,
+  - échec contrôlé (retour false + message d’erreur côté composant).
+- Vérifier qu’aucune exception asynchrone non catchée ne remonte.
 
-### 1. Migration base de donnees
+Validation prévue (avant livraison)
+- Desktop: ouvrir “Signature du formateur”, tracer à la souris, vérifier trait visible immédiatement, effacer, signer, persistance OK.
+- Mobile: même scénario au doigt.
+- Cas dégradé: simuler canvas non prêt → message d’erreur affiché, bouton Réessayer fonctionnel.
+- Vérifier absence de warnings refs dans la console de la page formation.
+- Vérifier qu’on distingue bien:
+  - bug applicatif (pad non prêt, init échoue),
+  - contrainte environnement utilisateur (context 2D indisponible, dimensions impossibles).
 
-Ajouter deux colonnes a `training_participants` :
-- `convention_file_url` (TEXT, nullable) : URL du PDF de convention
-- `convention_document_id` (TEXT, nullable) : ID du document PDFMonkey (pour refresh d'URL expiree)
+Risques et mitigation
+- Risque: régression sur d’autres signatures.
+  - Mitigation: ne toucher que le flux “formateur depuis formation” et réutiliser les utilitaires communs.
+- Risque: double binding d’événements.
+  - Mitigation: cleanup explicite `off()` à chaque fermeture et avant réinit.
+- Risque: UX bloquée si init lente.
+  - Mitigation: état de chargement explicite + retry manuel.
 
-### 2. Mise a jour de la Edge Function `generate-convention-formation`
-
-Apres generation reussie du PDF, sauvegarder `convention_file_url` et `convention_document_id` sur le participant concerne :
-
-```text
-UPDATE training_participants
-SET convention_file_url = pdfUrl,
-    convention_document_id = documentId
-WHERE id = participantId
-```
-
-### 3. Mise a jour du composant `ParticipantList.tsx`
-
-- Ajouter `convention_file_url` et `convention_document_id` a l'interface `Participant`
-- Remplacer le bouton simple par un composant conditionnel :
-  - Si pas de convention : bouton simple qui declenche la generation (comportement actuel)
-  - Si convention existante : `DropdownMenu` avec les options de telechargement, re-generation, et statut signature
-- L'icone passe de `text-muted-foreground` a `text-primary` quand une convention existe
-
-### 4. Gestion des URLs expirees (S3/PDFMonkey)
-
-Conformement a la logique deja en place pour les autres documents, avant le telechargement :
-- Tenter un fetch de l'URL stockee
-- Si erreur 403 (URL expiree), extraire le `document_id` et appeler l'API PDFMonkey pour obtenir une nouvelle URL
-- Mettre a jour l'URL en base
-
-### 5. Statut de signature
-
-Enrichir l'affichage en croisant avec la table `convention_signatures` (via `training_id` + `recipient_email` correspondant au `sponsor_email` du participant) pour afficher :
-- Pas de signature demandee
-- En attente de signature
-- Signee (avec date)
+Résultat attendu
+- Plus de “zone blanche” silencieuse.
+- Signature visible et enregistrable de manière fiable.
+- Diagnostic clair quand le contexte utilisateur pose problème.
+- Console assainie des warnings de refs parasites.
