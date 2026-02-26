@@ -39,6 +39,7 @@ interface CatalogEntry {
   description: string | null;
   is_active: boolean;
   display_order: number;
+  format_formation: string | null;
 }
 
 interface CatalogFormDialogProps {
@@ -65,6 +66,7 @@ const CatalogFormDialog = ({ open, onClose, entry }: CatalogFormDialogProps) => 
   const [elearningAccessEmailContent, setElearningAccessEmailContent] = useState("");
   const [woocommerceProductId, setWoocommerceProductId] = useState("");
   const [isActive, setIsActive] = useState(true);
+  const [formatFormation, setFormatFormation] = useState("");
 
   // Reset form when dialog opens/entry changes
   useEffect(() => {
@@ -83,6 +85,7 @@ const CatalogFormDialog = ({ open, onClose, entry }: CatalogFormDialogProps) => 
         setElearningAccessEmailContent(entry.elearning_access_email_content || "");
         setWoocommerceProductId(entry.woocommerce_product_id ? String(entry.woocommerce_product_id) : "");
         setIsActive(entry.is_active);
+        setFormatFormation(entry.format_formation || "");
       } else {
         setFormationName("");
         setDescription("");
@@ -97,6 +100,7 @@ const CatalogFormDialog = ({ open, onClose, entry }: CatalogFormDialogProps) => 
         setElearningAccessEmailContent("");
         setWoocommerceProductId("");
         setIsActive(true);
+        setFormatFormation("");
       }
     }
   }, [open, entry]);
@@ -129,6 +133,7 @@ const CatalogFormDialog = ({ open, onClose, entry }: CatalogFormDialogProps) => 
         elearning_access_email_content: elearningAccessEmailContent.trim() || null,
         woocommerce_product_id: woocommerceProductId ? parseInt(woocommerceProductId, 10) : null,
         is_active: isActive,
+        format_formation: formatFormation || null,
       };
 
       if (entry) {
@@ -203,6 +208,22 @@ const CatalogFormDialog = ({ open, onClose, entry }: CatalogFormDialogProps) => 
                 placeholder="Description courte de la formation..."
                 rows={2}
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="formatFormation">Format de formation</Label>
+              <select
+                id="formatFormation"
+                value={formatFormation}
+                onChange={(e) => setFormatFormation(e.target.value)}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+              >
+                <option value="">Aucun format par défaut</option>
+                <option value="intra">Intra-entreprise</option>
+                <option value="inter-entreprises">Inter-entreprises</option>
+                <option value="classe_virtuelle">Classe virtuelle</option>
+                <option value="e_learning">E-learning</option>
+              </select>
             </div>
 
             <div className="grid grid-cols-2 gap-4">

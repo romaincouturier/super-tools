@@ -2,16 +2,28 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Save, Trash2, Mail } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+interface CatalogEntry {
+  id: string;
+  formation_name: string;
+}
 
 interface PostEvalEmail {
   id: string;
-  training_filter: string;
+  catalog_id: string | null;
   subject: string;
   html_content: string;
   is_active: boolean;
@@ -19,26 +31,41 @@ interface PostEvalEmail {
 
 const PostEvaluationEmailManager = () => {
   const [emails, setEmails] = useState<PostEvalEmail[]>([]);
+  const [catalogEntries, setCatalogEntries] = useState<CatalogEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
   const { toast } = useToast();
 
-  const fetchEmails = async () => {
-    const { data, error } = await supabase
-      .from("post_evaluation_emails")
-      .select("*")
-      .order("created_at", { ascending: true });
+  const fetchData = async () => {
+    const [emailsResult, catalogResult] = await Promise.all([
+      supabase
+        .from("post_evaluation_emails")
+        .select("*")
+        .order("created_at", { ascending: true }),
+      supabase
+        .from("formation_configs")
+        .select("id, formation_name")
+        .eq("is_active", true)
+        .order("display_order", { ascending: true }),
+    ]);
 
-    if (error) {
-      console.error("Error fetching post-evaluation emails:", error);
-      return;
+    if (!emailsResult.error) {
+      setEmails((emailsResult.data || []).map((e: any) => ({
+        id: e.id,
+        catalog_id: e.catalog_id,
+        subject: e.subject,
+        html_content: e.html_content,
+        is_active: e.is_active,
+      })));
     }
-    setEmails(data || []);
+    if (!catalogResult.error) {
+      setCatalogEntries(catalogResult.data || []);
+    }
     setLoading(false);
   };
 
   useEffect(() => {
-    fetchEmails();
+    fetchData();
   }, []);
 
   const handleAdd = () => {
@@ -46,7 +73,7 @@ const PostEvaluationEmailManager = () => {
       ...prev,
       {
         id: `new-${Date.now()}`,
-        training_filter: "",
+        catalog_id: null,
         subject: "",
         html_content: "",
         is_active: true,
@@ -54,20 +81,20 @@ const PostEvaluationEmailManager = () => {
     ]);
   };
 
-  const handleChange = (id: string, field: keyof PostEvalEmail, value: string | boolean) => {
+  const handleChange = (id: string, field: keyof PostEvalEmail, value: string | boolean | null) => {
     setEmails(prev => prev.map(e => e.id === id ? { ...e, [field]: value } : e));
   };
 
   const handleSave = async (email: PostEvalEmail) => {
-    if (!email.training_filter.trim() || !email.subject.trim() || !email.html_content.trim()) {
-      toast({ title: "Erreur", description: "Tous les champs sont obligatoires.", variant: "destructive" });
+    if (!email.catalog_id || !email.subject.trim() || !email.html_content.trim()) {
+      toast({ title: "Erreur", description: "Tous les champs sont obligatoires (formation, sujet, contenu).", variant: "destructive" });
       return;
     }
 
     setSaving(email.id);
 
     const payload = {
-      training_filter: email.training_filter.trim(),
+      catalog_id: email.catalog_id,
       subject: email.subject.trim(),
       html_content: email.html_content.trim(),
       is_active: email.is_active,
@@ -78,15 +105,23 @@ const PostEvaluationEmailManager = () => {
       if (error) {
         toast({ title: "Erreur", description: error.message, variant: "destructive" });
       } else {
-        setEmails(prev => prev.map(e => e.id === email.id ? data : e));
-        toast({ title: "Créé", description: `Email post-évaluation pour "${payload.training_filter}" ajouté.` });
+        setEmails(prev => prev.map(e => e.id === email.id ? {
+          id: data.id,
+          catalog_id: data.catalog_id,
+          subject: data.subject,
+          html_content: data.html_content,
+          is_active: data.is_active,
+        } : e));
+        const catName = catalogEntries.find(c => c.id === email.catalog_id)?.formation_name || "";
+        toast({ title: "Créé", description: `Email post-évaluation pour "${catName}" ajouté.` });
       }
     } else {
       const { error } = await supabase.from("post_evaluation_emails").update(payload).eq("id", email.id);
       if (error) {
         toast({ title: "Erreur", description: error.message, variant: "destructive" });
       } else {
-        toast({ title: "Sauvegardé", description: `Email post-évaluation pour "${payload.training_filter}" mis à jour.` });
+        const catName = catalogEntries.find(c => c.id === email.catalog_id)?.formation_name || "";
+        toast({ title: "Sauvegardé", description: `Email post-évaluation pour "${catName}" mis à jour.` });
       }
     }
 
@@ -120,7 +155,7 @@ const PostEvaluationEmailManager = () => {
               Emails post-évaluation
             </CardTitle>
             <CardDescription>
-              Emails envoyés automatiquement après la soumission d'une évaluation, selon le nom de la formation.
+              Emails envoyés automatiquement après la soumission d'une évaluation, selon la formation du catalogue.
               Variables disponibles : {"{{first_name}}"}, {"{{training_name}}"}.
             </CardDescription>
           </div>
@@ -168,14 +203,24 @@ const PostEvaluationEmailManager = () => {
             </div>
 
             <div className="space-y-2">
-              <Label>Filtre sur le nom de la formation</Label>
-              <Input
-                placeholder="Ex: facilitation graphique"
-                value={email.training_filter}
-                onChange={(e) => handleChange(email.id, "training_filter", e.target.value)}
-              />
+              <Label>Formation du catalogue</Label>
+              <Select
+                value={email.catalog_id || ""}
+                onValueChange={(v) => handleChange(email.id, "catalog_id", v || null)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner une formation..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {catalogEntries.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id}>
+                      {cat.formation_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <p className="text-xs text-muted-foreground">
-                L'email sera envoyé si le nom de la formation contient ce texte (insensible à la casse).
+                L'email sera envoyé si la session est liée à cette formation du catalogue.
               </p>
             </div>
 

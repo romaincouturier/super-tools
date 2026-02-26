@@ -1390,6 +1390,7 @@ export type Database = {
           duree_heures: number
           elearning_access_email_content: string | null
           elearning_duration: number | null
+          format_formation: string | null
           formation_name: string
           id: string
           is_active: boolean
@@ -1410,6 +1411,7 @@ export type Database = {
           duree_heures?: number
           elearning_access_email_content?: string | null
           elearning_duration?: number | null
+          format_formation?: string | null
           formation_name: string
           id?: string
           is_active?: boolean
@@ -1430,6 +1432,7 @@ export type Database = {
           duree_heures?: number
           elearning_access_email_content?: string | null
           elearning_duration?: number | null
+          format_formation?: string | null
           formation_name?: string
           id?: string
           is_active?: boolean
@@ -2426,33 +2429,41 @@ export type Database = {
       }
       post_evaluation_emails: {
         Row: {
+          catalog_id: string | null
           created_at: string
           html_content: string
           id: string
           is_active: boolean
           subject: string
-          training_filter: string
           updated_at: string
         }
         Insert: {
+          catalog_id?: string | null
           created_at?: string
           html_content: string
           id?: string
           is_active?: boolean
           subject: string
-          training_filter: string
           updated_at?: string
         }
         Update: {
+          catalog_id?: string | null
           created_at?: string
           html_content?: string
           id?: string
           is_active?: boolean
           subject?: string
-          training_filter?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "post_evaluation_emails_catalog_id_fkey"
+            columns: ["catalog_id"]
+            isOneToOne: false
+            referencedRelation: "formation_configs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {

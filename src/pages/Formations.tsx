@@ -333,7 +333,7 @@ const Formations = () => {
           </div>
           <Button size={isMobile ? "icon" : "default"} onClick={() => navigate("/formations/new")} className="shrink-0">
             <Plus className="h-4 w-4 md:mr-2" />
-            <span className="hidden md:inline">Ajouter une formation</span>
+            <span className="hidden md:inline">Nouvelle session</span>
           </Button>
         </div>
 
