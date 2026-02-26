@@ -66,6 +66,7 @@ serve(async (req) => {
       documentType,
       invoiceUrl,
       attendanceSheetsUrls,
+      certificateUrls,
       ccEmail,
       formalAddress = true // default to vouvoiement
     } = await req.json();
@@ -168,19 +169,43 @@ serve(async (req) => {
           path: url,
         });
       });
+    } else if (documentType === "certificates" && certificateUrls?.length > 0) {
+      const certCount = certificateUrls.length;
+      subject = trainingInfo 
+        ? `Certificats de réalisation - ${trainingInfo} - Supertilt`
+        : "Certificats de réalisation - Supertilt";
+      const certText = formalAddress
+        ? `Veuillez trouver ci-joint ${certCount > 1 ? "les certificats de réalisation" : "le certificat de réalisation"} de notre formation.`
+        : `Tu trouveras ci-joint ${certCount > 1 ? "les certificats de réalisation" : "le certificat de réalisation"} de notre formation.`;
+      htmlContent = `
+        <p>${greeting}</p>
+        <p>${hopePhrase}</p>
+        <p>${certText} ${availabilityPhrase}</p>
+        <p>${thanksPhrase}</p>
+        <p>Belle journée,</p>
+        ${signature}
+      `;
+      certificateUrls.forEach((url: string, index: number) => {
+        attachments.push({
+          filename: `Certificat_${index + 1}.pdf`,
+          path: url,
+        });
+      });
     } else if (documentType === "all") {
       const sheetsCount = attendanceSheetsUrls?.length || 0;
+      const certCount = certificateUrls?.length || 0;
       
-      // If invoice is included, mention "facture" in subject
-      if (trainingInfo) {
-        subject = invoiceUrl 
-          ? `Facture et émargements - ${trainingInfo} - Supertilt`
-          : `Documents - ${trainingInfo} - Supertilt`;
-      } else {
-        subject = invoiceUrl 
-          ? "Facture et documents de formation - Supertilt"
-          : "Documents de formation - Supertilt";
-      }
+      // Build subject
+      const parts: string[] = [];
+      if (invoiceUrl) parts.push("Facture");
+      if (sheetsCount > 0) parts.push("émargements");
+      if (certCount > 0) parts.push("certificats");
+      
+      subject = trainingInfo 
+        ? `${parts.join(", ")} - ${trainingInfo} - Supertilt`
+        : `${parts.join(", ")} - Supertilt`;
+      if (!subject || parts.length === 0) subject = `Documents - ${trainingInfo} - Supertilt`;
+
       const findText = formalAddress
         ? "Veuillez trouver ci-joint les documents relatifs à notre formation :"
         : "Tu trouveras ci-joint les documents relatifs à notre formation :";
@@ -194,6 +219,7 @@ serve(async (req) => {
         <ul style="margin: 10px 0;">
           ${invoiceUrl ? "<li>La facture</li>" : ""}
           ${sheetsCount > 0 ? `<li>${sheetsCount > 1 ? "Les feuilles d'émargement" : "La feuille d'émargement"}</li>` : ""}
+          ${certCount > 0 ? `<li>${certCount > 1 ? "Les certificats de réalisation" : "Le certificat de réalisation"}</li>` : ""}
         </ul>
         <p>${questionsText}</p>
         <p>Merci encore pour cette belle collaboration !</p>
@@ -210,6 +236,12 @@ serve(async (req) => {
         const extension = url.toLowerCase().match(/\.(pdf|jpg|jpeg|png|gif|webp)$/)?.[1] || "pdf";
         attachments.push({
           filename: `Feuille_emargement_${index + 1}.${extension}`,
+          path: url,
+        });
+      });
+      certificateUrls?.forEach((url: string, index: number) => {
+        attachments.push({
+          filename: `Certificat_${index + 1}.pdf`,
           path: url,
         });
       });

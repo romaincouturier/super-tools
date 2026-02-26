@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { FileText, Upload, Trash2, Loader2, Send, Receipt, Mail, User, ClipboardList } from "lucide-react";
+import { FileText, Upload, Trash2, Loader2, Send, Receipt, Mail, User, ClipboardList, Award } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
@@ -70,11 +70,29 @@ const ParticipantDocumentsDialog = ({
   const [uploadingInvoice, setUploadingInvoice] = useState(false);
   const [sendingDocuments, setSendingDocuments] = useState(false);
   const [ccEmail, setCcEmail] = useState("");
+  const [certificateUrl, setCertificateUrl] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
     setInvoiceFileUrl(participant.invoice_file_url);
   }, [participant.invoice_file_url]);
+
+  // Fetch certificate for this participant
+  useEffect(() => {
+    const fetchCertificate = async () => {
+      const { data } = await supabase
+        .from("training_evaluations")
+        .select("certificate_url")
+        .eq("training_id", trainingId)
+        .eq("participant_id", participant.id)
+        .not("certificate_url", "is", null)
+        .maybeSingle();
+
+      setCertificateUrl(data?.certificate_url as string | null ?? null);
+    };
+
+    if (open) fetchCertificate();
+  }, [trainingId, participant.id, open]);
 
   const sanitizeFileName = (name: string): string => {
     return name
@@ -95,8 +113,9 @@ const ParticipantDocumentsDialog = ({
 
   const hasInvoice = Boolean(invoiceFileUrl);
   const hasSheets = attendanceSheetsUrls.length > 0;
+  const hasCertificate = Boolean(certificateUrl);
   const hasSponsorEmail = Boolean(participant.sponsor_email);
-  const canSendDocuments = hasSponsorEmail && (hasInvoice || hasSheets);
+  const canSendDocuments = hasSponsorEmail && (hasInvoice || hasSheets || hasCertificate);
 
   const handleInvoiceUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -193,7 +212,7 @@ const ParticipantDocumentsDialog = ({
     }
   };
 
-  const handleSendDocuments = async (type: "invoice" | "sheets" | "all") => {
+  const handleSendDocuments = async (type: "invoice" | "sheets" | "certificates" | "all") => {
     const targetEmail = participant.sponsor_email;
     
     if (!targetEmail) {
@@ -223,7 +242,7 @@ const ParticipantDocumentsDialog = ({
       return;
     }
 
-    if (type === "all" && !hasInvoice && !hasSheets) {
+    if (type === "all" && !hasInvoice && !hasSheets && !hasCertificate) {
       toast({
         title: "Pas de documents",
         description: "Aucun document n'est disponible.",
@@ -245,8 +264,9 @@ const ParticipantDocumentsDialog = ({
           recipientName: sponsorName,
           recipientFirstName: participant.sponsor_first_name,
           documentType: type,
-          invoiceUrl: type === "sheets" ? null : invoiceFileUrl,
-          attendanceSheetsUrls: type === "invoice" ? [] : attendanceSheetsUrls,
+          invoiceUrl: type === "sheets" || type === "certificates" ? null : invoiceFileUrl,
+          attendanceSheetsUrls: type === "invoice" || type === "certificates" ? [] : attendanceSheetsUrls,
+          certificateUrls: (type === "certificates" || type === "all") && certificateUrl ? [certificateUrl] : [],
           ccEmail: ccEmail || null,
           formalAddress: true, // default for inter-enterprise
         },
@@ -461,7 +481,13 @@ const ParticipantDocumentsDialog = ({
                     Émargements uniquement
                   </DropdownMenuItem>
                 )}
-                {hasInvoice && hasSheets && (
+                {hasCertificate && (
+                  <DropdownMenuItem onClick={() => handleSendDocuments("certificates")}>
+                    <Award className="h-4 w-4 mr-2" />
+                    Certificat uniquement
+                  </DropdownMenuItem>
+                )}
+                {((hasInvoice ? 1 : 0) + (hasSheets ? 1 : 0) + (hasCertificate ? 1 : 0)) >= 2 && (
                   <>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={() => handleSendDocuments("all")}>
@@ -489,7 +515,7 @@ const ParticipantDocumentsDialog = ({
               Définissez un email de commanditaire pour pouvoir envoyer les documents
             </p>
           )}
-          {hasSponsorEmail && !hasInvoice && !hasSheets && (
+          {hasSponsorEmail && !hasInvoice && !hasSheets && !hasCertificate && (
             <p className="text-xs text-muted-foreground text-center">
               Uploadez une facture ou des feuilles d'émargement
             </p>
