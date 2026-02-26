@@ -1838,6 +1838,59 @@ export type Database = {
           },
         ]
       }
+      mission_contacts: {
+        Row: {
+          created_at: string
+          email: string | null
+          first_name: string | null
+          id: string
+          is_primary: boolean
+          language: string
+          last_name: string | null
+          mission_id: string
+          phone: string | null
+          position: number
+          role: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          first_name?: string | null
+          id?: string
+          is_primary?: boolean
+          language?: string
+          last_name?: string | null
+          mission_id: string
+          phone?: string | null
+          position?: number
+          role?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          first_name?: string | null
+          id?: string
+          is_primary?: boolean
+          language?: string
+          last_name?: string | null
+          mission_id?: string
+          phone?: string | null
+          position?: number
+          role?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mission_contacts_mission_id_fkey"
+            columns: ["mission_id"]
+            isOneToOne: false
+            referencedRelation: "missions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mission_documents: {
         Row: {
           created_at: string | null
