@@ -505,7 +505,7 @@ const Evaluation = () => {
                   {[
                     { value: "cette_semaine", label: "Cette semaine" },
                     { value: "ce_mois", label: "Ce mois-ci" },
-                    { value: "3_mois", label: "Dans les 3 mois" },
+                    { value: "trois_mois", label: "Dans les 3 mois" },
                     { value: "incertain", label: "Application incertaine" },
                   ].map((opt) => (
                     <div key={opt.value} className="flex items-center gap-2">
