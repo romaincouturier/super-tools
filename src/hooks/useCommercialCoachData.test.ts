@@ -170,35 +170,33 @@ function makeRevenueTarget(overrides: Record<string, unknown> = {}) {
   };
 }
 
+// Narrow no-break space used by fr-FR locale as thousands separator (U+202F)
+const S = "\u202f";
+
 // ═════════════════════════════════════════════════════════════════════════════
 // fmtEuro
 // ═════════════════════════════════════════════════════════════════════════════
 
 describe("fmtEuro", () => {
   describe("cas nominaux", () => {
-    it("formate un entier", () => {
-      const result = fmtEuro(1500);
-      expect(result).toContain("1");
-      expect(result).toContain("500");
-      expect(result).toContain("€");
+    it("formate un entier avec séparateur de milliers", () => {
+      expect(fmtEuro(1500)).toBe(`1${S}500€`);
     });
 
-    it("formate un grand nombre avec séparateur", () => {
-      const result = fmtEuro(1500000);
-      expect(result).toContain("€");
-      // fr-FR uses non-breaking space or period as thousands separator
-      expect(result).toMatch(/1.*500.*000.*€/);
+    it("formate un grand nombre avec séparateurs", () => {
+      expect(fmtEuro(1500000)).toBe(`1${S}500${S}000€`);
     });
 
     it("formate zéro", () => {
-      const result = fmtEuro(0);
-      expect(result).toContain("0");
-      expect(result).toContain("€");
+      expect(fmtEuro(0)).toBe("0€");
     });
 
     it("formate un nombre décimal", () => {
-      const result = fmtEuro(1234.56);
-      expect(result).toContain("€");
+      expect(fmtEuro(1234.56)).toBe(`1${S}234,56€`);
+    });
+
+    it("formate un petit nombre sans séparateur", () => {
+      expect(fmtEuro(42)).toBe("42€");
     });
   });
 
@@ -211,15 +209,13 @@ describe("fmtEuro", () => {
       expect(fmtEuro(undefined)).toBe("—");
     });
 
-    it("formate un nombre négatif", () => {
+    it("formate un nombre négatif en conservant le signe", () => {
       const result = fmtEuro(-500);
-      expect(result).toContain("500");
-      expect(result).toContain("€");
+      expect(result).toBe("-500€");
     });
 
     it("formate un très grand nombre", () => {
-      const result = fmtEuro(999999999);
-      expect(result).toContain("€");
+      expect(fmtEuro(999999999)).toBe(`999${S}999${S}999€`);
     });
   });
 });
@@ -407,8 +403,9 @@ describe("buildCRMContext", () => {
       const result = buildCRMContext([col1] as any, [card] as any);
       expect(result).toContain("Pipeline ouvert");
       expect(result).toContain("Prospection");
-      expect(result).toContain("1 opportunite(s)");
+      expect(result).toContain(`1 opportunite(s) (5${S}000€)`);
       expect(result).toContain("Acme");
+      expect(result).toContain(`Total pipeline ouvert: 5${S}000€ (1 deals)`);
     });
 
     it("affiche les deals gagnés", () => {
@@ -419,9 +416,8 @@ describe("buildCRMContext", () => {
         service_type: "formation",
       });
       const result = buildCRMContext([col1] as any, [card] as any);
-      expect(result).toContain("Deals GAGNES");
+      expect(result).toContain(`Deals GAGNES (1 deals, total: 8${S}000€)`);
       expect(result).toContain("WinCo");
-      expect(result).toContain("1 deals");
     });
 
     it("affiche les deals perdus avec raisons", () => {
@@ -443,8 +439,8 @@ describe("buildCRMContext", () => {
         confidence_score: 60,
       });
       const result = buildCRMContext([col1] as any, [card] as any);
-      expect(result).toContain("Pipeline pondere (confiance)");
-      expect(result).toContain("confiance moyenne: 60%");
+      // 10000 * 60% = 6000
+      expect(result).toContain(`Pipeline pondere (confiance): 6${S}000€ (confiance moyenne: 60%)`);
     });
 
     it("affiche les deals à risque (confiance < 40%)", () => {
@@ -454,8 +450,9 @@ describe("buildCRMContext", () => {
         title: "Deal risqué",
       });
       const result = buildCRMContext([col1] as any, [card] as any);
-      expect(result).toContain("Deals a risque");
-      expect(result).toContain("Deal risqué");
+      expect(result).toContain("Deals a risque (confiance < 40%)");
+      expect(result).toContain(`Deal risqué`);
+      expect(result).toContain(`15${S}000€`);
       expect(result).toContain("confiance: 20%");
     });
 
@@ -610,7 +607,8 @@ describe("buildAcquisitionContext", () => {
         makeCard({ id: "c2", sales_status: "WON", estimated_value: 15000 }),
       ];
       const result = buildAcquisitionContext(cards as any, []);
-      expect(result).toContain("Panier moyen deals gagnes");
+      // (5000 + 15000) / 2 = 10000
+      expect(result).toContain(`Panier moyen deals gagnes: 10${S}000€`);
     });
 
     it("affiche les top clients par valeur", () => {
@@ -621,7 +619,9 @@ describe("buildAcquisitionContext", () => {
       ];
       const result = buildAcquisitionContext(cards as any, []);
       expect(result).toContain("Top clients par valeur");
-      expect(result).toContain("bigco");
+      // BigCo: 2 opportunités, 1 gagné, 30000€ total
+      expect(result).toContain(`bigco: 2 opportunites, 1 gagnes, 30${S}000€ total`);
+      expect(result).toContain(`smallco: 1 opportunites, 0 gagnes, 1${S}000€ total`);
     });
 
     it("affiche la capacité de delivery", () => {
@@ -633,6 +633,8 @@ describe("buildAcquisitionContext", () => {
       expect(result).toContain("Capacite de delivery");
       expect(result).toContain("Missions actives: 1");
       expect(result).toContain("Missions terminees: 1");
+      // 5000/20000 = 25% consumed
+      expect(result).toContain(`Montant missions actives: 20${S}000€ (25% consomme)`);
     });
 
     it("affiche le taux de conversion par type", () => {
@@ -845,9 +847,9 @@ describe("buildMissionsContext", () => {
     it("affiche les montants des missions", () => {
       const mission = makeMission({ total_amount: 24000, consumed_amount: 8000, billed_amount: 6000 });
       const result = buildMissionsContext([mission] as any);
-      expect(result).toContain("24");
-      expect(result).toContain("8");
-      expect(result).toContain("6");
+      expect(result).toContain(`Montant: 24${S}000€`);
+      expect(result).toContain(`Consomme: 8${S}000€`);
+      expect(result).toContain(`Facture: 6${S}000€`);
     });
 
     it("affiche le résumé des missions actives", () => {
@@ -857,6 +859,8 @@ describe("buildMissionsContext", () => {
       ];
       const result = buildMissionsContext(missions as any);
       expect(result).toContain("Resume missions actives: 2 missions");
+      expect(result).toContain(`montant total 30${S}000€`);
+      expect(result).toContain(`facture 5${S}000€`);
     });
   });
 
@@ -1198,8 +1202,9 @@ describe("buildMissionActivitiesContext", () => {
       ];
       const result = buildMissionActivitiesContext(activities);
       expect(result).toContain("2 activites");
-      expect(result).toContain("1j");
-      expect(result).toContain("4h");
+      expect(result).toContain("Volume: 1j + 4h");
+      // 1200 + 600 = 1800 total, 600 billed
+      expect(result).toContain(`Montant facturable: 1${S}800€ (dont 600€ facture)`);
     });
 
     it("affiche l'alerte de facturation en attente", () => {
@@ -1208,7 +1213,8 @@ describe("buildMissionActivitiesContext", () => {
         { ...baseActivity, description: "Autre", billable_amount: 1000, is_billed: true },
       ];
       const result = buildMissionActivitiesContext(activities);
-      expect(result).toContain("en attente de facturation");
+      // 3000 total - 1000 billed = 2000 pending
+      expect(result).toContain(`2${S}000€ en attente de facturation`);
     });
 
     it("affiche les activités groupées par mission", () => {
@@ -1217,8 +1223,8 @@ describe("buildMissionActivitiesContext", () => {
         { ...baseActivity, mission_title: "Mission Beta", description: "Audit" },
       ];
       const result = buildMissionActivitiesContext(activities);
-      expect(result).toContain("Mission Alpha: 1 activites");
-      expect(result).toContain("Mission Beta: 1 activites");
+      expect(result).toContain(`Mission Alpha: 1 activites, 1${S}200€`);
+      expect(result).toContain(`Mission Beta: 1 activites, 1${S}200€`);
     });
   });
 
@@ -1375,6 +1381,8 @@ describe("intégration cross-module CRM", () => {
     const revenueCtx = buildRevenueTargetContext([target] as any, wonCards as any);
 
     // 13000 / 20000 = 65%
+    expect(revenueCtx).toContain(`13${S}000€`);
+    expect(revenueCtx).toContain(`20${S}000€`);
     expect(revenueCtx).toContain("65%");
   });
 
