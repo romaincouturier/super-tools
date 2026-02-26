@@ -18,11 +18,14 @@ interface MediaTagEditorProps {
   compact?: boolean;
 }
 
-const MediaTagEditor = ({ mediaId, tags, allTags, compact }: MediaTagEditorProps) => {
+const MediaTagEditor = ({ mediaId, tags = [], allTags = [], compact }: MediaTagEditorProps) => {
   const [open, setOpen] = useState(false);
   const [newTag, setNewTag] = useState("");
   const updateTags = useUpdateMediaTags();
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const safeTags = Array.isArray(tags) ? tags : [];
+  const safeAllTags = Array.isArray(allTags) ? allTags : [];
 
   useEffect(() => {
     if (open) setTimeout(() => inputRef.current?.focus(), 100);
@@ -30,9 +33,9 @@ const MediaTagEditor = ({ mediaId, tags, allTags, compact }: MediaTagEditorProps
 
   const addTag = async (tag: string) => {
     const trimmed = tag.trim().toLowerCase();
-    if (!trimmed || tags.includes(trimmed)) return;
+    if (!trimmed || safeTags.includes(trimmed)) return;
     try {
-      await updateTags.mutateAsync({ id: mediaId, tags: [...tags, trimmed] });
+      await updateTags.mutateAsync({ id: mediaId, tags: [...safeTags, trimmed] });
     } catch {
       toast.error("Erreur lors de l'ajout du tag");
     }
@@ -41,14 +44,14 @@ const MediaTagEditor = ({ mediaId, tags, allTags, compact }: MediaTagEditorProps
 
   const removeTag = async (tag: string) => {
     try {
-      await updateTags.mutateAsync({ id: mediaId, tags: tags.filter((t) => t !== tag) });
+      await updateTags.mutateAsync({ id: mediaId, tags: safeTags.filter((t) => t !== tag) });
     } catch {
       toast.error("Erreur lors de la suppression du tag");
     }
   };
 
-  const suggestions = allTags.filter(
-    (t) => !tags.includes(t) && t.toLowerCase().includes(newTag.toLowerCase())
+  const suggestions = safeAllTags.filter(
+    (t) => !safeTags.includes(t) && t.toLowerCase().includes(newTag.toLowerCase())
   );
 
   return (
@@ -62,7 +65,7 @@ const MediaTagEditor = ({ mediaId, tags, allTags, compact }: MediaTagEditorProps
         >
           <Tag className="h-3 w-3" />
           {!compact && (
-            <span>{tags.length > 0 ? tags.length : "Tagger"}</span>
+            <span>{safeTags.length > 0 ? safeTags.length : "Tagger"}</span>
           )}
         </Button>
       </PopoverTrigger>
@@ -74,9 +77,9 @@ const MediaTagEditor = ({ mediaId, tags, allTags, compact }: MediaTagEditorProps
         <p className="text-xs font-medium text-muted-foreground">Tags</p>
 
         {/* Current tags */}
-        {tags.length > 0 && (
+        {safeTags.length > 0 && (
           <div className="flex flex-wrap gap-1">
-            {tags.map((tag) => (
+            {safeTags.map((tag) => (
               <Badge key={tag} variant="secondary" className="text-xs gap-1 pr-1">
                 {tag}
                 <button
