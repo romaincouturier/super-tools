@@ -103,37 +103,43 @@ const AttendanceSignatureBlock = ({
   }, [trainingId, schedules]);
 
   // Initialize signature pad when dialog opens.
-  // We poll with rAF until the canvas has layout dimensions (Radix animation delay),
-  // then let SignaturePad handle its own HiDPI scaling.
+  // Wait until canvas has layout dimensions, then size it and mount SignaturePad.
   useEffect(() => {
     let cancelled = false;
 
     if (showTrainerSignDialog && canvasRef.current) {
       const canvas = canvasRef.current;
       let attempts = 0;
-      const maxAttempts = 20;
+      const maxAttempts = 24;
 
-      const tryInit = () => {
+      const init = () => {
         if (cancelled) return;
-        if (canvas.offsetWidth > 0 && canvas.offsetHeight > 0) {
+
+        const cssWidth = canvas.offsetWidth;
+        const cssHeight = canvas.offsetHeight;
+
+        if (cssWidth > 0 && cssHeight > 0) {
+          const ratio = Math.max(window.devicePixelRatio || 1, 1);
+          canvas.width = cssWidth * ratio;
+          canvas.height = cssHeight * ratio;
+          const ctx = canvas.getContext("2d");
+          ctx?.setTransform(ratio, 0, 0, ratio, 0, 0);
+
           signaturePadRef.current = new SignaturePad(canvas, {
             backgroundColor: "rgb(255, 255, 255)",
             penColor: "rgb(0, 0, 0)",
           });
-          // SignaturePad needs the canvas sized to match CSS layout
-          const ratio = Math.max(window.devicePixelRatio || 1, 1);
-          canvas.width = canvas.offsetWidth * ratio;
-          canvas.height = canvas.offsetHeight * ratio;
-          canvas.getContext("2d")?.scale(ratio, ratio);
-          signaturePadRef.current.clear(); // re-fill background after resize
+          signaturePadRef.current.clear();
           return;
         }
-        attempts++;
+
+        attempts += 1;
         if (attempts < maxAttempts) {
-          requestAnimationFrame(tryInit);
+          requestAnimationFrame(init);
         }
       };
-      requestAnimationFrame(tryInit);
+
+      requestAnimationFrame(init);
     }
 
     return () => {
