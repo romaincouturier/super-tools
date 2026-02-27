@@ -239,6 +239,26 @@ const EntityMediaManager = ({
       ) : (
         <div className="space-y-3">
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
+            {/* Add more button */}
+            <div
+              className={cn(
+                "aspect-square rounded-lg border-2 border-dashed flex items-center justify-center cursor-pointer transition-colors",
+                dragOver
+                  ? "border-primary bg-primary/5"
+                  : "border-muted-foreground/25 hover:border-primary/50"
+              )}
+              onClick={() => fileInputRef.current?.click()}
+              onDrop={handleDrop}
+              onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+              onDragLeave={() => setDragOver(false)}
+            >
+              {uploading ? (
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              ) : (
+                <Plus className="h-6 w-6 text-muted-foreground" />
+              )}
+            </div>
+
             {[...media].filter((m) => m.file_type !== "video_link").sort((a, b) => (b.is_deliverable ? 1 : 0) - (a.is_deliverable ? 1 : 0)).map((item) => (
               <div
                 key={item.id}
@@ -323,26 +343,6 @@ const EntityMediaManager = ({
                 )}
               </div>
             ))}
-
-            {/* Add more button */}
-            <div
-              className={cn(
-                "aspect-square rounded-lg border-2 border-dashed flex items-center justify-center cursor-pointer transition-colors",
-                dragOver
-                  ? "border-primary bg-primary/5"
-                  : "border-muted-foreground/25 hover:border-primary/50"
-              )}
-              onClick={() => fileInputRef.current?.click()}
-              onDrop={handleDrop}
-              onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-              onDragLeave={() => setDragOver(false)}
-            >
-              {uploading ? (
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-              ) : (
-                <Plus className="h-6 w-6 text-muted-foreground" />
-              )}
-            </div>
           </div>
         </div>
       )}
