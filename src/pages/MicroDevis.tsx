@@ -89,6 +89,7 @@ const MicroDevis = () => {
   // SIREN search
   const [siren, setSiren] = useState("");
   const [searchingSiren, setSearchingSiren] = useState(false);
+  const [searchingSirenByName, setSearchingSirenByName] = useState(false);
 
   // Form state - Client info
   const [nomClient, setNomClient] = useState("");
@@ -568,6 +569,99 @@ const MicroDevis = () => {
     }
     
     setSearchingSiren(false);
+  };
+
+  const handleSearchSirenByName = async () => {
+    if (!nomClient || nomClient.trim().length < 2) {
+      toast({
+        title: "Nom trop court",
+        description: "Saisissez au moins 2 caractères dans le nom du client",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSearchingSirenByName(true);
+
+    try {
+      const response = await supabase.functions.invoke("search-siren-by-name", {
+        body: { companyName: nomClient.trim() },
+      });
+
+      if (response.error) {
+        const errorData = response.data;
+        if (errorData?.error) {
+          toast({
+            title: "Service temporairement indisponible",
+            description: `${errorData.error} Vous pouvez saisir le SIREN manuellement.`,
+            variant: "default",
+          });
+        } else {
+          toast({
+            title: "Erreur de recherche",
+            description: "Impossible de contacter le service. Veuillez saisir le SIREN manuellement.",
+            variant: "default",
+          });
+        }
+        setSearchingSirenByName(false);
+        return;
+      }
+
+      const data = response.data;
+
+      if (data?.error && (!data.results || data.results.length === 0)) {
+        toast({
+          title: "Aucun résultat",
+          description: data.error,
+          variant: "default",
+        });
+        setSearchingSirenByName(false);
+        return;
+      }
+
+      const results = data?.results || [];
+
+      if (results.length === 0) {
+        toast({
+          title: "Aucun résultat",
+          description: "Aucune entreprise trouvée avec ce nom.",
+          variant: "default",
+        });
+        setSearchingSirenByName(false);
+        return;
+      }
+
+      // If a single result, auto-fill the SIREN field
+      if (results.length === 1) {
+        setSiren(results[0].siren);
+        toast({
+          title: "SIREN trouvé",
+          description: `${results[0].nom} — SIREN : ${results[0].siren}${results[0].ville ? ` (${results[0].ville})` : ""}`,
+        });
+      } else {
+        // Multiple results: take the first match and inform user
+        setSiren(results[0].siren);
+        const descriptions = results
+          .slice(0, 3)
+          .map((r: { siren: string; nom: string; ville: string | null }) =>
+            `${r.siren} — ${capitalizeName(r.nom)}${r.ville ? ` (${capitalizeName(r.ville)})` : ""}`
+          )
+          .join("\n");
+        toast({
+          title: `${results.length} résultat${results.length > 1 ? "s" : ""} trouvé${results.length > 1 ? "s" : ""}`,
+          description: `Premier résultat appliqué : ${results[0].siren}. Autres : ${descriptions}`,
+        });
+      }
+    } catch (error: unknown) {
+      console.error("SIREN by name search error:", error);
+      toast({
+        title: "Recherche indisponible",
+        description: "Le service de recherche est temporairement indisponible. Vous pouvez saisir le SIREN manuellement.",
+        variant: "default",
+      });
+    }
+
+    setSearchingSirenByName(false);
   };
 
   const getSelectedFormationConfig = (): FormationConfig | undefined => {
@@ -1119,13 +1213,31 @@ const MicroDevis = () => {
 
                 <div className="space-y-2">
                   <Label htmlFor="nomClient">Nom du client *</Label>
-                  <Input
-                    id="nomClient"
-                    placeholder="Nom de l'entreprise ou du client"
-                    value={nomClient}
-                    onChange={(e) => setNomClient(e.target.value)}
-                    required
-                  />
+                  <div className="flex gap-2">
+                    <Input
+                      id="nomClient"
+                      placeholder="Nom de l'entreprise ou du client"
+                      value={nomClient}
+                      onChange={(e) => setNomClient(e.target.value)}
+                      required
+                      className="flex-1"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleSearchSirenByName}
+                      disabled={searchingSirenByName || nomClient.trim().length < 2}
+                      className="whitespace-nowrap"
+                    >
+                      {searchingSirenByName ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Search className="w-4 h-4" />
+                      )}
+                      <span className="ml-2">Chercher Siren</span>
+                    </Button>
+                  </div>
                 </div>
 
                 <div className="space-y-2">
