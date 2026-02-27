@@ -4,7 +4,7 @@
  */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { sanitizeFileName, extractStoragePath } from "@/lib/file-utils";
+import { sanitizeFileName, extractStoragePath, resolveContentType } from "@/lib/file-utils";
 
 // ── Types ────────────────────────────────────────────────────────────
 
@@ -171,7 +171,7 @@ export const uploadEntityDocument = async (
 
   const { error: uploadError } = await supabase.storage
     .from(config.bucket)
-    .upload(path, file);
+    .upload(path, file, { contentType: resolveContentType(file) });
 
   if (uploadError) throw uploadError;
 
