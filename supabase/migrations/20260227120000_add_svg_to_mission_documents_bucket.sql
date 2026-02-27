@@ -1,12 +1,4 @@
--- Add SVG MIME type to mission-documents bucket so SVG files can be uploaded
+-- Remove MIME type restriction on mission-documents bucket (accept all file types)
 UPDATE storage.buckets
-SET allowed_mime_types = ARRAY[
-  'application/pdf',
-  'application/msword',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  'application/vnd.ms-excel',
-  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-  'image/png', 'image/jpeg', 'image/jpg', 'image/webp',
-  'image/svg+xml'
-]
+SET allowed_mime_types = NULL
 WHERE id = 'mission-documents';
