@@ -38,7 +38,7 @@ export function formatDateSlot(dateStr: string): string {
 
 /** `d MMMM yyyy 'à' HH:mm` – e.g. "15 mars 2026 à 14:30" */
 export function formatDateWithTime(dateStr: string): string {
-  return format(new Date(dateStr), "d MMMM yyyy 'à' HH:mm", { locale: fr });
+  return format(parseISO(dateStr), "d MMMM yyyy 'à' HH:mm", { locale: fr });
 }
 
 /** `d MMMM yyyy 'à' HH:mm:ss` – e.g. "15 mars 2026 à 14:30:45" */
@@ -53,7 +53,7 @@ export function formatSentDateTime(dateStr: string): string {
 
 /** `d MMM yyyy HH:mm` – e.g. "15 mars 2026 14:30" (log timestamps) */
 export function formatDateTimeShort(dateStr: string): string {
-  return format(new Date(dateStr), "d MMM yyyy HH:mm", { locale: fr });
+  return format(parseISO(dateStr), "d MMM yyyy HH:mm", { locale: fr });
 }
 
 // ── Labels ──────────────────────────────────────────────────────────────────
@@ -97,9 +97,9 @@ export function formatTrainingDates(
   startDate: string,
   endDate: string | null,
 ): string {
-  const start = format(new Date(startDate), "d MMMM yyyy", { locale: fr });
+  const start = format(parseISO(startDate), "d MMMM yyyy", { locale: fr });
   if (endDate && endDate !== startDate) {
-    const end = format(new Date(endDate), "d MMMM yyyy", { locale: fr });
+    const end = format(parseISO(endDate), "d MMMM yyyy", { locale: fr });
     return `du ${start} au ${end}`;
   }
   return `le ${start}`;

@@ -83,6 +83,12 @@ describe("formatDateWithTime", () => {
     expect(result).toContain("à");
     expect(result).toContain("14:30");
   });
+
+  it("handles Supabase timestamptz with +00:00 offset", () => {
+    const result = formatDateWithTime("2026-03-15T14:30:00+00:00");
+    expect(result).toContain("mars 2026");
+    expect(result).toContain("à");
+  });
 });
 
 // ── formatDateTimeSeconds ───────────────────────────────────────────────────
@@ -159,6 +165,13 @@ describe("formatTrainingDates", () => {
   it('returns "le ..." for single date', () => {
     const result = formatTrainingDates("2026-03-15", null);
     expect(result).toBe("le 15 mars 2026");
+  });
+
+  it("uses parseISO to avoid UTC midnight timezone shift", () => {
+    // new Date("2026-01-01") would be Dec 31 in UTC-X timezones
+    // parseISO("2026-01-01") always gives Jan 1 local time
+    const result = formatTrainingDates("2026-01-01", null);
+    expect(result).toBe("le 1 janvier 2026");
   });
 
   it('returns "le ..." when start equals end', () => {
