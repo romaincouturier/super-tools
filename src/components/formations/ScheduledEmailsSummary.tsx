@@ -83,6 +83,7 @@ interface DelaySettings {
   delayColdEvaluationFunder: number;
   delayEvaluationReminder1: number;
   delayEvaluationReminder2: number;
+  delayFollowUpNews: number;
 }
 
 const ScheduledEmailsSummary = ({ trainingId, participants, refreshTrigger }: ScheduledEmailsSummaryProps) => {
@@ -104,6 +105,7 @@ const ScheduledEmailsSummary = ({ trainingId, participants, refreshTrigger }: Sc
     delayColdEvaluationFunder: 45,
     delayEvaluationReminder1: 2,
     delayEvaluationReminder2: 5,
+    delayFollowUpNews: 30,
   });
   const { toast } = useToast();
 
@@ -155,6 +157,7 @@ const ScheduledEmailsSummary = ({ trainingId, participants, refreshTrigger }: Sc
           "delay_cold_evaluation_funder_days",
           "delay_evaluation_reminder_1_days",
           "delay_evaluation_reminder_2_days",
+          "delay_follow_up_news_days",
         ]);
 
       if (settingsData) {
@@ -169,6 +172,7 @@ const ScheduledEmailsSummary = ({ trainingId, participants, refreshTrigger }: Sc
           if (s.setting_key === "delay_cold_evaluation_funder_days") newSettings.delayColdEvaluationFunder = val || 45;
           if (s.setting_key === "delay_evaluation_reminder_1_days") newSettings.delayEvaluationReminder1 = val || 2;
           if (s.setting_key === "delay_evaluation_reminder_2_days") newSettings.delayEvaluationReminder2 = val || 5;
+          if (s.setting_key === "delay_follow_up_news_days") newSettings.delayFollowUpNews = val || 30;
         });
         setDelaySettings((prev) => ({ ...prev, ...newSettings }));
       }
@@ -222,6 +226,8 @@ const ScheduledEmailsSummary = ({ trainingId, participants, refreshTrigger }: Sc
         return "Relance évaluation (1ère)";
       case "evaluation_reminder_2":
         return "Relance évaluation (2ème)";
+      case "follow_up_news":
+        return "Prise de nouvelles";
       default:
         return type;
     }
@@ -253,6 +259,8 @@ const ScheduledEmailsSummary = ({ trainingId, participants, refreshTrigger }: Sc
         return `📝 Petit rappel : ton avis compte pour "${training.training_name}"`;
       case "evaluation_reminder_2":
         return `🙏 Dernière relance : ta contribution pour "${training.training_name}"`;
+      case "follow_up_news":
+        return `Des nouvelles depuis la formation ?`;
       default:
         return `Email concernant ${training.training_name}`;
     }
@@ -483,6 +491,24 @@ Je te remercie sincèrement pour ton aide et te souhaite une excellente continua
 {{sender_name}}
 {{sender_email}}`;
 
+      case "follow_up_news":
+        return `${greeting}
+
+[Message généré par IA — personnalisé selon l'évaluation du participant]
+
+Ce message est un email informel de prise de nouvelles, généré automatiquement par l'IA pour prendre des nouvelles du participant après la formation "${training.training_name}".
+
+Le contenu sera adapté en fonction :
+• Des réponses à l'évaluation (objectifs, freins, appréciation)
+• Du prénom du participant
+• Du nom de la formation
+
+L'objectif est de renouer le contact de manière humaine et naturelle, sans questionnaire ni lien.
+
+—
+{{sender_name}}
+{{sender_email}}`;
+
       default:
         return "Contenu de l'email non disponible.";
     }
@@ -679,6 +705,7 @@ Je te remercie sincèrement pour ton aide et te souhaite une excellente continua
               <li>• <strong>J+{delaySettings.delayVideoTestimonial}</strong> : Demande de témoignage vidéo</li>
               <li>• <strong>J+{delaySettings.delayColdEvaluation}</strong> : Évaluation à froid (commanditaire)</li>
               <li>• <strong>J+{delaySettings.delayColdEvaluationFunder}</strong> : Rappel financeur (si différent)</li>
+              <li>• <strong>J+{delaySettings.delayFollowUpNews}</strong> : Prise de nouvelles informelle (IA)</li>
             </ul>
           </div>
           

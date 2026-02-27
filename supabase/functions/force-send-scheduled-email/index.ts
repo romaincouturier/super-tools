@@ -454,6 +454,107 @@ const handler = async (req: Request): Promise<Response> => {
         break;
       }
 
+      case "follow_up_news": {
+        recipientEmail = participant?.email || "";
+        if (!recipientEmail) throw new Error("No participant email for follow-up");
+
+        const useTu = !training.participants_formal_address;
+        const participantFirstName = firstName || "là";
+
+        // Fetch participant's evaluation to personalize the message
+        let evalContext = "";
+        const { data: participantEval } = await supabase
+          .from("training_evaluations")
+          .select("objectif_prioritaire, delai_application, freins_application, appreciation_generale")
+          .eq("training_id", training.id)
+          .eq("participant_id", participant?.id)
+          .eq("etat", "soumis")
+          .maybeSingle();
+
+        if (participantEval) {
+          if (participantEval.objectif_prioritaire) {
+            evalContext += `\nObjectif prioritaire mentionné par le participant : "${participantEval.objectif_prioritaire}"`;
+          }
+          if (participantEval.freins_application) {
+            evalContext += `\nFreins anticipés : "${participantEval.freins_application}"`;
+          }
+          if (participantEval.appreciation_generale) {
+            evalContext += `\nNote de satisfaction : ${participantEval.appreciation_generale}/5`;
+          }
+        }
+
+        // Use AI to craft a personalized, informal follow-up message
+        const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
+        let followUpBody = "";
+
+        if (ANTHROPIC_API_KEY) {
+          try {
+            const aiResponse = await fetch("https://api.anthropic.com/v1/messages", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "x-api-key": ANTHROPIC_API_KEY,
+                "anthropic-version": "2023-06-01",
+              },
+              body: JSON.stringify({
+                model: "claude-3-haiku-20240307",
+                max_tokens: 500,
+                system: `Tu écris un court email de suivi informel pour un formateur qui reprend des nouvelles d'un ancien participant.
+
+Règles :
+- Ton chaleureux, humain, comme un message entre collègues
+- ${useTu ? "Tutoiement obligatoire" : "Vouvoiement obligatoire"}
+- Maximum 4-5 phrases, pas plus
+- PAS de bouton, PAS de lien, PAS de questionnaire, PAS de formulaire
+- Le but est juste de prendre des nouvelles et ouvrir la conversation
+- Si un objectif prioritaire est mentionné, y faire référence naturellement
+- Terminer par une question ouverte qui invite à répondre
+- NE PAS mettre de signature (elle sera ajoutée automatiquement)
+- NE PAS mettre de formule de politesse finale type "Cordialement"
+- Retourner UNIQUEMENT le corps du message en HTML (balises <p>)`,
+                messages: [{
+                  role: "user",
+                  content: `Écris un email de suivi informel :
+- Prénom du participant : ${participantFirstName}
+- Formation suivie : "${training.training_name}"
+- Entreprise : ${training.client_name || "non renseignée"}
+- Délai depuis la formation : environ 1 mois${evalContext}`,
+                }],
+              }),
+            });
+
+            if (aiResponse.ok) {
+              const aiResult = await aiResponse.json();
+              followUpBody = aiResult.content?.[0]?.text || "";
+            }
+          } catch (aiErr) {
+            console.warn("AI generation failed for follow-up, using default:", aiErr);
+          }
+        }
+
+        // Fallback if AI unavailable
+        if (!followUpBody) {
+          followUpBody = useTu
+            ? `<p>Salut ${participantFirstName},</p>
+               <p>Ça fait environ un mois que tu as suivi la formation "${training.training_name}" et je voulais prendre de tes nouvelles !</p>
+               <p>Tu as réussi à mettre des choses en pratique depuis ? Je serais curieux de savoir ce qui a le mieux marché pour toi.</p>
+               <p>N'hésite pas à me répondre, même en deux mots !</p>`
+            : `<p>Bonjour ${participantFirstName},</p>
+               <p>Cela fait environ un mois que vous avez suivi la formation "${training.training_name}" et je souhaitais prendre de vos nouvelles !</p>
+               <p>Avez-vous eu l'occasion de mettre des choses en pratique depuis ? Je serais curieux de savoir ce qui a le mieux fonctionné pour vous.</p>
+               <p>N'hésitez pas à me répondre, même en quelques mots !</p>`;
+        }
+
+        subject = useTu
+          ? `${participantFirstName}, des nouvelles depuis la formation ?`
+          : `${participantFirstName}, des nouvelles depuis la formation ?`;
+        htmlContent = `
+          ${followUpBody}
+          ${signatureHtml}
+        `;
+        break;
+      }
+
       case "evaluation_reminder_1":
       case "evaluation_reminder_2": {
         recipientEmail = participant?.email || "";

@@ -269,6 +269,7 @@ serve(async (req) => {
         "delay_google_review_days", "delay_video_testimonial_days",
         "delay_cold_evaluation_days", "delay_cold_evaluation_funder_days",
         "delay_evaluation_reminder_1_days", "delay_evaluation_reminder_2_days",
+        "delay_follow_up_news_days",
         "working_days"
       ]);
 
@@ -278,6 +279,7 @@ serve(async (req) => {
     let delayColdEvaluationFunder = 15;
     let delayEvaluationReminder1 = 2;
     let delayEvaluationReminder2 = 5;
+    let delayFollowUpNews = 30;
     let workingDays = [false, true, true, true, true, true, false]; // Default: Mon-Fri
 
     delaySettings?.forEach((s: { setting_key: string; setting_value: string | null }) => {
@@ -298,6 +300,9 @@ serve(async (req) => {
       }
       if (s.setting_key === "delay_evaluation_reminder_2_days" && s.setting_value) {
         delayEvaluationReminder2 = parseInt(s.setting_value, 10) || 5;
+      }
+      if (s.setting_key === "delay_follow_up_news_days" && s.setting_value) {
+        delayFollowUpNews = parseInt(s.setting_value, 10) || 30;
       }
       if (s.setting_key === "working_days" && s.setting_value) {
         try {
@@ -330,9 +335,21 @@ serve(async (req) => {
         .select("email_type")
         .eq("training_id", trainingId)
         .eq("participant_id", participant.id)
-        .in("email_type", ["google_review", "video_testimonial", "evaluation_reminder_1", "evaluation_reminder_2"]);
+        .in("email_type", ["google_review", "video_testimonial", "evaluation_reminder_1", "evaluation_reminder_2", "follow_up_news"]);
 
       const existingTypes = new Set(existingEmails?.map(e => e.email_type) || []);
+
+      // Schedule follow_up_news (J+N working days — informal follow-up)
+      if (!existingTypes.has("follow_up_news")) {
+        const followUpDate = addWorkingDays(referenceDate, delayFollowUpNews, workingDays);
+        emailsToSchedule.push({
+          training_id: trainingId,
+          participant_id: participant.id,
+          email_type: "follow_up_news",
+          scheduled_for: followUpDate.toISOString(),
+          status: "pending",
+        });
+      }
 
       // Schedule google_review (J+N working days)
       if (!existingTypes.has("google_review")) {
