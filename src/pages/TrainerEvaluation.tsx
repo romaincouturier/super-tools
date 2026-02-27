@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, CheckCircle2, Star, CalendarDays, MapPin, Users } from "lucide-react";
+import { Loader2, CheckCircle2, Star, CalendarDays, MapPin, Users, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import SupertiltLogo from "@/components/SupertiltLogo";
 
@@ -23,6 +24,11 @@ const TrainerEvaluation = () => {
   const [pointsForts, setPointsForts] = useState("");
   const [axesAmelioration, setAxesAmelioration] = useState("");
   const [commentaires, setCommentaires] = useState("");
+  const [previousSuggestions, setPreviousSuggestions] = useState<{
+    points_forts: string[];
+    axes_amelioration: string[];
+    commentaires: string[];
+  }>({ points_forts: [], axes_amelioration: [], commentaires: [] });
   const { toast } = useToast();
 
   useEffect(() => {
@@ -67,6 +73,32 @@ const TrainerEvaluation = () => {
       if (data.status === "soumis") {
         setSubmitted(true);
       }
+
+      // Fetch previous evaluations by same trainer for suggestions
+      if (data.trainer_email) {
+        const { data: prevEvals } = await (supabase as any)
+          .from("trainer_evaluations")
+          .select("points_forts, axes_amelioration, commentaires")
+          .eq("trainer_email", data.trainer_email)
+          .eq("status", "soumis")
+          .neq("id", data.id);
+
+        if (prevEvals && prevEvals.length > 0) {
+          const extract = (field: string) => {
+            const values = prevEvals
+              .map((e: any) => e[field]?.trim())
+              .filter((v: string | undefined): v is string => !!v);
+            // Deduplicate
+            return [...new Set(values)];
+          };
+          setPreviousSuggestions({
+            points_forts: extract("points_forts"),
+            axes_amelioration: extract("axes_amelioration"),
+            commentaires: extract("commentaires"),
+          });
+        }
+      }
+
       setLoading(false);
     };
     fetchEvaluation();
@@ -215,6 +247,26 @@ const TrainerEvaluation = () => {
               placeholder="Ce qui a bien fonctionné..."
               className="min-h-[100px]"
             />
+            {previousSuggestions.points_forts.length > 0 && (
+              <div className="space-y-1.5">
+                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                  <History className="h-3 w-3" />
+                  Vos retours précédents :
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {previousSuggestions.points_forts.map((s, i) => (
+                    <Badge
+                      key={i}
+                      variant="outline"
+                      className="cursor-pointer hover:bg-primary/10 hover:border-primary transition-colors text-xs font-normal max-w-full"
+                      onClick={() => setPointsForts(prev => prev ? `${prev}\n${s}` : s)}
+                    >
+                      <span className="truncate">{s.length > 80 ? s.slice(0, 80) + "…" : s}</span>
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Axes d'amélioration */}
@@ -226,6 +278,26 @@ const TrainerEvaluation = () => {
               placeholder="Ce qui pourrait être amélioré..."
               className="min-h-[100px]"
             />
+            {previousSuggestions.axes_amelioration.length > 0 && (
+              <div className="space-y-1.5">
+                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                  <History className="h-3 w-3" />
+                  Vos retours précédents :
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {previousSuggestions.axes_amelioration.map((s, i) => (
+                    <Badge
+                      key={i}
+                      variant="outline"
+                      className="cursor-pointer hover:bg-primary/10 hover:border-primary transition-colors text-xs font-normal max-w-full"
+                      onClick={() => setAxesAmelioration(prev => prev ? `${prev}\n${s}` : s)}
+                    >
+                      <span className="truncate">{s.length > 80 ? s.slice(0, 80) + "…" : s}</span>
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Commentaires */}
@@ -237,6 +309,26 @@ const TrainerEvaluation = () => {
               placeholder="Remarques complémentaires..."
               className="min-h-[80px]"
             />
+            {previousSuggestions.commentaires.length > 0 && (
+              <div className="space-y-1.5">
+                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                  <History className="h-3 w-3" />
+                  Vos retours précédents :
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {previousSuggestions.commentaires.map((s, i) => (
+                    <Badge
+                      key={i}
+                      variant="outline"
+                      className="cursor-pointer hover:bg-primary/10 hover:border-primary transition-colors text-xs font-normal max-w-full"
+                      onClick={() => setCommentaires(prev => prev ? `${prev}\n${s}` : s)}
+                    >
+                      <span className="truncate">{s.length > 80 ? s.slice(0, 80) + "…" : s}</span>
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           <Button onClick={handleSubmit} disabled={submitting} className="w-full" size="lg">
