@@ -9,7 +9,7 @@ import {
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
 
 interface CrmAiRequest {
-  action: "analyze_exchanges" | "generate_quote_description" | "improve_email_subject" | "improve_email_body" | "suggest_next_action";
+  action: "analyze_exchanges" | "generate_quote_description" | "improve_email_subject" | "improve_email_body" | "suggest_next_action" | "find_website";
   card_data: {
     title?: string;
     description?: string;
@@ -247,6 +247,42 @@ Objectifs de la réécriture :
 Réponds uniquement avec le HTML amélioré.`;
 
         result = await callAnthropic(systemPrompt, userPrompt);
+        break;
+      }
+
+      case "find_website": {
+        const companyName = card_data.company?.trim();
+        const emailDomain = card_data.context; // reuse context field for email domain
+        if (!companyName && !emailDomain) {
+          return createErrorResponse("company ou email requis", 400);
+        }
+
+        // 1) Try Clearbit autocomplete API (free, no key needed)
+        const query = companyName || emailDomain || "";
+        try {
+          const clearbitRes = await fetch(
+            `https://autocomplete.clearbit.com/v1/companies/suggest?query=${encodeURIComponent(query)}`
+          );
+          if (clearbitRes.ok) {
+            const suggestions = await clearbitRes.json();
+            if (Array.isArray(suggestions) && suggestions.length > 0 && suggestions[0].domain) {
+              result = `https://www.${suggestions[0].domain}`;
+              break;
+            }
+          }
+        } catch {
+          // Clearbit unavailable, fall through to AI
+        }
+
+        // 2) Fallback: ask Claude to guess
+        result = await callAnthropic(
+          `Tu es un assistant qui trouve les sites web d'entreprises. Réponds UNIQUEMENT avec l'URL complète (https://...) ou le mot "unknown" si tu ne connais pas. Pas d'explication.`,
+          `Quel est le site web officiel de l'entreprise "${query}" ?${emailDomain ? ` (domaine email : ${emailDomain})` : ""}`
+        );
+        result = result.trim();
+        if (result.toLowerCase() === "unknown" || !result.startsWith("http")) {
+          result = "";
+        }
         break;
       }
 

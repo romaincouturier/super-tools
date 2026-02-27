@@ -316,6 +316,7 @@ const CardDetailDrawer = ({
   useEffect(() => {
     if (card && card.id !== prevCardIdRef.current) {
       prevCardIdRef.current = card.id;
+      websiteLookedUpRef.current = false;
       setTitle(card.title);
       setCardEmoji(card.emoji || null);
       setDescriptionHtml(card.description_html || "");
@@ -665,9 +666,16 @@ const CardDetailDrawer = ({
     "tutanota.com", "fastmail.com", "hey.com",
   ]);
 
-  // Auto-deduce website from email domain or company name
+  // Track whether we already looked up the website for this card
+  const websiteLookedUpRef = useRef(false);
+  const websiteLookupAbortRef = useRef<AbortController | null>(null);
+
+  // Auto-deduce website from email domain or company name (via API lookup)
   useEffect(() => {
-    // 1) Try email domain first
+    // Skip if website was already set from card data (user-entered)
+    if (!cardLoadedRef.current) return;
+
+    // 1) Try email domain first (instant, no API call)
     if (email.trim()) {
       const atIndex = email.indexOf("@");
       if (atIndex >= 0) {
@@ -682,20 +690,37 @@ const CardDetailDrawer = ({
       }
     }
 
-    // 2) Fallback: guess from company name (normalize to domain-like slug)
-    if (company.trim()) {
-      const slug = company.trim().toLowerCase()
-        .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // strip accents
-        .replace(/[^a-z0-9]+/g, "")                       // keep only alphanum
-        .replace(/^(le|la|les|l|sa|sas|sarl|eurl|sasu|sci|ste|groupe)/, "") // strip legal prefixes
-        .replace(/(sa|sas|sarl|eurl|sasu|sci)$/, "");     // strip legal suffixes
-      if (slug.length >= 2) {
-        const guessedUrl = `https://www.${slug}.com`;
-        if (websiteUrl !== guessedUrl) {
-          setWebsiteUrl(guessedUrl);
+    // 2) Fallback: search real website via Clearbit/AI (debounced API call)
+    if (!company.trim() || websiteLookedUpRef.current) return;
+
+    // Abort previous lookup
+    websiteLookupAbortRef.current?.abort();
+    const controller = new AbortController();
+    websiteLookupAbortRef.current = controller;
+
+    const timer = setTimeout(async () => {
+      try {
+        const emailDomain = email.includes("@") ? email.split("@")[1]?.trim() : "";
+        const { data, error } = await supabase.functions.invoke("crm-ai-assist", {
+          body: {
+            action: "find_website",
+            card_data: { company, context: emailDomain },
+          },
+        });
+        if (controller.signal.aborted) return;
+        if (!error && data?.result) {
+          websiteLookedUpRef.current = true;
+          setWebsiteUrl(data.result);
         }
+      } catch {
+        // Silently fail - website lookup is best-effort
       }
-    }
+    }, 1500); // debounce 1.5s
+
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
   }, [email, company]);
 
   // Helper to build training creation params from current card data
