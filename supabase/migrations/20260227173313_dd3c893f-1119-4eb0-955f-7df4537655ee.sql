@@ -1,0 +1,1 @@
+ALTER TABLE public.crm_cards DROP CONSTRAINT waiting_fields_required;
