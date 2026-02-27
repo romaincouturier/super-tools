@@ -56,9 +56,11 @@ describe("formatDateWithDayOfWeek", () => {
 
 describe("formatDateShort", () => {
   it("uses abbreviated month", () => {
-    const result = formatDateShort("2026-03-15");
-    expect(result).toContain("15");
-    expect(result).toContain("2026");
+    expect(formatDateShort("2026-03-15")).toBe("15 mars 2026");
+  });
+
+  it("handles single-digit day", () => {
+    expect(formatDateShort("2026-01-05")).toBe("5 janv. 2026");
   });
 });
 
@@ -77,17 +79,12 @@ describe("formatDateSlot", () => {
 // ── formatDateWithTime ──────────────────────────────────────────────────────
 
 describe("formatDateWithTime", () => {
-  it("includes time with 'à'", () => {
-    const result = formatDateWithTime("2026-03-15T14:30:00");
-    expect(result).toContain("15 mars 2026");
-    expect(result).toContain("à");
-    expect(result).toContain("14:30");
+  it("formats local timestamp with 'à'", () => {
+    expect(formatDateWithTime("2026-03-15T14:30:00")).toBe("15 mars 2026 à 14:30");
   });
 
-  it("handles Supabase timestamptz with +00:00 offset", () => {
-    const result = formatDateWithTime("2026-03-15T14:30:00+00:00");
-    expect(result).toContain("mars 2026");
-    expect(result).toContain("à");
+  it("formats midnight correctly", () => {
+    expect(formatDateWithTime("2026-03-15T00:00:00")).toBe("15 mars 2026 à 00:00");
   });
 });
 
@@ -95,9 +92,7 @@ describe("formatDateWithTime", () => {
 
 describe("formatDateTimeSeconds", () => {
   it("includes seconds", () => {
-    const result = formatDateTimeSeconds("2026-03-15T14:30:45");
-    expect(result).toContain("15 mars 2026");
-    expect(result).toContain("14:30:45");
+    expect(formatDateTimeSeconds("2026-03-15T14:30:45")).toBe("15 mars 2026 à 14:30:45");
   });
 });
 
@@ -105,10 +100,7 @@ describe("formatDateTimeSeconds", () => {
 
 describe("formatSentDateTime", () => {
   it("shows compact date with time", () => {
-    const result = formatSentDateTime("2026-03-15T14:30:00");
-    expect(result).toContain("15");
-    expect(result).toContain("à");
-    expect(result).toContain("14:30");
+    expect(formatSentDateTime("2026-03-15T14:30:00")).toBe("15 mars à 14:30");
   });
 });
 
@@ -116,10 +108,7 @@ describe("formatSentDateTime", () => {
 
 describe("formatDateTimeShort", () => {
   it("shows short month with year and time", () => {
-    const result = formatDateTimeShort("2026-03-15T14:30:00");
-    expect(result).toContain("15");
-    expect(result).toContain("2026");
-    expect(result).toContain("14:30");
+    expect(formatDateTimeShort("2026-03-15T14:30:00")).toBe("15 mars 2026 14:30");
   });
 });
 
@@ -147,15 +136,21 @@ describe("formatDateRange", () => {
   });
 
   it("optimises same-month range", () => {
-    const result = formatDateRange("2026-03-01", "2026-03-15");
-    expect(result).toMatch(/^1 - 15 mars 2026$/);
+    expect(formatDateRange("2026-03-01", "2026-03-15")).toBe("1 - 15 mars 2026");
   });
 
   it("handles cross-month range", () => {
-    const result = formatDateRange("2026-03-15", "2026-04-15");
-    expect(result).toContain("15");
-    expect(result).toContain("-");
-    expect(result).toContain("2026");
+    expect(formatDateRange("2026-03-15", "2026-04-15")).toBe("15 mars - 15 avr. 2026");
+  });
+
+  it("handles cross-year range", () => {
+    expect(formatDateRange("2025-12-28", "2026-01-05")).toBe("28 déc. - 5 janv. 2026");
+  });
+
+  it("returns degenerate range when start equals end", () => {
+    // Current behaviour: renders "15 - 15 mars 2026" (not collapsed).
+    // Documented here as accepted behaviour.
+    expect(formatDateRange("2026-03-15", "2026-03-15")).toBe("15 - 15 mars 2026");
   });
 });
 
@@ -163,24 +158,67 @@ describe("formatDateRange", () => {
 
 describe("formatTrainingDates", () => {
   it('returns "le ..." for single date', () => {
-    const result = formatTrainingDates("2026-03-15", null);
-    expect(result).toBe("le 15 mars 2026");
+    expect(formatTrainingDates("2026-03-15", null)).toBe("le 15 mars 2026");
   });
 
   it("uses parseISO to avoid UTC midnight timezone shift", () => {
     // new Date("2026-01-01") would be Dec 31 in UTC-X timezones
     // parseISO("2026-01-01") always gives Jan 1 local time
-    const result = formatTrainingDates("2026-01-01", null);
-    expect(result).toBe("le 1 janvier 2026");
+    expect(formatTrainingDates("2026-01-01", null)).toBe("le 1 janvier 2026");
   });
 
   it('returns "le ..." when start equals end', () => {
-    const result = formatTrainingDates("2026-03-15", "2026-03-15");
-    expect(result).toBe("le 15 mars 2026");
+    expect(formatTrainingDates("2026-03-15", "2026-03-15")).toBe("le 15 mars 2026");
   });
 
   it('returns "du ... au ..." for a range', () => {
-    const result = formatTrainingDates("2026-03-15", "2026-03-17");
-    expect(result).toMatch(/^du 15 mars 2026 au 17 mars 2026$/);
+    expect(formatTrainingDates("2026-03-15", "2026-03-17")).toBe("du 15 mars 2026 au 17 mars 2026");
+  });
+});
+
+// ── Defensive: null, undefined, empty, invalid ─────────────────────────────
+
+describe("Defensive behaviour — invalid inputs", () => {
+  const functions = [
+    { name: "formatDateFr", fn: formatDateFr },
+    { name: "formatDateLong", fn: formatDateLong },
+    { name: "formatDateWithDayOfWeek", fn: formatDateWithDayOfWeek },
+    { name: "formatDateShort", fn: formatDateShort },
+    { name: "formatDateSlot", fn: formatDateSlot },
+    { name: "formatDateWithTime", fn: formatDateWithTime },
+    { name: "formatDateTimeSeconds", fn: formatDateTimeSeconds },
+    { name: "formatSentDateTime", fn: formatSentDateTime },
+    { name: "formatDateTimeShort", fn: formatDateTimeShort },
+  ];
+
+  for (const { name, fn } of functions) {
+    it(`${name} throws on null`, () => {
+      expect(() => fn(null as unknown as string)).toThrow();
+    });
+
+    it(`${name} throws on undefined`, () => {
+      expect(() => fn(undefined as unknown as string)).toThrow();
+    });
+
+    it(`${name} throws on empty string`, () => {
+      expect(() => fn("")).toThrow();
+    });
+
+    it(`${name} throws on invalid date string`, () => {
+      expect(() => fn("not-a-date")).toThrow();
+    });
+  }
+
+  it("formatDateRange throws on null start", () => {
+    expect(() => formatDateRange(null as unknown as string, null)).toThrow();
+  });
+
+  it("formatTrainingDates throws on null start", () => {
+    expect(() => formatTrainingDates(null as unknown as string, null)).toThrow();
+  });
+
+  it("formatTrainingDates handles undefined end date", () => {
+    // undefined should behave like null (single date)
+    expect(formatTrainingDates("2026-03-15", undefined as unknown as null)).toBe("le 15 mars 2026");
   });
 });
