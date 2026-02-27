@@ -196,7 +196,7 @@ const EntityMediaManager = ({
         ref={fileInputRef}
         type="file"
         multiple
-        accept="image/*,video/*"
+        accept="image/*,video/*,.svg"
         className="hidden"
         onChange={(e) => {
           if (e.target.files) uploadFiles(e.target.files);
