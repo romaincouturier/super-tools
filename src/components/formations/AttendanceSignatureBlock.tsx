@@ -447,31 +447,44 @@ const AttendanceSignatureBlock = ({
     });
   };
 
-  /** Async: convert PNG signature to compressed JPEG */
+  /** Async: convert PNG signature to compressed JPEG with timeout */
   const compressSignatureAsync = (dataUrl: string): Promise<string> => {
     return new Promise((resolve) => {
       try {
+        // Timeout after 3s to avoid hanging
+        const timeout = setTimeout(() => resolve(dataUrl), 3000);
         const img = new Image();
         img.onload = () => {
-          const canvas = document.createElement("canvas");
-          // Downscale to reasonable size for PDF display
-          const maxW = 200;
-          const scale = Math.min(1, maxW / img.naturalWidth);
-          canvas.width = Math.round(img.naturalWidth * scale);
-          canvas.height = Math.round(img.naturalHeight * scale);
-          const ctx = canvas.getContext("2d");
-          if (!ctx) { resolve(dataUrl); return; }
-          ctx.fillStyle = "#FFFFFF";
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-          resolve(canvas.toDataURL("image/jpeg", 0.5));
+          clearTimeout(timeout);
+          try {
+            const canvas = document.createElement("canvas");
+            const maxW = 200;
+            const scale = Math.min(1, maxW / img.naturalWidth);
+            canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
+            canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
+            const ctx = canvas.getContext("2d");
+            if (!ctx) { resolve(dataUrl); return; }
+            ctx.fillStyle = "#FFFFFF";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            resolve(canvas.toDataURL("image/jpeg", 0.5));
+          } catch {
+            resolve(dataUrl);
+          }
         };
-        img.onerror = () => resolve(dataUrl);
+        img.onerror = () => { clearTimeout(timeout); resolve(dataUrl); };
         img.src = dataUrl;
       } catch {
         resolve(dataUrl);
       }
     });
+  };
+
+  /** Detect image format from data URL for jsPDF */
+  const getImageFormat = (dataUrl: string): string => {
+    if (dataUrl.startsWith("data:image/jpeg")) return "JPEG";
+    if (dataUrl.startsWith("data:image/png")) return "PNG";
+    return "JPEG";
   };
 
   const handleExportPdf = async (participantId?: string) => {
@@ -648,7 +661,7 @@ const AttendanceSignatureBlock = ({
 
           if (sig.signature_data) {
             try {
-              doc.addImage(sig.signature_data, "JPEG", xPos + 2, yPos + 1, 40, 12);
+              doc.addImage(sig.signature_data, getImageFormat(sig.signature_data), xPos + 2, yPos + 1, 40, 12);
               doc.setFontSize(7);
               doc.setTextColor(100, 100, 100);
               doc.text(formatDateTime(sig.signed_at), xPos + 2, yPos + 16);
@@ -748,7 +761,7 @@ const AttendanceSignatureBlock = ({
 
             if (sig.signature_data) {
               try {
-                doc.addImage(sig.signature_data, "JPEG", xPos + 2, yPos + 1, 40, 12);
+                doc.addImage(sig.signature_data, getImageFormat(sig.signature_data), xPos + 2, yPos + 1, 40, 12);
                 doc.setFontSize(7);
                 doc.setTextColor(100, 100, 100);
                 doc.text(formatDateTime(sig.signed_at), xPos + 2, yPos + 16);
@@ -771,13 +784,14 @@ const AttendanceSignatureBlock = ({
 
           if (trainerSig?.signature_data) {
             try {
-              doc.addImage(trainerSig.signature_data, "JPEG", margin + 42, yPos - 1, 35, 12);
+              doc.addImage(trainerSig.signature_data, getImageFormat(trainerSig.signature_data), margin + 42, yPos - 1, 35, 12);
               doc.setFontSize(7);
               doc.setFont("helvetica", "normal");
               doc.setTextColor(100, 100, 100);
               doc.text(`${trainerSig.trainer_name || training.trainer_name} — ${formatDateTime(trainerSig.signed_at!)}`, margin + 42, yPos + 14);
               doc.setTextColor(0, 0, 0);
             } catch { /* skip broken image */ }
+
             yPos += 18;
           } else {
             doc.setFontSize(8);
