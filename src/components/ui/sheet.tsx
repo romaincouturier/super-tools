@@ -63,7 +63,10 @@ const SheetContent = React.forwardRef<React.ElementRef<typeof SheetPrimitive.Con
         ref={ref}
         className={cn(sheetVariants({ side }), className)}
         onInteractOutside={(e) => {
-          const target = e.target as HTMLElement | null;
+          // e is a Radix CustomEvent dispatched on Content — e.target is Content itself.
+          // The actual clicked element is in e.detail.originalEvent.target.
+          const target = (e.detail as { originalEvent: PointerEvent | FocusEvent })
+            ?.originalEvent?.target as HTMLElement | null;
           if (!target) return;
           // Allow the overlay backdrop click to close the sheet
           if (target.hasAttribute("data-sheet-overlay")) return;
