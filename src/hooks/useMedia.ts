@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { sanitizeFileName } from "@/lib/file-utils";
+import { sanitizeFileName, resolveContentType } from "@/lib/file-utils";
 
 export type MediaSourceType = "mission" | "event" | "training" | "crm";
 
@@ -233,7 +233,7 @@ export const uploadMediaFile = async (file: File, sourceType: MediaSourceType, s
 
   const { error: uploadError } = await supabase.storage
     .from(STORAGE_BUCKET)
-    .upload(path, file);
+    .upload(path, file, { contentType: resolveContentType(file) });
 
   if (uploadError) throw uploadError;
 

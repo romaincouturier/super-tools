@@ -45,6 +45,36 @@ export async function downloadFile(url: string, fileName: string): Promise<void>
 }
 
 /**
+ * Resolve the MIME content type for a file.
+ * Some browsers (iPad Safari) leave file.type empty for certain formats
+ * like SVG. Falls back to extension-based detection.
+ */
+const EXT_TO_MIME: Record<string, string> = {
+  svg: "image/svg+xml",
+  png: "image/png",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  gif: "image/gif",
+  webp: "image/webp",
+  heic: "image/heic",
+  heif: "image/heif",
+  pdf: "application/pdf",
+  doc: "application/msword",
+  docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  xls: "application/vnd.ms-excel",
+  xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  mp4: "video/mp4",
+  webm: "video/webm",
+  mov: "video/quicktime",
+};
+
+export function resolveContentType(file: File): string {
+  if (file.type) return file.type;
+  const ext = file.name.split(".").pop()?.toLowerCase() || "";
+  return EXT_TO_MIME[ext] || "application/octet-stream";
+}
+
+/**
  * Build a storage path for a file upload.
  * Format: {entityType}/{entityId}/{timestamp}_{sanitizedName}
  */
