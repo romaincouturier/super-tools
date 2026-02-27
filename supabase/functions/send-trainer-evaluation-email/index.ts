@@ -56,7 +56,7 @@ serve(async (req) => {
         est maintenant terminée.
       </p>
       <p>Merci de prendre quelques minutes pour donner votre retour sur cette session en cliquant sur le lien ci-dessous :</p>
-      <p><a href="${evaluationLink}" style="display:inline-block;padding:12px 24px;background-color:#2563eb;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:600;">Donner mon retour</a></p>
+      <p><a href="${evaluationLink}" style="display:inline-block;padding:12px 24px;background-color:#e6bc00;color:#1a1a1a;text-decoration:none;border-radius:6px;font-weight:600;">Donner mon retour</a></p>
       <p>Ce formulaire prend environ 2 minutes.</p>
       <p>Merci,<br/>L'équipe SuperTilt</p>
       ${signature}
