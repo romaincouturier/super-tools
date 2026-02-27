@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { Resend } from "https://esm.sh/resend@2.0.0";
-import { getSenderFrom, getSenderEmail, getBccList } from "../_shared/email-settings.ts";
+import { getSenderFrom, getSenderEmail, getSenderName, getBccList } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
 
 const corsHeaders = {
@@ -247,7 +247,8 @@ const handler = async (req: Request): Promise<Response> => {
       case "trainer_summary": {
         // Get trainer info from trainers table
         let trainerEmail = await getSenderEmail();
-        let trainerFirstName = "Romain";
+        const senderFullName = await getSenderName();
+        let trainerFirstName = senderFullName.split(" ")[0];
         if (training.trainer_id) {
           const { data: trainer } = await supabase
             .from("trainers")
