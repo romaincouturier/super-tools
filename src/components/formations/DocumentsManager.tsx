@@ -162,6 +162,11 @@ const DocumentsManager = ({
   const [verifying, setVerifying] = useState(false);
   const { toast } = useToast();
 
+  // Sync props to local state when parent re-fetches data
+  useEffect(() => { setAttendanceSheetsUrls(initialSheetsUrls); }, [initialSheetsUrls]);
+  useEffect(() => { setInvoiceFileUrl(initialInvoiceUrl); }, [initialInvoiceUrl]);
+  useEffect(() => { setSignedConventionUrls(initialSignedConventionUrls || []); }, [initialSignedConventionUrls]);
+
   // Fetch document send dates from activity logs
   useEffect(() => {
     const fetchDocumentsSentInfo = async () => {
