@@ -615,7 +615,6 @@ const CardDetailDrawer = ({
   const handleSuggestNextAction = async () => {
     if (!card) return;
     setNextActionSuggesting(true);
-    setNextActionSuggestion(null);
 
     try {
       const { data, error } = await supabase.functions.invoke("crm-ai-assist", {
@@ -632,10 +631,11 @@ const CardDetailDrawer = ({
       });
 
       if (error) throw error;
-      setNextActionSuggestion(data.result);
+      setScheduledText(data.result);
+      setShowSchedulePopover(true);
     } catch (error) {
       console.error("AI next action suggestion error:", error);
-      setNextActionSuggestion("Erreur lors de la suggestion. Veuillez réessayer.");
+      toast({ title: "Erreur", description: "Impossible de générer une suggestion.", variant: "destructive" });
     } finally {
       setNextActionSuggesting(false);
     }
@@ -645,15 +645,16 @@ const CardDetailDrawer = ({
     await navigator.clipboard.writeText(text);
   };
 
-  // Auto-calculate LinkedIn search URL from first/last name
+  // Auto-calculate LinkedIn search URL from first/last name (only if card has no saved URL)
   useEffect(() => {
+    if (card?.linkedin_url) return; // Don't overwrite a saved LinkedIn URL
     if (firstName.trim() || lastName.trim()) {
       const name = [firstName.trim(), lastName.trim().toUpperCase()].filter(Boolean).join(" ");
       setLinkedinUrl(`https://www.linkedin.com/search/results/all/?keywords=${encodeURIComponent(name)}`);
     } else {
       setLinkedinUrl("");
     }
-  }, [firstName, lastName]);
+  }, [firstName, lastName, card?.linkedin_url]);
 
   // Common email providers (domains that should NOT be used as website)
   const commonEmailProviders = new Set([
@@ -1602,12 +1603,10 @@ const CardDetailDrawer = ({
             </div>
             {linkedinUrl && (
               <div className="col-span-2">
-                <Button variant="outline" size="sm" className="gap-1.5 h-8" asChild>
-                  <a href={linkedinUrl} target="_blank" rel="noopener noreferrer">
+                <Button variant="outline" size="sm" className="gap-1.5 h-8" onClick={() => window.open(linkedinUrl, '_blank', 'noopener')}>
                     <Linkedin className="h-3.5 w-3.5" />
                     LinkedIn
                     <ExternalLink className="h-3 w-3" />
-                  </a>
                 </Button>
               </div>
             )}
@@ -1710,80 +1709,6 @@ const CardDetailDrawer = ({
             />
           </div>
 
-          {/* Next action checkbox */}
-          <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
-            <Checkbox
-              id="next-action-done"
-              checked={nextActionDone}
-              onCheckedChange={(checked) => setNextActionDone(checked === true)}
-            />
-            <div className="flex-1">
-              <div className="flex items-center gap-2 mb-1">
-                <Label htmlFor="next-action-done" className="text-xs text-muted-foreground">
-                  Prochaine action
-                </Label>
-                <div className="flex gap-0.5">
-                  <Button
-                    variant={nextActionType === "email" ? "default" : "ghost"}
-                    size="sm"
-                    className="h-5 px-1.5 text-[10px]"
-                    onClick={() => setNextActionType("email")}
-                    title="Recontacter par email"
-                  >
-                    <Mail className="h-3 w-3" />
-                  </Button>
-                  <Button
-                    variant={nextActionType === "phone" ? "default" : "ghost"}
-                    size="sm"
-                    className="h-5 px-1.5 text-[10px]"
-                    onClick={() => setNextActionType("phone")}
-                    title="Recontacter par téléphone"
-                  >
-                    <Phone className="h-3 w-3" />
-                  </Button>
-                  <Button
-                    variant={nextActionType === "other" ? "default" : "ghost"}
-                    size="sm"
-                    className="h-5 px-1.5 text-[10px]"
-                    onClick={() => setNextActionType("other")}
-                    title="Autre action"
-                  >
-                    <Circle className="h-3 w-3" />
-                  </Button>
-                </div>
-              </div>
-              <Input
-                value={nextActionText}
-                onChange={(e) => setNextActionText(e.target.value)}
-                placeholder={nextActionType === "email" ? "Recontacter par email..." : nextActionType === "phone" ? "Recontacter par téléphone..." : "Quelle est la prochaine action ?"}
-                className={`h-8 text-sm ${nextActionDone ? "line-through text-muted-foreground" : ""}`}
-              />
-            </div>
-          </div>
-
-          {/* AI next action suggestion */}
-          {nextActionSuggestion && (
-            <div className="p-3 bg-purple-50 rounded-lg border border-purple-200 text-sm">
-              <div className="flex items-center justify-between mb-1">
-                <span className="font-medium text-purple-700 text-xs">Suggestion IA</span>
-                <div className="flex gap-1">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-5 px-1.5 text-[10px] text-purple-700"
-                    onClick={() => { setNextActionText(nextActionSuggestion); setNextActionSuggestion(null); }}
-                  >
-                    <Check className="h-3 w-3 mr-0.5" />
-                    Appliquer
-                  </Button>
-                  <Button variant="ghost" size="sm" className="h-5 px-1" onClick={() => setNextActionSuggestion(null)}>
-                    <X className="h-3 w-3" />
-                  </Button>
-                </div>
-              </div>
-              <p className="text-purple-900">{nextActionSuggestion}</p>
-            </div>
-          )}
 
           {/* Linked Mission */}
           {serviceType === "mission" && (

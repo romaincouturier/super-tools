@@ -443,6 +443,32 @@ PS : on peut continuer à rester en contact sur LinkedIn (https://www.linkedin.c
     },
     variables: ["financeur_name", "financeur_url", "training_name"],
   },
+  follow_up_news: {
+    name: "Prise de nouvelles informelle",
+    timing: "after",
+    delayKey: "delay_follow_up_news_days",
+    subject: {
+      tu: "{{first_name}}, des nouvelles depuis la formation ?",
+      vous: "{{first_name}}, des nouvelles depuis la formation ?",
+    },
+    content: {
+      tu: `Salut {{first_name}},
+
+Ça fait environ un mois que tu as suivi la formation "{{training_name}}" et je voulais prendre de tes nouvelles !
+
+Tu as réussi à mettre des choses en pratique depuis ? Je serais curieux de savoir ce qui a le mieux marché pour toi.
+
+N'hésite pas à me répondre, même en deux mots !`,
+      vous: `Bonjour {{first_name}},
+
+Cela fait environ un mois que vous avez suivi la formation "{{training_name}}" et je souhaitais prendre de vos nouvelles !
+
+Avez-vous eu l'occasion de mettre des choses en pratique depuis ? Je serais curieux de savoir ce qui a le mieux fonctionné pour vous.
+
+N'hésitez pas à me répondre, même en quelques mots !`,
+    },
+    variables: ["first_name", "training_name"],
+  },
   training_documents: {
     name: "Envoi des documents de formation",
     timing: "manual",
@@ -810,6 +836,7 @@ const Parametres = () => {
   const [delayEvaluationReminder2, setDelayEvaluationReminder2] = useState("5");
   const [delayConventionReminder1, setDelayConventionReminder1] = useState("3");
   const [delayConventionReminder2, setDelayConventionReminder2] = useState("7");
+  const [delayFollowUpNews, setDelayFollowUpNews] = useState("30");
 
   // Post-evaluation email settings (now managed by PostEvaluationEmailManager component)
 
@@ -874,6 +901,7 @@ const Parametres = () => {
         "delay_cold_evaluation_days", "delay_cold_evaluation_funder_days",
         "delay_evaluation_reminder_1_days", "delay_evaluation_reminder_2_days",
         "delay_convention_reminder_1_days", "delay_convention_reminder_2_days",
+        "delay_follow_up_news_days",
         "can_delete_evaluations_emails",
         "reglement_interieur_url",
         "slack_crm_webhook_url",
@@ -966,6 +994,9 @@ const Parametres = () => {
         case "delay_convention_reminder_2_days":
           setDelayConventionReminder2(setting.setting_value || "7");
           break;
+        case "delay_follow_up_news_days":
+          setDelayFollowUpNews(setting.setting_value || "30");
+          break;
         case "can_delete_evaluations_emails":
           setCanDeleteEvaluationsEmails(setting.setting_value || "");
           break;
@@ -1012,6 +1043,7 @@ const Parametres = () => {
         { setting_key: "delay_evaluation_reminder_2_days", setting_value: delayEvaluationReminder2, description: "Délai pour la 2ème relance d'évaluation (en jours ouvrables après le mail de remerciement)" },
         { setting_key: "delay_convention_reminder_1_days", setting_value: delayConventionReminder1, description: "Délai en jours ouvrés pour la 1ère relance convention de formation" },
         { setting_key: "delay_convention_reminder_2_days", setting_value: delayConventionReminder2, description: "Délai en jours ouvrés pour la 2ème relance convention de formation" },
+        { setting_key: "delay_follow_up_news_days", setting_value: delayFollowUpNews, description: "Délai après formation pour envoyer un message informel de prise de nouvelles (en jours ouvrables)" },
         { setting_key: "can_delete_evaluations_emails", setting_value: canDeleteEvaluationsEmails, description: "Emails des utilisateurs autorisés à supprimer des évaluations (séparés par des virgules)" },
         { setting_key: "reglement_interieur_url", setting_value: reglementInterieurUrl || "", description: "URL du règlement intérieur des formations (PDF uploadé)" },
         // post_evaluation_email_* settings removed — now managed via post_evaluation_emails table
@@ -1968,6 +2000,35 @@ const Parametres = () => {
                         Dernière relance mentionnant l'importance pour Qualiopi
                       </p>
                     </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Follow-up news delay */}
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium">Prise de nouvelles informelle</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Un message personnalisé généré par l'IA est envoyé à chaque participant pour prendre de ses nouvelles et savoir ce qu'il a mis en pratique.
+                  </p>
+                  <div className="space-y-2">
+                    <Label htmlFor="delay-follow-up-news">Délai après envoi du mail de remerciement</Label>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground">J +</span>
+                      <Input
+                        id="delay-follow-up-news"
+                        type="number"
+                        min="7"
+                        max="90"
+                        value={delayFollowUpNews}
+                        onChange={(e) => setDelayFollowUpNews(e.target.value)}
+                        className="w-20"
+                      />
+                      <span className="text-sm text-muted-foreground">jours ouvrables</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Message informel et humain, sans formulaire ni questionnaire — juste pour nouer la conversation
+                    </p>
                   </div>
                 </div>
 

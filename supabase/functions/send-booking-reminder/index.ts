@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { getSenderFrom, getBccList } from "../_shared/email-settings.ts";
+import { getSenderFrom, getSenderEmail, getSenderName, getBccList } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
 
 const corsHeaders = {
@@ -254,14 +254,10 @@ serve(async (req) => {
 
     console.log(`Found ${missions?.length || 0} missions requiring booking reminders`);
 
-    // Get the admin user email for sending mission reminders
-    const { data: settingsData } = await supabase
-      .from("app_settings")
-      .select("setting_value")
-      .eq("setting_key", "sender_email")
-      .single();
-    const adminEmail = settingsData?.setting_value || "romain@supertilt.fr";
-    const adminFirstName = "Romain"; // Fallback
+    // Get the admin user email/name for sending mission reminders
+    const adminEmail = await getSenderEmail();
+    const adminFullName = await getSenderName();
+    const adminFirstName = adminFullName.split(" ")[0];
 
     for (const mission of (missions || [])) {
       if (!mission.location) continue;
