@@ -72,9 +72,13 @@ async function searchInsee(companyName: string, apiKey: string): Promise<SirenRe
     const periodes = uniteLegale?.periodesUniteLegale;
     const current = periodes?.[0];
 
-    let nom = current?.denominationUniteLegale || "";
-    if (!nom && current?.nomUniteLegale) {
-      nom = `${current?.prenomUsuelUniteLegale || ""} ${current.nomUniteLegale}`.trim();
+    let nom = current?.denominationUniteLegale || uniteLegale?.denominationUniteLegale || "";
+    if (!nom) {
+      const nomUL = current?.nomUniteLegale || uniteLegale?.nomUniteLegale;
+      const prenomUL = current?.prenomUsuelUniteLegale || uniteLegale?.prenomUsuelUniteLegale;
+      if (nomUL) {
+        nom = `${prenomUL || ""} ${nomUL}`.trim();
+      }
     }
 
     const addr = etab.adresseEtablissement;
