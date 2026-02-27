@@ -440,10 +440,37 @@ const AttendanceSignatureBlock = ({
         const ctx = canvas.getContext("2d");
         if (!ctx) { reject(new Error("No canvas context")); return; }
         ctx.drawImage(img, 0, 0);
-        resolve(canvas.toDataURL("image/jpeg"));
+        resolve(canvas.toDataURL("image/jpeg", 0.7));
       };
       img.onerror = reject;
       img.src = src;
+    });
+  };
+
+  /** Async: convert PNG signature to compressed JPEG */
+  const compressSignatureAsync = (dataUrl: string): Promise<string> => {
+    return new Promise((resolve) => {
+      try {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          // Downscale to reasonable size for PDF display
+          const maxW = 200;
+          const scale = Math.min(1, maxW / img.naturalWidth);
+          canvas.width = Math.round(img.naturalWidth * scale);
+          canvas.height = Math.round(img.naturalHeight * scale);
+          const ctx = canvas.getContext("2d");
+          if (!ctx) { resolve(dataUrl); return; }
+          ctx.fillStyle = "#FFFFFF";
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          resolve(canvas.toDataURL("image/jpeg", 0.5));
+        };
+        img.onerror = () => resolve(dataUrl);
+        img.src = dataUrl;
+      } catch {
+        resolve(dataUrl);
+      }
     });
   };
 
@@ -478,6 +505,18 @@ const AttendanceSignatureBlock = ({
 
       // Load logo
       const logoBase64 = await loadImageAsBase64(supertiltLogoJpg);
+
+      // Pre-compress all signature images (PNG → small JPEG) to reduce PDF size
+      for (const sig of signatures) {
+        if (sig.signature_data) {
+          sig.signature_data = await compressSignatureAsync(sig.signature_data);
+        }
+      }
+      for (const ts of trainerSigs) {
+        if (ts.signature_data) {
+          ts.signature_data = await compressSignatureAsync(ts.signature_data);
+        }
+      }
 
       // Generate PDF
       const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
@@ -609,7 +648,7 @@ const AttendanceSignatureBlock = ({
 
           if (sig.signature_data) {
             try {
-              doc.addImage(sig.signature_data, "PNG", xPos + 2, yPos + 1, 40, 12);
+              doc.addImage(sig.signature_data, "JPEG", xPos + 2, yPos + 1, 40, 12);
               doc.setFontSize(7);
               doc.setTextColor(100, 100, 100);
               doc.text(formatDateTime(sig.signed_at), xPos + 2, yPos + 16);
@@ -709,7 +748,7 @@ const AttendanceSignatureBlock = ({
 
             if (sig.signature_data) {
               try {
-                doc.addImage(sig.signature_data, "PNG", xPos + 2, yPos + 1, 40, 12);
+                doc.addImage(sig.signature_data, "JPEG", xPos + 2, yPos + 1, 40, 12);
                 doc.setFontSize(7);
                 doc.setTextColor(100, 100, 100);
                 doc.text(formatDateTime(sig.signed_at), xPos + 2, yPos + 16);
@@ -732,7 +771,7 @@ const AttendanceSignatureBlock = ({
 
           if (trainerSig?.signature_data) {
             try {
-              doc.addImage(trainerSig.signature_data, "PNG", margin + 42, yPos - 1, 35, 12);
+              doc.addImage(trainerSig.signature_data, "JPEG", margin + 42, yPos - 1, 35, 12);
               doc.setFontSize(7);
               doc.setFont("helvetica", "normal");
               doc.setTextColor(100, 100, 100);

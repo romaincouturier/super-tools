@@ -92,9 +92,9 @@ const TrainerEvaluation = () => {
             return [...new Set(values)];
           };
           setPreviousSuggestions({
-            points_forts: extract("points_forts"),
-            axes_amelioration: extract("axes_amelioration"),
-            commentaires: extract("commentaires"),
+            points_forts: extract("points_forts") as string[],
+            axes_amelioration: extract("axes_amelioration") as string[],
+            commentaires: extract("commentaires") as string[],
           });
         }
       }
