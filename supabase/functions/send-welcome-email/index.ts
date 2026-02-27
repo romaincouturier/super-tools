@@ -183,7 +183,7 @@ serve(async (req) => {
         <p>${greeting}</p>
         <p>C'est avec grand plaisir que nous vous confirmons votre inscription à la formation <strong>${safeTrainingName}</strong>.</p>
 
-        <p style="background-color: #f0f9ff; border-left: 4px solid #2563eb; padding: 12px 16px; margin: 16px 0; font-weight: 500;">
+        <p style="background-color: #fefce8; border-left: 4px solid #e6bc00; padding: 12px 16px; margin: 16px 0; font-weight: 500;">
           📋 Ce mail constitue votre convocation à la formation.
         </p>
 

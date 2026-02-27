@@ -191,8 +191,8 @@ serve(async (req) => {
         : "";
       const contactParts: string[] = [];
       if (contactName) contactParts.push(`<span style="color: #374151;">${contactName}</span>`);
-      if (card.phone) contactParts.push(`<a href="tel:${card.phone.replace(/\s/g, "")}" style="color: #2563eb; text-decoration: none;">📞 ${card.phone}</a>`);
-      if (card.email) contactParts.push(`<a href="mailto:${card.email}" style="color: #2563eb; text-decoration: none;">✉️ ${card.email}</a>`);
+      if (card.phone) contactParts.push(`<a href="tel:${card.phone.replace(/\s/g, "")}" style="color: #b8960a; text-decoration: none;">📞 ${card.phone}</a>`);
+      if (card.email) contactParts.push(`<a href="mailto:${card.email}" style="color: #b8960a; text-decoration: none;">✉️ ${card.email}</a>`);
       const contactHtml = contactParts.length > 0 ? `<br/><span style="font-size: 13px;">${contactParts.join(" · ")}</span>` : "";
       return `<li style="margin-bottom: 6px;">${emojiPrefix}<a href="${appUrl}/crm" style="color: ${COLORS.primary}; text-decoration: underline;">${label}</a>${value}${contactHtml}</li>`;
     };
