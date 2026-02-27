@@ -108,26 +108,37 @@ const MissionProfitabilityDashboard = () => {
     const marginRateOnVariableCosts = (100 - s.variableChargesRate) / 100;
     const breakEvenMonthly = Math.ceil(s.fixedChargesMonthly / marginRateOnVariableCosts);
 
-    // Calculate actual CA from missions this year
+    // Include missions that overlap with the current year
     const yearMissions = missions?.filter(m => {
-      const startYear = m.start_date ? new Date(m.start_date).getFullYear() : null;
-      return startYear === currentYear;
+      if (!m.start_date) return false;
+      const start = new Date(m.start_date);
+      const end = m.end_date ? new Date(m.end_date) : new Date();
+      return start.getFullYear() <= currentYear && end.getFullYear() >= currentYear;
     }) || [];
 
-    // Sum of billed amounts from missions
+    // Sum of billed/consumed amounts (synced from activities via DB trigger)
     const totalBilledCA = yearMissions.reduce((sum, m) => sum + (m.billed_amount || 0), 0);
     const totalConsumedCA = yearMissions.reduce((sum, m) => sum + (m.consumed_amount || 0), 0);
     const totalInitialBudget = yearMissions.reduce((sum, m) => sum + (m.initial_amount || 0), 0);
 
-    // Count billed days from missions (using total_days for completed missions)
-    const totalBilledDays = yearMissions
-      .filter(m => m.status === 'completed')
-      .reduce((sum, m) => sum + (m.total_days || 0), 0);
+    // Compute actual billed days: billed_amount / daily_rate per mission
+    const totalBilledDays = yearMissions.reduce((sum, m) => {
+      if (!m.billed_amount || m.billed_amount === 0) return sum;
+      if (m.daily_rate && m.daily_rate > 0) {
+        return sum + m.billed_amount / m.daily_rate;
+      }
+      return sum + (m.total_days || 0);
+    }, 0);
 
-    // Estimated days in progress
+    // Estimated days in progress (consumed but not necessarily billed)
     const inProgressDays = yearMissions
       .filter(m => m.status === 'in_progress')
-      .reduce((sum, m) => sum + (m.total_days || 0), 0);
+      .reduce((sum, m) => {
+        if (m.daily_rate && m.daily_rate > 0 && m.consumed_amount) {
+          return sum + m.consumed_amount / m.daily_rate;
+        }
+        return sum + (m.total_days || 0);
+      }, 0);
 
     // Calculate average actual TJM
     const actualTJM = totalBilledDays > 0
