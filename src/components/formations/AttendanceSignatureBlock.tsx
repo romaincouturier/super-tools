@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
+import { formatDateFr, formatDateLong, getPeriodLabel as getPeriodLabelShared, formatDateSlot } from "@/lib/dateFormatters";
 import { PenLine, Send, RefreshCw, Check, Loader2, Download, FileDown, ChevronDown, UserPen } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -485,15 +486,7 @@ const AttendanceSignatureBlock = ({
       const margin = 15;
       const contentWidth = pageWidth - 2 * margin;
 
-      // Helper: format date in French
-      const formatDateFr = (dateStr: string) => {
-        const d = parseISO(dateStr);
-        return format(d, "dd/MM/yyyy", { locale: fr });
-      };
-      const formatDateLong = (dateStr: string) => {
-        const d = parseISO(dateStr);
-        return format(d, "d MMMM yyyy", { locale: fr });
-      };
+      // Helper: format date in French (uses shared formatters)
       const formatDateTime = (dateStr: string) => {
         const d = new Date(dateStr);
         return d.toLocaleString("fr-FR", {
@@ -501,7 +494,7 @@ const AttendanceSignatureBlock = ({
           hour: "2-digit", minute: "2-digit",
         });
       };
-      const getPeriodLabel = (period: string) => period === "AM" ? "Matin" : "Après-midi";
+      const getPeriodLabel = getPeriodLabelShared;
 
       // Determine participant name for single-participant export
       let participantName = "";
@@ -864,12 +857,9 @@ const AttendanceSignatureBlock = ({
     }
   };
 
-  const formatSlotDate = (dateStr: string) => {
-    const date = parseISO(dateStr);
-    return format(date, "dd/MM", { locale: fr });
-  };
+  const formatSlotDate = formatDateSlot;
 
-  const getPeriodLabel = (period: "AM" | "PM") => period === "AM" ? "Matin" : "Après-midi";
+  const getPeriodLabel = getPeriodLabelShared;
 
   const getParticipantName = (p: { first_name: string | null; last_name: string | null; email: string }) => {
     const name = `${p.first_name || ""} ${p.last_name || ""}`.trim();

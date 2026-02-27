@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { format, parseISO } from "date-fns";
-import { fr } from "date-fns/locale";
+import { formatDateWithDayOfWeek } from "@/lib/dateFormatters";
 import {
   ArrowLeft,
   CalendarDays,
@@ -148,7 +147,7 @@ const EventDetail = () => {
               <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
                 <span className="flex items-center gap-1">
                   <CalendarDays className="h-3.5 w-3.5" />
-                  {format(parseISO(event.event_date), "EEEE d MMMM yyyy", { locale: fr })}
+                  {formatDateWithDayOfWeek(event.event_date)}
                 </span>
                 {event.event_time && (
                   <span className="flex items-center gap-1">

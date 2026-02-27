@@ -8,8 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Loader2, CheckCircle2, Calendar, Building2, User, Mail } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { format } from "date-fns";
-import { fr } from "date-fns/locale";
+import { formatTrainingDates, formatDateWithTime } from "@/lib/dateFormatters";
 import supertiltLogo from "@/assets/supertilt-logo-anthracite-transparent.png";
 
 type SponsorEvalRecord = {
@@ -74,12 +73,7 @@ const SponsorEvaluation = () => {
 
   const formattedDates = useMemo(() => {
     if (!training) return "";
-    const start = format(new Date(training.start_date), "d MMMM yyyy", { locale: fr });
-    if (training.end_date && training.end_date !== training.start_date) {
-      const end = format(new Date(training.end_date), "d MMMM yyyy", { locale: fr });
-      return `du ${start} au ${end}`;
-    }
-    return `le ${start}`;
+    return formatTrainingDates(training.start_date, training.end_date);
   }, [training]);
 
   const fetchData = async () => {
@@ -271,7 +265,7 @@ const SponsorEvaluation = () => {
             <CardTitle>Merci pour votre retour !</CardTitle>
             <CardDescription>
               Vous avez envoyé votre évaluation pour la formation <strong>{training.training_name}</strong> le{" "}
-              {format(new Date(record.date_soumission), "d MMMM yyyy à HH:mm", { locale: fr })}.
+              {formatDateWithTime(record.date_soumission)}.
             </CardDescription>
           </CardHeader>
           <CardContent className="text-center">

@@ -11,8 +11,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Slider } from "@/components/ui/slider";
 import { Loader2, ExternalLink, Calendar, Clock, CheckCircle2, MapPin, Video, WifiOff, RefreshCw, Save, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { format } from "date-fns";
-import { fr } from "date-fns/locale";
+import { formatDateWithDayOfWeek, formatDateWithTime } from "@/lib/dateFormatters";
 import supertiltLogo from "@/assets/supertilt-logo-anthracite-transparent.png";
 
 type SaveStatus = "idle" | "saving" | "saved" | "error";
@@ -687,7 +686,7 @@ const Questionnaire = () => {
 
   const formatScheduleDate = (dateStr: string) => {
     try {
-      return format(new Date(dateStr), "EEEE d MMMM yyyy", { locale: fr });
+      return formatDateWithDayOfWeek(dateStr);
     } catch {
       return dateStr;
     }
@@ -761,7 +760,7 @@ const Questionnaire = () => {
             </p>
             {questionnaire.date_soumission && (
               <p className="text-xs text-muted-foreground">
-                Soumis le {format(new Date(questionnaire.date_soumission), "d MMMM yyyy 'à' HH:mm", { locale: fr })}
+                Soumis le {formatDateWithTime(questionnaire.date_soumission)}
               </p>
             )}
             <div className="space-y-2 pt-2">
