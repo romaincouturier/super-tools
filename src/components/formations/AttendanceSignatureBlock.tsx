@@ -849,11 +849,15 @@ const AttendanceSignatureBlock = ({
         ? `Emargement_${participantName.replace(/\s+/g, "_")}_${safeName}_${dateStr}.pdf`
         : `Emargement_${safeName}_${dateStr}.pdf`;
 
-      // Download
-      doc.save(filename);
-
-      // Upload to storage and replace previous electronic attendance sheet (full session only)
-      if (!participantId) {
+      // Individual participant: download locally (no storage upload)
+      if (participantId) {
+        doc.save(filename);
+        toast({
+          title: "PDF exporté",
+          description: "La feuille d'émargement a été téléchargée.",
+        });
+      } else {
+        // Full session: upload to storage only (user can download from documents later)
         try {
           const pdfBlob = doc.output("blob");
           const storagePath = `${trainingId}/emargement_electronique_${Date.now()}.pdf`;
@@ -889,7 +893,6 @@ const AttendanceSignatureBlock = ({
               .from("training-documents")
               .getPublicUrl(storagePath);
 
-            // Keep non-electronic URLs, replace with new one
             const nonElectronicUrls = currentUrls.filter(url => !url.includes("/emargement_electronique_"));
             const newUrls = [...nonElectronicUrls, publicUrl];
 
@@ -900,18 +903,20 @@ const AttendanceSignatureBlock = ({
 
             onUpdate?.();
           }
+
+          toast({
+            title: "Feuille d'émargement générée",
+            description: "Le document a été ajouté aux documents de la formation.",
+          });
         } catch (uploadErr) {
           console.error("Error uploading PDF to storage:", uploadErr);
-          // Non-blocking: PDF was already downloaded
+          toast({
+            title: "Erreur",
+            description: "Erreur lors de l'enregistrement du document.",
+            variant: "destructive",
+          });
         }
       }
-
-      toast({
-        title: "PDF exporté",
-        description: participantId
-          ? "La feuille d'émargement a été téléchargée."
-          : "La feuille d'émargement a été téléchargée et ajoutée aux documents.",
-      });
 
     } catch (err) {
       console.error("Error exporting attendance PDF:", err);
