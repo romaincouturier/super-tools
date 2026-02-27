@@ -665,19 +665,38 @@ const CardDetailDrawer = ({
     "tutanota.com", "fastmail.com", "hey.com",
   ]);
 
-  // Auto-deduce website from email domain
+  // Auto-deduce website from email domain or company name
   useEffect(() => {
-    if (!email.trim()) return;
-    const atIndex = email.indexOf("@");
-    if (atIndex < 0) return;
-    const domain = email.slice(atIndex + 1).trim().toLowerCase();
-    if (!domain || domain.indexOf(".") < 0) return;
-    if (commonEmailProviders.has(domain)) return;
-    const newUrl = `https://www.${domain}`;
-    if (websiteUrl !== newUrl) {
-      setWebsiteUrl(newUrl);
+    // 1) Try email domain first
+    if (email.trim()) {
+      const atIndex = email.indexOf("@");
+      if (atIndex >= 0) {
+        const domain = email.slice(atIndex + 1).trim().toLowerCase();
+        if (domain && domain.indexOf(".") >= 0 && !commonEmailProviders.has(domain)) {
+          const newUrl = `https://www.${domain}`;
+          if (websiteUrl !== newUrl) {
+            setWebsiteUrl(newUrl);
+          }
+          return;
+        }
+      }
     }
-  }, [email]);
+
+    // 2) Fallback: guess from company name (normalize to domain-like slug)
+    if (company.trim()) {
+      const slug = company.trim().toLowerCase()
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // strip accents
+        .replace(/[^a-z0-9]+/g, "")                       // keep only alphanum
+        .replace(/^(le|la|les|l|sa|sas|sarl|eurl|sasu|sci|ste|groupe)/, "") // strip legal prefixes
+        .replace(/(sa|sas|sarl|eurl|sasu|sci)$/, "");     // strip legal suffixes
+      if (slug.length >= 2) {
+        const guessedUrl = `https://www.${slug}.com`;
+        if (websiteUrl !== guessedUrl) {
+          setWebsiteUrl(guessedUrl);
+        }
+      }
+    }
+  }, [email, company]);
 
   // Helper to build training creation params from current card data
   const buildTrainingParams = (): URLSearchParams => {
