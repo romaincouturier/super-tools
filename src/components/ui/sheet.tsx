@@ -58,19 +58,16 @@ interface SheetContentProps
 const SheetContent = React.forwardRef<React.ElementRef<typeof SheetPrimitive.Content>, SheetContentProps>(
   ({ side = "right", className, children, hideCloseButton, ...props }, ref) => (
     <SheetPortal>
-      <SheetOverlay />
+      <SheetPrimitive.Close asChild>
+        <SheetOverlay />
+      </SheetPrimitive.Close>
       <SheetPrimitive.Content
         ref={ref}
         className={cn(sheetVariants({ side }), className)}
         onInteractOutside={(e) => {
-          // e is a Radix CustomEvent dispatched on Content — e.target is Content itself.
-          // The actual clicked element is in e.detail.originalEvent.target.
-          const target = (e.detail as { originalEvent: PointerEvent | FocusEvent })
-            ?.originalEvent?.target as HTMLElement | null;
-          if (!target) return;
-          // Allow the overlay backdrop click to close the sheet
-          if (target.hasAttribute("data-sheet-overlay")) return;
-          // Block Chrome extensions (MerciApp, Grammarly popups) from closing the sheet
+          // Block all outside interactions so Chrome extensions (MerciApp, Grammarly)
+          // don't accidentally close the sheet. Closing via overlay click is handled
+          // by the SheetPrimitive.Close wrapper around SheetOverlay above.
           e.preventDefault();
         }}
         {...props}
