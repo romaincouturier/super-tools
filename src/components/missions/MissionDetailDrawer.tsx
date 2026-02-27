@@ -345,7 +345,6 @@ const MissionDetailDrawer = ({
               entityId={mission.id}
               variant="bare"
               title="Documents contractuels"
-              accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.webp"
             />
           </TabsContent>
 
