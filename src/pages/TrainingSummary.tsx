@@ -652,11 +652,9 @@ END:VCALENDAR`;
                     )}
                     
                     {trainer.linkedin_url && (
-                      <Button variant="outline" size="sm" asChild>
-                        <a href={trainer.linkedin_url} target="_blank" rel="noopener noreferrer">
+                      <Button variant="outline" size="sm" onClick={() => window.open(trainer.linkedin_url!, '_blank', 'noopener')}>
                           <Linkedin className="h-4 w-4 mr-2" />
                           LinkedIn
-                        </a>
                       </Button>
                     )}
 

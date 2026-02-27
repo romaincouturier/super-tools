@@ -645,15 +645,16 @@ const CardDetailDrawer = ({
     await navigator.clipboard.writeText(text);
   };
 
-  // Auto-calculate LinkedIn search URL from first/last name
+  // Auto-calculate LinkedIn search URL from first/last name (only if card has no saved URL)
   useEffect(() => {
+    if (card?.linkedin_url) return; // Don't overwrite a saved LinkedIn URL
     if (firstName.trim() || lastName.trim()) {
       const name = [firstName.trim(), lastName.trim().toUpperCase()].filter(Boolean).join(" ");
       setLinkedinUrl(`https://www.linkedin.com/search/results/all/?keywords=${encodeURIComponent(name)}`);
     } else {
       setLinkedinUrl("");
     }
-  }, [firstName, lastName]);
+  }, [firstName, lastName, card?.linkedin_url]);
 
   // Common email providers (domains that should NOT be used as website)
   const commonEmailProviders = new Set([
@@ -1602,12 +1603,10 @@ const CardDetailDrawer = ({
             </div>
             {linkedinUrl && (
               <div className="col-span-2">
-                <Button variant="outline" size="sm" className="gap-1.5 h-8" asChild>
-                  <a href={linkedinUrl} target="_blank" rel="noopener noreferrer">
+                <Button variant="outline" size="sm" className="gap-1.5 h-8" onClick={() => window.open(linkedinUrl, '_blank', 'noopener')}>
                     <Linkedin className="h-3.5 w-3.5" />
                     LinkedIn
                     <ExternalLink className="h-3 w-3" />
-                  </a>
                 </Button>
               </div>
             )}
