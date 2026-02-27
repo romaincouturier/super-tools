@@ -447,18 +447,17 @@ const AttendanceSignatureBlock = ({
     });
   };
 
-  /** Async: convert PNG signature to compressed JPEG with timeout */
+  /** Async: convert PNG signature to optimized JPEG (good quality, reasonable size) */
   const compressSignatureAsync = (dataUrl: string): Promise<string> => {
     return new Promise((resolve) => {
       try {
-        // Timeout after 3s to avoid hanging
         const timeout = setTimeout(() => resolve(dataUrl), 3000);
         const img = new Image();
         img.onload = () => {
           clearTimeout(timeout);
           try {
             const canvas = document.createElement("canvas");
-            const maxW = 200;
+            const maxW = 400;
             const scale = Math.min(1, maxW / img.naturalWidth);
             canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
             canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
@@ -467,7 +466,7 @@ const AttendanceSignatureBlock = ({
             ctx.fillStyle = "#FFFFFF";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-            resolve(canvas.toDataURL("image/jpeg", 0.5));
+            resolve(canvas.toDataURL("image/jpeg", 0.85));
           } catch {
             resolve(dataUrl);
           }
