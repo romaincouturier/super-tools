@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, CheckCircle2, Star } from "lucide-react";
+import { Loader2, CheckCircle2, Star, CalendarDays, MapPin, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -15,6 +15,10 @@ const TrainerEvaluation = () => {
   const [submitted, setSubmitted] = useState(false);
   const [evaluation, setEvaluation] = useState<any>(null);
   const [trainingName, setTrainingName] = useState("");
+  const [trainingDetails, setTrainingDetails] = useState<{
+    startDate?: string; endDate?: string; location?: string; locationType?: string;
+    participants: { first_name: string; last_name: string }[];
+  }>({ participants: [] });
   const [satisfaction, setSatisfaction] = useState(0);
   const [pointsForts, setPointsForts] = useState("");
   const [axesAmelioration, setAxesAmelioration] = useState("");
@@ -26,7 +30,7 @@ const TrainerEvaluation = () => {
     const fetchEvaluation = async () => {
       const { data, error } = await (supabase as any)
         .from("trainer_evaluations")
-        .select("*, trainings(training_name)")
+        .select("*, trainings(training_name, start_date, end_date, location, location_type)")
         .eq("token", token)
         .maybeSingle();
 
@@ -37,6 +41,29 @@ const TrainerEvaluation = () => {
 
       setEvaluation(data);
       setTrainingName(data.trainings?.training_name || "");
+
+      // Fetch participants
+      const training = data.trainings;
+      if (training) {
+        setTrainingDetails({
+          startDate: training.start_date,
+          endDate: training.end_date,
+          location: training.location,
+          locationType: training.location_type,
+          participants: [],
+        });
+      }
+
+      // Fetch participant list
+      const { data: participants } = await (supabase as any)
+        .from("training_participants")
+        .select("first_name, last_name")
+        .eq("training_id", data.training_id)
+        .order("last_name");
+
+      if (participants) {
+        setTrainingDetails(prev => ({ ...prev, participants }));
+      }
 
       if (data.status === "soumis") {
         setSubmitted(true);
@@ -120,6 +147,41 @@ const TrainerEvaluation = () => {
             Votre appréciation sur la formation « {trainingName} »
           </p>
         </div>
+
+        {/* Training details */}
+        {(trainingDetails.startDate || trainingDetails.location || trainingDetails.participants.length > 0) && (
+          <div className="bg-muted/50 rounded-lg p-4 space-y-3 text-sm">
+            {trainingDetails.startDate && (
+              <div className="flex items-center gap-2">
+                <CalendarDays className="h-4 w-4 text-muted-foreground shrink-0" />
+                <span>
+                  {trainingDetails.endDate && trainingDetails.endDate !== trainingDetails.startDate
+                    ? `Du ${new Date(trainingDetails.startDate).toLocaleDateString("fr-FR")} au ${new Date(trainingDetails.endDate).toLocaleDateString("fr-FR")}`
+                    : `Le ${new Date(trainingDetails.startDate).toLocaleDateString("fr-FR")}`}
+                </span>
+              </div>
+            )}
+            {trainingDetails.location && (
+              <div className="flex items-center gap-2">
+                <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
+                <span>{trainingDetails.location}</span>
+              </div>
+            )}
+            {trainingDetails.participants.length > 0 && (
+              <div className="flex items-start gap-2">
+                <Users className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-medium">{trainingDetails.participants.length} participant{trainingDetails.participants.length > 1 ? "s" : ""}</span>
+                  <ul className="mt-1 space-y-0.5 text-muted-foreground">
+                    {trainingDetails.participants.map((p, i) => (
+                      <li key={i}>{p.first_name} {p.last_name}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="space-y-6">
           {/* Satisfaction */}
