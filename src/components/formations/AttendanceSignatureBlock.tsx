@@ -852,11 +852,33 @@ const AttendanceSignatureBlock = ({
       // Download
       doc.save(filename);
 
-      // Upload to storage and add to attendance_sheets_urls (full session only)
+      // Upload to storage and replace previous electronic attendance sheet (full session only)
       if (!participantId) {
         try {
           const pdfBlob = doc.output("blob");
           const storagePath = `${trainingId}/emargement_electronique_${Date.now()}.pdf`;
+
+          // Fetch current URLs to find and remove old electronic attendance sheets
+          const { data: trainingData } = await supabase
+            .from("trainings")
+            .select("attendance_sheets_urls")
+            .eq("id", trainingId)
+            .single();
+
+          const currentUrls: string[] = (trainingData?.attendance_sheets_urls as string[]) || [];
+
+          // Remove old electronic attendance sheets from storage
+          const oldElectronicUrls = currentUrls.filter(url => url.includes("/emargement_electronique_"));
+          for (const oldUrl of oldElectronicUrls) {
+            try {
+              const oldPath = oldUrl.split("/training-documents/").pop();
+              if (oldPath) {
+                await supabase.storage.from("training-documents").remove([decodeURIComponent(oldPath)]);
+              }
+            } catch {
+              // Non-blocking: old file cleanup is best-effort
+            }
+          }
 
           const { error: uploadError } = await supabase.storage
             .from("training-documents")
@@ -867,15 +889,9 @@ const AttendanceSignatureBlock = ({
               .from("training-documents")
               .getPublicUrl(storagePath);
 
-            // Fetch current URLs
-            const { data: trainingData } = await supabase
-              .from("trainings")
-              .select("attendance_sheets_urls")
-              .eq("id", trainingId)
-              .single();
-
-            const currentUrls: string[] = (trainingData?.attendance_sheets_urls as string[]) || [];
-            const newUrls = [...currentUrls, publicUrl];
+            // Keep non-electronic URLs, replace with new one
+            const nonElectronicUrls = currentUrls.filter(url => !url.includes("/emargement_electronique_"));
+            const newUrls = [...nonElectronicUrls, publicUrl];
 
             await supabase
               .from("trainings")
