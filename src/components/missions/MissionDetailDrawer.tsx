@@ -1,10 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import DetailDrawer from "@/components/shared/DetailDrawer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -219,35 +214,38 @@ const MissionDetailDrawer = ({
 
   if (!mission) return null;
 
+  const headerActions = (
+    <>
+      {updateMission.isPending && (
+        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+      )}
+      <Button
+        size="sm"
+        variant="outline"
+        onClick={handleGenerateMissionSummary}
+        disabled={aiSummaryLoading}
+        title="Synthèse IA de la mission"
+        className={aiSummary ? "border-purple-300 text-purple-700" : ""}
+      >
+        {aiSummaryLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+      </Button>
+      <Button size="sm" variant="outline" onClick={() => setShowDeliverables(true)} title="Envoyer les livrables">
+        <Package className="h-4 w-4" />
+      </Button>
+      <Button size="sm" variant="outline" onClick={handleShareLink} title="Copier le lien de partage">
+        {copied ? <Check className="h-4 w-4 text-green-600" /> : <Share2 className="h-4 w-4" />}
+      </Button>
+    </>
+  );
+
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="overflow-y-auto w-full sm:max-w-5xl" hideCloseButton>
-        <SheetHeader>
-          <SheetTitle className="flex items-center justify-between gap-2">
-            <span className="truncate flex-1">{mission.title}</span>
-            <div className="flex items-center gap-1">
-              {updateMission.isPending && (
-                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-              )}
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={handleGenerateMissionSummary}
-                disabled={aiSummaryLoading}
-                title="Synthèse IA de la mission"
-                className={aiSummary ? "border-purple-300 text-purple-700" : ""}
-              >
-                {aiSummaryLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-              </Button>
-              <Button size="sm" variant="outline" onClick={() => setShowDeliverables(true)} title="Envoyer les livrables">
-                <Package className="h-4 w-4" />
-              </Button>
-              <Button size="sm" variant="outline" onClick={handleShareLink} title="Copier le lien de partage">
-                {copied ? <Check className="h-4 w-4 text-green-600" /> : <Share2 className="h-4 w-4" />}
-              </Button>
-            </div>
-          </SheetTitle>
-        </SheetHeader>
+    <DetailDrawer
+      open={open}
+      onOpenChange={onOpenChange}
+      title={mission.title}
+      actions={headerActions}
+      contentClassName="overflow-y-auto sm:max-w-5xl"
+    >
 
         {/* AI Mission Summary Panel */}
         {aiSummary && (
@@ -570,8 +568,7 @@ const MissionDetailDrawer = ({
           open={showDeliverables}
           onOpenChange={setShowDeliverables}
         />
-      </SheetContent>
-    </Sheet>
+    </DetailDrawer>
   );
 };
 

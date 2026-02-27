@@ -1,10 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import DetailDrawer from "@/components/shared/DetailDrawer";
 import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
@@ -1165,44 +1160,41 @@ const CardDetailDrawer = ({
 
   return (
     <>
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent
-        hideCloseButton
-        className={`flex flex-col overflow-hidden transition-all duration-300 ${
-          isFullScreen
-            ? "w-full sm:max-w-full"
-            : "w-full sm:max-w-xl"
-        }`}
-      >
-        <SheetHeader className="shrink-0 border-b pb-3">
-          <SheetTitle className="flex items-center justify-between gap-2">
-            <span className="truncate flex-1">{card.title}</span>
-            <div className="flex items-center gap-1">
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => setIsFullScreen(!isFullScreen)}
-                title={isFullScreen ? "Réduire" : "Plein écran"}
-              >
-                {isFullScreen ? (
-                  <Minimize2 className="h-4 w-4" />
-                ) : (
-                  <Maximize2 className="h-4 w-4" />
-                )}
-              </Button>
-              {(fieldSaving || descriptionSaving) && (
-                <span className="text-xs text-muted-foreground flex items-center gap-1">
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                </span>
-              )}
-              {(fieldSaved || descriptionSaved) && !fieldSaving && !descriptionSaving && (
-                <span className="text-xs text-green-600 flex items-center gap-1">
-                  <CheckCircle2 className="h-3 w-3" />
-                </span>
-              )}
-            </div>
-          </SheetTitle>
-        </SheetHeader>
+    <DetailDrawer
+      open={open}
+      onOpenChange={onOpenChange}
+      title={card.title}
+      actions={
+        <>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => setIsFullScreen(!isFullScreen)}
+            title={isFullScreen ? "Réduire" : "Plein écran"}
+          >
+            {isFullScreen ? (
+              <Minimize2 className="h-4 w-4" />
+            ) : (
+              <Maximize2 className="h-4 w-4" />
+            )}
+          </Button>
+          {(fieldSaving || descriptionSaving) && (
+            <span className="text-xs text-muted-foreground flex items-center gap-1">
+              <Loader2 className="h-3 w-3 animate-spin" />
+            </span>
+          )}
+          {(fieldSaved || descriptionSaved) && !fieldSaving && !descriptionSaving && (
+            <span className="text-xs text-green-600 flex items-center gap-1">
+              <CheckCircle2 className="h-3 w-3" />
+            </span>
+          )}
+        </>
+      }
+      contentClassName={`flex flex-col overflow-hidden transition-all duration-300 ${
+        isFullScreen ? "sm:max-w-full" : "sm:max-w-xl"
+      }`}
+      headerClassName="shrink-0 border-b pb-3"
+    >
 
         <div className="flex-1 overflow-y-auto">
         {/* Toolbar - Column selector + Value + Actions */}
@@ -2451,8 +2443,7 @@ const CardDetailDrawer = ({
           </div>
         </div>
         </div>
-      </SheetContent>
-    </Sheet>
+    </DetailDrawer>
 
     {/* Loss Reason Dialog */}
     <LossReasonDialog
