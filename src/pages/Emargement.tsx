@@ -8,6 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import SupertiltLogo from "@/components/SupertiltLogo";
+import { formatDateWithDayOfWeek, getPeriodLabel } from "@/lib/dateFormatters";
 import SignaturePad from "signature_pad";
 
 interface AttendanceData {
@@ -282,19 +283,7 @@ const Emargement = () => {
     }
   };
 
-  const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString("fr-FR", {
-      weekday: "long",
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-    });
-  };
-
-  const getPeriodLabel = (period: string) => {
-    return period === "AM" ? "Matin" : "Après-midi";
-  };
+  const formatDate = formatDateWithDayOfWeek;
 
   const getTimeRange = () => {
     if (!attendanceData?.schedule) {

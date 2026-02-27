@@ -2,8 +2,8 @@ import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Plus, Calendar, ArrowLeft, ArrowUpDown, ChevronLeft, ChevronRight, Search, X, MapPin, Building } from "lucide-react";
-import { format, parseISO, isPast, isFuture, isToday, differenceInDays } from "date-fns";
-import { fr } from "date-fns/locale";
+import { parseISO, isPast, isFuture, isToday, differenceInDays } from "date-fns";
+import { formatDateRange } from "@/lib/dateFormatters";
 import AppHeader from "@/components/AppHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -265,17 +265,7 @@ const Formations = () => {
 
   const filteredTrainings = filter === "upcoming" ? upcomingTrainings : filter === "ongoing" ? ongoingTrainings : paginatedPastTrainings;
 
-  const formatDateRange = (startDate: string, endDate: string | null) => {
-    const start = parseISO(startDate);
-    if (!endDate) {
-      return format(start, "d MMMM yyyy", { locale: fr });
-    }
-    const end = parseISO(endDate);
-    if (start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear()) {
-      return `${format(start, "d", { locale: fr })} - ${format(end, "d MMMM yyyy", { locale: fr })}`;
-    }
-    return `${format(start, "d MMM", { locale: fr })} - ${format(end, "d MMM yyyy", { locale: fr })}`;
-  };
+  // formatDateRange imported from @/lib/dateFormatters
 
   // Calculate days until training start
   const getDaysUntilStart = (startDate: string) => {

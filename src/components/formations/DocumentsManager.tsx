@@ -10,6 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
+import { formatSentDateTime, formatDateTimeSeconds } from "@/lib/dateFormatters";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -264,13 +265,9 @@ const DocumentsManager = ({
 
   const hasCertificates = certificateUrls.length > 0;
 
-  const formatSentDate = (dateStr: string): string => {
-    return format(parseISO(dateStr), "d MMM à HH:mm", { locale: fr });
-  };
+  const formatSentDate = formatSentDateTime;
 
-  const formatFullDate = (dateStr: string): string => {
-    return format(parseISO(dateStr), "d MMMM yyyy 'à' HH:mm:ss", { locale: fr });
-  };
+  const formatFullDate = formatDateTimeSeconds;
 
   const journeyEventLabels: Record<string, string> = {
     page_loaded: "Page ouverte",

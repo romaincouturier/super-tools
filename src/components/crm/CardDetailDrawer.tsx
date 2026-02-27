@@ -64,7 +64,6 @@ import {
   Receipt,
   Calendar,
   LinkIcon,
-  Sparkles,
   AlertTriangle,
   Maximize2,
   Minimize2,
@@ -195,6 +194,7 @@ const CardDetailDrawer = ({
   // Loss reason dialog state
   const [showLossReasonDialog, setShowLossReasonDialog] = useState(false);
   const [pendingLossStatus, setPendingLossStatus] = useState(false);
+  const [pendingLossColumnId, setPendingLossColumnId] = useState<string | null>(null);
 
   // Next best action AI state
   const [nextActionSuggesting, setNextActionSuggesting] = useState(false);
@@ -316,6 +316,7 @@ const CardDetailDrawer = ({
   useEffect(() => {
     if (card && card.id !== prevCardIdRef.current) {
       prevCardIdRef.current = card.id;
+      websiteLookedUpRef.current = false;
       setTitle(card.title);
       setCardEmoji(card.emoji || null);
       setDescriptionHtml(card.description_html || "");
@@ -644,12 +645,83 @@ const CardDetailDrawer = ({
     await navigator.clipboard.writeText(text);
   };
 
-  // Generate LinkedIn search URL from name
-  const generateLinkedInSearchUrl = () => {
-    if (!firstName && !lastName) return "";
-    const name = [firstName, lastName?.toUpperCase()].filter(Boolean).join(" ");
-    return `https://www.linkedin.com/search/results/all/?keywords=${encodeURIComponent(name)}`;
-  };
+  // Auto-calculate LinkedIn search URL from first/last name
+  useEffect(() => {
+    if (firstName.trim() || lastName.trim()) {
+      const name = [firstName.trim(), lastName.trim().toUpperCase()].filter(Boolean).join(" ");
+      setLinkedinUrl(`https://www.linkedin.com/search/results/all/?keywords=${encodeURIComponent(name)}`);
+    } else {
+      setLinkedinUrl("");
+    }
+  }, [firstName, lastName]);
+
+  // Common email providers (domains that should NOT be used as website)
+  const commonEmailProviders = new Set([
+    "gmail.com", "googlemail.com", "hotmail.com", "hotmail.fr", "outlook.com", "outlook.fr",
+    "live.com", "live.fr", "msn.com", "yahoo.com", "yahoo.fr", "aol.com",
+    "icloud.com", "me.com", "mac.com", "protonmail.com", "proton.me",
+    "free.fr", "orange.fr", "sfr.fr", "laposte.net", "wanadoo.fr",
+    "bbox.fr", "numericable.fr", "neuf.fr", "cegetel.net",
+    "gmx.com", "gmx.fr", "mail.com", "zoho.com", "yandex.com",
+    "tutanota.com", "fastmail.com", "hey.com",
+  ]);
+
+  // Track whether we already looked up the website for this card
+  const websiteLookedUpRef = useRef(false);
+  const websiteLookupAbortRef = useRef<AbortController | null>(null);
+
+  // Auto-deduce website from email domain or company name (via API lookup)
+  useEffect(() => {
+    // Skip if website was already set from card data (user-entered)
+    if (!cardLoadedRef.current) return;
+
+    // 1) Try email domain first (instant, no API call)
+    if (email.trim()) {
+      const atIndex = email.indexOf("@");
+      if (atIndex >= 0) {
+        const domain = email.slice(atIndex + 1).trim().toLowerCase();
+        if (domain && domain.indexOf(".") >= 0 && !commonEmailProviders.has(domain)) {
+          const newUrl = `https://www.${domain}`;
+          if (websiteUrl !== newUrl) {
+            setWebsiteUrl(newUrl);
+          }
+          return;
+        }
+      }
+    }
+
+    // 2) Fallback: search real website via Clearbit/AI (debounced API call)
+    if (!company.trim() || websiteLookedUpRef.current) return;
+
+    // Abort previous lookup
+    websiteLookupAbortRef.current?.abort();
+    const controller = new AbortController();
+    websiteLookupAbortRef.current = controller;
+
+    const timer = setTimeout(async () => {
+      try {
+        const emailDomain = email.includes("@") ? email.split("@")[1]?.trim() : "";
+        const { data, error } = await supabase.functions.invoke("crm-ai-assist", {
+          body: {
+            action: "find_website",
+            card_data: { company, context: emailDomain },
+          },
+        });
+        if (controller.signal.aborted) return;
+        if (!error && data?.result) {
+          websiteLookedUpRef.current = true;
+          setWebsiteUrl(data.result);
+        }
+      } catch {
+        // Silently fail - website lookup is best-effort
+      }
+    }, 1500); // debounce 1.5s
+
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [email, company]);
 
   // Helper to build training creation params from current card data
   const buildTrainingParams = (): URLSearchParams => {
@@ -769,9 +841,10 @@ const CardDetailDrawer = ({
   const handleLossReasonConfirm = async (reason: LossReason, detail: string) => {
     setShowLossReasonDialog(false);
     setPendingLossStatus(false);
+    const lossColumnId = pendingLossColumnId;
+    setPendingLossColumnId(null);
     if (!card || !user?.email) return;
 
-    const previousStatus = salesStatus;
     setSalesStatus("LOST");
 
     const updates: Record<string, unknown> = {
@@ -783,6 +856,12 @@ const CardDetailDrawer = ({
       waiting_next_action_date: null,
       waiting_next_action_text: null,
     };
+
+    // If triggered from column change, also move the card
+    if (lossColumnId) {
+      updates.column_id = lossColumnId;
+    }
+
     setScheduledDate("");
     setScheduledText("");
 
@@ -797,6 +876,11 @@ const CardDetailDrawer = ({
   const handleLossReasonCancel = () => {
     setShowLossReasonDialog(false);
     setPendingLossStatus(false);
+    // Revert column selection if triggered from column dropdown
+    if (pendingLossColumnId && card) {
+      setColumnId(card.column_id);
+    }
+    setPendingLossColumnId(null);
   };
 
   const applyStatusChange = async (newStatus: SalesStatus, previousStatus: SalesStatus) => {
@@ -890,16 +974,28 @@ const CardDetailDrawer = ({
 
     // Detect if moving to a "won" column (contains "gagné" case-insensitive)
     const isWonColumn = columnName.toLowerCase().includes("gagné");
+    const isLostColumn = columnName.toLowerCase().includes("perdu");
 
-    // Check if currently in a "won" column (before this move)
+    // Check if currently in a "won" or "lost" column (before this move)
     const currentColumn = allColumns.find(col => col.id === card.column_id);
     const wasInWonColumn = currentColumn?.name.toLowerCase().includes("gagné") || false;
+    const wasInLostColumn = currentColumn?.name.toLowerCase().includes("perdu") || false;
 
     // Detect if this is a fresh win (moving to won from non-won)
     const movingToWon = isWonColumn && !wasInWonColumn;
+    const movingToLost = isLostColumn && !wasInLostColumn;
 
     // Detect if leaving a won column (moving from won to non-won)
     const leavingWonColumn = wasInWonColumn && !isWonColumn;
+    const leavingLostColumn = wasInLostColumn && !isLostColumn;
+
+    // Intercept move to "Perdu" column: show loss reason dialog
+    if (movingToLost && salesStatus !== "LOST") {
+      setPendingLossColumnId(newColumnId);
+      setPendingLossStatus(true);
+      setShowLossReasonDialog(true);
+      return;
+    }
 
     // Update column and sales status
     const updates: Record<string, any> = { column_id: newColumnId };
@@ -911,6 +1007,14 @@ const CardDetailDrawer = ({
     } else if (leavingWonColumn) {
       // Leaving won column: reset status to OPEN
       updates.sales_status = "OPEN";
+      setSalesStatus("OPEN");
+    }
+
+    if (leavingLostColumn) {
+      updates.sales_status = "OPEN";
+      updates.lost_at = null;
+      updates.loss_reason = null;
+      updates.loss_reason_detail = null;
       setSalesStatus("OPEN");
     }
 
@@ -1113,6 +1217,10 @@ const CardDetailDrawer = ({
                 <Calendar className="h-4 w-4 mr-2" />
                 Programmer une action
               </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleSuggestNextAction} disabled={nextActionSuggesting}>
+                {nextActionSuggesting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Wand2 className="h-4 w-4 mr-2" />}
+                Suggestion IA
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
 
@@ -1138,27 +1246,70 @@ const CardDetailDrawer = ({
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* Estimated value */}
-          {estimatedValue && parseFloat(estimatedValue) > 0 && (
-            <Badge variant="secondary" className="text-green-700 bg-green-50 border-green-200 text-sm font-medium">
-              {Number(parseFloat(estimatedValue) || 0).toLocaleString("fr-FR", { minimumFractionDigits: 0, maximumFractionDigits: 2 })} €
-            </Badge>
-          )}
+          {/* Estimated value (editable) */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <button className="inline-flex items-center rounded-md border px-2.5 py-0.5 text-sm font-medium transition-colors cursor-pointer hover:opacity-80 text-green-700 bg-green-50 border-green-200">
+                {estimatedValue && parseFloat(estimatedValue) > 0
+                  ? `${Number(parseFloat(estimatedValue) || 0).toLocaleString("fr-FR", { minimumFractionDigits: 0, maximumFractionDigits: 2 })} €`
+                  : "0 €"}
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-48 p-3" align="start">
+              <Label className="text-xs">Valeur estimée (€)</Label>
+              <Input
+                type="number"
+                min="0"
+                step="0.01"
+                value={estimatedValue}
+                onChange={(e) => setEstimatedValue(e.target.value)}
+                className="h-8 mt-1"
+                autoFocus
+              />
+            </PopoverContent>
+          </Popover>
 
-          {/* Confidence score badge */}
-          {confidenceScore !== null && (
-            <Badge
-              variant="outline"
-              className={cn(
-                "text-xs font-medium",
-                confidenceScore >= 70 && "border-green-300 text-green-700 bg-green-50",
-                confidenceScore >= 40 && confidenceScore < 70 && "border-orange-300 text-orange-700 bg-orange-50",
-                confidenceScore < 40 && "border-red-300 text-red-700 bg-red-50",
-              )}
-            >
-              {confidenceScore}% confiance
-            </Badge>
-          )}
+          {/* Confidence score (editable) */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <button className={cn(
+                "inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-medium transition-colors cursor-pointer hover:opacity-80",
+                confidenceScore !== null && confidenceScore >= 70 && "border-green-300 text-green-700 bg-green-50",
+                confidenceScore !== null && confidenceScore >= 40 && confidenceScore < 70 && "border-orange-300 text-orange-700 bg-orange-50",
+                (confidenceScore === null || confidenceScore < 40) && "border-red-300 text-red-700 bg-red-50",
+              )}>
+                {confidenceScore !== null ? `${confidenceScore}%` : "—%"}
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-52 p-3" align="start">
+              <Label className="text-xs flex items-center justify-between">
+                <span>Confiance</span>
+                <span className="font-medium">{confidenceScore !== null ? `${confidenceScore}%` : "—"}</span>
+              </Label>
+              <div className="flex items-center gap-2 mt-2">
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  step="5"
+                  value={confidenceScore ?? 50}
+                  onChange={(e) => setConfidenceScore(parseInt(e.target.value))}
+                  className="flex-1 h-2 accent-primary cursor-pointer"
+                />
+                {confidenceScore !== null && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 px-1.5 text-xs text-muted-foreground"
+                    onClick={() => setConfidenceScore(null)}
+                    title="Réinitialiser"
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                )}
+              </div>
+            </PopoverContent>
+          </Popover>
 
           {/* Spacer */}
           <div className="flex-1" />
@@ -1449,41 +1600,17 @@ const CardDetailDrawer = ({
                 )}
               </div>
             </div>
-            <div className="space-y-1 col-span-2">
-              <Label className="text-xs flex items-center gap-1">
-                <Linkedin className="h-3 w-3" />
-                LinkedIn
-              </Label>
-              <div className="flex gap-2">
-                <Input
-                  value={linkedinUrl}
-                  onChange={(e) => setLinkedinUrl(e.target.value)}
-                  placeholder="URL du profil LinkedIn"
-                  className="h-8 flex-1"
-                />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    const url = generateLinkedInSearchUrl();
-                    if (url) {
-                      setLinkedinUrl(url);
-                    }
-                  }}
-                  disabled={!firstName && !lastName}
-                  title="Générer un lien de recherche LinkedIn"
-                >
-                  <Sparkles className="h-3 w-3" />
+            {linkedinUrl && (
+              <div className="col-span-2">
+                <Button variant="outline" size="sm" className="gap-1.5 h-8" asChild>
+                  <a href={linkedinUrl} target="_blank" rel="noopener noreferrer">
+                    <Linkedin className="h-3.5 w-3.5" />
+                    LinkedIn
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
                 </Button>
-                {linkedinUrl && (
-                  <Button variant="outline" size="sm" asChild>
-                    <a href={linkedinUrl} target="_blank" rel="noopener noreferrer">
-                      <ExternalLink className="h-3 w-3" />
-                    </a>
-                  </Button>
-                )}
               </div>
-            </div>
+            )}
             <div className="space-y-1 col-span-2">
               <Label className="text-xs flex items-center gap-1">
                 <Globe className="h-3 w-3" />
@@ -1625,24 +1752,12 @@ const CardDetailDrawer = ({
                   </Button>
                 </div>
               </div>
-              <div className="flex gap-1.5">
-                <Input
-                  value={nextActionText}
-                  onChange={(e) => setNextActionText(e.target.value)}
-                  placeholder={nextActionType === "email" ? "Recontacter par email..." : nextActionType === "phone" ? "Recontacter par téléphone..." : "Quelle est la prochaine action ?"}
-                  className={`h-8 text-sm flex-1 ${nextActionDone ? "line-through text-muted-foreground" : ""}`}
-                />
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 px-2 text-purple-600 hover:text-purple-700 hover:bg-purple-50"
-                  onClick={handleSuggestNextAction}
-                  disabled={nextActionSuggesting}
-                  title="Suggérer avec l'IA"
-                >
-                  {nextActionSuggesting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Wand2 className="h-3.5 w-3.5" />}
-                </Button>
-              </div>
+              <Input
+                value={nextActionText}
+                onChange={(e) => setNextActionText(e.target.value)}
+                placeholder={nextActionType === "email" ? "Recontacter par email..." : nextActionType === "phone" ? "Recontacter par téléphone..." : "Quelle est la prochaine action ?"}
+                className={`h-8 text-sm ${nextActionDone ? "line-through text-muted-foreground" : ""}`}
+              />
             </div>
           </div>
 
@@ -1745,56 +1860,6 @@ const CardDetailDrawer = ({
           <h4 className="font-medium text-xs text-muted-foreground uppercase tracking-wider">
             Commercial
           </h4>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label className="text-xs">Valeur estimée (€)</Label>
-              <Input
-                type="number"
-                min="0"
-                step="0.01"
-                value={estimatedValue}
-                onChange={(e) => setEstimatedValue(e.target.value)}
-                className="h-8 mt-1"
-              />
-            </div>
-            <div>
-              <Label className="text-xs flex items-center justify-between">
-                <span>Confiance</span>
-                <span className={cn(
-                  "font-medium px-1.5 py-0.5 rounded",
-                  confidenceScore === null && "text-muted-foreground",
-                  confidenceScore !== null && confidenceScore >= 70 && "text-green-700 bg-green-50",
-                  confidenceScore !== null && confidenceScore >= 40 && confidenceScore < 70 && "text-orange-700 bg-orange-50",
-                  confidenceScore !== null && confidenceScore < 40 && "text-red-700 bg-red-50",
-                )}>
-                  {confidenceScore !== null ? `${confidenceScore}%` : "—"}
-                </span>
-              </Label>
-              <div className="flex items-center gap-2 mt-1">
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  step="5"
-                  value={confidenceScore ?? 50}
-                  onChange={(e) => setConfidenceScore(parseInt(e.target.value))}
-                  className="flex-1 h-2 accent-primary cursor-pointer"
-                />
-                {confidenceScore !== null && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 px-1.5 text-xs text-muted-foreground"
-                    onClick={() => setConfidenceScore(null)}
-                    title="Réinitialiser"
-                  >
-                    <X className="h-3 w-3" />
-                  </Button>
-                )}
-              </div>
-            </div>
-          </div>
 
           {/* Devis buttons */}
           <div className="flex gap-2 flex-wrap">

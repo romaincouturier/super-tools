@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
+import { formatDateWithDayOfWeek, formatDateLong } from "@/lib/dateFormatters";
 import {
   MapPin,
   Calendar,
@@ -140,9 +141,7 @@ const TrainingSummary = () => {
     }
   };
 
-  const formatScheduleDate = (dateStr: string) => {
-    return format(parseISO(dateStr), "EEEE d MMMM yyyy", { locale: fr });
-  };
+  const formatScheduleDate = formatDateWithDayOfWeek;
 
   const formatTime = (time: string) => {
     return time.substring(0, 5);
@@ -452,9 +451,9 @@ END:VCALENDAR`;
               <div className="space-y-3">
                 <div className="p-3 bg-muted/50 rounded-lg">
                   <p className="font-medium">
-                    Du {format(parseISO(training.start_date), "d MMMM yyyy", { locale: fr })}
+                    Du {formatDateLong(training.start_date)}
                     {training.end_date &&
-                      ` au ${format(parseISO(training.end_date), "d MMMM yyyy", { locale: fr })}`}
+                      ` au ${formatDateLong(training.end_date)}`}
                   </p>
                 </div>
                 <p className="text-sm text-muted-foreground">
@@ -527,9 +526,9 @@ END:VCALENDAR`;
               </div>
             ) : (
               <p className="text-muted-foreground">
-                {format(parseISO(training.start_date), "d MMMM yyyy", { locale: fr })}
+                {formatDateLong(training.start_date)}
                 {training.end_date &&
-                  ` - ${format(parseISO(training.end_date), "d MMMM yyyy", { locale: fr })}`}
+                  ` - ${formatDateLong(training.end_date)}`}
               </p>
             )}
           </CardContent>

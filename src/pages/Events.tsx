@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { format, parseISO, isPast } from "date-fns";
 import { fr } from "date-fns/locale";
+import { formatDateWithDayOfWeek } from "@/lib/dateFormatters";
 import { Loader2, Plus, CalendarDays, ArrowLeft, MapPin, Video, Search, X } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import { Button } from "@/components/ui/button";
@@ -170,7 +171,7 @@ const Events = () => {
                       <p className="font-medium truncate">{event.title}</p>
                       <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
                         <span>
-                          {format(parseISO(event.event_date), "EEEE d MMMM yyyy", { locale: fr })}
+                          {formatDateWithDayOfWeek(event.event_date)}
                           {event.event_time && ` à ${event.event_time.slice(0, 5)}`}
                         </span>
                       </div>
