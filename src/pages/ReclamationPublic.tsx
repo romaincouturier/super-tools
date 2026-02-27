@@ -11,29 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Loader2, CheckCircle2, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import supertiltLogo from "@/assets/supertilt-logo-anthracite-transparent.png";
-
-const CANALS = [
-  { value: "mail", label: "Email" },
-  { value: "telephone", label: "Téléphone" },
-  { value: "formulaire", label: "Formulaire" },
-  { value: "autre", label: "Autre" },
-];
-
-const PROBLEM_TYPES = [
-  { value: "contenu", label: "Contenu" },
-  { value: "organisation", label: "Organisation" },
-  { value: "logistique", label: "Logistique" },
-  { value: "technique", label: "Technique" },
-  { value: "facturation", label: "Facturation" },
-  { value: "relationnel", label: "Relationnel" },
-  { value: "autre", label: "Autre" },
-];
-
-const SEVERITIES = [
-  { value: "mineure", label: "Mineure", description: "Gêne légère, sans impact significatif" },
-  { value: "significative", label: "Significative", description: "Impact notable sur la qualité" },
-  { value: "majeure", label: "Majeure", description: "Problème grave nécessitant une action urgente" },
-];
+import { NATURES, CANALS, PROBLEM_TYPES, SEVERITIES } from "@/lib/reclamationConstants";
 
 const ReclamationPublic = () => {
   const { token } = useParams<{ token: string }>();
@@ -46,10 +24,13 @@ const ReclamationPublic = () => {
   const [reclamationId, setReclamationId] = useState<string | null>(null);
 
   // Form state
+  const [nature, setNature] = useState("reclamation");
   const [clientName, setClientName] = useState("");
   const [clientEmail, setClientEmail] = useState("");
   const [canal, setCanal] = useState("formulaire");
   const [problemType, setProblemType] = useState("");
+  const [attenduInitial, setAttenduInitial] = useState("");
+  const [resultatConstate, setResultatConstate] = useState("");
   const [description, setDescription] = useState("");
   const [severity, setSeverity] = useState("");
 
@@ -77,11 +58,9 @@ const ReclamationPublic = () => {
         const rec = data as any;
         setReclamationId(rec.id);
 
-        // If already submitted (has description), show confirmation
         if (rec.description && rec.status !== "draft") {
           setSubmitted(true);
         } else {
-          // Pre-fill if data exists
           if (rec.client_name) setClientName(rec.client_name);
           if (rec.client_email) setClientEmail(rec.client_email);
         }
@@ -128,12 +107,15 @@ const ReclamationPublic = () => {
           client_name: clientName.trim(),
           client_email: clientEmail.trim(),
           canal,
+          nature,
           problem_type: problemType,
+          attendu_initial: attenduInitial.trim() || null,
+          resultat_constate: resultatConstate.trim() || null,
           description: description.trim(),
           severity,
           status: "open",
           date_reclamation: new Date().toISOString().split("T")[0],
-        })
+        } as any)
         .eq("id", reclamationId);
 
       if (updateErr) throw updateErr;
@@ -197,10 +179,28 @@ const ReclamationPublic = () => {
           <CardHeader>
             <CardTitle className="text-xl">Formulaire de réclamation</CardTitle>
             <CardDescription>
-              Vous pouvez nous faire part de tout mécontentement ou problème rencontré. Ce formulaire nous aidera à traiter votre demande rapidement.
+              Vous pouvez nous faire part de tout mécontentement, aléa ou difficulté rencontré. Ce formulaire nous aidera à traiter votre demande rapidement.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
+            {/* Nature (Indicateur 30) */}
+            <div className="space-y-3">
+              <Label>Nature du signalement *</Label>
+              <RadioGroup value={nature} onValueChange={setNature} className="space-y-2">
+                {NATURES.map((n) => (
+                  <div key={n.value} className="flex items-start space-x-3">
+                    <RadioGroupItem value={n.value} id={`nature-${n.value}`} className="mt-1" />
+                    <div>
+                      <Label htmlFor={`nature-${n.value}`} className="font-medium cursor-pointer">
+                        {n.label}
+                      </Label>
+                      <p className="text-xs text-muted-foreground">{n.description}</p>
+                    </div>
+                  </div>
+                ))}
+              </RadioGroup>
+            </div>
+
             {/* Client name */}
             <div className="space-y-2">
               <Label htmlFor="client_name">Nom / Structure *</Label>
@@ -228,9 +228,7 @@ const ReclamationPublic = () => {
             <div className="space-y-2">
               <Label>Canal de la réclamation</Label>
               <Select value={canal} onValueChange={setCanal}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
+                <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {CANALS.map((c) => (
                     <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
@@ -243,9 +241,7 @@ const ReclamationPublic = () => {
             <div className="space-y-2">
               <Label>Type de problème *</Label>
               <Select value={problemType} onValueChange={setProblemType}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Sélectionner..." />
-                </SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Sélectionner..." /></SelectTrigger>
                 <SelectContent>
                   {PROBLEM_TYPES.map((pt) => (
                     <SelectItem key={pt.value} value={pt.value}>{pt.label}</SelectItem>
@@ -254,9 +250,33 @@ const ReclamationPublic = () => {
               </Select>
             </div>
 
+            {/* Attendu initial (Indicateur 30) */}
+            <div className="space-y-2">
+              <Label htmlFor="attendu_initial">Attendu initial</Label>
+              <Textarea
+                id="attendu_initial"
+                value={attenduInitial}
+                onChange={(e) => setAttenduInitial(e.target.value)}
+                placeholder="Ce que vous attendiez de la formation ou de la prestation..."
+                rows={3}
+              />
+            </div>
+
+            {/* Résultat constaté (Indicateur 30) */}
+            <div className="space-y-2">
+              <Label htmlFor="resultat_constate">Résultat constaté</Label>
+              <Textarea
+                id="resultat_constate"
+                value={resultatConstate}
+                onChange={(e) => setResultatConstate(e.target.value)}
+                placeholder="Ce qui s'est réellement passé..."
+                rows={3}
+              />
+            </div>
+
             {/* Description */}
             <div className="space-y-2">
-              <Label htmlFor="description">Description du problème *</Label>
+              <Label htmlFor="description">Description détaillée *</Label>
               <Textarea
                 id="description"
                 value={description}

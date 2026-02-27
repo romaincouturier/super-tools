@@ -11,11 +11,13 @@ import {
   ChevronUp,
   ExternalLink,
   AlertCircle,
-  CheckCircle2
+  CheckCircle2,
+  GraduationCap
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import AppHeader from "@/components/AppHeader";
+import ParticipantSearchDrawer from "@/components/participants/ParticipantSearchDrawer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -65,6 +67,7 @@ const BesoinsParticipants = () => {
   const [surveys, setSurveys] = useState<NeedsSurvey[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+  const [participantDrawerOpen, setParticipantDrawerOpen] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -198,6 +201,10 @@ const BesoinsParticipants = () => {
               </div>
             </div>
           </div>
+          <Button variant="outline" onClick={() => setParticipantDrawerOpen(true)}>
+            <GraduationCap className="h-4 w-4 mr-2" />
+            Parcours apprenant
+          </Button>
         </div>
 
         {/* Stats */}
@@ -382,6 +389,11 @@ const BesoinsParticipants = () => {
           </CardContent>
         </Card>
       </main>
+
+      <ParticipantSearchDrawer
+        open={participantDrawerOpen}
+        onOpenChange={setParticipantDrawerOpen}
+      />
     </div>
   );
 };

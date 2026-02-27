@@ -17,6 +17,17 @@ import { useAuth } from "@/hooks/useAuth";
 import { useModuleAccess } from "@/hooks/useModuleAccess";
 import { useNavigate } from "react-router-dom";
 import { v4 as uuidv4 } from "uuid";
+import {
+  STATUS_LABELS,
+  STATUS_COLORS,
+  SEVERITY_COLORS,
+  NATURE_LABELS,
+  NATURE_COLORS,
+  PROBLEM_TYPES,
+  NATURES,
+  CANALS,
+  SEVERITIES,
+} from "@/lib/reclamationConstants";
 
 type Reclamation = {
   id: string;
@@ -25,7 +36,10 @@ type Reclamation = {
   client_name: string | null;
   client_email: string | null;
   canal: string | null;
+  nature: string | null;
   problem_type: string | null;
+  attendu_initial: string | null;
+  resultat_constate: string | null;
   description: string | null;
   severity: string | null;
   status: string;
@@ -40,12 +54,6 @@ type Reclamation = {
   created_at: string;
   updated_at: string;
 };
-
-const STATUS_LABELS: Record<string, string> = { open: "Ouverte", in_progress: "En cours", closed: "Clôturée", draft: "Brouillon" };
-const STATUS_COLORS: Record<string, string> = { open: "bg-orange-100 text-orange-800", in_progress: "bg-blue-100 text-blue-800", closed: "bg-green-100 text-green-800", draft: "bg-gray-100 text-gray-600" };
-const SEVERITY_COLORS: Record<string, string> = { mineure: "bg-yellow-100 text-yellow-800", significative: "bg-orange-100 text-orange-800", majeure: "bg-red-100 text-red-800" };
-
-const PROBLEM_TYPES = ["contenu", "organisation", "logistique", "technique", "facturation", "relationnel", "autre"];
 
 const Reclamations = () => {
   const { user, loading: authLoading } = useAuth();
@@ -62,6 +70,7 @@ const Reclamations = () => {
 
   // Filters
   const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [filterNature, setFilterNature] = useState<string>("all");
   const [filterType, setFilterType] = useState<string>("all");
   const [filterSeverity, setFilterSeverity] = useState<string>("all");
 
@@ -72,6 +81,7 @@ const Reclamations = () => {
   const [newProblemType, setNewProblemType] = useState("");
   const [newDescription, setNewDescription] = useState("");
   const [newSeverity, setNewSeverity] = useState("");
+  const [newNature, setNewNature] = useState("reclamation");
   const [newCanal, setNewCanal] = useState("mail");
   const [creating, setCreating] = useState(false);
 
@@ -102,11 +112,12 @@ const Reclamations = () => {
   const filtered = useMemo(() => {
     return reclamations.filter((r) => {
       if (filterStatus !== "all" && r.status !== filterStatus) return false;
+      if (filterNature !== "all" && r.nature !== filterNature) return false;
       if (filterType !== "all" && r.problem_type !== filterType) return false;
       if (filterSeverity !== "all" && r.severity !== filterSeverity) return false;
       return true;
     });
-  }, [reclamations, filterStatus, filterType, filterSeverity]);
+  }, [reclamations, filterStatus, filterNature, filterType, filterSeverity]);
 
   const stats = useMemo(() => {
     const open = reclamations.filter((r) => r.status === "open").length;
@@ -151,6 +162,7 @@ const Reclamations = () => {
         token,
         client_name: newClientName.trim(),
         client_email: newClientEmail.trim() || null,
+        nature: newNature,
         canal: newCanal,
         problem_type: newProblemType || null,
         description: newDescription.trim(),
@@ -265,6 +277,15 @@ const Reclamations = () => {
                 <DialogContent className="max-w-lg">
                   <DialogHeader><DialogTitle>Nouvelle réclamation</DialogTitle></DialogHeader>
                   <div className="space-y-4">
+                    <div className="space-y-1">
+                      <Label>Nature du signalement *</Label>
+                      <Select value={newNature} onValueChange={setNewNature}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {NATURES.map((n) => <SelectItem key={n.value} value={n.value}>{n.label}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-1">
                         <Label>Nom / Structure *</Label>
@@ -281,10 +302,7 @@ const Reclamations = () => {
                         <Select value={newCanal} onValueChange={setNewCanal}>
                           <SelectTrigger><SelectValue /></SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="mail">Email</SelectItem>
-                            <SelectItem value="telephone">Téléphone</SelectItem>
-                            <SelectItem value="formulaire">Formulaire</SelectItem>
-                            <SelectItem value="autre">Autre</SelectItem>
+                            {CANALS.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
                           </SelectContent>
                         </Select>
                       </div>
@@ -293,7 +311,7 @@ const Reclamations = () => {
                         <Select value={newProblemType} onValueChange={setNewProblemType}>
                           <SelectTrigger><SelectValue placeholder="Sélectionner..." /></SelectTrigger>
                           <SelectContent>
-                            {PROBLEM_TYPES.map((t) => <SelectItem key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</SelectItem>)}
+                            {PROBLEM_TYPES.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
                           </SelectContent>
                         </Select>
                       </div>
@@ -307,9 +325,7 @@ const Reclamations = () => {
                       <Select value={newSeverity} onValueChange={setNewSeverity}>
                         <SelectTrigger><SelectValue placeholder="Sélectionner..." /></SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="mineure">Mineure</SelectItem>
-                          <SelectItem value="significative">Significative</SelectItem>
-                          <SelectItem value="majeure">Majeure</SelectItem>
+                          {SEVERITIES.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
                         </SelectContent>
                       </Select>
                     </div>
@@ -358,11 +374,18 @@ const Reclamations = () => {
                 <SelectItem value="draft">Brouillons</SelectItem>
               </SelectContent>
             </Select>
+            <Select value={filterNature} onValueChange={setFilterNature}>
+              <SelectTrigger className="w-[150px]"><SelectValue placeholder="Nature" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Toutes natures</SelectItem>
+                {NATURES.map((n) => <SelectItem key={n.value} value={n.value}>{n.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
             <Select value={filterType} onValueChange={setFilterType}>
               <SelectTrigger className="w-[150px]"><SelectValue placeholder="Type" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Tous types</SelectItem>
-                {PROBLEM_TYPES.map((t) => <SelectItem key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</SelectItem>)}
+                {PROBLEM_TYPES.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
               </SelectContent>
             </Select>
             <Select value={filterSeverity} onValueChange={setFilterSeverity}>
@@ -395,6 +418,7 @@ const Reclamations = () => {
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-medium truncate">{r.client_name || "—"}</span>
+                        {r.nature && <Badge className={`text-xs ${NATURE_COLORS[r.nature] || ""}`}>{NATURE_LABELS[r.nature] || r.nature}</Badge>}
                         {r.problem_type && <Badge variant="outline" className="text-xs">{r.problem_type}</Badge>}
                         {r.severity && <Badge className={`text-xs ${SEVERITY_COLORS[r.severity] || ""}`}>{r.severity}</Badge>}
                       </div>
@@ -427,6 +451,7 @@ const Reclamations = () => {
               <div className="mt-6 space-y-6">
                 {/* Info */}
                 <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div><span className="text-muted-foreground">Nature :</span> {selectedRec.nature ? (NATURE_LABELS[selectedRec.nature] || selectedRec.nature) : "—"}</div>
                   <div><span className="text-muted-foreground">Date :</span> {selectedRec.date_reclamation || "—"}</div>
                   <div><span className="text-muted-foreground">Email :</span> {selectedRec.client_email || "—"}</div>
                   <div><span className="text-muted-foreground">Canal :</span> {selectedRec.canal || "—"}</div>
@@ -436,9 +461,23 @@ const Reclamations = () => {
 
                 <Separator />
 
+                {/* Attendu / Constaté (Indicateur 30) */}
+                {(selectedRec as any).attendu_initial && (
+                  <div>
+                    <Label className="text-muted-foreground">Attendu initial</Label>
+                    <p className="text-sm mt-1 whitespace-pre-wrap">{(selectedRec as any).attendu_initial}</p>
+                  </div>
+                )}
+                {(selectedRec as any).resultat_constate && (
+                  <div>
+                    <Label className="text-muted-foreground">Résultat constaté</Label>
+                    <p className="text-sm mt-1 whitespace-pre-wrap">{(selectedRec as any).resultat_constate}</p>
+                  </div>
+                )}
+
                 {/* Description */}
                 <div>
-                  <Label className="text-muted-foreground">Description</Label>
+                  <Label className="text-muted-foreground">Description détaillée</Label>
                   <p className="text-sm mt-1 whitespace-pre-wrap">{selectedRec.description || "Aucune description"}</p>
                 </div>
 
