@@ -207,7 +207,7 @@ const CardDetailDrawer = ({
   // Next action state
   const [nextActionText, setNextActionText] = useState("");
   const [nextActionDone, setNextActionDone] = useState(false);
-  const [nextActionType, setNextActionType] = useState<"email" | "phone" | "other">("other");
+  const [nextActionType, setNextActionType] = useState<"email" | "phone" | "rdv_physique" | "rdv_visio" | "other">("other");
 
   // Linked mission state
   const [linkedMissionId, setLinkedMissionId] = useState<string | null>(null);
@@ -1396,7 +1396,7 @@ const CardDetailDrawer = ({
             <div>
               <Label className="text-xs mb-1.5 block">Action</Label>
               <div className="flex flex-wrap gap-1 mb-2">
-                {["Relancer le client", "Envoyer un devis", "Retour après consultation", "Appeler"].map((action) => (
+                {["Relancer le client", "Envoyer un devis", "Retour après consultation", "Appeler", "RDV physique", "RDV visio"].map((action) => (
                   <Button
                     key={action}
                     type="button"
