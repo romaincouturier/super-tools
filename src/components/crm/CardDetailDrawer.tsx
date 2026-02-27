@@ -1167,6 +1167,7 @@ const CardDetailDrawer = ({
     <>
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
+        hideCloseButton
         className={`flex flex-col overflow-hidden transition-all duration-300 ${
           isFullScreen
             ? "w-full sm:max-w-full"
