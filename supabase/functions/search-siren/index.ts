@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { getSupabaseClient } from "../_shared/supabase-client.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -50,9 +51,17 @@ serve(async (req: Request): Promise<Response> => {
       );
     }
 
-    const apiKey = Deno.env.get("INSEE_API_KEY");
+    // Read INSEE API key from app_settings
+    const supabase = getSupabaseClient();
+    const { data: keySetting } = await supabase
+      .from("app_settings")
+      .select("setting_value")
+      .eq("setting_key", "insee_api_key")
+      .single();
+
+    const apiKey = keySetting?.setting_value || Deno.env.get("INSEE_API_KEY");
     if (!apiKey) {
-      throw new Error("INSEE_API_KEY is not configured");
+      throw new Error("La clé API INSEE n'est pas configurée. Allez dans Paramètres > Intégrations > Recherche SIREN.");
     }
 
     console.log(`Searching SIREN: ${siren}`);

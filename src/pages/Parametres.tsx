@@ -853,6 +853,11 @@ const Parametres = () => {
   // CRM inbound email
   const [crmInboundEmail, setCrmInboundEmail] = useState("");
 
+  // API keys for SIREN search
+  const [inseeApiKey, setInseeApiKey] = useState("");
+  const [googleSearchApiKey, setGoogleSearchApiKey] = useState("");
+  const [googleSearchEngineId, setGoogleSearchEngineId] = useState("");
+
 
   // Module access check (isAdmin comes from profiles table)
   const { hasAccess, isAdmin, loading: accessLoading } = useModuleAccess();
@@ -905,7 +910,10 @@ const Parametres = () => {
         "can_delete_evaluations_emails",
         "reglement_interieur_url",
         "slack_crm_webhook_url",
-        "crm_inbound_email"
+        "crm_inbound_email",
+        "insee_api_key",
+        "google_search_api_key",
+        "google_search_engine_id"
       ]);
     
     if (error) {
@@ -1010,6 +1018,15 @@ const Parametres = () => {
         case "crm_inbound_email":
           setCrmInboundEmail(setting.setting_value || "");
           break;
+        case "insee_api_key":
+          setInseeApiKey(setting.setting_value || "");
+          break;
+        case "google_search_api_key":
+          setGoogleSearchApiKey(setting.setting_value || "");
+          break;
+        case "google_search_engine_id":
+          setGoogleSearchEngineId(setting.setting_value || "");
+          break;
       }
     });
   };
@@ -1049,6 +1066,9 @@ const Parametres = () => {
         // post_evaluation_email_* settings removed — now managed via post_evaluation_emails table
         { setting_key: "slack_crm_webhook_url", setting_value: slackCrmWebhookUrl, description: "URL du webhook Slack pour les notifications CRM (opportunités créées/gagnées)" },
         { setting_key: "crm_inbound_email", setting_value: crmInboundEmail, description: "Adresse email dédiée CRM — les emails reçus à cette adresse créent automatiquement une opportunité" },
+        { setting_key: "insee_api_key", setting_value: inseeApiKey, description: "Clé API INSEE SIRENE pour la recherche d'entreprises par SIREN" },
+        { setting_key: "google_search_api_key", setting_value: googleSearchApiKey, description: "Clé API Google Custom Search pour la recherche de SIREN par nom d'entreprise (fallback)" },
+        { setting_key: "google_search_engine_id", setting_value: googleSearchEngineId, description: "ID du moteur de recherche personnalisé Google (cx) pour la recherche de SIREN" },
       ];
 
       for (const setting of settingsToSave) {
@@ -2452,6 +2472,54 @@ const Parametres = () => {
                     <p className="text-xs text-muted-foreground">
                       Configurez cette adresse dans Resend (Inbound Emails) avec le webhook pointant vers votre edge function <code>resend-inbound-webhook</code>.
                       Chaque email reçu à cette adresse sera analysé par l'IA et créera automatiquement une opportunité dans la première colonne du CRM.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Recherche SIREN</CardTitle>
+                  <CardDescription>Clés API pour la recherche d'entreprises par SIREN (micro-devis).</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="insee-api-key">Clé API INSEE SIRENE</Label>
+                    <Input
+                      id="insee-api-key"
+                      type="password"
+                      value={inseeApiKey}
+                      onChange={(e) => setInseeApiKey(e.target.value)}
+                      placeholder="Votre clé API INSEE"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Obtenez une clé sur <code>api.insee.fr</code> (API SIRENE). Utilisée pour rechercher une entreprise par SIREN ou par nom.
+                    </p>
+                  </div>
+                  <Separator />
+                  <div className="space-y-2">
+                    <Label htmlFor="google-search-api-key">Clé API Google Custom Search</Label>
+                    <Input
+                      id="google-search-api-key"
+                      type="password"
+                      value={googleSearchApiKey}
+                      onChange={(e) => setGoogleSearchApiKey(e.target.value)}
+                      placeholder="Votre clé API Google"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Utilisée en fallback si l'API INSEE ne trouve pas de résultat lors de la recherche de SIREN par nom.
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="google-search-engine-id">ID du moteur Google (cx)</Label>
+                    <Input
+                      id="google-search-engine-id"
+                      value={googleSearchEngineId}
+                      onChange={(e) => setGoogleSearchEngineId(e.target.value)}
+                      placeholder="Ex: 017576662512468239146:omuauf_gy24"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Créez un moteur de recherche personnalisé sur <code>programmablesearchengine.google.com</code> et copiez l'identifiant (cx).
                     </p>
                   </div>
                 </CardContent>

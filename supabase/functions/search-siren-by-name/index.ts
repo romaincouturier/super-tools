@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { getSupabaseClient } from "../_shared/supabase-client.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -12,13 +13,35 @@ interface SirenResult {
   codePostal: string | null;
 }
 
+/** Read API keys from app_settings table */
+async function getApiKeys(): Promise<{
+  inseeApiKey: string | null;
+  googleSearchApiKey: string | null;
+  googleSearchEngineId: string | null;
+}> {
+  const supabase = getSupabaseClient();
+  const { data } = await supabase
+    .from("app_settings")
+    .select("setting_key, setting_value")
+    .in("setting_key", ["insee_api_key", "google_search_api_key", "google_search_engine_id"]);
+
+  const map: Record<string, string> = {};
+  (data || []).forEach((row: { setting_key: string; setting_value: string | null }) => {
+    if (row.setting_value) map[row.setting_key] = row.setting_value;
+  });
+
+  return {
+    inseeApiKey: map["insee_api_key"] || null,
+    googleSearchApiKey: map["google_search_api_key"] || null,
+    googleSearchEngineId: map["google_search_engine_id"] || null,
+  };
+}
+
 /**
  * Search the INSEE SIRENE API by company name (denomination).
  * Returns a list of matching companies with SIREN numbers.
  */
 async function searchInsee(companyName: string, apiKey: string): Promise<SirenResult[]> {
-  // Use full-text search on the SIRET endpoint (which has address info)
-  // Search for active legal units matching the denomination
   const query = `denominationUniteLegale:"${companyName}" AND etablissementSiege:true AND etatAdministratifUniteLegale:A`;
   const url = `https://api.insee.fr/api-sirene/3.11/siret?q=${encodeURIComponent(query)}&nombre=5`;
 
@@ -45,7 +68,6 @@ async function searchInsee(companyName: string, apiKey: string): Promise<SirenRe
   }
 
   if (response.status === 404) {
-    // No results found
     return [];
   }
 
@@ -94,15 +116,11 @@ async function searchInsee(companyName: string, apiKey: string): Promise<SirenRe
 /**
  * Fallback: search Google for the company SIREN and try to extract a 9-digit number.
  */
-async function searchWeb(companyName: string): Promise<SirenResult[]> {
-  const googleApiKey = Deno.env.get("GOOGLE_SEARCH_API_KEY");
-  const searchEngineId = Deno.env.get("GOOGLE_SEARCH_ENGINE_ID");
-
-  if (!googleApiKey || !searchEngineId) {
-    console.warn("Google Search API not configured, skipping web fallback");
-    return [];
-  }
-
+async function searchWeb(
+  companyName: string,
+  googleApiKey: string,
+  searchEngineId: string,
+): Promise<SirenResult[]> {
   const query = `SIREN "${companyName}"`;
   const url = `https://www.googleapis.com/customsearch/v1?key=${googleApiKey}&cx=${searchEngineId}&q=${encodeURIComponent(query)}&num=5`;
 
@@ -121,7 +139,6 @@ async function searchWeb(companyName: string): Promise<SirenResult[]> {
 
     const results: SirenResult[] = [];
     const seenSirens = new Set<string>();
-    // Match 9-digit numbers that look like SIREN
     const sirenRegex = /\b(\d{9})\b/g;
 
     for (const item of items) {
@@ -168,13 +185,15 @@ serve(async (req: Request): Promise<Response> => {
     const trimmedName = companyName.trim();
     console.log(`Searching SIREN for company: "${trimmedName}"`);
 
-    const apiKey = Deno.env.get("INSEE_API_KEY");
+    // Read API keys from app_settings
+    const { inseeApiKey, googleSearchApiKey, googleSearchEngineId } = await getApiKeys();
+
     let results: SirenResult[] = [];
 
     // 1) Try INSEE API first
-    if (apiKey) {
+    if (inseeApiKey) {
       try {
-        results = await searchInsee(trimmedName, apiKey);
+        results = await searchInsee(trimmedName, inseeApiKey);
       } catch (err: unknown) {
         if (err instanceof Error && err.message === "MAINTENANCE") {
           return new Response(
@@ -188,13 +207,17 @@ serve(async (req: Request): Promise<Response> => {
         console.error("INSEE search failed:", err);
       }
     } else {
-      console.warn("INSEE_API_KEY not configured");
+      console.warn("insee_api_key not configured in app_settings");
     }
 
     // 2) If INSEE returned nothing, try web search fallback
     if (results.length === 0) {
-      console.log("No INSEE results, falling back to web search");
-      results = await searchWeb(trimmedName);
+      if (googleSearchApiKey && googleSearchEngineId) {
+        console.log("No INSEE results, falling back to web search");
+        results = await searchWeb(trimmedName, googleSearchApiKey, googleSearchEngineId);
+      } else {
+        console.warn("Google Search API not configured in app_settings, skipping web fallback");
+      }
     }
 
     if (results.length === 0) {

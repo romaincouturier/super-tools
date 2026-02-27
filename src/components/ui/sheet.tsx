@@ -18,6 +18,7 @@ const SheetOverlay = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof SheetPrimitive.Overlay>
 >(({ className, ...props }, ref) => (
   <SheetPrimitive.Overlay
+    data-sheet-overlay=""
     className={cn(
       "fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
       className,
@@ -62,11 +63,12 @@ const SheetContent = React.forwardRef<React.ElementRef<typeof SheetPrimitive.Con
         ref={ref}
         className={cn(sheetVariants({ side }), className)}
         onInteractOutside={(e) => {
-          // Prevent Chrome extensions (MerciApp, Grammarly, etc.) from closing the sheet
           const target = e.target as HTMLElement | null;
-          if (target && !target.closest("[data-radix-portal]") && !target.closest("[role='dialog']")) {
-            e.preventDefault();
-          }
+          if (!target) return;
+          // Allow the overlay backdrop click to close the sheet
+          if (target.hasAttribute("data-sheet-overlay")) return;
+          // Block Chrome extensions (MerciApp, Grammarly popups) from closing the sheet
+          e.preventDefault();
         }}
         {...props}
       >
