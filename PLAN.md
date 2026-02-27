@@ -1,196 +1,305 @@
-# Plan Qualiopi post-audit — 7 features
+# Plan de refactoring : GenericKanbanBoard
 
-## Vue d'ensemble
-
-Toutes les tables Supabase existent déjà (`improvements`, `reclamations`, `trainers`,
-`trainer_training_adequacy`, `training_participants`). Le travail est principalement front-end
-avec quelques ajouts de colonnes côté base.
-
-Ordre d'implémentation : features groupées par page/composant pour minimiser les allers-retours.
+## Objectif
+Remplacer les 4 boards Kanban dupliqués (CRM, Missions, Contenu, Améliorations) par un seul composant `GenericKanbanBoard` paramétrable, instancié dans chaque contexte.
 
 ---
 
-## Feature 1 : Parcours apprenant (vue cross-formations)
+## Etape 1 : Créer le composant AddColumnDialog partagé
 
-**Besoin** : Ressortir toutes les actions qui concernent un apprenant donné, toutes formations confondues.
+**Fichiers à créer :** `src/components/shared/AddColumnDialog.tsx`
+**Fichiers à modifier :** `CrmKanbanBoard.tsx`, `content/KanbanBoard.tsx`
+**Fichiers à supprimer :** `src/components/crm/AddColumnDialog.tsx`, `src/components/content/AddColumnDialog.tsx`
 
-**Fichiers existants** :
-- `src/pages/BesoinsParticipants.tsx` — vue par formation uniquement
-- `src/components/formations/ParticipantList.tsx` — liste par training_id
-
-**Plan** :
-1. Créer `src/components/participants/ParticipantSearchDrawer.tsx`
-   - Input recherche par email ou nom
-   - Query `training_participants` filtré par email, join :
-     - `trainings(training_name, start_date, end_date)`
-     - `training_evaluations(appreciation_generale, date_soumission, certificate_url)`
-     - `questionnaire_besoins(etat, date_soumission)`
-   - Afficher une timeline/liste : formations suivies, enquêtes besoins, évaluations, certificats, conventions signées
-2. Ajouter un bouton "Rechercher un apprenant" dans `BesoinsParticipants.tsx` qui ouvre ce drawer
-3. Réutiliser les composants Badge/Card/Sheet existants
-
-**Refactoring** : Extraire les queries Supabase participants dans un hook `useParticipantHistory(email)`.
+Les 2 AddColumnDialog existants sont quasi identiques (même props, même logique, 3 lignes de diff). Fusion en un seul fichier partagé, puis mise à jour des imports.
 
 ---
 
-## Feature 2 : Mapping compétences formateur ↔ formation
+## Etape 2 : Créer le hook `useKanbanDnd`
 
-**Besoin** : Rendre plus claire l'adéquation entre les compétences du formateur et le sujet de la formation.
+**Fichier à créer :** `src/hooks/useKanbanDnd.ts`
 
-**Fichiers existants** :
-- `src/components/formations/TrainerAdequacy.tsx` (165 lignes) — affiche juste "Validée/Non validée"
-- `src/components/settings/TrainerManager.tsx` — gère `trainers.competences[]`
-- Table `trainer_training_adequacy` — colonnes : trainer_id, training_id, validated_by, validated_at, notes
+Extraire la config DnD commune (identique dans les 4 boards) :
+- `PointerSensor` avec `activationConstraint: { distance: 8 }`
+- `KeyboardSensor` optionnel (CRM + Content l'utilisent)
+- `closestCorners` par défaut (seul Missions utilise `closestCenter`)
 
-**Plan** :
-1. Enrichir `TrainerAdequacy.tsx` :
-   - Charger les compétences du formateur (`trainers.competences[]`)
-   - Charger le sujet/objectifs de la formation (`trainings.training_name, trainings.objectives`)
-   - Afficher un tableau visuel côte-à-côte : compétences formateur | objectifs formation
-   - Ajouter un champ `notes` (justification de l'adéquation) lors de la validation
-   - Sauvegarder les notes dans `trainer_training_adequacy.notes`
-2. Fix le bug actuel : la requête `trainers.select("id").limit(10)` est trop approximative
-   - Utiliser le `trainer_id` stocké dans `trainings` au lieu de chercher par nom
-3. Ajouter la mention "Indicateurs 21 & 22" dans le header du composant
-
-**Refactoring** : Corriger la requête trainer (actuellement fragile, prend le 1er trainer trouvé).
+```ts
+interface UseKanbanDndOptions {
+  enableKeyboard?: boolean;
+}
+// Retourne { sensors }
+```
 
 ---
 
-## Feature 3 : Indicateur 30 — Terminologie précise (Aléas, Réclamation, Attendu)
+## Etape 3 : Créer les types génériques du board
 
-**Besoin** : Le formulaire de réclamation doit distinguer clairement les types Qualiopi : aléa vs réclamation vs difficulté, et capturer l'attendu initial.
+**Fichier à créer :** `src/types/kanban.ts`
 
-**Fichiers existants** :
-- `src/pages/ReclamationPublic.tsx` (307 lignes) — formulaire public
-- `src/pages/Reclamations.tsx` (564 lignes) — admin
-- Table `reclamations` — colonnes actuelles : problem_type, description, severity
+```ts
+interface KanbanColumnDef {
+  id: string;
+  name: string;
+  position: number;
+  isSystem?: boolean;       // Content : protège rename/delete
+  isArchived?: boolean;     // CRM : colonne archivée
+  color?: string;           // Missions : dot de couleur
+}
 
-**Plan** :
-1. Ajouter à la table `reclamations` (migration Supabase) :
-   - `nature` : enum `'reclamation' | 'alea' | 'difficulte'` (défaut: 'reclamation')
-   - `attendu_initial` : text (ce qui était attendu)
-   - `resultat_constate` : text (ce qui s'est réellement passé)
-2. Mettre à jour `ReclamationPublic.tsx` :
-   - Ajouter le champ "Nature" en haut du formulaire (3 RadioGroupItem avec descriptions Qualiopi) :
-     - Réclamation : "Expression formelle d'insatisfaction"
-     - Aléa : "Événement imprévu survenu pendant la formation"
-     - Difficulté rencontrée : "Obstacle ou problème identifié"
-   - Ajouter les champs "Attendu initial" et "Résultat constaté"
-   - Renommer "Description du problème" → "Description détaillée"
-3. Mettre à jour `Reclamations.tsx` admin :
-   - Afficher la nature dans la liste et le drawer
-   - Ajouter filtre par nature
-   - Ajouter les nouveaux champs dans le drawer de détail
-   - Mettre à jour le formulaire de création manuelle
+interface KanbanCardDef {
+  id: string;
+  columnId: string;         // rattachement à la colonne
+  position: number;
+}
 
-**Refactoring** : Extraire les constantes PROBLEM_TYPES, SEVERITIES, CANALS dans un fichier partagé
-`src/lib/reclamationConstants.ts` (utilisé par ReclamationPublic + Reclamations).
+interface KanbanDropResult<TCard> {
+  card: TCard;
+  sourceColumnId: string;
+  targetColumnId: string;
+  newPosition: number;
+}
 
----
-
-## Feature 4 : Indicateur 31 — Notes d'amélioration + suivi mensuel + historique
-
-**Besoin** : Ajouter des notes de suivi par amélioration, relance mensuelle par mail, historique des actions.
-
-**Fichiers existants** :
-- `src/pages/Ameliorations.tsx` (712 lignes) — page monolithique
-- Table `improvements` — pas de champ notes/historique
-
-**Plan** :
-1. Créer une table `improvement_notes` en Supabase :
-   - `id`, `improvement_id` (FK), `content` (text), `created_at`, `created_by`
-   - Chaque note = une entrée dans l'historique
-2. Créer `src/components/ameliorations/ImprovementDetailDrawer.tsx` :
-   - Sheet/Drawer avec les détails complets de l'amélioration
-   - Section "Historique / Notes de suivi" : liste chronologique des notes
-   - Formulaire d'ajout de note (Textarea + bouton)
-   - Les changements de statut sont aussi loggés automatiquement comme notes
-3. Mettre à jour `Ameliorations.tsx` :
-   - Clic sur une amélioration → ouvre le drawer de détail
-   - Ajouter un badge "dernière mise à jour" sur chaque carte
-4. Suivi mensuel :
-   - Ajouter colonnes `last_reminder_sent_at` et `next_reminder_date` à `improvements`
-   - Créer un bouton "Envoyer les relances" dans la page admin qui envoie un email
-     récapitulatif des améliorations en cours au responsable
-   - Ou : créer une edge function Supabase `improvement-monthly-reminder` déclenchée par cron
-
-**Refactoring** : Extraire de `Ameliorations.tsx` :
-- `src/components/ameliorations/ImprovementCard.tsx` — carte individuelle
-- `src/components/ameliorations/ImprovementFilters.tsx` — barre de filtres
-- `src/components/ameliorations/AddImprovementDialog.tsx` — dialog de création
+interface KanbanBoardConfig {
+  columnReorder?: boolean;  // Content seul l'utilise
+  cardSortable?: boolean;   // false pour Améliorations
+  enableKeyboard?: boolean; // CRM + Content
+  collisionDetection?: 'closestCorners' | 'closestCenter';
+}
+```
 
 ---
 
-## Feature 5 : Modifier une amélioration
+## Etape 4 : Créer le composant `GenericKanbanBoard`
 
-**Besoin** : Pouvoir éditer titre, description, priorité, échéance, responsable après création.
+**Fichier à créer :** `src/components/shared/kanban/GenericKanbanBoard.tsx`
 
-**Fichiers existants** :
-- `src/pages/Ameliorations.tsx` — Dialog création uniquement, pas d'édition
+Coeur du refactoring. Props :
 
-**Plan** :
-1. Transformer `AddImprovementDialog` (extrait en Feature 4) en `ImprovementFormDialog`
-   - Accepte un prop `improvement?: Improvement` pour le mode édition
-   - Pré-remplit les champs si édition
-   - Appelle `update` au lieu de `insert` si id présent
-2. Ajouter "Modifier" dans le DropdownMenu de chaque carte
-3. Ajouter un bouton "Modifier" dans le `ImprovementDetailDrawer`
+```ts
+interface GenericKanbanBoardProps<
+  TCard extends KanbanCardDef,
+  TColumn extends KanbanColumnDef
+> {
+  // Données
+  columns: TColumn[];
+  cards: TCard[];
+  loading?: boolean;
 
-**Refactoring** : Mutualisé avec Feature 4 (même composant dialog).
+  // Config DnD
+  config?: KanbanBoardConfig;
 
----
+  // Rendu (render props)
+  renderCard: (card: TCard, isDragging?: boolean) => ReactNode;
+  renderColumnHeader?: (column: TColumn, cards: TCard[]) => ReactNode;
+  renderColumnFooter?: (column: TColumn) => ReactNode;
+  renderToolbar?: () => ReactNode;         // Search/filtres au-dessus du board
+  renderAfterColumns?: () => ReactNode;    // Bouton "+" ajout colonne
 
-## Feature 6 : Vue Kanban pour améliorations
+  // Callbacks DnD
+  onCardMove: (result: KanbanDropResult<TCard>) => void | Promise<void>;
+  onBeforeCardMove?: (result: KanbanDropResult<TCard>) => boolean | Promise<boolean>;
+    // → retourner false annule le move (ex: dialog raison de perte CRM)
+  onAfterCardMove?: (result: KanbanDropResult<TCard>) => void;
+    // → side effects post-move (ex: confetti CRM)
+  onColumnReorder?: (columnId: string, newPosition: number) => void;
 
-**Besoin** : Présenter les améliorations sous forme de tableau Kanban (colonnes par statut).
+  // Clic carte
+  onCardClick?: (card: TCard) => void;
 
-**Fichiers existants** :
-- `src/pages/Ameliorations.tsx` — groupedImprovements déjà prêt (pending/in_progress/completed/cancelled)
-- `@dnd-kit/core`, `@dnd-kit/sortable`, `@dnd-kit/utilities` — déjà installés dans le projet
-- Le CRM (`src/pages/Crm.tsx`) et Missions (`src/pages/Missions.tsx`) utilisent déjà un Kanban DnD
+  // Styles
+  columnClassName?: string;
+  boardClassName?: string;
+}
+```
 
-**Plan** :
-1. Créer `src/components/ameliorations/ImprovementKanban.tsx` :
-   - 4 colonnes : En attente | En cours | Terminées | Annulées
-   - Chaque colonne affiche le count + les cartes `ImprovementCard`
-   - Drag & drop entre colonnes → `handleStatusChange`
-   - S'inspirer du pattern DnD du CRM (DndContext + SortableContext)
-2. Mettre à jour `Ameliorations.tsx` :
-   - Toggle vue Liste / Kanban (bouton en haut)
-   - Stocker la préférence dans localStorage
-3. Les cartes Kanban affichent : titre, badge catégorie, badge priorité, responsable, échéance
-
-**Refactoring** : Réutiliser les composants DnD existants du projet. Extraire un hook
-`useImprovements()` pour la logique fetch/filter/status-change partagée entre liste et Kanban.
-
----
-
-## Feature 7 : Supprimer une amélioration en brouillon
-
-**Besoin** : Permettre la suppression uniquement des améliorations en brouillon/pending.
-
-**Fichiers existants** :
-- `Ameliorations.tsx` → `handleDelete` supprime sans restriction de statut
-
-**Plan** :
-1. Ajouter le statut `"draft"` dans l'enum des statuts d'amélioration (BDD + front)
-2. Quand on crée une amélioration sans remplir tous les champs obligatoires → statut "draft"
-3. Conditionner la suppression hard-delete :
-   - `draft` ou `pending` → suppression autorisée avec confirmation
-   - `in_progress` / `completed` → pas de suppression, uniquement "Annuler" (cancelled)
-4. Ajouter la colonne Kanban "Brouillons" (avant "En attente")
-5. Mettre à jour `statusConfig` avec le label "Brouillon" et son style
+**Responsabilités internes :**
+1. `DndContext` + sensors (via `useKanbanDnd`)
+2. Layout horizontal scrollable (`flex gap-4 overflow-x-auto`)
+3. `SortableContext` pour colonnes (si `config.columnReorder`)
+4. Pour chaque colonne : `useDroppable`, `SortableContext` cards, highlight `ring-2` au survol
+5. `DragOverlay` avec `renderCard(activeCard, true)`
+6. `handleDragStart` / `handleDragOver` / `handleDragEnd` génériques
+7. `onBeforeCardMove` appelé avant persist (retourne false → annule)
+8. `onAfterCardMove` appelé après persist
 
 ---
 
-## Ordre d'implémentation recommandé
+## Etape 5 : Créer le composant `GenericKanbanColumn`
 
-| Étape | Features | Justification |
-|-------|----------|---------------|
-| 1 | 4 + 5 + 6 + 7 | Bloc Améliorations — refactoring commun, dépendances croisées |
-| 2 | 3 | Bloc Réclamations — indépendant |
-| 3 | 2 | Adéquation formateur — indépendant, petit scope |
-| 4 | 1 | Parcours apprenant — nouvelle page, plus exploratoire |
+**Fichier à créer :** `src/components/shared/kanban/GenericKanbanColumn.tsx`
 
-Estimation : ~4 étapes de travail, chacune avec commit + push.
+Composant colonne interne utilisé par GenericKanbanBoard :
+- `useDroppable` + optionnel `useSortable` (si `columnReorder`)
+- Header : nom + badge count + slot extras (via `renderColumnHeader`)
+- Zone scrollable pour les cards
+- Empty state configurable
+- Highlight au survol (`isOver`)
+
+---
+
+## Etape 6 : Migrer le board Améliorations (le plus simple)
+
+**Fichier à modifier :** `src/components/ameliorations/ImprovementKanban.tsx`
+
+Premier test du GenericKanbanBoard. C'est le board le plus simple : stateless, pas de sortable intra-colonne.
+
+```tsx
+<GenericKanbanBoard
+  columns={KANBAN_COLUMNS.map(status => ({
+    id: status,
+    name: STATUS_CONFIG[status].label,
+    position: idx,
+    color: STATUS_CONFIG[status].color,
+  }))}
+  cards={allImprovements.map(i => ({ ...i, columnId: i.status, position: 0 }))}
+  config={{ cardSortable: false }}
+  renderCard={(item) => <ImprovementCard improvement={item} compact />}
+  renderColumnHeader={(col, cards) => /* nom + count */}
+  onCardMove={({ card, targetColumnId }) => onStatusChange(card.id, targetColumnId)}
+  onCardClick={(item) => onClick(item)}
+/>
+```
+
+**ImprovementCard.tsx reste inchangé.**
+
+---
+
+## Etape 7 : Migrer le board Missions
+
+**Fichier à modifier :** `src/components/missions/MissionsKanbanBoard.tsx`
+**Fichier à supprimer :** `src/components/missions/MissionColumn.tsx`
+
+```tsx
+<GenericKanbanBoard
+  columns={statuses.map(s => ({
+    id: s, name: missionStatusConfig[s].label,
+    position: idx, color: missionStatusConfig[s].color,
+  }))}
+  cards={missions.map(m => ({ ...m, columnId: m.status }))}
+  config={{ cardSortable: true, collisionDetection: 'closestCenter' }}
+  renderCard={(m, isDragging) => <MissionCard mission={m} isDragging={isDragging} />}
+  renderColumnHeader={(col) => /* nom + dot couleur + bouton "+" */}
+  onCardMove={({ card, targetColumnId, newPosition }) =>
+    moveMission.mutateAsync({ missionId: card.id, newStatus: targetColumnId, newPosition })
+  }
+  onCardClick={(m) => setSelectedMission(m)}
+/>
+```
+
+**MissionCard.tsx reste inchangé.** CreateMissionDialog et MissionDetailDrawer restent gérés par le wrapper MissionsKanbanBoard.
+
+---
+
+## Etape 8 : Migrer le board Contenu
+
+**Fichier à modifier :** `src/components/content/KanbanBoard.tsx`
+**Fichier à supprimer :** `src/components/content/KanbanColumn.tsx`
+
+Seul board avec réordonnement de colonnes et CRUD colonnes.
+
+```tsx
+<GenericKanbanBoard
+  columns={columns.map(c => ({
+    id: c.id, name: c.name,
+    position: c.display_order, isSystem: c.is_system,
+  }))}
+  cards={cards.map(c => ({ ...c, columnId: c.column_id, position: c.display_order }))}
+  config={{ columnReorder: true, cardSortable: true, enableKeyboard: true }}
+  renderCard={(card, isDragging) => <ContentCard card={card} isDragging={isDragging} />}
+  renderColumnHeader={(col) => /* grip handle + nom + dropdown rename/delete + bouton "+" */}
+  renderAfterColumns={() => <Button onClick={() => setShowAddColumn(true)}>+</Button>}
+  onCardMove={({ card, targetColumnId, newPosition }) => /* persist Supabase */}
+  onColumnReorder={(colId, newPos) => /* persist Supabase */}
+  onCardClick={(card) => setEditingCard(card)}
+/>
+```
+
+**ContentCard.tsx reste inchangé.** ColorSettingsDialog et ContentCardDialog restent dans KanbanBoard.tsx.
+
+---
+
+## Etape 9 : Migrer le board CRM (le plus complexe)
+
+**Fichier à modifier :** `src/components/crm/CrmKanbanBoard.tsx`
+**Fichier à supprimer :** `src/components/crm/CrmColumn.tsx`
+
+La logique métier la plus riche (search, filtres, confetti, dialogs). Toute cette logique reste dans CrmKanbanBoard.tsx — GenericKanbanBoard ne la connaît pas.
+
+```tsx
+<GenericKanbanBoard
+  columns={columns}
+  cards={localCards.map(c => ({ ...c, columnId: c.column_id }))}
+  config={{ cardSortable: true, enableKeyboard: true }}
+  renderToolbar={() => /* barre search + 5 boutons filtre */}
+  renderCard={(card, isDragging) =>
+    <CrmCard card={card} isDragging={isDragging} serviceTypeColors={...} />
+  }
+  renderColumnHeader={(col, cards) => /* nom + count + valeur totale + dropdown rename/archive */}
+  renderAfterColumns={() => <Button>+ Colonne</Button>}
+  onBeforeCardMove={async ({ card, targetColumnId }) => {
+    const colName = getColumnName(targetColumnId);
+    if (colName.includes("perdu")) {
+      // Ouvre LossReasonDialog, retourne false → annule le move
+      setPendingLossCard({ cardId: card.id, targetColumnId, ... });
+      setShowLossReasonDialog(true);
+      return false;
+    }
+    return true;
+  }}
+  onCardMove={({ card, targetColumnId, newPosition }) =>
+    moveCard.mutateAsync({ cardId: card.id, targetColumnId, newPosition })
+  }
+  onAfterCardMove={({ card, targetColumnId }) => {
+    const colName = getColumnName(targetColumnId);
+    if (colName.includes("gagné")) {
+      celebrateWin();
+      // Propose création formation
+    }
+  }}
+  onCardClick={(card) => setSelectedCard(card)}
+/>
+```
+
+**CrmCard.tsx reste inchangé.** LossReasonDialog, CreateTrainingDialog, CardDetailDrawer restent gérés par CrmKanbanBoard.
+
+---
+
+## Etape 10 : Nettoyage final
+
+- Supprimer les fichiers devenus inutiles :
+  - `src/components/crm/CrmColumn.tsx`
+  - `src/components/crm/AddColumnDialog.tsx`
+  - `src/components/missions/MissionColumn.tsx`
+  - `src/components/content/KanbanColumn.tsx`
+  - `src/components/content/AddColumnDialog.tsx`
+- Vérifier tous les imports (plus aucune référence aux anciens fichiers)
+- `npx tsc --noEmit`
+- Test visuel de chaque board
+
+---
+
+## Résumé des fichiers
+
+| Action | Fichier |
+|--------|---------|
+| **Créer** | `src/components/shared/AddColumnDialog.tsx` |
+| **Créer** | `src/hooks/useKanbanDnd.ts` |
+| **Créer** | `src/types/kanban.ts` |
+| **Créer** | `src/components/shared/kanban/GenericKanbanBoard.tsx` |
+| **Créer** | `src/components/shared/kanban/GenericKanbanColumn.tsx` |
+| **Modifier** | `src/components/ameliorations/ImprovementKanban.tsx` |
+| **Modifier** | `src/components/missions/MissionsKanbanBoard.tsx` |
+| **Modifier** | `src/components/content/KanbanBoard.tsx` |
+| **Modifier** | `src/components/crm/CrmKanbanBoard.tsx` |
+| **Supprimer** | `src/components/crm/AddColumnDialog.tsx` |
+| **Supprimer** | `src/components/content/AddColumnDialog.tsx` |
+| **Supprimer** | `src/components/missions/MissionColumn.tsx` |
+| **Supprimer** | `src/components/content/KanbanColumn.tsx` |
+| **Supprimer** | `src/components/crm/CrmColumn.tsx` |
+| **Inchangé** | Tous les *Card.tsx (ImprovementCard, MissionCard, ContentCard, CrmCard) |
+| **Inchangé** | Tous les drawers/dialogs de détail |
+
+## Ordre d'exécution
+
+Du plus simple au plus complexe : **Améliorations → Missions → Contenu → CRM**. Chaque étape produit un board fonctionnel et testable. Si un problème survient, on peut s'arrêter sans casser les autres boards.
