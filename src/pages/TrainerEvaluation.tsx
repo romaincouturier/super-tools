@@ -16,7 +16,7 @@ const TrainerEvaluation = () => {
   const [evaluation, setEvaluation] = useState<any>(null);
   const [trainingName, setTrainingName] = useState("");
   const [trainingDetails, setTrainingDetails] = useState<{
-    startDate?: string; endDate?: string; location?: string; locationType?: string;
+    startDate?: string; endDate?: string; location?: string;
     participants: { first_name: string; last_name: string }[];
   }>({ participants: [] });
   const [satisfaction, setSatisfaction] = useState(0);
@@ -30,7 +30,7 @@ const TrainerEvaluation = () => {
     const fetchEvaluation = async () => {
       const { data, error } = await (supabase as any)
         .from("trainer_evaluations")
-        .select("*, trainings(training_name, start_date, end_date, location, location_type)")
+        .select("*, trainings(training_name, start_date, end_date, location)")
         .eq("token", token)
         .maybeSingle();
 
@@ -49,7 +49,6 @@ const TrainerEvaluation = () => {
           startDate: training.start_date,
           endDate: training.end_date,
           location: training.location,
-          locationType: training.location_type,
           participants: [],
         });
       }
