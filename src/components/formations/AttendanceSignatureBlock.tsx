@@ -466,7 +466,7 @@ const AttendanceSignatureBlock = ({
             ctx.fillStyle = "#FFFFFF";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-            resolve(canvas.toDataURL("image/jpeg", 0.85));
+            resolve(canvas.toDataURL("image/jpeg", 1.0));
           } catch {
             resolve(dataUrl);
           }
