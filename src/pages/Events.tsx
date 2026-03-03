@@ -161,8 +161,8 @@ const Events = () => {
 
                     {/* Info */}
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className={`font-medium truncate ${event.status === "cancelled" ? "line-through text-muted-foreground" : ""}`}>
+                      <div className="flex items-center gap-2 min-w-0">
+                        <p className={`font-medium truncate min-w-0 ${event.status === "cancelled" ? "line-through text-muted-foreground" : ""}`}>
                           {event.title}
                         </p>
                         {event.event_type === "external" && (
