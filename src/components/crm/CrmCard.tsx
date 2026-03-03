@@ -2,7 +2,7 @@ import { useState } from "react";
 import { GraduationCap, Briefcase } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { CrmCard, CrmColumn } from "@/types/crm";
+import { CrmCard } from "@/types/crm";
 import { useUpdateCard } from "@/hooks/useCrmBoard";
 import { useAuth } from "@/hooks/useAuth";
 import EmojiPickerButton from "@/components/ui/emoji-picker-button";
@@ -18,7 +18,6 @@ interface ServiceTypeColors {
 interface CrmCardProps {
   card: CrmCard;
   isDragging?: boolean;
-  allColumns?: CrmColumn[];
   onClick?: () => void;
   serviceTypeColors?: ServiceTypeColors;
 }

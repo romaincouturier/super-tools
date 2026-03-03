@@ -13,7 +13,6 @@ interface GenericKanbanColumnProps<
   sortable: boolean;
   renderCard: (card: TCard) => ReactNode;
   renderHeader?: (column: TColumn, cards: TCard[]) => ReactNode;
-  renderFooter?: (column: TColumn) => ReactNode;
   renderEmpty?: (column: TColumn) => ReactNode;
   className?: string;
 }
@@ -27,7 +26,6 @@ export default function GenericKanbanColumn<
   sortable,
   renderCard,
   renderHeader,
-  renderFooter,
   renderEmpty,
   className,
 }: GenericKanbanColumnProps<TCard, TColumn>) {
@@ -63,7 +61,6 @@ export default function GenericKanbanColumn<
             </div>
           ))}
       </div>
-      {renderFooter?.(column)}
     </>
   );
 

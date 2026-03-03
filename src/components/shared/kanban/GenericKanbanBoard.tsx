@@ -27,11 +27,8 @@ export default function GenericKanbanBoard<
   config = {},
   renderCard,
   renderColumnHeader,
-  renderColumnFooter,
   renderEmptyColumn,
   onCardMove,
-  onBeforeCardMove,
-  onAfterCardMove,
   onCardClick,
   columnClassName,
   boardClassName,
@@ -93,14 +90,7 @@ export default function GenericKanbanBoard<
       newPosition,
     };
 
-    // Before hook — returning false cancels the move
-    if (onBeforeCardMove) {
-      const allowed = await onBeforeCardMove(dropResult);
-      if (!allowed) return;
-    }
-
     await onCardMove(dropResult);
-    onAfterCardMove?.(dropResult);
   };
 
   if (loading) {
@@ -139,7 +129,6 @@ export default function GenericKanbanBoard<
                 </div>
               )}
               renderHeader={renderColumnHeader}
-              renderFooter={renderColumnFooter}
               renderEmpty={renderEmptyColumn}
               className={columnClassName}
             />
