@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import DetailDrawer from "@/components/shared/DetailDrawer";
 import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -148,6 +149,7 @@ const CardDetailDrawer = ({
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { data: details, isLoading: detailsLoading } = useCrmCardDetails(card?.id || null);
 
   const updateCard = useUpdateCard();
@@ -1146,6 +1148,8 @@ const CardDetailDrawer = ({
     setEmailSubject("");
     setEmailBody("");
     setEmailAttachments([]);
+    // Explicitly refetch card details so email history updates immediately
+    await queryClient.invalidateQueries({ queryKey: ["crm-board", "card-details", card.id] });
   };
 
   if (!card) return null;
