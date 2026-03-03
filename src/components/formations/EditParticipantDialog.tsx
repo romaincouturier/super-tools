@@ -437,7 +437,7 @@ const EditParticipantDialog = ({
           <p>Modifier le participant</p>
         </TooltipContent>
       </Tooltip>
-      <DialogContent className="max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-h-[90vh] overflow-y-auto overflow-x-hidden sm:max-w-xl">
         <form onSubmit={handleSubmit} id="edit-participant-form">
           <DialogHeader>
             <DialogTitle>Modifier le participant</DialogTitle>
@@ -447,7 +447,7 @@ const EditParticipantDialog = ({
           </DialogHeader>
 
           <div className="space-y-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="edit-firstName">Prénom</Label>
                 <Input
@@ -530,7 +530,7 @@ const EditParticipantDialog = ({
                     Commanditaire (facturation)
                   </Label>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="edit-sponsorFirstName">Prénom</Label>
                     <Input
@@ -588,9 +588,9 @@ const EditParticipantDialog = ({
                             variant="outline"
                             role="combobox"
                             aria-expanded={financeurPopoverOpen}
-                            className="w-full justify-between font-normal"
+                            className="w-full justify-between font-normal truncate"
                           >
-                            {financeurName || "Sélectionner ou saisir un financeur..."}
+                            <span className="truncate">{financeurName || "Sélectionner ou saisir un financeur..."}</span>
                             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                           </Button>
                         </PopoverTrigger>
