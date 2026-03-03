@@ -217,13 +217,13 @@ const EventDetail = () => {
         )}
 
         {/* Header */}
-        <div className="space-y-3">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={() => navigate("/events")}>
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
+        <div className="flex items-start gap-4">
+          <Button variant="ghost" size="icon" className="shrink-0 mt-0.5" onClick={() => navigate("/events")}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div className="space-y-3">
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <h1 className={`text-2xl font-bold ${event.status === "cancelled" ? "line-through text-muted-foreground" : ""}`}>
                   {event.title}
                 </h1>
@@ -250,64 +250,64 @@ const EventDetail = () => {
                 )}
               </div>
             </div>
-          </div>
 
-          <div className="flex items-center gap-2">
-            <ShareEventDialog event={event} />
-            <Button variant="outline" size="sm" onClick={handleDuplicate}>
-              <Copy className="h-4 w-4 mr-1" />
-              Dupliquer
-            </Button>
-            {event.status !== "cancelled" && (
-              <>
-                <Button variant="outline" size="sm" onClick={() => navigate(`/events/${id}/edit`)}>
-                  <Edit className="h-4 w-4 mr-1" />
-                  Modifier
-                </Button>
-                <Dialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button variant="outline" size="sm" className="text-orange-600 hover:text-orange-600">
-                      <Ban className="h-4 w-4 mr-1" />
-                      Annuler
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="sm:max-w-md">
-                    <DialogHeader>
-                      <DialogTitle>Annuler cet événement</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <Label>Raison de l'annulation *</Label>
-                        <Select value={cancellationReason} onValueChange={setCancellationReason}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Sélectionner une raison..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {CANCELLATION_REASONS.map((r) => (
-                              <SelectItem key={r.value} value={r.value}>
-                                {r.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+            <div className="flex items-center gap-2 flex-wrap">
+              <ShareEventDialog event={event} />
+              <Button variant="outline" size="sm" onClick={handleDuplicate}>
+                <Copy className="h-4 w-4 mr-1" />
+                Dupliquer
+              </Button>
+              {event.status !== "cancelled" && (
+                <>
+                  <Button variant="outline" size="sm" onClick={() => navigate(`/events/${id}/edit`)}>
+                    <Edit className="h-4 w-4 mr-1" />
+                    Modifier
+                  </Button>
+                  <Dialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" size="sm" className="text-orange-600 hover:text-orange-600">
+                        <Ban className="h-4 w-4 mr-1" />
+                        Annuler
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-md">
+                      <DialogHeader>
+                        <DialogTitle>Annuler cet événement</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <Label>Raison de l'annulation *</Label>
+                          <Select value={cancellationReason} onValueChange={setCancellationReason}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Sélectionner une raison..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {CANCELLATION_REASONS.map((r) => (
+                                <SelectItem key={r.value} value={r.value}>
+                                  {r.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="flex justify-end gap-2">
+                          <Button variant="outline" onClick={() => setCancelDialogOpen(false)}>
+                            Retour
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            onClick={handleCancel}
+                            disabled={!cancellationReason}
+                          >
+                            Confirmer l'annulation
+                          </Button>
+                        </div>
                       </div>
-                      <div className="flex justify-end gap-2">
-                        <Button variant="outline" onClick={() => setCancelDialogOpen(false)}>
-                          Retour
-                        </Button>
-                        <Button
-                          variant="destructive"
-                          onClick={handleCancel}
-                          disabled={!cancellationReason}
-                        >
-                          Confirmer l'annulation
-                        </Button>
-                      </div>
-                    </div>
-                  </DialogContent>
-                </Dialog>
-              </>
-            )}
+                    </DialogContent>
+                  </Dialog>
+                </>
+              )}
+            </div>
           </div>
         </div>
 
