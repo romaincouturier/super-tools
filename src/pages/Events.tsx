@@ -3,8 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { format, parseISO, isPast, endOfDay } from "date-fns";
 import { fr } from "date-fns/locale";
 import { formatDateWithDayOfWeek } from "@/lib/dateFormatters";
-import { Loader2, Plus, CalendarDays, ArrowLeft, MapPin, Video, Search, X, Ban, Globe } from "lucide-react";
+import { Plus, CalendarDays, ArrowLeft, MapPin, Video, Search, X, Ban, Globe } from "lucide-react";
+import { getCfpDaysLeft } from "@/types/events";
 import AppHeader from "@/components/AppHeader";
+import PageLoading from "@/components/PageLoading";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -48,16 +50,7 @@ const Events = () => {
 
   const displayedEvents = filter === "upcoming" ? upcomingEvents : pastEvents;
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background">
-        <AppHeader />
-        <div className="flex items-center justify-center h-[60vh]">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
-        </div>
-      </div>
-    );
-  }
+  if (isLoading) return <PageLoading />;
 
   return (
     <div className="min-h-screen bg-background">
@@ -191,10 +184,7 @@ const Events = () => {
                           {event.event_time && ` à ${event.event_time.slice(0, 5)}`}
                         </span>
                         {event.event_type === "external" && event.cfp_deadline && (() => {
-                          const deadline = new Date(event.cfp_deadline);
-                          const today = new Date();
-                          today.setHours(0, 0, 0, 0);
-                          const daysLeft = Math.ceil((deadline.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                          const daysLeft = getCfpDaysLeft(event.cfp_deadline);
                           if (daysLeft < 0) return null;
                           return (
                             <span className={`text-xs ${daysLeft <= 7 ? "text-orange-600 font-medium" : ""}`}>

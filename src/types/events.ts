@@ -18,6 +18,23 @@ export interface Event {
   updated_at: string;
 }
 
+export const CANCELLATION_REASONS = [
+  { value: "non_selectionne", label: "Non sélectionné" },
+  { value: "plus_disponible", label: "Plus disponible" },
+  { value: "manque_participants", label: "Pas assez de participants" },
+  { value: "report", label: "Reporté" },
+  { value: "autre", label: "Autre" },
+] as const;
+
+export function getCfpDaysLeft(cfpDeadline: string): number {
+  // Parse as local date (YYYY-MM-DD) to avoid UTC offset issues
+  const [y, m, d] = cfpDeadline.split("-").map(Number);
+  const deadline = new Date(y, m - 1, d);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return Math.ceil((deadline.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+}
+
 export interface EventMedia {
   id: string;
   event_id: string;

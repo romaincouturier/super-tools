@@ -24,8 +24,11 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { CANCELLATION_REASONS, getCfpDaysLeft } from "@/types/events";
 import ShareEventDialog from "@/components/events/ShareEventDialog";
 import AppHeader from "@/components/AppHeader";
+import PageLoading from "@/components/PageLoading";
+import PageNotFound from "@/components/PageNotFound";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -206,40 +209,10 @@ const EventDetail = () => {
     }
   };
 
-  const CANCELLATION_REASONS = [
-    { value: "non_selectionne", label: "Non sélectionné" },
-    { value: "plus_disponible", label: "Plus disponible" },
-    { value: "manque_participants", label: "Pas assez de participants" },
-    { value: "report", label: "Reporté" },
-    { value: "autre", label: "Autre" },
-  ];
-
   const videoLinks = media.filter((m) => m.file_type === "video_link");
 
-  if (eventLoading || mediaLoading) {
-    return (
-      <div className="min-h-screen bg-background">
-        <AppHeader />
-        <div className="flex items-center justify-center h-[60vh]">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
-        </div>
-      </div>
-    );
-  }
-
-  if (!event) {
-    return (
-      <div className="min-h-screen bg-background">
-        <AppHeader />
-        <div className="max-w-4xl mx-auto p-6 text-center py-20 text-muted-foreground">
-          <p>Événement introuvable.</p>
-          <Button variant="outline" className="mt-4" onClick={() => navigate("/events")}>
-            Retour aux événements
-          </Button>
-        </div>
-      </div>
-    );
-  }
+  if (eventLoading || mediaLoading) return <PageLoading />;
+  if (!event) return <PageNotFound message="Événement introuvable." backTo="/events" backLabel="Retour aux événements" />;
 
   return (
     <div className="min-h-screen bg-background">
@@ -468,20 +441,19 @@ const EventDetail = () => {
                 </div>
               )}
               {event.cfp_deadline && (() => {
-                const deadline = new Date(event.cfp_deadline);
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-                const daysLeft = Math.ceil((deadline.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                const daysLeft = getCfpDaysLeft(event.cfp_deadline);
                 const isPastDeadline = daysLeft < 0;
                 const isUrgent = daysLeft >= 0 && daysLeft <= 7;
+                const [y, m, d] = event.cfp_deadline.split("-").map(Number);
+                const deadline = new Date(y, m - 1, d);
                 return (
                   <div className="flex items-center gap-2">
-                    <AlertTriangle className={`h-4 w-4 flex-shrink-0 ${isPastDeadline ? "text-muted-foreground" : isUrgent ? "text-orange-500" : "text-muted-foreground"}`} />
+                    <AlertTriangle className={`h-4 w-4 flex-shrink-0 ${isUrgent && !isPastDeadline ? "text-orange-500" : "text-muted-foreground"}`} />
                     <div>
                       <p className="text-sm font-medium">Date limite CFP</p>
                       <p className={`text-sm ${isPastDeadline ? "text-muted-foreground line-through" : isUrgent ? "text-orange-600 font-medium" : "text-muted-foreground"}`}>
                         {deadline.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
-                        {isPastDeadline ? " (passée)" : daysLeft === 0 ? " (aujourd'hui !)" : daysLeft === 1 ? " (demain !)" : isUrgent ? ` (dans ${daysLeft}j)` : ` (dans ${daysLeft}j)`}
+                        {isPastDeadline ? " (passée)" : daysLeft === 0 ? " (aujourd'hui !)" : daysLeft === 1 ? " (demain !)" : ` (dans ${daysLeft}j)`}
                       </p>
                     </div>
                   </div>
