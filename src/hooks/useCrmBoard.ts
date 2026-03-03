@@ -359,6 +359,7 @@ export const useCreateCard = () => {
         email: normalizeEmail(input.email),
         linkedin_url: input.linkedin_url || null,
         service_type: input.service_type || null,
+        acquisition_source: input.acquisition_source || null,
         brief_questions: (input.brief_questions || null) as unknown as null,
         raw_input: input.raw_input || null,
       };
