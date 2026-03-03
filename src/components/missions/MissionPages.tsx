@@ -245,6 +245,24 @@ const PageTreeItem = ({
   );
 };
 
+// ─── Helpers ─────────────────────────────────────────────
+
+/**
+ * Ensures plain text content is converted to HTML paragraphs.
+ * If content already contains block-level HTML tags, returns it as-is.
+ */
+function ensureHtmlContent(content: string): string {
+  if (!content) return content;
+  if (/<(p|h[1-6]|ul|ol|li|div|blockquote|table|pre|hr)\b/i.test(content)) {
+    return content;
+  }
+  return content
+    .split(/\n\n+/)
+    .filter((block) => block.trim())
+    .map((block) => `<p>${block.replace(/\n/g, "<br>")}</p>`)
+    .join("");
+}
+
 // ─── Page Editor ─────────────────────────────────────────
 
 const PageEditor = ({
@@ -360,7 +378,7 @@ const PageEditor = ({
       SummaryNode,
       VideoNode,
     ],
-    content: page.content || "",
+    content: ensureHtmlContent(page.content || ""),
     editorProps: {
       attributes: {
         class: "prose prose-base dark:prose-invert max-w-none focus:outline-none min-h-[calc(100vh-280px)] py-2 text-[15px] leading-normal",
@@ -381,6 +399,23 @@ const PageEditor = ({
             return true;
           }
         }
+
+        // Plain text paste: preserve line breaks
+        const html = event.clipboardData?.getData("text/html");
+        if (!html) {
+          const text = event.clipboardData?.getData("text/plain");
+          if (text && text.includes("\n")) {
+            event.preventDefault();
+            const htmlContent = text
+              .split(/\n\n+/)
+              .filter((b) => b.trim())
+              .map((b) => `<p>${b.replace(/\n/g, "<br>")}</p>`)
+              .join("");
+            editor?.commands.insertContent(htmlContent);
+            return true;
+          }
+        }
+
         return false;
       },
       handleDrop: (_view, event) => {
@@ -432,7 +467,7 @@ const PageEditor = ({
   useEffect(() => {
     if (editor && page.content !== undefined) {
       const currentHtml = editor.getHTML();
-      const newContent = page.content || "";
+      const newContent = ensureHtmlContent(page.content || "");
       if (currentHtml !== newContent) {
         editor.commands.setContent(newContent, { emitUpdate: false });
       }
