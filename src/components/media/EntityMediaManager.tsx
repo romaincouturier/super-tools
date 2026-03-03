@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { formatFileSize, downloadFile as downloadFileUtil } from "@/lib/file-utils";
-import { ImageIcon, Video, Plus, Loader2, Upload, Trash2, Play, Download, Package } from "lucide-react";
+import { ImageIcon, Video, Plus, Loader2, Upload, Trash2, Play, Download, Package, DownloadCloud } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import MediaLightbox from "@/components/media/MediaLightbox";
 
@@ -50,6 +50,7 @@ const EntityMediaManager = ({
   const toggleDeliverable = useToggleMediaDeliverable();
 
   const [uploading, setUploading] = useState(false);
+  const [downloading, setDownloading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [lightboxItem, setLightboxItem] = useState<MediaItem | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -139,6 +140,33 @@ const EntityMediaManager = ({
       await downloadFileUtil(url, fileName);
     } catch {
       toast.error("Erreur lors du téléchargement");
+    }
+  };
+
+  const handleDownloadAll = async () => {
+    const downloadable = media.filter((m) => m.file_type !== "video_link");
+    if (downloadable.length === 0) return;
+
+    setDownloading(true);
+    let successCount = 0;
+    try {
+      for (const item of downloadable) {
+        try {
+          await downloadFileUtil(item.file_url, item.file_name);
+          successCount++;
+        } catch {
+          console.error(`Download error: ${item.file_name}`);
+        }
+      }
+      if (successCount > 0) {
+        toast.success(
+          successCount === 1
+            ? "1 fichier téléchargé"
+            : `${successCount} fichiers téléchargés`
+        );
+      }
+    } finally {
+      setDownloading(false);
     }
   };
 
@@ -377,19 +405,21 @@ const EntityMediaManager = ({
               </span>
             )}
           </CardTitle>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={uploading}
-          >
-            {uploading ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <Plus className="h-4 w-4 mr-2" />
-            )}
-            Ajouter
-          </Button>
+          {media.filter((m) => m.file_type !== "video_link").length > 0 && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleDownloadAll}
+              disabled={downloading}
+            >
+              {downloading ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <DownloadCloud className="h-4 w-4 mr-2" />
+              )}
+              Tout télécharger
+            </Button>
+          )}
         </div>
       </CardHeader>
       <CardContent>{content}</CardContent>
