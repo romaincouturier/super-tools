@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -15,7 +15,8 @@ import MissionColumn from "./MissionColumn";
 import MissionCard from "./MissionCard";
 import MissionDetailDrawer from "./MissionDetailDrawer";
 import CreateMissionDialog from "./CreateMissionDialog";
-import { Loader2 } from "lucide-react";
+import { Loader2, Search, X } from "lucide-react";
+import { Input } from "@/components/ui/input";
 
 interface CrmPrefill {
   title: string;
@@ -40,6 +41,7 @@ const MissionsKanbanBoard = ({ prefillFromCrm, onPrefillConsumed }: MissionsKanb
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [createDialogStatus, setCreateDialogStatus] = useState<MissionStatus>("not_started");
   const [prefillData, setPrefillData] = useState<CrmPrefill | undefined>(undefined);
+  const [searchTerm, setSearchTerm] = useState("");
 
   // Auto-open create dialog when prefill data from CRM is provided
   useEffect(() => {
@@ -59,13 +61,25 @@ const MissionsKanbanBoard = ({ prefillFromCrm, onPrefillConsumed }: MissionsKanb
 
   const missions = data || [];
 
+  const normalizedSearch = searchTerm.toLowerCase().trim();
+
+  const filteredMissions = useMemo(() => {
+    if (!normalizedSearch) return missions;
+    return missions.filter((m) => {
+      const title = (m.title || "").toLowerCase();
+      const client = (m.client_name || "").toLowerCase();
+      const tags = (m.tags || []).join(" ").toLowerCase();
+      return title.includes(normalizedSearch) || client.includes(normalizedSearch) || tags.includes(normalizedSearch);
+    });
+  }, [missions, normalizedSearch]);
+
   const getMissionsByStatus = useCallback(
     (status: MissionStatus) => {
-      return missions
+      return filteredMissions
         .filter((m) => m.status === status)
         .sort((a, b) => a.position - b.position);
     },
-    [missions]
+    [filteredMissions]
   );
 
   const handleDragStart = (event: DragStartEvent) => {
@@ -117,10 +131,8 @@ const MissionsKanbanBoard = ({ prefillFromCrm, onPrefillConsumed }: MissionsKanb
   };
 
   const handleAddMission = (status: MissionStatus) => {
-    console.log("[MissionsKanbanBoard] handleAddMission called, status:", status, "showCreateDialog before:", showCreateDialog);
     setCreateDialogStatus(status);
     setShowCreateDialog(true);
-    console.log("[MissionsKanbanBoard] setShowCreateDialog(true) called");
   };
 
   const handleMissionClick = (mission: Mission) => {
@@ -151,6 +163,25 @@ const MissionsKanbanBoard = ({ prefillFromCrm, onPrefillConsumed }: MissionsKanb
 
   return (
     <>
+      <div className="mb-3">
+        <div className="relative w-64">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Rechercher une mission..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-9 h-9"
+          />
+          {searchTerm && (
+            <button
+              onClick={() => setSearchTerm("")}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+      </div>
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
