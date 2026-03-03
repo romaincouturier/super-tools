@@ -6,8 +6,8 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 
 interface AddColumnDialogProps {
@@ -19,7 +19,8 @@ interface AddColumnDialogProps {
 const AddColumnDialog = ({ open, onOpenChange, onAdd }: AddColumnDialogProps) => {
   const [name, setName] = useState("");
 
-  const handleSubmit = () => {
+  const handleSubmit = (e?: React.FormEvent) => {
+    e?.preventDefault();
     if (name.trim()) {
       onAdd(name.trim());
       setName("");
@@ -32,24 +33,26 @@ const AddColumnDialog = ({ open, onOpenChange, onAdd }: AddColumnDialogProps) =>
         <DialogHeader>
           <DialogTitle>Nouvelle colonne</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4 py-4">
-          <div className="space-y-2">
-            <Label htmlFor="column-name">Nom de la colonne</Label>
-            <Input
-              id="column-name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Ex: En cours, À publier..."
-              onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
-            />
+        <form onSubmit={handleSubmit} id="add-column-form">
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="column-name">Nom de la colonne</Label>
+              <Input
+                id="column-name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Ex: Qualification, En cours..."
+                autoFocus
+              />
+            </div>
           </div>
-        </div>
+        </form>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Annuler
           </Button>
-          <Button onClick={handleSubmit} disabled={!name.trim()}>
-            Ajouter
+          <Button type="submit" form="add-column-form" disabled={!name.trim()}>
+            Créer
           </Button>
         </DialogFooter>
       </DialogContent>

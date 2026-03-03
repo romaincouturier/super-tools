@@ -3,17 +3,12 @@ import {
   DndContext,
   DragOverlay,
   closestCorners,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
   DragStartEvent,
   DragEndEvent,
   DragOverEvent,
 } from "@dnd-kit/core";
 import {
   SortableContext,
-  sortableKeyboardCoordinates,
   horizontalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { Plus, Loader2, Search, X, Building, User, Tag, GraduationCap, Briefcase, Filter } from "lucide-react";
@@ -27,11 +22,12 @@ import LossReasonDialog from "./LossReasonDialog";
 import CrmColumn from "./CrmColumn";
 import CrmCardComponent from "./CrmCard";
 import CardDetailDrawer from "./CardDetailDrawer";
-import AddColumnDialog from "./AddColumnDialog";
+import AddColumnDialog from "@/components/shared/AddColumnDialog";
 import { CreateTrainingDialog } from "./CreateTrainingDialog";
 import { useNavigate } from "react-router-dom";
 import { isAfter, startOfDay } from "date-fns";
 import confetti from "canvas-confetti";
+import { useKanbanDnd } from "@/hooks/useKanbanDnd";
 
 interface CrmKanbanBoardProps {
   initialCardId?: string | null;
@@ -128,14 +124,7 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
     return boardData?.columns.find((c) => c.id === columnId)?.name || "";
   }, [boardData?.columns]);
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: { distance: 8 },
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  );
+  const { sensors } = useKanbanDnd({ enableKeyboard: true });
 
   // Filter helpers
   const isScheduledInFuture = (card: CrmCard): boolean => {
