@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
@@ -40,6 +41,7 @@ interface CatalogEntry {
   is_active: boolean;
   display_order: number;
   format_formation: string | null;
+  available_formulas?: string[] | null;
 }
 
 interface CatalogFormDialogProps {
@@ -67,6 +69,7 @@ const CatalogFormDialog = ({ open, onClose, entry }: CatalogFormDialogProps) => 
   const [woocommerceProductId, setWoocommerceProductId] = useState("");
   const [isActive, setIsActive] = useState(true);
   const [formatFormation, setFormatFormation] = useState("");
+  const [availableFormulas, setAvailableFormulas] = useState<string[]>([]);
 
   // Reset form when dialog opens/entry changes
   useEffect(() => {
@@ -86,6 +89,7 @@ const CatalogFormDialog = ({ open, onClose, entry }: CatalogFormDialogProps) => 
         setWoocommerceProductId(entry.woocommerce_product_id ? String(entry.woocommerce_product_id) : "");
         setIsActive(entry.is_active);
         setFormatFormation(entry.format_formation || "");
+        setAvailableFormulas(entry.available_formulas || []);
       } else {
         setFormationName("");
         setDescription("");
@@ -101,6 +105,7 @@ const CatalogFormDialog = ({ open, onClose, entry }: CatalogFormDialogProps) => 
         setWoocommerceProductId("");
         setIsActive(true);
         setFormatFormation("");
+        setAvailableFormulas([]);
       }
     }
   }, [open, entry]);
@@ -134,6 +139,7 @@ const CatalogFormDialog = ({ open, onClose, entry }: CatalogFormDialogProps) => 
         woocommerce_product_id: woocommerceProductId ? parseInt(woocommerceProductId, 10) : null,
         is_active: isActive,
         format_formation: formatFormation || null,
+        available_formulas: availableFormulas.length > 0 ? availableFormulas : null,
       };
 
       if (entry) {
@@ -224,6 +230,38 @@ const CatalogFormDialog = ({ open, onClose, entry }: CatalogFormDialogProps) => 
                 <option value="classe_virtuelle">Classe virtuelle</option>
                 <option value="e_learning">E-learning</option>
               </select>
+            </div>
+
+            {/* Formulas */}
+            <div className="space-y-2">
+              <Label>Formules disponibles</Label>
+              <p className="text-xs text-muted-foreground">
+                Si aucune formule n'est cochée, la formation est "classique" (sans choix de formule).
+              </p>
+              <div className="flex flex-wrap gap-4 pt-1">
+                {[
+                  { value: "solo", label: "Solo" },
+                  { value: "communaute", label: "Communauté" },
+                  { value: "coachee", label: "Coachée" },
+                ].map(({ value, label }) => (
+                  <div key={value} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`formula-${value}`}
+                      checked={availableFormulas.includes(value)}
+                      onCheckedChange={(checked) => {
+                        setAvailableFormulas(
+                          checked
+                            ? [...availableFormulas, value]
+                            : availableFormulas.filter((f) => f !== value)
+                        );
+                      }}
+                    />
+                    <Label htmlFor={`formula-${value}`} className="text-sm font-normal cursor-pointer">
+                      {label}
+                    </Label>
+                  </div>
+                ))}
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">

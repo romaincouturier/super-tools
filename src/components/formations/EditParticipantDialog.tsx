@@ -17,6 +17,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Command,
   CommandEmpty,
   CommandGroup,
@@ -73,6 +80,7 @@ interface Participant {
   signed_convention_url?: string | null;
   elearning_duration?: number | null;
   notes?: string | null;
+  formula?: string | null;
 }
 
 interface ConventionSignatureStatus {
@@ -81,11 +89,18 @@ interface ConventionSignatureStatus {
   status: string;
 }
 
+const FORMULA_LABELS: Record<string, string> = {
+  solo: "Solo",
+  communaute: "Communauté",
+  coachee: "Coachée",
+};
+
 interface EditParticipantDialogProps {
   participant: Participant;
   trainingId: string;
   formatFormation?: string | null;
   trainingElearningDuration?: number | null;
+  availableFormulas?: string[];
   onParticipantUpdated: () => void;
 }
 
@@ -106,6 +121,7 @@ const EditParticipantDialog = ({
   trainingId,
   formatFormation,
   trainingElearningDuration,
+  availableFormulas = [],
   onParticipantUpdated,
 }: EditParticipantDialogProps) => {
   const [open, setOpen] = useState(false);
@@ -137,6 +153,7 @@ const EditParticipantDialog = ({
   const [uploadingConvention, setUploadingConvention] = useState(false);
   const [conventionSignature, setConventionSignature] = useState<ConventionSignatureStatus | null>(null);
   const [notes, setNotes] = useState(participant.notes || "");
+  const [formula, setFormula] = useState(participant.formula || "");
   const [participantFiles, setParticipantFiles] = useState<ParticipantFile[]>([]);
   const [uploadingFile, setUploadingFile] = useState(false);
   const { toast } = useToast();
@@ -160,6 +177,7 @@ const EditParticipantDialog = ({
     setElearningDuration(participant.elearning_duration != null ? String(participant.elearning_duration) : (trainingElearningDuration != null ? String(trainingElearningDuration) : ""));
     setSignedConventionUrl(participant.signed_convention_url || null);
     setNotes(participant.notes || "");
+    setFormula(participant.formula || "");
   }, [participant, trainingElearningDuration]);
 
   // Fetch electronic convention signature status
@@ -355,6 +373,9 @@ const EditParticipantDialog = ({
         if (formatFormation === "e_learning") {
           updateData.elearning_duration = elearningDuration ? parseFloat(elearningDuration) : null;
         }
+        if (availableFormulas.length > 0) {
+          updateData.formula = formula || null;
+        }
       }
 
       const { error } = await supabase
@@ -506,22 +527,42 @@ const EditParticipantDialog = ({
                   />
                 </div>
 
-                {formatFormation === "e_learning" && (
+                {availableFormulas.length > 0 && (
                   <div className="space-y-2">
-                    <Label htmlFor="edit-elearningDuration">Durée e-learning (heures)</Label>
-                    <Input
-                      id="edit-elearningDuration"
-                      type="number"
-                      step="0.5"
-                      min="0"
-                      value={elearningDuration}
-                      onChange={(e) => setElearningDuration(e.target.value)}
-                      placeholder={trainingElearningDuration != null ? String(trainingElearningDuration) : "7"}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Par défaut : {trainingElearningDuration ?? 7}h (durée de la formation)
-                    </p>
+                    <Label>Formule</Label>
+                    <Select value={formula} onValueChange={setFormula}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Aucune formule" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableFormulas.map((f) => (
+                          <SelectItem key={f} value={f}>
+                            {FORMULA_LABELS[f] || f}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
+                )}
+
+                {formatFormation === "e_learning" && (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-elearningDuration">Durée e-learning (heures)</Label>
+                      <Input
+                        id="edit-elearningDuration"
+                        type="number"
+                        step="0.5"
+                        min="0"
+                        value={elearningDuration}
+                        onChange={(e) => setElearningDuration(e.target.value)}
+                        placeholder={trainingElearningDuration != null ? String(trainingElearningDuration) : "7"}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Par défaut : {trainingElearningDuration ?? 7}h (durée de la formation)
+                      </p>
+                    </div>
+                  </>
                 )}
 
                 {/* Sponsor/Commanditaire fields */}

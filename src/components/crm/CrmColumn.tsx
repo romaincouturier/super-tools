@@ -30,12 +30,11 @@ interface ServiceTypeColors {
 interface CrmColumnProps {
   column: CrmColumnType;
   cards: CrmCard[];
-  allColumns: CrmColumnType[];
   onCardClick: (card: CrmCard) => void;
   serviceTypeColors?: ServiceTypeColors;
 }
 
-const CrmColumn = ({ column, cards, allColumns, onCardClick, serviceTypeColors }: CrmColumnProps) => {
+const CrmColumn = ({ column, cards, onCardClick, serviceTypeColors }: CrmColumnProps) => {
   const [showRenameDialog, setShowRenameDialog] = useState(false);
   const [newName, setNewName] = useState(column.name);
 
@@ -110,7 +109,6 @@ const CrmColumn = ({ column, cards, allColumns, onCardClick, serviceTypeColors }
             <CrmCardComponent
               key={card.id}
               card={card}
-              allColumns={allColumns}
               onClick={() => onCardClick(card)}
               serviceTypeColors={serviceTypeColors}
             />

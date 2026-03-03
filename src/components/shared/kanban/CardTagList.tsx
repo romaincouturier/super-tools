@@ -2,7 +2,7 @@ import type { CSSProperties, ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
-export interface TagItem {
+interface TagItem {
   key: string;
   label: string;
   className?: string;

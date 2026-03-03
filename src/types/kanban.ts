@@ -39,12 +39,9 @@ export interface GenericKanbanBoardProps<
 
   renderCard: (card: TCard, isDragging?: boolean) => ReactNode;
   renderColumnHeader?: (column: TColumn, cards: TCard[]) => ReactNode;
-  renderColumnFooter?: (column: TColumn) => ReactNode;
   renderEmptyColumn?: (column: TColumn) => ReactNode;
 
   onCardMove: (result: KanbanDropResult<TCard>) => void | Promise<void>;
-  onBeforeCardMove?: (result: KanbanDropResult<TCard>) => boolean | Promise<boolean>;
-  onAfterCardMove?: (result: KanbanDropResult<TCard>) => void;
 
   onCardClick?: (card: TCard) => void;
 

@@ -1,9 +1,9 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { format, parseISO, isPast } from "date-fns";
+import { format, parseISO, isPast, endOfDay } from "date-fns";
 import { fr } from "date-fns/locale";
 import { formatDateWithDayOfWeek } from "@/lib/dateFormatters";
-import { Loader2, Plus, CalendarDays, ArrowLeft, MapPin, Video, Search, X } from "lucide-react";
+import { Loader2, Plus, CalendarDays, ArrowLeft, MapPin, Video, Search, X, Ban, Globe } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -33,7 +33,7 @@ const Events = () => {
   const upcomingEvents = useMemo(
     () =>
       events
-        .filter((e) => !isPast(parseISO(e.event_date)) && matchesSearch(e))
+        .filter((e) => !isPast(endOfDay(parseISO(e.event_date))) && matchesSearch(e))
         .sort((a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime()),
     [events, matchesSearch]
   );
@@ -41,7 +41,7 @@ const Events = () => {
   const pastEvents = useMemo(
     () =>
       events
-        .filter((e) => isPast(parseISO(e.event_date)) && matchesSearch(e))
+        .filter((e) => isPast(endOfDay(parseISO(e.event_date))) && matchesSearch(e))
         .sort((a, b) => new Date(b.event_date).getTime() - new Date(a.event_date).getTime()),
     [events, matchesSearch]
   );
@@ -168,12 +168,40 @@ const Events = () => {
 
                     {/* Info */}
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate">{event.title}</p>
+                      <div className="flex items-center gap-2">
+                        <p className={`font-medium truncate ${event.status === "cancelled" ? "line-through text-muted-foreground" : ""}`}>
+                          {event.title}
+                        </p>
+                        {event.event_type === "external" && (
+                          <Badge variant="outline" className="flex-shrink-0 gap-1 text-xs text-blue-600 border-blue-300">
+                            <Globe className="h-3 w-3" />
+                            Externe
+                          </Badge>
+                        )}
+                        {event.status === "cancelled" && (
+                          <Badge variant="destructive" className="flex-shrink-0 gap-1 text-xs">
+                            <Ban className="h-3 w-3" />
+                            Annulé
+                          </Badge>
+                        )}
+                      </div>
                       <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
                         <span>
                           {formatDateWithDayOfWeek(event.event_date)}
                           {event.event_time && ` à ${event.event_time.slice(0, 5)}`}
                         </span>
+                        {event.event_type === "external" && event.cfp_deadline && (() => {
+                          const deadline = new Date(event.cfp_deadline);
+                          const today = new Date();
+                          today.setHours(0, 0, 0, 0);
+                          const daysLeft = Math.ceil((deadline.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                          if (daysLeft < 0) return null;
+                          return (
+                            <span className={`text-xs ${daysLeft <= 7 ? "text-orange-600 font-medium" : ""}`}>
+                              CFP : {daysLeft === 0 ? "aujourd'hui" : daysLeft === 1 ? "demain" : `J-${daysLeft}`}
+                            </span>
+                          );
+                        })()}
                       </div>
                     </div>
 

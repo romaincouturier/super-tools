@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, CalendarDays, Loader2 } from "lucide-react";
+import { ArrowLeft, CalendarDays, Loader2, ExternalLink } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +23,10 @@ const EventEdit = () => {
   const [eventTime, setEventTime] = useState("");
   const [location, setLocation] = useState("");
   const [locationType, setLocationType] = useState<"physical" | "visio">("physical");
+  const [eventType, setEventType] = useState<"internal" | "external">("internal");
+  const [cfpDeadline, setCfpDeadline] = useState("");
+  const [eventUrl, setEventUrl] = useState("");
+  const [cfpUrl, setCfpUrl] = useState("");
 
   useEffect(() => {
     if (event) {
@@ -32,6 +36,10 @@ const EventEdit = () => {
       setEventTime(event.event_time?.slice(0, 5) || "");
       setLocation(event.location || "");
       setLocationType(event.location_type);
+      setEventType(event.event_type || "internal");
+      setCfpDeadline(event.cfp_deadline || "");
+      setEventUrl(event.event_url || "");
+      setCfpUrl(event.cfp_url || "");
     }
   }, [event]);
 
@@ -54,6 +62,10 @@ const EventEdit = () => {
         event_time: eventTime || null,
         location: location.trim() || null,
         location_type: locationType,
+        event_type: eventType,
+        cfp_deadline: eventType === "external" && cfpDeadline ? cfpDeadline : null,
+        event_url: eventType === "external" && eventUrl.trim() ? eventUrl.trim() : null,
+        cfp_url: eventType === "external" && cfpUrl.trim() ? cfpUrl.trim() : null,
       });
       toast({ title: "Événement mis à jour" });
       navigate(`/events/${id}`);
@@ -125,6 +137,24 @@ const EventEdit = () => {
           </div>
 
           <div className="space-y-2">
+            <Label>Type d'événement</Label>
+            <RadioGroup
+              value={eventType}
+              onValueChange={(v) => setEventType(v as "internal" | "external")}
+              className="flex gap-4"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="internal" id="internal" />
+                <Label htmlFor="internal" className="cursor-pointer">Interne</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="external" id="external" />
+                <Label htmlFor="external" className="cursor-pointer">Externe</Label>
+              </div>
+            </RadioGroup>
+          </div>
+
+          <div className="space-y-2">
             <Label htmlFor="description">Description</Label>
             <Textarea
               id="description"
@@ -191,6 +221,44 @@ const EventEdit = () => {
               }
             />
           </div>
+
+          {eventType === "external" && (
+            <div className="space-y-4 p-4 rounded-lg border border-blue-200 bg-blue-50/50">
+              <p className="text-sm font-medium text-blue-700 flex items-center gap-1">
+                <ExternalLink className="h-4 w-4" />
+                Informations événement externe
+              </p>
+              <div className="space-y-2">
+                <Label htmlFor="eventUrl">Lien vers l'événement</Label>
+                <Input
+                  id="eventUrl"
+                  value={eventUrl}
+                  onChange={(e) => setEventUrl(e.target.value)}
+                  placeholder="https://www.conference-example.com"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="cfpUrl">Lien vers le CFP</Label>
+                  <Input
+                    id="cfpUrl"
+                    value={cfpUrl}
+                    onChange={(e) => setCfpUrl(e.target.value)}
+                    placeholder="https://www.conference-example.com/cfp"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="cfpDeadline">Date limite CFP</Label>
+                  <Input
+                    id="cfpDeadline"
+                    type="date"
+                    value={cfpDeadline}
+                    onChange={(e) => setCfpDeadline(e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="flex justify-end gap-3 pt-4">
             <Button variant="outline" onClick={() => navigate(`/events/${id}`)}>

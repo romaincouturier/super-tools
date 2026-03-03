@@ -14,6 +14,8 @@ import { getSenderFrom } from "../_shared/email-settings.ts";
  *   5. Formations à traiter (conventions manquantes + signature en attente)
  *   6. Articles à relire
  *   7. Événements approchant (< 15 jours)
+ *   8. CFP à soumettre (< 30 jours)
+ *   9. Rappels CFP année suivante (10 mois après deadline)
  *
  * Admins see everything; non-admins see only their assigned trainings.
  */
@@ -24,7 +26,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-const VERSION = "process-logistics-reminders@4.0.0";
+const VERSION = "process-logistics-reminders@5.0.0";
 
 // ─── Types ───
 interface AlertRecipient {
@@ -374,9 +376,10 @@ serve(async (req) => {
 
     const { data: upcomingEvents } = await supabase
       .from("events")
-      .select("id, title, event_date, event_time, location, location_type")
+      .select("id, title, event_date, event_time, location, location_type, event_type, cfp_deadline, cfp_url")
       .gte("event_date", today)
       .lte("event_date", maxEventDate)
+      .eq("status", "active")
       .order("event_date", { ascending: true });
 
     const eventAlerts: string[] = [];
@@ -388,11 +391,80 @@ serve(async (req) => {
         const locationStr = ev.location ? ` — ${ev.location}` : "";
         const daysLabel = daysUntil === 0 ? "Aujourd'hui" : daysUntil === 1 ? "Demain" : `Dans ${daysUntil}j`;
         eventAlerts.push(
-          `<li><a href="${appUrl}/evenements" style="color: ${COLORS.primary}; text-decoration: underline;">${ev.title}</a> — ${eventDate}${timeStr}${locationStr} <strong>(${daysLabel})</strong></li>`
+          `<li><a href="${appUrl}/events/${ev.id}" style="color: ${COLORS.primary}; text-decoration: underline;">${ev.title}</a> — ${eventDate}${timeStr}${locationStr} <strong>(${daysLabel})</strong></li>`
         );
       }
     }
     console.log(`[${VERSION}] Événements approchant: ${eventAlerts.length}`);
+
+    // ════════════════════════════════════════════
+    // 8. CFP À SOUMETTRE (dates limites approchant)
+    // ════════════════════════════════════════════
+    const thirtyDaysFromNow = new Date(todayDate);
+    thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+    const maxCfpDate = thirtyDaysFromNow.toISOString().split("T")[0];
+
+    const { data: cfpEvents } = await supabase
+      .from("events")
+      .select("id, title, event_date, cfp_deadline, cfp_url")
+      .eq("event_type", "external")
+      .eq("status", "active")
+      .not("cfp_deadline", "is", null)
+      .gte("cfp_deadline", today)
+      .lte("cfp_deadline", maxCfpDate)
+      .order("cfp_deadline", { ascending: true });
+
+    const cfpAlerts: string[] = [];
+    if (cfpEvents) {
+      for (const ev of cfpEvents) {
+        const daysUntil = Math.ceil((new Date(ev.cfp_deadline).getTime() - todayDate.getTime()) / (1000 * 60 * 60 * 24));
+        const deadlineDate = new Date(ev.cfp_deadline).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" });
+        const daysLabel = daysUntil === 0 ? "⚠️ Aujourd'hui !" : daysUntil === 1 ? "⚠️ Demain !" : daysUntil <= 7 ? `⚠️ J-${daysUntil}` : `J-${daysUntil}`;
+        const cfpLink = ev.cfp_url
+          ? ` — <a href="${ev.cfp_url}" style="color: ${COLORS.blue}; text-decoration: underline;">Soumettre →</a>`
+          : "";
+        cfpAlerts.push(
+          `<li><a href="${appUrl}/events/${ev.id}" style="color: ${COLORS.primary}; text-decoration: underline;">${ev.title}</a> — deadline ${deadlineDate} <strong>(${daysLabel})</strong>${cfpLink}</li>`
+        );
+      }
+    }
+    console.log(`[${VERSION}] CFP à soumettre: ${cfpAlerts.length}`);
+
+    // ════════════════════════════════════════════
+    // 9. RAPPELS CFP ANNÉE SUIVANTE (10 mois après le dernier CFP)
+    // ════════════════════════════════════════════
+    // Pour les événements externes dont la date limite CFP est passée depuis ~10 mois,
+    // rappeler de soumettre pour l'édition suivante
+    const tenMonthsAgo = new Date(todayDate);
+    tenMonthsAgo.setMonth(tenMonthsAgo.getMonth() - 10);
+    const tenMonthsAgoStr = tenMonthsAgo.toISOString().split("T")[0];
+    // Check within a 7-day window around the 10-month mark
+    const tenMonthsAgoMinus7 = new Date(tenMonthsAgo);
+    tenMonthsAgoMinus7.setDate(tenMonthsAgoMinus7.getDate() - 7);
+    const tenMonthsAgoMinus7Str = tenMonthsAgoMinus7.toISOString().split("T")[0];
+
+    const { data: cfpReminderEvents } = await supabase
+      .from("events")
+      .select("id, title, event_date, cfp_deadline, cfp_url, event_url")
+      .eq("event_type", "external")
+      .not("cfp_deadline", "is", null)
+      .gte("cfp_deadline", tenMonthsAgoMinus7Str)
+      .lte("cfp_deadline", tenMonthsAgoStr)
+      .order("cfp_deadline", { ascending: true });
+
+    const cfpReminderAlerts: string[] = [];
+    if (cfpReminderEvents) {
+      for (const ev of cfpReminderEvents) {
+        const lastCfpDate = new Date(ev.cfp_deadline).toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
+        const eventLink = ev.event_url
+          ? ` — <a href="${ev.event_url}" style="color: ${COLORS.blue}; text-decoration: underline;">Voir le site →</a>`
+          : "";
+        cfpReminderAlerts.push(
+          `<li><a href="${appUrl}/events/${ev.id}" style="color: ${COLORS.primary}; text-decoration: underline;">${ev.title}</a> — CFP précédent : ${lastCfpDate}. Pensez à vérifier le CFP de cette année !${eventLink}</li>`
+        );
+      }
+    }
+    console.log(`[${VERSION}] CFP reminders (next year): ${cfpReminderAlerts.length}`);
 
     // ════════════════════════════════════════════
     // EXTRA: Formations terminées sans facture
@@ -500,6 +572,18 @@ serve(async (req) => {
       if (eventAlerts.length > 0) {
         sections.push(sectionHtml("📅", "Événements approchant", COLORS.teal, eventAlerts, eventAlerts.length));
         alertCount += eventAlerts.length;
+      }
+
+      // 8. CFP à soumettre
+      if (cfpAlerts.length > 0) {
+        sections.push(sectionHtml("📨", "CFP à soumettre", COLORS.orange, cfpAlerts, cfpAlerts.length));
+        alertCount += cfpAlerts.length;
+      }
+
+      // 9. Rappels CFP année suivante
+      if (cfpReminderAlerts.length > 0) {
+        sections.push(sectionHtml("🔁", "CFP à surveiller (année suivante)", COLORS.blue, cfpReminderAlerts, cfpReminderAlerts.length));
+        alertCount += cfpReminderAlerts.length;
       }
 
       // EXTRA: Formations terminées sans facture

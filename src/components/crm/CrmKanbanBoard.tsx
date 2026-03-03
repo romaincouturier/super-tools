@@ -607,7 +607,6 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
                   key={column.id}
                   column={column}
                   cards={columnCards}
-                  allColumns={columns}
                   onCardClick={handleCardClick}
                   serviceTypeColors={serviceTypeColors}
                 />

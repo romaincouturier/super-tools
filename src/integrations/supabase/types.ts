@@ -1283,11 +1283,15 @@ export type Database = {
       events: {
         Row: {
           cancellation_reason: string | null
+          cfp_deadline: string | null
+          cfp_url: string | null
           created_at: string
           created_by: string | null
           description: string | null
           event_date: string
           event_time: string | null
+          event_type: string
+          event_url: string | null
           id: string
           location: string | null
           location_type: string
@@ -1298,11 +1302,15 @@ export type Database = {
         }
         Insert: {
           cancellation_reason?: string | null
+          cfp_deadline?: string | null
+          cfp_url?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
           event_date: string
           event_time?: string | null
+          event_type?: string
+          event_url?: string | null
           id?: string
           location?: string | null
           location_type?: string
@@ -1313,11 +1321,15 @@ export type Database = {
         }
         Update: {
           cancellation_reason?: string | null
+          cfp_deadline?: string | null
+          cfp_url?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
           event_date?: string
           event_time?: string | null
+          event_type?: string
+          event_url?: string | null
           id?: string
           location?: string | null
           location_type?: string
@@ -3791,6 +3803,107 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "training_media_training_id_fkey"
+            columns: ["training_id"]
+            isOneToOne: false
+            referencedRelation: "trainings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      training_coaching_slots: {
+        Row: {
+          id: string
+          training_id: string
+          participant_id: string | null
+          scheduled_at: string
+          duration_minutes: number
+          meeting_url: string | null
+          status: string
+          notes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          training_id: string
+          participant_id?: string | null
+          scheduled_at: string
+          duration_minutes?: number
+          meeting_url?: string | null
+          status?: string
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          training_id?: string
+          participant_id?: string | null
+          scheduled_at?: string
+          duration_minutes?: number
+          meeting_url?: string | null
+          status?: string
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_coaching_slots_training_id_fkey"
+            columns: ["training_id"]
+            isOneToOne: false
+            referencedRelation: "trainings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_coaching_slots_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "training_participants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      training_live_meetings: {
+        Row: {
+          id: string
+          training_id: string
+          title: string
+          scheduled_at: string
+          duration_minutes: number
+          meeting_url: string | null
+          description: string | null
+          status: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          training_id: string
+          title: string
+          scheduled_at: string
+          duration_minutes?: number
+          meeting_url?: string | null
+          description?: string | null
+          status?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          training_id?: string
+          title?: string
+          scheduled_at?: string
+          duration_minutes?: number
+          meeting_url?: string | null
+          description?: string | null
+          status?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_live_meetings_training_id_fkey"
             columns: ["training_id"]
             isOneToOne: false
             referencedRelation: "trainings"
