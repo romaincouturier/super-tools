@@ -73,8 +73,10 @@ const CoachingSlotsSection = ({ trainingId, participants }: CoachingSlotsSection
   const [notes, setNotes] = useState("");
   const { toast } = useToast();
 
-  // Only "coachee" participants can book coaching slots
-  const coacheeParticipants = participants.filter((p) => p.formula === "coachee");
+  // Participants eligible for coaching (formula name contains "coach", case-insensitive)
+  const coacheeParticipants = participants.filter(
+    (p) => p.formula && p.formula.toLowerCase().includes("coach")
+  );
 
   const fetchSlots = async () => {
     const { data, error } = await supabase

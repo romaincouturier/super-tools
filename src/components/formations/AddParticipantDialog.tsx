@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { Plus, Loader2, AlertTriangle, ShoppingCart } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { differenceInDays, parseISO, format } from "date-fns";
+import type { FormationFormula } from "@/types/training";
 import {
   Dialog,
   DialogContent,
@@ -42,24 +43,12 @@ import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { subtractWorkingDays, fetchWorkingDays, fetchNeedsSurveyDelay, scheduleTrainerSummaryIfNeeded } from "@/lib/workingDays";
 
-const FORMULA_LABELS: Record<string, string> = {
-  solo: "Solo",
-  communaute: "Communauté",
-  coachee: "Coachée",
-};
-
-const FORMULA_DESCRIPTIONS: Record<string, string> = {
-  solo: "E-learning seul",
-  communaute: "E-learning + lives",
-  coachee: "E-learning + lives + coaching",
-};
-
 interface AddParticipantDialogProps {
   trainingId: string;
   trainingStartDate?: string;
   clientName?: string;
   formatFormation?: string | null;
-  availableFormulas?: string[];
+  availableFormulas?: FormationFormula[];
   onParticipantAdded: () => void;
   onScheduledEmailsRefresh?: () => void;
   initialFirstName?: string;
@@ -109,7 +98,7 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
   const [financeurUrl, setFinanceurUrl] = useState("");
   const [paymentMode, setPaymentMode] = useState<"online" | "invoice">("invoice");
   const [generateCoupon, setGenerateCoupon] = useState(true);
-  const [formula, setFormula] = useState<string>(availableFormulas.length === 1 ? availableFormulas[0] : "");
+  const [formula, setFormula] = useState<string>(availableFormulas.length === 1 ? availableFormulas[0].name : "");
   const [financeurPopoverOpen, setFinanceurPopoverOpen] = useState(false);
   const [existingFinanceurs, setExistingFinanceurs] = useState<string[]>([]);
   const [isManualMode, setIsManualMode] = useState(false);
@@ -213,7 +202,7 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
     setFinanceurUrl("");
     setPaymentMode("invoice");
     setGenerateCoupon(true);
-    setFormula(availableFormulas.length === 1 ? availableFormulas[0] : "");
+    setFormula(availableFormulas.length === 1 ? availableFormulas[0].name : "");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -355,7 +344,8 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
       }
 
       // For coachee participants: schedule coaching booking invitation (J+7 after enrollment)
-      if (formula === "coachee" && insertedParticipant) {
+      const selectedFormula = availableFormulas.find((f) => f.name === formula);
+      if (selectedFormula && formula.toLowerCase().includes("coach") && insertedParticipant) {
         try {
           const inviteDate = new Date();
           inviteDate.setDate(inviteDate.getDate() + 7);
@@ -421,12 +411,12 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
       let statusMessage = "";
       if (formatFormation === "e_learning" && paymentMode !== "online") {
         const parts = [];
-        if (formula) parts.push(`Formule ${FORMULA_LABELS[formula] || formula}`);
+        if (formula) parts.push(`Formule ${formula}`);
         if (generateCoupon) parts.push("coupon WooCommerce généré");
         parts.push("email d'accès envoyé");
         statusMessage = parts.join(", ") + ".";
       } else if (formula) {
-        statusMessage = `Formule ${FORMULA_LABELS[formula] || formula}.`;
+        statusMessage = `Formule ${formula}.`;
       } else if (status === "non_envoye") {
         statusMessage = "Formation passée — aucun email programmé.";
       } else if (sendWelcomeNow && needsSurveySkipped) {
@@ -540,9 +530,16 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
                   </SelectTrigger>
                   <SelectContent>
                     {availableFormulas.map((f) => (
-                      <SelectItem key={f} value={f}>
-                        {FORMULA_LABELS[f] || f}
-                        {FORMULA_DESCRIPTIONS[f] ? ` — ${FORMULA_DESCRIPTIONS[f]}` : ""}
+                      <SelectItem key={f.id} value={f.name}>
+                        {f.name}
+                        {(f.prix != null || f.duree_heures != null) && (
+                          <span className="text-muted-foreground">
+                            {" — "}
+                            {f.prix != null ? `${f.prix}€` : ""}
+                            {f.prix != null && f.duree_heures != null ? " · " : ""}
+                            {f.duree_heures != null ? `${f.duree_heures}h` : ""}
+                          </span>
+                        )}
                       </SelectItem>
                     ))}
                   </SelectContent>

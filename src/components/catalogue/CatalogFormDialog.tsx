@@ -1,12 +1,11 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2 } from "lucide-react";
+import { Loader2, Plus, Trash2, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
@@ -23,6 +22,7 @@ import {
 import PrerequisitesEditor from "@/components/formations/PrerequisitesEditor";
 import ObjectivesEditor from "@/components/formations/ObjectivesEditor";
 import ProgramSelector from "@/components/formations/ProgramSelector";
+import type { FormationFormula } from "@/types/training";
 
 interface CatalogEntry {
   id: string;
@@ -41,7 +41,17 @@ interface CatalogEntry {
   is_active: boolean;
   display_order: number;
   format_formation: string | null;
-  available_formulas?: string[] | null;
+}
+
+interface FormulaEdit {
+  id?: string;
+  name: string;
+  duree_heures: string;
+  prix: string;
+  elearning_access_email_content: string;
+  woocommerce_product_id: string;
+  supports_url: string;
+  _deleted?: boolean;
 }
 
 interface CatalogFormDialogProps {
@@ -69,7 +79,18 @@ const CatalogFormDialog = ({ open, onClose, entry }: CatalogFormDialogProps) => 
   const [woocommerceProductId, setWoocommerceProductId] = useState("");
   const [isActive, setIsActive] = useState(true);
   const [formatFormation, setFormatFormation] = useState("");
-  const [availableFormulas, setAvailableFormulas] = useState<string[]>([]);
+  const [formulas, setFormulas] = useState<FormulaEdit[]>([]);
+  const [expandedFormula, setExpandedFormula] = useState<number | null>(null);
+
+  const formulaFromDb = (f: FormationFormula): FormulaEdit => ({
+    id: f.id,
+    name: f.name,
+    duree_heures: f.duree_heures != null ? String(f.duree_heures) : "",
+    prix: f.prix != null ? String(f.prix) : "",
+    elearning_access_email_content: f.elearning_access_email_content || "",
+    woocommerce_product_id: f.woocommerce_product_id != null ? String(f.woocommerce_product_id) : "",
+    supports_url: f.supports_url || "",
+  });
 
   // Reset form when dialog opens/entry changes
   useEffect(() => {
@@ -89,7 +110,15 @@ const CatalogFormDialog = ({ open, onClose, entry }: CatalogFormDialogProps) => 
         setWoocommerceProductId(entry.woocommerce_product_id ? String(entry.woocommerce_product_id) : "");
         setIsActive(entry.is_active);
         setFormatFormation(entry.format_formation || "");
-        setAvailableFormulas(entry.available_formulas || []);
+        // Load formulas from DB
+        supabase
+          .from("formation_formulas")
+          .select("*")
+          .eq("formation_config_id", entry.id)
+          .order("display_order")
+          .then(({ data }) => {
+            setFormulas((data || []).map(formulaFromDb));
+          });
       } else {
         setFormationName("");
         setDescription("");
@@ -105,8 +134,9 @@ const CatalogFormDialog = ({ open, onClose, entry }: CatalogFormDialogProps) => 
         setWoocommerceProductId("");
         setIsActive(true);
         setFormatFormation("");
-        setAvailableFormulas([]);
+        setFormulas([]);
       }
+      setExpandedFormula(null);
     }
   }, [open, entry]);
 
@@ -139,8 +169,9 @@ const CatalogFormDialog = ({ open, onClose, entry }: CatalogFormDialogProps) => 
         woocommerce_product_id: woocommerceProductId ? parseInt(woocommerceProductId, 10) : null,
         is_active: isActive,
         format_formation: formatFormation || null,
-        available_formulas: availableFormulas.length > 0 ? availableFormulas : null,
       };
+
+      let configId: string;
 
       if (entry) {
         // Update
@@ -149,7 +180,7 @@ const CatalogFormDialog = ({ open, onClose, entry }: CatalogFormDialogProps) => 
           .update(payload)
           .eq("id", entry.id);
         if (error) throw error;
-        toast({ title: "Mis à jour", description: "Formation mise à jour dans le catalogue." });
+        configId = entry.id;
       } else {
         // Insert — get max display_order
         const { data: maxOrder } = await supabase
@@ -159,15 +190,64 @@ const CatalogFormDialog = ({ open, onClose, entry }: CatalogFormDialogProps) => 
           .limit(1)
           .maybeSingle();
 
-        const { error } = await supabase
+        const { data: inserted, error } = await supabase
           .from("formation_configs")
           .insert({
             ...payload,
             display_order: (maxOrder?.display_order || 0) + 1,
-          });
+          })
+          .select("id")
+          .single();
         if (error) throw error;
-        toast({ title: "Créée", description: "Formation ajoutée au catalogue." });
+        configId = inserted.id;
       }
+
+      // Save formulas
+      const activeFormulas = formulas.filter((f) => !f._deleted);
+
+      // Delete removed formulas
+      const deletedIds = formulas
+        .filter((f) => f._deleted && f.id)
+        .map((f) => f.id!);
+      if (deletedIds.length > 0) {
+        await supabase
+          .from("formation_formulas")
+          .delete()
+          .in("id", deletedIds);
+      }
+
+      // Upsert remaining formulas
+      for (let i = 0; i < activeFormulas.length; i++) {
+        const f = activeFormulas[i];
+        const formulaPayload = {
+          formation_config_id: configId,
+          name: f.name.trim(),
+          duree_heures: f.duree_heures ? parseFloat(f.duree_heures) : null,
+          prix: f.prix ? parseFloat(f.prix) : null,
+          elearning_access_email_content: f.elearning_access_email_content.trim() || null,
+          woocommerce_product_id: f.woocommerce_product_id ? parseInt(f.woocommerce_product_id, 10) : null,
+          supports_url: f.supports_url.trim() || null,
+          display_order: i,
+        };
+
+        if (f.id) {
+          await supabase
+            .from("formation_formulas")
+            .update(formulaPayload)
+            .eq("id", f.id);
+        } else {
+          await supabase
+            .from("formation_formulas")
+            .insert(formulaPayload);
+        }
+      }
+
+      toast({
+        title: entry ? "Mis à jour" : "Créée",
+        description: entry
+          ? "Formation mise à jour dans le catalogue."
+          : "Formation ajoutée au catalogue.",
+      });
 
       onClose(true);
     } catch (error: any) {
@@ -234,34 +314,174 @@ const CatalogFormDialog = ({ open, onClose, entry }: CatalogFormDialogProps) => 
 
             {/* Formulas */}
             <div className="space-y-2">
-              <Label>Formules disponibles</Label>
-              <p className="text-xs text-muted-foreground">
-                Si aucune formule n'est cochée, la formation est "classique" (sans choix de formule).
-              </p>
-              <div className="flex flex-wrap gap-4 pt-1">
-                {[
-                  { value: "solo", label: "Solo" },
-                  { value: "communaute", label: "Communauté" },
-                  { value: "coachee", label: "Coachée" },
-                ].map(({ value, label }) => (
-                  <div key={value} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`formula-${value}`}
-                      checked={availableFormulas.includes(value)}
-                      onCheckedChange={(checked) => {
-                        setAvailableFormulas(
-                          checked
-                            ? [...availableFormulas, value]
-                            : availableFormulas.filter((f) => f !== value)
-                        );
-                      }}
-                    />
-                    <Label htmlFor={`formula-${value}`} className="text-sm font-normal cursor-pointer">
-                      {label}
-                    </Label>
-                  </div>
-                ))}
+              <div className="flex items-center justify-between">
+                <Label>Formules</Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-xs"
+                  onClick={() => {
+                    setFormulas((prev) => [
+                      ...prev,
+                      {
+                        name: "",
+                        duree_heures: "",
+                        prix: "",
+                        elearning_access_email_content: "",
+                        woocommerce_product_id: "",
+                        supports_url: "",
+                      },
+                    ]);
+                    setExpandedFormula(formulas.filter((f) => !f._deleted).length);
+                  }}
+                >
+                  <Plus className="h-3 w-3 mr-1" />
+                  Ajouter une formule
+                </Button>
               </div>
+              <p className="text-xs text-muted-foreground">
+                Sans formule, la formation est "classique". Chaque formule a son propre tarif, durée, etc.
+              </p>
+              {formulas.filter((f) => !f._deleted).length > 0 && (
+                <div className="space-y-2 pt-1">
+                  {formulas.map((formula, idx) => {
+                    if (formula._deleted) return null;
+                    const visibleIdx = formulas.slice(0, idx).filter((f) => !f._deleted).length;
+                    const isExpanded = expandedFormula === visibleIdx;
+                    return (
+                      <div key={idx} className="border rounded-lg">
+                        <div
+                          className="flex items-center justify-between px-3 py-2 cursor-pointer hover:bg-muted/50"
+                          onClick={() => setExpandedFormula(isExpanded ? null : visibleIdx)}
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            {isExpanded ? <ChevronUp className="h-3.5 w-3.5 shrink-0" /> : <ChevronDown className="h-3.5 w-3.5 shrink-0" />}
+                            <span className="text-sm font-medium truncate">
+                              {formula.name || "Nouvelle formule"}
+                            </span>
+                            {(formula.prix || formula.duree_heures) && (
+                              <span className="text-xs text-muted-foreground shrink-0">
+                                {formula.prix ? `${formula.prix}€` : ""}{formula.prix && formula.duree_heures ? " · " : ""}{formula.duree_heures ? `${formula.duree_heures}h` : ""}
+                              </span>
+                            )}
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0 text-destructive hover:text-destructive shrink-0"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setFormulas((prev) =>
+                                prev.map((f, i) => (i === idx ? { ...f, _deleted: true } : f))
+                              );
+                              if (isExpanded) setExpandedFormula(null);
+                            }}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                        {isExpanded && (
+                          <div className="px-3 pb-3 space-y-3 border-t pt-3">
+                            <div className="space-y-1">
+                              <Label className="text-xs">Nom *</Label>
+                              <Input
+                                value={formula.name}
+                                onChange={(e) =>
+                                  setFormulas((prev) =>
+                                    prev.map((f, i) => (i === idx ? { ...f, name: e.target.value } : f))
+                                  )
+                                }
+                                placeholder="Ex: Solo, Communauté, Coachée..."
+                                className="h-8 text-sm"
+                              />
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                              <div className="space-y-1">
+                                <Label className="text-xs">Durée (heures)</Label>
+                                <Input
+                                  type="number"
+                                  min="0"
+                                  step="0.5"
+                                  value={formula.duree_heures}
+                                  onChange={(e) =>
+                                    setFormulas((prev) =>
+                                      prev.map((f, i) => (i === idx ? { ...f, duree_heures: e.target.value } : f))
+                                    )
+                                  }
+                                  placeholder="Ex: 25"
+                                  className="h-8 text-sm"
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <Label className="text-xs">Tarif HT (€)</Label>
+                                <Input
+                                  type="number"
+                                  min="0"
+                                  step="0.01"
+                                  value={formula.prix}
+                                  onChange={(e) =>
+                                    setFormulas((prev) =>
+                                      prev.map((f, i) => (i === idx ? { ...f, prix: e.target.value } : f))
+                                    )
+                                  }
+                                  placeholder="Ex: 490"
+                                  className="h-8 text-sm"
+                                />
+                              </div>
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs">Email d'accès e-learning</Label>
+                              <Textarea
+                                rows={3}
+                                value={formula.elearning_access_email_content}
+                                onChange={(e) =>
+                                  setFormulas((prev) =>
+                                    prev.map((f, i) => (i === idx ? { ...f, elearning_access_email_content: e.target.value } : f))
+                                  )
+                                }
+                                placeholder="Contenu de l'email d'accès..."
+                                className="text-sm"
+                              />
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                              <div className="space-y-1">
+                                <Label className="text-xs">ID Produit WooCommerce</Label>
+                                <Input
+                                  type="number"
+                                  min="1"
+                                  value={formula.woocommerce_product_id}
+                                  onChange={(e) =>
+                                    setFormulas((prev) =>
+                                      prev.map((f, i) => (i === idx ? { ...f, woocommerce_product_id: e.target.value } : f))
+                                    )
+                                  }
+                                  placeholder="Ex: 1234"
+                                  className="h-8 text-sm"
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <Label className="text-xs">URL des supports</Label>
+                                <Input
+                                  value={formula.supports_url}
+                                  onChange={(e) =>
+                                    setFormulas((prev) =>
+                                      prev.map((f, i) => (i === idx ? { ...f, supports_url: e.target.value } : f))
+                                    )
+                                  }
+                                  placeholder="https://..."
+                                  className="h-8 text-sm"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-4">

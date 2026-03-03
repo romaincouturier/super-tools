@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
+import type { FormationFormula } from "@/types/training";
 import { Loader2, ArrowLeft, Calendar, Users, FileText, ExternalLink, Edit2, User as UserIcon, Mail, MapPin, Building, Map, Train, Hotel, UtensilsCrossed, DoorOpen, Clock, Copy, Check, AlertCircle, Share2, CheckCircle2, Euro, StickyNote, Save, MoreHorizontal, Heart, Send, AlertTriangle } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -136,7 +137,7 @@ const FormationDetail = () => {
   const [sendingThankYou, setSendingThankYou] = useState(false);
   const [thankYouSentAt, setThankYouSentAt] = useState<string | null>(null);
   const [assignedUserName, setAssignedUserName] = useState<string | null>(null);
-  const [availableFormulas, setAvailableFormulas] = useState<string[]>([]);
+  const [availableFormulas, setAvailableFormulas] = useState<FormationFormula[]>([]);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -220,12 +221,12 @@ const FormationDetail = () => {
 
     // Fetch available formulas from catalog if linked
     if ((trainingData as any).catalog_id) {
-      const { data: catalogData } = await supabase
-        .from("formation_configs")
-        .select("available_formulas")
-        .eq("id", (trainingData as any).catalog_id)
-        .maybeSingle();
-      setAvailableFormulas(catalogData?.available_formulas || []);
+      const { data: formulasData } = await supabase
+        .from("formation_formulas")
+        .select("*")
+        .eq("formation_config_id", (trainingData as any).catalog_id)
+        .order("display_order");
+      setAvailableFormulas((formulasData as FormationFormula[]) || []);
     } else {
       setAvailableFormulas([]);
     }
@@ -1296,13 +1297,11 @@ const FormationDetail = () => {
           </Card>
         </div>
 
-        {/* Lives + Coaching (when formulas include communaute or coachee) */}
-        {(availableFormulas.includes("communaute") || availableFormulas.includes("coachee")) && (
+        {/* Lives + Coaching (when formulas exist with 2+ formulas, or any formula name suggests lives/coaching) */}
+        {availableFormulas.length >= 2 && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
             <LiveMeetingsSection trainingId={training.id} />
-            {availableFormulas.includes("coachee") && (
-              <CoachingSlotsSection trainingId={training.id} participants={participants} />
-            )}
+            <CoachingSlotsSection trainingId={training.id} participants={participants} />
           </div>
         )}
 

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
+import type { FormationFormula } from "@/types/training";
 import { Loader2, FileText, ArrowLeft, Send, Settings, Save, X, Plus, Trash2, Star, Eye, Search, ChevronUp, ChevronDown, History, Mail, Copy } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -74,6 +75,10 @@ const MicroDevis = () => {
   const [editingFormation, setEditingFormation] = useState<FormationConfig | null>(null);
   const [configDialogOpen, setConfigDialogOpen] = useState(false);
   const [newFormation, setNewFormation] = useState<Partial<FormationConfig> | null>(null);
+
+  // Formation formulas for selected formation
+  const [formationFormulas, setFormationFormulas] = useState<FormationFormula[]>([]);
+  const [selectedFormula, setSelectedFormula] = useState<string>("");
 
   // Formation dates from DB
   const [formationDates, setFormationDates] = useState<FormationDate[]>([]);
@@ -230,6 +235,27 @@ const MicroDevis = () => {
       loadFormationConfigs();
     }
   }, [user, toast, initialDefaultsApplied, formationDemandee]);
+
+  // Load formulas for selected formation
+  useEffect(() => {
+    const loadFormulas = async () => {
+      const selectedConfig = formationConfigs.find(f => f.formation_name === formationDemandee);
+      if (!selectedConfig) {
+        setFormationFormulas([]);
+        setSelectedFormula("");
+        return;
+      }
+      const { data } = await supabase
+        .from("formation_formulas")
+        .select("*")
+        .eq("formation_config_id", selectedConfig.id)
+        .order("display_order");
+      const formulas = (data as FormationFormula[]) || [];
+      setFormationFormulas(formulas);
+      setSelectedFormula(formulas.length === 1 ? formulas[0].name : "");
+    };
+    loadFormulas();
+  }, [formationDemandee, formationConfigs]);
 
   // Load formation dates from DB
   useEffect(() => {
@@ -686,12 +712,17 @@ const MicroDevis = () => {
   const buildPayload = () => {
     const selectedConfig = getSelectedFormationConfig();
     if (!selectedConfig) return null;
-    
+
+    // If a formula is selected, use its price/duration when available
+    const activeFormula = formationFormulas.find(f => f.name === selectedFormula);
+    const effectivePrix = activeFormula?.prix ?? selectedConfig.prix;
+    const effectiveDuree = activeFormula?.duree_heures ?? selectedConfig.duree_heures;
+
     // When "Chez le client" is selected, use client's address
-    const finalLieu = lieu === "autre" 
-      ? lieuAutre 
-      : lieu === "Chez le client" 
-        ? buildClientAddress() 
+    const finalLieu = lieu === "autre"
+      ? lieuAutre
+      : lieu === "Chez le client"
+        ? buildClientAddress()
         : lieu;
     const finalPays = pays === "autre" ? paysAutre : "France";
     const nbParticipants = countParticipants();
@@ -703,9 +734,13 @@ const MicroDevis = () => {
       .filter(p => p.length > 0);
 
     // Build cadeau text if included
-    const cadeauText = includeCadeau 
+    const cadeauText = includeCadeau
       ? "Chaque participant(e) aura : 1 kit de facilitation graphique ainsi qu'un accès illimité et à vie au e-learning de 25h pour continuer sa formation en facilitation graphique"
       : "";
+
+    const formationLabel = selectedFormula
+      ? `${formationDemandee} — ${selectedFormula}`
+      : formationDemandee;
 
     return {
       // Données envoyées à la fonction
@@ -719,13 +754,13 @@ const MicroDevis = () => {
         adresseCommanditaire,
         isAdministration: isAdministration === "oui",
         noteDevis,
-        formationDemandee,
+        formationDemandee: formationLabel,
         dateFormation,
         lieu: finalLieu,
         includeCadeau,
         fraisDossier: fraisDossier === "oui",
-        prix: selectedConfig.prix,
-        dureeHeures: selectedConfig.duree_heures,
+        prix: effectivePrix,
+        dureeHeures: effectiveDuree,
         programmeUrl: selectedConfig.programme_url,
         nbParticipants,
         participants,
@@ -745,13 +780,13 @@ const MicroDevis = () => {
         cadeau: cadeauText,
         items: [
           {
-            name: formationDemandee,
+            name: formationLabel,
             participant_name: participantsList.length > 0 ? participantsList : [`${adresseCommanditaire} ${emailCommanditaire}`],
             date: dateFormation,
             place: finalLieu,
-            duration: `${selectedConfig.duree_heures}h`,
+            duration: `${effectiveDuree}h`,
             quantity: nbParticipants,
-            unit_price: selectedConfig.prix,
+            unit_price: effectivePrix,
           },
         ],
         admin_fee: fraisDossier === "oui" ? 150 : 0,
@@ -958,6 +993,14 @@ const MicroDevis = () => {
 
       const normalizedEmail = emailCommanditaire.trim().toLowerCase();
 
+      // Use formula price/duration if a formula is selected
+      const activeFormula = formationFormulas.find(f => f.name === selectedFormula);
+      const effectivePrix = activeFormula?.prix ?? selectedConfig.prix;
+      const effectiveDuree = activeFormula?.duree_heures ?? selectedConfig.duree_heures;
+      const formationLabel = selectedFormula
+        ? `${formationDemandee} — ${selectedFormula}`
+        : formationDemandee;
+
       const response = await supabase.functions.invoke("generate-micro-devis", {
         body: {
           nomClient,
@@ -969,13 +1012,13 @@ const MicroDevis = () => {
           adresseCommanditaire,
           isAdministration: isAdministration === "oui",
           noteDevis,
-          formationDemandee,
+          formationDemandee: formationLabel,
           dateFormation,
           lieu: finalLieu,
           includeCadeau,
           fraisDossier: fraisDossier === "oui",
-          prix: selectedConfig.prix,
-          dureeHeures: selectedConfig.duree_heures,
+          prix: effectivePrix,
+          dureeHeures: effectiveDuree,
           programmeUrl: selectedConfig.programme_url,
           nbParticipants: countParticipants(),
           participants,
@@ -1703,6 +1746,32 @@ const MicroDevis = () => {
                         ))}
                       </SelectContent>
                     </Select>
+
+                    {/* Formula selector when formation has formulas */}
+                    {formationFormulas.length >= 2 && (
+                      <div className="mt-3">
+                        <Label className="text-sm">Formule</Label>
+                        <Select value={selectedFormula} onValueChange={setSelectedFormula}>
+                          <SelectTrigger className="w-full bg-background mt-1">
+                            <SelectValue placeholder="Sélectionner une formule" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-background border shadow-lg z-50">
+                            {formationFormulas.map((f) => (
+                              <SelectItem key={f.id} value={f.name}>
+                                <div className="flex items-center gap-2">
+                                  <span>{f.name}</span>
+                                  {(f.prix != null || f.duree_heures != null) && (
+                                    <span className="text-muted-foreground text-xs">
+                                      ({f.prix != null ? `${f.prix}€` : ""}{f.prix != null && f.duree_heures != null ? " · " : ""}{f.duree_heures != null ? `${f.duree_heures}h` : ""})
+                                    </span>
+                                  )}
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
                   </div>
 
                   <div className="space-y-3">

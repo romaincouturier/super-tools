@@ -55,6 +55,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
+import type { FormationFormula } from "@/types/training";
 
 interface ParticipantFile {
   id: string;
@@ -89,18 +90,12 @@ interface ConventionSignatureStatus {
   status: string;
 }
 
-const FORMULA_LABELS: Record<string, string> = {
-  solo: "Solo",
-  communaute: "Communauté",
-  coachee: "Coachée",
-};
-
 interface EditParticipantDialogProps {
   participant: Participant;
   trainingId: string;
   formatFormation?: string | null;
   trainingElearningDuration?: number | null;
-  availableFormulas?: string[];
+  availableFormulas?: FormationFormula[];
   onParticipantUpdated: () => void;
 }
 
@@ -536,8 +531,16 @@ const EditParticipantDialog = ({
                       </SelectTrigger>
                       <SelectContent>
                         {availableFormulas.map((f) => (
-                          <SelectItem key={f} value={f}>
-                            {FORMULA_LABELS[f] || f}
+                          <SelectItem key={f.id} value={f.name}>
+                            {f.name}
+                            {(f.prix != null || f.duree_heures != null) && (
+                              <span className="text-muted-foreground">
+                                {" — "}
+                                {f.prix != null ? `${f.prix}€` : ""}
+                                {f.prix != null && f.duree_heures != null ? " · " : ""}
+                                {f.duree_heures != null ? `${f.duree_heures}h` : ""}
+                              </span>
+                            )}
                           </SelectItem>
                         ))}
                       </SelectContent>
