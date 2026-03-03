@@ -1167,7 +1167,7 @@ const CardDetailDrawer = ({
     <DetailDrawer
       open={open}
       onOpenChange={onOpenChange}
-      title={card.title}
+      title={<span className="sr-only">{card.title}</span>}
       actions={
         <>
           <Button
@@ -1530,14 +1530,7 @@ const CardDetailDrawer = ({
               </Label>
               <Input
                 value={company}
-                onChange={(e) => {
-                  const newCompany = e.target.value;
-                  setCompany(newCompany);
-                  const companyRegex = /^\([^)]*\)\s*/;
-                  const titleWithoutCompany = title.replace(companyRegex, "").trim();
-                  const newPrefix = newCompany.trim() ? `(${newCompany.trim().toUpperCase()}) ` : "";
-                  setTitle(`${newPrefix}${titleWithoutCompany}`);
-                }}
+                onChange={(e) => setCompany(e.target.value)}
                 placeholder="Nom de l'entreprise"
                 className="h-8"
               />

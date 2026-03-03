@@ -19,7 +19,7 @@ import {
 import { Loader2 } from "lucide-react";
 import { useCreateCard } from "@/hooks/useCrmBoard";
 import { useAuth } from "@/hooks/useAuth";
-import { CrmColumn, StatusOperational, SalesStatus } from "@/types/crm";
+import { CrmColumn, StatusOperational, ServiceType, AcquisitionSource, acquisitionSourceConfig } from "@/types/crm";
 
 interface CreateCardDialogProps {
   open: boolean;
@@ -35,6 +35,8 @@ const CreateCardDialog = ({ open, onOpenChange, columnId, columns }: CreateCardD
   const [title, setTitle] = useState("");
   const [selectedColumnId, setSelectedColumnId] = useState(columnId);
   const [estimatedValue, setEstimatedValue] = useState("");
+  const [serviceType, setServiceType] = useState<ServiceType | "">("");
+  const [acquisitionSource, setAcquisitionSource] = useState<AcquisitionSource | "">("");
   const [statusOperational, setStatusOperational] = useState<StatusOperational>("TODAY");
   const [waitingDate, setWaitingDate] = useState("");
   const [waitingText, setWaitingText] = useState("");
@@ -45,6 +47,8 @@ const CreateCardDialog = ({ open, onOpenChange, columnId, columns }: CreateCardD
       setTitle("");
       setSelectedColumnId(columnId);
       setEstimatedValue("");
+      setServiceType("");
+      setAcquisitionSource("");
       setStatusOperational("TODAY");
       setWaitingDate("");
       setWaitingText("");
@@ -54,7 +58,7 @@ const CreateCardDialog = ({ open, onOpenChange, columnId, columns }: CreateCardD
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim() || !user?.email) return;
+    if (!title.trim() || !serviceType || !acquisitionSource || !user?.email) return;
 
     // Validation: if WAITING, date and text are required
     if (statusOperational === "WAITING" && (!waitingDate || !waitingText.trim())) {
@@ -66,6 +70,8 @@ const CreateCardDialog = ({ open, onOpenChange, columnId, columns }: CreateCardD
         column_id: selectedColumnId || columnId,
         title: title.trim(),
         estimated_value: estimatedValue ? parseFloat(estimatedValue) : 0,
+        service_type: serviceType,
+        acquisition_source: acquisitionSource,
         status_operational: statusOperational,
         waiting_next_action_date: statusOperational === "WAITING" ? waitingDate : undefined,
         waiting_next_action_text: statusOperational === "WAITING" ? waitingText.trim() : undefined,
@@ -76,8 +82,11 @@ const CreateCardDialog = ({ open, onOpenChange, columnId, columns }: CreateCardD
     handleOpenChange(false);
   };
 
-  const isWaitingValid =
-    statusOperational !== "WAITING" || (waitingDate && waitingText.trim());
+  const isFormValid =
+    title.trim() &&
+    serviceType &&
+    acquisitionSource &&
+    (statusOperational !== "WAITING" || (waitingDate && waitingText.trim()));
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -107,6 +116,41 @@ const CreateCardDialog = ({ open, onOpenChange, columnId, columns }: CreateCardD
                 {columns.map((col) => (
                   <SelectItem key={col.id} value={col.id}>
                     {col.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label>Type de prestation *</Label>
+            <Select
+              value={serviceType}
+              onValueChange={(v) => setServiceType(v as ServiceType)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Sélectionner..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="formation">Formation</SelectItem>
+                <SelectItem value="mission">Mission</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label>Origine de l'opportunité *</Label>
+            <Select
+              value={acquisitionSource}
+              onValueChange={(v) => setAcquisitionSource(v as AcquisitionSource)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Sélectionner..." />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(acquisitionSourceConfig).map(([value, label]) => (
+                  <SelectItem key={value} value={value}>
+                    {label}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -172,7 +216,7 @@ const CreateCardDialog = ({ open, onOpenChange, columnId, columns }: CreateCardD
           <Button
             type="submit"
             form="create-card-form"
-            disabled={!title.trim() || !isWaitingValid || createCard.isPending}
+            disabled={!isFormValid || createCard.isPending}
           >
             {createCard.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
             Créer

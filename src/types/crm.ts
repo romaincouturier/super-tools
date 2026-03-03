@@ -181,6 +181,7 @@ export interface CreateCardInput {
   linkedin_url?: string;
   website_url?: string;
   service_type?: ServiceType;
+  acquisition_source?: AcquisitionSource;
   brief_questions?: BriefQuestion[];
   raw_input?: string;
 }

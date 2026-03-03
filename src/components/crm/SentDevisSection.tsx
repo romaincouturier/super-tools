@@ -150,7 +150,6 @@ const SentDevisSection = ({ email, cardId, emails }: SentDevisSectionProps) => {
     }
   };
 
-  if (!email) return null;
   if (isLoading) return null;
   if (timelineItems.length === 0) return null;
 
