@@ -172,8 +172,6 @@ serve(async (req) => {
       subject: subject,
       body_html: body_html,
       attachment_names: attachmentNames,
-      resend_email_id: emailResult.id || null,
-      delivery_status: "sent",
     });
 
     if (insertError) {
