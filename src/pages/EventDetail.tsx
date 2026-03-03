@@ -24,6 +24,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { CANCELLATION_REASONS, getCfpDaysLeft } from "@/types/events";
 import ShareEventDialog from "@/components/events/ShareEventDialog";
 import AppHeader from "@/components/AppHeader";
 import { Button } from "@/components/ui/button";
@@ -205,14 +206,6 @@ const EventDetail = () => {
       toast({ title: "Erreur", description: "Impossible de réactiver.", variant: "destructive" });
     }
   };
-
-  const CANCELLATION_REASONS = [
-    { value: "non_selectionne", label: "Non sélectionné" },
-    { value: "plus_disponible", label: "Plus disponible" },
-    { value: "manque_participants", label: "Pas assez de participants" },
-    { value: "report", label: "Reporté" },
-    { value: "autre", label: "Autre" },
-  ];
 
   const videoLinks = media.filter((m) => m.file_type === "video_link");
 
@@ -468,20 +461,18 @@ const EventDetail = () => {
                 </div>
               )}
               {event.cfp_deadline && (() => {
-                const deadline = new Date(event.cfp_deadline);
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-                const daysLeft = Math.ceil((deadline.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                const daysLeft = getCfpDaysLeft(event.cfp_deadline);
                 const isPastDeadline = daysLeft < 0;
                 const isUrgent = daysLeft >= 0 && daysLeft <= 7;
+                const deadline = new Date(event.cfp_deadline);
                 return (
                   <div className="flex items-center gap-2">
-                    <AlertTriangle className={`h-4 w-4 flex-shrink-0 ${isPastDeadline ? "text-muted-foreground" : isUrgent ? "text-orange-500" : "text-muted-foreground"}`} />
+                    <AlertTriangle className={`h-4 w-4 flex-shrink-0 ${isUrgent && !isPastDeadline ? "text-orange-500" : "text-muted-foreground"}`} />
                     <div>
                       <p className="text-sm font-medium">Date limite CFP</p>
                       <p className={`text-sm ${isPastDeadline ? "text-muted-foreground line-through" : isUrgent ? "text-orange-600 font-medium" : "text-muted-foreground"}`}>
                         {deadline.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
-                        {isPastDeadline ? " (passée)" : daysLeft === 0 ? " (aujourd'hui !)" : daysLeft === 1 ? " (demain !)" : isUrgent ? ` (dans ${daysLeft}j)` : ` (dans ${daysLeft}j)`}
+                        {isPastDeadline ? " (passée)" : daysLeft === 0 ? " (aujourd'hui !)" : daysLeft === 1 ? " (demain !)" : ` (dans ${daysLeft}j)`}
                       </p>
                     </div>
                   </div>

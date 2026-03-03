@@ -4,6 +4,7 @@ import { format, parseISO, isPast, endOfDay } from "date-fns";
 import { fr } from "date-fns/locale";
 import { formatDateWithDayOfWeek } from "@/lib/dateFormatters";
 import { Loader2, Plus, CalendarDays, ArrowLeft, MapPin, Video, Search, X, Ban, Globe } from "lucide-react";
+import { getCfpDaysLeft } from "@/types/events";
 import AppHeader from "@/components/AppHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -191,10 +192,7 @@ const Events = () => {
                           {event.event_time && ` à ${event.event_time.slice(0, 5)}`}
                         </span>
                         {event.event_type === "external" && event.cfp_deadline && (() => {
-                          const deadline = new Date(event.cfp_deadline);
-                          const today = new Date();
-                          today.setHours(0, 0, 0, 0);
-                          const daysLeft = Math.ceil((deadline.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                          const daysLeft = getCfpDaysLeft(event.cfp_deadline);
                           if (daysLeft < 0) return null;
                           return (
                             <span className={`text-xs ${daysLeft <= 7 ? "text-orange-600 font-medium" : ""}`}>
