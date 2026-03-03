@@ -106,6 +106,17 @@ const ShareEventDialog = ({ event }: ShareEventDialogProps) => {
         throw new Error(response.error.message || "Erreur d'envoi");
       }
 
+      // Record the share in event_shares table (upsert to avoid duplicates)
+      const userId = session?.user?.id;
+      const recipientName = getDisplayName(selectedProfile) !== selectedProfile.email
+        ? getDisplayName(selectedProfile) : null;
+      await (supabase as any).from("event_shares").upsert({
+        event_id: event.id,
+        recipient_email: selectedProfile.email,
+        recipient_name: recipientName,
+        shared_by: userId,
+      }, { onConflict: "event_id,recipient_email" });
+
       toast({
         title: "Événement partagé !",
         description: `Email envoyé à ${getDisplayName(selectedProfile)}`,

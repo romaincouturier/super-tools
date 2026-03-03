@@ -1,14 +1,27 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { CalendarDays } from "lucide-react";
+import { CalendarDays, Send, Loader2 } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import PageLoading from "@/components/PageLoading";
 import PageNotFound from "@/components/PageNotFound";
 import PageHeader from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from "@/components/ui/alert-dialog";
 import EventFormFields, { type EventFormValues } from "@/components/events/EventFormFields";
 import { useToast } from "@/hooks/use-toast";
 import { useEvent, useUpdateEvent } from "@/hooks/useEvents";
+import { supabase } from "@/integrations/supabase/client";
+
+type ChangeMap = Record<string, { old: string | null; new: string | null }>;
 
 const EventEdit = () => {
   const { id } = useParams<{ id: string }>();
@@ -30,9 +43,18 @@ const EventEdit = () => {
     cfpUrl: "",
   });
 
+  // For change detection
+  const originalRef = useRef<Record<string, string | null> | null>(null);
+
+  // Notify dialog state
+  const [notifyDialogOpen, setNotifyDialogOpen] = useState(false);
+  const [pendingChanges, setPendingChanges] = useState<ChangeMap>({});
+  const [sharesCount, setSharesCount] = useState(0);
+  const [notifying, setNotifying] = useState(false);
+
   useEffect(() => {
     if (event) {
-      setValues({
+      const mapped = {
         title: event.title,
         description: event.description || "",
         eventDate: event.event_date,
@@ -43,13 +65,69 @@ const EventEdit = () => {
         cfpDeadline: event.cfp_deadline || "",
         eventUrl: event.event_url || "",
         cfpUrl: event.cfp_url || "",
-      });
+      };
+      setValues(mapped);
+      // Store original DB values for change detection
+      originalRef.current = {
+        title: event.title,
+        description: event.description,
+        event_date: event.event_date,
+        event_time: event.event_time,
+        location: event.location,
+        location_type: event.location_type,
+        event_type: event.event_type,
+        cfp_deadline: event.cfp_deadline,
+        event_url: event.event_url,
+        cfp_url: event.cfp_url,
+      };
     }
   }, [event]);
+
+  // Fetch shares count
+  useEffect(() => {
+    if (!id) return;
+    (supabase as any)
+      .from("event_shares")
+      .select("id", { count: "exact", head: true })
+      .eq("event_id", id)
+      .then(({ count }: { count: number | null }) => {
+        setSharesCount(count || 0);
+      });
+  }, [id]);
 
   const handleChange = useCallback(<K extends keyof EventFormValues>(field: K, value: EventFormValues[K]) => {
     setValues((prev) => ({ ...prev, [field]: value }));
   }, []);
+
+  const buildNewValues = () => {
+    const isExternal = values.eventType === "external";
+    return {
+      title: values.title.trim(),
+      description: values.description.trim() || null,
+      event_date: values.eventDate,
+      event_time: values.eventTime || null,
+      location: values.location.trim() || null,
+      location_type: values.locationType,
+      event_type: values.eventType,
+      cfp_deadline: isExternal && values.cfpDeadline ? values.cfpDeadline : null,
+      event_url: isExternal && values.eventUrl.trim() ? values.eventUrl.trim() : null,
+      cfp_url: isExternal && values.cfpUrl.trim() ? values.cfpUrl.trim() : null,
+    };
+  };
+
+  const detectChanges = (newVals: Record<string, string | null>): ChangeMap => {
+    const orig = originalRef.current;
+    if (!orig) return {};
+    const changes: ChangeMap = {};
+    for (const key of Object.keys(newVals)) {
+      const oldVal = orig[key] ?? null;
+      const newVal = newVals[key] ?? null;
+      if ((oldVal || "") !== (newVal || "")) {
+        changes[key] = { old: oldVal, new: newVal };
+      }
+    }
+    return changes;
+  };
 
   const handleSubmit = async () => {
     if (!id || !values.title.trim() || !values.eventDate) {
@@ -61,23 +139,19 @@ const EventEdit = () => {
       return;
     }
 
-    const isExternal = values.eventType === "external";
+    const newVals = buildNewValues();
     try {
-      await updateEvent.mutateAsync({
-        id,
-        title: values.title.trim(),
-        description: values.description.trim() || null,
-        event_date: values.eventDate,
-        event_time: values.eventTime || null,
-        location: values.location.trim() || null,
-        location_type: values.locationType,
-        event_type: values.eventType,
-        cfp_deadline: isExternal && values.cfpDeadline ? values.cfpDeadline : null,
-        event_url: isExternal && values.eventUrl.trim() ? values.eventUrl.trim() : null,
-        cfp_url: isExternal && values.cfpUrl.trim() ? values.cfpUrl.trim() : null,
-      });
+      await updateEvent.mutateAsync({ id, ...newVals });
       toast({ title: "Événement mis à jour" });
-      navigate(`/events/${id}`);
+
+      // Check if there are shared recipients and actual changes
+      const changes = detectChanges(newVals);
+      if (sharesCount > 0 && Object.keys(changes).length > 0) {
+        setPendingChanges(changes);
+        setNotifyDialogOpen(true);
+      } else {
+        navigate(`/events/${id}`);
+      }
     } catch (error) {
       console.error("Error updating event:", error);
       toast({
@@ -86,6 +160,36 @@ const EventEdit = () => {
         variant: "destructive",
       });
     }
+  };
+
+  const handleNotify = async () => {
+    setNotifying(true);
+    try {
+      const { error } = await supabase.functions.invoke("send-event-update-email", {
+        body: { event_id: id, changes: pendingChanges },
+      });
+      if (error) throw error;
+      toast({
+        title: "Relance envoyée",
+        description: `${sharesCount} personne(s) notifiée(s) des modifications.`,
+      });
+    } catch (err: any) {
+      console.error("Notify error:", err);
+      toast({
+        title: "Erreur d'envoi",
+        description: "Les modifications sont sauvegardées mais la notification a échoué.",
+        variant: "destructive",
+      });
+    } finally {
+      setNotifying(false);
+      setNotifyDialogOpen(false);
+      navigate(`/events/${id}`);
+    }
+  };
+
+  const handleSkipNotify = () => {
+    setNotifyDialogOpen(false);
+    navigate(`/events/${id}`);
   };
 
   if (isLoading) return <PageLoading />;
@@ -109,6 +213,54 @@ const EventEdit = () => {
           </Button>
         </div>
       </main>
+
+      {/* Notify shared recipients dialog */}
+      <AlertDialog open={notifyDialogOpen} onOpenChange={setNotifyDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Prévenir les destinataires ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cet événement a été partagé avec {sharesCount} personne(s).
+              Souhaitez-vous leur envoyer un email indiquant les modifications apportées ?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          {/* Preview changes */}
+          <div className="rounded-md border bg-muted/50 p-3 text-sm space-y-1 max-h-48 overflow-y-auto">
+            {Object.entries(pendingChanges).map(([field, { old: oldVal, new: newVal }]) => {
+              const labels: Record<string, string> = {
+                title: "Titre", description: "Description", event_date: "Date",
+                event_time: "Heure", location: "Lieu", location_type: "Type de lieu",
+                event_type: "Type", cfp_deadline: "Deadline CFP",
+                event_url: "URL événement", cfp_url: "URL CFP",
+              };
+              return (
+                <div key={field}>
+                  <span className="font-medium">{labels[field] || field}</span>
+                  {" : "}
+                  <span className="line-through text-muted-foreground">{oldVal || "—"}</span>
+                  {" → "}
+                  <span className="text-foreground">{newVal || "—"}</span>
+                </div>
+              );
+            })}
+          </div>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleSkipNotify} disabled={notifying}>
+              Non, merci
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleNotify} disabled={notifying}>
+              {notifying ? (
+                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4 mr-1" />
+              )}
+              Envoyer la relance
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

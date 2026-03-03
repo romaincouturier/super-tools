@@ -1280,6 +1280,41 @@ export type Database = {
           },
         ]
       }
+      event_shares: {
+        Row: {
+          event_id: string
+          id: string
+          recipient_email: string
+          recipient_name: string | null
+          shared_at: string
+          shared_by: string | null
+        }
+        Insert: {
+          event_id: string
+          id?: string
+          recipient_email: string
+          recipient_name?: string | null
+          shared_at?: string
+          shared_by?: string | null
+        }
+        Update: {
+          event_id?: string
+          id?: string
+          recipient_email?: string
+          recipient_name?: string | null
+          shared_at?: string
+          shared_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_shares_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       events: {
         Row: {
           cancellation_reason: string | null
