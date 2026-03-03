@@ -27,7 +27,9 @@ export const CANCELLATION_REASONS = [
 ] as const;
 
 export function getCfpDaysLeft(cfpDeadline: string): number {
-  const deadline = new Date(cfpDeadline);
+  // Parse as local date (YYYY-MM-DD) to avoid UTC offset issues
+  const [y, m, d] = cfpDeadline.split("-").map(Number);
+  const deadline = new Date(y, m - 1, d);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   return Math.ceil((deadline.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));

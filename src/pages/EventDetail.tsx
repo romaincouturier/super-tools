@@ -444,7 +444,8 @@ const EventDetail = () => {
                 const daysLeft = getCfpDaysLeft(event.cfp_deadline);
                 const isPastDeadline = daysLeft < 0;
                 const isUrgent = daysLeft >= 0 && daysLeft <= 7;
-                const deadline = new Date(event.cfp_deadline);
+                const [y, m, d] = event.cfp_deadline.split("-").map(Number);
+                const deadline = new Date(y, m - 1, d);
                 return (
                   <div className="flex items-center gap-2">
                     <AlertTriangle className={`h-4 w-4 flex-shrink-0 ${isUrgent && !isPastDeadline ? "text-orange-500" : "text-muted-foreground"}`} />
