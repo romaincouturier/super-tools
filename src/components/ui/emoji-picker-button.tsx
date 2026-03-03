@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import EmojiPicker, { EmojiClickData, Theme } from "emoji-picker-react";
+import EmojiPicker, { EmojiClickData, EmojiStyle, Theme } from "emoji-picker-react";
 import { Button } from "@/components/ui/button";
 import { Smile } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -69,6 +69,7 @@ const EmojiPickerButton = ({
           <EmojiPicker
             onEmojiClick={handleEmojiClick}
             theme={Theme.AUTO}
+            emojiStyle={EmojiStyle.NATIVE}
             width={320}
             height={400}
             searchPlaceHolder="Rechercher..."
