@@ -70,6 +70,7 @@ interface Participant {
   signed_convention_url?: string | null;
   elearning_duration?: number | null;
   notes?: string | null;
+  formula?: string | null;
 }
 
 interface ParticipantListProps {
@@ -80,6 +81,7 @@ interface ParticipantListProps {
   trainingEndDate: string | null;
   formatFormation: string | null;
   elearningDuration?: number | null;
+  availableFormulas?: string[];
   attendanceSheetsUrls: string[];
   clientName: string;
   trainingDuree: string;
@@ -174,6 +176,7 @@ const ParticipantList = ({
   trainingEndDate,
   formatFormation,
   elearningDuration,
+  availableFormulas = [],
   attendanceSheetsUrls,
   clientName,
   trainingDuree,
@@ -1022,6 +1025,7 @@ const ParticipantList = ({
         trainingId={trainingId}
         formatFormation={formatFormation}
         trainingElearningDuration={elearningDuration}
+        availableFormulas={availableFormulas}
         onParticipantUpdated={onParticipantUpdated}
       />
 
@@ -1140,6 +1144,11 @@ const ParticipantList = ({
                     {participant.company && (
                       <p className="text-xs text-muted-foreground">{participant.company}</p>
                     )}
+                    {participant.formula && (
+                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 mt-0.5 w-fit">
+                        {participant.formula === "solo" ? "Solo" : participant.formula === "communaute" ? "Communauté" : "Coachée"}
+                      </Badge>
+                    )}
                   </div>
                   <Badge
                     variant={statusConfig.variant}
@@ -1209,6 +1218,11 @@ const ParticipantList = ({
                       {participant.first_name || participant.last_name
                         ? `${participant.first_name || ""} ${participant.last_name || ""}`.trim()
                         : "—"}
+                      {participant.formula && (
+                        <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                          {participant.formula === "solo" ? "Solo" : participant.formula === "communaute" ? "Communauté" : "Coachée"}
+                        </Badge>
+                      )}
                       {isInterEntreprise && participant.payment_mode === "invoice" && (
                         <Tooltip>
                           <TooltipTrigger asChild>

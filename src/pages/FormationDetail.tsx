@@ -41,6 +41,8 @@ import TrainerAdequacy from "@/components/formations/TrainerAdequacy";
 import TrainerEvaluationBlock from "@/components/formations/TrainerEvaluationBlock";
 import ThankYouEmailPreviewDialog from "@/components/formations/ThankYouEmailPreviewDialog";
 import LogisticsBookingButtons from "@/components/shared/LogisticsBookingButtons";
+import LiveMeetingsSection from "@/components/formations/LiveMeetingsSection";
+import CoachingSlotsSection from "@/components/formations/CoachingSlotsSection";
 import { isToday, isBefore, startOfDay } from "date-fns";
 
 interface Training {
@@ -100,6 +102,7 @@ interface Participant {
   invoice_file_url?: string | null;
   payment_mode?: string;
   sold_price_ht?: number | null;
+  formula?: string | null;
 }
 
 const FormationDetail = () => {
@@ -133,6 +136,7 @@ const FormationDetail = () => {
   const [sendingThankYou, setSendingThankYou] = useState(false);
   const [thankYouSentAt, setThankYouSentAt] = useState<string | null>(null);
   const [assignedUserName, setAssignedUserName] = useState<string | null>(null);
+  const [availableFormulas, setAvailableFormulas] = useState<string[]>([]);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -213,6 +217,18 @@ const FormationDetail = () => {
     setTraining(trainingData);
     setNotes(trainingData.notes || "");
     setNotesChanged(false);
+
+    // Fetch available formulas from catalog if linked
+    if ((trainingData as any).catalog_id) {
+      const { data: catalogData } = await supabase
+        .from("formation_configs")
+        .select("available_formulas")
+        .eq("id", (trainingData as any).catalog_id)
+        .maybeSingle();
+      setAvailableFormulas(catalogData?.available_formulas || []);
+    } else {
+      setAvailableFormulas([]);
+    }
 
     // Fetch assigned user name
     if ((trainingData as any).assigned_to) {
@@ -1179,6 +1195,7 @@ const FormationDetail = () => {
                       trainingStartDate={training.start_date}
                       clientName={training.client_name}
                       formatFormation={training.format_formation}
+                      availableFormulas={availableFormulas}
                       onParticipantAdded={fetchParticipants}
                       onScheduledEmailsRefresh={() => setEmailsRefreshTrigger(prev => prev + 1)}
                       initialFirstName={addParticipantData?.firstName}
@@ -1205,6 +1222,7 @@ const FormationDetail = () => {
                 trainingEndDate={training.end_date}
                 formatFormation={training.format_formation}
                 elearningDuration={training.elearning_duration}
+                availableFormulas={availableFormulas}
                 attendanceSheetsUrls={training.attendance_sheets_urls}
                 clientName={training.client_name}
                 trainingDuree={`${calculateTotalDuration()}h`}
@@ -1277,6 +1295,16 @@ const FormationDetail = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Lives + Coaching (when formulas include communaute or coachee) */}
+        {(availableFormulas.includes("communaute") || availableFormulas.includes("coachee")) && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            <LiveMeetingsSection trainingId={training.id} />
+            {availableFormulas.includes("coachee") && (
+              <CoachingSlotsSection trainingId={training.id} participants={participants} />
+            )}
+          </div>
+        )}
 
         {/* Row 2: Documents + Scheduled Emails */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">

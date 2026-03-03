@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { formatDateWithDayOfWeek } from "@/lib/dateFormatters";
 import {
@@ -14,13 +14,28 @@ import {
   X,
   Loader2,
   ExternalLink,
+  Copy,
+  StickyNote,
+  Save,
+  Ban,
+  RotateCcw,
 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import ShareEventDialog from "@/components/events/ShareEventDialog";
 import AppHeader from "@/components/AppHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -43,6 +58,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   useEvent,
   useDeleteEvent,
+  useUpdateEvent,
 } from "@/hooks/useEvents";
 import { useEntityMedia, useAddMedia, useDeleteMedia } from "@/hooks/useMedia";
 import EntityMediaManager from "@/components/media/EntityMediaManager";
@@ -54,12 +70,21 @@ const EventDetail = () => {
   const { data: event, isLoading: eventLoading } = useEvent(id);
   const { data: media = [], isLoading: mediaLoading } = useEntityMedia("event", id);
   const deleteEvent = useDeleteEvent();
+  const updateEvent = useUpdateEvent();
   const addMediaMutation = useAddMedia();
   const deleteMediaMutation = useDeleteMedia();
 
   const [videoLinkDialogOpen, setVideoLinkDialogOpen] = useState(false);
   const [videoUrl, setVideoUrl] = useState("");
   const [videoName, setVideoName] = useState("");
+  const [notes, setNotes] = useState(event?.notes || "");
+  const [savingNotes, setSavingNotes] = useState(false);
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [cancellationReason, setCancellationReason] = useState("");
+
+  useEffect(() => {
+    if (event) setNotes(event.notes || "");
+  }, [event]);
 
   const handleDelete = async () => {
     if (!id) return;
@@ -104,6 +129,84 @@ const EventDetail = () => {
     }
   };
 
+  const handleSaveNotes = async () => {
+    if (!id) return;
+    setSavingNotes(true);
+    try {
+      await supabase
+        .from("events")
+        .update({ notes: notes.trim() || null })
+        .eq("id", id);
+    } catch {
+      toast({ title: "Erreur", description: "Impossible de sauvegarder les notes.", variant: "destructive" });
+    } finally {
+      setSavingNotes(false);
+    }
+  };
+
+  const handleDuplicate = async () => {
+    if (!event) return;
+    try {
+      const { data, error } = await supabase
+        .from("events")
+        .insert({
+          title: `${event.title} (copie)`,
+          description: event.description,
+          event_date: event.event_date,
+          event_time: event.event_time,
+          location: event.location,
+          location_type: event.location_type,
+          notes: event.notes,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      toast({ title: "Événement dupliqué" });
+      navigate(`/events/${data.id}`);
+    } catch {
+      toast({ title: "Erreur", description: "Impossible de dupliquer.", variant: "destructive" });
+    }
+  };
+
+  const handleCancel = async () => {
+    if (!id || !cancellationReason) return;
+    try {
+      await updateEvent.mutateAsync({
+        id,
+        status: "cancelled",
+        cancellation_reason: cancellationReason,
+      });
+      toast({ title: "Événement annulé" });
+      setCancelDialogOpen(false);
+      setCancellationReason("");
+    } catch {
+      toast({ title: "Erreur", description: "Impossible d'annuler.", variant: "destructive" });
+    }
+  };
+
+  const handleReactivate = async () => {
+    if (!id) return;
+    try {
+      await updateEvent.mutateAsync({
+        id,
+        status: "active",
+        cancellation_reason: null,
+      });
+      toast({ title: "Événement réactivé" });
+    } catch {
+      toast({ title: "Erreur", description: "Impossible de réactiver.", variant: "destructive" });
+    }
+  };
+
+  const CANCELLATION_REASONS = [
+    { value: "non_selectionne", label: "Non sélectionné" },
+    { value: "plus_disponible", label: "Plus disponible" },
+    { value: "manque_participants", label: "Pas assez de participants" },
+    { value: "report", label: "Reporté" },
+    { value: "autre", label: "Autre" },
+  ];
+
   const videoLinks = media.filter((m) => m.file_type === "video_link");
 
   if (eventLoading || mediaLoading) {
@@ -136,6 +239,27 @@ const EventDetail = () => {
       <AppHeader />
 
       <main className="max-w-4xl mx-auto p-6 space-y-6">
+        {/* Cancelled banner */}
+        {event.status === "cancelled" && (
+          <div className="flex items-center justify-between gap-3 p-4 rounded-lg bg-destructive/10 border border-destructive/20">
+            <div className="flex items-center gap-2">
+              <Ban className="h-5 w-5 text-destructive flex-shrink-0" />
+              <div>
+                <p className="font-medium text-destructive">Événement annulé</p>
+                {event.cancellation_reason && (
+                  <p className="text-sm text-destructive/80">
+                    Raison : {CANCELLATION_REASONS.find((r) => r.value === event.cancellation_reason)?.label || event.cancellation_reason}
+                  </p>
+                )}
+              </div>
+            </div>
+            <Button variant="outline" size="sm" onClick={handleReactivate}>
+              <RotateCcw className="h-4 w-4 mr-1" />
+              Réactiver
+            </Button>
+          </div>
+        )}
+
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -143,7 +267,14 @@ const EventDetail = () => {
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div>
-              <h1 className="text-2xl font-bold">{event.title}</h1>
+              <div className="flex items-center gap-2">
+                <h1 className={`text-2xl font-bold ${event.status === "cancelled" ? "line-through text-muted-foreground" : ""}`}>
+                  {event.title}
+                </h1>
+                {event.status === "cancelled" && (
+                  <Badge variant="destructive">Annulé</Badge>
+                )}
+              </div>
               <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
                 <span className="flex items-center gap-1">
                   <CalendarDays className="h-3.5 w-3.5" />
@@ -161,10 +292,60 @@ const EventDetail = () => {
 
           <div className="flex items-center gap-2">
             <ShareEventDialog event={event} />
-            <Button variant="outline" size="sm" onClick={() => navigate(`/events/${id}/edit`)}>
-              <Edit className="h-4 w-4 mr-1" />
-              Modifier
+            <Button variant="outline" size="sm" onClick={handleDuplicate}>
+              <Copy className="h-4 w-4 mr-1" />
+              Dupliquer
             </Button>
+            {event.status !== "cancelled" && (
+              <>
+                <Button variant="outline" size="sm" onClick={() => navigate(`/events/${id}/edit`)}>
+                  <Edit className="h-4 w-4 mr-1" />
+                  Modifier
+                </Button>
+                <Dialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="sm" className="text-orange-600 hover:text-orange-600">
+                      <Ban className="h-4 w-4 mr-1" />
+                      Annuler
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                      <DialogTitle>Annuler cet événement</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label>Raison de l'annulation *</Label>
+                        <Select value={cancellationReason} onValueChange={setCancellationReason}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Sélectionner une raison..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {CANCELLATION_REASONS.map((r) => (
+                              <SelectItem key={r.value} value={r.value}>
+                                {r.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="flex justify-end gap-2">
+                        <Button variant="outline" onClick={() => setCancelDialogOpen(false)}>
+                          Retour
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          onClick={handleCancel}
+                          disabled={!cancellationReason}
+                        >
+                          Confirmer l'annulation
+                        </Button>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </>
+            )}
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button variant="outline" size="sm" className="text-destructive hover:text-destructive">
@@ -237,6 +418,35 @@ const EventDetail = () => {
             sourceLabel={event.title}
           />
         )}
+
+        {/* Notes */}
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <StickyNote className="h-5 w-5" />
+                Notes
+              </CardTitle>
+              {notes !== (event.notes || "") && (
+                <Button size="sm" onClick={handleSaveNotes} disabled={savingNotes}>
+                  {savingNotes ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
+                  Enregistrer
+                </Button>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent>
+            <Textarea
+              placeholder="Ajoutez des notes sur cet événement..."
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              onBlur={() => {
+                if (notes !== (event.notes || "")) handleSaveNotes();
+              }}
+              className="min-h-[100px] resize-y"
+            />
+          </CardContent>
+        </Card>
 
         {/* Video links */}
         <Card>

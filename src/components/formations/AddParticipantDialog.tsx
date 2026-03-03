@@ -18,6 +18,13 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Command,
   CommandEmpty,
   CommandGroup,
@@ -35,11 +42,24 @@ import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { subtractWorkingDays, fetchWorkingDays, fetchNeedsSurveyDelay, scheduleTrainerSummaryIfNeeded } from "@/lib/workingDays";
 
+const FORMULA_LABELS: Record<string, string> = {
+  solo: "Solo",
+  communaute: "Communauté",
+  coachee: "Coachée",
+};
+
+const FORMULA_DESCRIPTIONS: Record<string, string> = {
+  solo: "E-learning seul",
+  communaute: "E-learning + lives",
+  coachee: "E-learning + lives + coaching",
+};
+
 interface AddParticipantDialogProps {
   trainingId: string;
   trainingStartDate?: string;
   clientName?: string;
   formatFormation?: string | null;
+  availableFormulas?: string[];
   onParticipantAdded: () => void;
   onScheduledEmailsRefresh?: () => void;
   initialFirstName?: string;
@@ -67,7 +87,7 @@ const capitalizeName = (name: string): string => {
     .join("");
 };
 
-const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, formatFormation, onParticipantAdded, onScheduledEmailsRefresh, initialFirstName, initialLastName, initialEmail, initialCompany, initialSoldPriceHt, externalOpen, onExternalOpenChange }: AddParticipantDialogProps) => {
+const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, formatFormation, availableFormulas = [], onParticipantAdded, onScheduledEmailsRefresh, initialFirstName, initialLastName, initialEmail, initialCompany, initialSoldPriceHt, externalOpen, onExternalOpenChange }: AddParticipantDialogProps) => {
   const [internalOpen, setInternalOpen] = useState(false);
   const open = externalOpen !== undefined ? externalOpen : internalOpen;
   const setOpen = (v: boolean) => {
@@ -89,6 +109,7 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
   const [financeurUrl, setFinanceurUrl] = useState("");
   const [paymentMode, setPaymentMode] = useState<"online" | "invoice">("invoice");
   const [generateCoupon, setGenerateCoupon] = useState(true);
+  const [formula, setFormula] = useState<string>(availableFormulas.length === 1 ? availableFormulas[0] : "");
   const [financeurPopoverOpen, setFinanceurPopoverOpen] = useState(false);
   const [existingFinanceurs, setExistingFinanceurs] = useState<string[]>([]);
   const [isManualMode, setIsManualMode] = useState(false);
@@ -192,6 +213,7 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
     setFinanceurUrl("");
     setPaymentMode("invoice");
     setGenerateCoupon(true);
+    setFormula(availableFormulas.length === 1 ? availableFormulas[0] : "");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -225,6 +247,10 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
         company: company.trim() || null,
         needs_survey_token: token,
         needs_survey_status: status,
+        // Add formula if available (from catalog formulas)
+        ...(formula && {
+          formula,
+        }),
         // For inter-enterprise trainings, add sponsor, funder and payment fields
         ...(isInterEntreprise && {
           sponsor_first_name: capitalizeName(sponsorFirstName) || null,
@@ -328,6 +354,25 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
         }
       }
 
+      // For coachee participants: schedule coaching booking invitation (J+7 after enrollment)
+      if (formula === "coachee" && insertedParticipant) {
+        try {
+          const inviteDate = new Date();
+          inviteDate.setDate(inviteDate.getDate() + 7);
+          inviteDate.setHours(9, 0, 0, 0);
+
+          await supabase.from("scheduled_emails").insert({
+            training_id: trainingId,
+            participant_id: insertedParticipant.id,
+            email_type: "coaching_booking_invite",
+            scheduled_for: inviteDate.toISOString(),
+            status: "pending",
+          });
+        } catch (err) {
+          console.warn("Failed to schedule coaching booking invite:", err);
+        }
+      }
+
       // Schedule needs survey email for future trainings (after welcome email is sent)
       let needsSurveySkipped = false;
       if (sendWelcomeNow && insertedParticipant && trainingStartDate) {
@@ -374,7 +419,15 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
       });
 
       let statusMessage = "";
-      if (status === "non_envoye") {
+      if (formatFormation === "e_learning" && paymentMode !== "online") {
+        const parts = [];
+        if (formula) parts.push(`Formule ${FORMULA_LABELS[formula] || formula}`);
+        if (generateCoupon) parts.push("coupon WooCommerce généré");
+        parts.push("email d'accès envoyé");
+        statusMessage = parts.join(", ") + ".";
+      } else if (formula) {
+        statusMessage = `Formule ${FORMULA_LABELS[formula] || formula}.`;
+      } else if (status === "non_envoye") {
         statusMessage = "Formation passée — aucun email programmé.";
       } else if (sendWelcomeNow && needsSurveySkipped) {
         statusMessage = "Mail de convocation envoyé. ⚠️ Le recueil des besoins n'a pas été programmé car la date d'envoi est dépassée.";
@@ -476,6 +529,26 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
                 placeholder="ACME Corp"
               />
             </div>
+
+            {/* Formula selector (shown when catalog has 2+ formulas) */}
+            {availableFormulas.length >= 2 && (
+              <div className="space-y-2">
+                <Label htmlFor="formula">Formule</Label>
+                <Select value={formula} onValueChange={setFormula}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner une formule" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableFormulas.map((f) => (
+                      <SelectItem key={f} value={f}>
+                        {FORMULA_LABELS[f] || f}
+                        {FORMULA_DESCRIPTIONS[f] ? ` — ${FORMULA_DESCRIPTIONS[f]}` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             {/* Sale amount for inter-enterprise trainings */}
             {isInterEntreprise && (

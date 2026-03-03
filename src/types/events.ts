@@ -6,6 +6,9 @@ export interface Event {
   event_time: string | null;
   location: string | null;
   location_type: "physical" | "visio";
+  notes: string | null;
+  status: "active" | "cancelled";
+  cancellation_reason: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
