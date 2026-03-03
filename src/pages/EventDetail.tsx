@@ -19,6 +19,9 @@ import {
   Save,
   Ban,
   RotateCcw,
+  Globe,
+  FileText,
+  AlertTriangle,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import ShareEventDialog from "@/components/events/ShareEventDialog";
@@ -157,6 +160,10 @@ const EventDetail = () => {
           location: event.location,
           location_type: event.location_type,
           notes: event.notes,
+          event_type: event.event_type,
+          cfp_deadline: event.cfp_deadline,
+          event_url: event.event_url,
+          cfp_url: event.cfp_url,
         })
         .select()
         .single();
@@ -271,6 +278,12 @@ const EventDetail = () => {
                 <h1 className={`text-2xl font-bold ${event.status === "cancelled" ? "line-through text-muted-foreground" : ""}`}>
                   {event.title}
                 </h1>
+                {event.event_type === "external" && (
+                  <Badge variant="outline" className="gap-1 text-blue-600 border-blue-300">
+                    <Globe className="h-3 w-3" />
+                    Externe
+                  </Badge>
+                )}
                 {event.status === "cancelled" && (
                   <Badge variant="destructive">Annulé</Badge>
                 )}
@@ -409,6 +422,74 @@ const EventDetail = () => {
             )}
           </CardContent>
         </Card>
+
+        {/* External event info */}
+        {event.event_type === "external" && (event.event_url || event.cfp_url || event.cfp_deadline) && (
+          <Card className="border-blue-200">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg flex items-center gap-2 text-blue-700">
+                <Globe className="h-5 w-5" />
+                Événement externe
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {event.event_url && (
+                <div className="flex items-center gap-2">
+                  <ExternalLink className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium">Lien événement</p>
+                    <a
+                      href={event.event_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-primary hover:underline flex items-center gap-1"
+                    >
+                      {event.event_url}
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
+                  </div>
+                </div>
+              )}
+              {event.cfp_url && (
+                <div className="flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium">Lien CFP</p>
+                    <a
+                      href={event.cfp_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-primary hover:underline flex items-center gap-1"
+                    >
+                      {event.cfp_url}
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
+                  </div>
+                </div>
+              )}
+              {event.cfp_deadline && (() => {
+                const deadline = new Date(event.cfp_deadline);
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const daysLeft = Math.ceil((deadline.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                const isPastDeadline = daysLeft < 0;
+                const isUrgent = daysLeft >= 0 && daysLeft <= 7;
+                return (
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className={`h-4 w-4 flex-shrink-0 ${isPastDeadline ? "text-muted-foreground" : isUrgent ? "text-orange-500" : "text-muted-foreground"}`} />
+                    <div>
+                      <p className="text-sm font-medium">Date limite CFP</p>
+                      <p className={`text-sm ${isPastDeadline ? "text-muted-foreground line-through" : isUrgent ? "text-orange-600 font-medium" : "text-muted-foreground"}`}>
+                        {deadline.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
+                        {isPastDeadline ? " (passée)" : daysLeft === 0 ? " (aujourd'hui !)" : daysLeft === 1 ? " (demain !)" : isUrgent ? ` (dans ${daysLeft}j)` : ` (dans ${daysLeft}j)`}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })()}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Images & Videos (unified) */}
         {id && (

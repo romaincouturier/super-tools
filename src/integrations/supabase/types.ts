@@ -1283,11 +1283,15 @@ export type Database = {
       events: {
         Row: {
           cancellation_reason: string | null
+          cfp_deadline: string | null
+          cfp_url: string | null
           created_at: string
           created_by: string | null
           description: string | null
           event_date: string
           event_time: string | null
+          event_type: string
+          event_url: string | null
           id: string
           location: string | null
           location_type: string
@@ -1298,11 +1302,15 @@ export type Database = {
         }
         Insert: {
           cancellation_reason?: string | null
+          cfp_deadline?: string | null
+          cfp_url?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
           event_date: string
           event_time?: string | null
+          event_type?: string
+          event_url?: string | null
           id?: string
           location?: string | null
           location_type?: string
@@ -1313,11 +1321,15 @@ export type Database = {
         }
         Update: {
           cancellation_reason?: string | null
+          cfp_deadline?: string | null
+          cfp_url?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
           event_date?: string
           event_time?: string | null
+          event_type?: string
+          event_url?: string | null
           id?: string
           location?: string | null
           location_type?: string

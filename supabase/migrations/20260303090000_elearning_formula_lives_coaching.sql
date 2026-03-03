@@ -79,7 +79,20 @@ ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'active' CHECK (status IN 
 ALTER TABLE public.events
 ADD COLUMN IF NOT EXISTS cancellation_reason TEXT;
 
--- 6. Étendre scheduled_emails avec les nouveaux types
+-- 6. Colonnes event_type, cfp_deadline, event_url, cfp_url sur events
+ALTER TABLE public.events
+ADD COLUMN IF NOT EXISTS event_type TEXT NOT NULL DEFAULT 'internal' CHECK (event_type IN ('internal', 'external'));
+
+ALTER TABLE public.events
+ADD COLUMN IF NOT EXISTS cfp_deadline DATE;
+
+ALTER TABLE public.events
+ADD COLUMN IF NOT EXISTS event_url TEXT;
+
+ALTER TABLE public.events
+ADD COLUMN IF NOT EXISTS cfp_url TEXT;
+
+-- 7. Étendre scheduled_emails avec les nouveaux types
 ALTER TABLE public.scheduled_emails DROP CONSTRAINT IF EXISTS scheduled_emails_email_type_check;
 ALTER TABLE public.scheduled_emails ADD CONSTRAINT scheduled_emails_email_type_check CHECK (
   email_type IN (

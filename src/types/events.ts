@@ -9,6 +9,10 @@ export interface Event {
   notes: string | null;
   status: "active" | "cancelled";
   cancellation_reason: string | null;
+  event_type: "internal" | "external";
+  cfp_deadline: string | null;
+  event_url: string | null;
+  cfp_url: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;

@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { format, parseISO, isPast, endOfDay } from "date-fns";
 import { fr } from "date-fns/locale";
 import { formatDateWithDayOfWeek } from "@/lib/dateFormatters";
-import { Loader2, Plus, CalendarDays, ArrowLeft, MapPin, Video, Search, X, Ban } from "lucide-react";
+import { Loader2, Plus, CalendarDays, ArrowLeft, MapPin, Video, Search, X, Ban, Globe } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -172,6 +172,12 @@ const Events = () => {
                         <p className={`font-medium truncate ${event.status === "cancelled" ? "line-through text-muted-foreground" : ""}`}>
                           {event.title}
                         </p>
+                        {event.event_type === "external" && (
+                          <Badge variant="outline" className="flex-shrink-0 gap-1 text-xs text-blue-600 border-blue-300">
+                            <Globe className="h-3 w-3" />
+                            Externe
+                          </Badge>
+                        )}
                         {event.status === "cancelled" && (
                           <Badge variant="destructive" className="flex-shrink-0 gap-1 text-xs">
                             <Ban className="h-3 w-3" />
@@ -184,6 +190,18 @@ const Events = () => {
                           {formatDateWithDayOfWeek(event.event_date)}
                           {event.event_time && ` à ${event.event_time.slice(0, 5)}`}
                         </span>
+                        {event.event_type === "external" && event.cfp_deadline && (() => {
+                          const deadline = new Date(event.cfp_deadline);
+                          const today = new Date();
+                          today.setHours(0, 0, 0, 0);
+                          const daysLeft = Math.ceil((deadline.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                          if (daysLeft < 0) return null;
+                          return (
+                            <span className={`text-xs ${daysLeft <= 7 ? "text-orange-600 font-medium" : ""}`}>
+                              CFP : {daysLeft === 0 ? "aujourd'hui" : daysLeft === 1 ? "demain" : `J-${daysLeft}`}
+                            </span>
+                          );
+                        })()}
                       </div>
                     </div>
 
