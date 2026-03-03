@@ -1,21 +1,18 @@
-import { useState, useCallback, useEffect } from "react";
-import {
-  DndContext,
-  DragOverlay,
-  closestCenter,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragEndEvent,
-  DragStartEvent,
-} from "@dnd-kit/core";
+import { useState, useEffect, useMemo } from "react";
+import { closestCenter } from "@dnd-kit/core";
+import { Plus, Search, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Mission, MissionStatus, missionStatusConfig } from "@/types/missions";
 import { useMissions, useMoveMission, useUpdateMission } from "@/hooks/useMissions";
-import MissionColumn from "./MissionColumn";
 import MissionCard from "./MissionCard";
 import MissionDetailDrawer from "./MissionDetailDrawer";
 import CreateMissionDialog from "./CreateMissionDialog";
-import { Loader2 } from "lucide-react";
+import GenericKanbanBoard from "@/components/shared/kanban/GenericKanbanBoard";
+import type { KanbanColumnDef, KanbanCardDef } from "@/types/kanban";
+
+type MissionKanbanCard = Mission & KanbanCardDef;
+type MissionKanbanColumn = KanbanColumnDef & { statusColor: string };
 
 interface CrmPrefill {
   title: string;
@@ -30,16 +27,25 @@ interface MissionsKanbanBoardProps {
   onPrefillConsumed?: () => void;
 }
 
+const statuses: MissionStatus[] = ["not_started", "in_progress", "completed", "cancelled"];
+
+const columns: MissionKanbanColumn[] = statuses.map((s, idx) => ({
+  id: s,
+  name: missionStatusConfig[s].label,
+  position: idx,
+  statusColor: missionStatusConfig[s].color,
+}));
+
 const MissionsKanbanBoard = ({ prefillFromCrm, onPrefillConsumed }: MissionsKanbanBoardProps) => {
   const { data, isLoading, error } = useMissions();
   const moveMission = useMoveMission();
   const updateMission = useUpdateMission();
 
-  const [activeMission, setActiveMission] = useState<Mission | null>(null);
   const [selectedMission, setSelectedMission] = useState<Mission | null>(null);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [createDialogStatus, setCreateDialogStatus] = useState<MissionStatus>("not_started");
   const [prefillData, setPrefillData] = useState<CrmPrefill | undefined>(undefined);
+  const [searchTerm, setSearchTerm] = useState("");
 
   // Auto-open create dialog when prefill data from CRM is provided
   useEffect(() => {
@@ -51,93 +57,34 @@ const MissionsKanbanBoard = ({ prefillFromCrm, onPrefillConsumed }: MissionsKanb
     }
   }, [prefillFromCrm]);
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: { distance: 8 },
-    })
-  );
-
   const missions = data || [];
+  const normalizedSearch = searchTerm.toLowerCase().trim();
 
-  const getMissionsByStatus = useCallback(
-    (status: MissionStatus) => {
-      return missions
-        .filter((m) => m.status === status)
-        .sort((a, b) => a.position - b.position);
-    },
-    [missions]
-  );
-
-  const handleDragStart = (event: DragStartEvent) => {
-    const mission = missions.find((m) => m.id === event.active.id);
-    if (mission) setActiveMission(mission);
-  };
-
-  const handleDragEnd = async (event: DragEndEvent) => {
-    const { active, over } = event;
-    setActiveMission(null);
-
-    if (!over) return;
-
-    const missionId = active.id as string;
-    const mission = missions.find((m) => m.id === missionId);
-    if (!mission) return;
-
-    // Determine target status (column)
-    let targetStatus: MissionStatus;
-    const targetMission = missions.find((m) => m.id === over.id);
-
-    if (targetMission) {
-      targetStatus = targetMission.status;
-    } else if (Object.keys(missionStatusConfig).includes(over.id as string)) {
-      targetStatus = over.id as MissionStatus;
-    } else {
-      return;
-    }
-
-    // Calculate new position
-    const targetMissions = getMissionsByStatus(targetStatus);
-    let newPosition = 0;
-
-    if (targetMission) {
-      const targetIndex = targetMissions.findIndex((m) => m.id === targetMission.id);
-      newPosition = targetIndex;
-    } else {
-      newPosition = targetMissions.length;
-    }
-
-    // Only update if something changed
-    if (mission.status !== targetStatus || mission.position !== newPosition) {
-      await moveMission.mutateAsync({
-        missionId,
-        newStatus: targetStatus,
-        newPosition,
+  const cards: MissionKanbanCard[] = useMemo(() => {
+    let filtered = missions;
+    if (normalizedSearch) {
+      filtered = missions.filter((m) => {
+        const title = (m.title || "").toLowerCase();
+        const client = (m.client_name || "").toLowerCase();
+        const tags = (m.tags || []).join(" ").toLowerCase();
+        return title.includes(normalizedSearch) || client.includes(normalizedSearch) || tags.includes(normalizedSearch);
       });
     }
-  };
+    return filtered.map((m) => ({
+      ...m,
+      columnId: m.status,
+      position: m.position,
+    }));
+  }, [missions, normalizedSearch]);
 
   const handleAddMission = (status: MissionStatus) => {
-    console.log("[MissionsKanbanBoard] handleAddMission called, status:", status, "showCreateDialog before:", showCreateDialog);
     setCreateDialogStatus(status);
     setShowCreateDialog(true);
-    console.log("[MissionsKanbanBoard] setShowCreateDialog(true) called");
-  };
-
-  const handleMissionClick = (mission: Mission) => {
-    setSelectedMission(mission);
   };
 
   const handleMissionEmojiChange = async (missionId: string, emoji: string | null) => {
     await updateMission.mutateAsync({ id: missionId, updates: { emoji } });
   };
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
 
   if (error) {
     return (
@@ -147,35 +94,76 @@ const MissionsKanbanBoard = ({ prefillFromCrm, onPrefillConsumed }: MissionsKanb
     );
   }
 
-  const statuses: MissionStatus[] = ["not_started", "in_progress", "completed", "cancelled"];
-
   return (
     <>
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragStart={handleDragStart}
-        onDragEnd={handleDragEnd}
-      >
-        <div className="flex gap-4 overflow-x-auto pb-4 h-full">
-          {statuses.map((status) => (
-            <MissionColumn
-              key={status}
-              status={status}
-              missions={getMissionsByStatus(status)}
-              onAddMission={() => handleAddMission(status)}
-              onMissionClick={handleMissionClick}
-              onEmojiChange={handleMissionEmojiChange}
-            />
-          ))}
+      <div className="mb-3">
+        <div className="relative w-64">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Rechercher une mission..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-9 h-9"
+          />
+          {searchTerm && (
+            <button
+              onClick={() => setSearchTerm("")}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
         </div>
+      </div>
 
-        <DragOverlay>
-          {activeMission ? (
-            <MissionCard mission={activeMission} isDragging />
-          ) : null}
-        </DragOverlay>
-      </DndContext>
+      <GenericKanbanBoard<MissionKanbanCard, MissionKanbanColumn>
+        columns={columns}
+        cards={cards}
+        loading={isLoading}
+        config={{ cardSortable: true, collisionDetection: closestCenter }}
+        renderCard={(card, isDragging) => (
+          <MissionCard
+            mission={card}
+            isDragging={isDragging}
+            onEmojiChange={handleMissionEmojiChange}
+          />
+        )}
+        renderColumnHeader={(col, colCards) => (
+          <div className="p-3 border-b flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div
+                className="w-3 h-3 rounded-full"
+                style={{ backgroundColor: col.statusColor }}
+              />
+              <h3 className="font-medium text-sm">{col.name}</h3>
+              <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                {colCards.length}
+              </span>
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6"
+              onClick={() => handleAddMission(col.id as MissionStatus)}
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
+        renderEmptyColumn={() => (
+          <div className="text-center text-xs text-muted-foreground py-8">
+            Aucune mission
+          </div>
+        )}
+        onCardMove={async ({ card, targetColumnId, newPosition }) => {
+          await moveMission.mutateAsync({
+            missionId: card.id,
+            newStatus: targetColumnId as MissionStatus,
+            newPosition,
+          });
+        }}
+        onCardClick={(card) => setSelectedMission(card)}
+      />
 
       <CreateMissionDialog
         open={showCreateDialog}

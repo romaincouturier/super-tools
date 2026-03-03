@@ -300,7 +300,7 @@ const MissionProfitabilityDashboard = () => {
                 <div>
                   <p className="text-xs text-muted-foreground">Jours facturés</p>
                   <p className="text-xl font-bold text-teal-600">
-                    {indicators.totalBilledDays}
+                    {Math.round(indicators.totalBilledDays)}
                     <span className="text-sm font-normal text-muted-foreground">
                       /{(settings || defaultSettings).billableDaysPerYear}
                     </span>
@@ -339,35 +339,35 @@ const MissionProfitabilityDashboard = () => {
 
         {/* Progress Bar */}
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-2">
+          <CardContent className="px-4 py-2">
+            <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium">Objectif annuel</span>
-                <span className={`text-xs px-2 py-0.5 rounded ${indicators.isOnTrack ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
+                <span className={`text-xs px-1.5 py-0.5 rounded ${indicators.isOnTrack ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
                   {indicators.isOnTrack ? 'En bonne voie' : 'En retard'}
                 </span>
               </div>
-              <div className="flex items-center gap-4 text-sm">
+              <div className="flex items-center gap-3 text-sm">
                 <span className="text-muted-foreground">
                   {indicators.totalBilledCA.toLocaleString("fr-FR")} € / {indicators.annualGoal.toLocaleString("fr-FR")} €
                 </span>
-                <Button variant="ghost" size="sm" onClick={handleOpenSettings}>
-                  <Settings className="h-4 w-4" />
+                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleOpenSettings}>
+                  <Settings className="h-3.5 w-3.5" />
                 </Button>
               </div>
             </div>
             <div className="relative">
-              <Progress value={indicators.progressPercentage} className="h-3" />
+              <Progress value={indicators.progressPercentage} className="h-2" />
               {/* Expected progress marker */}
               <div
-                className="absolute top-0 w-0.5 h-3 bg-gray-400"
+                className="absolute top-0 w-0.5 h-2 bg-gray-400"
                 style={{ left: `${indicators.expectedProgress}%` }}
                 title={`Progression attendue: ${indicators.expectedProgress}%`}
               />
             </div>
-            <div className="flex justify-between mt-1 text-xs text-muted-foreground">
+            <div className="flex justify-between mt-0.5 text-xs text-muted-foreground">
               <span>{indicators.progressPercentage}% réalisé</span>
-              <span>Attendu à ce jour: {indicators.expectedProgress}%</span>
+              <span>Attendu: {indicators.expectedProgress}%</span>
             </div>
           </CardContent>
         </Card>

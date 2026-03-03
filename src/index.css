@@ -195,6 +195,12 @@ All colors MUST be HSL.
   margin-bottom: 0.25em;
 }
 
+/* Prose: puces et compteurs de la même couleur que le texte */
+.prose :where(ul > li)::marker,
+.prose :where(ol > li)::marker {
+  color: inherit;
+}
+
 .ProseMirror blockquote {
   margin-top: 0.75em;
   margin-bottom: 0.75em;

@@ -3,10 +3,6 @@ import {
   DndContext,
   DragOverlay,
   closestCorners,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
   DragStartEvent,
   DragEndEvent,
   DragOverEvent,
@@ -14,7 +10,6 @@ import {
 import {
   arrayMove,
   SortableContext,
-  sortableKeyboardCoordinates,
   horizontalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { supabase } from "@/integrations/supabase/client";
@@ -29,12 +24,12 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import { useUserPreference } from "@/hooks/useUserPreferences";
+import { useKanbanDnd } from "@/hooks/useKanbanDnd";
 import KanbanColumn from "./KanbanColumn";
 import ContentCard from "./ContentCard";
 import ContentCardDialog from "./ContentCardDialog";
-import AddColumnDialog from "./AddColumnDialog";
+import AddColumnDialog from "@/components/shared/AddColumnDialog";
 
 export interface ContentTypeColors {
   article: string;
@@ -97,16 +92,7 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
   } = useUserPreference<ContentTypeColors>("content_type_colors", DEFAULT_CONTENT_TYPE_COLORS);
   const colors = typeColors ?? DEFAULT_CONTENT_TYPE_COLORS;
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  );
+  const { sensors } = useKanbanDnd({ enableKeyboard: true });
 
   useEffect(() => {
     fetchData();

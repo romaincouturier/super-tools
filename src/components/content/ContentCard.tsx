@@ -1,5 +1,3 @@
-import { useSortable } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
 import { MoreHorizontal, Pencil, Trash2, Eye } from "lucide-react";
 import type { ContentTypeColors } from "./KanbanBoard";
 import { Button } from "@/components/ui/button";
@@ -9,9 +7,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Badge } from "@/components/ui/badge";
 import type { Card } from "./KanbanBoard";
 import EmojiPickerButton from "@/components/ui/emoji-picker-button";
+import { useSortableCard } from "@/hooks/useSortableCard";
+import CardTagList from "@/components/shared/kanban/CardTagList";
 
 interface ContentCardProps {
   card: Card;
@@ -37,22 +36,8 @@ const getTagColor = (tag: string) => {
   return tagColors[index % tagColors.length];
 };
 
-const ContentCard = ({ card, isDragging, typeColors, onEdit, onDelete, onView, onEmojiChange }: ContentCardProps) => {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging: isSortableDragging,
-  } = useSortable({ id: card.id });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  };
-
-  const dragging = isDragging || isSortableDragging;
+const ContentCard = ({ card, isDragging: isDraggingProp, typeColors, onEdit, onDelete, onView, onEmojiChange }: ContentCardProps) => {
+  const { ref, style, attributes, listeners, isDragging } = useSortableCard(card.id, isDraggingProp);
   const borderColor = typeColors?.[card.card_type] || (card.card_type === "post" ? "#a855f7" : "#3b82f6");
 
   const handleCardClick = (e: React.MouseEvent) => {
@@ -65,22 +50,28 @@ const ContentCard = ({ card, isDragging, typeColors, onEdit, onDelete, onView, o
     }
   };
 
+  const tags = (card.tags || []).map((tag) => ({
+    key: tag,
+    label: tag,
+    className: getTagColor(tag),
+  }));
+
   return (
     <div
-      ref={setNodeRef}
+      ref={ref}
       style={style}
       {...attributes}
       className={`bg-card border rounded-lg overflow-hidden cursor-pointer hover:border-primary/50 transition-colors ${
-        dragging ? "opacity-50 shadow-lg rotate-2 cursor-grabbing" : ""
+        isDragging ? "opacity-50 shadow-lg rotate-2 cursor-grabbing" : ""
       }`}
     >
       {/* Drag handle - color indicator bar */}
-      <div 
+      <div
         {...listeners}
-        className="h-1 w-full cursor-grab active:cursor-grabbing" 
-        style={{ backgroundColor: borderColor }} 
+        className="h-1 w-full cursor-grab active:cursor-grabbing"
+        style={{ backgroundColor: borderColor }}
       />
-      
+
       {/* Clickable content area */}
       <div onClick={handleCardClick}>
 
@@ -153,24 +144,7 @@ const ContentCard = ({ card, isDragging, typeColors, onEdit, onDelete, onView, o
           </p>
         )}
 
-        {card.tags && card.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1 mt-2">
-            {card.tags.slice(0, 3).map((tag) => (
-              <Badge
-                key={tag}
-                variant="secondary"
-                className={`text-xs px-1.5 py-0 ${getTagColor(tag)}`}
-              >
-                {tag}
-              </Badge>
-            ))}
-            {card.tags.length > 3 && (
-              <Badge variant="secondary" className="text-xs px-1.5 py-0">
-                +{card.tags.length - 3}
-              </Badge>
-            )}
-          </div>
-        )}
+        <CardTagList tags={tags} className="mt-2" />
         </div>
       </div>
     </div>
