@@ -1282,6 +1282,7 @@ export type Database = {
       }
       events: {
         Row: {
+          cancellation_reason: string | null
           created_at: string
           created_by: string | null
           description: string | null
@@ -1290,10 +1291,13 @@ export type Database = {
           id: string
           location: string | null
           location_type: string
+          notes: string | null
+          status: string
           title: string
           updated_at: string
         }
         Insert: {
+          cancellation_reason?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -1302,10 +1306,13 @@ export type Database = {
           id?: string
           location?: string | null
           location_type?: string
+          notes?: string | null
+          status?: string
           title: string
           updated_at?: string
         }
         Update: {
+          cancellation_reason?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -1314,6 +1321,8 @@ export type Database = {
           id?: string
           location?: string | null
           location_type?: string
+          notes?: string | null
+          status?: string
           title?: string
           updated_at?: string
         }
@@ -1384,6 +1393,7 @@ export type Database = {
       }
       formation_configs: {
         Row: {
+          available_formulas: string[] | null
           created_at: string
           description: string | null
           display_order: number
@@ -1405,6 +1415,7 @@ export type Database = {
           woocommerce_product_id: number | null
         }
         Insert: {
+          available_formulas?: string[] | null
           created_at?: string
           description?: string | null
           display_order?: number
@@ -1426,6 +1437,7 @@ export type Database = {
           woocommerce_product_id?: number | null
         }
         Update: {
+          available_formulas?: string[] | null
           created_at?: string
           description?: string | null
           display_order?: number
@@ -3483,6 +3495,60 @@ export type Database = {
           },
         ]
       }
+      training_coaching_slots: {
+        Row: {
+          created_at: string
+          duration_minutes: number
+          id: string
+          meeting_url: string | null
+          notes: string | null
+          participant_id: string | null
+          scheduled_at: string
+          status: string
+          training_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          duration_minutes?: number
+          id?: string
+          meeting_url?: string | null
+          notes?: string | null
+          participant_id?: string | null
+          scheduled_at: string
+          status?: string
+          training_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          duration_minutes?: number
+          id?: string
+          meeting_url?: string | null
+          notes?: string | null
+          participant_id?: string | null
+          scheduled_at?: string
+          status?: string
+          training_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_coaching_slots_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "training_participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_coaching_slots_training_id_fkey"
+            columns: ["training_id"]
+            isOneToOne: false
+            referencedRelation: "trainings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       training_documents: {
         Row: {
           created_at: string | null
@@ -3638,6 +3704,53 @@ export type Database = {
           },
         ]
       }
+      training_live_meetings: {
+        Row: {
+          created_at: string
+          description: string | null
+          duration_minutes: number
+          id: string
+          meeting_url: string | null
+          scheduled_at: string
+          status: string
+          title: string
+          training_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          duration_minutes?: number
+          id?: string
+          meeting_url?: string | null
+          scheduled_at: string
+          status?: string
+          title: string
+          training_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          duration_minutes?: number
+          id?: string
+          meeting_url?: string | null
+          scheduled_at?: string
+          status?: string
+          title?: string
+          training_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_live_meetings_training_id_fkey"
+            columns: ["training_id"]
+            isOneToOne: false
+            referencedRelation: "trainings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       training_media: {
         Row: {
           created_at: string | null
@@ -3697,6 +3810,7 @@ export type Database = {
           financeur_same_as_sponsor: boolean | null
           financeur_url: string | null
           first_name: string | null
+          formula: string | null
           id: string
           invoice_file_url: string | null
           last_name: string | null
@@ -3723,6 +3837,7 @@ export type Database = {
           financeur_same_as_sponsor?: boolean | null
           financeur_url?: string | null
           first_name?: string | null
+          formula?: string | null
           id?: string
           invoice_file_url?: string | null
           last_name?: string | null
@@ -3749,6 +3864,7 @@ export type Database = {
           financeur_same_as_sponsor?: boolean | null
           financeur_url?: string | null
           first_name?: string | null
+          formula?: string | null
           id?: string
           invoice_file_url?: string | null
           last_name?: string | null
