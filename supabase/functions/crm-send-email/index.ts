@@ -163,8 +163,30 @@ serve(async (req) => {
 
     console.log("Email sent successfully:", emailResult.id);
 
-    // Store the email in crm_card_emails (with Resend ID for tracking)
+    // Store attachments in Supabase Storage and persist paths
     const attachmentNames = attachments?.map((a) => a.filename) || [];
+    const attachmentPaths: string[] = [];
+
+    if (attachments && attachments.length > 0) {
+      for (const att of attachments) {
+        try {
+          const bytes = Uint8Array.from(atob(att.content), (c) => c.charCodeAt(0));
+          const storagePath = `emails/${card_id}/${Date.now()}_${att.filename.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+          const { error: uploadError } = await supabase.storage
+            .from("crm-attachments")
+            .upload(storagePath, bytes, { contentType: "application/octet-stream", upsert: false });
+          if (!uploadError) {
+            attachmentPaths.push(storagePath);
+          } else {
+            console.warn("Failed to upload attachment:", att.filename, uploadError);
+          }
+        } catch (uploadErr) {
+          console.warn("Error uploading attachment:", att.filename, uploadErr);
+        }
+      }
+    }
+
+    // Store the email in crm_card_emails
     const { error: insertError } = await supabase.from("crm_card_emails").insert({
       card_id: card_id,
       sender_email: senderEmail,
@@ -172,6 +194,7 @@ serve(async (req) => {
       subject: subject,
       body_html: body_html,
       attachment_names: attachmentNames,
+      attachment_paths: attachmentPaths.length > 0 ? attachmentPaths : null,
     });
 
     if (insertError) {

@@ -686,6 +686,7 @@ export type Database = {
       crm_card_emails: {
         Row: {
           attachment_names: string[] | null
+          attachment_paths: string[] | null
           body_html: string
           card_id: string
           id: string
@@ -696,6 +697,7 @@ export type Database = {
         }
         Insert: {
           attachment_names?: string[] | null
+          attachment_paths?: string[] | null
           body_html: string
           card_id: string
           id?: string
@@ -706,6 +708,7 @@ export type Database = {
         }
         Update: {
           attachment_names?: string[] | null
+          attachment_paths?: string[] | null
           body_html?: string
           card_id?: string
           id?: string
