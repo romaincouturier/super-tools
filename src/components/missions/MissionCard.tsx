@@ -1,11 +1,11 @@
-import { useSortable } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Calendar, Building2, Euro } from "lucide-react";
 import { Mission } from "@/types/missions";
 import { cn } from "@/lib/utils";
 import EmojiPickerButton from "@/components/ui/emoji-picker-button";
+import { useSortableCard } from "@/hooks/useSortableCard";
+import CardTagList from "@/components/shared/kanban/CardTagList";
 
 interface MissionCardProps {
   mission: Mission;
@@ -14,27 +14,8 @@ interface MissionCardProps {
   onEmojiChange?: (missionId: string, emoji: string | null) => void;
 }
 
-const MissionCard = ({ mission, isDragging, onClick, onEmojiChange }: MissionCardProps) => {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging: isSortableDragging,
-  } = useSortable({ id: mission.id });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  };
-
-  const dragging = isDragging || isSortableDragging;
-
-  const combinedStyle = {
-    ...style,
-    borderLeftColor: mission.color,
-  };
+const MissionCard = ({ mission, isDragging: isDraggingProp, onClick, onEmojiChange }: MissionCardProps) => {
+  const { ref, style, attributes, listeners, isDragging } = useSortableCard(mission.id, isDraggingProp);
 
   const handleCardClick = (e: React.MouseEvent) => {
     const target = e.target as HTMLElement;
@@ -42,17 +23,23 @@ const MissionCard = ({ mission, isDragging, onClick, onEmojiChange }: MissionCar
     onClick?.();
   };
 
+  const tags = (mission.tags || []).map((tag, i) => ({
+    key: String(i),
+    label: tag,
+    className: "bg-muted text-foreground",
+  }));
+
   return (
     <div
-      ref={setNodeRef}
-      style={combinedStyle}
+      ref={ref}
+      style={{ ...style, borderLeftColor: mission.color }}
       {...attributes}
       {...listeners}
       onClick={handleCardClick}
       className={cn(
         "p-3 bg-card border rounded-lg cursor-pointer transition-all hover:shadow-md",
         "border-l-4",
-        dragging && "opacity-50 shadow-lg rotate-2"
+        isDragging && "opacity-50 shadow-lg rotate-2"
       )}
     >
       {/* Title */}
@@ -97,23 +84,11 @@ const MissionCard = ({ mission, isDragging, onClick, onEmojiChange }: MissionCar
       )}
 
       {/* Tags */}
-      {mission.tags && mission.tags.length > 0 && (
-        <div className="flex flex-wrap gap-1 mt-2">
-          {mission.tags.slice(0, 3).map((tag, index) => (
-            <span
-              key={index}
-              className="px-1.5 py-0.5 text-[10px] bg-muted rounded"
-            >
-              {tag}
-            </span>
-          ))}
-          {mission.tags.length > 3 && (
-            <span className="px-1.5 py-0.5 text-[10px] text-muted-foreground">
-              +{mission.tags.length - 3}
-            </span>
-          )}
-        </div>
-      )}
+      <CardTagList tags={tags} className="mt-2" renderTag={(tag) => (
+        <span key={tag.key} className="px-1.5 py-0.5 text-[10px] bg-muted rounded">
+          {tag.label}
+        </span>
+      )} />
     </div>
   );
 };

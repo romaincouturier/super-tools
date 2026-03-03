@@ -1,14 +1,13 @@
 import { useState } from "react";
-import { useSortable } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
 import { GraduationCap, Briefcase } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { CrmCard, CrmColumn } from "@/types/crm";
 import { useUpdateCard } from "@/hooks/useCrmBoard";
 import { useAuth } from "@/hooks/useAuth";
 import EmojiPickerButton from "@/components/ui/emoji-picker-button";
+import { useSortableCard } from "@/hooks/useSortableCard";
+import CardTagList from "@/components/shared/kanban/CardTagList";
 
 interface ServiceTypeColors {
   formation: string;
@@ -30,31 +29,18 @@ const DEFAULT_COLORS: ServiceTypeColors = {
   default: "#6b7280",
 };
 
-const CrmCardComponent = ({ card, isDragging, onClick, serviceTypeColors }: CrmCardProps) => {
+const CrmCardComponent = ({ card, isDragging: isDraggingProp, onClick, serviceTypeColors }: CrmCardProps) => {
   const { user } = useAuth();
   const updateCard = useUpdateCard();
   const [isEditingValue, setIsEditingValue] = useState(false);
   const [editValue, setEditValue] = useState(String(card.estimated_value || 0));
 
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging: isSortableDragging,
-  } = useSortable({ id: card.id });
+  const { ref, style, attributes, listeners, isDragging } = useSortableCard(card.id, isDraggingProp);
 
   const colors = serviceTypeColors || DEFAULT_COLORS;
   const cardColor = card.service_type
     ? colors[card.service_type] || colors.default
     : colors.default;
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isSortableDragging ? 0.5 : 1,
-  };
 
   const handleValueClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -100,24 +86,30 @@ const CrmCardComponent = ({ card, isDragging, onClick, serviceTypeColors }: CrmC
     onClick?.();
   };
 
+  const tags = (card.tags || []).map((tag) => ({
+    key: tag.id,
+    label: tag.name,
+    style: { backgroundColor: tag.color + "20", color: tag.color },
+  }));
+
   return (
     <Card
-      ref={setNodeRef}
+      ref={ref}
       style={{
         ...style,
         borderLeftWidth: "4px",
         borderLeftColor: cardColor,
+        opacity: isDragging ? 0.5 : 1,
       }}
       {...attributes}
       {...listeners}
-      className={`cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow touch-none ${isDragging ? "shadow-lg" : ""}`}
+      className={`cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow touch-none ${isDraggingProp ? "shadow-lg" : ""}`}
       onClick={handleCardClick}
     >
       <CardContent className="p-3 space-y-2">
-        {/* Header: Drag handle + Service type + Value */}
+        {/* Header: Service type + Value */}
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-1.5">
-            {/* Service type indicator */}
             {card.service_type ? (
               <div
                 className="flex items-center gap-1 text-xs font-medium"
@@ -197,25 +189,7 @@ const CrmCardComponent = ({ card, isDragging, onClick, serviceTypeColors }: CrmC
         </div>
 
         {/* Tags */}
-        {card.tags && card.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1">
-            {card.tags.slice(0, 3).map((tag) => (
-              <Badge
-                key={tag.id}
-                variant="secondary"
-                className="text-xs py-0"
-                style={{ backgroundColor: tag.color + "20", color: tag.color }}
-              >
-                {tag.name}
-              </Badge>
-            ))}
-            {card.tags.length > 3 && (
-              <Badge variant="secondary" className="text-xs py-0">
-                +{card.tags.length - 3}
-              </Badge>
-            )}
-          </div>
-        )}
+        <CardTagList tags={tags} />
       </CardContent>
     </Card>
   );
