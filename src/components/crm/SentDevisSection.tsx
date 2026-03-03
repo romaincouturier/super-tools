@@ -314,20 +314,34 @@ const SentDevisSection = ({ email, cardId, emails }: SentDevisSectionProps) => {
                   </div>
                   <ChevronDown className={cn("h-4 w-4 text-muted-foreground shrink-0 transition-transform mt-0.5", isExpanded && "rotate-180")} />
                 </div>
-                {isExpanded && emailItem.body_html && (
-                  <div
-                    className="px-4 pb-4 pt-2 border-t bg-background prose prose-sm dark:prose-invert max-w-none [&_a]:text-primary [&_a]:underline"
-                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(emailItem.body_html, { ADD_ATTR: ["target"], ALLOW_DATA_ATTR: false }) }}
-                    onClick={(e) => {
-                      const target = e.target as HTMLElement;
-                      if (target.tagName === "A") {
-                        e.stopPropagation();
-                        const href = target.getAttribute("href");
-                        if (href) window.open(href, "_blank", "noopener");
-                        e.preventDefault();
-                      }
-                    }}
-                  />
+                {isExpanded && (
+                  <div className="border-t bg-background">
+                    {emailItem.attachment_names && emailItem.attachment_names.length > 0 && (
+                      <div className="px-4 pt-3 pb-1 flex items-center gap-2 flex-wrap">
+                        <Paperclip className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                        {emailItem.attachment_names.map((name, idx) => (
+                          <Badge key={idx} variant="secondary" className="text-[10px] h-5 font-normal max-w-[250px] truncate">
+                            {name}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                    {emailItem.body_html && (
+                      <div
+                        className="px-4 pb-4 pt-2 prose prose-sm dark:prose-invert max-w-none [&_a]:text-primary [&_a]:underline"
+                        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(emailItem.body_html, { ADD_ATTR: ["target"], ALLOW_DATA_ATTR: false }) }}
+                        onClick={(e) => {
+                          const target = e.target as HTMLElement;
+                          if (target.tagName === "A") {
+                            e.stopPropagation();
+                            const href = target.getAttribute("href");
+                            if (href) window.open(href, "_blank", "noopener");
+                            e.preventDefault();
+                          }
+                        }}
+                      />
+                    )}
+                  </div>
                 )}
               </div>
             );
