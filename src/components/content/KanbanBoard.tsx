@@ -403,7 +403,7 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
     }
   };
 
-  const handleSaveCard = async (cardData: Partial<Card>) => {
+  const handleSaveCard = async (cardData: Partial<Card>, options?: { newsletterId?: string }) => {
     try {
       if (editingCard) {
         const { error } = await (supabase as any)
@@ -422,7 +422,7 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
         toast.success("Carte mise à jour");
       } else if (newCardColumnId) {
         const columnCards = cards.filter((c) => c.column_id === newCardColumnId);
-        const { error } = await (supabase as any).from("content_cards").insert({
+        const { data: newCard, error } = await (supabase as any).from("content_cards").insert({
           column_id: newCardColumnId,
           title: cardData.title || "Nouvelle carte",
           description: cardData.description,
@@ -431,9 +431,32 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
           card_type: cardData.card_type || "article",
           emoji: cardData.emoji ?? null,
           display_order: columnCards.length,
-        });
+        }).select().single();
 
         if (error) throw error;
+
+        // Attach to newsletter if requested
+        if (options?.newsletterId && newCard) {
+          const { data: existing } = await (supabase as any)
+            .from("newsletter_cards")
+            .select("display_order")
+            .eq("newsletter_id", options.newsletterId)
+            .order("display_order", { ascending: false })
+            .limit(1);
+
+          const nextOrder = (existing?.[0]?.display_order ?? -1) + 1;
+
+          await (supabase as any)
+            .from("newsletter_cards")
+            .insert({
+              newsletter_id: options.newsletterId,
+              card_id: newCard.id,
+              display_order: nextOrder,
+            });
+
+          onNewsletterChange?.();
+        }
+
         toast.success("Carte créée");
       }
       fetchData();

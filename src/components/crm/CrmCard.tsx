@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { GraduationCap, Briefcase } from "lucide-react";
+import { GraduationCap, Briefcase, Building2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { CrmCard } from "@/types/crm";
@@ -85,11 +85,18 @@ const CrmCardComponent = ({ card, isDragging: isDraggingProp, onClick, serviceTy
     onClick?.();
   };
 
-  const tags = (card.tags || []).map((tag) => ({
-    key: tag.id,
-    label: tag.name,
-    style: { backgroundColor: tag.color + "20", color: tag.color },
-  }));
+  const companyTag = card.company
+    ? [{ key: "_company", label: card.company, icon: <Building2 className="h-3 w-3 shrink-0" />, style: { backgroundColor: "#6366f120", color: "#6366f1" } }]
+    : [];
+
+  const tags = [
+    ...companyTag,
+    ...(card.tags || []).map((tag) => ({
+      key: tag.id,
+      label: tag.name,
+      style: { backgroundColor: tag.color + "20", color: tag.color },
+    })),
+  ];
 
   return (
     <Card

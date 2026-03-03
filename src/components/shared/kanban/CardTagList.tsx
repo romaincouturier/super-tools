@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 interface TagItem {
   key: string;
   label: string;
+  icon?: ReactNode;
   className?: string;
   style?: CSSProperties;
 }
@@ -19,9 +20,10 @@ interface CardTagListProps {
 const DefaultTag = ({ tag }: { tag: TagItem }) => (
   <Badge
     variant="secondary"
-    className={cn("text-xs px-1.5 py-0", tag.className)}
+    className={cn("text-xs px-1.5 py-0", tag.icon && "flex items-center gap-1", tag.className)}
     style={tag.style}
   >
+    {tag.icon}
     {tag.label}
   </Badge>
 );
