@@ -27,6 +27,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { CANCELLATION_REASONS, getCfpDaysLeft } from "@/types/events";
 import ShareEventDialog from "@/components/events/ShareEventDialog";
 import AppHeader from "@/components/AppHeader";
+import PageLoading from "@/components/PageLoading";
+import PageNotFound from "@/components/PageNotFound";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -209,30 +211,8 @@ const EventDetail = () => {
 
   const videoLinks = media.filter((m) => m.file_type === "video_link");
 
-  if (eventLoading || mediaLoading) {
-    return (
-      <div className="min-h-screen bg-background">
-        <AppHeader />
-        <div className="flex items-center justify-center h-[60vh]">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
-        </div>
-      </div>
-    );
-  }
-
-  if (!event) {
-    return (
-      <div className="min-h-screen bg-background">
-        <AppHeader />
-        <div className="max-w-4xl mx-auto p-6 text-center py-20 text-muted-foreground">
-          <p>Événement introuvable.</p>
-          <Button variant="outline" className="mt-4" onClick={() => navigate("/events")}>
-            Retour aux événements
-          </Button>
-        </div>
-      </div>
-    );
-  }
+  if (eventLoading || mediaLoading) return <PageLoading />;
+  if (!event) return <PageNotFound message="Événement introuvable." backTo="/events" backLabel="Retour aux événements" />;
 
   return (
     <div className="min-h-screen bg-background">

@@ -1,7 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, CalendarDays, Loader2 } from "lucide-react";
+import { CalendarDays } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
+import PageLoading from "@/components/PageLoading";
+import PageNotFound from "@/components/PageNotFound";
+import PageHeader from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import EventFormFields, { type EventFormValues } from "@/components/events/EventFormFields";
 import { useToast } from "@/hooks/use-toast";
@@ -85,50 +88,16 @@ const EventEdit = () => {
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background">
-        <AppHeader />
-        <div className="flex items-center justify-center h-[60vh]">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
-        </div>
-      </div>
-    );
-  }
-
-  if (!event) {
-    return (
-      <div className="min-h-screen bg-background">
-        <AppHeader />
-        <div className="max-w-2xl mx-auto p-6 text-center py-20 text-muted-foreground">
-          <p>Événement introuvable.</p>
-          <Button variant="outline" className="mt-4" onClick={() => navigate("/events")}>
-            Retour aux événements
-          </Button>
-        </div>
-      </div>
-    );
-  }
+  if (isLoading) return <PageLoading />;
+  if (!event) return <PageNotFound message="Événement introuvable." backTo="/events" backLabel="Retour aux événements" />;
 
   return (
     <div className="min-h-screen bg-background">
       <AppHeader />
 
       <main className="max-w-2xl mx-auto p-6">
-        {/* Header */}
-        <div className="flex items-center gap-4 mb-6">
-          <Button variant="ghost" size="icon" onClick={() => navigate(`/events/${id}`)}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-primary/10">
-              <CalendarDays className="h-6 w-6 text-primary" />
-            </div>
-            <h1 className="text-2xl font-bold">Modifier l'événement</h1>
-          </div>
-        </div>
+        <PageHeader icon={CalendarDays} title="Modifier l'événement" backTo={`/events/${id}`} />
 
-        {/* Form */}
         <EventFormFields values={values} onChange={handleChange} />
 
         <div className="flex justify-end gap-3 pt-4">

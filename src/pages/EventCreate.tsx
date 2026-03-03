@@ -1,7 +1,8 @@
 import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, CalendarDays } from "lucide-react";
+import { CalendarDays } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
+import PageHeader from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import EventFormFields, { type EventFormValues } from "@/components/events/EventFormFields";
 import { useToast } from "@/hooks/use-toast";
@@ -72,20 +73,7 @@ const EventCreate = () => {
       <AppHeader />
 
       <main className="max-w-2xl mx-auto p-6">
-        {/* Header */}
-        <div className="flex items-center gap-4 mb-6">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/events")}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-primary/10">
-              <CalendarDays className="h-6 w-6 text-primary" />
-            </div>
-            <h1 className="text-2xl font-bold">Nouvel événement</h1>
-          </div>
-        </div>
-
-        {/* Form */}
+        <PageHeader icon={CalendarDays} title="Nouvel événement" backTo="/events" />
         <EventFormFields values={values} onChange={handleChange} />
 
         <div className="flex justify-end gap-3 pt-4">
