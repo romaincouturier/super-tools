@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useToast } from "@/hooks/use-toast";
 import { differenceInDays, parseISO } from "date-fns";
+import type { FormationFormula } from "@/types/training";
 import {
   Table,
   TableBody,
@@ -81,7 +82,7 @@ interface ParticipantListProps {
   trainingEndDate: string | null;
   formatFormation: string | null;
   elearningDuration?: number | null;
-  availableFormulas?: string[];
+  availableFormulas?: FormationFormula[];
   attendanceSheetsUrls: string[];
   clientName: string;
   trainingDuree: string;
@@ -1146,7 +1147,7 @@ const ParticipantList = ({
                     )}
                     {participant.formula && (
                       <Badge variant="outline" className="text-[10px] px-1.5 py-0 mt-0.5 w-fit">
-                        {participant.formula === "solo" ? "Solo" : participant.formula === "communaute" ? "Communauté" : "Coachée"}
+                        {participant.formula}
                       </Badge>
                     )}
                   </div>
@@ -1220,7 +1221,7 @@ const ParticipantList = ({
                         : "—"}
                       {participant.formula && (
                         <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-                          {participant.formula === "solo" ? "Solo" : participant.formula === "communaute" ? "Communauté" : "Coachée"}
+                          {participant.formula}
                         </Badge>
                       )}
                       {isInterEntreprise && participant.payment_mode === "invoice" && (

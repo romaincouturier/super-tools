@@ -146,7 +146,7 @@ const Events = () => {
                 {displayedEvents.map((event) => (
                   <div
                     key={event.id}
-                    className="flex items-center gap-4 p-4 rounded-lg border hover:bg-muted/50 cursor-pointer transition-colors"
+                    className="flex items-center gap-4 p-4 rounded-lg border hover:bg-muted/50 cursor-pointer transition-colors overflow-hidden"
                     onClick={() => navigate(`/events/${event.id}`)}
                   >
                     {/* Date block */}
@@ -162,7 +162,7 @@ const Events = () => {
                     {/* Info */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 min-w-0">
-                        <p className={`font-medium truncate min-w-0 ${event.status === "cancelled" ? "line-through text-muted-foreground" : ""}`}>
+                        <p className={`font-medium truncate ${event.status === "cancelled" ? "line-through text-muted-foreground" : ""}`}>
                           {event.title}
                         </p>
                         {event.event_type === "external" && (
