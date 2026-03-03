@@ -8,7 +8,6 @@ import {
   Video,
   Clock,
   Edit,
-  Trash2,
   Plus,
   Link2,
   X,
@@ -49,21 +48,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import {
   useEvent,
-  useDeleteEvent,
   useUpdateEvent,
 } from "@/hooks/useEvents";
 import { useEntityMedia, useAddMedia, useDeleteMedia } from "@/hooks/useMedia";
@@ -75,7 +62,6 @@ const EventDetail = () => {
   const { toast } = useToast();
   const { data: event, isLoading: eventLoading } = useEvent(id);
   const { data: media = [], isLoading: mediaLoading } = useEntityMedia("event", id);
-  const deleteEvent = useDeleteEvent();
   const updateEvent = useUpdateEvent();
   const addMediaMutation = useAddMedia();
   const deleteMediaMutation = useDeleteMedia();
@@ -92,16 +78,6 @@ const EventDetail = () => {
     if (event) setNotes(event.notes || "");
   }, [event]);
 
-  const handleDelete = async () => {
-    if (!id) return;
-    try {
-      await deleteEvent.mutateAsync(id);
-      toast({ title: "Événement supprimé" });
-      navigate("/events");
-    } catch {
-      toast({ title: "Erreur", description: "Impossible de supprimer.", variant: "destructive" });
-    }
-  };
 
   const handleAddVideoLink = async () => {
     if (!id || !videoUrl.trim()) return;
@@ -241,7 +217,7 @@ const EventDetail = () => {
         )}
 
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="space-y-3">
           <div className="flex items-center gap-4">
             <Button variant="ghost" size="icon" onClick={() => navigate("/events")}>
               <ArrowLeft className="h-5 w-5" />
@@ -332,28 +308,6 @@ const EventDetail = () => {
                 </Dialog>
               </>
             )}
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="outline" size="sm" className="text-destructive hover:text-destructive">
-                  <Trash2 className="h-4 w-4 mr-1" />
-                  Supprimer
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Supprimer cet événement ?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Cette action est irréversible. Tous les médias associés seront aussi supprimés.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Annuler</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">
-                    Supprimer
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
           </div>
         </div>
 
