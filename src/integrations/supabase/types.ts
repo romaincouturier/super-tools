@@ -1531,6 +1531,56 @@ export type Database = {
         }
         Relationships: []
       }
+      formation_formulas: {
+        Row: {
+          created_at: string
+          display_order: number
+          duree_heures: number | null
+          elearning_access_email_content: string | null
+          formation_config_id: string
+          id: string
+          name: string
+          prix: number | null
+          supports_url: string | null
+          updated_at: string
+          woocommerce_product_id: number | null
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          duree_heures?: number | null
+          elearning_access_email_content?: string | null
+          formation_config_id: string
+          id?: string
+          name: string
+          prix?: number | null
+          supports_url?: string | null
+          updated_at?: string
+          woocommerce_product_id?: number | null
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          duree_heures?: number | null
+          elearning_access_email_content?: string | null
+          formation_config_id?: string
+          id?: string
+          name?: string
+          prix?: number | null
+          supports_url?: string | null
+          updated_at?: string
+          woocommerce_product_id?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "formation_formulas_formation_config_id_fkey"
+            columns: ["formation_config_id"]
+            isOneToOne: false
+            referencedRelation: "formation_configs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       google_calendar_tokens: {
         Row: {
           access_token: string
