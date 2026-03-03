@@ -1,0 +1,1 @@
+ALTER TABLE public.crm_card_emails ADD COLUMN attachment_paths text[] DEFAULT NULL;

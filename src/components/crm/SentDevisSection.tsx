@@ -36,6 +36,7 @@ interface CrmEmail {
   body_html: string;
   sent_at: string;
   attachment_names: string[];
+  attachment_paths?: string[] | null;
   delivery_status?: string;
   opened_at?: string | null;
   open_count?: number;
@@ -319,11 +320,36 @@ const SentDevisSection = ({ email, cardId, emails }: SentDevisSectionProps) => {
                     {emailItem.attachment_names && emailItem.attachment_names.length > 0 && (
                       <div className="px-4 pt-3 pb-1 flex items-center gap-2 flex-wrap">
                         <Paperclip className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                        {emailItem.attachment_names.map((name, idx) => (
-                          <Badge key={idx} variant="secondary" className="text-[10px] h-5 font-normal max-w-[250px] truncate">
-                            {name}
-                          </Badge>
-                        ))}
+                        {emailItem.attachment_names.map((name, idx) => {
+                          const storagePath = emailItem.attachment_paths?.[idx];
+                          if (storagePath) {
+                            return (
+                              <button
+                                key={idx}
+                                className="inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[10px] h-5 font-normal max-w-[250px] truncate bg-secondary text-secondary-foreground hover:bg-accent transition-colors cursor-pointer"
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  const { data, error } = await supabase.storage
+                                    .from("crm-attachments")
+                                    .createSignedUrl(storagePath, 3600);
+                                  if (data?.signedUrl && !error) {
+                                    window.open(data.signedUrl, "_blank");
+                                  } else {
+                                    toast.error("Impossible de télécharger la pièce jointe");
+                                  }
+                                }}
+                              >
+                                <FileDown className="h-3 w-3 shrink-0" />
+                                {name}
+                              </button>
+                            );
+                          }
+                          return (
+                            <Badge key={idx} variant="secondary" className="text-[10px] h-5 font-normal max-w-[250px] truncate">
+                              {name}
+                            </Badge>
+                          );
+                        })}
                       </div>
                     )}
                     {emailItem.body_html && (
