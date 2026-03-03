@@ -38,7 +38,7 @@ interface ContentCardDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   card: Card | null;
-  onSave: (card: Partial<Card>) => void;
+  onSave: (card: Partial<Card>, options?: { newsletterId?: string }) => void;
   onNewsletterChange?: () => void;
 }
 
@@ -201,6 +201,10 @@ const ContentCardDialog = ({
       return;
     }
 
+    const options = !card && attachedNewsletterId && attachedNewsletterId !== "none"
+      ? { newsletterId: attachedNewsletterId }
+      : undefined;
+
     onSave({
       title: title.trim(),
       description: description || null,
@@ -208,7 +212,7 @@ const ContentCardDialog = ({
       tags,
       card_type: cardType,
       emoji,
-    });
+    }, options);
   };
 
   const handleNewsletterChange = async (newsletterId: string) => {
@@ -447,7 +451,7 @@ const ContentCardDialog = ({
             </div>
 
             {/* Newsletter */}
-            {card && draftNewsletters.length > 0 && (
+            {draftNewsletters.length > 0 && (
               <div className="space-y-2">
                 <Label className="flex items-center gap-1.5">
                   <Mail className="h-3.5 w-3.5" />
@@ -455,7 +459,7 @@ const ContentCardDialog = ({
                 </Label>
                 <Select
                   value={attachedNewsletterId || "none"}
-                  onValueChange={handleNewsletterChange}
+                  onValueChange={card ? handleNewsletterChange : setAttachedNewsletterId}
                   disabled={attachingNewsletter}
                 >
                   <SelectTrigger>
@@ -470,10 +474,10 @@ const ContentCardDialog = ({
                     ))}
                   </SelectContent>
                 </Select>
-                {attachedNewsletterId && (
+                {attachedNewsletterId && attachedNewsletterId !== "none" && (
                   <p className="text-xs text-muted-foreground flex items-center gap-1">
                     <Check className="h-3 w-3 text-green-600" />
-                    Rattachée à la newsletter
+                    {card ? "Rattachée à la newsletter" : "Sera rattachée à la newsletter à l'enregistrement"}
                   </p>
                 )}
               </div>
