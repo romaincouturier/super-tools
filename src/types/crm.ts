@@ -128,6 +128,7 @@ export interface CrmCardEmail {
   body_html: string;
   sent_at: string;
   attachment_names: string[];
+  attachment_paths: string[] | null;
   resend_email_id: string | null;
   delivery_status: EmailDeliveryStatus;
   delivered_at: string | null;
