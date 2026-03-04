@@ -19,11 +19,9 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import ScheduleEditor, { Schedule, SESSION_PRESETS } from "@/components/formations/ScheduleEditor";
 import TrainingNameCombobox, { FormationConfig } from "@/components/formations/TrainingNameCombobox";
-import TrainerSelector from "@/components/formations/TrainerSelector";
 import SupertiltLinkCombobox from "@/components/formations/SupertiltLinkCombobox";
 import ScheduledActionsEditor, { ScheduledAction } from "@/components/formations/ScheduledActionsEditor";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Badge } from "@/components/ui/badge";
 import { FormationFormula } from "@/types/training";
 
 const PREDEFINED_LOCATIONS = [
@@ -86,15 +84,8 @@ const FormationCreate = () => {
   // Catalog
   const [catalogId, setCatalogId] = useState<string | null>(null);
   const [catalogFormulas, setCatalogFormulas] = useState<FormationFormula[]>([]);
+  const [selectedFormulaId, setSelectedFormulaId] = useState<string | null>(null);
 
-  // Trainer
-  const [trainerId, setTrainerId] = useState<string | null>(null);
-  const [trainerDetails, setTrainerDetails] = useState<{
-    id: string;
-    first_name: string;
-    last_name: string;
-    email: string;
-  } | null>(null);
   
   // SuperTilt site URL from settings
   const [supertiltSiteUrl, setSupertiltSiteUrl] = useState<string>("");
@@ -274,6 +265,7 @@ const FormationCreate = () => {
     const missingFields: string[] = [];
     if (!trainingName) missingFields.push("nom de la formation");
     if (isPermanent && !catalogId) missingFields.push("formation du catalogue (obligatoire pour une formation permanente)");
+    if (isPermanent && !selectedFormulaId) missingFields.push("formule (sélectionnez une formule pour la session permanente)");
     if (!hasValidDates) missingFields.push("jours de formation");
     if (!isPermanent && !isElearning && !finalLocation) missingFields.push("lieu de la formation");
     if (!isPermanent && !clientName) missingFields.push("client");
@@ -318,9 +310,10 @@ const FormationCreate = () => {
           financeur_same_as_sponsor: isPermanent ? true : financeurSameAsSponsor,
           financeur_name: (isPermanent || financeurSameAsSponsor) ? null : (financeurName || null),
           financeur_url: (isPermanent || financeurSameAsSponsor) ? null : (financeurUrl || null),
-          trainer_id: trainerId || null,
+          trainer_id: null,
           elearning_duration: isElearning && elearningDuration ? parseFloat(elearningDuration) : null,
           catalog_id: catalogId || null,
+          formula_id: isPermanent ? selectedFormulaId : null,
           created_by: user.id,
         })
         .select()
@@ -381,42 +374,9 @@ const FormationCreate = () => {
         },
       });
 
-      // Send calendar invite to trainer if one is selected
-      if (trainerDetails && schedules.length > 0) {
-        try {
-          const { error: emailError } = await supabase.functions.invoke("send-training-calendar-invite", {
-            body: {
-              trainingId: training.id,
-              trainingName,
-              clientName,
-              location: finalLocation,
-              schedules: schedules.map(s => ({
-                day_date: s.day_date,
-                start_time: s.start_time,
-                end_time: s.end_time,
-              })),
-              trainerEmail: trainerDetails.email,
-              trainerFirstName: trainerDetails.first_name,
-              trainerLastName: trainerDetails.last_name,
-            },
-          });
-
-          if (emailError) {
-            console.error("Error sending calendar invite:", emailError);
-          } else {
-            console.log("Calendar invite sent to trainer:", trainerDetails.email);
-          }
-        } catch (emailErr) {
-          console.error("Failed to send calendar invite:", emailErr);
-          // Don't block the creation - this is a secondary notification
-        }
-      }
-
       toast({
         title: "Formation créée",
-        description: trainerDetails
-          ? "La formation a été créée et une invitation calendrier a été envoyée au formateur."
-          : "La formation a été créée avec succès.",
+        description: "La formation a été créée avec succès.",
       });
 
       navigate(`/formations/${training.id}`);
@@ -549,6 +509,7 @@ const FormationCreate = () => {
                         .eq("formation_config_id", formation.id)
                         .order("display_order");
                       setCatalogFormulas((formulas as FormationFormula[]) || []);
+                      setSelectedFormulaId(null);
                       // Pre-fill all catalog fields (denormalized on session for backward compat)
                       if (formation.programme_url) {
                         setProgramFileUrl(formation.programme_url);
@@ -573,6 +534,7 @@ const FormationCreate = () => {
                     } else {
                       setCatalogId(null);
                       setCatalogFormulas([]);
+                      setSelectedFormulaId(null);
                     }
                   }}
                 />
@@ -842,20 +804,6 @@ const FormationCreate = () => {
               )}
 
 
-              {/* Trainer selector */}
-              <div className="space-y-2">
-                <Label>Formateur</Label>
-                <TrainerSelector
-                  value={trainerId}
-                  onChange={setTrainerId}
-                  onTrainerSelect={(trainer) => setTrainerDetails(trainer ? {
-                    id: trainer.id,
-                    first_name: trainer.first_name,
-                    last_name: trainer.last_name,
-                    email: trainer.email,
-                  } : null)}
-                />
-              </div>
             </CardContent>
           </Card>
 
@@ -1030,11 +978,23 @@ const FormationCreate = () => {
               {catalogId && catalogFormulas.length > 0 && (
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-base">Formules disponibles</CardTitle>
+                    <CardTitle className="text-base">
+                      {isPermanent ? "Créer une session permanente sur une formule" : "Formules disponibles"}
+                    </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
                     {catalogFormulas.map((formula) => (
-                      <div key={formula.id} className="flex items-center justify-between p-3 rounded-lg border">
+                      <div
+                        key={formula.id}
+                        className={cn(
+                          "flex items-center justify-between p-3 rounded-lg border",
+                          isPermanent && "cursor-pointer hover:border-primary transition-colors",
+                          isPermanent && selectedFormulaId === formula.id && "border-primary bg-primary/5 ring-1 ring-primary"
+                        )}
+                        onClick={isPermanent ? () => setSelectedFormulaId(
+                          selectedFormulaId === formula.id ? null : formula.id
+                        ) : undefined}
+                      >
                         <div>
                           <span className="font-medium text-sm">{formula.name}</span>
                           <div className="flex gap-2 mt-1">
@@ -1046,14 +1006,18 @@ const FormationCreate = () => {
                             )}
                           </div>
                         </div>
-                        <Badge variant="secondary" className="text-xs">
-                          {formula.woocommerce_product_id ? "WC" : "—"}
-                        </Badge>
                       </div>
                     ))}
-                    <p className="text-xs text-muted-foreground italic">
-                      Les participants choisiront leur formule à l'inscription.
-                    </p>
+                    {!isPermanent && (
+                      <p className="text-xs text-muted-foreground italic">
+                        Les participants choisiront leur formule à l'inscription.
+                      </p>
+                    )}
+                    {isPermanent && !selectedFormulaId && (
+                      <p className="text-xs text-muted-foreground italic">
+                        Sélectionnez une formule pour créer la session permanente.
+                      </p>
+                    )}
                   </CardContent>
                 </Card>
               )}
