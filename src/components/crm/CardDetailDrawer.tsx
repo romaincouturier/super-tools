@@ -347,6 +347,8 @@ const CardDetailDrawer = ({
       setNextActionText(card.next_action_text || "");
       setNextActionDone(card.next_action_done || false);
       setNextActionType((card as any).next_action_type || "other");
+      // Brief questions
+      setLocalBriefQuestions(card.brief_questions || []);
       // Linked mission
       setLinkedMissionId(card.linked_mission_id || null);
       setMissionSearchQuery("");
