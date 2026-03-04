@@ -52,7 +52,6 @@ interface Participant {
   last_name: string | null;
   email: string;
   formula?: string | null;
-  formula_id?: string | null;
 }
 
 interface CoachingSlotsSectionProps {
@@ -74,9 +73,9 @@ const CoachingSlotsSection = ({ trainingId, participants }: CoachingSlotsSection
   const [notes, setNotes] = useState("");
   const { toast } = useToast();
 
-  // Participants eligible for coaching (have a formula_id and formula name contains "coach")
+  // Participants eligible for coaching (formula name contains "coach", case-insensitive)
   const coacheeParticipants = participants.filter(
-    (p) => p.formula_id && p.formula && p.formula.toLowerCase().includes("coach")
+    (p) => p.formula && p.formula.toLowerCase().includes("coach")
   );
 
   const fetchSlots = async () => {

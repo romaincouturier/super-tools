@@ -108,13 +108,12 @@ const LiveMeetingsSection = ({ trainingId }: LiveMeetingsSectionProps) => {
 
   const scheduleLiveReminders = async (meetingId: string, scheduledAt: string) => {
     try {
-      // Fetch participants with a non-solo formula (Communauté, Coachée, etc.)
+      // Fetch communaute + coachee participants
       const { data: eligibleParticipants } = await supabase
         .from("training_participants")
-        .select("id, formula")
+        .select("id")
         .eq("training_id", trainingId)
-        .not("formula_id", "is", null)
-        .neq("formula", "Solo");
+        .in("formula", ["communaute", "coachee"]);
 
       if (!eligibleParticipants?.length) return;
 

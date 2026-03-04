@@ -72,7 +72,6 @@ interface Participant {
   elearning_duration?: number | null;
   notes?: string | null;
   formula?: string | null;
-  formula_id?: string | null;
 }
 
 interface ParticipantListProps {

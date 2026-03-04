@@ -78,9 +78,7 @@ const MicroDevis = () => {
 
   // Formation formulas for selected formation
   const [formationFormulas, setFormationFormulas] = useState<FormationFormula[]>([]);
-  const [selectedFormulaId, setSelectedFormulaId] = useState<string>("");
-  const activeFormula = formationFormulas.find(f => f.id === selectedFormulaId);
-  const selectedFormula = activeFormula?.name || "";
+  const [selectedFormula, setSelectedFormula] = useState<string>("");
 
   // Formation dates from DB
   const [formationDates, setFormationDates] = useState<FormationDate[]>([]);
@@ -244,7 +242,7 @@ const MicroDevis = () => {
       const selectedConfig = formationConfigs.find(f => f.formation_name === formationDemandee);
       if (!selectedConfig) {
         setFormationFormulas([]);
-        setSelectedFormulaId("");
+        setSelectedFormula("");
         return;
       }
       const { data } = await supabase
@@ -254,7 +252,7 @@ const MicroDevis = () => {
         .order("display_order");
       const formulas = (data as FormationFormula[]) || [];
       setFormationFormulas(formulas);
-      setSelectedFormulaId(formulas.length === 1 ? formulas[0].id : "");
+      setSelectedFormula(formulas.length === 1 ? formulas[0].name : "");
     };
     loadFormulas();
   }, [formationDemandee, formationConfigs]);
@@ -716,6 +714,7 @@ const MicroDevis = () => {
     if (!selectedConfig) return null;
 
     // If a formula is selected, use its price/duration when available
+    const activeFormula = formationFormulas.find(f => f.name === selectedFormula);
     const effectivePrix = activeFormula?.prix ?? selectedConfig.prix;
     const effectiveDuree = activeFormula?.duree_heures ?? selectedConfig.duree_heures;
 
@@ -1752,13 +1751,13 @@ const MicroDevis = () => {
                     {formationFormulas.length >= 2 && (
                       <div className="mt-3">
                         <Label className="text-sm">Formule</Label>
-                        <Select value={selectedFormulaId} onValueChange={setSelectedFormulaId}>
+                        <Select value={selectedFormula} onValueChange={setSelectedFormula}>
                           <SelectTrigger className="w-full bg-background mt-1">
                             <SelectValue placeholder="Sélectionner une formule" />
                           </SelectTrigger>
                           <SelectContent className="bg-background border shadow-lg z-50">
                             {formationFormulas.map((f) => (
-                              <SelectItem key={f.id} value={f.id}>
+                              <SelectItem key={f.id} value={f.name}>
                                 <div className="flex items-center gap-2">
                                   <span>{f.name}</span>
                                   {(f.prix != null || f.duree_heures != null) && (
