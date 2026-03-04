@@ -86,7 +86,7 @@ interface VerificationResult {
 interface DocumentsManagerProps {
   trainingId: string;
   trainingName: string;
-  startDate: string;
+  startDate: string | null;
   endDate: string | null;
   invoiceFileUrl: string | null;
   attendanceSheetsUrls: string[];

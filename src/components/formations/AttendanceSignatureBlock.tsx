@@ -47,7 +47,7 @@ interface AttendanceSignatureBlockProps {
     email: string;
   }>;
   location: string;
-  startDate: string;
+  startDate: string | null;
   endDate: string | null;
   onUpdate?: () => void;
 }
@@ -844,7 +844,7 @@ const AttendanceSignatureBlock = ({
 
       // ── Generate file ──
       const safeName = trainingName.replace(/[^a-zA-Z0-9àâäéèêëïîôùûüç\s-]/g, "").replace(/\s+/g, "_");
-      const dateStr = format(parseISO(startDate), "yyyy-MM-dd");
+      const dateStr = startDate ? format(parseISO(startDate), "yyyy-MM-dd") : "permanent";
       const filename = participantId
         ? `Emargement_${participantName.replace(/\s+/g, "_")}_${safeName}_${dateStr}.pdf`
         : `Emargement_${safeName}_${dateStr}.pdf`;

@@ -169,25 +169,24 @@ const Formations = () => {
     };
   }, [searchQuery, participantsByTraining]);
 
-  // Filter trainings
+  // Filter trainings (null start_date = "formation permanente" → always ongoing)
   const isOngoing = (t: Training) => {
+    if (!t.start_date) return true; // Permanent e-learning
     const startDate = parseISO(t.start_date);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    // Training has started (start_date <= today)
     if (isFuture(startDate) && !isToday(startDate)) return false;
-    // Training has not yet ended
     if (t.end_date) {
       const endDate = parseISO(t.end_date);
       endDate.setHours(23, 59, 59, 999);
       return endDate >= today;
     }
-    // No end_date: ongoing only on start_date itself
     return isToday(startDate);
   };
 
   const upcomingTrainings = useMemo(() =>
     trainings.filter((t) => {
+      if (!t.start_date) return false; // Permanent → not "upcoming"
       const startDate = parseISO(t.start_date);
       return (isFuture(startDate) && !isToday(startDate)) && matchesSearch(t);
     }),
@@ -201,6 +200,7 @@ const Formations = () => {
 
   const pastTrainings = useMemo(() =>
     trainings.filter((t) => {
+      if (!t.start_date) return false; // Permanent → not "past"
       if (isOngoing(t)) return false;
       const startDate = parseISO(t.start_date);
       if (isFuture(startDate) && !isToday(startDate)) return false;
@@ -222,7 +222,7 @@ const Formations = () => {
 
       switch (sortField) {
         case "date":
-          comparison = new Date(a.start_date).getTime() - new Date(b.start_date).getTime();
+          comparison = (a.start_date ? new Date(a.start_date).getTime() : 0) - (b.start_date ? new Date(b.start_date).getTime() : 0);
           break;
         case "title":
           comparison = a.training_name.localeCompare(b.training_name, "fr");
@@ -268,7 +268,8 @@ const Formations = () => {
   // formatDateRange imported from @/lib/dateFormatters
 
   // Calculate days until training start
-  const getDaysUntilStart = (startDate: string) => {
+  const getDaysUntilStart = (startDate: string | null) => {
+    if (!startDate) return null;
     const start = parseISO(startDate);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
