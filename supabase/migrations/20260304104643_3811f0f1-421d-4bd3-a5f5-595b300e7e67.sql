@@ -1,0 +1,1 @@
+UPDATE email_templates SET html_content = html_content || E'\n\n{{coupon_instructions}}' WHERE template_type IN ('elearning_access_tu', 'elearning_access_vous') AND html_content NOT LIKE '%coupon_instructions%';
