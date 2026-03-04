@@ -484,32 +484,34 @@ const CatalogFormDialog = ({ open, onClose, entry }: CatalogFormDialogProps) => 
               )}
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="dureeHeures">Durée (heures)</Label>
-                <Input
-                  id="dureeHeures"
-                  type="number"
-                  min="0"
-                  step="0.5"
-                  value={dureeHeures}
-                  onChange={(e) => setDureeHeures(e.target.value)}
-                  placeholder="Ex: 14"
-                />
+            {formulas.filter((f) => !f._deleted).length === 0 && (
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="dureeHeures">Durée (heures)</Label>
+                  <Input
+                    id="dureeHeures"
+                    type="number"
+                    min="0"
+                    step="0.5"
+                    value={dureeHeures}
+                    onChange={(e) => setDureeHeures(e.target.value)}
+                    placeholder="Ex: 14"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="prix">Prix catalogue HT (€)</Label>
+                  <Input
+                    id="prix"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={prix}
+                    onChange={(e) => setPrix(e.target.value)}
+                    placeholder="Ex: 1490"
+                  />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="prix">Prix catalogue HT (€)</Label>
-                <Input
-                  id="prix"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={prix}
-                  onChange={(e) => setPrix(e.target.value)}
-                  placeholder="Ex: 1490"
-                />
-              </div>
-            </div>
+            )}
 
             <div className="flex items-center gap-3">
               <Switch
@@ -553,15 +555,17 @@ const CatalogFormDialog = ({ open, onClose, entry }: CatalogFormDialogProps) => 
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="supportsUrl">URL des supports pédagogiques</Label>
-                  <Input
-                    id="supportsUrl"
-                    value={supportsUrl}
-                    onChange={(e) => setSupportsUrl(e.target.value)}
-                    placeholder="https://..."
-                  />
-                </div>
+                {formulas.filter((f) => !f._deleted).length === 0 && (
+                  <div className="space-y-2">
+                    <Label htmlFor="supportsUrl">URL des supports pédagogiques</Label>
+                    <Input
+                      id="supportsUrl"
+                      value={supportsUrl}
+                      onChange={(e) => setSupportsUrl(e.target.value)}
+                      placeholder="https://..."
+                    />
+                  </div>
+                )}
 
                 <div className="space-y-2">
                   <Label htmlFor="supertiltLink">Lien SuperTilt (page produit)</Label>
@@ -575,62 +579,66 @@ const CatalogFormDialog = ({ open, onClose, entry }: CatalogFormDialogProps) => 
               </AccordionContent>
             </AccordionItem>
 
-            <AccordionItem value="elearning">
-              <AccordionTrigger>Configuration e-learning</AccordionTrigger>
-              <AccordionContent className="space-y-4 pt-2">
-                <div className="space-y-2">
-                  <Label htmlFor="elearningDuration">Durée du parcours e-learning (heures)</Label>
-                  <Input
-                    id="elearningDuration"
-                    type="number"
-                    min="0"
-                    step="0.5"
-                    value={elearningDuration}
-                    onChange={(e) => setElearningDuration(e.target.value)}
-                    placeholder="Ex: 25"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Durée estimée du parcours si la formation est dispensée en e-learning.
-                  </p>
-                </div>
+            {formulas.filter((f) => !f._deleted).length === 0 && (
+              <>
+                <AccordionItem value="elearning">
+                  <AccordionTrigger>Configuration e-learning</AccordionTrigger>
+                  <AccordionContent className="space-y-4 pt-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="elearningDuration">Durée du parcours e-learning (heures)</Label>
+                      <Input
+                        id="elearningDuration"
+                        type="number"
+                        min="0"
+                        step="0.5"
+                        value={elearningDuration}
+                        onChange={(e) => setElearningDuration(e.target.value)}
+                        placeholder="Ex: 25"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Durée estimée du parcours si la formation est dispensée en e-learning.
+                      </p>
+                    </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="elearningAccessEmail">Contenu de l'email d'accès e-learning</Label>
-                  <Textarea
-                    id="elearningAccessEmail"
-                    rows={6}
-                    value={elearningAccessEmailContent}
-                    onChange={(e) => setElearningAccessEmailContent(e.target.value)}
-                    placeholder="Contenu de l'email envoyé aux participants pour accéder à la formation..."
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Variables : {"{{first_name}}"}, {"{{training_name}}"}, {"{{access_link}}"}, {"{{start_date}}"}, {"{{end_date}}"}, {"{{coupon_code}}"}, {"{{coupon_instructions}}"}
-                  </p>
-                </div>
-              </AccordionContent>
-            </AccordionItem>
+                    <div className="space-y-2">
+                      <Label htmlFor="elearningAccessEmail">Contenu de l'email d'accès e-learning</Label>
+                      <Textarea
+                        id="elearningAccessEmail"
+                        rows={6}
+                        value={elearningAccessEmailContent}
+                        onChange={(e) => setElearningAccessEmailContent(e.target.value)}
+                        placeholder="Contenu de l'email envoyé aux participants pour accéder à la formation..."
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Variables : {"{{first_name}}"}, {"{{training_name}}"}, {"{{access_link}}"}, {"{{start_date}}"}, {"{{end_date}}"}, {"{{coupon_code}}"}, {"{{coupon_instructions}}"}
+                      </p>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
 
-            <AccordionItem value="woocommerce">
-              <AccordionTrigger>WooCommerce</AccordionTrigger>
-              <AccordionContent className="space-y-4 pt-2">
-                <div className="space-y-2">
-                  <Label htmlFor="woocommerceProductId">ID Produit WooCommerce</Label>
-                  <Input
-                    id="woocommerceProductId"
-                    type="number"
-                    min="1"
-                    value={woocommerceProductId}
-                    onChange={(e) => setWoocommerceProductId(e.target.value)}
-                    placeholder="Ex: 1234"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    L'ID du produit dans votre boutique WooCommerce.
-                    Visible dans l'URL d'édition du produit : post.php?post=<strong>1234</strong>.
-                    Utilisé pour restreindre les coupons générés à ce produit.
-                  </p>
-                </div>
-              </AccordionContent>
-            </AccordionItem>
+                <AccordionItem value="woocommerce">
+                  <AccordionTrigger>WooCommerce</AccordionTrigger>
+                  <AccordionContent className="space-y-4 pt-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="woocommerceProductId">ID Produit WooCommerce</Label>
+                      <Input
+                        id="woocommerceProductId"
+                        type="number"
+                        min="1"
+                        value={woocommerceProductId}
+                        onChange={(e) => setWoocommerceProductId(e.target.value)}
+                        placeholder="Ex: 1234"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        L'ID du produit dans votre boutique WooCommerce.
+                        Visible dans l'URL d'édition du produit : post.php?post=<strong>1234</strong>.
+                        Utilisé pour restreindre les coupons générés à ce produit.
+                      </p>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              </>
+            )}
           </Accordion>
 
           {/* Actions */}
