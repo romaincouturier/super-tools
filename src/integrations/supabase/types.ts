@@ -4176,7 +4176,7 @@ export type Database = {
           attendance_sheets_urls?: string[] | null
           catalog_id?: string | null
           client_address?: string | null
-          client_name: string
+          client_name?: string
           convention_file_url?: string | null
           created_at?: string
           created_by: string
