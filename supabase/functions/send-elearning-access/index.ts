@@ -8,7 +8,6 @@ import {
   replaceVariables,
   getSupabaseClient,
   sendEmail,
-  escapeHtml,
 } from "../_shared/mod.ts";
 import { getBccList } from "../_shared/email-settings.ts";
 
@@ -51,9 +50,6 @@ serve(async (req) => {
     }
 
     // Get email content from global template
-    let emailSubject: string;
-    let emailContent: string;
-
     const isTu = !training.sponsor_formal_address;
     const templateType = isTu ? "elearning_access_tu" : "elearning_access_vous";
 
@@ -69,8 +65,8 @@ serve(async (req) => {
       return createErrorResponse("Template d'email e-learning introuvable", 404);
     }
 
-    emailSubject = template.subject;
-    emailContent = template.html_content;
+    let emailSubject = template.subject;
+    let emailContent = template.html_content;
 
     // Format dates
     const formatDateFr = (dateStr: string) => {
@@ -78,27 +74,61 @@ serve(async (req) => {
       return d.toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
     };
 
-    // Build access link from supertilt_link or location
-    const accessLink = training.supertilt_link || training.location || "";
+    // Build access link: prefer woocommerce_cart_base_url + product_id, fallback to supertilt_link/location
+    let accessLink = training.supertilt_link || training.location || "";
 
-    // Build coupon instructions block if coupon is provided
-    let couponInstructions = "";
-    if (couponCode) {
-      couponInstructions = `
-        <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 16px; margin: 16px 0;">
-          <p style="margin: 0 0 8px; font-weight: bold;">Ton code de réduction : <span style="font-size: 1.2em; color: #16a34a;">${escapeHtml(couponCode)}</span></p>
-          <p style="margin: 0 0 8px;">Voici les étapes pour accéder à la formation :</p>
-          <ol style="margin: 0; padding-left: 20px;">
-            <li>Rends-toi sur <a href="${accessLink}">${escapeHtml(accessLink)}</a></li>
-            <li>Clique sur "S'inscrire"</li>
-            <li>Sur la page de la commande, clique sur "Cliquez ici pour entrer votre code"</li>
-            <li>Saisis le code <strong>${escapeHtml(couponCode)}</strong></li>
-            <li>Ton panier est mis à jour avec la réduction</li>
-            <li>Complète tes informations et valide la commande</li>
-            <li>Tu recevras un email avec tes accès à la formation</li>
-          </ol>
-          <p style="margin: 8px 0 0; font-size: 0.85em; color: #6b7280;"><em>Ce code est personnel et à usage unique.</em></p>
-        </div>`;
+    // Try to build from woocommerce_cart_base_url + woocommerce_product_id
+    try {
+      // Get cart base URL from app_settings
+      const { data: cartBaseUrlSetting } = await supabase
+        .from("app_settings")
+        .select("setting_value")
+        .eq("setting_key", "woocommerce_cart_base_url")
+        .maybeSingle();
+
+      const cartBaseUrl = cartBaseUrlSetting?.setting_value;
+
+      if (cartBaseUrl) {
+        // Try formula-level product ID first, then training-level
+        let productId: number | null = null;
+
+        // Check if participant has a specific formula
+        if (participant.formula && training.catalog_id) {
+          const { data: formula } = await supabase
+            .from("formation_formulas")
+            .select("woocommerce_product_id")
+            .eq("formation_config_id", training.catalog_id)
+            .ilike("name", participant.formula)
+            .maybeSingle();
+
+          if (formula?.woocommerce_product_id) {
+            productId = formula.woocommerce_product_id;
+          }
+        }
+
+        // Fallback to training-level or catalog-level product ID
+        if (!productId && training.woocommerce_product_id) {
+          productId = training.woocommerce_product_id;
+        }
+
+        if (!productId && training.catalog_id) {
+          const { data: config } = await supabase
+            .from("formation_configs")
+            .select("woocommerce_product_id")
+            .eq("id", training.catalog_id)
+            .maybeSingle();
+
+          if (config?.woocommerce_product_id) {
+            productId = config.woocommerce_product_id;
+          }
+        }
+
+        if (productId) {
+          accessLink = `${cartBaseUrl}${productId}`;
+        }
+      }
+    } catch (e) {
+      console.warn("Failed to build access link from WooCommerce settings, using fallback:", e);
     }
 
     // Variable replacements
@@ -110,25 +140,20 @@ serve(async (req) => {
       start_date: formatDateFr(training.start_date),
       end_date: formatDateFr(training.end_date || training.start_date),
       coupon_code: couponCode || "",
-      coupon_instructions: couponInstructions,
     };
 
     emailSubject = replaceVariables(emailSubject, variables);
     emailContent = replaceVariables(emailContent, variables);
 
     // Convert plain-text newlines in emailContent to HTML paragraphs/breaks
-    // Preserve existing HTML blocks (buttons, divs) while converting bare newlines
     const formatContentToHtml = (content: string): string => {
-      // Split by double newlines into paragraphs
       const blocks = content.split(/\n\n+/);
       return blocks.map(block => {
         const trimmed = block.trim();
         if (!trimmed) return "";
-        // If block already contains block-level HTML, leave it as-is
         if (/^<(p|div|table|ol|ul|h[1-6])\b/i.test(trimmed)) {
           return trimmed;
         }
-        // Convert single newlines to <br> within a <p>
         const lines = trimmed.split(/\n/).map(l => l.trim()).join("<br>");
         return `<p>${lines}</p>`;
       }).filter(Boolean).join("\n");
