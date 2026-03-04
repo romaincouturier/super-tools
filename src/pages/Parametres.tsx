@@ -828,6 +828,67 @@ Cordialement,`,
     variables: ["first_name", "mission_title", "deliverables_link"],
   },
 };
+
+// Centralized settings registry: single source of truth for keys, defaults, and descriptions
+const SETTINGS_REGISTRY: Record<string, { default: string; description: string }> = {
+  sender_email: { default: "", description: "Adresse email de l'expéditeur pour tous les envois" },
+  sender_name: { default: "", description: "Nom de l'expéditeur pour tous les envois" },
+  evaluation_notification_email: { default: "", description: "Email qui reçoit les notifications de nouvelles évaluations" },
+  bcc_email: { default: "", description: "Adresse email en copie cachée (BCC) pour tous les envois" },
+  bcc_enabled: { default: "true", description: "Activer ou désactiver l'envoi en copie cachée (BCC)" },
+  google_my_business_url: { default: "https://g.page/r/CWJ0W_P6C-BJEAE/review", description: "URL de la fiche Google My Business pour les demandes d'avis" },
+  supertilt_site_url: { default: "https://supertilt.fr", description: "URL du site SuperTilt pour les liens formations" },
+  newsletter_tool_url: { default: "", description: "URL de l'outil de newsletter (ex: Brevo, Mailchimp)" },
+  website_url: { default: "https://www.supertilt.fr", description: "URL du site web principal" },
+  youtube_url: { default: "https://www.youtube.com/@supertilt", description: "URL de la chaîne YouTube" },
+  blog_url: { default: "https://supertilt.fr/blog/", description: "URL du blog" },
+  tva_rate: { default: "20", description: "Taux de TVA par défaut en pourcentage (ex: 20 pour 20%)" },
+  working_days: { default: "[false,true,true,true,true,true,false]", description: "Jours ouvrables pour l'envoi des emails (tableau de 7 booléens : dim, lun, mar, mer, jeu, ven, sam)" },
+  delay_needs_survey_days: { default: "7", description: "Délai avant formation pour envoyer le questionnaire de besoins (en jours)" },
+  delay_reminder_days: { default: "7", description: "Délai avant formation pour envoyer le rappel logistique (en jours)" },
+  delay_trainer_summary_days: { default: "1", description: "Délai avant formation pour envoyer la synthèse au formateur (en jours)" },
+  delay_google_review_days: { default: "1", description: "Délai après formation pour demander un avis Google (en jours ouvrables)" },
+  delay_video_testimonial_days: { default: "3", description: "Délai après formation pour demander un témoignage vidéo (en jours ouvrables)" },
+  delay_cold_evaluation_days: { default: "10", description: "Délai après formation pour envoyer l'évaluation à froid (en jours ouvrables)" },
+  delay_cold_evaluation_funder_days: { default: "15", description: "Délai après formation pour rappeler de contacter le financeur (en jours ouvrables)" },
+  delay_evaluation_reminder_1_days: { default: "2", description: "Délai pour la 1ère relance d'évaluation (en jours ouvrables après le mail de remerciement)" },
+  delay_evaluation_reminder_2_days: { default: "5", description: "Délai pour la 2ème relance d'évaluation (en jours ouvrables après le mail de remerciement)" },
+  delay_convention_reminder_1_days: { default: "3", description: "Délai en jours ouvrés pour la 1ère relance convention de formation" },
+  delay_convention_reminder_2_days: { default: "7", description: "Délai en jours ouvrés pour la 2ème relance convention de formation" },
+  delay_follow_up_news_days: { default: "30", description: "Délai après formation pour envoyer un message informel de prise de nouvelles (en jours ouvrables)" },
+  can_delete_evaluations_emails: { default: "", description: "Emails des utilisateurs autorisés à supprimer des évaluations (séparés par des virgules)" },
+  reglement_interieur_url: { default: "", description: "URL du règlement intérieur des formations (PDF uploadé)" },
+  slack_crm_webhook_url: { default: "", description: "URL du webhook Slack pour les notifications CRM (opportunités créées/gagnées)" },
+  crm_inbound_email: { default: "", description: "Adresse email dédiée CRM — les emails reçus à cette adresse créent automatiquement une opportunité" },
+  insee_api_key: { default: "", description: "Clé API INSEE SIRENE pour la recherche d'entreprises par SIREN" },
+  google_search_api_key: { default: "", description: "Clé API Google Custom Search pour la recherche de SIREN par nom d'entreprise (fallback)" },
+  google_search_engine_id: { default: "", description: "ID du moteur de recherche personnalisé Google (cx) pour la recherche de SIREN" },
+  woocommerce_store_url: { default: "", description: "URL de la boutique WooCommerce (ex: https://www.supertilt.fr)" },
+  woocommerce_consumer_key: { default: "", description: "Clé API WooCommerce (Consumer Key, commence par ck_)" },
+  woocommerce_consumer_secret: { default: "", description: "Secret API WooCommerce (Consumer Secret, commence par cs_)" },
+  woocommerce_cart_base_url: { default: "", description: "URL de base du panier WooCommerce pour les accès e-learning (ex: https://supertilt.fr/commande/?add-to-cart=)" },
+};
+
+const SETTINGS_DEFAULTS = Object.fromEntries(
+  Object.entries(SETTINGS_REGISTRY).map(([k, v]) => [k, v.default])
+);
+
+const AutoSaveIndicator = ({ status }: { status: "idle" | "saving" | "saved" }) => {
+  if (status === "saving") return (
+    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+      <Loader2 className="h-4 w-4 animate-spin" />
+      Enregistrement...
+    </div>
+  );
+  if (status === "saved") return (
+    <div className="flex items-center gap-2 text-sm text-green-600">
+      <Check className="h-4 w-4" />
+      Enregistré
+    </div>
+  );
+  return null;
+};
+
 const Parametres = () => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -837,63 +898,24 @@ const Parametres = () => {
   const [editedTemplates, setEditedTemplates] = useState<Record<string, Record<AddressMode, { subject: string; content: string }>>>({});
   const [activeMode, setActiveMode] = useState<Record<string, AddressMode>>({});
   
-  // General settings
-  const [senderEmail, setSenderEmail] = useState("");
-  const [senderName, setSenderName] = useState("");
-  const [evaluationNotificationEmail, setEvaluationNotificationEmail] = useState("");
-  const [bccEnabled, setBccEnabled] = useState(true);
-  const [bccEmail, setBccEmail] = useState("");
-  const [googleMyBusinessUrl, setGoogleMyBusinessUrl] = useState("https://g.page/r/CWJ0W_P6C-BJEAE/review");
-  const [supertiltSiteUrl, setSupertiltSiteUrl] = useState("https://supertilt.fr");
-  const [websiteUrl, setWebsiteUrl] = useState("https://www.supertilt.fr");
-  const [youtubeUrl, setYoutubeUrl] = useState("https://www.youtube.com/@supertilt");
-  const [blogUrl, setBlogUrl] = useState("https://supertilt.fr/blog/");
-  const [newsletterToolUrl, setNewsletterToolUrl] = useState("");
-  const [tvaRate, setTvaRate] = useState("20");
-  
-  // Working days configuration (Monday to Friday by default)
-  const [workingDays, setWorkingDays] = useState<boolean[]>([false, true, true, true, true, true, false]); // Sun, Mon, Tue, Wed, Thu, Fri, Sat
-  
-  // Email scheduling delays
-  const [delayNeedsSurvey, setDelayNeedsSurvey] = useState("7");
-  const [delayReminder, setDelayReminder] = useState("7");
-  const [delayTrainerSummary, setDelayTrainerSummary] = useState("1");
-  
-  const [delayGoogleReview, setDelayGoogleReview] = useState("1");
-  const [delayVideoTestimonial, setDelayVideoTestimonial] = useState("3");
-  const [delayColdEvaluation, setDelayColdEvaluation] = useState("10");
-  const [delayColdEvaluationFunder, setDelayColdEvaluationFunder] = useState("15");
-  const [delayEvaluationReminder1, setDelayEvaluationReminder1] = useState("2");
-  const [delayEvaluationReminder2, setDelayEvaluationReminder2] = useState("5");
-  const [delayConventionReminder1, setDelayConventionReminder1] = useState("3");
-  const [delayConventionReminder2, setDelayConventionReminder2] = useState("7");
-  const [delayFollowUpNews, setDelayFollowUpNews] = useState("30");
+  // All persisted settings in a single record (keys/defaults from SETTINGS_REGISTRY)
+  const [settings, setSettings] = useState<Record<string, string>>(SETTINGS_DEFAULTS);
+  const updateSetting = useCallback((key: string, value: string) => {
+    setSettings(prev => ({ ...prev, [key]: value }));
+  }, []);
 
-  // Post-evaluation email settings (now managed by PostEvaluationEmailManager component)
+  // Derived helpers for special types
+  const bccEnabled = settings.bcc_enabled === "true";
+  const workingDays: boolean[] = (() => {
+    try {
+      const days = JSON.parse(settings.working_days);
+      if (Array.isArray(days) && days.length === 7) return days;
+    } catch { /* fallback */ }
+    return [false, true, true, true, true, true, false];
+  })();
 
-  // Permissions
-  const [canDeleteEvaluationsEmails, setCanDeleteEvaluationsEmails] = useState("");
-
-  // Règlement intérieur
-  const [reglementInterieurUrl, setReglementInterieurUrl] = useState<string | null>(null);
+  // UI-only state (not persisted settings)
   const [uploadingReglement, setUploadingReglement] = useState(false);
-
-  // Slack integration
-  const [slackCrmWebhookUrl, setSlackCrmWebhookUrl] = useState("");
-
-  // CRM inbound email
-  const [crmInboundEmail, setCrmInboundEmail] = useState("");
-
-  // API keys for SIREN search
-  const [inseeApiKey, setInseeApiKey] = useState("");
-  const [googleSearchApiKey, setGoogleSearchApiKey] = useState("");
-  const [googleSearchEngineId, setGoogleSearchEngineId] = useState("");
-
-  // WooCommerce settings
-  const [woocommerceStoreUrl, setWoocommerceStoreUrl] = useState("");
-  const [woocommerceConsumerKey, setWoocommerceConsumerKey] = useState("");
-  const [woocommerceConsumerSecret, setWoocommerceConsumerSecret] = useState("");
-  const [woocommerceCartBaseUrl, setWoocommerceCartBaseUrl] = useState("");
 
 
   // Auto-save infrastructure
@@ -920,8 +942,7 @@ const Parametres = () => {
       setUser(session.user);
       await Promise.all([fetchTemplates(), fetchSettings()]);
       setLoading(false);
-      // Allow a tick for state to settle before enabling auto-save
-      setTimeout(() => { initialLoadDoneRef.current = true; }, 100);
+      initialLoadDoneRef.current = true;
     };
 
     checkAuth();
@@ -943,205 +964,35 @@ const Parametres = () => {
     const { data, error } = await supabase
       .from("app_settings")
       .select("setting_key, setting_value")
-      .in("setting_key", [
-        "sender_email", "sender_name", "evaluation_notification_email",
-        "bcc_email", "bcc_enabled", "working_days", "google_my_business_url", "supertilt_site_url", "newsletter_tool_url",
-        "website_url", "youtube_url", "blog_url",
-        "tva_rate",
-        "delay_needs_survey_days", "delay_reminder_days", "delay_trainer_summary_days",
-        "delay_google_review_days", "delay_video_testimonial_days",
-        "delay_cold_evaluation_days", "delay_cold_evaluation_funder_days",
-        "delay_evaluation_reminder_1_days", "delay_evaluation_reminder_2_days",
-        "delay_convention_reminder_1_days", "delay_convention_reminder_2_days",
-        "delay_follow_up_news_days",
-        "can_delete_evaluations_emails",
-        "reglement_interieur_url",
-        "slack_crm_webhook_url",
-        "crm_inbound_email",
-        "insee_api_key",
-        "google_search_api_key",
-        "google_search_engine_id",
-        "woocommerce_store_url",
-        "woocommerce_consumer_key",
-        "woocommerce_consumer_secret",
-        "woocommerce_cart_base_url"
-      ]);
-    
+      .in("setting_key", Object.keys(SETTINGS_REGISTRY));
+
     if (error) {
       console.error("Error fetching settings:", error);
       return;
     }
-    
-    data?.forEach((setting) => {
-      switch (setting.setting_key) {
-        case "sender_email":
-          setSenderEmail(setting.setting_value || "");
-          break;
-        case "sender_name":
-          setSenderName(setting.setting_value || "");
-          break;
-        case "evaluation_notification_email":
-          setEvaluationNotificationEmail(setting.setting_value || "");
-          break;
-        case "bcc_email":
-          setBccEmail(setting.setting_value || "");
-          break;
-        case "bcc_enabled":
-          setBccEnabled(setting.setting_value === "true");
-          break;
-        case "google_my_business_url":
-          setGoogleMyBusinessUrl(setting.setting_value || "https://g.page/r/CWJ0W_P6C-BJEAE/review");
-          break;
-        case "supertilt_site_url":
-          setSupertiltSiteUrl(setting.setting_value || "https://supertilt.fr");
-          break;
-        case "newsletter_tool_url":
-          setNewsletterToolUrl(setting.setting_value || "");
-          break;
-        case "website_url":
-          setWebsiteUrl(setting.setting_value || "https://www.supertilt.fr");
-          break;
-        case "youtube_url":
-          setYoutubeUrl(setting.setting_value || "https://www.youtube.com/@supertilt");
-          break;
-        case "blog_url":
-          setBlogUrl(setting.setting_value || "https://supertilt.fr/blog/");
-          break;
-        case "tva_rate":
-          setTvaRate(setting.setting_value || "20");
-          break;
-        case "working_days":
-          try {
-            const days = JSON.parse(setting.setting_value || "[false,true,true,true,true,true,false]");
-            if (Array.isArray(days) && days.length === 7) {
-              setWorkingDays(days);
-            }
-          } catch {
-            // Keep default
-          }
-          break;
-        case "delay_needs_survey_days":
-          setDelayNeedsSurvey(setting.setting_value || "7");
-          break;
-        case "delay_reminder_days":
-          setDelayReminder(setting.setting_value || "7");
-          break;
-        case "delay_trainer_summary_days":
-          setDelayTrainerSummary(setting.setting_value || "1");
-          break;
-        case "delay_google_review_days":
-          setDelayGoogleReview(setting.setting_value || "1");
-          break;
-        case "delay_video_testimonial_days":
-          setDelayVideoTestimonial(setting.setting_value || "3");
-          break;
-        case "delay_cold_evaluation_days":
-          setDelayColdEvaluation(setting.setting_value || "10");
-          break;
-        case "delay_cold_evaluation_funder_days":
-          setDelayColdEvaluationFunder(setting.setting_value || "15");
-          break;
-        case "delay_evaluation_reminder_1_days":
-          setDelayEvaluationReminder1(setting.setting_value || "2");
-          break;
-        case "delay_evaluation_reminder_2_days":
-          setDelayEvaluationReminder2(setting.setting_value || "5");
-          break;
-        case "delay_convention_reminder_1_days":
-          setDelayConventionReminder1(setting.setting_value || "3");
-          break;
-        case "delay_convention_reminder_2_days":
-          setDelayConventionReminder2(setting.setting_value || "7");
-          break;
-        case "delay_follow_up_news_days":
-          setDelayFollowUpNews(setting.setting_value || "30");
-          break;
-        case "can_delete_evaluations_emails":
-          setCanDeleteEvaluationsEmails(setting.setting_value || "");
-          break;
-        case "reglement_interieur_url":
-          setReglementInterieurUrl(setting.setting_value || null);
-          break;
-        // post_evaluation_email_* keys are now managed by PostEvaluationEmailManager
-        case "slack_crm_webhook_url":
-          setSlackCrmWebhookUrl(setting.setting_value || "");
-          break;
-        case "crm_inbound_email":
-          setCrmInboundEmail(setting.setting_value || "");
-          break;
-        case "insee_api_key":
-          setInseeApiKey(setting.setting_value || "");
-          break;
-        case "google_search_api_key":
-          setGoogleSearchApiKey(setting.setting_value || "");
-          break;
-        case "google_search_engine_id":
-          setGoogleSearchEngineId(setting.setting_value || "");
-          break;
-        case "woocommerce_store_url":
-          setWoocommerceStoreUrl(setting.setting_value || "");
-          break;
-        case "woocommerce_consumer_key":
-          setWoocommerceConsumerKey(setting.setting_value || "");
-          break;
-        case "woocommerce_consumer_secret":
-          setWoocommerceConsumerSecret(setting.setting_value || "");
-          break;
-        case "woocommerce_cart_base_url":
-          setWoocommerceCartBaseUrl(setting.setting_value || "");
-          break;
-      }
+
+    const loaded: Record<string, string> = {};
+    data?.forEach((s) => {
+      loaded[s.setting_key] = s.setting_value || SETTINGS_REGISTRY[s.setting_key]?.default || "";
     });
+    setSettings(prev => ({ ...prev, ...loaded }));
   };
 
   // Silent auto-save for general settings (no toast on success)
   const autoSaveSettings = useCallback(async () => {
     setAutoSaveStatus("saving");
     try {
-      const settingsToSave = [
-        { setting_key: "sender_email", setting_value: senderEmail, description: "Adresse email de l'expéditeur pour tous les envois" },
-        { setting_key: "sender_name", setting_value: senderName, description: "Nom de l'expéditeur pour tous les envois" },
-        { setting_key: "evaluation_notification_email", setting_value: evaluationNotificationEmail, description: "Email qui reçoit les notifications de nouvelles évaluations" },
-        { setting_key: "bcc_email", setting_value: bccEmail, description: "Adresse email en copie cachée (BCC) pour tous les envois" },
-        { setting_key: "bcc_enabled", setting_value: bccEnabled.toString(), description: "Activer ou désactiver l'envoi en copie cachée (BCC)" },
-        { setting_key: "google_my_business_url", setting_value: googleMyBusinessUrl, description: "URL de la fiche Google My Business pour les demandes d'avis" },
-        { setting_key: "supertilt_site_url", setting_value: supertiltSiteUrl, description: "URL du site SuperTilt pour les liens formations" },
-        { setting_key: "newsletter_tool_url", setting_value: newsletterToolUrl, description: "URL de l'outil de newsletter (ex: Brevo, Mailchimp)" },
-        { setting_key: "website_url", setting_value: websiteUrl, description: "URL du site web principal" },
-        { setting_key: "youtube_url", setting_value: youtubeUrl, description: "URL de la chaîne YouTube" },
-        { setting_key: "blog_url", setting_value: blogUrl, description: "URL du blog" },
-        { setting_key: "tva_rate", setting_value: tvaRate, description: "Taux de TVA par défaut en pourcentage (ex: 20 pour 20%)" },
-        { setting_key: "working_days", setting_value: JSON.stringify(workingDays), description: "Jours ouvrables pour l'envoi des emails (tableau de 7 booléens : dim, lun, mar, mer, jeu, ven, sam)" },
-        { setting_key: "delay_needs_survey_days", setting_value: delayNeedsSurvey, description: "Délai avant formation pour envoyer le questionnaire de besoins (en jours)" },
-        { setting_key: "delay_reminder_days", setting_value: delayReminder, description: "Délai avant formation pour envoyer le rappel logistique (en jours)" },
-        { setting_key: "delay_trainer_summary_days", setting_value: delayTrainerSummary, description: "Délai avant formation pour envoyer la synthèse au formateur (en jours)" },
-        { setting_key: "delay_google_review_days", setting_value: delayGoogleReview, description: "Délai après formation pour demander un avis Google (en jours ouvrables)" },
-        { setting_key: "delay_video_testimonial_days", setting_value: delayVideoTestimonial, description: "Délai après formation pour demander un témoignage vidéo (en jours ouvrables)" },
-        { setting_key: "delay_cold_evaluation_days", setting_value: delayColdEvaluation, description: "Délai après formation pour envoyer l'évaluation à froid (en jours ouvrables)" },
-        { setting_key: "delay_cold_evaluation_funder_days", setting_value: delayColdEvaluationFunder, description: "Délai après formation pour rappeler de contacter le financeur (en jours ouvrables)" },
-        { setting_key: "delay_evaluation_reminder_1_days", setting_value: delayEvaluationReminder1, description: "Délai pour la 1ère relance d'évaluation (en jours ouvrables après le mail de remerciement)" },
-        { setting_key: "delay_evaluation_reminder_2_days", setting_value: delayEvaluationReminder2, description: "Délai pour la 2ème relance d'évaluation (en jours ouvrables après le mail de remerciement)" },
-        { setting_key: "delay_convention_reminder_1_days", setting_value: delayConventionReminder1, description: "Délai en jours ouvrés pour la 1ère relance convention de formation" },
-        { setting_key: "delay_convention_reminder_2_days", setting_value: delayConventionReminder2, description: "Délai en jours ouvrés pour la 2ème relance convention de formation" },
-        { setting_key: "delay_follow_up_news_days", setting_value: delayFollowUpNews, description: "Délai après formation pour envoyer un message informel de prise de nouvelles (en jours ouvrables)" },
-        { setting_key: "can_delete_evaluations_emails", setting_value: canDeleteEvaluationsEmails, description: "Emails des utilisateurs autorisés à supprimer des évaluations (séparés par des virgules)" },
-        { setting_key: "reglement_interieur_url", setting_value: reglementInterieurUrl || "", description: "URL du règlement intérieur des formations (PDF uploadé)" },
-        { setting_key: "slack_crm_webhook_url", setting_value: slackCrmWebhookUrl, description: "URL du webhook Slack pour les notifications CRM (opportunités créées/gagnées)" },
-        { setting_key: "crm_inbound_email", setting_value: crmInboundEmail, description: "Adresse email dédiée CRM — les emails reçus à cette adresse créent automatiquement une opportunité" },
-        { setting_key: "insee_api_key", setting_value: inseeApiKey, description: "Clé API INSEE SIRENE pour la recherche d'entreprises par SIREN" },
-        { setting_key: "google_search_api_key", setting_value: googleSearchApiKey, description: "Clé API Google Custom Search pour la recherche de SIREN par nom d'entreprise (fallback)" },
-        { setting_key: "google_search_engine_id", setting_value: googleSearchEngineId, description: "ID du moteur de recherche personnalisé Google (cx) pour la recherche de SIREN" },
-        { setting_key: "woocommerce_store_url", setting_value: woocommerceStoreUrl, description: "URL de la boutique WooCommerce (ex: https://www.supertilt.fr)" },
-        { setting_key: "woocommerce_consumer_key", setting_value: woocommerceConsumerKey, description: "Clé API WooCommerce (Consumer Key, commence par ck_)" },
-        { setting_key: "woocommerce_consumer_secret", setting_value: woocommerceConsumerSecret, description: "Secret API WooCommerce (Consumer Secret, commence par cs_)" },
-        { setting_key: "woocommerce_cart_base_url", setting_value: woocommerceCartBaseUrl, description: "URL de base du panier WooCommerce pour les accès e-learning (ex: https://supertilt.fr/commande/?add-to-cart=)" },
-      ];
+      const settingsToSave = Object.entries(SETTINGS_REGISTRY).map(([key, { description }]) => ({
+        setting_key: key,
+        setting_value: settings[key] || "",
+        description,
+      }));
 
-      for (const setting of settingsToSave) {
-        await supabase
-          .from("app_settings")
-          .upsert(setting, { onConflict: "setting_key" });
-      }
+      await Promise.all(
+        settingsToSave.map(setting =>
+          supabase.from("app_settings").upsert(setting, { onConflict: "setting_key" })
+        )
+      );
 
       setAutoSaveStatus("saved");
       setTimeout(() => setAutoSaveStatus("idle"), 2000);
@@ -1149,17 +1000,7 @@ const Parametres = () => {
       console.error("Auto-save settings error:", error);
       setAutoSaveStatus("idle");
     }
-  }, [
-    senderEmail, senderName, evaluationNotificationEmail, bccEnabled, bccEmail,
-    googleMyBusinessUrl, supertiltSiteUrl, newsletterToolUrl, websiteUrl, youtubeUrl, blogUrl,
-    tvaRate, workingDays,
-    delayNeedsSurvey, delayReminder, delayTrainerSummary,
-    delayGoogleReview, delayVideoTestimonial, delayColdEvaluation, delayColdEvaluationFunder,
-    delayEvaluationReminder1, delayEvaluationReminder2, delayConventionReminder1, delayConventionReminder2,
-    delayFollowUpNews, canDeleteEvaluationsEmails, reglementInterieurUrl,
-    slackCrmWebhookUrl, crmInboundEmail, inseeApiKey, googleSearchApiKey, googleSearchEngineId,
-    woocommerceStoreUrl, woocommerceConsumerKey, woocommerceConsumerSecret, woocommerceCartBaseUrl,
-  ]);
+  }, [settings]);
 
   // Auto-save effect for general settings (debounced 1.5s)
   useEffect(() => {
@@ -1522,18 +1363,7 @@ const Parametres = () => {
 
       {/* Actions */}
       <div className="flex flex-wrap gap-2 pt-2 items-center">
-        {templateAutoSaveStatus === "saving" && (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground px-2">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Enregistrement...
-          </div>
-        )}
-        {templateAutoSaveStatus === "saved" && (
-          <div className="flex items-center gap-2 text-sm text-green-600 px-2">
-            <Check className="h-4 w-4" />
-            Enregistré
-          </div>
-        )}
+        <AutoSaveIndicator status={templateAutoSaveStatus} />
         <Button
           variant="secondary"
           onClick={() => handleImproveWithAI(type, currentMode)}
@@ -1683,8 +1513,8 @@ const Parametres = () => {
                       <Label htmlFor="sender-name">Nom de l'expéditeur</Label>
                       <Input
                         id="sender-name"
-                        value={senderName}
-                        onChange={(e) => setSenderName(e.target.value)}
+                        value={settings.sender_name}
+                        onChange={(e) => updateSetting("sender_name", e.target.value)}
                         placeholder="Romain Couturier"
                       />
                     </div>
@@ -1693,8 +1523,8 @@ const Parametres = () => {
                       <Input
                         id="sender-email"
                         type="email"
-                        value={senderEmail}
-                        onChange={(e) => setSenderEmail(e.target.value)}
+                        value={settings.sender_email}
+                        onChange={(e) => updateSetting("sender_email", e.target.value)}
                         placeholder="romain@supertilt.fr"
                       />
                     </div>
@@ -1704,8 +1534,8 @@ const Parametres = () => {
                     <Input
                       id="evaluation-notification-email"
                       type="email"
-                      value={evaluationNotificationEmail}
-                      onChange={(e) => setEvaluationNotificationEmail(e.target.value)}
+                      value={settings.evaluation_notification_email}
+                      onChange={(e) => updateSetting("evaluation_notification_email", e.target.value)}
                       placeholder="email@exemple.com"
                     />
                     <p className="text-xs text-muted-foreground">
@@ -1729,7 +1559,7 @@ const Parametres = () => {
                     <Switch
                       id="bcc-toggle"
                       checked={bccEnabled}
-                      onCheckedChange={setBccEnabled}
+                      onCheckedChange={(v) => updateSetting("bcc_enabled", v.toString())}
                     />
                   </div>
                   
@@ -1739,8 +1569,8 @@ const Parametres = () => {
                       <Input
                         id="bcc-email"
                         type="email"
-                        value={bccEmail}
-                        onChange={(e) => setBccEmail(e.target.value)}
+                        value={settings.bcc_email}
+                        onChange={(e) => updateSetting("bcc_email", e.target.value)}
                         placeholder="email@exemple.com"
                         className="max-w-md"
                       />
@@ -1763,15 +1593,15 @@ const Parametres = () => {
                       <Input
                         id="google-my-business-url"
                         type="url"
-                        value={googleMyBusinessUrl}
-                        onChange={(e) => setGoogleMyBusinessUrl(e.target.value)}
+                        value={settings.google_my_business_url}
+                        onChange={(e) => updateSetting("google_my_business_url", e.target.value)}
                         placeholder="https://g.page/r/XXXXXXXXX/review"
                       />
                       <Button
                         variant="outline"
                         size="icon"
-                        onClick={() => googleMyBusinessUrl && window.open(googleMyBusinessUrl, "_blank")}
-                        disabled={!googleMyBusinessUrl}
+                        onClick={() => settings.google_my_business_url && window.open(settings.google_my_business_url, "_blank")}
+                        disabled={!settings.google_my_business_url}
                         title="Ouvrir le lien"
                       >
                         <ExternalLink className="h-4 w-4" />
@@ -1798,15 +1628,15 @@ const Parametres = () => {
                       <Input
                         id="supertilt-site-url"
                         type="url"
-                        value={supertiltSiteUrl}
-                        onChange={(e) => setSupertiltSiteUrl(e.target.value)}
+                        value={settings.supertilt_site_url}
+                        onChange={(e) => updateSetting("supertilt_site_url", e.target.value)}
                         placeholder="https://supertilt.fr"
                       />
                       <Button
                         variant="outline"
                         size="icon"
-                        onClick={() => supertiltSiteUrl && window.open(supertiltSiteUrl, "_blank")}
-                        disabled={!supertiltSiteUrl}
+                        onClick={() => settings.supertilt_site_url && window.open(settings.supertilt_site_url, "_blank")}
+                        disabled={!settings.supertilt_site_url}
                         title="Ouvrir le site"
                       >
                         <ExternalLink className="h-4 w-4" />
@@ -1829,8 +1659,8 @@ const Parametres = () => {
                       <Input
                         id="website-url"
                         type="url"
-                        value={websiteUrl}
-                        onChange={(e) => setWebsiteUrl(e.target.value)}
+                        value={settings.website_url}
+                        onChange={(e) => updateSetting("website_url", e.target.value)}
                         placeholder="https://www.supertilt.fr"
                       />
                     </div>
@@ -1839,8 +1669,8 @@ const Parametres = () => {
                       <Input
                         id="youtube-url"
                         type="url"
-                        value={youtubeUrl}
-                        onChange={(e) => setYoutubeUrl(e.target.value)}
+                        value={settings.youtube_url}
+                        onChange={(e) => updateSetting("youtube_url", e.target.value)}
                         placeholder="https://www.youtube.com/@supertilt"
                       />
                     </div>
@@ -1849,8 +1679,8 @@ const Parametres = () => {
                       <Input
                         id="blog-url"
                         type="url"
-                        value={blogUrl}
-                        onChange={(e) => setBlogUrl(e.target.value)}
+                        value={settings.blog_url}
+                        onChange={(e) => updateSetting("blog_url", e.target.value)}
                         placeholder="https://supertilt.fr/blog/"
                       />
                     </div>
@@ -1872,15 +1702,15 @@ const Parametres = () => {
                       <Input
                         id="newsletter-tool-url"
                         type="url"
-                        value={newsletterToolUrl}
-                        onChange={(e) => setNewsletterToolUrl(e.target.value)}
+                        value={settings.newsletter_tool_url}
+                        onChange={(e) => updateSetting("newsletter_tool_url", e.target.value)}
                         placeholder="https://app.brevo.com"
                       />
                       <Button
                         variant="outline"
                         size="icon"
-                        onClick={() => newsletterToolUrl && window.open(newsletterToolUrl, "_blank")}
-                        disabled={!newsletterToolUrl}
+                        onClick={() => settings.newsletter_tool_url && window.open(settings.newsletter_tool_url, "_blank")}
+                        disabled={!settings.newsletter_tool_url}
                         title="Ouvrir l'outil"
                       >
                         <ExternalLink className="h-4 w-4" />
@@ -1904,8 +1734,8 @@ const Parametres = () => {
                       type="number"
                       min="0"
                       step="0.1"
-                      value={tvaRate}
-                      onChange={(e) => setTvaRate(e.target.value)}
+                      value={settings.tva_rate}
+                      onChange={(e) => updateSetting("tva_rate", e.target.value)}
                       placeholder="20"
                       className="max-w-[120px]"
                     />
@@ -1928,7 +1758,7 @@ const Parametres = () => {
                           onCheckedChange={(checked) => {
                             const newDays = [...workingDays];
                             newDays[index] = checked === true;
-                            setWorkingDays(newDays);
+                            updateSetting("working_days", JSON.stringify(newDays));
                           }}
                         />
                         <Label 
@@ -1959,8 +1789,8 @@ const Parametres = () => {
                           type="number"
                           min="1"
                           max="30"
-                          value={delayNeedsSurvey}
-                          onChange={(e) => setDelayNeedsSurvey(e.target.value)}
+                          value={settings.delay_needs_survey_days}
+                          onChange={(e) => updateSetting("delay_needs_survey_days", e.target.value)}
                           className="w-20"
                         />
                         <span className="text-sm text-muted-foreground">jours</span>
@@ -1976,8 +1806,8 @@ const Parametres = () => {
                           type="number"
                           min="1"
                           max="30"
-                          value={delayReminder}
-                          onChange={(e) => setDelayReminder(e.target.value)}
+                          value={settings.delay_reminder_days}
+                          onChange={(e) => updateSetting("delay_reminder_days", e.target.value)}
                           className="w-20"
                         />
                         <span className="text-sm text-muted-foreground">jours</span>
@@ -1993,8 +1823,8 @@ const Parametres = () => {
                           type="number"
                           min="1"
                           max="30"
-                          value={delayTrainerSummary}
-                          onChange={(e) => setDelayTrainerSummary(e.target.value)}
+                          value={settings.delay_trainer_summary_days}
+                          onChange={(e) => updateSetting("delay_trainer_summary_days", e.target.value)}
                           className="w-20"
                         />
                         <span className="text-sm text-muted-foreground">jours</span>
@@ -2022,8 +1852,8 @@ const Parametres = () => {
                           type="number"
                           min="1"
                           max="30"
-                          value={delayConventionReminder1}
-                          onChange={(e) => setDelayConventionReminder1(e.target.value)}
+                          value={settings.delay_convention_reminder_1_days}
+                          onChange={(e) => updateSetting("delay_convention_reminder_1_days", e.target.value)}
                           className="w-20"
                         />
                         <span className="text-sm text-muted-foreground">jours ouvrés</span>
@@ -2039,8 +1869,8 @@ const Parametres = () => {
                           type="number"
                           min="1"
                           max="30"
-                          value={delayConventionReminder2}
-                          onChange={(e) => setDelayConventionReminder2(e.target.value)}
+                          value={settings.delay_convention_reminder_2_days}
+                          onChange={(e) => updateSetting("delay_convention_reminder_2_days", e.target.value)}
                           className="w-20"
                         />
                         <span className="text-sm text-muted-foreground">jours ouvrés</span>
@@ -2068,8 +1898,8 @@ const Parametres = () => {
                           type="number"
                           min="1"
                           max="60"
-                          value={delayGoogleReview}
-                          onChange={(e) => setDelayGoogleReview(e.target.value)}
+                          value={settings.delay_google_review_days}
+                          onChange={(e) => updateSetting("delay_google_review_days", e.target.value)}
                           className="w-20"
                         />
                         <span className="text-sm text-muted-foreground">jours</span>
@@ -2085,8 +1915,8 @@ const Parametres = () => {
                           type="number"
                           min="1"
                           max="60"
-                          value={delayVideoTestimonial}
-                          onChange={(e) => setDelayVideoTestimonial(e.target.value)}
+                          value={settings.delay_video_testimonial_days}
+                          onChange={(e) => updateSetting("delay_video_testimonial_days", e.target.value)}
                           className="w-20"
                         />
                         <span className="text-sm text-muted-foreground">jours</span>
@@ -2102,8 +1932,8 @@ const Parametres = () => {
                           type="number"
                           min="1"
                           max="90"
-                          value={delayColdEvaluation}
-                          onChange={(e) => setDelayColdEvaluation(e.target.value)}
+                          value={settings.delay_cold_evaluation_days}
+                          onChange={(e) => updateSetting("delay_cold_evaluation_days", e.target.value)}
                           className="w-20"
                         />
                         <span className="text-sm text-muted-foreground">jours</span>
@@ -2119,8 +1949,8 @@ const Parametres = () => {
                           type="number"
                           min="1"
                           max="120"
-                          value={delayColdEvaluationFunder}
-                          onChange={(e) => setDelayColdEvaluationFunder(e.target.value)}
+                          value={settings.delay_cold_evaluation_funder_days}
+                          onChange={(e) => updateSetting("delay_cold_evaluation_funder_days", e.target.value)}
                           className="w-20"
                         />
                         <span className="text-sm text-muted-foreground">jours</span>
@@ -2151,8 +1981,8 @@ const Parametres = () => {
                           type="number"
                           min="1"
                           max="30"
-                          value={delayEvaluationReminder1}
-                          onChange={(e) => setDelayEvaluationReminder1(e.target.value)}
+                          value={settings.delay_evaluation_reminder_1_days}
+                          onChange={(e) => updateSetting("delay_evaluation_reminder_1_days", e.target.value)}
                           className="w-20"
                         />
                         <span className="text-sm text-muted-foreground">jours ouvrables</span>
@@ -2171,8 +2001,8 @@ const Parametres = () => {
                           type="number"
                           min="1"
                           max="30"
-                          value={delayEvaluationReminder2}
-                          onChange={(e) => setDelayEvaluationReminder2(e.target.value)}
+                          value={settings.delay_evaluation_reminder_2_days}
+                          onChange={(e) => updateSetting("delay_evaluation_reminder_2_days", e.target.value)}
                           className="w-20"
                         />
                         <span className="text-sm text-muted-foreground">jours ouvrables</span>
@@ -2201,8 +2031,8 @@ const Parametres = () => {
                         type="number"
                         min="7"
                         max="90"
-                        value={delayFollowUpNews}
-                        onChange={(e) => setDelayFollowUpNews(e.target.value)}
+                        value={settings.delay_follow_up_news_days}
+                        onChange={(e) => updateSetting("delay_follow_up_news_days", e.target.value)}
                         className="w-20"
                       />
                       <span className="text-sm text-muted-foreground">jours ouvrables</span>
@@ -2222,7 +2052,7 @@ const Parametres = () => {
                     Uploadez le règlement intérieur de vos formations (PDF). Il sera consultable depuis la page de synthèse de chaque formation.
                   </p>
 
-                  {reglementInterieurUrl ? (
+                  {settings.reglement_interieur_url ? (
                     <div className="flex items-center gap-3 p-3 rounded-lg border bg-muted/30 max-w-lg">
                       <FileText className="h-5 w-5 text-primary shrink-0" />
                       <span className="text-sm font-medium truncate flex-1">Règlement intérieur</span>
@@ -2231,7 +2061,7 @@ const Parametres = () => {
                         size="sm"
                         asChild
                       >
-                        <a href={reglementInterieurUrl} target="_blank" rel="noopener noreferrer">
+                        <a href={settings.reglement_interieur_url} target="_blank" rel="noopener noreferrer">
                           <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
                           Consulter
                         </a>
@@ -2240,7 +2070,7 @@ const Parametres = () => {
                         variant="ghost"
                         size="sm"
                         className="text-destructive hover:text-destructive"
-                        onClick={() => setReglementInterieurUrl(null)}
+                        onClick={() => updateSetting("reglement_interieur_url", "")}
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
@@ -2284,7 +2114,7 @@ const Parametres = () => {
                               const { data: urlData } = supabase.storage
                                 .from("training-documents")
                                 .getPublicUrl(filePath);
-                              setReglementInterieurUrl(urlData.publicUrl);
+                              updateSetting("reglement_interieur_url", urlData.publicUrl);
                               toast({ title: "Fichier uploadé" });
                             } catch (err) {
                               console.error("Upload error:", err);
@@ -2313,8 +2143,8 @@ const Parametres = () => {
                     <Label htmlFor="can-delete-evaluations">Suppression des évaluations</Label>
                     <Textarea
                       id="can-delete-evaluations"
-                      value={canDeleteEvaluationsEmails}
-                      onChange={(e) => setCanDeleteEvaluationsEmails(e.target.value)}
+                      value={settings.can_delete_evaluations_emails}
+                      onChange={(e) => updateSetting("can_delete_evaluations_emails", e.target.value)}
                       placeholder="email1@exemple.com, email2@exemple.com"
                       className="max-w-lg"
                       rows={2}
@@ -2326,18 +2156,7 @@ const Parametres = () => {
                   </div>
                 </div>
 
-                {autoSaveStatus === "saving" && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Enregistrement...
-                  </div>
-                )}
-                {autoSaveStatus === "saved" && (
-                  <div className="flex items-center gap-2 text-sm text-green-600">
-                    <Check className="h-4 w-4" />
-                    Enregistré
-                  </div>
-                )}
+                <AutoSaveIndicator status={autoSaveStatus} />
               </CardContent>
             </Card>
 
@@ -2384,12 +2203,7 @@ const Parametres = () => {
                         // Map delayKey to actual delay value
                         const getDelayValue = (key?: string): string | null => {
                           if (!key) return null;
-                          const delayMap: Record<string, string> = {
-                            delay_needs_survey_days: delayNeedsSurvey,
-                            delay_reminder_days: delayReminder,
-                            delay_trainer_summary_days: delayTrainerSummary,
-                          };
-                          return delayMap[key] || null;
+                          return settings[key] || null;
                         };
                         
                         const delayValue = getDelayValue(defaultTemplate.delayKey);
@@ -2440,15 +2254,7 @@ const Parametres = () => {
                         // Map delayKey to actual delay value for "after" emails
                         const getDelayValue = (key?: string): string | null => {
                           if (!key) return null;
-                          const delayMap: Record<string, string> = {
-                            delay_google_review_days: delayGoogleReview,
-                            delay_video_testimonial_days: delayVideoTestimonial,
-                            delay_cold_evaluation_days: delayColdEvaluation,
-                            delay_funder_reminder_days: delayColdEvaluationFunder,
-                            delay_evaluation_reminder_1_days: delayEvaluationReminder1,
-                            delay_evaluation_reminder_2_days: delayEvaluationReminder2,
-                          };
-                          return delayMap[key] || null;
+                          return settings[key] || null;
                         };
                         
                         const delayValue = getDelayValue(defaultTemplate.delayKey);
@@ -2605,8 +2411,8 @@ const Parametres = () => {
                     <Input
                       id="slack-webhook"
                       type="url"
-                      value={slackCrmWebhookUrl}
-                      onChange={(e) => setSlackCrmWebhookUrl(e.target.value)}
+                      value={settings.slack_crm_webhook_url}
+                      onChange={(e) => updateSetting("slack_crm_webhook_url", e.target.value)}
                       placeholder="https://hooks.slack.com/services/..."
                     />
                     <p className="text-xs text-muted-foreground">
@@ -2627,8 +2433,8 @@ const Parametres = () => {
                     <Input
                       id="crm-inbound-email"
                       type="email"
-                      value={crmInboundEmail}
-                      onChange={(e) => setCrmInboundEmail(e.target.value)}
+                      value={settings.crm_inbound_email}
+                      onChange={(e) => updateSetting("crm_inbound_email", e.target.value)}
                       placeholder="crm@votredomaine.fr"
                     />
                     <p className="text-xs text-muted-foreground">
@@ -2650,8 +2456,8 @@ const Parametres = () => {
                     <Input
                       id="wc-store-url"
                       type="url"
-                      value={woocommerceStoreUrl}
-                      onChange={(e) => setWoocommerceStoreUrl(e.target.value)}
+                      value={settings.woocommerce_store_url}
+                      onChange={(e) => updateSetting("woocommerce_store_url", e.target.value)}
                       placeholder="https://www.supertilt.fr"
                     />
                   </div>
@@ -2661,8 +2467,8 @@ const Parametres = () => {
                     <Input
                       id="wc-consumer-key"
                       type="password"
-                      value={woocommerceConsumerKey}
-                      onChange={(e) => setWoocommerceConsumerKey(e.target.value)}
+                      value={settings.woocommerce_consumer_key}
+                      onChange={(e) => updateSetting("woocommerce_consumer_key", e.target.value)}
                       placeholder="ck_..."
                     />
                   </div>
@@ -2671,8 +2477,8 @@ const Parametres = () => {
                     <Input
                       id="wc-consumer-secret"
                       type="password"
-                      value={woocommerceConsumerSecret}
-                      onChange={(e) => setWoocommerceConsumerSecret(e.target.value)}
+                      value={settings.woocommerce_consumer_secret}
+                      onChange={(e) => updateSetting("woocommerce_consumer_secret", e.target.value)}
                       placeholder="cs_..."
                     />
                   </div>
@@ -2685,8 +2491,8 @@ const Parametres = () => {
                     <Input
                       id="wc-cart-base-url"
                       type="url"
-                      value={woocommerceCartBaseUrl}
-                      onChange={(e) => setWoocommerceCartBaseUrl(e.target.value)}
+                      value={settings.woocommerce_cart_base_url}
+                      onChange={(e) => updateSetting("woocommerce_cart_base_url", e.target.value)}
                       placeholder="https://supertilt.fr/commande/?add-to-cart="
                     />
                     <p className="text-xs text-muted-foreground">
@@ -2707,8 +2513,8 @@ const Parametres = () => {
                     <Input
                       id="insee-api-key"
                       type="password"
-                      value={inseeApiKey}
-                      onChange={(e) => setInseeApiKey(e.target.value)}
+                      value={settings.insee_api_key}
+                      onChange={(e) => updateSetting("insee_api_key", e.target.value)}
                       placeholder="Votre clé API INSEE"
                     />
                     <p className="text-xs text-muted-foreground">
@@ -2721,8 +2527,8 @@ const Parametres = () => {
                     <Input
                       id="google-search-api-key"
                       type="password"
-                      value={googleSearchApiKey}
-                      onChange={(e) => setGoogleSearchApiKey(e.target.value)}
+                      value={settings.google_search_api_key}
+                      onChange={(e) => updateSetting("google_search_api_key", e.target.value)}
                       placeholder="Votre clé API Google"
                     />
                     <p className="text-xs text-muted-foreground">
@@ -2733,8 +2539,8 @@ const Parametres = () => {
                     <Label htmlFor="google-search-engine-id">ID du moteur Google (cx)</Label>
                     <Input
                       id="google-search-engine-id"
-                      value={googleSearchEngineId}
-                      onChange={(e) => setGoogleSearchEngineId(e.target.value)}
+                      value={settings.google_search_engine_id}
+                      onChange={(e) => updateSetting("google_search_engine_id", e.target.value)}
                       placeholder="Ex: 017576662512468239146:omuauf_gy24"
                     />
                     <p className="text-xs text-muted-foreground">
@@ -2743,18 +2549,7 @@ const Parametres = () => {
                   </div>
                 </CardContent>
               </Card>
-              {autoSaveStatus === "saving" && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Enregistrement...
-                </div>
-              )}
-              {autoSaveStatus === "saved" && (
-                <div className="flex items-center gap-2 text-sm text-green-600">
-                  <Check className="h-4 w-4" />
-                  Enregistré
-                </div>
-              )}
+              <AutoSaveIndicator status={autoSaveStatus} />
             </TabsContent>
           )}
 
