@@ -49,6 +49,7 @@ interface AddParticipantDialogProps {
   clientName?: string;
   formatFormation?: string | null;
   availableFormulas?: FormationFormula[];
+  trainingFormulaId?: string | null;
   onParticipantAdded: () => void;
   onScheduledEmailsRefresh?: () => void;
   initialFirstName?: string;
@@ -76,7 +77,7 @@ const capitalizeName = (name: string): string => {
     .join("");
 };
 
-const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, formatFormation, availableFormulas = [], onParticipantAdded, onScheduledEmailsRefresh, initialFirstName, initialLastName, initialEmail, initialCompany, initialSoldPriceHt, externalOpen, onExternalOpenChange }: AddParticipantDialogProps) => {
+const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, formatFormation, availableFormulas = [], trainingFormulaId, onParticipantAdded, onScheduledEmailsRefresh, initialFirstName, initialLastName, initialEmail, initialCompany, initialSoldPriceHt, externalOpen, onExternalOpenChange }: AddParticipantDialogProps) => {
   const [internalOpen, setInternalOpen] = useState(false);
   const open = externalOpen !== undefined ? externalOpen : internalOpen;
   const setOpen = (v: boolean) => {
@@ -98,7 +99,7 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
   const [financeurUrl, setFinanceurUrl] = useState("");
   const [paymentMode, setPaymentMode] = useState<"online" | "invoice">("invoice");
   const [generateCoupon, setGenerateCoupon] = useState(true);
-  const [formulaId, setFormulaId] = useState<string>(availableFormulas.length === 1 ? availableFormulas[0].id : "");
+  const [formulaId, setFormulaId] = useState<string>(trainingFormulaId || (availableFormulas.length === 1 ? availableFormulas[0].id : ""));
   const selectedFormula = availableFormulas.find(f => f.id === formulaId);
   const formula = selectedFormula?.name || "";
   const [financeurPopoverOpen, setFinanceurPopoverOpen] = useState(false);
@@ -204,7 +205,7 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
     setFinanceurUrl("");
     setPaymentMode("invoice");
     setGenerateCoupon(true);
-    setFormulaId(availableFormulas.length === 1 ? availableFormulas[0].id : "");
+    setFormulaId(trainingFormulaId || (availableFormulas.length === 1 ? availableFormulas[0].id : ""));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -522,8 +523,8 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
               />
             </div>
 
-            {/* Formula selector (shown when catalog has 2+ formulas) */}
-            {availableFormulas.length >= 2 && (
+            {/* Formula selector (shown when catalog has 2+ formulas, hidden for permanent formations) */}
+            {availableFormulas.length >= 2 && !trainingFormulaId && (
               <div className="space-y-2">
                 <Label htmlFor="formula">Formule</Label>
                 <Select value={formulaId} onValueChange={setFormulaId}>
