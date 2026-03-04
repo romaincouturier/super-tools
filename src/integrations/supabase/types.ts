@@ -4349,6 +4349,75 @@ export type Database = {
         }
         Relationships: []
       }
+      woocommerce_coupons: {
+        Row: {
+          amount: number | null
+          catalog_id: string | null
+          coupon_code: string
+          created_at: string | null
+          discount_type: string | null
+          email_restriction: string | null
+          error_message: string | null
+          expiry_date: string | null
+          id: string
+          participant_id: string
+          status: string | null
+          training_id: string
+          usage_limit: number | null
+          woocommerce_coupon_id: number | null
+          woocommerce_product_id: number | null
+        }
+        Insert: {
+          amount?: number | null
+          catalog_id?: string | null
+          coupon_code: string
+          created_at?: string | null
+          discount_type?: string | null
+          email_restriction?: string | null
+          error_message?: string | null
+          expiry_date?: string | null
+          id?: string
+          participant_id: string
+          status?: string | null
+          training_id: string
+          usage_limit?: number | null
+          woocommerce_coupon_id?: number | null
+          woocommerce_product_id?: number | null
+        }
+        Update: {
+          amount?: number | null
+          catalog_id?: string | null
+          coupon_code?: string
+          created_at?: string | null
+          discount_type?: string | null
+          email_restriction?: string | null
+          error_message?: string | null
+          expiry_date?: string | null
+          id?: string
+          participant_id?: string
+          status?: string | null
+          training_id?: string
+          usage_limit?: number | null
+          woocommerce_coupon_id?: number | null
+          woocommerce_product_id?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "woocommerce_coupons_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "training_participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "woocommerce_coupons_training_id_fkey"
+            columns: ["training_id"]
+            isOneToOne: false
+            referencedRelation: "trainings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
