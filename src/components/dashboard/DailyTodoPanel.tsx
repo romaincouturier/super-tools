@@ -120,7 +120,7 @@ const DailyTodoPanel = () => {
       const aggregated: Record<string, { totalMinutes: number; count: number; totalActions: number; totalCompleted: number }> = {};
 
       for (const day of data) {
-        const stats = day.category_stats as Record<string, CategoryAnalytics> | null;
+        const stats = day.category_stats as unknown as Record<string, CategoryAnalytics> | null;
         if (!stats) continue;
         for (const [cat, catStats] of Object.entries(stats)) {
           if (!aggregated[cat]) aggregated[cat] = { totalMinutes: 0, count: 0, totalActions: 0, totalCompleted: 0 };
