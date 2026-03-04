@@ -458,8 +458,8 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
           Ajouter
         </Button>
       </DialogTrigger>
-      <DialogContent>
-        <form onSubmit={handleSubmit}>
+      <DialogContent className="max-h-[85vh] flex flex-col">
+        <form onSubmit={handleSubmit} className="flex flex-col overflow-hidden">
           <DialogHeader>
             <DialogTitle>Ajouter un participant</DialogTitle>
             <DialogDescription>
@@ -476,7 +476,7 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
             </Alert>
           )}
 
-          <div className="space-y-4 py-4">
+          <div className="space-y-4 py-4 overflow-y-auto flex-1 pr-1">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="firstName">Prénom</Label>
@@ -733,7 +733,7 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
             )}
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="shrink-0 pt-4 border-t">
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Annuler
             </Button>

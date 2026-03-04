@@ -1022,6 +1022,90 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_action_analytics: {
+        Row: {
+          id: string
+          user_id: string
+          action_date: string
+          total_actions: number
+          completed_count: number
+          auto_completed_count: number
+          manual_completed_count: number
+          category_stats: Json
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          action_date: string
+          total_actions?: number
+          completed_count?: number
+          auto_completed_count?: number
+          manual_completed_count?: number
+          category_stats?: Json
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          action_date?: string
+          total_actions?: number
+          completed_count?: number
+          auto_completed_count?: number
+          manual_completed_count?: number
+          category_stats?: Json
+          created_at?: string
+        }
+        Relationships: []
+      }
+      daily_actions: {
+        Row: {
+          id: string
+          user_id: string
+          action_date: string
+          category: string
+          title: string
+          description: string | null
+          link: string | null
+          entity_type: string | null
+          entity_id: string | null
+          is_completed: boolean
+          completed_at: string | null
+          auto_completed: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          action_date?: string
+          category: string
+          title: string
+          description?: string | null
+          link?: string | null
+          entity_type?: string | null
+          entity_id?: string | null
+          is_completed?: boolean
+          completed_at?: string | null
+          auto_completed?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          action_date?: string
+          category?: string
+          title?: string
+          description?: string | null
+          link?: string | null
+          entity_type?: string | null
+          entity_id?: string | null
+          is_completed?: boolean
+          completed_at?: string | null
+          auto_completed?: boolean
+          created_at?: string
+        }
+        Relationships: []
+      }
       db_size_snapshots: {
         Row: {
           created_at: string

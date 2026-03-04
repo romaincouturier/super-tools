@@ -119,7 +119,7 @@ const ObjectivesEditor = ({ objectives, onObjectivesChange, programFileUrl }: Ob
                 variant="secondary"
                 className="flex items-center gap-1 py-1.5 px-3 max-w-full"
               >
-                <span className="truncate">{objective}</span>
+                <span className="whitespace-normal break-words">{objective}</span>
                 <button
                   type="button"
                   onClick={() => removeObjective(index)}

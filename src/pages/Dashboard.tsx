@@ -55,6 +55,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { useUserPreference } from "@/hooks/useUserPreferences";
 import { cn } from "@/lib/utils";
+import DailyTodoPanel from "@/components/dashboard/DailyTodoPanel";
 
 // ---------- types ----------
 
@@ -587,41 +588,51 @@ const Dashboard = () => {
     <div className="min-h-screen bg-background">
       <AppHeader showOnboarding />
 
-      <main className="max-w-7xl mx-auto p-6 space-y-8">
-        <section>
-          <h1 className="text-2xl font-bold mb-6">Tableau de bord</h1>
-          {accessibleTools.length === 0 ? (
-            <Card className="p-8 text-center text-muted-foreground">
-              <p>Aucun module disponible.</p>
-              <p className="text-sm mt-2">
-                Contactez l'administrateur pour obtenir des accès.
-              </p>
-            </Card>
-          ) : (
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              onDragEnd={handleDragEnd}
-            >
-              <SortableContext
-                items={accessibleTools.map((t) => t.id)}
-                strategy={rectSortingStrategy}
+      <main className="max-w-[1400px] mx-auto p-6">
+        <h1 className="text-2xl font-bold mb-6">Tableau de bord</h1>
+        <div className="flex gap-6">
+          {/* Module grid — left */}
+          <section className="flex-1 min-w-0">
+            {accessibleTools.length === 0 ? (
+              <Card className="p-8 text-center text-muted-foreground">
+                <p>Aucun module disponible.</p>
+                <p className="text-sm mt-2">
+                  Contactez l'administrateur pour obtenir des accès.
+                </p>
+              </Card>
+            ) : (
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
               >
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-                  {accessibleTools.map((tool) => (
-                    <SortableToolCard
-                      key={tool.id}
-                      tool={tool}
-                      size={getSize(tool.id)}
-                      onClick={() => navigate(tool.path)}
-                      onSizeChange={(s) => handleSizeChange(tool.id, s)}
-                    />
-                  ))}
-                </div>
-              </SortableContext>
-            </DndContext>
-          )}
-        </section>
+                <SortableContext
+                  items={accessibleTools.map((t) => t.id)}
+                  strategy={rectSortingStrategy}
+                >
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+                    {accessibleTools.map((tool) => (
+                      <SortableToolCard
+                        key={tool.id}
+                        tool={tool}
+                        size={getSize(tool.id)}
+                        onClick={() => navigate(tool.path)}
+                        onSizeChange={(s) => handleSizeChange(tool.id, s)}
+                      />
+                    ))}
+                  </div>
+                </SortableContext>
+              </DndContext>
+            )}
+          </section>
+
+          {/* Daily TODO — right column */}
+          <aside className="hidden lg:block w-80 shrink-0">
+            <Card className="p-4 sticky top-6">
+              <DailyTodoPanel />
+            </Card>
+          </aside>
+        </div>
       </main>
     </div>
   );

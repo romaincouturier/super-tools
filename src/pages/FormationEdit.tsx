@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 import { Loader2, ArrowLeft, Calendar, Save, ExternalLink } from "lucide-react";
@@ -68,6 +68,7 @@ const FormationEdit = () => {
 
   // Catalog
   const [catalogId, setCatalogId] = useState<string | null>(null);
+  const [hasFormulas, setHasFormulas] = useState(false);
 
   // Notes
   const [trainingNotes, setTrainingNotes] = useState("");
@@ -214,7 +215,16 @@ const FormationEdit = () => {
       }
 
       setDataLoaded(true);
-      
+
+      // Fetch formulas if linked to catalog
+      if ((training as any).catalog_id) {
+        const { data: formulas } = await supabase
+          .from("formation_formulas")
+          .select("id")
+          .eq("formation_config_id", (training as any).catalog_id);
+        setHasFormulas((formulas?.length ?? 0) > 0);
+      }
+
       // Fetch SuperTilt site URL from settings
       const { data: settingData } = await supabase
         .from("app_settings")
@@ -323,7 +333,7 @@ const FormationEdit = () => {
       ? (elearningStartDate && elearningEndDate)
       : (selectedDates.length > 0);
 
-    if (!hasValidDates || !trainingName || !location || !clientName || !user || !id) {
+    if (!hasValidDates || !trainingName || !location || (!isInter && !clientName) || !user || !id) {
       toast({
         title: "Champs requis",
         description: isElearning
@@ -503,6 +513,9 @@ const FormationEdit = () => {
                       onFormationSelect={(formation: FormationConfig | null) => {
                         if (formation) {
                           setCatalogId(formation.id);
+                          // Check if this catalog has formulas
+                          supabase.from("formation_formulas").select("id").eq("formation_config_id", formation.id)
+                            .then(({ data }) => setHasFormulas((data?.length ?? 0) > 0));
                           if (formation.programme_url) {
                             setProgramFileUrl(formation.programme_url);
                           }
@@ -524,6 +537,7 @@ const FormationEdit = () => {
                           // Format is now chosen at session level, not from catalog
                         } else {
                           setCatalogId(null);
+                          setHasFormulas(false);
                         }
                       }}
                     />
@@ -587,19 +601,22 @@ const FormationEdit = () => {
                           </Popover>
                         </div>
                       </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="elearningDuration">Durée totale (heures)</Label>
-                        <Input
-                          id="elearningDuration"
-                          type="number"
-                          placeholder="Ex: 25"
-                          value={elearningDuration}
-                          onChange={(e) => setElearningDuration(e.target.value)}
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          Durée estimée du parcours e-learning
-                        </p>
-                      </div>
+                      {/* Durée totale — hidden when formation uses formulas (duration is per formula) */}
+                      {!hasFormulas && (
+                        <div className="space-y-2">
+                          <Label htmlFor="elearningDuration">Durée totale (heures)</Label>
+                          <Input
+                            id="elearningDuration"
+                            type="number"
+                            placeholder="Ex: 25"
+                            value={elearningDuration}
+                            onChange={(e) => setElearningDuration(e.target.value)}
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Durée estimée du parcours e-learning
+                          </p>
+                        </div>
+                      )}
                       <div className="space-y-2">
                         <Label htmlFor="elearningAccessEmail">Email d'accès e-learning</Label>
                         <Textarea
@@ -661,46 +678,7 @@ const FormationEdit = () => {
                     </div>
                   )}
 
-                  {/* Location and client */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="location">Lieu *</Label>
-                      <Input
-                        id="location"
-                        value={location}
-                        onChange={(e) => setLocation(e.target.value)}
-                        placeholder="Ex: Paris, Visio, Chez le client"
-                        required
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="clientName">Client *</Label>
-                      <Input
-                        id="clientName"
-                        value={clientName}
-                        onChange={(e) => setClientName(e.target.value)}
-                        placeholder="Ex: ACME Corp"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  {/* Client address - full width for visibility */}
-                  <div className="space-y-2">
-                    <Label htmlFor="clientAddress">Adresse du client</Label>
-                    <Input
-                      id="clientAddress"
-                      value={clientAddress}
-                      onChange={(e) => setClientAddress(e.target.value)}
-                      placeholder="Ex: 12 rue de la Paix, 75002 Paris"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Utilisée dans la convention de formation
-                    </p>
-                  </div>
-
-                  {/* Session type and format */}
+                  {/* Session type and format — right below dates */}
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>Type de session</Label>
@@ -729,28 +707,84 @@ const FormationEdit = () => {
                     </div>
                   </div>
 
-                  {/* Sold price HT */}
-                  <div className="space-y-2">
-                    <Label htmlFor="soldPriceHt">
-                      {isInter
-                        ? "Prix HT par participant (€)"
-                        : "Prix HT global (€)"}
-                    </Label>
-                    <Input
-                      id="soldPriceHt"
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={soldPriceHt}
-                      onChange={(e) => setSoldPriceHt(e.target.value)}
-                      placeholder={isInter ? "Ex: 1250" : "Ex: 3500"}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      {isInter
-                        ? "Prix par participant, utilisé dans les conventions individuelles"
-                        : "Montant total HT, utilisé dans la convention de formation"}
-                    </p>
-                  </div>
+                  {/* Location and client — hidden for inter (managed per participant) */}
+                  {isInter ? (
+                    <div className="space-y-2">
+                      <Label htmlFor="location">Lieu *</Label>
+                      <Input
+                        id="location"
+                        value={location}
+                        onChange={(e) => setLocation(e.target.value)}
+                        placeholder="Ex: Paris, Visio, Chez le client"
+                        required
+                      />
+                    </div>
+                  ) : (
+                    <>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="location">Lieu *</Label>
+                          <Input
+                            id="location"
+                            value={location}
+                            onChange={(e) => setLocation(e.target.value)}
+                            placeholder="Ex: Paris, Visio, Chez le client"
+                            required
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="clientName">Client *</Label>
+                          <Input
+                            id="clientName"
+                            value={clientName}
+                            onChange={(e) => setClientName(e.target.value)}
+                            placeholder="Ex: ACME Corp"
+                            required
+                          />
+                        </div>
+                      </div>
+
+                      {/* Client address */}
+                      <div className="space-y-2">
+                        <Label htmlFor="clientAddress">Adresse du client</Label>
+                        <Input
+                          id="clientAddress"
+                          value={clientAddress}
+                          onChange={(e) => setClientAddress(e.target.value)}
+                          placeholder="Ex: 12 rue de la Paix, 75002 Paris"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Utilisée dans la convention de formation
+                        </p>
+                      </div>
+                    </>
+                  )}
+
+                  {/* Sold price HT — hidden when formation uses formulas (price is per formula) */}
+                  {!hasFormulas && (
+                    <div className="space-y-2">
+                      <Label htmlFor="soldPriceHt">
+                        {isInter
+                          ? "Prix HT par participant (€)"
+                          : "Prix HT global (€)"}
+                      </Label>
+                      <Input
+                        id="soldPriceHt"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={soldPriceHt}
+                        onChange={(e) => setSoldPriceHt(e.target.value)}
+                        placeholder={isInter ? "Ex: 1250" : "Ex: 3500"}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        {isInter
+                          ? "Prix par participant, utilisé dans les conventions individuelles"
+                          : "Montant total HT, utilisé dans la convention de formation"}
+                      </p>
+                    </div>
+                  )}
 
                   {/* Max Participants */}
                   <div className="space-y-2">
@@ -796,8 +830,8 @@ const FormationEdit = () => {
                 </CardContent>
               </Card>
 
-              {/* Sponsor/Commanditaire */}
-              <Card>
+              {/* Sponsor/Commanditaire — hidden for inter (managed per participant) */}
+              {!isInter && <Card>
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <CardTitle>Commanditaire</CardTitle>
@@ -848,10 +882,10 @@ const FormationEdit = () => {
                     />
                   </div>
                 </CardContent>
-              </Card>
+              </Card>}
 
-              {/* Financeur */}
-              <Card>
+              {/* Financeur — hidden for inter (managed per participant) */}
+              {!isInter && <Card>
                 <CardHeader>
                   <CardTitle>Financeur</CardTitle>
                 </CardHeader>
@@ -891,7 +925,7 @@ const FormationEdit = () => {
                     </>
                   )}
                 </CardContent>
-              </Card>
+              </Card>}
 
               {/* Notes */}
               <Card>
@@ -963,7 +997,10 @@ const FormationEdit = () => {
                       </div>
                     )}
                     <p className="text-xs text-muted-foreground italic pt-2 border-t">
-                      Ces informations proviennent du catalogue et sont modifiables depuis la page Catalogue.
+                      Ces informations proviennent du catalogue et sont modifiables depuis la page{" "}
+                      <Link to="/catalogue" className="text-primary hover:underline not-italic font-medium">
+                        Catalogue
+                      </Link>.
                     </p>
                   </CardContent>
                 </Card>
