@@ -50,42 +50,27 @@ serve(async (req) => {
       return createErrorResponse("Formation introuvable", 404);
     }
 
-    // Get email content: use training-specific content or fetch template from DB
+    // Get email content from global template
     let emailSubject: string;
     let emailContent: string;
 
     const isTu = !training.sponsor_formal_address;
     const templateType = isTu ? "elearning_access_tu" : "elearning_access_vous";
 
-    if (training.elearning_access_email_content) {
-      // Use the custom content stored on the training
-      emailContent = training.elearning_access_email_content;
-      // Fetch subject from template
-      const { data: template } = await supabase
-        .from("email_templates")
-        .select("subject")
-        .eq("template_type", templateType)
-        .order("is_default", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      emailSubject = template?.subject || `Accès à la formation e-learning "${training.training_name}"`;
-    } else {
-      // Fetch full template
-      const { data: template } = await supabase
-        .from("email_templates")
-        .select("subject, html_content")
-        .eq("template_type", templateType)
-        .order("is_default", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+    const { data: template } = await supabase
+      .from("email_templates")
+      .select("subject, html_content")
+      .eq("template_type", templateType)
+      .order("is_default", { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
-      if (!template) {
-        return createErrorResponse("Template d'email e-learning introuvable", 404);
-      }
-
-      emailSubject = template.subject;
-      emailContent = template.html_content;
+    if (!template) {
+      return createErrorResponse("Template d'email e-learning introuvable", 404);
     }
+
+    emailSubject = template.subject;
+    emailContent = template.html_content;
 
     // Format dates
     const formatDateFr = (dateStr: string) => {

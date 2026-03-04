@@ -313,7 +313,6 @@ const FormationCreate = () => {
           financeur_url: financeurSameAsSponsor ? null : (financeurUrl || null),
           trainer_id: trainerId || null,
           elearning_duration: isElearning && elearningDuration ? parseFloat(elearningDuration) : null,
-          elearning_access_email_content: isElearning && elearningAccessEmailContent ? elearningAccessEmailContent : null,
           catalog_id: catalogId || null,
           created_by: user.id,
         })
@@ -551,19 +550,6 @@ const FormationCreate = () => {
                     setSessionFormat(val);
                     if (val === "distanciel_asynchrone") {
                       if (locationType !== "en_ligne") setLocationType("en_ligne");
-                      if (!elearningAccessEmailContent) {
-                        const templateType = sponsorFormalAddress ? "elearning_access_vous" : "elearning_access_tu";
-                        const { data: template } = await supabase
-                          .from("email_templates")
-                          .select("html_content")
-                          .eq("template_type", templateType)
-                          .order("is_default", { ascending: false })
-                          .limit(1)
-                          .maybeSingle();
-                        if (template?.html_content) {
-                          setElearningAccessEmailContent(template.html_content);
-                        }
-                      }
                     }
                   }}>
                     <SelectTrigger>
@@ -649,20 +635,9 @@ const FormationCreate = () => {
                       Durée estimée du parcours e-learning
                     </p>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="elearningAccessEmail">Email d'accès e-learning</Label>
-                    <Textarea
-                      id="elearningAccessEmail"
-                      rows={8}
-                      value={elearningAccessEmailContent}
-                      onChange={(e) => setElearningAccessEmailContent(e.target.value)}
-                      placeholder="Contenu de l'email envoyé au participant pour lui donner accès à la formation..."
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Variables disponibles : {"{{first_name}}"}, {"{{training_name}}"}, {"{{access_link}}"}, {"{{start_date}}"}, {"{{end_date}}"}. 
-                      Envoyé automatiquement à chaque participant ajouté (hors paiement en ligne).
-                    </p>
-                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Le contenu de l'email d'accès e-learning est géré dans <strong>Paramètres → Templates Email</strong>.
+                  </p>
                 </div>
               ) : (
                 /* Regular training: Multi-select calendar for specific days */
