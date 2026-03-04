@@ -648,6 +648,16 @@ const EditParticipantDialog = ({
                       Par défaut : {trainingElearningDuration ?? 7}h (durée de la formation)
                     </p>
                   </div>
+
+                  {couponCode && (
+                    <div className="flex items-center gap-3 p-3 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800">
+                      <Tag className="h-5 w-5 text-green-600 flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs text-muted-foreground">Coupon WooCommerce</p>
+                        <p className="text-sm font-mono font-bold text-green-700 dark:text-green-300">{couponCode}</p>
+                      </div>
+                    </div>
+                  )}
                 </>
               )}
 
