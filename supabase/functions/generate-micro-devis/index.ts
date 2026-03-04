@@ -214,7 +214,7 @@ async function persistPdfToStorage(
  * Persist email attachments in private CRM storage bucket.
  */
 async function persistEmailAttachmentsToStorage(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   attachments: EmailAttachmentPayload[],
   cardId: string,
 ): Promise<string[]> {

@@ -177,7 +177,7 @@ Réponds UNIQUEMENT avec un JSON valide, sans texte autour.`;
 }
 
 async function notifySlackFromWebhook(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   type: "opportunity_created",
   card: { title: string; company?: string; first_name?: string; last_name?: string; service_type?: string; email?: string },
 ) {
@@ -217,7 +217,7 @@ async function notifySlackFromWebhook(
 }
 
 async function createCrmOpportunityFromEmail(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   emailData: ResendInboundPayload["data"],
   parsedFrom: { email: string; name: string | null },
   insertedEmailId: string,
