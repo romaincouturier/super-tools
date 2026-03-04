@@ -91,22 +91,43 @@ serve(async (req) => {
     // If the participant has a formula, look up woocommerce_product_id from the formula first
     let woocommerceProductId: number | null = null;
 
+    console.log(`Participant formula: "${participant.formula}", catalog_id: ${training.catalog_id}`);
+
     if (participant.formula) {
-      const { data: formula } = await supabase
+      // Try exact match first, then case-insensitive
+      const { data: formula, error: formulaError } = await supabase
         .from("formation_formulas")
-        .select("woocommerce_product_id, prix")
+        .select("woocommerce_product_id, prix, name")
         .eq("formation_config_id", training.catalog_id)
         .eq("name", participant.formula)
-        .single();
+        .maybeSingle();
+
+      console.log(`Formula lookup result:`, JSON.stringify(formula), `error:`, JSON.stringify(formulaError));
 
       if (formula?.woocommerce_product_id) {
         woocommerceProductId = formula.woocommerce_product_id;
+      } else {
+        // Try case-insensitive match as fallback
+        const { data: formulas } = await supabase
+          .from("formation_formulas")
+          .select("woocommerce_product_id, prix, name")
+          .eq("formation_config_id", training.catalog_id);
+
+        console.log(`All formulas for this catalog:`, JSON.stringify(formulas));
+
+        const match = formulas?.find(
+          (f: any) => f.name?.toLowerCase().trim() === participant.formula?.toLowerCase().trim()
+        );
+        if (match?.woocommerce_product_id) {
+          woocommerceProductId = match.woocommerce_product_id;
+        }
       }
     }
 
     // Fallback to catalog-level product ID if no formula-specific one found
     if (!woocommerceProductId) {
       woocommerceProductId = catalog.woocommerce_product_id;
+      console.log(`Falling back to catalog woocommerce_product_id: ${woocommerceProductId}`);
     }
 
     if (!woocommerceProductId) {
