@@ -606,30 +606,62 @@ Cordialement,`,
     content: {
       tu: `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
 
-Tu es inscrit(e) à la formation e-learning "<strong>{{training_name}}</strong>".
+Ton entreprise vient de t'inscrire à la formation en ligne "<strong>{{training_name}}</strong>" qui se déroule du <strong>{{start_date}}</strong> au <strong>{{end_date}}</strong>.
 
-Tu peux accéder à la formation en ligne à l'adresse suivante :
+Toutes les informations concernant la formation sont disponibles dans ton espace personnel en ligne sur www.supertilt.fr
+
+{{#coupon_code}}
+Pour y accéder, je t'invite à suivre les étapes suivantes :
+
+<ol>
+<li>Rends-toi sur <a href="{{access_link}}">{{access_link}}</a></li>
+<li>En haut de la page de commande, clique sur "Avez-vous un code promo ? Cliquez ici pour saisir votre code"</li>
+<li>Ajoute le code promo <strong>{{coupon_code}}</strong></li>
+<li>Ton panier est mis à jour, ce qui passe ta commande à 0€</li>
+<li>Saisis tes informations normalement comme tu le ferais sur n'importe quel site marchand</li>
+<li>Après la confirmation de ta commande, tu recevras un email qui t'indiquera comment accéder à la formation</li>
+</ol>
+
+Ce code n'est valable que pour toi. En cas d'utilisation de ce code par une autre personne, les accès seraient retirés.
+{{/coupon_code}}
+
+{{^coupon_code}}
 <p style="margin: 20px 0;"><a href="{{access_link}}" style="display: inline-block; padding: 12px 24px; background-color: #e6bc00; color: #000; text-decoration: none; border-radius: 6px; font-weight: bold;">🎓 Accéder à la formation</a></p>
+{{/coupon_code}}
 
-La formation est accessible du <strong>{{start_date}}</strong> au <strong>{{end_date}}</strong>.
+Je te souhaite une bonne journée et à très bientôt sur SuperTilt.fr
 
-Si tu as la moindre question, n'hésite pas à me contacter.
-
-Bonne formation !`,
+Si tu as le moindre souci, contacte-moi.`,
       vous: `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
 
-Vous êtes inscrit(e) à la formation e-learning "<strong>{{training_name}}</strong>".
+Votre entreprise vient de vous inscrire à la formation en ligne "<strong>{{training_name}}</strong>" qui se déroule du <strong>{{start_date}}</strong> au <strong>{{end_date}}</strong>.
 
-Vous pouvez accéder à la formation en ligne à l'adresse suivante :
+Toutes les informations concernant la formation sont disponibles dans votre espace personnel en ligne sur www.supertilt.fr
+
+{{#coupon_code}}
+Pour y accéder, je vous invite à suivre les étapes suivantes :
+
+<ol>
+<li>Rendez-vous sur <a href="{{access_link}}">{{access_link}}</a></li>
+<li>En haut de la page de commande, cliquez sur "Avez-vous un code promo ? Cliquez ici pour saisir votre code"</li>
+<li>Ajoutez le code promo <strong>{{coupon_code}}</strong></li>
+<li>Votre panier est mis à jour, ce qui passe votre commande à 0€</li>
+<li>Saisissez vos informations normalement comme vous le feriez sur n'importe quel site marchand</li>
+<li>Après la confirmation de votre commande, vous recevrez un email qui vous indiquera comment accéder à la formation</li>
+</ol>
+
+Ce code n'est valable que pour vous. En cas d'utilisation de ce code par une autre personne, les accès seraient retirés.
+{{/coupon_code}}
+
+{{^coupon_code}}
 <p style="margin: 20px 0;"><a href="{{access_link}}" style="display: inline-block; padding: 12px 24px; background-color: #e6bc00; color: #000; text-decoration: none; border-radius: 6px; font-weight: bold;">🎓 Accéder à la formation</a></p>
+{{/coupon_code}}
 
-La formation est accessible du <strong>{{start_date}}</strong> au <strong>{{end_date}}</strong>.
+Je vous souhaite une bonne journée et à très bientôt sur SuperTilt.fr
 
-Si vous avez la moindre question, n'hésitez pas à me contacter.
-
-Bonne formation !`,
+Si vous avez le moindre souci, contactez-moi.`,
     },
-    variables: ["first_name", "training_name", "access_link", "start_date", "end_date"],
+    variables: ["first_name", "last_name", "training_name", "access_link", "start_date", "end_date", "coupon_code"],
   },
   convention_reminder: {
     name: "Relance convention de formation",
@@ -861,6 +893,7 @@ const Parametres = () => {
   const [woocommerceStoreUrl, setWoocommerceStoreUrl] = useState("");
   const [woocommerceConsumerKey, setWoocommerceConsumerKey] = useState("");
   const [woocommerceConsumerSecret, setWoocommerceConsumerSecret] = useState("");
+  const [woocommerceCartBaseUrl, setWoocommerceCartBaseUrl] = useState("");
 
 
   // Auto-save infrastructure
@@ -930,7 +963,8 @@ const Parametres = () => {
         "google_search_engine_id",
         "woocommerce_store_url",
         "woocommerce_consumer_key",
-        "woocommerce_consumer_secret"
+        "woocommerce_consumer_secret",
+        "woocommerce_cart_base_url"
       ]);
     
     if (error) {
@@ -1053,6 +1087,9 @@ const Parametres = () => {
         case "woocommerce_consumer_secret":
           setWoocommerceConsumerSecret(setting.setting_value || "");
           break;
+        case "woocommerce_cart_base_url":
+          setWoocommerceCartBaseUrl(setting.setting_value || "");
+          break;
       }
     });
   };
@@ -1097,6 +1134,7 @@ const Parametres = () => {
         { setting_key: "woocommerce_store_url", setting_value: woocommerceStoreUrl, description: "URL de la boutique WooCommerce (ex: https://www.supertilt.fr)" },
         { setting_key: "woocommerce_consumer_key", setting_value: woocommerceConsumerKey, description: "Clé API WooCommerce (Consumer Key, commence par ck_)" },
         { setting_key: "woocommerce_consumer_secret", setting_value: woocommerceConsumerSecret, description: "Secret API WooCommerce (Consumer Secret, commence par cs_)" },
+        { setting_key: "woocommerce_cart_base_url", setting_value: woocommerceCartBaseUrl, description: "URL de base du panier WooCommerce pour les accès e-learning (ex: https://supertilt.fr/commande/?add-to-cart=)" },
       ];
 
       for (const setting of settingsToSave) {
@@ -1120,7 +1158,7 @@ const Parametres = () => {
     delayEvaluationReminder1, delayEvaluationReminder2, delayConventionReminder1, delayConventionReminder2,
     delayFollowUpNews, canDeleteEvaluationsEmails, reglementInterieurUrl,
     slackCrmWebhookUrl, crmInboundEmail, inseeApiKey, googleSearchApiKey, googleSearchEngineId,
-    woocommerceStoreUrl, woocommerceConsumerKey, woocommerceConsumerSecret,
+    woocommerceStoreUrl, woocommerceConsumerKey, woocommerceConsumerSecret, woocommerceCartBaseUrl,
   ]);
 
   // Auto-save effect for general settings (debounced 1.5s)
@@ -2638,9 +2676,23 @@ const Parametres = () => {
                       placeholder="cs_..."
                     />
                   </div>
-                  <p className="text-xs text-muted-foreground">
+                   <p className="text-xs text-muted-foreground">
                     Créez une clé API dans WordPress → WooCommerce → Réglages → Avancé → API REST. Choisissez les permissions <strong>Lecture/Écriture</strong>.
                   </p>
+                  <Separator />
+                  <div className="space-y-2">
+                    <Label htmlFor="wc-cart-base-url">URL de base du panier</Label>
+                    <Input
+                      id="wc-cart-base-url"
+                      type="url"
+                      value={woocommerceCartBaseUrl}
+                      onChange={(e) => setWoocommerceCartBaseUrl(e.target.value)}
+                      placeholder="https://supertilt.fr/commande/?add-to-cart="
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      URL utilisée pour construire le lien d'accès e-learning. Le <code>woocommerce_product_id</code> du catalogue sera ajouté automatiquement à la fin.
+                    </p>
+                  </div>
                 </CardContent>
               </Card>
 
