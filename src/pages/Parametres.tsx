@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
-import { Loader2, ArrowLeft, Settings, Mail, Save, RotateCcw, Sparkles, Cog, ExternalLink, Shield, Database, Users, Key, Tag, Upload, FileText, Trash2 } from "lucide-react";
+import { Loader2, ArrowLeft, Settings, Mail, RotateCcw, Sparkles, Cog, ExternalLink, Shield, Users, Key, Tag, Upload, FileText, Trash2, Check } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import AppHeader from "@/components/AppHeader";
 import { Button } from "@/components/ui/button";
@@ -817,7 +817,6 @@ const Parametres = () => {
   const [youtubeUrl, setYoutubeUrl] = useState("https://www.youtube.com/@supertilt");
   const [blogUrl, setBlogUrl] = useState("https://supertilt.fr/blog/");
   const [newsletterToolUrl, setNewsletterToolUrl] = useState("");
-  const [savingSettings, setSavingSettings] = useState(false);
   const [tvaRate, setTvaRate] = useState("20");
   
   // Working days configuration (Monday to Friday by default)
@@ -864,6 +863,14 @@ const Parametres = () => {
   const [woocommerceConsumerSecret, setWoocommerceConsumerSecret] = useState("");
 
 
+  // Auto-save infrastructure
+  const initialLoadDoneRef = useRef(false);
+  const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const templateAutoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastEditedTemplateRef = useRef<{ type: string; mode: AddressMode } | null>(null);
+  const [autoSaveStatus, setAutoSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+  const [templateAutoSaveStatus, setTemplateAutoSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+
   // Module access check (isAdmin comes from profiles table)
   const { hasAccess, isAdmin, loading: accessLoading } = useModuleAccess();
   
@@ -880,6 +887,8 @@ const Parametres = () => {
       setUser(session.user);
       await Promise.all([fetchTemplates(), fetchSettings()]);
       setLoading(false);
+      // Allow a tick for state to settle before enabling auto-save
+      setTimeout(() => { initialLoadDoneRef.current = true; }, 100);
     };
 
     checkAuth();
@@ -1048,8 +1057,9 @@ const Parametres = () => {
     });
   };
 
-  const handleSaveSettings = async () => {
-    setSavingSettings(true);
+  // Silent auto-save for general settings (no toast on success)
+  const autoSaveSettings = useCallback(async () => {
+    setAutoSaveStatus("saving");
     try {
       const settingsToSave = [
         { setting_key: "sender_email", setting_value: senderEmail, description: "Adresse email de l'expéditeur pour tous les envois" },
@@ -1068,7 +1078,6 @@ const Parametres = () => {
         { setting_key: "delay_needs_survey_days", setting_value: delayNeedsSurvey, description: "Délai avant formation pour envoyer le questionnaire de besoins (en jours)" },
         { setting_key: "delay_reminder_days", setting_value: delayReminder, description: "Délai avant formation pour envoyer le rappel logistique (en jours)" },
         { setting_key: "delay_trainer_summary_days", setting_value: delayTrainerSummary, description: "Délai avant formation pour envoyer la synthèse au formateur (en jours)" },
-        
         { setting_key: "delay_google_review_days", setting_value: delayGoogleReview, description: "Délai après formation pour demander un avis Google (en jours ouvrables)" },
         { setting_key: "delay_video_testimonial_days", setting_value: delayVideoTestimonial, description: "Délai après formation pour demander un témoignage vidéo (en jours ouvrables)" },
         { setting_key: "delay_cold_evaluation_days", setting_value: delayColdEvaluation, description: "Délai après formation pour envoyer l'évaluation à froid (en jours ouvrables)" },
@@ -1080,7 +1089,6 @@ const Parametres = () => {
         { setting_key: "delay_follow_up_news_days", setting_value: delayFollowUpNews, description: "Délai après formation pour envoyer un message informel de prise de nouvelles (en jours ouvrables)" },
         { setting_key: "can_delete_evaluations_emails", setting_value: canDeleteEvaluationsEmails, description: "Emails des utilisateurs autorisés à supprimer des évaluations (séparés par des virgules)" },
         { setting_key: "reglement_interieur_url", setting_value: reglementInterieurUrl || "", description: "URL du règlement intérieur des formations (PDF uploadé)" },
-        // post_evaluation_email_* settings removed — now managed via post_evaluation_emails table
         { setting_key: "slack_crm_webhook_url", setting_value: slackCrmWebhookUrl, description: "URL du webhook Slack pour les notifications CRM (opportunités créées/gagnées)" },
         { setting_key: "crm_inbound_email", setting_value: crmInboundEmail, description: "Adresse email dédiée CRM — les emails reçus à cette adresse créent automatiquement une opportunité" },
         { setting_key: "insee_api_key", setting_value: inseeApiKey, description: "Clé API INSEE SIRENE pour la recherche d'entreprises par SIREN" },
@@ -1097,21 +1105,114 @@ const Parametres = () => {
           .upsert(setting, { onConflict: "setting_key" });
       }
 
-      toast({
-        title: "Paramètres enregistrés",
-        description: "Les paramètres généraux ont été mis à jour.",
-      });
+      setAutoSaveStatus("saved");
+      setTimeout(() => setAutoSaveStatus("idle"), 2000);
     } catch (error) {
-      console.error("Save settings error:", error);
-      toast({
-        title: "Erreur",
-        description: "Impossible d'enregistrer les paramètres.",
-        variant: "destructive",
-      });
-    } finally {
-      setSavingSettings(false);
+      console.error("Auto-save settings error:", error);
+      setAutoSaveStatus("idle");
     }
-  };
+  }, [
+    senderEmail, senderName, evaluationNotificationEmail, bccEnabled, bccEmail,
+    googleMyBusinessUrl, supertiltSiteUrl, newsletterToolUrl, websiteUrl, youtubeUrl, blogUrl,
+    tvaRate, workingDays,
+    delayNeedsSurvey, delayReminder, delayTrainerSummary,
+    delayGoogleReview, delayVideoTestimonial, delayColdEvaluation, delayColdEvaluationFunder,
+    delayEvaluationReminder1, delayEvaluationReminder2, delayConventionReminder1, delayConventionReminder2,
+    delayFollowUpNews, canDeleteEvaluationsEmails, reglementInterieurUrl,
+    slackCrmWebhookUrl, crmInboundEmail, inseeApiKey, googleSearchApiKey, googleSearchEngineId,
+    woocommerceStoreUrl, woocommerceConsumerKey, woocommerceConsumerSecret,
+  ]);
+
+  // Auto-save effect for general settings (debounced 1.5s)
+  useEffect(() => {
+    if (!initialLoadDoneRef.current || loading) return;
+
+    if (autoSaveTimerRef.current) {
+      clearTimeout(autoSaveTimerRef.current);
+    }
+
+    setAutoSaveStatus("idle");
+    autoSaveTimerRef.current = setTimeout(() => {
+      autoSaveSettings();
+    }, 1500);
+
+    return () => {
+      if (autoSaveTimerRef.current) {
+        clearTimeout(autoSaveTimerRef.current);
+      }
+    };
+  }, [autoSaveSettings, loading]);
+
+  // Silent auto-save for email templates
+  const autoSaveTemplate = useCallback(async (templateType: string, mode: AddressMode) => {
+    setTemplateAutoSaveStatus("saving");
+    try {
+      const edited = editedTemplates[templateType]?.[mode];
+      const existing = templates[templateType]?.[mode];
+      const templateTypeWithMode = `${templateType}_${mode}`;
+
+      if (existing) {
+        const { error } = await supabase
+          .from("email_templates")
+          .update({
+            subject: edited.subject,
+            html_content: edited.content,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", existing.id);
+        if (error) throw error;
+      } else {
+        const { data, error } = await supabase
+          .from("email_templates")
+          .insert({
+            template_type: templateTypeWithMode,
+            template_name: `${DEFAULT_TEMPLATES[templateType].name} (${mode === "tu" ? "tutoiement" : "vouvoiement"})`,
+            subject: edited.subject,
+            html_content: edited.content,
+            is_default: false,
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        setTemplates((prev) => ({
+          ...prev,
+          [templateType]: {
+            ...prev[templateType],
+            [mode]: data,
+          },
+        }));
+      }
+
+      setTemplateAutoSaveStatus("saved");
+      setTimeout(() => setTemplateAutoSaveStatus("idle"), 2000);
+    } catch (error) {
+      console.error("Auto-save template error:", error);
+      setTemplateAutoSaveStatus("idle");
+    }
+  }, [editedTemplates, templates]);
+
+  // Auto-save effect for email templates (debounced 2s)
+  useEffect(() => {
+    if (!initialLoadDoneRef.current || loading || !lastEditedTemplateRef.current) return;
+
+    if (templateAutoSaveTimerRef.current) {
+      clearTimeout(templateAutoSaveTimerRef.current);
+    }
+
+    const { type, mode } = lastEditedTemplateRef.current;
+
+    templateAutoSaveTimerRef.current = setTimeout(() => {
+      autoSaveTemplate(type, mode);
+    }, 2000);
+
+    return () => {
+      if (templateAutoSaveTimerRef.current) {
+        clearTimeout(templateAutoSaveTimerRef.current);
+      }
+    };
+  }, [editedTemplates, autoSaveTemplate, loading]);
 
   const fetchTemplates = async () => {
     const { data, error } = await supabase
@@ -1262,6 +1363,7 @@ const Parametres = () => {
   };
 
   const updateTemplate = (templateType: string, mode: AddressMode, field: "subject" | "content", value: string) => {
+    lastEditedTemplateRef.current = { type: templateType, mode };
     setEditedTemplates((prev) => ({
       ...prev,
       [templateType]: {
@@ -1381,18 +1483,19 @@ const Parametres = () => {
       </div>
 
       {/* Actions */}
-      <div className="flex flex-wrap gap-2 pt-2">
-        <Button
-          onClick={() => handleSaveTemplate(type, currentMode)}
-          disabled={saving === saveKey || improving === saveKey}
-        >
-          {saving === saveKey ? (
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-          ) : (
-            <Save className="h-4 w-4 mr-2" />
-          )}
-          Enregistrer
-        </Button>
+      <div className="flex flex-wrap gap-2 pt-2 items-center">
+        {templateAutoSaveStatus === "saving" && (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground px-2">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Enregistrement...
+          </div>
+        )}
+        {templateAutoSaveStatus === "saved" && (
+          <div className="flex items-center gap-2 text-sm text-green-600 px-2">
+            <Check className="h-4 w-4" />
+            Enregistré
+          </div>
+        )}
         <Button
           variant="secondary"
           onClick={() => handleImproveWithAI(type, currentMode)}
@@ -2185,17 +2288,18 @@ const Parametres = () => {
                   </div>
                 </div>
 
-                <Button
-                  onClick={handleSaveSettings}
-                  disabled={savingSettings}
-                >
-                  {savingSettings ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <Save className="h-4 w-4 mr-2" />
-                  )}
-                  Enregistrer
-                </Button>
+                {autoSaveStatus === "saving" && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Enregistrement...
+                  </div>
+                )}
+                {autoSaveStatus === "saved" && (
+                  <div className="flex items-center gap-2 text-sm text-green-600">
+                    <Check className="h-4 w-4" />
+                    Enregistré
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -2587,6 +2691,18 @@ const Parametres = () => {
                   </div>
                 </CardContent>
               </Card>
+              {autoSaveStatus === "saving" && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Enregistrement...
+                </div>
+              )}
+              {autoSaveStatus === "saved" && (
+                <div className="flex items-center gap-2 text-sm text-green-600">
+                  <Check className="h-4 w-4" />
+                  Enregistré
+                </div>
+              )}
             </TabsContent>
           )}
 
