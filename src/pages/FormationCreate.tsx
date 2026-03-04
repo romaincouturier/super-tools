@@ -22,6 +22,7 @@ import TrainingNameCombobox, { FormationConfig } from "@/components/formations/T
 import SupertiltLinkCombobox from "@/components/formations/SupertiltLinkCombobox";
 import ScheduledActionsEditor, { ScheduledAction } from "@/components/formations/ScheduledActionsEditor";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import TrainerSelector from "@/components/formations/TrainerSelector";
 import { FormationFormula } from "@/types/training";
 
 const PREDEFINED_LOCATIONS = [
@@ -86,7 +87,15 @@ const FormationCreate = () => {
   const [catalogFormulas, setCatalogFormulas] = useState<FormationFormula[]>([]);
   const [selectedFormulaId, setSelectedFormulaId] = useState<string | null>(null);
 
-  
+  // Trainer
+  const [trainerId, setTrainerId] = useState<string | null>(null);
+  const [trainerDetails, setTrainerDetails] = useState<{
+    id: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+  } | null>(null);
+
   // SuperTilt site URL from settings
   const [supertiltSiteUrl, setSupertiltSiteUrl] = useState<string>("");
 
@@ -310,7 +319,7 @@ const FormationCreate = () => {
           financeur_same_as_sponsor: isPermanent ? true : financeurSameAsSponsor,
           financeur_name: (isPermanent || financeurSameAsSponsor) ? null : (financeurName || null),
           financeur_url: (isPermanent || financeurSameAsSponsor) ? null : (financeurUrl || null),
-          trainer_id: null,
+          trainer_id: isPermanent ? null : (trainerId || null),
           elearning_duration: isElearning && elearningDuration ? parseFloat(elearningDuration) : null,
           catalog_id: catalogId || null,
           formula_id: isPermanent ? selectedFormulaId : null,
@@ -374,9 +383,41 @@ const FormationCreate = () => {
         },
       });
 
+      // Send calendar invite to trainer if one is selected (not for permanent)
+      if (!isPermanent && trainerDetails && schedules.length > 0) {
+        try {
+          const { error: emailError } = await supabase.functions.invoke("send-training-calendar-invite", {
+            body: {
+              trainingId: training.id,
+              trainingName,
+              clientName,
+              location: finalLocation,
+              schedules: schedules.map(s => ({
+                day_date: s.day_date,
+                start_time: s.start_time,
+                end_time: s.end_time,
+              })),
+              trainerEmail: trainerDetails.email,
+              trainerFirstName: trainerDetails.first_name,
+              trainerLastName: trainerDetails.last_name,
+            },
+          });
+
+          if (emailError) {
+            console.error("Error sending calendar invite:", emailError);
+          } else {
+            console.log("Calendar invite sent to trainer:", trainerDetails.email);
+          }
+        } catch (emailErr) {
+          console.error("Failed to send calendar invite:", emailErr);
+        }
+      }
+
       toast({
         title: "Formation créée",
-        description: "La formation a été créée avec succès.",
+        description: trainerDetails && !isPermanent
+          ? "La formation a été créée et une invitation calendrier a été envoyée au formateur."
+          : "La formation a été créée avec succès.",
       });
 
       navigate(`/formations/${training.id}`);
@@ -803,6 +844,22 @@ const FormationCreate = () => {
               </div>
               )}
 
+              {/* Trainer selector - hidden for permanent */}
+              {!isPermanent && (
+              <div className="space-y-2">
+                <Label>Formateur</Label>
+                <TrainerSelector
+                  value={trainerId}
+                  onChange={setTrainerId}
+                  onTrainerSelect={(trainer) => setTrainerDetails(trainer ? {
+                    id: trainer.id,
+                    first_name: trainer.first_name,
+                    last_name: trainer.last_name,
+                    email: trainer.email,
+                  } : null)}
+                />
+              </div>
+              )}
 
             </CardContent>
           </Card>
