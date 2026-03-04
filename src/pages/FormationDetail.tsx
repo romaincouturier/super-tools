@@ -1214,7 +1214,7 @@ const FormationDetail = () => {
                       clientName={training.client_name}
                       formatFormation={training.format_formation}
                       availableFormulas={availableFormulas}
-                      trainingFormulaId={(training as any).formula_id}
+                      trainingFormulaId={training.formula_id}
                       onParticipantAdded={fetchParticipants}
                       onScheduledEmailsRefresh={() => setEmailsRefreshTrigger(prev => prev + 1)}
                       initialFirstName={addParticipantData?.firstName}

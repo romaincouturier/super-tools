@@ -4140,6 +4140,7 @@ export type Database = {
           financeur_same_as_sponsor: boolean
           financeur_url: string | null
           format_formation: string | null
+          formula_id: string | null
           funder_appreciation: string | null
           funder_appreciation_date: string | null
           hotel_booked: boolean | null
@@ -4188,6 +4189,7 @@ export type Database = {
           financeur_same_as_sponsor?: boolean
           financeur_url?: string | null
           format_formation?: string | null
+          formula_id?: string | null
           funder_appreciation?: string | null
           funder_appreciation_date?: string | null
           hotel_booked?: boolean | null
@@ -4236,6 +4238,7 @@ export type Database = {
           financeur_same_as_sponsor?: boolean
           financeur_url?: string | null
           format_formation?: string | null
+          formula_id?: string | null
           funder_appreciation?: string | null
           funder_appreciation_date?: string | null
           hotel_booked?: boolean | null
@@ -4273,6 +4276,13 @@ export type Database = {
             columns: ["catalog_id"]
             isOneToOne: false
             referencedRelation: "formation_configs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trainings_formula_id_fkey"
+            columns: ["formula_id"]
+            isOneToOne: false
+            referencedRelation: "formation_formulas"
             referencedColumns: ["id"]
           },
           {
