@@ -606,62 +606,30 @@ Cordialement,`,
     content: {
       tu: `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
 
-Ton entreprise vient de t'inscrire à la formation en ligne "<strong>{{training_name}}</strong>" qui se déroule du <strong>{{start_date}}</strong> au <strong>{{end_date}}</strong>.
+Tu es inscrit(e) à la formation e-learning "<strong>{{training_name}}</strong>".
 
-Toutes les informations concernant la formation sont disponibles dans ton espace personnel en ligne sur www.supertilt.fr
-
-{{#coupon_code}}
-Pour y accéder, je t'invite à suivre les étapes suivantes :
-
-<ol>
-<li>Rends-toi sur <a href="{{access_link}}">{{access_link}}</a></li>
-<li>En haut de la page de commande, clique sur "Avez-vous un code promo ? Cliquez ici pour saisir votre code"</li>
-<li>Ajoute le code promo <strong>{{coupon_code}}</strong></li>
-<li>Ton panier est mis à jour, ce qui passe ta commande à 0€</li>
-<li>Saisis tes informations normalement comme tu le ferais sur n'importe quel site marchand</li>
-<li>Après la confirmation de ta commande, tu recevras un email qui t'indiquera comment accéder à la formation</li>
-</ol>
-
-Ce code n'est valable que pour toi. En cas d'utilisation de ce code par une autre personne, les accès seraient retirés.
-{{/coupon_code}}
-
-{{^coupon_code}}
+Tu peux accéder à la formation en ligne à l'adresse suivante :
 <p style="margin: 20px 0;"><a href="{{access_link}}" style="display: inline-block; padding: 12px 24px; background-color: #e6bc00; color: #000; text-decoration: none; border-radius: 6px; font-weight: bold;">🎓 Accéder à la formation</a></p>
-{{/coupon_code}}
 
-Je te souhaite une bonne journée et à très bientôt sur SuperTilt.fr
+La formation est accessible du <strong>{{start_date}}</strong> au <strong>{{end_date}}</strong>.
 
-Si tu as le moindre souci, contacte-moi.`,
+Si tu as la moindre question, n'hésite pas à me contacter.
+
+Bonne formation !`,
       vous: `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
 
-Votre entreprise vient de vous inscrire à la formation en ligne "<strong>{{training_name}}</strong>" qui se déroule du <strong>{{start_date}}</strong> au <strong>{{end_date}}</strong>.
+Vous êtes inscrit(e) à la formation e-learning "<strong>{{training_name}}</strong>".
 
-Toutes les informations concernant la formation sont disponibles dans votre espace personnel en ligne sur www.supertilt.fr
-
-{{#coupon_code}}
-Pour y accéder, je vous invite à suivre les étapes suivantes :
-
-<ol>
-<li>Rendez-vous sur <a href="{{access_link}}">{{access_link}}</a></li>
-<li>En haut de la page de commande, cliquez sur "Avez-vous un code promo ? Cliquez ici pour saisir votre code"</li>
-<li>Ajoutez le code promo <strong>{{coupon_code}}</strong></li>
-<li>Votre panier est mis à jour, ce qui passe votre commande à 0€</li>
-<li>Saisissez vos informations normalement comme vous le feriez sur n'importe quel site marchand</li>
-<li>Après la confirmation de votre commande, vous recevrez un email qui vous indiquera comment accéder à la formation</li>
-</ol>
-
-Ce code n'est valable que pour vous. En cas d'utilisation de ce code par une autre personne, les accès seraient retirés.
-{{/coupon_code}}
-
-{{^coupon_code}}
+Vous pouvez accéder à la formation en ligne à l'adresse suivante :
 <p style="margin: 20px 0;"><a href="{{access_link}}" style="display: inline-block; padding: 12px 24px; background-color: #e6bc00; color: #000; text-decoration: none; border-radius: 6px; font-weight: bold;">🎓 Accéder à la formation</a></p>
-{{/coupon_code}}
 
-Je vous souhaite une bonne journée et à très bientôt sur SuperTilt.fr
+La formation est accessible du <strong>{{start_date}}</strong> au <strong>{{end_date}}</strong>.
 
-Si vous avez le moindre souci, contactez-moi.`,
+Si vous avez la moindre question, n'hésitez pas à me contacter.
+
+Bonne formation !`,
     },
-    variables: ["first_name", "last_name", "training_name", "access_link", "start_date", "end_date", "coupon_code"],
+    variables: ["first_name", "training_name", "access_link", "start_date", "end_date"],
   },
   convention_reminder: {
     name: "Relance convention de formation",
@@ -843,7 +811,7 @@ const SETTINGS_REGISTRY: Record<string, { default: string; description: string }
   youtube_url: { default: "https://www.youtube.com/@supertilt", description: "URL de la chaîne YouTube" },
   blog_url: { default: "https://supertilt.fr/blog/", description: "URL du blog" },
   tva_rate: { default: "20", description: "Taux de TVA par défaut en pourcentage (ex: 20 pour 20%)" },
-  working_days: { default: "[false,true,true,true,true,true,false]", description: "Jours ouvrables pour l'envoi des emails (tableau de 7 booléens : dim, lun, mar, mer, jeu, ven, sam)" },
+  working_days: { default: JSON.stringify([false, true, true, true, true, true, false]), description: "Jours ouvrables pour l'envoi des emails (tableau de 7 booléens : dim, lun, mar, mer, jeu, ven, sam)" },
   delay_needs_survey_days: { default: "7", description: "Délai avant formation pour envoyer le questionnaire de besoins (en jours)" },
   delay_reminder_days: { default: "7", description: "Délai avant formation pour envoyer le rappel logistique (en jours)" },
   delay_trainer_summary_days: { default: "1", description: "Délai avant formation pour envoyer la synthèse au formateur (en jours)" },
@@ -1559,7 +1527,7 @@ const Parametres = () => {
                     <Switch
                       id="bcc-toggle"
                       checked={bccEnabled}
-                      onCheckedChange={(v) => updateSetting("bcc_enabled", v.toString())}
+                      onCheckedChange={(v) => updateSetting("bcc_enabled", v ? "true" : "false")}
                     />
                   </div>
                   
@@ -2200,13 +2168,7 @@ const Parametres = () => {
                         const saveKey = `${type}_${currentMode}`;
                         const isCustomized = templates[type]?.tu || templates[type]?.vous;
                         
-                        // Map delayKey to actual delay value
-                        const getDelayValue = (key?: string): string | null => {
-                          if (!key) return null;
-                          return settings[key] || null;
-                        };
-                        
-                        const delayValue = getDelayValue(defaultTemplate.delayKey);
+                        const delayValue = defaultTemplate.delayKey ? (settings[defaultTemplate.delayKey] || null) : null;
                         const timingLabel = delayValue ? `J-${delayValue}` : null;
                         
                         return (
@@ -2251,13 +2213,7 @@ const Parametres = () => {
                         const saveKey = `${type}_${currentMode}`;
                         const isCustomized = templates[type]?.tu || templates[type]?.vous;
                         
-                        // Map delayKey to actual delay value for "after" emails
-                        const getDelayValue = (key?: string): string | null => {
-                          if (!key) return null;
-                          return settings[key] || null;
-                        };
-                        
-                        const delayValue = getDelayValue(defaultTemplate.delayKey);
+                        const delayValue = defaultTemplate.delayKey ? (settings[defaultTemplate.delayKey] || null) : null;
                         const timingLabel = delayValue ? `J+${delayValue}` : null;
                         
                         return (
@@ -2482,7 +2438,7 @@ const Parametres = () => {
                       placeholder="cs_..."
                     />
                   </div>
-                   <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-muted-foreground">
                     Créez une clé API dans WordPress → WooCommerce → Réglages → Avancé → API REST. Choisissez les permissions <strong>Lecture/Écriture</strong>.
                   </p>
                   <Separator />

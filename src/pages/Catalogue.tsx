@@ -70,18 +70,22 @@ const Catalogue = () => {
 
       if (error) throw error;
 
-      // Fetch trainings (count + last session date per catalog entry)
+      // Fetch trainings (count + last completed session date per catalog entry)
+      const today = new Date().toISOString().split("T")[0];
       const { data: trainings } = await supabase
         .from("trainings")
-        .select("catalog_id, start_date");
+        .select("catalog_id, start_date, end_date");
 
       const countMap: Record<string, number> = {};
       const lastDateMap: Record<string, string> = {};
       trainings?.forEach((t: any) => {
         if (t.catalog_id) {
           countMap[t.catalog_id] = (countMap[t.catalog_id] || 0) + 1;
-          if (!lastDateMap[t.catalog_id] || t.start_date > lastDateMap[t.catalog_id]) {
-            lastDateMap[t.catalog_id] = t.start_date;
+          const effectiveEnd = t.end_date || t.start_date;
+          if (effectiveEnd && effectiveEnd <= today) {
+            if (!lastDateMap[t.catalog_id] || effectiveEnd > lastDateMap[t.catalog_id]) {
+              lastDateMap[t.catalog_id] = effectiveEnd;
+            }
           }
         }
       });
