@@ -1621,6 +1621,22 @@ export type Database = {
         }
         Relationships: []
       }
+      formulaire_rate_limits: {
+        Row: {
+          id: number
+          ip_address: string
+          attempted_at: string
+        }
+        Insert: {
+          ip_address: string
+          attempted_at?: string
+        }
+        Update: {
+          ip_address?: string
+          attempted_at?: string
+        }
+        Relationships: []
+      }
       formation_formulas: {
         Row: {
           created_at: string
@@ -2871,14 +2887,15 @@ export type Database = {
           niveau_actuel: number | null
           niveau_motivation: number | null
           nom: string | null
-          participant_id: string
+          participant_id: string | null
           prenom: string | null
           prerequis_details: string | null
           prerequis_validation: string | null
           societe: string | null
           token: string
-          training_id: string
+          training_id: string | null
           updated_at: string
+          woocommerce_product_id: number | null
         }
         Insert: {
           besoins_accessibilite?: string | null
@@ -2908,13 +2925,14 @@ export type Database = {
           niveau_actuel?: number | null
           niveau_motivation?: number | null
           nom?: string | null
-          participant_id: string
+          participant_id?: string | null
           prenom?: string | null
           prerequis_details?: string | null
           prerequis_validation?: string | null
           societe?: string | null
           token: string
-          training_id: string
+          training_id?: string | null
+          woocommerce_product_id?: number | null
           updated_at?: string
         }
         Update: {
@@ -2945,14 +2963,15 @@ export type Database = {
           niveau_actuel?: number | null
           niveau_motivation?: number | null
           nom?: string | null
-          participant_id?: string
+          participant_id?: string | null
           prenom?: string | null
           prerequis_details?: string | null
           prerequis_validation?: string | null
           societe?: string | null
           token?: string
-          training_id?: string
+          training_id?: string | null
           updated_at?: string
+          woocommerce_product_id?: number | null
         }
         Relationships: [
           {
@@ -3799,14 +3818,15 @@ export type Database = {
           message_recommandation: string | null
           objectif_prioritaire: string | null
           objectifs_evaluation: Json | null
-          participant_id: string
+          participant_id: string | null
           qualification_intervenant_adequate: boolean | null
           recommandation: string | null
           remarques_libres: string | null
           rythme: string | null
           token: string
-          training_id: string
+          training_id: string | null
           updated_at: string
+          woocommerce_product_id: number | null
         }
         Insert: {
           amelioration_suggeree?: string | null
@@ -3832,13 +3852,14 @@ export type Database = {
           message_recommandation?: string | null
           objectif_prioritaire?: string | null
           objectifs_evaluation?: Json | null
-          participant_id: string
+          participant_id?: string | null
           qualification_intervenant_adequate?: boolean | null
           recommandation?: string | null
           remarques_libres?: string | null
           rythme?: string | null
           token: string
-          training_id: string
+          training_id?: string | null
+          woocommerce_product_id?: number | null
           updated_at?: string
         }
         Update: {
@@ -3865,14 +3886,15 @@ export type Database = {
           message_recommandation?: string | null
           objectif_prioritaire?: string | null
           objectifs_evaluation?: Json | null
-          participant_id?: string
+          participant_id?: string | null
           qualification_intervenant_adequate?: boolean | null
           recommandation?: string | null
           remarques_libres?: string | null
           rythme?: string | null
           token?: string
-          training_id?: string
+          training_id?: string | null
           updated_at?: string
+          woocommerce_product_id?: number | null
         }
         Relationships: [
           {
@@ -4467,9 +4489,27 @@ export type Database = {
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       is_signup_allowed: { Args: { p_email: string }; Returns: boolean }
+      check_formulaire_rate_limit: {
+        Args: {
+          p_ip_address: string
+          p_max_requests?: number
+          p_window_seconds?: number
+        }
+        Returns: boolean
+      }
+      register_formulaire_orphan: {
+        Args: {
+          p_email: string
+          p_first_name: string
+          p_last_name: string
+          p_product_id: number
+          p_form_type: string
+        }
+        Returns: Json
+      }
       resolve_formulaire_token: {
         Args: { p_email: string; p_form_type: string; p_product_id: number }
-        Returns: string
+        Returns: Json
       }
       update_api_key_last_used: { Args: { key_id: string }; Returns: undefined }
       upsert_profile: {

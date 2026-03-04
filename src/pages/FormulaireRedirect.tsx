@@ -1,7 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, AlertTriangle } from "lucide-react";
+import { Loader2, AlertTriangle, UserPlus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 /**
  * Public redirect page for e-learning integrations (LearnDash / WordPress).
@@ -10,61 +13,162 @@ import { Loader2, AlertTriangle } from "lucide-react";
  *   /formulaire/besoins?email=xxx&product_id=123
  *   /formulaire/evaluation?email=xxx&product_id=123
  *
- * Resolves the participant via email + WooCommerce product ID,
- * creates the form record if needed, and redirects to the actual form.
+ * Flow:
+ * 1. Calls resolve-formulaire Edge Function (with IP rate limiting)
+ * 2. If participant found → redirect to form
+ * 3. If participant not found → show first_name / last_name form
+ * 4. On registration → creates orphan entry and redirects
  */
+
+interface ResolveResult {
+  status: "ok" | "product_not_found" | "participant_not_found" | "invalid_params";
+  token?: string;
+  catalog_id?: string;
+}
+
 const FormulaireRedirect = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const location = useLocation();
+
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [showRegistration, setShowRegistration] = useState(false);
+  const [registering, setRegistering] = useState(false);
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
 
   const email = searchParams.get("email");
   const productId = searchParams.get("product_id");
   const formType = location.pathname.includes("besoins") ? "besoins" : "evaluation";
 
+  const formLabel = formType === "besoins" ? "recueil des besoins" : "évaluation";
+
+  const callResolve = useCallback(
+    async (body: Record<string, unknown>): Promise<ResolveResult | null> => {
+      const { data, error: fnError } = await supabase.functions.invoke(
+        "resolve-formulaire",
+        { body }
+      );
+
+      if (fnError) {
+        console.error("resolve-formulaire error:", fnError);
+        // Check for rate limiting
+        if (fnError.message?.includes("429") || fnError.message?.includes("Trop de requêtes")) {
+          setError("Trop de requêtes. Veuillez réessayer dans quelques minutes.");
+        } else {
+          setError("Une erreur technique est survenue. Veuillez réessayer.");
+        }
+        return null;
+      }
+
+      return data as ResolveResult;
+    },
+    []
+  );
+
+  const redirectToForm = useCallback(
+    (token: string) => {
+      const target =
+        formType === "besoins"
+          ? `/questionnaire/${token}`
+          : `/evaluation/${token}`;
+      navigate(target, { replace: true });
+    },
+    [formType, navigate]
+  );
+
+  // Initial resolution
   useEffect(() => {
     const resolve = async () => {
       if (!email || !productId) {
         setError("Paramètres manquants : email et product_id sont requis.");
+        setLoading(false);
         return;
       }
 
       const pid = parseInt(productId, 10);
       if (isNaN(pid)) {
         setError("product_id invalide.");
+        setLoading(false);
         return;
       }
 
-      const { data: token, error: rpcError } = await supabase.rpc(
-        "resolve_formulaire_token",
-        { p_email: email, p_product_id: pid, p_form_type: formType }
-      );
+      const result = await callResolve({
+        email,
+        product_id: pid,
+        form_type: formType,
+      });
 
-      if (rpcError) {
-        console.error("resolve_formulaire_token error:", rpcError);
-        setError("Une erreur technique est survenue. Veuillez réessayer.");
+      if (!result) {
+        setLoading(false);
         return;
       }
 
-      if (!token) {
-        setError(
-          "Aucun participant trouvé pour cet email et cette formation. " +
-          "Vérifiez que vous êtes bien inscrit(e)."
-        );
-        return;
-      }
+      switch (result.status) {
+        case "ok":
+          redirectToForm(result.token!);
+          break;
 
-      const target = formType === "besoins"
-        ? `/questionnaire/${token}`
-        : `/evaluation/${token}`;
-      navigate(target, { replace: true });
+        case "product_not_found":
+          setError(
+            "Ce lien n'est pas valide. Le produit référencé n'existe pas dans notre système."
+          );
+          setLoading(false);
+          break;
+
+        case "participant_not_found":
+          setShowRegistration(true);
+          setLoading(false);
+          break;
+
+        case "invalid_params":
+          setError("Paramètres invalides.");
+          setLoading(false);
+          break;
+
+        default:
+          setError("Une erreur inattendue est survenue.");
+          setLoading(false);
+      }
     };
 
     resolve();
-  }, [email, productId, formType, navigate]);
+  }, [email, productId, formType, callResolve, redirectToForm]);
 
-  if (error) {
+  // Handle registration form submit
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!firstName.trim() || !lastName.trim()) return;
+
+    setRegistering(true);
+    setError(null);
+
+    const pid = parseInt(productId!, 10);
+    const result = await callResolve({
+      email,
+      product_id: pid,
+      form_type: formType,
+      first_name: firstName.trim(),
+      last_name: lastName.trim(),
+    });
+
+    if (!result) {
+      setRegistering(false);
+      return;
+    }
+
+    if (result.status === "ok" && result.token) {
+      redirectToForm(result.token);
+    } else {
+      setError("Impossible de créer votre formulaire. Veuillez réessayer.");
+      setRegistering(false);
+    }
+  };
+
+  // Error state
+  if (error && !showRegistration) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
         <div className="max-w-md w-full text-center space-y-4">
@@ -76,6 +180,84 @@ const FormulaireRedirect = () => {
     );
   }
 
+  // Registration form for unknown participants
+  if (showRegistration) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+        <div className="max-w-md w-full bg-white rounded-lg shadow-sm border p-6 space-y-6">
+          <div className="text-center space-y-2">
+            <UserPlus className="h-10 w-10 text-primary mx-auto" />
+            <h1 className="text-xl font-semibold">
+              Formulaire de {formLabel}
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Votre email n'a pas été trouvé dans nos participants.
+              Veuillez compléter vos informations pour accéder au formulaire.
+            </p>
+          </div>
+
+          <form onSubmit={handleRegister} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                value={email || ""}
+                disabled
+                className="bg-muted"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="lastName">Nom *</Label>
+              <Input
+                id="lastName"
+                type="text"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                placeholder="Votre nom"
+                required
+                autoFocus
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="firstName">Prénom *</Label>
+              <Input
+                id="firstName"
+                type="text"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                placeholder="Votre prénom"
+                required
+              />
+            </div>
+
+            {error && (
+              <p className="text-sm text-destructive">{error}</p>
+            )}
+
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={registering || !firstName.trim() || !lastName.trim()}
+            >
+              {registering ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Chargement...
+                </>
+              ) : (
+                "Accéder au formulaire"
+              )}
+            </Button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  // Loading state
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="text-center space-y-3">
