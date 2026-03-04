@@ -475,8 +475,7 @@ const EditParticipantDialog = ({
           .from("training_participants")
           .update(updateData)
           .eq("id", participant.id)
-          .then(() => onParticipantUpdated())
-          .catch(console.error);
+          .then(() => onParticipantUpdated(), console.error);
       }
     }
     setOpen(false);
