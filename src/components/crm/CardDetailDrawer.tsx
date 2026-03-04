@@ -207,6 +207,9 @@ const CardDetailDrawer = ({
   const [nextActionDone, setNextActionDone] = useState(false);
   const [nextActionType, setNextActionType] = useState<"email" | "phone" | "rdv_physique" | "rdv_visio" | "other">("other");
 
+  // Brief questions local state
+  const [localBriefQuestions, setLocalBriefQuestions] = useState<BriefQuestion[]>([]);
+
   // Linked mission state
   const [linkedMissionId, setLinkedMissionId] = useState<string | null>(null);
   const [missionSearchQuery, setMissionSearchQuery] = useState("");
