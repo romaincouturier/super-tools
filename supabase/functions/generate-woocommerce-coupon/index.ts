@@ -98,15 +98,29 @@ serve(async (req) => {
       );
     }
 
-    // WooCommerce credentials from secrets
-    const storeUrl = Deno.env.get("WOOCOMMERCE_STORE_URL");
-    const consumerKey = Deno.env.get("WOOCOMMERCE_CONSUMER_KEY");
-    const consumerSecret = Deno.env.get("WOOCOMMERCE_CONSUMER_SECRET");
+    // WooCommerce credentials from app_settings table
+    const { data: wcSettings } = await supabase
+      .from("app_settings")
+      .select("setting_key, setting_value")
+      .in("setting_key", [
+        "woocommerce_store_url",
+        "woocommerce_consumer_key",
+        "woocommerce_consumer_secret",
+      ]);
+
+    const settingsMap: Record<string, string> = {};
+    (wcSettings || []).forEach((s: any) => {
+      if (s.setting_value) settingsMap[s.setting_key] = s.setting_value;
+    });
+
+    const storeUrl = settingsMap["woocommerce_store_url"] || Deno.env.get("WOOCOMMERCE_STORE_URL");
+    const consumerKey = settingsMap["woocommerce_consumer_key"] || Deno.env.get("WOOCOMMERCE_CONSUMER_KEY");
+    const consumerSecret = settingsMap["woocommerce_consumer_secret"] || Deno.env.get("WOOCOMMERCE_CONSUMER_SECRET");
 
     if (!storeUrl || !consumerKey || !consumerSecret) {
       return createErrorResponse(
         "Les identifiants WooCommerce ne sont pas configurés. " +
-        "Veuillez configurer WOOCOMMERCE_STORE_URL, WOOCOMMERCE_CONSUMER_KEY et WOOCOMMERCE_CONSUMER_SECRET dans les secrets Supabase.",
+        "Veuillez les renseigner dans Paramètres → Intégrations → WooCommerce.",
         500
       );
     }
