@@ -2098,7 +2098,7 @@ const CardDetailDrawer = ({
                   if (card) {
                     supabase
                       .from("crm_cards")
-                      .update({ gender })
+                      .update({ gender } as any)
                       .eq("id", card.id)
                       .then(() => queryClient.invalidateQueries({ queryKey: ["crm-cards"] }));
                   }
