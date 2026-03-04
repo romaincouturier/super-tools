@@ -291,7 +291,7 @@ const FormationCreate = () => {
           end_date: endDate ? format(endDate, "yyyy-MM-dd") : null,
           training_name: trainingName,
           location: isPermanent ? "En ligne en accédant à son compte sur supertilt.fr" : finalLocation,
-          client_name: isPermanent ? null : clientName,
+          client_name: isPermanent ? "Formation permanente" : clientName,
           client_address: isPermanent ? null : (clientAddress || null),
           sold_price_ht: isPermanent ? null : (soldPriceHt ? Math.round(parseFloat(soldPriceHt) * 100) / 100 : null),
           max_participants: isPermanent ? 0 : (maxParticipants ? parseInt(maxParticipants, 10) : 0),
@@ -313,7 +313,6 @@ const FormationCreate = () => {
           trainer_id: null,
           elearning_duration: isElearning && elearningDuration ? parseFloat(elearningDuration) : null,
           catalog_id: catalogId || null,
-          formula_id: isPermanent ? selectedFormulaId : null,
           created_by: user.id,
         })
         .select()

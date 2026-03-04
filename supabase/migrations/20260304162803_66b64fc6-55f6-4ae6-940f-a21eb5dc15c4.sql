@@ -1,0 +1,1 @@
+ALTER TABLE public.trainings ALTER COLUMN client_name SET DEFAULT '';

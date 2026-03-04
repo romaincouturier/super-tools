@@ -478,7 +478,7 @@ const FormationDetail = () => {
     navigate("/auth");
   };
 
-  const formatDateWithSchedule = (startDate: string, endDate: string | null, schedulesList: Schedule[]) => {
+  const formatDateWithSchedule = (startDate: string | null, endDate: string | null, schedulesList: Schedule[]) => {
     // If we have actual schedules, use them for display
     if (schedulesList.length > 0) {
       const totalDays = schedulesList.length;
@@ -514,6 +514,11 @@ const FormationDetail = () => {
 
       // Non-contiguous: show number of days and date range
       return `${totalDays} jours • ${format(firstDate, "d MMM", { locale: fr })} au ${format(lastDate, "d MMM yyyy", { locale: fr })}${timeInfo}`;
+    }
+
+    // No schedules and no start date → permanent / e-learning
+    if (!startDate) {
+      return "Formation permanente – accès continu";
     }
 
     // Fallback to start/end dates if no schedules
