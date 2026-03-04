@@ -4140,7 +4140,6 @@ export type Database = {
           financeur_same_as_sponsor: boolean
           financeur_url: string | null
           format_formation: string | null
-          formula_id: string | null
           funder_appreciation: string | null
           funder_appreciation_date: string | null
           hotel_booked: boolean | null
@@ -4163,7 +4162,7 @@ export type Database = {
           sponsor_first_name: string | null
           sponsor_formal_address: boolean
           sponsor_last_name: string | null
-          start_date: string
+          start_date: string | null
           supertilt_link: string | null
           supports_url: string | null
           train_booked: boolean | null
@@ -4189,7 +4188,6 @@ export type Database = {
           financeur_same_as_sponsor?: boolean
           financeur_url?: string | null
           format_formation?: string | null
-          formula_id?: string | null
           funder_appreciation?: string | null
           funder_appreciation_date?: string | null
           hotel_booked?: boolean | null
@@ -4212,7 +4210,7 @@ export type Database = {
           sponsor_first_name?: string | null
           sponsor_formal_address?: boolean
           sponsor_last_name?: string | null
-          start_date: string
+          start_date?: string | null
           supertilt_link?: string | null
           supports_url?: string | null
           train_booked?: boolean | null
@@ -4238,7 +4236,6 @@ export type Database = {
           financeur_same_as_sponsor?: boolean
           financeur_url?: string | null
           format_formation?: string | null
-          formula_id?: string | null
           funder_appreciation?: string | null
           funder_appreciation_date?: string | null
           hotel_booked?: boolean | null
@@ -4261,7 +4258,7 @@ export type Database = {
           sponsor_first_name?: string | null
           sponsor_formal_address?: boolean
           sponsor_last_name?: string | null
-          start_date?: string
+          start_date?: string | null
           supertilt_link?: string | null
           supports_url?: string | null
           train_booked?: boolean | null

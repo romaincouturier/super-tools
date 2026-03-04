@@ -9,7 +9,7 @@ import {
   formatDateTime,
   formatICSDate,
   calculateDurationDays,
-} from "./date-utils";
+} from "./date-utils.ts";
 
 // Helper: create dates at noon UTC to avoid timezone edge issues
 const d = (s: string) => new Date(`${s}T12:00:00Z`);
