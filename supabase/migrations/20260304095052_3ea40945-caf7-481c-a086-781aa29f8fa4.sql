@@ -1,0 +1,1 @@
+ALTER TABLE public.training_participants DROP CONSTRAINT training_participants_formula_check;
