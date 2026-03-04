@@ -593,20 +593,6 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
                                 />
                               </div>
                             </div>
-                            <div className="space-y-1">
-                              <Label className="text-xs">Email d'accès e-learning</Label>
-                              <Textarea
-                                rows={3}
-                                value={formula.elearning_access_email_content}
-                                onChange={(e) =>
-                                  setFormulas((prev) =>
-                                    prev.map((f, i) => (i === idx ? { ...f, elearning_access_email_content: e.target.value } : f))
-                                  )
-                                }
-                                placeholder="Contenu de l'email d'accès..."
-                                className="text-sm"
-                              />
-                            </div>
                             <div className="grid grid-cols-2 gap-3">
                               <div className="space-y-1">
                                 <Label className="text-xs">ID Produit WooCommerce</Label>
@@ -730,19 +716,9 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
                       />
                     </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="elearningAccessEmail">Contenu de l'email d'accès e-learning</Label>
-                      <Textarea
-                        id="elearningAccessEmail"
-                        rows={6}
-                        value={elearningAccessEmailContent}
-                        onChange={(e) => setElearningAccessEmailContent(e.target.value)}
-                        placeholder="Contenu de l'email envoyé aux participants pour accéder à la formation..."
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Variables : {"{{first_name}}"}, {"{{training_name}}"}, {"{{access_link}}"}, {"{{start_date}}"}, {"{{end_date}}"}, {"{{coupon_code}}"}, {"{{coupon_instructions}}"}
-                      </p>
-                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Le contenu de l'email d'accès e-learning est géré dans <strong>Paramètres → Templates Email</strong> (template elearning_access_tu / elearning_access_vous).
+                    </p>
                   </AccordionContent>
                 </AccordionItem>
 
