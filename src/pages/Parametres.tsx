@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
-import { Loader2, ArrowLeft, Settings, Mail, RotateCcw, Sparkles, Cog, ExternalLink, Shield, Users, Key, Tag, Upload, FileText, Trash2, Check } from "lucide-react";
+import { Loader2, ArrowLeft, Settings, Mail, RotateCcw, Sparkles, Cog, ExternalLink, Shield, Users, Key, Tag, Upload, FileText, Trash2, Check, Copy } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import AppHeader from "@/components/AppHeader";
 import { Button } from "@/components/ui/button";
@@ -2455,6 +2455,49 @@ const Parametres = () => {
                       URL utilisée pour construire le lien d'accès e-learning. Le <code>woocommerce_product_id</code> du catalogue sera ajouté automatiquement à la fin.
                     </p>
                   </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Intégration LearnDash</CardTitle>
+                  <CardDescription>
+                    URLs à intégrer dans vos cours LearnDash pour le recueil des besoins et l'évaluation finale.
+                    Remplacez les variables entre accolades par les variables LearnDash correspondantes.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {[
+                    { label: "Recueil des besoins", sublabel: "À placer dans la première leçon", path: "formulaire/besoins" },
+                    { label: "Évaluation finale", sublabel: "À placer dans la dernière leçon", path: "formulaire/evaluation" },
+                  ].map(({ label, sublabel, path }) => {
+                    const url = `${window.location.origin}/${path}?email={user_email}&product_id={product_id}`;
+                    return (
+                      <div key={path} className="space-y-1.5">
+                        <Label>{label}</Label>
+                        <p className="text-xs text-muted-foreground">{sublabel}</p>
+                        <div className="flex items-center gap-2">
+                          <code className="flex-1 text-xs bg-muted px-3 py-2 rounded border break-all select-all">
+                            {url}
+                          </code>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="shrink-0"
+                            onClick={() => {
+                              navigator.clipboard.writeText(url);
+                              toast({ title: "Copié", description: "URL copiée dans le presse-papiers." });
+                            }}
+                          >
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <p className="text-xs text-muted-foreground pt-2">
+                    <strong>Variables LearnDash</strong> : <code>{"{user_email}"}</code> = email de l'utilisateur connecté, <code>{"{product_id}"}</code> = ID du produit WooCommerce du cours.
+                  </p>
                 </CardContent>
               </Card>
 
