@@ -4457,6 +4457,10 @@ export type Database = {
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       is_signup_allowed: { Args: { p_email: string }; Returns: boolean }
+      resolve_formulaire_token: {
+        Args: { p_email: string; p_form_type: string; p_product_id: number }
+        Returns: string
+      }
       update_api_key_last_used: { Args: { key_id: string }; Returns: undefined }
       upsert_profile: {
         Args: { p_display_name?: string; p_email: string; p_user_id: string }
