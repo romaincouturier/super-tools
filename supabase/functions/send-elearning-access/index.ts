@@ -137,8 +137,8 @@ serve(async (req) => {
       last_name: participant.last_name || "",
       training_name: training.training_name || "",
       access_link: accessLink,
-      start_date: formatDateFr(training.start_date),
-      end_date: formatDateFr(training.end_date || training.start_date),
+      start_date: training.start_date ? formatDateFr(training.start_date) : "",
+      end_date: training.end_date ? formatDateFr(training.end_date) : (training.start_date ? formatDateFr(training.start_date) : ""),
       coupon_code: couponCode || "",
     };
 
