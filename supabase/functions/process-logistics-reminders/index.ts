@@ -547,14 +547,16 @@ serve(async (req) => {
       if (recipient.isAdmin && pendingReviews && pendingReviews.length > 0) {
         const reviewItems: string[] = [];
         for (const [reviewer, reviews] of reviewsByReviewerEmail) {
-          const items = reviews.map((r: any) => {
-            const cardTitle = r.content_cards?.title || "Sans titre";
-            const daysAgo = Math.ceil((Date.now() - new Date(r.created_at).getTime()) / (1000 * 60 * 60 * 24));
-            return `<a href="${appUrl}/contenu?card=${r.card_id}" style="color: ${COLORS.primary}; text-decoration: underline;">${cardTitle}</a> (${daysAgo}j)`;
-          });
           reviewItems.push(
-            `<li><strong>${reviewer}</strong> : ${items.join(" · ")}</li>`
+            `<li style="margin-bottom: 6px;"><strong>${reviewer}</strong> :`
           );
+          for (const r of reviews) {
+            const cardTitle = (r as any).content_cards?.title || "Sans titre";
+            const daysAgo = Math.ceil((Date.now() - new Date(r.created_at).getTime()) / (1000 * 60 * 60 * 24));
+            reviewItems.push(
+              `<li style="margin-left: 16px;"><a href="${appUrl}/contenu?card=${r.card_id}" style="color: ${COLORS.primary}; text-decoration: underline;">${cardTitle}</a> (${daysAgo}j)</li>`
+            );
+          }
         }
         sections.push(sectionHtml("📋", "Articles à relire", COLORS.purple, reviewItems, pendingReviews.length));
         alertCount += pendingReviews.length;
