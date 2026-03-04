@@ -1024,85 +1024,85 @@ export type Database = {
       }
       daily_action_analytics: {
         Row: {
-          id: string
-          user_id: string
           action_date: string
-          total_actions: number
-          completed_count: number
           auto_completed_count: number
-          manual_completed_count: number
-          category_stats: Json
+          category_stats: Json | null
+          completed_count: number
           created_at: string
+          id: string
+          manual_completed_count: number
+          total_actions: number
+          user_id: string
         }
         Insert: {
-          id?: string
-          user_id: string
           action_date: string
-          total_actions?: number
-          completed_count?: number
           auto_completed_count?: number
-          manual_completed_count?: number
-          category_stats?: Json
+          category_stats?: Json | null
+          completed_count?: number
           created_at?: string
+          id?: string
+          manual_completed_count?: number
+          total_actions?: number
+          user_id: string
         }
         Update: {
-          id?: string
-          user_id?: string
           action_date?: string
-          total_actions?: number
-          completed_count?: number
           auto_completed_count?: number
-          manual_completed_count?: number
-          category_stats?: Json
+          category_stats?: Json | null
+          completed_count?: number
           created_at?: string
+          id?: string
+          manual_completed_count?: number
+          total_actions?: number
+          user_id?: string
         }
         Relationships: []
       }
       daily_actions: {
         Row: {
-          id: string
-          user_id: string
           action_date: string
-          category: string
-          title: string
-          description: string | null
-          link: string | null
-          entity_type: string | null
-          entity_id: string | null
-          is_completed: boolean
-          completed_at: string | null
           auto_completed: boolean
+          category: string
+          completed_at: string | null
           created_at: string
+          description: string | null
+          entity_id: string | null
+          entity_type: string | null
+          id: string
+          is_completed: boolean
+          link: string | null
+          title: string
+          user_id: string
         }
         Insert: {
-          id?: string
-          user_id: string
           action_date?: string
-          category: string
-          title: string
-          description?: string | null
-          link?: string | null
-          entity_type?: string | null
-          entity_id?: string | null
-          is_completed?: boolean
-          completed_at?: string | null
           auto_completed?: boolean
+          category: string
+          completed_at?: string | null
           created_at?: string
+          description?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          is_completed?: boolean
+          link?: string | null
+          title: string
+          user_id: string
         }
         Update: {
-          id?: string
-          user_id?: string
           action_date?: string
-          category?: string
-          title?: string
-          description?: string | null
-          link?: string | null
-          entity_type?: string | null
-          entity_id?: string | null
-          is_completed?: boolean
-          completed_at?: string | null
           auto_completed?: boolean
+          category?: string
+          completed_at?: string | null
           created_at?: string
+          description?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          is_completed?: boolean
+          link?: string | null
+          title?: string
+          user_id?: string
         }
         Relationships: []
       }
