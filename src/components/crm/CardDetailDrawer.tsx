@@ -1463,12 +1463,18 @@ const CardDetailDrawer = ({
               <Label className="text-xs mb-1.5 block">Quand</Label>
               <div className="flex flex-wrap gap-1 mb-2">
                 {[
-                  { label: "Demain", days: 1 },
-                  { label: "J+3", days: 3 },
-                  { label: "J+7", days: 7 },
-                  { label: "J+14", days: 14 },
-                ].map(({ label, days }) => {
-                  const targetDate = format(addDays(new Date(), days), "yyyy-MM-dd");
+                  { label: "J+2", businessDays: 2 },
+                  { label: "J+3", businessDays: 3 },
+                  { label: "J+5", businessDays: 5 },
+                  { label: "J+10", businessDays: 10 },
+                ].map(({ label, businessDays }) => {
+                  let d = new Date();
+                  let remaining = businessDays;
+                  while (remaining > 0) {
+                    d = addDays(d, 1);
+                    if (d.getDay() !== 0 && d.getDay() !== 6) remaining--;
+                  }
+                  const targetDate = format(d, "yyyy-MM-dd");
                   return (
                     <Button
                       key={label}
