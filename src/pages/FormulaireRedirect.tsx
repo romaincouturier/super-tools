@@ -36,10 +36,10 @@ const FormulaireRedirect = () => {
         return;
       }
 
-      const { data: token, error: rpcError } = await supabase.rpc(
+      const { data: result, error: rpcError } = await supabase.rpc(
         "resolve_formulaire_token",
         { p_email: email, p_product_id: pid, p_form_type: formType }
-      );
+      ) as { data: { status: string; token?: string; catalog_id?: string } | null; error: any };
 
       if (rpcError) {
         console.error("resolve_formulaire_token error:", rpcError);
@@ -47,7 +47,17 @@ const FormulaireRedirect = () => {
         return;
       }
 
-      if (!token) {
+      if (!result || result.status === 'invalid_params') {
+        setError("Paramètres invalides.");
+        return;
+      }
+
+      if (result.status === 'product_not_found') {
+        setError("Formation non trouvée pour ce produit.");
+        return;
+      }
+
+      if (result.status === 'participant_not_found') {
         setError(
           "Aucun participant trouvé pour cet email et cette formation. " +
           "Vérifiez que vous êtes bien inscrit(e)."
@@ -55,9 +65,14 @@ const FormulaireRedirect = () => {
         return;
       }
 
+      if (result.status !== 'ok' || !result.token) {
+        setError("Une erreur inattendue est survenue.");
+        return;
+      }
+
       const target = formType === "besoins"
-        ? `/questionnaire/${token}`
-        : `/evaluation/${token}`;
+        ? `/questionnaire/${result.token}`
+        : `/evaluation/${result.token}`;
       navigate(target, { replace: true });
     };
 
