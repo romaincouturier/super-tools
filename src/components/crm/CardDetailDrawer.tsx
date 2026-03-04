@@ -1203,7 +1203,16 @@ const CardDetailDrawer = ({
     <DetailDrawer
       open={open}
       onOpenChange={onOpenChange}
-      title={<span className="sr-only">{card.title}</span>}
+      title={
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <EmojiPickerButton emoji={cardEmoji} onEmojiChange={setCardEmoji} size="md" />
+          <input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            className="flex-1 min-w-0 bg-transparent font-bold text-lg border-none outline-none focus:outline-none"
+          />
+        </div>
+      }
       actions={
         <>
           <Button
@@ -1499,12 +1508,8 @@ const CardDetailDrawer = ({
         )}
 
 
-        {/* ═══ TITLE & TYPE ═══ */}
+        {/* ═══ TYPE & SOURCE ═══ */}
         <div className="mt-4 space-y-3">
-          <div className="flex items-center gap-2">
-            <EmojiPickerButton emoji={cardEmoji} onEmojiChange={setCardEmoji} size="md" />
-            <Input value={title} onChange={(e) => setTitle(e.target.value)} className="flex-1" />
-          </div>
           <div className="flex items-center gap-2 flex-wrap">
             <Select
               value={serviceType || ""}
@@ -1678,33 +1683,37 @@ const CardDetailDrawer = ({
                 </span>
               </h4>
               <ul className="space-y-1.5">
-                {card.brief_questions.map((q: BriefQuestion) => (
-                  <li key={q.id} className="flex items-start gap-2.5 text-sm">
-                    <Checkbox
-                      id={`brief-${q.id}`}
-                      checked={q.answered}
-                      onCheckedChange={() => {
-                        if (!user?.email) return;
-                        const updatedQuestions = card.brief_questions.map((bq: BriefQuestion) =>
-                          bq.id === q.id ? { ...bq, answered: !bq.answered } : bq
-                        );
-                        updateCard.mutate({
-                          id: card.id,
-                          updates: { brief_questions: updatedQuestions },
-                          actorEmail: user.email,
-                          oldCard: card,
-                        });
-                      }}
-                      className="mt-0.5"
-                    />
-                    <label
-                      htmlFor={`brief-${q.id}`}
-                      className={cn("cursor-pointer flex-1", q.answered && "text-muted-foreground line-through")}
+                {card.brief_questions.map((q: BriefQuestion) => {
+                  const toggleQuestion = () => {
+                    if (!user?.email) return;
+                    const updatedQuestions = card.brief_questions.map((bq: BriefQuestion) =>
+                      bq.id === q.id ? { ...bq, answered: !bq.answered } : bq
+                    );
+                    updateCard.mutate({
+                      id: card.id,
+                      updates: { brief_questions: updatedQuestions },
+                      actorEmail: user.email,
+                      oldCard: card,
+                    });
+                  };
+                  return (
+                    <li
+                      key={q.id}
+                      className="flex items-start gap-2.5 text-sm cursor-pointer select-none"
+                      onClick={toggleQuestion}
                     >
-                      {q.question}
-                    </label>
-                  </li>
-                ))}
+                      <Checkbox
+                        checked={q.answered}
+                        onCheckedChange={toggleQuestion}
+                        onClick={(e) => e.stopPropagation()}
+                        className="mt-0.5"
+                      />
+                      <span className={cn("flex-1", q.answered && "text-muted-foreground line-through")}>
+                        {q.question}
+                      </span>
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           )}
@@ -1971,10 +1980,6 @@ const CardDetailDrawer = ({
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-80 p-0" align="start">
-                  <div className="p-2 border-b">
-                    <p className="text-sm font-medium">Modèles d'email</p>
-                    <p className="text-xs text-muted-foreground">Cliquez pour pré-remplir le message</p>
-                  </div>
                   <div className="divide-y">
                     {crmEmailTemplates && crmEmailTemplates.length > 0 ? (
                       crmEmailTemplates.map((tpl) => {
@@ -2001,9 +2006,18 @@ const CardDetailDrawer = ({
                       })
                     ) : (
                       <div className="p-4 text-center text-sm text-muted-foreground">
-                        Aucun modèle configuré. Ajoutez-en dans Paramètres &gt; CRM.
+                        Aucun modèle configuré
                       </div>
                     )}
+                  </div>
+                  <div className="border-t">
+                    <button
+                      className="w-full text-left px-3 py-2 text-xs text-muted-foreground hover:bg-muted transition-colors flex items-center gap-1.5"
+                      onClick={() => navigate("/parametres")}
+                    >
+                      <Pencil className="h-3 w-3" />
+                      Configurer les modèles
+                    </button>
                   </div>
                 </PopoverContent>
               </Popover>
