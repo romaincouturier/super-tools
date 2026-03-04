@@ -6,6 +6,10 @@ import {
   TextQuote,
   User,
   Building2,
+  Bold,
+  List,
+  ListOrdered,
+  Hand,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -32,6 +36,7 @@ interface EmailEditorProps {
   placeholder?: string;
   className?: string;
   variables?: Record<string, string | undefined | null>;
+  onGenderSelect?: (gender: "M" | "Mme") => void;
 }
 
 const EmailEditor = ({
@@ -40,8 +45,10 @@ const EmailEditor = ({
   placeholder = "Corps du message...",
   className,
   variables,
+  onGenderSelect,
 }: EmailEditorProps) => {
   const [snippetPopoverOpen, setSnippetPopoverOpen] = useState(false);
+  const [bonjourPopoverOpen, setBonjourPopoverOpen] = useState(false);
   const [slashMenuOpen, setSlashMenuOpen] = useState(false);
   const [slashMenuPos, setSlashMenuPos] = useState<{ top: number; left: number } | null>(null);
   const [slashQuery, setSlashQuery] = useState("");
@@ -109,16 +116,16 @@ const EmailEditor = ({
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
-        bold: false,
+        bold: {},
         italic: false,
         strike: false,
         code: false,
         codeBlock: false,
         blockquote: false,
         heading: false,
-        bulletList: false,
-        orderedList: false,
-        listItem: false,
+        bulletList: {},
+        orderedList: {},
+        listItem: {},
         horizontalRule: false,
       }),
       Link.configure({
@@ -204,6 +211,17 @@ const EmailEditor = ({
     editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
   }, [editor]);
 
+  const insertBonjour = useCallback((gender: "M" | "Mme") => {
+    if (!editor) return;
+    const lastName = variables?.last_name || "";
+    const greeting = gender === "M"
+      ? `Bonjour M. ${lastName}`
+      : `Bonjour Mme ${lastName}`;
+    editor.chain().focus().insertContent(`<p>${greeting},</p>`).run();
+    onGenderSelect?.(gender);
+    setBonjourPopoverOpen(false);
+  }, [editor, variables?.last_name, onGenderSelect]);
+
   const insertSnippet = (snippet: EmailSnippet) => {
     if (!editor) return;
     const htmlContent = snippet.content
@@ -226,11 +244,67 @@ const EmailEditor = ({
 
   return (
     <div className={cn("border rounded-md bg-background relative", className)}>
-      <div className="flex items-center gap-1 p-1.5 border-b bg-muted/30">
+      <div className="flex items-center gap-0.5 p-1.5 border-b bg-muted/30 flex-wrap">
+        {/* Bonjour button */}
+        {variables?.last_name && (
+          <Popover open={bonjourPopoverOpen} onOpenChange={setBonjourPopoverOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="ghost" size="sm" className="h-7 px-2 text-xs gap-1" title="Insérer une salutation">
+                <Hand className="h-3.5 w-3.5" />
+                Bonjour
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-1" align="start">
+              <button
+                className="w-full text-left px-3 py-1.5 text-sm hover:bg-accent rounded transition-colors"
+                onClick={() => insertBonjour("M")}
+              >
+                Bonjour M. {variables.last_name}
+              </button>
+              <button
+                className="w-full text-left px-3 py-1.5 text-sm hover:bg-accent rounded transition-colors"
+                onClick={() => insertBonjour("Mme")}
+              >
+                Bonjour Mme {variables.last_name}
+              </button>
+            </PopoverContent>
+          </Popover>
+        )}
+
+        <div className="w-px h-5 bg-border mx-0.5" />
+
+        {/* Formatting buttons */}
         <Button
           variant="ghost"
           size="sm"
-          className="h-7 px-2 text-xs gap-1"
+          className={cn("h-7 w-7 p-0", editor.isActive("bold") && "bg-accent")}
+          onClick={() => editor.chain().focus().toggleBold().run()}
+          title="Gras"
+        >
+          <Bold className="h-3.5 w-3.5" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          className={cn("h-7 w-7 p-0", editor.isActive("bulletList") && "bg-accent")}
+          onClick={() => editor.chain().focus().toggleBulletList().run()}
+          title="Liste à puces"
+        >
+          <List className="h-3.5 w-3.5" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          className={cn("h-7 w-7 p-0", editor.isActive("orderedList") && "bg-accent")}
+          onClick={() => editor.chain().focus().toggleOrderedList().run()}
+          title="Liste numérotée"
+        >
+          <ListOrdered className="h-3.5 w-3.5" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          className={cn("h-7 px-2 text-xs gap-1", editor.isActive("link") && "bg-accent")}
           onClick={setLink}
           title="Insérer un lien"
         >

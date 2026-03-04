@@ -121,7 +121,7 @@ import EmailEditor from "./EmailEditor";
 import SentDevisSection from "./SentDevisSection";
 import { CreateTrainingDialog } from "./CreateTrainingDialog";
 import confetti from "canvas-confetti";
-import { useCrmEmailTemplates, replaceCrmVariables } from "@/hooks/useCrmEmailTemplates";
+import { useCrmEmailTemplates, useUpdateCrmTemplate, replaceCrmVariables } from "@/hooks/useCrmEmailTemplates";
 import { useToast } from "@/hooks/use-toast";
 
 interface CardDetailDrawerProps {
@@ -162,6 +162,7 @@ const CardDetailDrawer = ({
   const deleteAttachment = useDeleteAttachment();
   const sendEmail = useSendEmail();
   const { data: crmEmailTemplates } = useCrmEmailTemplates();
+  const updateTemplate = useUpdateCrmTemplate();
 
   // Form state
   const [title, setTitle] = useState("");
@@ -224,6 +225,7 @@ const CardDetailDrawer = ({
   const [improvingSubject, setImprovingSubject] = useState(false);
   const [improvingBody, setImprovingBody] = useState(false);
   const [emailAttachments, setEmailAttachments] = useState<EmailAttachment[]>([]);
+  const selectedTemplateRef = useRef<{ id: string; subject: string; html_content: string } | null>(null);
   const emailFileInputRef = useRef<HTMLInputElement>(null);
 
   // UI state
@@ -333,7 +335,7 @@ const CardDetailDrawer = ({
       setWebsiteUrl(card.website_url || "");
       setServiceType(card.service_type || null);
       // Confidence score
-      setConfidenceScore(card.confidence_score ?? null);
+      setConfidenceScore(card.confidence_score ?? 50);
       // Acquisition source
       setAcquisitionSource(card.acquisition_source ?? null);
       // Reset next action suggestion
@@ -1134,12 +1136,15 @@ const CardDetailDrawer = ({
 
   const handleSendEmail = async () => {
     if (!card || !user?.email || !emailTo.trim() || !emailSubject.trim()) return;
+    const sentSubject = emailSubject.trim();
+    const sentBody = DOMPurify.sanitize(emailBody);
+    const templateSnapshot = selectedTemplateRef.current;
     await sendEmail.mutateAsync({
       input: {
         card_id: card.id,
         recipient_email: emailTo.trim(),
-        subject: emailSubject.trim(),
-        body_html: DOMPurify.sanitize(emailBody),
+        subject: sentSubject,
+        body_html: sentBody,
         attachments: emailAttachments.length > 0 ? emailAttachments : undefined,
       },
       senderEmail: user.email,
@@ -1148,8 +1153,39 @@ const CardDetailDrawer = ({
     setEmailSubject("");
     setEmailBody("");
     setEmailAttachments([]);
+    selectedTemplateRef.current = null;
     // Explicitly refetch card details so email history updates immediately
     await queryClient.invalidateQueries({ queryKey: ["crm-board", "card-details", card.id] });
+    // Auto-improve template in background if one was used
+    if (templateSnapshot) {
+      try {
+        const { data, error } = await supabase.functions.invoke("crm-ai-assist", {
+          body: {
+            action: "improve_template",
+            card_data: {
+              subject: templateSnapshot.subject,
+              body: templateSnapshot.html_content,
+              context: `Objet envoyé : ${sentSubject}\n\nContenu envoyé :\n${sentBody}`,
+            },
+          },
+        });
+        if (!error && data?.result) {
+          try {
+            const improved = JSON.parse(data.result);
+            if (improved.subject && improved.html_content) {
+              await updateTemplate.mutateAsync({
+                id: templateSnapshot.id,
+                updates: { subject: improved.subject, html_content: improved.html_content },
+              });
+            }
+          } catch {
+            // AI did not return valid JSON, skip update
+          }
+        }
+      } catch {
+        // Template improvement is best-effort, don't block on errors
+      }
+    }
   };
 
   if (!card) return null;
@@ -1167,7 +1203,16 @@ const CardDetailDrawer = ({
     <DetailDrawer
       open={open}
       onOpenChange={onOpenChange}
-      title={<span className="sr-only">{card.title}</span>}
+      title={
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <EmojiPickerButton emoji={cardEmoji} onEmojiChange={setCardEmoji} size="md" />
+          <input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            className="flex-1 min-w-0 bg-transparent font-bold text-lg border-none outline-none focus:outline-none"
+          />
+        </div>
+      }
       actions={
         <>
           <Button
@@ -1418,12 +1463,18 @@ const CardDetailDrawer = ({
               <Label className="text-xs mb-1.5 block">Quand</Label>
               <div className="flex flex-wrap gap-1 mb-2">
                 {[
-                  { label: "Demain", days: 1 },
-                  { label: "J+3", days: 3 },
-                  { label: "J+7", days: 7 },
-                  { label: "J+14", days: 14 },
-                ].map(({ label, days }) => {
-                  const targetDate = format(addDays(new Date(), days), "yyyy-MM-dd");
+                  { label: "J+2", businessDays: 2 },
+                  { label: "J+3", businessDays: 3 },
+                  { label: "J+5", businessDays: 5 },
+                  { label: "J+10", businessDays: 10 },
+                ].map(({ label, businessDays }) => {
+                  let d = new Date();
+                  let remaining = businessDays;
+                  while (remaining > 0) {
+                    d = addDays(d, 1);
+                    if (d.getDay() !== 0 && d.getDay() !== 6) remaining--;
+                  }
+                  const targetDate = format(d, "yyyy-MM-dd");
                   return (
                     <Button
                       key={label}
@@ -1463,12 +1514,8 @@ const CardDetailDrawer = ({
         )}
 
 
-        {/* ═══ TITLE & TYPE ═══ */}
+        {/* ═══ TYPE & SOURCE ═══ */}
         <div className="mt-4 space-y-3">
-          <div className="flex items-center gap-2">
-            <EmojiPickerButton emoji={cardEmoji} onEmojiChange={setCardEmoji} size="md" />
-            <Input value={title} onChange={(e) => setTitle(e.target.value)} className="flex-1" />
-          </div>
           <div className="flex items-center gap-2 flex-wrap">
             <Select
               value={serviceType || ""}
@@ -1642,33 +1689,37 @@ const CardDetailDrawer = ({
                 </span>
               </h4>
               <ul className="space-y-1.5">
-                {card.brief_questions.map((q: BriefQuestion) => (
-                  <li key={q.id} className="flex items-start gap-2.5 text-sm">
-                    <Checkbox
-                      id={`brief-${q.id}`}
-                      checked={q.answered}
-                      onCheckedChange={() => {
-                        if (!user?.email) return;
-                        const updatedQuestions = card.brief_questions.map((bq: BriefQuestion) =>
-                          bq.id === q.id ? { ...bq, answered: !bq.answered } : bq
-                        );
-                        updateCard.mutate({
-                          id: card.id,
-                          updates: { brief_questions: updatedQuestions },
-                          actorEmail: user.email,
-                          oldCard: card,
-                        });
-                      }}
-                      className="mt-0.5"
-                    />
-                    <label
-                      htmlFor={`brief-${q.id}`}
-                      className={cn("cursor-pointer flex-1", q.answered && "text-muted-foreground line-through")}
+                {card.brief_questions.map((q: BriefQuestion) => {
+                  const toggleQuestion = () => {
+                    if (!user?.email) return;
+                    const updatedQuestions = card.brief_questions.map((bq: BriefQuestion) =>
+                      bq.id === q.id ? { ...bq, answered: !bq.answered } : bq
+                    );
+                    updateCard.mutate({
+                      id: card.id,
+                      updates: { brief_questions: updatedQuestions },
+                      actorEmail: user.email,
+                      oldCard: card,
+                    });
+                  };
+                  return (
+                    <li
+                      key={q.id}
+                      className="flex items-start gap-2.5 text-sm cursor-pointer select-none"
+                      onClick={toggleQuestion}
                     >
-                      {q.question}
-                    </label>
-                  </li>
-                ))}
+                      <Checkbox
+                        checked={q.answered}
+                        onCheckedChange={toggleQuestion}
+                        onClick={(e) => e.stopPropagation()}
+                        className="mt-0.5"
+                      />
+                      <span className={cn("flex-1", q.answered && "text-muted-foreground line-through")}>
+                        {q.question}
+                      </span>
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           )}
@@ -1935,10 +1986,6 @@ const CardDetailDrawer = ({
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-80 p-0" align="start">
-                  <div className="p-2 border-b">
-                    <p className="text-sm font-medium">Modèles d'email</p>
-                    <p className="text-xs text-muted-foreground">Cliquez pour pré-remplir le message</p>
-                  </div>
                   <div className="divide-y">
                     {crmEmailTemplates && crmEmailTemplates.length > 0 ? (
                       crmEmailTemplates.map((tpl) => {
@@ -1956,6 +2003,7 @@ const CardDetailDrawer = ({
                             onClick={() => {
                               setEmailSubject(replaceCrmVariables(tpl.subject, vars));
                               setEmailBody(replaceCrmVariables(tpl.html_content, vars));
+                              selectedTemplateRef.current = { id: tpl.id, subject: tpl.subject, html_content: tpl.html_content };
                             }}
                           >
                             <div className="font-medium text-sm">{tpl.template_name}</div>
@@ -1964,9 +2012,18 @@ const CardDetailDrawer = ({
                       })
                     ) : (
                       <div className="p-4 text-center text-sm text-muted-foreground">
-                        Aucun modèle configuré. Ajoutez-en dans Paramètres &gt; CRM.
+                        Aucun modèle configuré
                       </div>
                     )}
+                  </div>
+                  <div className="border-t">
+                    <button
+                      className="w-full text-left px-3 py-2 text-xs text-muted-foreground hover:bg-muted transition-colors flex items-center gap-1.5"
+                      onClick={() => navigate("/parametres")}
+                    >
+                      <Pencil className="h-3 w-3" />
+                      Configurer les modèles
+                    </button>
                   </div>
                 </PopoverContent>
               </Popover>
@@ -2036,6 +2093,15 @@ const CardDetailDrawer = ({
                   first_name: firstName || undefined,
                   last_name: lastName || undefined,
                   company: company || undefined,
+                }}
+                onGenderSelect={(gender) => {
+                  if (card) {
+                    supabase
+                      .from("crm_cards")
+                      .update({ gender })
+                      .eq("id", card.id)
+                      .then(() => queryClient.invalidateQueries({ queryKey: ["crm-cards"] }));
+                  }
                 }}
               />
               <div className="flex justify-end gap-2">

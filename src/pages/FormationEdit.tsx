@@ -45,7 +45,8 @@ const FormationEdit = () => {
   const [clientAddress, setClientAddress] = useState("");
   const [soldPriceHt, setSoldPriceHt] = useState<string>("");
   const [maxParticipants, setMaxParticipants] = useState<string>("");
-  const [formatFormation, setFormatFormation] = useState<string>("");
+  const [sessionType, setSessionType] = useState<string>("");
+  const [sessionFormat, setSessionFormat] = useState<string>("");
   const [prerequisites, setPrerequisites] = useState<string[]>([]);
   const [objectives, setObjectives] = useState<string[]>([]);
   const [programFileUrl, setProgramFileUrl] = useState<string>("");
@@ -76,6 +77,19 @@ const FormationEdit = () => {
   
   // SuperTilt site URL from settings
   const [supertiltSiteUrl, setSupertiltSiteUrl] = useState<string>("");
+
+  // Derived helpers
+  const isElearning = sessionFormat === "distanciel_asynchrone";
+  const isInter = sessionType === "inter";
+
+  // Compute legacy format_formation for backward compatibility
+  const getLegacyFormatFormation = (): string | null => {
+    if (!sessionType && !sessionFormat) return null;
+    if (sessionFormat === "distanciel_asynchrone") return "e_learning";
+    if (sessionFormat === "distanciel_synchrone") return "classe_virtuelle";
+    if (sessionType === "inter") return "inter-entreprises";
+    return "intra";
+  };
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -123,7 +137,23 @@ const FormationEdit = () => {
       setClientAddress(training.client_address || "");
       setSoldPriceHt(training.sold_price_ht != null ? String(training.sold_price_ht) : "");
       setMaxParticipants(training.max_participants != null ? String(training.max_participants) : "");
-      setFormatFormation(training.format_formation || "");
+      // Load session_type/session_format with fallback from legacy format_formation
+      if ((training as any).session_type) {
+        setSessionType((training as any).session_type);
+      } else {
+        // Derive from legacy format_formation
+        const ff = training.format_formation;
+        if (ff === "inter-entreprises" || ff === "e_learning") setSessionType("inter");
+        else if (ff) setSessionType("intra");
+      }
+      if ((training as any).session_format) {
+        setSessionFormat((training as any).session_format);
+      } else {
+        const ff = training.format_formation;
+        if (ff === "e_learning") setSessionFormat("distanciel_asynchrone");
+        else if (ff === "classe_virtuelle") setSessionFormat("distanciel_synchrone");
+        else if (ff) setSessionFormat("presentiel");
+      }
       setPrerequisites(training.prerequisites || []);
       setObjectives(training.objectives || []);
       setProgramFileUrl(training.program_file_url || "");
@@ -140,8 +170,9 @@ const FormationEdit = () => {
       setTrainingNotes((training as any).notes || "");
       setCatalogId((training as any).catalog_id || null);
 
-      // For e-learning, load start/end dates directly (no schedules)
-      if (training.format_formation === "e_learning") {
+      // For e-learning (distanciel asynchrone), load start/end dates directly (no schedules)
+      const loadedIsElearning = (training as any).session_format === "distanciel_asynchrone" || training.format_formation === "e_learning";
+      if (loadedIsElearning) {
         setElearningStartDate(parseISO(training.start_date));
         if (training.end_date) {
           setElearningEndDate(parseISO(training.end_date));
@@ -261,7 +292,7 @@ const FormationEdit = () => {
 
   // Get start and end dates from selected dates
   const getStartDate = (): Date | null => {
-    if (formatFormation === "e_learning") {
+    if (isElearning) {
       return elearningStartDate;
     }
     if (selectedDates.length === 0) return null;
@@ -269,7 +300,7 @@ const FormationEdit = () => {
   };
 
   const getEndDate = (): Date | null => {
-    if (formatFormation === "e_learning") {
+    if (isElearning) {
       return elearningEndDate;
     }
     if (selectedDates.length <= 1) return null;
@@ -288,7 +319,6 @@ const FormationEdit = () => {
     const endDate = getEndDate();
 
     // Validate dates based on format
-    const isElearning = formatFormation === "e_learning";
     const hasValidDates = isElearning
       ? (elearningStartDate && elearningEndDate)
       : (selectedDates.length > 0);
@@ -319,7 +349,9 @@ const FormationEdit = () => {
           client_address: clientAddress || null,
           sold_price_ht: soldPriceHt ? Math.round(parseFloat(soldPriceHt) * 100) / 100 : null,
           max_participants: maxParticipants ? parseInt(maxParticipants, 10) : 0,
-          format_formation: formatFormation || null,
+          format_formation: getLegacyFormatFormation(),
+          session_type: sessionType || null,
+          session_format: sessionFormat || null,
           prerequisites,
           objectives,
           program_file_url: programFileUrl || null,
@@ -333,8 +365,8 @@ const FormationEdit = () => {
           financeur_same_as_sponsor: financeurSameAsSponsor,
           financeur_name: financeurSameAsSponsor ? null : (financeurName || null),
           financeur_url: financeurSameAsSponsor ? null : (financeurUrl || null),
-          elearning_duration: formatFormation === "e_learning" && elearningDuration ? parseFloat(elearningDuration) : null,
-          elearning_access_email_content: formatFormation === "e_learning" && elearningAccessEmailContent ? elearningAccessEmailContent : null,
+          elearning_duration: isElearning && elearningDuration ? parseFloat(elearningDuration) : null,
+          elearning_access_email_content: isElearning && elearningAccessEmailContent ? elearningAccessEmailContent : null,
           catalog_id: catalogId || null,
           notes: trainingNotes.trim() || null,
         } as any)
@@ -489,9 +521,7 @@ const FormationEdit = () => {
                           if (formation.elearning_access_email_content) {
                             setElearningAccessEmailContent(formation.elearning_access_email_content);
                           }
-                          if (formation.format_formation) {
-                            setFormatFormation(formation.format_formation);
-                          }
+                          // Format is now chosen at session level, not from catalog
                         } else {
                           setCatalogId(null);
                         }
@@ -500,7 +530,7 @@ const FormationEdit = () => {
                   </div>
 
                   {/* Dates - different UI for e-learning vs regular training */}
-                  {formatFormation === "e_learning" ? (
+                  {isElearning ? (
                     /* E-learning: simple start/end dates + duration */
                     <div className="space-y-4">
                       <div className="grid grid-cols-2 gap-4">
@@ -670,31 +700,39 @@ const FormationEdit = () => {
                     </p>
                   </div>
 
-                  {/* Format - auto-set from catalog */}
-                  <div className="space-y-2">
-                    <Label htmlFor="format">Format de formation</Label>
-                    <Select value={formatFormation} onValueChange={setFormatFormation} disabled={!!catalogId}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Sélectionner un format" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="intra">Intra-entreprise</SelectItem>
-                        <SelectItem value="inter-entreprises">Inter-entreprises</SelectItem>
-                        <SelectItem value="classe_virtuelle">Classe virtuelle</SelectItem>
-                        <SelectItem value="e_learning">E-learning</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    {catalogId && (
-                      <p className="text-xs text-muted-foreground">
-                        Défini par le catalogue.
-                      </p>
-                    )}
+                  {/* Session type and format */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Type de session</Label>
+                      <Select value={sessionType} onValueChange={setSessionType}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Intra ou inter" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="intra">Intra-entreprise</SelectItem>
+                          <SelectItem value="inter">Inter-entreprises</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Format de la session</Label>
+                      <Select value={sessionFormat} onValueChange={setSessionFormat}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Choisir le format" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="presentiel">Présentiel</SelectItem>
+                          <SelectItem value="distanciel_synchrone">Distanciel synchrone</SelectItem>
+                          <SelectItem value="distanciel_asynchrone">Distanciel asynchrone (e-learning)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
 
                   {/* Sold price HT */}
                   <div className="space-y-2">
                     <Label htmlFor="soldPriceHt">
-                      {(formatFormation === "inter-entreprises" || formatFormation === "e_learning")
+                      {isInter
                         ? "Prix HT par participant (€)"
                         : "Prix HT global (€)"}
                     </Label>
@@ -705,10 +743,10 @@ const FormationEdit = () => {
                       step="0.01"
                       value={soldPriceHt}
                       onChange={(e) => setSoldPriceHt(e.target.value)}
-                      placeholder={(formatFormation === "inter-entreprises" || formatFormation === "e_learning") ? "Ex: 1250" : "Ex: 3500"}
+                      placeholder={isInter ? "Ex: 1250" : "Ex: 3500"}
                     />
                     <p className="text-xs text-muted-foreground">
-                      {(formatFormation === "inter-entreprises" || formatFormation === "e_learning")
+                      {isInter
                         ? "Prix par participant, utilisé dans les conventions individuelles"
                         : "Montant total HT, utilisé dans la convention de formation"}
                     </p>
@@ -872,7 +910,7 @@ const FormationEdit = () => {
               </Card>
 
               {/* Schedules (not for e-learning) */}
-              {formatFormation !== "e_learning" && selectedDates.length > 0 && schedules.length > 0 && (
+              {!isElearning && selectedDates.length > 0 && schedules.length > 0 && (
                 <ScheduleEditor
                   schedules={schedules}
                   onSchedulesChange={setSchedules}

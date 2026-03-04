@@ -1,10 +1,10 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Plus, ArrowLeft, BookOpen, Search, X, Pencil, Trash2, ExternalLink, ShoppingCart } from "lucide-react";
+import { Loader2, Plus, ArrowLeft, BookOpen, Search, X, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -19,16 +19,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useToast } from "@/hooks/use-toast";
 import CatalogFormDialog from "@/components/catalogue/CatalogFormDialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 
 interface CatalogEntry {
   id: string;
@@ -46,11 +36,15 @@ interface CatalogEntry {
   description: string | null;
   is_active: boolean;
   display_order: number;
-  format_formation: string | null;
   created_at: string;
   updated_at: string;
-  training_count?: number;
+  training_count: number;
+  formula_names: string[];
+  last_session_date: string | null;
 }
+
+type SortColumn = "formation_name" | "duree_heures" | "prix" | "training_count" | "formula_names" | "last_session_date";
+type SortDirection = "asc" | "desc";
 
 const Catalogue = () => {
   const [catalogEntries, setCatalogEntries] = useState<CatalogEntry[]>([]);
@@ -58,7 +52,8 @@ const Catalogue = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState<CatalogEntry | null>(null);
-  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [sortColumn, setSortColumn] = useState<SortColumn>("formation_name");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const { toast } = useToast();
@@ -75,15 +70,33 @@ const Catalogue = () => {
 
       if (error) throw error;
 
-      // Count trainings per catalog entry
+      // Fetch trainings (count + last session date per catalog entry)
       const { data: trainings } = await supabase
         .from("trainings")
-        .select("catalog_id");
+        .select("catalog_id, start_date");
 
       const countMap: Record<string, number> = {};
+      const lastDateMap: Record<string, string> = {};
       trainings?.forEach((t: any) => {
         if (t.catalog_id) {
           countMap[t.catalog_id] = (countMap[t.catalog_id] || 0) + 1;
+          if (!lastDateMap[t.catalog_id] || t.start_date > lastDateMap[t.catalog_id]) {
+            lastDateMap[t.catalog_id] = t.start_date;
+          }
+        }
+      });
+
+      // Fetch formulas per catalog entry
+      const { data: formulas } = await supabase
+        .from("formation_formulas")
+        .select("formation_config_id, name")
+        .order("display_order", { ascending: true });
+
+      const formulaMap: Record<string, string[]> = {};
+      formulas?.forEach((f: any) => {
+        if (f.formation_config_id) {
+          if (!formulaMap[f.formation_config_id]) formulaMap[f.formation_config_id] = [];
+          formulaMap[f.formation_config_id].push(f.name);
         }
       });
 
@@ -91,6 +104,8 @@ const Catalogue = () => {
         (entries || []).map((e: any) => ({
           ...e,
           training_count: countMap[e.id] || 0,
+          formula_names: formulaMap[e.id] || [],
+          last_session_date: lastDateMap[e.id] || null,
         }))
       );
     } catch (error: any) {
@@ -109,15 +124,58 @@ const Catalogue = () => {
     fetchCatalog();
   }, []);
 
-  const filteredEntries = useMemo(() => {
-    if (!searchQuery.trim()) return catalogEntries;
-    const q = searchQuery.toLowerCase();
-    return catalogEntries.filter(
-      (e) =>
-        e.formation_name.toLowerCase().includes(q) ||
-        e.description?.toLowerCase().includes(q)
-    );
-  }, [catalogEntries, searchQuery]);
+  const handleSort = (column: SortColumn) => {
+    if (sortColumn === column) {
+      setSortDirection((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortColumn(column);
+      setSortDirection("asc");
+    }
+  };
+
+  const SortIcon = ({ column }: { column: SortColumn }) => {
+    if (sortColumn !== column) return <ArrowUpDown className="h-3 w-3 ml-1 opacity-40" />;
+    return sortDirection === "asc"
+      ? <ArrowUp className="h-3 w-3 ml-1" />
+      : <ArrowDown className="h-3 w-3 ml-1" />;
+  };
+
+  const sortedAndFilteredEntries = useMemo(() => {
+    let result = catalogEntries;
+
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(
+        (e) =>
+          e.formation_name.toLowerCase().includes(q) ||
+          e.description?.toLowerCase().includes(q) ||
+          e.formula_names.some((f) => f.toLowerCase().includes(q))
+      );
+    }
+
+    return [...result].sort((a, b) => {
+      const dir = sortDirection === "asc" ? 1 : -1;
+      switch (sortColumn) {
+        case "formation_name":
+          return dir * a.formation_name.localeCompare(b.formation_name, "fr");
+        case "duree_heures":
+          return dir * ((a.duree_heures || 0) - (b.duree_heures || 0));
+        case "prix":
+          return dir * ((a.prix || 0) - (b.prix || 0));
+        case "training_count":
+          return dir * (a.training_count - b.training_count);
+        case "formula_names":
+          return dir * (a.formula_names.join(", ")).localeCompare(b.formula_names.join(", "), "fr");
+        case "last_session_date":
+          if (!a.last_session_date && !b.last_session_date) return 0;
+          if (!a.last_session_date) return dir;
+          if (!b.last_session_date) return -dir;
+          return dir * a.last_session_date.localeCompare(b.last_session_date);
+        default:
+          return 0;
+      }
+    });
+  }, [catalogEntries, searchQuery, sortColumn, sortDirection]);
 
   const handleCreate = () => {
     setEditingEntry(null);
@@ -139,6 +197,8 @@ const Catalogue = () => {
       if (error) throw error;
 
       toast({ title: "Supprimé", description: "Entrée du catalogue supprimée." });
+      setDialogOpen(false);
+      setEditingEntry(null);
       fetchCatalog();
     } catch (error: any) {
       console.error("Error deleting catalog entry:", error);
@@ -147,8 +207,6 @@ const Catalogue = () => {
         description: error.message || "Impossible de supprimer cette entrée.",
         variant: "destructive",
       });
-    } finally {
-      setDeleteConfirmId(null);
     }
   };
 
@@ -156,6 +214,14 @@ const Catalogue = () => {
     setDialogOpen(false);
     setEditingEntry(null);
     if (saved) fetchCatalog();
+  };
+
+  const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleDateString("fr-FR", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
   };
 
   if (loading) {
@@ -226,7 +292,7 @@ const Catalogue = () => {
             </div>
           </CardHeader>
           <CardContent>
-            {filteredEntries.length === 0 ? (
+            {sortedAndFilteredEntries.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground">
                 {searchQuery
                   ? "Aucune formation ne correspond à votre recherche."
@@ -235,7 +301,7 @@ const Catalogue = () => {
             ) : isMobile ? (
               /* Mobile: Card layout */
               <div className="space-y-3">
-                {filteredEntries.map((entry) => (
+                {sortedAndFilteredEntries.map((entry) => (
                   <div
                     key={entry.id}
                     className="border rounded-lg p-4 space-y-2 cursor-pointer hover:bg-muted/50 transition-colors"
@@ -248,28 +314,25 @@ const Catalogue = () => {
                           {entry.duree_heures}h &middot; {entry.prix}€
                         </p>
                       </div>
-                      <div className="flex items-center gap-1">
-                        {!entry.is_active && (
-                          <Badge variant="secondary">Inactive</Badge>
-                        )}
-                        {entry.woocommerce_product_id && (
-                          <Badge variant="outline" className="gap-1">
-                            <ShoppingCart className="h-3 w-3" />
-                            WC
-                          </Badge>
-                        )}
-                      </div>
+                      {!entry.is_active && (
+                        <Badge variant="secondary">Inactive</Badge>
+                      )}
                     </div>
-                    {entry.description && (
-                      <p className="text-sm text-muted-foreground line-clamp-2">
-                        {entry.description}
-                      </p>
+                    {entry.formula_names.length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        {entry.formula_names.map((name) => (
+                          <Badge key={name} variant="outline" className="text-xs">{name}</Badge>
+                        ))}
+                      </div>
                     )}
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <span>{entry.training_count} session{(entry.training_count || 0) > 1 ? "s" : ""}</span>
-                      {entry.objectives && entry.objectives.length > 0 && (
-                        <span>&middot; {entry.objectives.length} objectif{entry.objectives.length > 1 ? "s" : ""}</span>
-                      )}
+                      <span>{entry.training_count} session{entry.training_count > 1 ? "s" : ""}</span>
+                      <span>&middot;</span>
+                      <span>
+                        {entry.last_session_date
+                          ? `Dernière : ${formatDate(entry.last_session_date)}`
+                          : "Aucune session"}
+                      </span>
                     </div>
                   </div>
                 ))}
@@ -279,17 +342,64 @@ const Catalogue = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Formation</TableHead>
-                    <TableHead className="w-[80px]">Durée</TableHead>
-                    <TableHead className="w-[100px]">Prix HT</TableHead>
-                    <TableHead className="w-[80px]">Sessions</TableHead>
-                    <TableHead className="w-[120px]">WooCommerce</TableHead>
-                    <TableHead className="w-[80px]">Statut</TableHead>
-                    <TableHead className="w-[100px] text-right">Actions</TableHead>
+                    <TableHead
+                      className="cursor-pointer select-none"
+                      onClick={() => handleSort("formation_name")}
+                    >
+                      <div className="flex items-center">
+                        Formation
+                        <SortIcon column="formation_name" />
+                      </div>
+                    </TableHead>
+                    <TableHead
+                      className="w-[80px] cursor-pointer select-none"
+                      onClick={() => handleSort("duree_heures")}
+                    >
+                      <div className="flex items-center">
+                        Durée
+                        <SortIcon column="duree_heures" />
+                      </div>
+                    </TableHead>
+                    <TableHead
+                      className="w-[100px] cursor-pointer select-none"
+                      onClick={() => handleSort("prix")}
+                    >
+                      <div className="flex items-center">
+                        Prix HT
+                        <SortIcon column="prix" />
+                      </div>
+                    </TableHead>
+                    <TableHead
+                      className="w-[80px] cursor-pointer select-none"
+                      onClick={() => handleSort("training_count")}
+                    >
+                      <div className="flex items-center">
+                        Sessions
+                        <SortIcon column="training_count" />
+                      </div>
+                    </TableHead>
+                    <TableHead
+                      className="w-[160px] cursor-pointer select-none"
+                      onClick={() => handleSort("formula_names")}
+                    >
+                      <div className="flex items-center">
+                        Formules
+                        <SortIcon column="formula_names" />
+                      </div>
+                    </TableHead>
+                    <TableHead
+                      className="w-[140px] cursor-pointer select-none"
+                      onClick={() => handleSort("last_session_date")}
+                    >
+                      <div className="flex items-center">
+                        Dernière session
+                        <SortIcon column="last_session_date" />
+                      </div>
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredEntries.map((entry) => (
+                  {sortedAndFilteredEntries.map((entry) => (
                     <TableRow
                       key={entry.id}
                       className="cursor-pointer"
@@ -311,46 +421,24 @@ const Catalogue = () => {
                         <Badge variant="secondary">{entry.training_count}</Badge>
                       </TableCell>
                       <TableCell>
-                        {entry.woocommerce_product_id ? (
-                          <Badge variant="outline" className="gap-1">
-                            <ShoppingCart className="h-3 w-3" />
-                            ID: {entry.woocommerce_product_id}
-                          </Badge>
+                        {entry.formula_names.length > 0 ? (
+                          <div className="flex flex-wrap gap-1">
+                            {entry.formula_names.map((name) => (
+                              <Badge key={name} variant="outline" className="text-xs">
+                                {name}
+                              </Badge>
+                            ))}
+                          </div>
                         ) : (
                           <span className="text-xs text-muted-foreground">—</span>
                         )}
                       </TableCell>
                       <TableCell>
-                        {entry.is_active ? (
-                          <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Active</Badge>
+                        {entry.last_session_date ? (
+                          <span className="text-sm">{formatDate(entry.last_session_date)}</span>
                         ) : (
-                          <Badge variant="secondary">Inactive</Badge>
+                          <span className="text-xs text-muted-foreground">Aucune</span>
                         )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleEdit(entry);
-                            }}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setDeleteConfirmId(entry.id);
-                            }}
-                            disabled={(entry.training_count || 0) > 0}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -366,29 +454,9 @@ const Catalogue = () => {
         open={dialogOpen}
         onClose={handleDialogClose}
         entry={editingEntry}
+        onDelete={handleDelete}
+        trainingCount={editingEntry?.training_count ?? 0}
       />
-
-      {/* Delete confirmation */}
-      <AlertDialog open={!!deleteConfirmId} onOpenChange={() => setDeleteConfirmId(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Supprimer cette formation du catalogue ?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Cette action est irréversible. La formation sera retirée du catalogue.
-              Les sessions existantes ne seront pas affectées.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Annuler</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => deleteConfirmId && handleDelete(deleteConfirmId)}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Supprimer
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 };

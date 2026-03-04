@@ -60,6 +60,8 @@ interface Training {
   prerequisites: string[];
   objectives: string[];
   format_formation: string | null;
+  session_type?: string | null;
+  session_format?: string | null;
   created_at: string;
   sponsor_first_name: string | null;
   sponsor_last_name: string | null;
@@ -522,18 +524,26 @@ const FormationDetail = () => {
     return `Du ${format(start, "EEEE d MMMM", { locale: fr })} au ${format(end, "EEEE d MMMM yyyy", { locale: fr })}`;
   };
 
-  const getFormatLabel = (formatValue: string | null) => {
-    switch (formatValue) {
-      case "intra":
-        return "Intra-entreprise";
-      case "inter-entreprises":
-        return "Inter-entreprises";
-      case "e_learning":
-        return "E-learning";
-      default:
-        return null;
-    }
+  const getFormatLabel = () => {
+    if (!training) return null;
+    const parts: string[] = [];
+    // Session type
+    if (training.session_type === "intra") parts.push("Intra");
+    else if (training.session_type === "inter") parts.push("Inter");
+    else if (training.format_formation === "intra") parts.push("Intra");
+    else if (isInterSession) parts.push("Inter");
+    // Session format
+    if (training.session_format === "presentiel") parts.push("Présentiel");
+    else if (training.session_format === "distanciel_synchrone") parts.push("Classe virtuelle");
+    else if (training.session_format === "distanciel_asynchrone") parts.push("E-learning");
+    else if (training.format_formation === "e_learning") parts.push("E-learning");
+    else if (training.format_formation === "classe_virtuelle") parts.push("Classe virtuelle");
+    return parts.length > 0 ? parts.join(" · ") : null;
   };
+
+  // Derived helpers for display logic
+  const isElearningSession = training?.session_format === "distanciel_asynchrone" || training?.format_formation === "e_learning";
+  const isInterSession = training?.session_type === "inter" || training?.format_formation === "inter-entreprises" || training?.format_formation === "e_learning";
 
   const getSponsorName = () => {
     if (training?.sponsor_first_name && training?.sponsor_last_name) {
@@ -628,7 +638,7 @@ const FormationDetail = () => {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  {training.format_formation !== "e_learning" && (() => {
+                  {!isElearningSession && (() => {
                     const isOnline = training.location?.toLowerCase().includes("visio") ||
                                      training.location?.toLowerCase().includes("en ligne") ||
                                      training.location?.toLowerCase().includes("distanciel");
@@ -640,7 +650,7 @@ const FormationDetail = () => {
                       </DropdownMenuItem>
                     );
                   })()}
-                  {training.format_formation !== "e_learning" && (
+                  {!isElearningSession && (
                     <DropdownMenuItem
                       onClick={() => {
                         if (!training.train_booked) {
@@ -653,7 +663,7 @@ const FormationDetail = () => {
                       Train {training.train_booked && "✓"}
                     </DropdownMenuItem>
                   )}
-                  {training.format_formation !== "e_learning" && (
+                  {!isElearningSession && (
                     <DropdownMenuItem
                       onClick={() => {
                         if (!training.hotel_booked) {
@@ -666,7 +676,7 @@ const FormationDetail = () => {
                       Hôtel {training.hotel_booked && "✓"}
                     </DropdownMenuItem>
                   )}
-                  {training.format_formation === "inter-entreprises" && (
+                  {isInterSession && (
                     <DropdownMenuItem
                       onClick={() => {
                         if (!training.restaurant_booked) {
@@ -679,7 +689,7 @@ const FormationDetail = () => {
                       Restaurant {training.restaurant_booked && "✓"}
                     </DropdownMenuItem>
                   )}
-                  {(training.format_formation === "inter-entreprises" || training.format_formation === "intra") && (
+                  {(isInterSession || training.session_type === "intra" || training.format_formation === "intra") && (
                     <DropdownMenuItem
                       onClick={() => {
                         if (!training.room_rental_booked) {
@@ -712,7 +722,7 @@ const FormationDetail = () => {
             /* Desktop: full action buttons */
             <div className="flex items-center gap-2 flex-wrap">
               {/* Map button - opens dialog (hidden for e-learning, disabled for online/visio) */}
-              {training.format_formation !== "e_learning" && (() => {
+              {!isElearningSession && (() => {
                 const isOnline = training.location?.toLowerCase().includes("visio") ||
                                  training.location?.toLowerCase().includes("en ligne") ||
                                  training.location?.toLowerCase().includes("distanciel");
@@ -731,7 +741,7 @@ const FormationDetail = () => {
               })()}
 
               {/* Train + Hotel booking buttons - Hidden for e-learning */}
-              {training.format_formation !== "e_learning" && (
+              {!isElearningSession && (
                 <LogisticsBookingButtons
                   table="trainings"
                   entityId={training.id}
@@ -745,7 +755,7 @@ const FormationDetail = () => {
               )}
 
               {/* Restaurant button with checkbox - only for inter-entreprises */}
-              {training.format_formation === "inter-entreprises" && (
+              {isInterSession && (
                 <div className="flex items-center gap-1">
                   <Button
                     variant="outline"
@@ -793,7 +803,7 @@ const FormationDetail = () => {
               )}
 
               {/* Room rental button with checkbox - for inter-entreprises and intra */}
-              {(training.format_formation === "inter-entreprises" || training.format_formation === "intra") && (
+              {(isInterSession || training.session_type === "intra" || training.format_formation === "intra") && (
                 <div className="flex items-center gap-1">
                   <Button
                     variant="outline"
@@ -921,9 +931,9 @@ const FormationDetail = () => {
                     )}
                   </button>
                 </Badge>
-                {getFormatLabel(training.format_formation) && (
+                {getFormatLabel() && (
                   <Badge variant="secondary">
-                    {getFormatLabel(training.format_formation)}
+                    {getFormatLabel()}
                   </Badge>
                 )}
                 <Badge variant="outline" className="flex items-center gap-1.5">
@@ -936,13 +946,13 @@ const FormationDetail = () => {
                     {assignedUserName}
                   </Badge>
                 )}
-                {schedules.length > 0 && (
+                {schedules.length > 0 && availableFormulas.length === 0 && (
                   <Badge variant="outline" className="flex items-center gap-1.5">
                     <Clock className="h-3.5 w-3.5" />
                     {calculateTotalDuration()}h
                   </Badge>
                 )}
-                {(training.format_formation === "inter-entreprises" || training.format_formation === "e_learning") ? (
+                {isInterSession ? (
                   (() => {
                     const totalCA = participants.reduce((sum, p) => sum + (p.sold_price_ht || 0), 0);
                     const resteAFacturer = participants
@@ -1188,7 +1198,7 @@ const FormationDetail = () => {
                       trainingId={training.id}
                       trainingStartDate={training.start_date}
                       onParticipantsAdded={fetchParticipants}
-                      isInterEntreprise={training.format_formation === "inter-entreprises" || training.format_formation === "e_learning"}
+                      isInterEntreprise={isInterSession}
                       formatFormation={training.format_formation}
                     />
                     <AddParticipantDialog

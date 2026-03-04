@@ -62,7 +62,14 @@ const ContentCardDialog = ({
   const [draftNewsletters, setDraftNewsletters] = useState<{ id: string; title: string | null; scheduled_date: string }[]>([]);
   const [attachedNewsletterId, setAttachedNewsletterId] = useState<string | null>(null);
   const [attachingNewsletter, setAttachingNewsletter] = useState(false);
+  const [autoSaving, setAutoSaving] = useState(false);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Auto-save refs
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const lastSavedHashRef = useRef("");
+  const formValuesRef = useRef<Record<string, unknown>>({});
 
   useEffect(() => {
     if (card) {
@@ -80,7 +87,71 @@ const ContentCardDialog = ({
       setCardType("article");
       setEmoji(null);
     }
+    lastSavedHashRef.current = "";
+    setLastSaved(null);
   }, [card, open]);
+
+  // Always keep latest values in ref
+  formValuesRef.current = {
+    title, description, imageUrl, tags, cardType, emoji,
+  };
+
+  // Form hash for change detection
+  const formHash = JSON.stringify({
+    title, description, imageUrl, tags, cardType, emoji,
+  });
+
+  // Auto-save for existing cards
+  useEffect(() => {
+    if (!open || !card) return;
+
+    if (formHash === lastSavedHashRef.current) return;
+
+    if (!lastSavedHashRef.current) {
+      lastSavedHashRef.current = formHash;
+      return;
+    }
+
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+
+    saveTimerRef.current = setTimeout(async () => {
+      const v = formValuesRef.current as {
+        title: string; description: string; imageUrl: string;
+        tags: string[]; cardType: ContentCardType; emoji: string | null;
+      };
+
+      if (!v.title.trim()) return;
+
+      setAutoSaving(true);
+      try {
+        const { error } = await (supabase as any)
+          .from("content_cards")
+          .update({
+            title: v.title.trim(),
+            description: v.description || null,
+            image_url: v.imageUrl || null,
+            tags: v.tags,
+            card_type: v.cardType || "article",
+            emoji: v.emoji ?? null,
+          })
+          .eq("id", card.id);
+
+        if (error) throw error;
+
+        lastSavedHashRef.current = formHash;
+        setLastSaved(new Date());
+      } catch (error) {
+        console.error("Auto-save error:", error);
+      } finally {
+        setAutoSaving(false);
+      }
+    }, 800);
+
+    return () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formHash, open, card]);
 
   // Fetch newsletters and current attachment when dialog opens
   useEffect(() => {
@@ -195,6 +266,7 @@ const ContentCardDialog = ({
     setTags(tags.filter((t) => t !== tagToRemove));
   };
 
+  // Manual save for create mode only
   const handleSave = () => {
     if (!title.trim()) {
       toast.error("Le titre est requis");
@@ -213,6 +285,32 @@ const ContentCardDialog = ({
       card_type: cardType,
       emoji,
     }, options);
+  };
+
+  // Flush auto-save and close
+  const handleClose = (isOpen: boolean) => {
+    if (!isOpen && card) {
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current);
+        const v = formValuesRef.current as any;
+        if (v.title.trim() && formHash !== lastSavedHashRef.current) {
+          (supabase as any)
+            .from("content_cards")
+            .update({
+              title: v.title.trim(),
+              description: v.description || null,
+              image_url: v.imageUrl || null,
+              tags: v.tags,
+              card_type: v.cardType || "article",
+              emoji: v.emoji ?? null,
+            })
+            .eq("id", card.id)
+            .then(() => {})
+            .catch(console.error);
+        }
+      }
+    }
+    onOpenChange(isOpen);
   };
 
   const handleNewsletterChange = async (newsletterId: string) => {
@@ -271,7 +369,7 @@ const ContentCardDialog = ({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent
         className={cn(
           "flex flex-col p-0 gap-0 transition-all duration-300",
@@ -290,15 +388,31 @@ const ContentCardDialog = ({
             className="flex-1 border-none shadow-none text-xl font-semibold h-auto py-1 px-0 focus-visible:ring-0 placeholder:text-muted-foreground/50"
           />
           <div className="flex items-center gap-1 shrink-0">
-            <Button
-              variant="default"
-              size="sm"
-              onClick={handleSave}
-              className="gap-1.5"
-            >
-              <Save className="h-4 w-4" />
-              Enregistrer
-            </Button>
+            {card ? (
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground px-2">
+                {autoSaving ? (
+                  <>
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    Enregistrement...
+                  </>
+                ) : lastSaved ? (
+                  <>
+                    <Check className="h-3 w-3 text-green-600" />
+                    Sauvegardé
+                  </>
+                ) : null}
+              </div>
+            ) : (
+              <Button
+                variant="default"
+                size="sm"
+                onClick={handleSave}
+                className="gap-1.5"
+              >
+                <Save className="h-4 w-4" />
+                Enregistrer
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="icon"
