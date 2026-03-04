@@ -773,6 +773,7 @@ export type Database = {
           emoji: string | null
           estimated_value: number | null
           first_name: string | null
+          gender: string | null
           id: string
           last_name: string | null
           linked_mission_id: string | null
@@ -809,6 +810,7 @@ export type Database = {
           emoji?: string | null
           estimated_value?: number | null
           first_name?: string | null
+          gender?: string | null
           id?: string
           last_name?: string | null
           linked_mission_id?: string | null
@@ -845,6 +847,7 @@ export type Database = {
           emoji?: string | null
           estimated_value?: number | null
           first_name?: string | null
+          gender?: string | null
           id?: string
           last_name?: string | null
           linked_mission_id?: string | null
@@ -4057,6 +4060,8 @@ export type Database = {
           program_file_url: string | null
           restaurant_booked: boolean | null
           room_rental_booked: boolean | null
+          session_format: string | null
+          session_type: string | null
           signed_convention_urls: string[] | null
           sold_price_ht: number | null
           sponsor_email: string | null
@@ -4103,6 +4108,8 @@ export type Database = {
           program_file_url?: string | null
           restaurant_booked?: boolean | null
           room_rental_booked?: boolean | null
+          session_format?: string | null
+          session_type?: string | null
           signed_convention_urls?: string[] | null
           sold_price_ht?: number | null
           sponsor_email?: string | null
@@ -4149,6 +4156,8 @@ export type Database = {
           program_file_url?: string | null
           restaurant_booked?: boolean | null
           room_rental_booked?: boolean | null
+          session_format?: string | null
+          session_type?: string | null
           signed_convention_urls?: string[] | null
           sold_price_ht?: number | null
           sponsor_email?: string | null
