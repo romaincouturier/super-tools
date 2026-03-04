@@ -9,7 +9,7 @@ import {
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
 
 interface CrmAiRequest {
-  action: "analyze_exchanges" | "generate_quote_description" | "improve_email_subject" | "improve_email_body" | "suggest_next_action" | "find_website";
+  action: "analyze_exchanges" | "generate_quote_description" | "improve_email_subject" | "improve_email_body" | "suggest_next_action" | "find_website" | "improve_template";
   card_data: {
     title?: string;
     description?: string;
@@ -283,6 +283,39 @@ Réponds uniquement avec le HTML amélioré.`;
         if (result.toLowerCase() === "unknown" || !result.startsWith("http")) {
           result = "";
         }
+        break;
+      }
+
+      case "improve_template": {
+        const systemPrompt = `Tu es un expert en rédaction de modèles d'emails commerciaux pour SuperTilt, organisme de formation professionnelle certifié Qualiopi.
+
+On te fournit un modèle d'email (template) et la version réellement envoyée par l'utilisateur. Tu dois améliorer le modèle original en intégrant subtilement les améliorations que l'utilisateur a apportées lors de l'envoi.
+
+Règles :
+- Conserve les variables du modèle ({{first_name}}, {{last_name}}, {{company}}, {{title}}, etc.)
+- Intègre le style, les formulations et la structure de la version envoyée
+- Ne copie pas mot pour mot la version envoyée : le modèle doit rester générique et réutilisable
+- Si l'utilisateur n'a fait que des changements mineurs ou spécifiques au contexte, conserve le modèle quasi identique
+- Conserve le format HTML avec balises <p>
+- Réponds UNIQUEMENT en JSON valide avec les clés "subject" et "html_content"`;
+
+        const templateSubject = card_data.subject || "";
+        const templateBody = card_data.body || "";
+        const sentVersion = card_data.context || "";
+
+        const userPrompt = `Voici le modèle d'email original :
+
+Objet du modèle : "${templateSubject}"
+
+Contenu du modèle (HTML) :
+${templateBody}
+
+Voici la version envoyée par l'utilisateur :
+${sentVersion}
+
+Améliore le modèle en t'inspirant des modifications de l'utilisateur. Réponds en JSON : {"subject": "...", "html_content": "..."}`;
+
+        result = await callAnthropic(systemPrompt, userPrompt);
         break;
       }
 

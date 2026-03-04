@@ -121,7 +121,7 @@ import EmailEditor from "./EmailEditor";
 import SentDevisSection from "./SentDevisSection";
 import { CreateTrainingDialog } from "./CreateTrainingDialog";
 import confetti from "canvas-confetti";
-import { useCrmEmailTemplates, replaceCrmVariables } from "@/hooks/useCrmEmailTemplates";
+import { useCrmEmailTemplates, useUpdateCrmTemplate, replaceCrmVariables } from "@/hooks/useCrmEmailTemplates";
 import { useToast } from "@/hooks/use-toast";
 
 interface CardDetailDrawerProps {
@@ -162,6 +162,7 @@ const CardDetailDrawer = ({
   const deleteAttachment = useDeleteAttachment();
   const sendEmail = useSendEmail();
   const { data: crmEmailTemplates } = useCrmEmailTemplates();
+  const updateTemplate = useUpdateCrmTemplate();
 
   // Form state
   const [title, setTitle] = useState("");
@@ -224,6 +225,7 @@ const CardDetailDrawer = ({
   const [improvingSubject, setImprovingSubject] = useState(false);
   const [improvingBody, setImprovingBody] = useState(false);
   const [emailAttachments, setEmailAttachments] = useState<EmailAttachment[]>([]);
+  const selectedTemplateRef = useRef<{ id: string; subject: string; html_content: string } | null>(null);
   const emailFileInputRef = useRef<HTMLInputElement>(null);
 
   // UI state
@@ -1134,12 +1136,15 @@ const CardDetailDrawer = ({
 
   const handleSendEmail = async () => {
     if (!card || !user?.email || !emailTo.trim() || !emailSubject.trim()) return;
+    const sentSubject = emailSubject.trim();
+    const sentBody = DOMPurify.sanitize(emailBody);
+    const templateSnapshot = selectedTemplateRef.current;
     await sendEmail.mutateAsync({
       input: {
         card_id: card.id,
         recipient_email: emailTo.trim(),
-        subject: emailSubject.trim(),
-        body_html: DOMPurify.sanitize(emailBody),
+        subject: sentSubject,
+        body_html: sentBody,
         attachments: emailAttachments.length > 0 ? emailAttachments : undefined,
       },
       senderEmail: user.email,
@@ -1148,8 +1153,39 @@ const CardDetailDrawer = ({
     setEmailSubject("");
     setEmailBody("");
     setEmailAttachments([]);
+    selectedTemplateRef.current = null;
     // Explicitly refetch card details so email history updates immediately
     await queryClient.invalidateQueries({ queryKey: ["crm-board", "card-details", card.id] });
+    // Auto-improve template in background if one was used
+    if (templateSnapshot) {
+      try {
+        const { data, error } = await supabase.functions.invoke("crm-ai-assist", {
+          body: {
+            action: "improve_template",
+            card_data: {
+              subject: templateSnapshot.subject,
+              body: templateSnapshot.html_content,
+              context: `Objet envoyé : ${sentSubject}\n\nContenu envoyé :\n${sentBody}`,
+            },
+          },
+        });
+        if (!error && data?.result) {
+          try {
+            const improved = JSON.parse(data.result);
+            if (improved.subject && improved.html_content) {
+              await updateTemplate.mutateAsync({
+                id: templateSnapshot.id,
+                updates: { subject: improved.subject, html_content: improved.html_content },
+              });
+            }
+          } catch {
+            // AI did not return valid JSON, skip update
+          }
+        }
+      } catch {
+        // Template improvement is best-effort, don't block on errors
+      }
+    }
   };
 
   if (!card) return null;
@@ -1956,6 +1992,7 @@ const CardDetailDrawer = ({
                             onClick={() => {
                               setEmailSubject(replaceCrmVariables(tpl.subject, vars));
                               setEmailBody(replaceCrmVariables(tpl.html_content, vars));
+                              selectedTemplateRef.current = { id: tpl.id, subject: tpl.subject, html_content: tpl.html_content };
                             }}
                           >
                             <div className="font-medium text-sm">{tpl.template_name}</div>

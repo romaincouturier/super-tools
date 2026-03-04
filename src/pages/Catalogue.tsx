@@ -36,7 +36,6 @@ interface CatalogEntry {
   description: string | null;
   is_active: boolean;
   display_order: number;
-  format_formation: string | null;
   created_at: string;
   updated_at: string;
   training_count: number;

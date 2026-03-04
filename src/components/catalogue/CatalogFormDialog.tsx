@@ -50,7 +50,6 @@ interface CatalogEntry {
   description: string | null;
   is_active: boolean;
   display_order: number;
-  format_formation: string | null;
 }
 
 interface FormulaEdit {
