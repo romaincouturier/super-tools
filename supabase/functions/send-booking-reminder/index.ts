@@ -147,14 +147,16 @@ serve(async (req) => {
 
     // ─── TRAININGS ───────────────────────────────────────────────────────
 
+    // Only send booking reminders for présentiel trainings
     const { data: trainings, error: trainingsError } = await supabase
       .from("trainings")
       .select(`
         id, training_name, start_date, end_date, location, client_name,
-        hotel_booked, train_booked, restaurant_booked, format_formation,
+        hotel_booked, train_booked, restaurant_booked, format_formation, session_format,
         trainer_id,
         trainers!trainings_trainer_id_fkey ( id, first_name, last_name, email )
       `)
+      .eq("session_format", "presentiel")
       .gte("start_date", now.toISOString().split("T")[0])
       .lte("start_date", threeMonthsFromNow.toISOString().split("T")[0])
       .or("hotel_booked.is.null,hotel_booked.eq.false,train_booked.is.null,train_booked.eq.false,restaurant_booked.is.null,restaurant_booked.eq.false");
@@ -167,8 +169,6 @@ serve(async (req) => {
     console.log(`Found ${trainings?.length || 0} trainings requiring booking reminders`);
 
     for (const training of (trainings || [])) {
-      if (training.format_formation === "e_learning") continue;
-
       // Resolve trainer
       const trainersData = training.trainers;
       let trainer: { id: string; first_name: string; last_name: string; email: string } | null = null;

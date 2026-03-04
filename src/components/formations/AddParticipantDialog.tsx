@@ -98,7 +98,9 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
   const [financeurUrl, setFinanceurUrl] = useState("");
   const [paymentMode, setPaymentMode] = useState<"online" | "invoice">("invoice");
   const [generateCoupon, setGenerateCoupon] = useState(true);
-  const [formula, setFormula] = useState<string>(availableFormulas.length === 1 ? availableFormulas[0].name : "");
+  const [formulaId, setFormulaId] = useState<string>(availableFormulas.length === 1 ? availableFormulas[0].id : "");
+  const selectedFormula = availableFormulas.find(f => f.id === formulaId);
+  const formula = selectedFormula?.name || "";
   const [financeurPopoverOpen, setFinanceurPopoverOpen] = useState(false);
   const [existingFinanceurs, setExistingFinanceurs] = useState<string[]>([]);
   const [isManualMode, setIsManualMode] = useState(false);
@@ -202,7 +204,7 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
     setFinanceurUrl("");
     setPaymentMode("invoice");
     setGenerateCoupon(true);
-    setFormula(availableFormulas.length === 1 ? availableFormulas[0].name : "");
+    setFormulaId(availableFormulas.length === 1 ? availableFormulas[0].id : "");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -237,8 +239,9 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
         needs_survey_token: token,
         needs_survey_status: status,
         // Add formula if available (from catalog formulas)
-        ...(formula && {
+        ...(formulaId && {
           formula,
+          formula_id: formulaId,
         }),
         // For inter-enterprise trainings, add sponsor, funder and payment fields
         ...(isInterEntreprise && {
@@ -344,7 +347,6 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
       }
 
       // For coachee participants: schedule coaching booking invitation (J+7 after enrollment)
-      const selectedFormula = availableFormulas.find((f) => f.name === formula);
       if (selectedFormula && formula.toLowerCase().includes("coach") && insertedParticipant) {
         try {
           const inviteDate = new Date();
@@ -524,13 +526,13 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
             {availableFormulas.length >= 2 && (
               <div className="space-y-2">
                 <Label htmlFor="formula">Formule</Label>
-                <Select value={formula} onValueChange={setFormula}>
+                <Select value={formulaId} onValueChange={setFormulaId}>
                   <SelectTrigger>
                     <SelectValue placeholder="Sélectionner une formule" />
                   </SelectTrigger>
                   <SelectContent>
                     {availableFormulas.map((f) => (
-                      <SelectItem key={f.id} value={f.name}>
+                      <SelectItem key={f.id} value={f.id}>
                         {f.name}
                         {(f.prix != null || f.duree_heures != null) && (
                           <span className="text-muted-foreground">
