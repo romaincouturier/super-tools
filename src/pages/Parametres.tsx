@@ -796,7 +796,8 @@ Cordialement,`,
     variables: ["first_name", "mission_title", "deliverables_link"],
   },
 };
-// Centralized settings registry: key → { default value, description for DB }
+
+// Centralized settings registry: single source of truth for keys, defaults, and descriptions
 const SETTINGS_REGISTRY: Record<string, { default: string; description: string }> = {
   sender_email: { default: "", description: "Adresse email de l'expéditeur pour tous les envois" },
   sender_name: { default: "", description: "Nom de l'expéditeur pour tous les envois" },
@@ -833,11 +834,28 @@ const SETTINGS_REGISTRY: Record<string, { default: string; description: string }
   woocommerce_store_url: { default: "", description: "URL de la boutique WooCommerce (ex: https://www.supertilt.fr)" },
   woocommerce_consumer_key: { default: "", description: "Clé API WooCommerce (Consumer Key, commence par ck_)" },
   woocommerce_consumer_secret: { default: "", description: "Secret API WooCommerce (Consumer Secret, commence par cs_)" },
+  woocommerce_cart_base_url: { default: "", description: "URL de base du panier WooCommerce pour les accès e-learning (ex: https://supertilt.fr/commande/?add-to-cart=)" },
 };
 
 const SETTINGS_DEFAULTS = Object.fromEntries(
   Object.entries(SETTINGS_REGISTRY).map(([k, v]) => [k, v.default])
 );
+
+const AutoSaveIndicator = ({ status }: { status: "idle" | "saving" | "saved" }) => {
+  if (status === "saving") return (
+    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+      <Loader2 className="h-4 w-4 animate-spin" />
+      Enregistrement...
+    </div>
+  );
+  if (status === "saved") return (
+    <div className="flex items-center gap-2 text-sm text-green-600">
+      <Check className="h-4 w-4" />
+      Enregistré
+    </div>
+  );
+  return null;
+};
 
 const Parametres = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -848,10 +866,8 @@ const Parametres = () => {
   const [editedTemplates, setEditedTemplates] = useState<Record<string, Record<AddressMode, { subject: string; content: string }>>>({});
   const [activeMode, setActiveMode] = useState<Record<string, AddressMode>>({});
   
-  // All settings stored as a single record (keys match app_settings.setting_key)
+  // All persisted settings in a single record (keys/defaults from SETTINGS_REGISTRY)
   const [settings, setSettings] = useState<Record<string, string>>(SETTINGS_DEFAULTS);
-  const [uploadingReglement, setUploadingReglement] = useState(false);
-
   const updateSetting = useCallback((key: string, value: string) => {
     setSettings(prev => ({ ...prev, [key]: value }));
   }, []);
@@ -865,6 +881,9 @@ const Parametres = () => {
     } catch { /* fallback */ }
     return [false, true, true, true, true, true, false];
   })();
+
+  // UI-only state (not persisted settings)
+  const [uploadingReglement, setUploadingReglement] = useState(false);
 
 
   // Auto-save infrastructure
@@ -891,8 +910,7 @@ const Parametres = () => {
       setUser(session.user);
       await Promise.all([fetchTemplates(), fetchSettings()]);
       setLoading(false);
-      // Allow a tick for state to settle before enabling auto-save
-      setTimeout(() => { initialLoadDoneRef.current = true; }, 100);
+      initialLoadDoneRef.current = true;
     };
 
     checkAuth();
@@ -938,11 +956,11 @@ const Parametres = () => {
         description,
       }));
 
-      for (const setting of settingsToSave) {
-        await supabase
-          .from("app_settings")
-          .upsert(setting, { onConflict: "setting_key" });
-      }
+      await Promise.all(
+        settingsToSave.map(setting =>
+          supabase.from("app_settings").upsert(setting, { onConflict: "setting_key" })
+        )
+      );
 
       setAutoSaveStatus("saved");
       setTimeout(() => setAutoSaveStatus("idle"), 2000);
@@ -1313,18 +1331,7 @@ const Parametres = () => {
 
       {/* Actions */}
       <div className="flex flex-wrap gap-2 pt-2 items-center">
-        {templateAutoSaveStatus === "saving" && (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground px-2">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Enregistrement...
-          </div>
-        )}
-        {templateAutoSaveStatus === "saved" && (
-          <div className="flex items-center gap-2 text-sm text-green-600 px-2">
-            <Check className="h-4 w-4" />
-            Enregistré
-          </div>
-        )}
+        <AutoSaveIndicator status={templateAutoSaveStatus} />
         <Button
           variant="secondary"
           onClick={() => handleImproveWithAI(type, currentMode)}
@@ -2117,18 +2124,7 @@ const Parametres = () => {
                   </div>
                 </div>
 
-                {autoSaveStatus === "saving" && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Enregistrement...
-                  </div>
-                )}
-                {autoSaveStatus === "saved" && (
-                  <div className="flex items-center gap-2 text-sm text-green-600">
-                    <Check className="h-4 w-4" />
-                    Enregistré
-                  </div>
-                )}
+                <AutoSaveIndicator status={autoSaveStatus} />
               </CardContent>
             </Card>
 
@@ -2445,6 +2441,20 @@ const Parametres = () => {
                   <p className="text-xs text-muted-foreground">
                     Créez une clé API dans WordPress → WooCommerce → Réglages → Avancé → API REST. Choisissez les permissions <strong>Lecture/Écriture</strong>.
                   </p>
+                  <Separator />
+                  <div className="space-y-2">
+                    <Label htmlFor="wc-cart-base-url">URL de base du panier</Label>
+                    <Input
+                      id="wc-cart-base-url"
+                      type="url"
+                      value={settings.woocommerce_cart_base_url}
+                      onChange={(e) => updateSetting("woocommerce_cart_base_url", e.target.value)}
+                      placeholder="https://supertilt.fr/commande/?add-to-cart="
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      URL utilisée pour construire le lien d'accès e-learning. Le <code>woocommerce_product_id</code> du catalogue sera ajouté automatiquement à la fin.
+                    </p>
+                  </div>
                 </CardContent>
               </Card>
 
@@ -2495,18 +2505,7 @@ const Parametres = () => {
                   </div>
                 </CardContent>
               </Card>
-              {autoSaveStatus === "saving" && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Enregistrement...
-                </div>
-              )}
-              {autoSaveStatus === "saved" && (
-                <div className="flex items-center gap-2 text-sm text-green-600">
-                  <Check className="h-4 w-4" />
-                  Enregistré
-                </div>
-              )}
+              <AutoSaveIndicator status={autoSaveStatus} />
             </TabsContent>
           )}
 
