@@ -15,10 +15,13 @@ export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     VitePWA({
-      registerType: "prompt",
+      registerType: "autoUpdate",
       includeAssets: ["favicon.ico"],
       manifest: false, // We use the static public/manifest.json
       workbox: {
+        cleanupOutdatedCaches: true,
+        skipWaiting: true,
+        clientsClaim: true,
         // Cache pages and assets with a network-first strategy
         runtimeCaching: [
           {
@@ -27,15 +30,6 @@ export default defineConfig(({ mode }) => ({
             options: {
               cacheName: "pages-cache",
               expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 * 24 }, // 24h
-            },
-          },
-          {
-            urlPattern: ({ request }) =>
-              ["style", "script", "worker", "font"].includes(request.destination),
-            handler: "StaleWhileRevalidate",
-            options: {
-              cacheName: "assets-cache",
-              expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 * 7 }, // 7 days
             },
           },
           {

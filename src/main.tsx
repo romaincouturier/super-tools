@@ -3,6 +3,9 @@ import { registerSW } from "virtual:pwa-register";
 import "./index.css";
 
 const BOOTSTRAP_RELOAD_FLAG = "__st_bootstrap_reload_attempted";
+const SW_CLEANUP_RELOAD_FLAG = "__st_sw_cleanup_reload_attempted";
+const isPreviewHost =
+  typeof window !== "undefined" && window.location.hostname.includes("lovableproject.com");
 
 function shouldReloadForBootstrapError(error: unknown) {
   const message = String((error as any)?.message ?? error ?? "");
@@ -13,7 +16,24 @@ function shouldReloadForBootstrapError(error: unknown) {
   );
 }
 
-if (import.meta.env.PROD) {
+async function cleanupServiceWorkersAndCaches() {
+  if (!("serviceWorker" in navigator)) return;
+
+  const registrations = await navigator.serviceWorker.getRegistrations();
+  await Promise.allSettled(registrations.map((registration) => registration.unregister()));
+
+  if ("caches" in window) {
+    const cacheKeys = await caches.keys();
+    await Promise.allSettled(cacheKeys.map((key) => caches.delete(key)));
+  }
+
+  if (navigator.serviceWorker.controller && !sessionStorage.getItem(SW_CLEANUP_RELOAD_FLAG)) {
+    sessionStorage.setItem(SW_CLEANUP_RELOAD_FLAG, "1");
+    window.location.reload();
+  }
+}
+
+if (import.meta.env.PROD && !isPreviewHost) {
   const updateSW = registerSW({
     onNeedRefresh() {
       console.log("[SW] Nouvelle version disponible, mise à jour…");
@@ -23,6 +43,8 @@ if (import.meta.env.PROD) {
       console.log("[SW] Application prête pour le mode hors ligne");
     },
   });
+} else {
+  void cleanupServiceWorkersAndCaches();
 }
 
 async function bootstrap() {
