@@ -1684,22 +1684,22 @@ const CardDetailDrawer = ({
           </h4>
 
           {/* Brief questions */}
-          {card.brief_questions && card.brief_questions.length > 0 && (
+          {localBriefQuestions && localBriefQuestions.length > 0 && (
             <div className="p-4 bg-amber-50 rounded-lg space-y-2">
               <h4 className="font-medium text-sm flex items-center gap-2">
-                <FileText className="h-4 w-4" />
-                Questions pour le brief
+                📋 Questions pour le brief
                 <span className="text-xs text-muted-foreground font-normal">
-                  ({card.brief_questions.filter((q: BriefQuestion) => q.answered).length}/{card.brief_questions.length})
+                  ({localBriefQuestions.filter((q: BriefQuestion) => q.answered).length}/{localBriefQuestions.length})
                 </span>
               </h4>
               <ul className="space-y-1.5">
-                {card.brief_questions.map((q: BriefQuestion) => {
+                {localBriefQuestions.map((q: BriefQuestion) => {
                   const toggleQuestion = () => {
                     if (!user?.email) return;
-                    const updatedQuestions = card.brief_questions.map((bq: BriefQuestion) =>
+                    const updatedQuestions = localBriefQuestions.map((bq: BriefQuestion) =>
                       bq.id === q.id ? { ...bq, answered: !bq.answered } : bq
                     );
+                    setLocalBriefQuestions(updatedQuestions);
                     updateCard.mutate({
                       id: card.id,
                       updates: { brief_questions: updatedQuestions },
