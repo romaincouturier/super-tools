@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Pencil, Loader2, FileText, Upload, Trash2, ExternalLink, CheckCircle2, Download, Paperclip, StickyNote, Check } from "lucide-react";
+import { Pencil, Loader2, FileText, Upload, Trash2, ExternalLink, CheckCircle2, Download, Paperclip, StickyNote, Check, Tag } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
@@ -151,6 +151,7 @@ const EditParticipantDialog = ({
   const [formula, setFormula] = useState(participant.formula || "");
   const [participantFiles, setParticipantFiles] = useState<ParticipantFile[]>([]);
   const [uploadingFile, setUploadingFile] = useState(false);
+  const [couponCode, setCouponCode] = useState<string | null>(null);
   const { toast } = useToast();
 
   // Auto-save refs
@@ -357,6 +358,24 @@ const EditParticipantDialog = ({
       fetchFinanceurs();
     }
   }, [open, isInterEntreprise]);
+
+  // Fetch WooCommerce coupon
+  useEffect(() => {
+    const fetchCoupon = async () => {
+      const { data } = await (supabase as any)
+        .from("woocommerce_coupons")
+        .select("coupon_code")
+        .eq("participant_id", participant.id)
+        .eq("status", "active")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      setCouponCode(data?.coupon_code || null);
+    };
+    if (open && formatFormation === "e_learning") {
+      fetchCoupon();
+    }
+  }, [open, formatFormation, participant.id]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -629,6 +648,16 @@ const EditParticipantDialog = ({
                       Par défaut : {trainingElearningDuration ?? 7}h (durée de la formation)
                     </p>
                   </div>
+
+                  {couponCode && (
+                    <div className="flex items-center gap-3 p-3 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800">
+                      <Tag className="h-5 w-5 text-green-600 flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs text-muted-foreground">Coupon WooCommerce</p>
+                        <p className="text-sm font-mono font-bold text-green-700 dark:text-green-300">{couponCode}</p>
+                      </div>
+                    </div>
+                  )}
                 </>
               )}
 

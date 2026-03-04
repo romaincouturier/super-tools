@@ -131,9 +131,29 @@ serve(async (req) => {
     emailSubject = replaceVariables(emailSubject, variables);
     emailContent = replaceVariables(emailContent, variables);
 
+    // Convert plain-text newlines in emailContent to HTML paragraphs/breaks
+    // Preserve existing HTML blocks (buttons, divs) while converting bare newlines
+    const formatContentToHtml = (content: string): string => {
+      // Split by double newlines into paragraphs
+      const blocks = content.split(/\n\n+/);
+      return blocks.map(block => {
+        const trimmed = block.trim();
+        if (!trimmed) return "";
+        // If block already contains block-level HTML, leave it as-is
+        if (/^<(p|div|table|ol|ul|h[1-6])\b/i.test(trimmed)) {
+          return trimmed;
+        }
+        // Convert single newlines to <br> within a <p>
+        const lines = trimmed.split(/\n/).map(l => l.trim()).join("<br>");
+        return `<p>${lines}</p>`;
+      }).filter(Boolean).join("\n");
+    };
+
+    const formattedContent = formatContentToHtml(emailContent);
+
     // Build HTML email
     const htmlEmail = `
-      ${emailContent}
+      ${formattedContent}
       ${signature}
     `;
 
