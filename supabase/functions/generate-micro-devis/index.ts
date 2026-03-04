@@ -175,7 +175,7 @@ async function generatePdfWithPdfMonkey(
  * Returns the storage path, or null on failure.
  */
 async function persistPdfToStorage(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   pdfUrl: string,
   cardId: string | null,
   suffix: string,
