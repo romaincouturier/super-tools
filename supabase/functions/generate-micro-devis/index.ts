@@ -45,6 +45,11 @@ interface RequestBody {
   senderEmail?: string;
 }
 
+interface EmailAttachmentPayload {
+  filename: string;
+  content: string;
+}
+
 const PDFMONKEY_TEMPLATE_ID = "C3BC00C9-232F-4ADD-9D1F-9FD176573E93";
 
 async function generatePdfWithPdfMonkey(
@@ -205,6 +210,49 @@ async function persistPdfToStorage(
   }
 }
 
+/**
+ * Persist email attachments in private CRM storage bucket.
+ */
+async function persistEmailAttachmentsToStorage(
+  supabase: ReturnType<typeof createClient>,
+  attachments: EmailAttachmentPayload[],
+  cardId: string,
+): Promise<string[]> {
+  const attachmentPaths: string[] = [];
+
+  for (const attachment of attachments) {
+    try {
+      const base64Content = attachment.content.includes(",")
+        ? attachment.content.split(",").pop() || ""
+        : attachment.content;
+
+      if (!base64Content) continue;
+
+      const bytes = Uint8Array.from(atob(base64Content), (c) => c.charCodeAt(0));
+      const safeFilename = attachment.filename.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const storagePath = `emails/${cardId}/${Date.now()}_${safeFilename}`;
+
+      const { error } = await supabase.storage
+        .from("crm-attachments")
+        .upload(storagePath, bytes, {
+          contentType: "application/octet-stream",
+          upsert: false,
+        });
+
+      if (error) {
+        console.warn("Failed to upload CRM attachment:", attachment.filename, error);
+        continue;
+      }
+
+      attachmentPaths.push(storagePath);
+    } catch (err) {
+      console.warn("Error while persisting CRM attachment:", attachment.filename, err);
+    }
+  }
+
+  return attachmentPaths;
+}
+
 // Process template with variables (same logic as other emails)
 function processTemplate(
   template: string,
@@ -277,7 +325,7 @@ async function sendEmailWithResend(
   pdfUrlSansSubrogation: string | null,
   pdfUrlAvecSubrogation: string | null,
   typeSubrogation: "sans" | "avec" | "les2"
-): Promise<{ subject: string; htmlContent: string; attachmentNames: string[] }> {
+): Promise<{ subject: string; htmlContent: string; attachmentNames: string[]; attachments: EmailAttachmentPayload[] }> {
   const resendApiKey = Deno.env.get("RESEND_API_KEY");
   
   if (!resendApiKey) {
@@ -393,7 +441,7 @@ async function sendEmailWithResend(
   `;
 
   // Build attachments array
-  const attachments: { filename: string; content: string }[] = [];
+  const attachments: EmailAttachmentPayload[] = [];
   
   if (pdfSansSubrogation) {
     attachments.push({
@@ -435,6 +483,7 @@ async function sendEmailWithResend(
     subject,
     htmlContent,
     attachmentNames: attachments.map((a) => a.filename),
+    attachments,
   };
 }
 
@@ -564,6 +613,11 @@ serve(async (req: Request): Promise<Response> => {
         const bodyWithAttachments = emailResult.htmlContent + attachmentInfo;
 
         const contactEmail = await getSenderEmail();
+        const attachmentPaths = await persistEmailAttachmentsToStorage(
+          supabase,
+          emailResult.attachments,
+          resolvedCrmCardId,
+        );
 
         // Insert into crm_card_emails
         await supabase.from("crm_card_emails").insert({
@@ -572,6 +626,8 @@ serve(async (req: Request): Promise<Response> => {
           recipient_email: body.emailCommanditaire,
           subject: emailResult.subject,
           body_html: bodyWithAttachments,
+          attachment_names: emailResult.attachmentNames,
+          attachment_paths: attachmentPaths.length > 0 ? attachmentPaths : null,
         });
 
         // Log activity
