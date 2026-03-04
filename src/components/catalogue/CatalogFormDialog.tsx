@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Plus, Trash2, ChevronDown, ChevronUp } from "lucide-react";
+import { Loader2, Plus, Trash2, ChevronDown, ChevronUp, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -62,6 +62,8 @@ interface CatalogFormDialogProps {
 
 const CatalogFormDialog = ({ open, onClose, entry }: CatalogFormDialogProps) => {
   const [saving, setSaving] = useState(false);
+  const [autoSaving, setAutoSaving] = useState(false);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const { toast } = useToast();
 
   // Form state
@@ -82,6 +84,12 @@ const CatalogFormDialog = ({ open, onClose, entry }: CatalogFormDialogProps) => 
   const [formulas, setFormulas] = useState<FormulaEdit[]>([]);
   const [expandedFormula, setExpandedFormula] = useState<number | null>(null);
 
+  // Auto-save refs
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const lastSavedHashRef = useRef("");
+  const skipNextAutoSave = useRef(0);
+  const formValuesRef = useRef<Record<string, unknown>>({});
+
   const formulaFromDb = (f: FormationFormula): FormulaEdit => ({
     id: f.id,
     name: f.name,
@@ -92,9 +100,150 @@ const CatalogFormDialog = ({ open, onClose, entry }: CatalogFormDialogProps) => 
     supports_url: f.supports_url || "",
   });
 
+  // Always keep latest values in ref
+  formValuesRef.current = {
+    formationName, description, prix, dureeHeures, programmeUrl, supportsUrl,
+    supertiltLink, objectives, prerequisites, elearningDuration,
+    elearningAccessEmailContent, woocommerceProductId, isActive, formatFormation,
+    formulas,
+  };
+
+  // Form state hash for change detection
+  const activeFormulas = formulas.filter((f) => !f._deleted);
+  const formHash = JSON.stringify({
+    formationName, description, prix, dureeHeures, programmeUrl, supportsUrl,
+    supertiltLink, objectives, prerequisites, elearningDuration,
+    elearningAccessEmailContent, woocommerceProductId, isActive, formatFormation,
+    fml: activeFormulas.map(f => `${f.id || ""}|${f.name}|${f.duree_heures}|${f.prix}|${f.woocommerce_product_id}|${f.supports_url}|${f.elearning_access_email_content}`),
+  });
+
+  // Shared save logic (used by both auto-save and manual create)
+  const doSave = async (entryId: string) => {
+    const v = formValuesRef.current as {
+      formationName: string; description: string; prix: string; dureeHeures: string;
+      programmeUrl: string; supportsUrl: string; supertiltLink: string;
+      objectives: string[]; prerequisites: string[]; elearningDuration: string;
+      elearningAccessEmailContent: string; woocommerceProductId: string;
+      isActive: boolean; formatFormation: string; formulas: FormulaEdit[];
+    };
+
+    if (!v.formationName.trim()) return;
+
+    const payload = {
+      formation_name: v.formationName.trim(),
+      description: v.description.trim() || null,
+      prix: v.prix ? parseFloat(v.prix) : 0,
+      duree_heures: v.dureeHeures ? parseFloat(v.dureeHeures) : 0,
+      programme_url: v.programmeUrl.trim() || null,
+      supports_url: v.supportsUrl.trim() || null,
+      supertilt_link: v.supertiltLink.trim() || null,
+      objectives: v.objectives,
+      prerequisites: v.prerequisites,
+      elearning_duration: v.elearningDuration ? parseFloat(v.elearningDuration) : null,
+      elearning_access_email_content: v.elearningAccessEmailContent.trim() || null,
+      woocommerce_product_id: v.woocommerceProductId ? parseInt(v.woocommerceProductId, 10) : null,
+      is_active: v.isActive,
+      format_formation: v.formatFormation || null,
+    };
+
+    const { error } = await supabase
+      .from("formation_configs")
+      .update(payload)
+      .eq("id", entryId);
+    if (error) throw error;
+
+    // Save formulas
+    const allFormulas = v.formulas;
+    const active = allFormulas.filter((f) => !f._deleted);
+    const deletedIds = allFormulas.filter((f) => f._deleted && f.id).map((f) => f.id!);
+
+    if (deletedIds.length > 0) {
+      await supabase.from("formation_formulas").delete().in("id", deletedIds);
+    }
+
+    for (let i = 0; i < active.length; i++) {
+      const f = active[i];
+      if (!f.name.trim()) continue;
+
+      const formulaPayload = {
+        formation_config_id: entryId,
+        name: f.name.trim(),
+        duree_heures: f.duree_heures ? parseFloat(f.duree_heures) : null,
+        prix: f.prix ? parseFloat(f.prix) : null,
+        elearning_access_email_content: f.elearning_access_email_content.trim() || null,
+        woocommerce_product_id: f.woocommerce_product_id ? parseInt(f.woocommerce_product_id, 10) : null,
+        supports_url: f.supports_url.trim() || null,
+        display_order: i,
+      };
+
+      if (f.id) {
+        await supabase.from("formation_formulas").update(formulaPayload).eq("id", f.id);
+      } else {
+        await supabase.from("formation_formulas").insert(formulaPayload);
+      }
+    }
+
+    // Reload formulas to get proper IDs and clean up deleted ones
+    const { data: freshFormulas } = await supabase
+      .from("formation_formulas")
+      .select("*")
+      .eq("formation_config_id", entryId)
+      .order("display_order");
+
+    if (freshFormulas) {
+      skipNextAutoSave.current++;
+      setFormulas(freshFormulas.map(formulaFromDb));
+    }
+  };
+
+  // Auto-save effect (edit mode only)
+  useEffect(() => {
+    if (!entry || !open) return;
+
+    if (skipNextAutoSave.current > 0) {
+      skipNextAutoSave.current--;
+      lastSavedHashRef.current = formHash;
+      return;
+    }
+
+    // Skip if nothing changed since last save (or initial load)
+    if (formHash === lastSavedHashRef.current) return;
+
+    // If lastSavedHashRef is empty, this is the initial load - just record state
+    if (!lastSavedHashRef.current) {
+      lastSavedHashRef.current = formHash;
+      return;
+    }
+
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+
+    saveTimerRef.current = setTimeout(async () => {
+      setAutoSaving(true);
+      try {
+        await doSave(entry.id);
+        lastSavedHashRef.current = formHash;
+        setLastSaved(new Date());
+      } catch (error) {
+        console.error("Auto-save error:", error);
+      } finally {
+        setAutoSaving(false);
+      }
+    }, 800);
+
+    return () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formHash, entry, open]);
+
   // Reset form when dialog opens/entry changes
   useEffect(() => {
     if (open) {
+      lastSavedHashRef.current = "";
+      skipNextAutoSave.current = 0;
+      setLastSaved(null);
+      setAutoSaving(false);
+
       if (entry) {
         setFormationName(entry.formation_name);
         setDescription(entry.description || "");
@@ -118,6 +267,8 @@ const CatalogFormDialog = ({ open, onClose, entry }: CatalogFormDialogProps) => 
           .order("display_order")
           .then(({ data }) => {
             setFormulas((data || []).map(formulaFromDb));
+            // Skip the auto-save triggered by formula load
+            skipNextAutoSave.current++;
           });
       } else {
         setFormationName("");
@@ -140,7 +291,20 @@ const CatalogFormDialog = ({ open, onClose, entry }: CatalogFormDialogProps) => 
     }
   }, [open, entry]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Flush pending auto-save and close
+  const handleClose = (saved: boolean) => {
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current);
+      // Fire save immediately if there are pending changes
+      if (entry && formHash !== lastSavedHashRef.current) {
+        doSave(entry.id).catch(console.error);
+      }
+    }
+    onClose(saved);
+  };
+
+  // Create new entry (manual submit for create mode only)
+  const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!formationName.trim()) {
@@ -171,56 +335,31 @@ const CatalogFormDialog = ({ open, onClose, entry }: CatalogFormDialogProps) => 
         format_formation: formatFormation || null,
       };
 
-      let configId: string;
+      // Insert — get max display_order
+      const { data: maxOrder } = await supabase
+        .from("formation_configs")
+        .select("display_order")
+        .order("display_order", { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
-      if (entry) {
-        // Update
-        const { error } = await supabase
-          .from("formation_configs")
-          .update(payload)
-          .eq("id", entry.id);
-        if (error) throw error;
-        configId = entry.id;
-      } else {
-        // Insert — get max display_order
-        const { data: maxOrder } = await supabase
-          .from("formation_configs")
-          .select("display_order")
-          .order("display_order", { ascending: false })
-          .limit(1)
-          .maybeSingle();
+      const { data: inserted, error } = await supabase
+        .from("formation_configs")
+        .insert({
+          ...payload,
+          display_order: (maxOrder?.display_order || 0) + 1,
+        })
+        .select("id")
+        .single();
+      if (error) throw error;
 
-        const { data: inserted, error } = await supabase
-          .from("formation_configs")
-          .insert({
-            ...payload,
-            display_order: (maxOrder?.display_order || 0) + 1,
-          })
-          .select("id")
-          .single();
-        if (error) throw error;
-        configId = inserted.id;
-      }
-
-      // Save formulas
-      const activeFormulas = formulas.filter((f) => !f._deleted);
-
-      // Delete removed formulas
-      const deletedIds = formulas
-        .filter((f) => f._deleted && f.id)
-        .map((f) => f.id!);
-      if (deletedIds.length > 0) {
-        await supabase
-          .from("formation_formulas")
-          .delete()
-          .in("id", deletedIds);
-      }
-
-      // Upsert remaining formulas
-      for (let i = 0; i < activeFormulas.length; i++) {
-        const f = activeFormulas[i];
-        const formulaPayload = {
-          formation_config_id: configId,
+      // Save formulas for new entry
+      const active = formulas.filter((f) => !f._deleted);
+      for (let i = 0; i < active.length; i++) {
+        const f = active[i];
+        if (!f.name.trim()) continue;
+        await supabase.from("formation_formulas").insert({
+          formation_config_id: inserted.id,
           name: f.name.trim(),
           duree_heures: f.duree_heures ? parseFloat(f.duree_heures) : null,
           prix: f.prix ? parseFloat(f.prix) : null,
@@ -228,33 +367,20 @@ const CatalogFormDialog = ({ open, onClose, entry }: CatalogFormDialogProps) => 
           woocommerce_product_id: f.woocommerce_product_id ? parseInt(f.woocommerce_product_id, 10) : null,
           supports_url: f.supports_url.trim() || null,
           display_order: i,
-        };
-
-        if (f.id) {
-          await supabase
-            .from("formation_formulas")
-            .update(formulaPayload)
-            .eq("id", f.id);
-        } else {
-          await supabase
-            .from("formation_formulas")
-            .insert(formulaPayload);
-        }
+        });
       }
 
       toast({
-        title: entry ? "Mis à jour" : "Créée",
-        description: entry
-          ? "Formation mise à jour dans le catalogue."
-          : "Formation ajoutée au catalogue.",
+        title: "Créée",
+        description: "Formation ajoutée au catalogue.",
       });
 
       onClose(true);
     } catch (error: any) {
-      console.error("Error saving catalog entry:", error);
+      console.error("Error creating catalog entry:", error);
       toast({
         title: "Erreur",
-        description: error.message || "Impossible de sauvegarder.",
+        description: error.message || "Impossible de créer.",
         variant: "destructive",
       });
     } finally {
@@ -262,16 +388,33 @@ const CatalogFormDialog = ({ open, onClose, entry }: CatalogFormDialogProps) => 
     }
   };
 
+  const hasFormulas = formulas.filter((f) => !f._deleted).length > 0;
+
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose(false)}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && handleClose(!!entry)}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto overflow-x-hidden">
         <DialogHeader>
           <DialogTitle>
             {entry ? "Modifier la formation" : "Nouvelle formation au catalogue"}
           </DialogTitle>
+          {entry && (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground pt-1">
+              {autoSaving ? (
+                <>
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  Enregistrement...
+                </>
+              ) : lastSaved ? (
+                <>
+                  <Check className="h-3 w-3 text-green-600" />
+                  Sauvegardé
+                </>
+              ) : null}
+            </div>
+          )}
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={entry ? (e) => e.preventDefault() : handleCreate} className="space-y-6">
           {/* Basic info */}
           <div className="space-y-4">
             <div className="space-y-2">
@@ -343,7 +486,7 @@ const CatalogFormDialog = ({ open, onClose, entry }: CatalogFormDialogProps) => 
               <p className="text-xs text-muted-foreground">
                 Sans formule, la formation est "classique". Chaque formule a son propre tarif, durée, etc.
               </p>
-              {formulas.filter((f) => !f._deleted).length > 0 && (
+              {hasFormulas && (
                 <div className="space-y-2 pt-1">
                   {formulas.map((formula, idx) => {
                     if (formula._deleted) return null;
@@ -484,7 +627,7 @@ const CatalogFormDialog = ({ open, onClose, entry }: CatalogFormDialogProps) => 
               )}
             </div>
 
-            {formulas.filter((f) => !f._deleted).length === 0 && (
+            {!hasFormulas && (
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="dureeHeures">Durée (heures)</Label>
@@ -555,7 +698,7 @@ const CatalogFormDialog = ({ open, onClose, entry }: CatalogFormDialogProps) => 
                   />
                 </div>
 
-                {formulas.filter((f) => !f._deleted).length === 0 && (
+                {!hasFormulas && (
                   <div className="space-y-2">
                     <Label htmlFor="supportsUrl">URL des supports pédagogiques</Label>
                     <Input
@@ -579,7 +722,7 @@ const CatalogFormDialog = ({ open, onClose, entry }: CatalogFormDialogProps) => 
               </AccordionContent>
             </AccordionItem>
 
-            {formulas.filter((f) => !f._deleted).length === 0 && (
+            {!hasFormulas && (
               <>
                 <AccordionItem value="elearning">
                   <AccordionTrigger>Configuration e-learning</AccordionTrigger>
@@ -643,23 +786,35 @@ const CatalogFormDialog = ({ open, onClose, entry }: CatalogFormDialogProps) => 
 
           {/* Actions */}
           <div className="flex justify-end gap-3 pt-4 border-t">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onClose(false)}
-            >
-              Annuler
-            </Button>
-            <Button type="submit" disabled={saving}>
-              {saving ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Enregistrement...
-                </>
-              ) : (
-                entry ? "Mettre à jour" : "Créer"
-              )}
-            </Button>
+            {entry ? (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => handleClose(true)}
+              >
+                Fermer
+              </Button>
+            ) : (
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => onClose(false)}
+                >
+                  Annuler
+                </Button>
+                <Button type="submit" disabled={saving}>
+                  {saving ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Enregistrement...
+                    </>
+                  ) : (
+                    "Créer"
+                  )}
+                </Button>
+              </>
+            )}
           </div>
         </form>
       </DialogContent>
