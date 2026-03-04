@@ -15,7 +15,7 @@ import {
  *   trainingId: string (UUID)
  *
  * The function:
- * 1. Looks up the training's catalog entry to get the woocommerce_product_id
+ * 1. Looks up the participant's formula (if any) or the catalog entry to get the woocommerce_product_id
  * 2. Generates a unique coupon code
  * 3. Creates the coupon in WooCommerce via REST API
  * 4. Records the coupon in the woocommerce_coupons table
@@ -88,12 +88,34 @@ serve(async (req) => {
       return createErrorResponse("Entrée catalogue introuvable", 404);
     }
 
-    const woocommerceProductId = catalog.woocommerce_product_id;
+    // If the participant has a formula, look up woocommerce_product_id from the formula first
+    let woocommerceProductId: number | null = null;
+
+    if (participant.formula) {
+      const { data: formula } = await supabase
+        .from("formation_formulas")
+        .select("woocommerce_product_id, prix")
+        .eq("formation_config_id", training.catalog_id)
+        .eq("name", participant.formula)
+        .single();
+
+      if (formula?.woocommerce_product_id) {
+        woocommerceProductId = formula.woocommerce_product_id;
+      }
+    }
+
+    // Fallback to catalog-level product ID if no formula-specific one found
+    if (!woocommerceProductId) {
+      woocommerceProductId = catalog.woocommerce_product_id;
+    }
 
     if (!woocommerceProductId) {
+      const source = participant.formula
+        ? `la formule "${participant.formula}" ni dans le catalogue`
+        : "le catalogue";
       return createErrorResponse(
-        "Aucun ID produit WooCommerce configuré pour cette formation dans le catalogue. " +
-        "Veuillez d'abord renseigner le WooCommerce Product ID dans le catalogue.",
+        `Aucun ID produit WooCommerce configuré pour cette formation dans ${source}. ` +
+        "Veuillez d'abord renseigner le WooCommerce Product ID.",
         400
       );
     }
