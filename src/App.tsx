@@ -27,6 +27,7 @@ const Questionnaire = lazy(() => import("./pages/Questionnaire"));
 const Evaluation = lazy(() => import("./pages/Evaluation"));
 const SponsorEvaluation = lazy(() => import("./pages/SponsorEvaluation"));
 const Evaluations = lazy(() => import("./pages/Evaluations"));
+const FormulaireRedirect = lazy(() => import("./pages/FormulaireRedirect"));
 const Ameliorations = lazy(() => import("./pages/Ameliorations"));
 const PolitiqueConfidentialite = lazy(() => import("./pages/PolitiqueConfidentialite"));
 const Auth = lazy(() => import("./pages/Auth"));
@@ -145,6 +146,9 @@ const App = () => (
               <Route path="/questionnaire/:token" element={<Questionnaire />} />
               {/* Public evaluation form */}
               <Route path="/evaluation/:token" element={<Evaluation />} />
+              {/* Public e-learning redirects (resolve participant by email + WooCommerce product ID) */}
+              <Route path="/formulaire/besoins" element={<FormulaireRedirect />} />
+              <Route path="/formulaire/evaluation" element={<FormulaireRedirect />} />
               {/* Public sponsor cold evaluation form */}
               <Route path="/evaluation-commanditaire/:token" element={<SponsorEvaluation />} />
               {/* Public attendance signature */}
