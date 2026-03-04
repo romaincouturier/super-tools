@@ -544,6 +544,7 @@ const FormationDetail = () => {
 
   // Derived helpers for display logic
   const isElearningSession = training?.session_format === "distanciel_asynchrone" || training?.format_formation === "e_learning";
+  const isPresentiel = training?.session_format === "presentiel";
   const isInterSession = training?.session_type === "inter" || training?.format_formation === "inter-entreprises" || training?.format_formation === "e_learning";
 
   const getSponsorName = () => {
@@ -639,7 +640,7 @@ const FormationDetail = () => {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  {!isElearningSession && (() => {
+                  {isPresentiel && (() => {
                     const isOnline = training.location?.toLowerCase().includes("visio") ||
                                      training.location?.toLowerCase().includes("en ligne") ||
                                      training.location?.toLowerCase().includes("distanciel");
@@ -651,7 +652,7 @@ const FormationDetail = () => {
                       </DropdownMenuItem>
                     );
                   })()}
-                  {!isElearningSession && (
+                  {isPresentiel && (
                     <DropdownMenuItem
                       onClick={() => {
                         if (!training.train_booked) {
@@ -664,7 +665,7 @@ const FormationDetail = () => {
                       Train {training.train_booked && "✓"}
                     </DropdownMenuItem>
                   )}
-                  {!isElearningSession && (
+                  {isPresentiel && (
                     <DropdownMenuItem
                       onClick={() => {
                         if (!training.hotel_booked) {
@@ -677,7 +678,7 @@ const FormationDetail = () => {
                       Hôtel {training.hotel_booked && "✓"}
                     </DropdownMenuItem>
                   )}
-                  {isInterSession && (
+                  {isPresentiel && isInterSession && (
                     <DropdownMenuItem
                       onClick={() => {
                         if (!training.restaurant_booked) {
@@ -690,7 +691,7 @@ const FormationDetail = () => {
                       Restaurant {training.restaurant_booked && "✓"}
                     </DropdownMenuItem>
                   )}
-                  {(isInterSession || training.session_type === "intra" || training.format_formation === "intra") && (
+                  {isPresentiel && (isInterSession || training.session_type === "intra" || training.format_formation === "intra") && (
                     <DropdownMenuItem
                       onClick={() => {
                         if (!training.room_rental_booked) {
@@ -722,8 +723,8 @@ const FormationDetail = () => {
           ) : (
             /* Desktop: full action buttons */
             <div className="flex items-center gap-2 flex-wrap">
-              {/* Map button - opens dialog (hidden for e-learning, disabled for online/visio) */}
-              {!isElearningSession && (() => {
+              {/* Map button - opens dialog (only for présentiel) */}
+              {isPresentiel && (() => {
                 const isOnline = training.location?.toLowerCase().includes("visio") ||
                                  training.location?.toLowerCase().includes("en ligne") ||
                                  training.location?.toLowerCase().includes("distanciel");
@@ -741,8 +742,8 @@ const FormationDetail = () => {
                 );
               })()}
 
-              {/* Train + Hotel booking buttons - Hidden for e-learning */}
-              {!isElearningSession && (
+              {/* Train + Hotel booking buttons - Only for présentiel */}
+              {isPresentiel && (
                 <LogisticsBookingButtons
                   table="trainings"
                   entityId={training.id}
@@ -755,8 +756,8 @@ const FormationDetail = () => {
                 />
               )}
 
-              {/* Restaurant button with checkbox - only for inter-entreprises */}
-              {isInterSession && (
+              {/* Restaurant button with checkbox - only for inter-entreprises en présentiel */}
+              {isPresentiel && isInterSession && (
                 <div className="flex items-center gap-1">
                   <Button
                     variant="outline"
@@ -803,8 +804,8 @@ const FormationDetail = () => {
                 </div>
               )}
 
-              {/* Room rental button with checkbox - for inter-entreprises and intra */}
-              {(isInterSession || training.session_type === "intra" || training.format_formation === "intra") && (
+              {/* Room rental button with checkbox - only for présentiel (inter or intra) */}
+              {isPresentiel && (isInterSession || training.session_type === "intra" || training.format_formation === "intra") && (
                 <div className="flex items-center gap-1">
                   <Button
                     variant="outline"
