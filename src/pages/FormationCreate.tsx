@@ -23,6 +23,8 @@ import TrainerSelector from "@/components/formations/TrainerSelector";
 import SupertiltLinkCombobox from "@/components/formations/SupertiltLinkCombobox";
 import ScheduledActionsEditor, { ScheduledAction } from "@/components/formations/ScheduledActionsEditor";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Badge } from "@/components/ui/badge";
+import { FormationFormula } from "@/types/training";
 
 const PREDEFINED_LOCATIONS = [
   { value: "en_ligne", label: "En ligne en accédant à son compte sur supertilt.fr" },
@@ -83,6 +85,7 @@ const FormationCreate = () => {
   
   // Catalog
   const [catalogId, setCatalogId] = useState<string | null>(null);
+  const [catalogFormulas, setCatalogFormulas] = useState<FormationFormula[]>([]);
 
   // Trainer
   const [trainerId, setTrainerId] = useState<string | null>(null);
@@ -96,9 +99,12 @@ const FormationCreate = () => {
   // SuperTilt site URL from settings
   const [supertiltSiteUrl, setSupertiltSiteUrl] = useState<string>("");
 
+  // Permanent formation mode
+  const [isPermanent, setIsPermanent] = useState(false);
+
   // Derived helpers
-  const isElearning = sessionFormat === "distanciel_asynchrone";
-  const isInter = sessionType === "inter";
+  const isElearning = isPermanent || sessionFormat === "distanciel_asynchrone";
+  const isInter = isPermanent || sessionType === "inter";
 
   // Compute legacy format_formation for backward compatibility with edge functions
   const getLegacyFormatFormation = (): string | null => {
@@ -267,8 +273,9 @@ const FormationCreate = () => {
     // Build specific missing fields list
     const missingFields: string[] = [];
     if (!trainingName) missingFields.push("nom de la formation");
+    if (isPermanent && !catalogId) missingFields.push("formation du catalogue (obligatoire pour une formation permanente)");
     if (!hasValidDates) missingFields.push("jours de formation");
-    if (!isElearning && !finalLocation) missingFields.push("lieu de la formation");
+    if (!isPermanent && !isElearning && !finalLocation) missingFields.push("lieu de la formation");
     if (!clientName) missingFields.push("client");
     if (!maxParticipants || parseInt(maxParticipants, 10) < 1) missingFields.push("nombre maximum de participants (minimum 1)");
 
@@ -291,15 +298,15 @@ const FormationCreate = () => {
           start_date: startDate ? format(startDate, "yyyy-MM-dd") : null,
           end_date: endDate ? format(endDate, "yyyy-MM-dd") : null,
           training_name: trainingName,
-          location: finalLocation,
+          location: isPermanent ? "En ligne en accédant à son compte sur supertilt.fr" : finalLocation,
           client_name: clientName,
           client_address: clientAddress || null,
           sold_price_ht: soldPriceHt ? Math.round(parseFloat(soldPriceHt) * 100) / 100 : null,
           max_participants: maxParticipants ? parseInt(maxParticipants, 10) : 0,
           evaluation_link: "", // Field hidden from UI but required by schema
-          format_formation: getLegacyFormatFormation(),
-          session_type: sessionType || null,
-          session_format: sessionFormat || null,
+          format_formation: isPermanent ? "e_learning" : getLegacyFormatFormation(),
+          session_type: isPermanent ? "inter" : (sessionType || null),
+          session_format: isPermanent ? "distanciel_asynchrone" : (sessionFormat || null),
           prerequisites,
           objectives,
           program_file_url: programFileUrl || null,
@@ -368,8 +375,9 @@ const FormationCreate = () => {
           training_id: training.id,
           training_name: trainingName,
           client_name: clientName,
-          start_date: format(startDate!, "yyyy-MM-dd"),
-          total_days: selectedDates.length,
+          start_date: startDate ? format(startDate, "yyyy-MM-dd") : null,
+          total_days: isPermanent ? 0 : selectedDates.length,
+          is_permanent: isPermanent,
         },
       });
 
@@ -482,6 +490,38 @@ const FormationCreate = () => {
         </div>
 
         <form id="formation-form" onSubmit={handleSubmit} className="space-y-6">
+          {/* Session mode toggle */}
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-4">
+                <Label className="text-sm font-medium">Type de formation :</Label>
+                <div className="flex items-center gap-2 rounded-lg border p-1">
+                  <Button
+                    type="button"
+                    variant={!isPermanent ? "default" : "ghost"}
+                    size="sm"
+                    onClick={() => setIsPermanent(false)}
+                  >
+                    Session classique
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={isPermanent ? "default" : "ghost"}
+                    size="sm"
+                    onClick={() => setIsPermanent(true)}
+                  >
+                    Formation permanente
+                  </Button>
+                </div>
+                {isPermanent && (
+                  <span className="text-xs text-muted-foreground">
+                    E-learning continu, sans dates fixes. Les participants choisissent leur formule à l'inscription.
+                  </span>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Two column layout */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Left Column */}
@@ -498,10 +538,17 @@ const FormationCreate = () => {
                 <TrainingNameCombobox
                   value={trainingName}
                   onChange={setTrainingName}
-                  onFormationSelect={(formation: FormationConfig | null) => {
+                  onFormationSelect={async (formation: FormationConfig | null) => {
                     if (formation) {
                       // Link to catalog entry
                       setCatalogId(formation.id);
+                      // Fetch formulas for this formation
+                      const { data: formulas } = await supabase
+                        .from("formation_formulas")
+                        .select("*")
+                        .eq("formation_config_id", formation.id)
+                        .order("display_order");
+                      setCatalogFormulas((formulas as FormationFormula[]) || []);
                       // Pre-fill all catalog fields (denormalized on session for backward compat)
                       if (formation.programme_url) {
                         setProgramFileUrl(formation.programme_url);
@@ -525,12 +572,14 @@ const FormationCreate = () => {
                       // No format auto-set: format is chosen at session level
                     } else {
                       setCatalogId(null);
+                      setCatalogFormulas([]);
                     }
                   }}
                 />
               </div>
 
-              {/* Session type (intra/inter) */}
+              {/* Session type (intra/inter) - hidden for permanent */}
+              {!isPermanent && (
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Type de session</Label>
@@ -563,9 +612,10 @@ const FormationCreate = () => {
                   </Select>
                 </div>
               </div>
+              )}
 
-              {/* Dates - different UI for e-learning vs regular training */}
-              {isElearning ? (
+              {/* Dates - hidden for permanent, different UI for e-learning vs regular training */}
+              {isPermanent ? null : isElearning ? (
                 /* E-learning: simple start/end dates + duration */
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
@@ -712,8 +762,8 @@ const FormationCreate = () => {
                 </p>
               </div>
 
-              {/* Location */}
-              <div className="space-y-3">
+              {/* Location - hidden for permanent */}
+              {!isPermanent && <div className="space-y-3">
                 <Label>Lieu de la formation *</Label>
                 <RadioGroup value={locationType} onValueChange={setLocationType} className="space-y-2">
                   {PREDEFINED_LOCATIONS.map((loc) => (
@@ -739,7 +789,7 @@ const FormationCreate = () => {
                     required
                   />
                 )}
-              </div>
+              </div>}
 
               {/* Sold price HT */}
               <div className="space-y-2">
@@ -959,7 +1009,54 @@ const FormationCreate = () => {
               ) : (
                 <Card>
                   <CardContent className="py-8 text-center text-muted-foreground">
-                    <p className="text-sm">Sélectionnez une formation du catalogue pour voir les objectifs, prérequis et programme.</p>
+                    <p className="text-sm">
+                      {isPermanent
+                        ? "Sélectionnez une formation du catalogue pour créer une formation permanente."
+                        : "Sélectionnez une formation du catalogue pour voir les objectifs, prérequis et programme."}
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Formulas card - shown when catalog has formulas */}
+              {catalogId && catalogFormulas.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Formules disponibles</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {catalogFormulas.map((formula) => (
+                      <div key={formula.id} className="flex items-center justify-between p-3 rounded-lg border">
+                        <div>
+                          <span className="font-medium text-sm">{formula.name}</span>
+                          <div className="flex gap-2 mt-1">
+                            {formula.duree_heures && (
+                              <span className="text-xs text-muted-foreground">{formula.duree_heures}h</span>
+                            )}
+                            {formula.prix != null && (
+                              <span className="text-xs text-muted-foreground">{formula.prix}€</span>
+                            )}
+                          </div>
+                        </div>
+                        <Badge variant="secondary" className="text-xs">
+                          {formula.woocommerce_product_id ? "WC" : "—"}
+                        </Badge>
+                      </div>
+                    ))}
+                    <p className="text-xs text-muted-foreground italic">
+                      Les participants choisiront leur formule à l'inscription.
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Warning: permanent mode needs catalog with formulas */}
+              {isPermanent && catalogId && catalogFormulas.length === 0 && (
+                <Card className="border-orange-200 bg-orange-50">
+                  <CardContent className="py-4">
+                    <p className="text-sm text-orange-800">
+                      Cette formation n'a pas de formules configurées dans le catalogue. Ajoutez des formules (Solo, Communauté, Coachée...) depuis la page Catalogue.
+                    </p>
                   </CardContent>
                 </Card>
               )}
