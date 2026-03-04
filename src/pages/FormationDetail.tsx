@@ -106,6 +106,7 @@ interface Participant {
   payment_mode?: string;
   sold_price_ht?: number | null;
   formula?: string | null;
+  formula_id?: string | null;
 }
 
 const FormationDetail = () => {

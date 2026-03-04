@@ -88,39 +88,31 @@ serve(async (req) => {
       return createErrorResponse("Entrée catalogue introuvable", 404);
     }
 
-    // If the participant has a formula, look up woocommerce_product_id from the formula first
+    // Look up woocommerce_product_id from the participant's formula
     let woocommerceProductId: number | null = null;
 
-    console.log(`Participant formula: "${participant.formula}", catalog_id: ${training.catalog_id}`);
+    if (participant.formula_id) {
+      // Direct lookup by formula_id (reliable)
+      const { data: formula } = await supabase
+        .from("formation_formulas")
+        .select("woocommerce_product_id, prix, name")
+        .eq("id", participant.formula_id)
+        .maybeSingle();
 
-    if (participant.formula) {
-      // Try exact match first, then case-insensitive
-      const { data: formula, error: formulaError } = await supabase
+      if (formula?.woocommerce_product_id) {
+        woocommerceProductId = formula.woocommerce_product_id;
+      }
+    } else if (participant.formula) {
+      // Fallback: name-based lookup for old participants without formula_id
+      const { data: formula } = await supabase
         .from("formation_formulas")
         .select("woocommerce_product_id, prix, name")
         .eq("formation_config_id", training.catalog_id)
         .eq("name", participant.formula)
         .maybeSingle();
 
-      console.log(`Formula lookup result:`, JSON.stringify(formula), `error:`, JSON.stringify(formulaError));
-
       if (formula?.woocommerce_product_id) {
         woocommerceProductId = formula.woocommerce_product_id;
-      } else {
-        // Try case-insensitive match as fallback
-        const { data: formulas } = await supabase
-          .from("formation_formulas")
-          .select("woocommerce_product_id, prix, name")
-          .eq("formation_config_id", training.catalog_id);
-
-        console.log(`All formulas for this catalog:`, JSON.stringify(formulas));
-
-        const match = formulas?.find(
-          (f: any) => f.name?.toLowerCase().trim() === participant.formula?.toLowerCase().trim()
-        );
-        if (match?.woocommerce_product_id) {
-          woocommerceProductId = match.woocommerce_product_id;
-        }
       }
     }
 
