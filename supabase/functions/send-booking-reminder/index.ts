@@ -174,7 +174,7 @@ serve(async (req) => {
       let trainer: { id: string; first_name: string; last_name: string; email: string } | null = null;
       if (trainersData) {
         if (Array.isArray(trainersData) && trainersData.length > 0) {
-          trainer = trainersData[0] as typeof trainer;
+          trainer = trainersData[0] as any;
         } else if (typeof trainersData === 'object' && !Array.isArray(trainersData)) {
           trainer = trainersData as typeof trainer;
         }
