@@ -313,7 +313,6 @@ const FormationCreate = () => {
           trainer_id: null,
           elearning_duration: isElearning && elearningDuration ? parseFloat(elearningDuration) : null,
           catalog_id: catalogId || null,
-          formula_id: isPermanent ? selectedFormulaId : null,
           created_by: user.id,
         })
         .select()
