@@ -174,7 +174,7 @@ const FormationEdit = () => {
       // For e-learning (distanciel asynchrone), load start/end dates directly (no schedules)
       const loadedIsElearning = (training as any).session_format === "distanciel_asynchrone" || training.format_formation === "e_learning";
       if (loadedIsElearning) {
-        setElearningStartDate(parseISO(training.start_date));
+        if (training.start_date) setElearningStartDate(parseISO(training.start_date));
         if (training.end_date) {
           setElearningEndDate(parseISO(training.end_date));
         }
@@ -203,14 +203,16 @@ const FormationEdit = () => {
           })));
         } else {
           // Fallback to start_date if no schedules exist
-          const start = parseISO(training.start_date);
-          setSelectedDates([start]);
-          setSchedules([{
-            day_date: training.start_date,
-            start_time: SESSION_PRESETS.full.start,
-            end_time: SESSION_PRESETS.full.end,
-            session_type: "full",
-          }]);
+          if (training.start_date) {
+            const start = parseISO(training.start_date);
+            setSelectedDates([start]);
+            setSchedules([{
+              day_date: training.start_date,
+              start_time: SESSION_PRESETS.full.start,
+              end_time: SESSION_PRESETS.full.end,
+              session_type: "full",
+            }]);
+          }
         }
       }
 
@@ -351,7 +353,7 @@ const FormationEdit = () => {
       const { error: trainingError } = await supabase
         .from("trainings")
         .update({
-          start_date: format(startDate!, "yyyy-MM-dd"),
+          start_date: startDate ? format(startDate, "yyyy-MM-dd") : null,
           end_date: endDate ? format(endDate, "yyyy-MM-dd") : null,
           training_name: trainingName,
           location,

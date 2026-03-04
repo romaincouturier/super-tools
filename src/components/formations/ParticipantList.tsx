@@ -79,7 +79,7 @@ interface ParticipantListProps {
   participants: Participant[];
   trainingId: string;
   trainingName: string;
-  trainingStartDate: string;
+  trainingStartDate: string | null;
   trainingEndDate: string | null;
   formatFormation: string | null;
   elearningDuration?: number | null;
@@ -380,8 +380,8 @@ const ParticipantList = ({
             formationName: trainingName,
             entreprise: clientName || "",
             duree: trainingDuree,
-            dateDebut: trainingStartDate,
-            dateFin: trainingEndDate || trainingStartDate,
+            dateDebut: trainingStartDate || "",
+            dateFin: trainingEndDate || trainingStartDate || "",
             emailDestinataire: session.data.session?.user?.email || "",
             participants: [{
               prenom: participant.first_name || "",
@@ -443,8 +443,8 @@ const ParticipantList = ({
   };
 
   // Check if we're at J-2 or later
-  const daysUntilTraining = differenceInDays(parseISO(trainingStartDate), new Date());
-  const canSendManually = daysUntilTraining <= 2;
+  const daysUntilTraining = trainingStartDate ? differenceInDays(parseISO(trainingStartDate), new Date()) : null;
+  const canSendManually = daysUntilTraining === null || daysUntilTraining <= 2;
 
   const handleDelete = async (participant: Participant) => {
     setDeletingId(participant.id);

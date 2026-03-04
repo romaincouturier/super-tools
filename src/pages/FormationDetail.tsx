@@ -1252,8 +1252,8 @@ const FormationDetail = () => {
               {/* Thank You Email Section */}
               {(() => {
                 const effectiveEndDate = training.end_date || training.start_date;
-                const endDate = parseISO(effectiveEndDate);
-                const isLastDayOrAfter = isToday(endDate) || isBefore(endDate, startOfDay(new Date()));
+                const endDate = effectiveEndDate ? parseISO(effectiveEndDate) : null;
+                const isLastDayOrAfter = !endDate || isToday(endDate) || isBefore(endDate, startOfDay(new Date()));
                 const hasSupportsUrl = !!training.supports_url?.trim();
                 const canSend = isLastDayOrAfter && hasSupportsUrl && participants.length > 0;
 

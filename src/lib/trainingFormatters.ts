@@ -70,10 +70,11 @@ export function getSponsorName(
  * - Fallback to start/end dates without schedules
  */
 export function formatDateWithSchedule(
-  startDate: string,
+  startDate: string | null,
   endDate: string | null,
   schedules: ScheduleWithDate[],
 ): string {
+  if (!startDate && schedules.length === 0) return "Formation permanente";
   if (schedules.length > 0) {
     const first = schedules[0];
     const last = schedules[schedules.length - 1];
@@ -108,6 +109,7 @@ export function formatDateWithSchedule(
   }
 
   // Fallback without schedules
+  if (!startDate) return "Formation permanente";
   const start = parseISO(startDate);
   if (!endDate) {
     return format(start, "EEEE d MMMM yyyy", { locale: fr });

@@ -259,16 +259,16 @@ const FormationCreate = () => {
     const startDate = getStartDate();
     const endDate = getEndDate();
 
-    // Validate dates based on format
+    // Validate dates based on format (e-learning dates are optional for "formation permanente")
     const hasValidDates = isElearning
-      ? (elearningStartDate && elearningEndDate)
+      ? true
       : (selectedDates.length > 0);
 
     // Build specific missing fields list
     const missingFields: string[] = [];
     if (!trainingName) missingFields.push("nom de la formation");
-    if (!hasValidDates) missingFields.push(isElearning ? "dates de début et fin" : "jours de formation");
-    if (!finalLocation) missingFields.push("lieu de la formation");
+    if (!hasValidDates) missingFields.push("jours de formation");
+    if (!isElearning && !finalLocation) missingFields.push("lieu de la formation");
     if (!clientName) missingFields.push("client");
     if (!maxParticipants || parseInt(maxParticipants, 10) < 1) missingFields.push("nombre maximum de participants (minimum 1)");
 
@@ -288,7 +288,7 @@ const FormationCreate = () => {
       const { data: training, error: trainingError } = await supabase
         .from("trainings")
         .insert({
-          start_date: format(startDate!, "yyyy-MM-dd"),
+          start_date: startDate ? format(startDate, "yyyy-MM-dd") : null,
           end_date: endDate ? format(endDate, "yyyy-MM-dd") : null,
           training_name: trainingName,
           location: finalLocation,

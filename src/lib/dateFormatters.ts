@@ -71,9 +71,10 @@ export function getPeriodLabel(period: "AM" | "PM" | string): string {
  * single date → "15 mars 2026".
  */
 export function formatDateRange(
-  startDate: string,
+  startDate: string | null,
   endDate: string | null,
 ): string {
+  if (!startDate) return "Formation permanente";
   const start = parseISO(startDate);
   if (!endDate) {
     return format(start, "d MMMM yyyy", { locale: fr });
@@ -94,9 +95,10 @@ export function formatDateRange(
  * - Range → "du 15 mars 2026 au 17 mars 2026"
  */
 export function formatTrainingDates(
-  startDate: string,
+  startDate: string | null,
   endDate: string | null,
 ): string {
+  if (!startDate) return "Formation permanente";
   const start = format(parseISO(startDate), "d MMMM yyyy", { locale: fr });
   if (endDate && endDate !== startDate) {
     const end = format(parseISO(endDate), "d MMMM yyyy", { locale: fr });
