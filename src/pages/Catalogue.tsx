@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Plus, ArrowLeft, BookOpen, Search, X, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Loader2, Plus, ArrowLeft, BookOpen, Search, X, ArrowUpDown, ArrowUp, ArrowDown, FileDown } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -309,7 +309,20 @@ const Catalogue = () => {
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-medium truncate">{entry.formation_name}</h3>
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-medium truncate">{entry.formation_name}</h3>
+                          {entry.programme_url && (
+                            <a
+                              href={entry.programme_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="shrink-0 p-1 rounded hover:bg-muted transition-colors text-primary"
+                            >
+                              <FileDown className="h-4 w-4" />
+                            </a>
+                          )}
+                        </div>
                         <p className="text-sm text-muted-foreground">
                           {entry.duree_heures}h &middot; {entry.prix}€
                         </p>
@@ -407,7 +420,21 @@ const Catalogue = () => {
                     >
                       <TableCell>
                         <div>
-                          <span className="font-medium">{entry.formation_name}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{entry.formation_name}</span>
+                            {entry.programme_url && (
+                              <a
+                                href={entry.programme_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                className="shrink-0 p-1 rounded hover:bg-muted transition-colors text-primary"
+                                title="Télécharger le programme"
+                              >
+                                <FileDown className="h-4 w-4" />
+                              </a>
+                            )}
+                          </div>
                           {entry.description && (
                             <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
                               {entry.description}
