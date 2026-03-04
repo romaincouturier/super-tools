@@ -229,6 +229,7 @@ export const useCrmCardDetails = (cardId: string | null) => {
         body_html: e.body_html,
         sent_at: e.sent_at,
         attachment_names: (e as any).attachment_names || [],
+        attachment_paths: (e as any).attachment_paths || null,
         resend_email_id: (e as any).resend_email_id || null,
         delivery_status: (e as any).delivery_status || 'sent',
         delivered_at: (e as any).delivered_at || null,
