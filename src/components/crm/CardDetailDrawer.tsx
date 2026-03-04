@@ -333,7 +333,7 @@ const CardDetailDrawer = ({
       setWebsiteUrl(card.website_url || "");
       setServiceType(card.service_type || null);
       // Confidence score
-      setConfidenceScore(card.confidence_score ?? null);
+      setConfidenceScore(card.confidence_score ?? 50);
       // Acquisition source
       setAcquisitionSource(card.acquisition_source ?? null);
       // Reset next action suggestion
@@ -2036,6 +2036,15 @@ const CardDetailDrawer = ({
                   first_name: firstName || undefined,
                   last_name: lastName || undefined,
                   company: company || undefined,
+                }}
+                onGenderSelect={(gender) => {
+                  if (card) {
+                    supabase
+                      .from("crm_cards")
+                      .update({ gender })
+                      .eq("id", card.id)
+                      .then(() => queryClient.invalidateQueries({ queryKey: ["crm-cards"] }));
+                  }
                 }}
               />
               <div className="flex justify-end gap-2">

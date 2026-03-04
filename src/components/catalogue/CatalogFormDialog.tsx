@@ -14,6 +14,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Accordion,
   AccordionContent,
   AccordionItem,
@@ -58,12 +68,15 @@ interface CatalogFormDialogProps {
   open: boolean;
   onClose: (saved: boolean) => void;
   entry: CatalogEntry | null;
+  onDelete?: (id: string) => void;
+  trainingCount?: number;
 }
 
-const CatalogFormDialog = ({ open, onClose, entry }: CatalogFormDialogProps) => {
+const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }: CatalogFormDialogProps) => {
   const [saving, setSaving] = useState(false);
   const [autoSaving, setAutoSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const { toast } = useToast();
 
   // Form state
@@ -80,7 +93,6 @@ const CatalogFormDialog = ({ open, onClose, entry }: CatalogFormDialogProps) => 
   const [elearningAccessEmailContent, setElearningAccessEmailContent] = useState("");
   const [woocommerceProductId, setWoocommerceProductId] = useState("");
   const [isActive, setIsActive] = useState(true);
-  const [formatFormation, setFormatFormation] = useState("");
   const [formulas, setFormulas] = useState<FormulaEdit[]>([]);
   const [expandedFormula, setExpandedFormula] = useState<number | null>(null);
 
@@ -104,7 +116,7 @@ const CatalogFormDialog = ({ open, onClose, entry }: CatalogFormDialogProps) => 
   formValuesRef.current = {
     formationName, description, prix, dureeHeures, programmeUrl, supportsUrl,
     supertiltLink, objectives, prerequisites, elearningDuration,
-    elearningAccessEmailContent, woocommerceProductId, isActive, formatFormation,
+    elearningAccessEmailContent, woocommerceProductId, isActive,
     formulas,
   };
 
@@ -113,7 +125,7 @@ const CatalogFormDialog = ({ open, onClose, entry }: CatalogFormDialogProps) => 
   const formHash = JSON.stringify({
     formationName, description, prix, dureeHeures, programmeUrl, supportsUrl,
     supertiltLink, objectives, prerequisites, elearningDuration,
-    elearningAccessEmailContent, woocommerceProductId, isActive, formatFormation,
+    elearningAccessEmailContent, woocommerceProductId, isActive,
     fml: activeFormulas.map(f => `${f.id || ""}|${f.name}|${f.duree_heures}|${f.prix}|${f.woocommerce_product_id}|${f.supports_url}|${f.elearning_access_email_content}`),
   });
 
@@ -124,7 +136,7 @@ const CatalogFormDialog = ({ open, onClose, entry }: CatalogFormDialogProps) => 
       programmeUrl: string; supportsUrl: string; supertiltLink: string;
       objectives: string[]; prerequisites: string[]; elearningDuration: string;
       elearningAccessEmailContent: string; woocommerceProductId: string;
-      isActive: boolean; formatFormation: string; formulas: FormulaEdit[];
+      isActive: boolean; formulas: FormulaEdit[];
     };
 
     if (!v.formationName.trim()) return;
@@ -143,7 +155,6 @@ const CatalogFormDialog = ({ open, onClose, entry }: CatalogFormDialogProps) => 
       elearning_access_email_content: v.elearningAccessEmailContent.trim() || null,
       woocommerce_product_id: v.woocommerceProductId ? parseInt(v.woocommerceProductId, 10) : null,
       is_active: v.isActive,
-      format_formation: v.formatFormation || null,
     };
 
     const { error } = await supabase
@@ -258,7 +269,6 @@ const CatalogFormDialog = ({ open, onClose, entry }: CatalogFormDialogProps) => 
         setElearningAccessEmailContent(entry.elearning_access_email_content || "");
         setWoocommerceProductId(entry.woocommerce_product_id ? String(entry.woocommerce_product_id) : "");
         setIsActive(entry.is_active);
-        setFormatFormation(entry.format_formation || "");
         // Load formulas from DB
         supabase
           .from("formation_formulas")
@@ -284,7 +294,6 @@ const CatalogFormDialog = ({ open, onClose, entry }: CatalogFormDialogProps) => 
         setElearningAccessEmailContent("");
         setWoocommerceProductId("");
         setIsActive(true);
-        setFormatFormation("");
         setFormulas([]);
       }
       setExpandedFormula(null);
@@ -332,7 +341,6 @@ const CatalogFormDialog = ({ open, onClose, entry }: CatalogFormDialogProps) => 
         elearning_access_email_content: elearningAccessEmailContent.trim() || null,
         woocommerce_product_id: woocommerceProductId ? parseInt(woocommerceProductId, 10) : null,
         is_active: isActive,
-        format_formation: formatFormation || null,
       };
 
       // Insert — get max display_order
@@ -439,26 +447,38 @@ const CatalogFormDialog = ({ open, onClose, entry }: CatalogFormDialogProps) => 
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="formatFormation">Format de formation</Label>
-              <select
-                id="formatFormation"
-                value={formatFormation}
-                onChange={(e) => setFormatFormation(e.target.value)}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-              >
-                <option value="">Aucun format par défaut</option>
-                <option value="intra">Intra-entreprise</option>
-                <option value="inter-entreprises">Inter-entreprises</option>
-                <option value="classe_virtuelle">Classe virtuelle</option>
-                <option value="e_learning">E-learning</option>
-              </select>
+            {/* Intra-entreprise: duration + price */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="dureeHeures">Durée intra (heures)</Label>
+                <Input
+                  id="dureeHeures"
+                  type="number"
+                  min="0"
+                  step="0.5"
+                  value={dureeHeures}
+                  onChange={(e) => setDureeHeures(e.target.value)}
+                  placeholder="Ex: 14"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="prix">Prix intra HT (€)</Label>
+                <Input
+                  id="prix"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={prix}
+                  onChange={(e) => setPrix(e.target.value)}
+                  placeholder="Ex: 1490"
+                />
+              </div>
             </div>
 
-            {/* Formulas */}
+            {/* Inter-entreprise formulas */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label>Formules</Label>
+                <Label>Formules inter-entreprise</Label>
                 <Button
                   type="button"
                   variant="outline"
@@ -484,7 +504,7 @@ const CatalogFormDialog = ({ open, onClose, entry }: CatalogFormDialogProps) => 
                 </Button>
               </div>
               <p className="text-xs text-muted-foreground">
-                Sans formule, la formation est "classique". Chaque formule a son propre tarif, durée, etc.
+                Chaque formule inter-entreprise a son propre tarif, durée, etc.
               </p>
               {hasFormulas && (
                 <div className="space-y-2 pt-1">
@@ -627,35 +647,6 @@ const CatalogFormDialog = ({ open, onClose, entry }: CatalogFormDialogProps) => 
               )}
             </div>
 
-            {!hasFormulas && (
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="dureeHeures">Durée (heures)</Label>
-                  <Input
-                    id="dureeHeures"
-                    type="number"
-                    min="0"
-                    step="0.5"
-                    value={dureeHeures}
-                    onChange={(e) => setDureeHeures(e.target.value)}
-                    placeholder="Ex: 14"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="prix">Prix catalogue HT (€)</Label>
-                  <Input
-                    id="prix"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={prix}
-                    onChange={(e) => setPrix(e.target.value)}
-                    placeholder="Ex: 1490"
-                  />
-                </div>
-              </div>
-            )}
-
             <div className="flex items-center gap-3">
               <Switch
                 id="isActive"
@@ -700,7 +691,7 @@ const CatalogFormDialog = ({ open, onClose, entry }: CatalogFormDialogProps) => 
 
                 {!hasFormulas && (
                   <div className="space-y-2">
-                    <Label htmlFor="supportsUrl">URL des supports pédagogiques</Label>
+                    <Label htmlFor="supportsUrl">URL des supports pédagogiques (intra)</Label>
                     <Input
                       id="supportsUrl"
                       value={supportsUrl}
@@ -725,7 +716,7 @@ const CatalogFormDialog = ({ open, onClose, entry }: CatalogFormDialogProps) => 
             {!hasFormulas && (
               <>
                 <AccordionItem value="elearning">
-                  <AccordionTrigger>Configuration e-learning</AccordionTrigger>
+                  <AccordionTrigger>Configuration e-learning (intra)</AccordionTrigger>
                   <AccordionContent className="space-y-4 pt-2">
                     <div className="space-y-2">
                       <Label htmlFor="elearningDuration">Durée du parcours e-learning (heures)</Label>
@@ -738,9 +729,6 @@ const CatalogFormDialog = ({ open, onClose, entry }: CatalogFormDialogProps) => 
                         onChange={(e) => setElearningDuration(e.target.value)}
                         placeholder="Ex: 25"
                       />
-                      <p className="text-xs text-muted-foreground">
-                        Durée estimée du parcours si la formation est dispensée en e-learning.
-                      </p>
                     </div>
 
                     <div className="space-y-2">
@@ -760,7 +748,7 @@ const CatalogFormDialog = ({ open, onClose, entry }: CatalogFormDialogProps) => 
                 </AccordionItem>
 
                 <AccordionItem value="woocommerce">
-                  <AccordionTrigger>WooCommerce</AccordionTrigger>
+                  <AccordionTrigger>WooCommerce (intra)</AccordionTrigger>
                   <AccordionContent className="space-y-4 pt-2">
                     <div className="space-y-2">
                       <Label htmlFor="woocommerceProductId">ID Produit WooCommerce</Label>
@@ -775,7 +763,6 @@ const CatalogFormDialog = ({ open, onClose, entry }: CatalogFormDialogProps) => 
                       <p className="text-xs text-muted-foreground">
                         L'ID du produit dans votre boutique WooCommerce.
                         Visible dans l'URL d'édition du produit : post.php?post=<strong>1234</strong>.
-                        Utilisé pour restreindre les coupons générés à ce produit.
                       </p>
                     </div>
                   </AccordionContent>
@@ -785,7 +772,22 @@ const CatalogFormDialog = ({ open, onClose, entry }: CatalogFormDialogProps) => 
           </Accordion>
 
           {/* Actions */}
-          <div className="flex justify-end gap-3 pt-4 border-t">
+          <div className="flex items-center gap-3 pt-4 border-t">
+            {entry && onDelete && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                disabled={trainingCount > 0}
+                title={trainingCount > 0 ? "Impossible de supprimer : des sessions existent" : "Supprimer cette formation"}
+                onClick={() => setDeleteConfirmOpen(true)}
+              >
+                <Trash2 className="h-4 w-4 mr-1" />
+                Supprimer
+              </Button>
+            )}
+            <div className="flex-1" />
             {entry ? (
               <Button
                 type="button"
@@ -818,6 +820,31 @@ const CatalogFormDialog = ({ open, onClose, entry }: CatalogFormDialogProps) => 
           </div>
         </form>
       </DialogContent>
+
+      {/* Delete confirmation */}
+      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer cette formation du catalogue ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cette action est irréversible. La formation sera retirée du catalogue.
+              Les sessions existantes ne seront pas affectées.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (entry && onDelete) onDelete(entry.id);
+                setDeleteConfirmOpen(false);
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 };

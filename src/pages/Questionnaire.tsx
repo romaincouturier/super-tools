@@ -99,7 +99,7 @@ const Questionnaire = () => {
     return parts.join(" ").trim();
   }, [questionnaire]);
 
-  const isInterEntreprises = training?.format_formation === "inter";
+  const isInterEntreprises = (training as any)?.session_type === "inter" || training?.format_formation === "inter-entreprises";
 
   // Keep refs in sync with state for use in callbacks
   useEffect(() => {
