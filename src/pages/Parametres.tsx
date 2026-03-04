@@ -858,6 +858,11 @@ const Parametres = () => {
   const [googleSearchApiKey, setGoogleSearchApiKey] = useState("");
   const [googleSearchEngineId, setGoogleSearchEngineId] = useState("");
 
+  // WooCommerce settings
+  const [woocommerceStoreUrl, setWoocommerceStoreUrl] = useState("");
+  const [woocommerceConsumerKey, setWoocommerceConsumerKey] = useState("");
+  const [woocommerceConsumerSecret, setWoocommerceConsumerSecret] = useState("");
+
 
   // Module access check (isAdmin comes from profiles table)
   const { hasAccess, isAdmin, loading: accessLoading } = useModuleAccess();
@@ -913,7 +918,10 @@ const Parametres = () => {
         "crm_inbound_email",
         "insee_api_key",
         "google_search_api_key",
-        "google_search_engine_id"
+        "google_search_engine_id",
+        "woocommerce_store_url",
+        "woocommerce_consumer_key",
+        "woocommerce_consumer_secret"
       ]);
     
     if (error) {
@@ -1027,6 +1035,15 @@ const Parametres = () => {
         case "google_search_engine_id":
           setGoogleSearchEngineId(setting.setting_value || "");
           break;
+        case "woocommerce_store_url":
+          setWoocommerceStoreUrl(setting.setting_value || "");
+          break;
+        case "woocommerce_consumer_key":
+          setWoocommerceConsumerKey(setting.setting_value || "");
+          break;
+        case "woocommerce_consumer_secret":
+          setWoocommerceConsumerSecret(setting.setting_value || "");
+          break;
       }
     });
   };
@@ -1069,6 +1086,9 @@ const Parametres = () => {
         { setting_key: "insee_api_key", setting_value: inseeApiKey, description: "Clé API INSEE SIRENE pour la recherche d'entreprises par SIREN" },
         { setting_key: "google_search_api_key", setting_value: googleSearchApiKey, description: "Clé API Google Custom Search pour la recherche de SIREN par nom d'entreprise (fallback)" },
         { setting_key: "google_search_engine_id", setting_value: googleSearchEngineId, description: "ID du moteur de recherche personnalisé Google (cx) pour la recherche de SIREN" },
+        { setting_key: "woocommerce_store_url", setting_value: woocommerceStoreUrl, description: "URL de la boutique WooCommerce (ex: https://www.supertilt.fr)" },
+        { setting_key: "woocommerce_consumer_key", setting_value: woocommerceConsumerKey, description: "Clé API WooCommerce (Consumer Key, commence par ck_)" },
+        { setting_key: "woocommerce_consumer_secret", setting_value: woocommerceConsumerSecret, description: "Secret API WooCommerce (Consumer Secret, commence par cs_)" },
       ];
 
       for (const setting of settingsToSave) {
@@ -2474,6 +2494,49 @@ const Parametres = () => {
                       Chaque email reçu à cette adresse sera analysé par l'IA et créera automatiquement une opportunité dans la première colonne du CRM.
                     </p>
                   </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">WooCommerce</CardTitle>
+                  <CardDescription>Identifiants API WooCommerce pour la génération automatique de coupons e-learning.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="wc-store-url">URL de la boutique</Label>
+                    <Input
+                      id="wc-store-url"
+                      type="url"
+                      value={woocommerceStoreUrl}
+                      onChange={(e) => setWoocommerceStoreUrl(e.target.value)}
+                      placeholder="https://www.supertilt.fr"
+                    />
+                  </div>
+                  <Separator />
+                  <div className="space-y-2">
+                    <Label htmlFor="wc-consumer-key">Consumer Key</Label>
+                    <Input
+                      id="wc-consumer-key"
+                      type="password"
+                      value={woocommerceConsumerKey}
+                      onChange={(e) => setWoocommerceConsumerKey(e.target.value)}
+                      placeholder="ck_..."
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="wc-consumer-secret">Consumer Secret</Label>
+                    <Input
+                      id="wc-consumer-secret"
+                      type="password"
+                      value={woocommerceConsumerSecret}
+                      onChange={(e) => setWoocommerceConsumerSecret(e.target.value)}
+                      placeholder="cs_..."
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Créez une clé API dans WordPress → WooCommerce → Réglages → Avancé → API REST. Choisissez les permissions <strong>Lecture/Écriture</strong>.
+                  </p>
                 </CardContent>
               </Card>
 
