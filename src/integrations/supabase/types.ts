@@ -3998,6 +3998,7 @@ export type Database = {
           financeur_url: string | null
           first_name: string | null
           formula: string | null
+          formula_id: string | null
           id: string
           invoice_file_url: string | null
           last_name: string | null
@@ -4025,6 +4026,7 @@ export type Database = {
           financeur_url?: string | null
           first_name?: string | null
           formula?: string | null
+          formula_id?: string | null
           id?: string
           invoice_file_url?: string | null
           last_name?: string | null
@@ -4052,6 +4054,7 @@ export type Database = {
           financeur_url?: string | null
           first_name?: string | null
           formula?: string | null
+          formula_id?: string | null
           id?: string
           invoice_file_url?: string | null
           last_name?: string | null
@@ -4068,6 +4071,13 @@ export type Database = {
           training_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "training_participants_formula_id_fkey"
+            columns: ["formula_id"]
+            isOneToOne: false
+            referencedRelation: "formation_formulas"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "training_participants_training_id_fkey"
             columns: ["training_id"]
