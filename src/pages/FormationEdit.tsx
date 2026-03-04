@@ -376,7 +376,6 @@ const FormationEdit = () => {
           financeur_name: financeurSameAsSponsor ? null : (financeurName || null),
           financeur_url: financeurSameAsSponsor ? null : (financeurUrl || null),
           elearning_duration: isElearning && elearningDuration ? parseFloat(elearningDuration) : null,
-          elearning_access_email_content: isElearning && elearningAccessEmailContent ? elearningAccessEmailContent : null,
           catalog_id: catalogId || null,
           notes: trainingNotes.trim() || null,
         } as any)
@@ -617,19 +616,9 @@ const FormationEdit = () => {
                           </p>
                         </div>
                       )}
-                      <div className="space-y-2">
-                        <Label htmlFor="elearningAccessEmail">Email d'accès e-learning</Label>
-                        <Textarea
-                          id="elearningAccessEmail"
-                          rows={8}
-                          value={elearningAccessEmailContent}
-                          onChange={(e) => setElearningAccessEmailContent(e.target.value)}
-                          placeholder="Contenu de l'email envoyé au participant pour lui donner accès à la formation..."
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          Variables : {"{{first_name}}"}, {"{{training_name}}"}, {"{{access_link}}"}, {"{{start_date}}"}, {"{{end_date}}"}
-                        </p>
-                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Le contenu de l'email d'accès e-learning est géré dans <strong>Paramètres → Templates Email</strong>.
+                      </p>
                     </div>
                   ) : (
                     /* Regular training: Multi-select calendar for specific days */
