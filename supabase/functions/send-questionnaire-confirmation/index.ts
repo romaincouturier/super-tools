@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getSenderFrom, getSenderEmail, getBccList } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
 import { processTemplate } from "../_shared/templates.ts";
+import { sendEmail } from "../_shared/resend.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -75,6 +76,57 @@ function generatePerDayCalendarLinks(
   });
 }
 
+// Generate calendar links for live meetings
+function generateLiveMeetingCalendarLinks(
+  liveMeetings: Array<{ title: string; scheduled_at: string; duration_minutes: number; meeting_url: string | null }>,
+  senderEmail: string
+): Array<{ label: string; google: string; outlook: string }> {
+  return liveMeetings.map((live) => {
+    const start = new Date(live.scheduled_at);
+    const end = new Date(start.getTime() + live.duration_minutes * 60 * 1000);
+
+    // Manual formatting to avoid timezone issues
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const calStart = `${start.getFullYear()}${pad(start.getMonth() + 1)}${pad(start.getDate())}T${pad(start.getHours())}${pad(start.getMinutes())}00`;
+    const calEnd = `${end.getFullYear()}${pad(end.getMonth() + 1)}${pad(end.getDate())}T${pad(end.getHours())}${pad(end.getMinutes())}00`;
+
+    const dayNames = ["dim.", "lun.", "mar.", "mer.", "jeu.", "ven.", "sam."];
+    const monthNames = ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."];
+    const label = `🎥 ${live.title} – ${dayNames[start.getDay()]} ${start.getDate()} ${monthNames[start.getMonth()]} à ${pad(start.getHours())}h${pad(start.getMinutes())}`;
+
+    const description = `Live: ${live.title}${live.meeting_url ? `\n\nRejoindre: ${live.meeting_url}` : ""}\n\nEmail: ${senderEmail}`;
+    const location = live.meeting_url || "En ligne";
+
+    const googleParams = new URLSearchParams({
+      action: 'TEMPLATE',
+      text: `Live: ${live.title}`,
+      dates: `${calStart}/${calEnd}`,
+      details: description,
+      location,
+      ctz: 'Europe/Paris',
+    });
+
+    const outlookStart = calStart.replace(/(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})/, '$1-$2-$3T$4:$5:$6');
+    const outlookEnd = calEnd.replace(/(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})/, '$1-$2-$3T$4:$5:$6');
+
+    const outlookParams = new URLSearchParams({
+      path: '/calendar/action/compose',
+      rru: 'addevent',
+      subject: `Live: ${live.title}`,
+      startdt: outlookStart,
+      enddt: outlookEnd,
+      body: description,
+      location,
+    });
+
+    return {
+      label,
+      google: `https://calendar.google.com/calendar/render?${googleParams.toString()}`,
+      outlook: `https://outlook.live.com/calendar/0/deeplink/compose?${outlookParams.toString()}`,
+    };
+  });
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -90,10 +142,6 @@ serve(async (req) => {
       );
     }
 
-    const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
-    if (!RESEND_API_KEY) {
-      throw new Error("RESEND_API_KEY not configured");
-    }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -134,18 +182,36 @@ serve(async (req) => {
                  (training.location && training.location.toLowerCase().includes("en ligne"));
     }
 
-    // Fetch training schedules
-    const { data: schedules } = await supabase
-      .from("training_schedules")
-      .select("day_date, start_time, end_time")
-      .eq("training_id", trainingId)
-      .order("day_date", { ascending: true });
+    // Fetch training schedules and live meetings in parallel
+    const [schedulesResult, liveMeetingsResult] = await Promise.all([
+      supabase
+        .from("training_schedules")
+        .select("day_date, start_time, end_time")
+        .eq("training_id", trainingId)
+        .order("day_date", { ascending: true }),
+      supabase
+        .from("training_live_meetings")
+        .select("title, scheduled_at, duration_minutes, meeting_url, status")
+        .eq("training_id", trainingId)
+        .neq("status", "cancelled")
+        .order("scheduled_at", { ascending: true }),
+    ]);
+
+    const schedules = schedulesResult.data || [];
+    const liveMeetings = liveMeetingsResult.data || [];
 
     const senderEmail = await getSenderEmail();
 
+    // Generate calendar links for schedule days
     const calendarDays = generatePerDayCalendarLinks(
-      trainingName, location, startDate, endDate, schedules || [], senderEmail
+      trainingName, location, startDate, endDate, schedules, senderEmail
     );
+
+    // Generate calendar links for live meetings
+    const liveCalendarDays = generateLiveMeetingCalendarLinks(liveMeetings, senderEmail);
+
+    // Combine: schedule days + live meetings
+    const allCalendarEntries = [...calendarDays, ...liveCalendarDays];
 
     const [signature, senderFrom] = await Promise.all([
       getSigniticSignature(),
@@ -164,7 +230,7 @@ serve(async (req) => {
     }
 
     // Calendar section HTML
-    const calendarRows = calendarDays.map((day) => `
+    const calendarRows = allCalendarEntries.map((day) => `
       <tr>
         <td style="padding: 6px 12px 6px 0; font-size: 14px; font-weight: 600; color: #1a1a1a; white-space: nowrap;">${day.label}</td>
         <td style="padding: 6px 8px 6px 0;">
@@ -176,13 +242,13 @@ serve(async (req) => {
       </tr>
     `).join("");
 
-    const calendarSection = `
+    const calendarSection = allCalendarEntries.length > 0 ? `
       <div style="margin: 25px 0; padding: 20px; background-color: #f8f9fa; border-radius: 8px; border-left: 4px solid #e6bc00;">
-        <p style="margin: 0 0 15px 0; font-weight: bold; color: #1a1a1a;">📅 Ajoute la formation à ton agenda :</p>
+        <p style="margin: 0 0 15px 0; font-weight: bold; color: #1a1a1a;">📅 Ajoute ${allCalendarEntries.length > 1 ? "les sessions" : "la formation"} à ton agenda :</p>
         <table role="presentation" cellspacing="0" cellpadding="0" border="0">${calendarRows}</table>
         <p style="margin: 12px 0 0 0; font-size: 12px; color: #666;">Apple Calendar : ouvre le lien Google depuis Safari, puis "Ajouter à Calendrier"</p>
       </div>
-    `;
+    ` : "";
 
     // Try template
     const { data: template } = await supabase
@@ -224,31 +290,23 @@ serve(async (req) => {
       `;
     }
 
-    // Send email
-    const emailResponse = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${RESEND_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from: senderFrom,
-        to: [participantEmail],
-        bcc: bccList,
-        subject,
-        html: htmlContent,
-        reply_to: senderEmail,
-      }),
+    // Send email via shared helper (auto-traces to sent_emails_log)
+    const result = await sendEmail({
+      to: [participantEmail],
+      bcc: bccList,
+      from: senderFrom,
+      replyTo: senderEmail,
+      subject,
+      html: htmlContent,
+      _emailType: "questionnaire_confirmation",
+      _trainingId: trainingId,
     });
 
-    if (!emailResponse.ok) {
-      const errorText = await emailResponse.text();
-      console.error("Resend error:", errorText);
-      throw new Error(`Failed to send email: ${emailResponse.status}`);
+    if (!result.success) {
+      throw new Error(`Failed to send email: ${result.error}`);
     }
 
-    const result = await emailResponse.json();
-    console.log("Questionnaire confirmation email sent to:", participantEmail, result);
+    console.log("Questionnaire confirmation email sent to:", participantEmail, result.id);
 
     // Log activity
     try {
