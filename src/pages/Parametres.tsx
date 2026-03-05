@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
@@ -34,6 +34,7 @@ import GoogleCalendarConnect from "@/components/GoogleCalendarConnect";
 import { useModuleAccess } from "@/hooks/useModuleAccess";
 import ArenaKeySettings from "@/components/settings/ArenaKeySettings";
 import PostEvaluationEmailManager from "@/components/settings/PostEvaluationEmailManager";
+import SlackChannelCard from "@/components/settings/SlackChannelCard";
 
 interface EmailTemplate {
   id: string;
@@ -826,7 +827,7 @@ const SETTINGS_REGISTRY: Record<string, { default: string; description: string }
   delay_follow_up_news_days: { default: "30", description: "Délai après formation pour envoyer un message informel de prise de nouvelles (en jours ouvrables)" },
   can_delete_evaluations_emails: { default: "", description: "Emails des utilisateurs autorisés à supprimer des évaluations (séparés par des virgules)" },
   reglement_interieur_url: { default: "", description: "URL du règlement intérieur des formations (PDF uploadé)" },
-  slack_crm_webhook_url: { default: "", description: "URL du webhook Slack pour les notifications CRM (opportunités créées/gagnées)" },
+  slack_crm_channel: { default: "general", description: "Nom du canal Slack pour les notifications CRM (ex: crm, general)" },
   crm_inbound_email: { default: "", description: "Adresse email dédiée CRM — les emails reçus à cette adresse créent automatiquement une opportunité" },
   insee_api_key: { default: "", description: "Clé API INSEE SIRENE pour la recherche d'entreprises par SIREN" },
   google_search_api_key: { default: "", description: "Clé API Google Custom Search pour la recherche de SIREN par nom d'entreprise (fallback)" },
@@ -2384,27 +2385,10 @@ const Parametres = () => {
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">Slack</CardTitle>
-                  <CardDescription>Recevez une notification Slack quand une opportunité CRM est créée ou gagnée.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="space-y-2">
-                    <Label htmlFor="slack-webhook">URL du Webhook Slack</Label>
-                    <Input
-                      id="slack-webhook"
-                      type="url"
-                      value={settings.slack_crm_webhook_url}
-                      onChange={(e) => updateSetting("slack_crm_webhook_url", e.target.value)}
-                      placeholder="https://hooks.slack.com/services/..."
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Créez un webhook entrant dans votre espace Slack (Apps &gt; Incoming Webhooks) et collez l'URL ici.
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
+              <SlackChannelCard
+                currentChannel={settings.slack_crm_channel}
+                onChannelChange={(val) => updateSetting("slack_crm_channel", val)}
+              />
 
               <Card>
                 <CardHeader>

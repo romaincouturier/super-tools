@@ -7,6 +7,8 @@ import {
   verifyAuth,
 } from "../_shared/mod.ts";
 
+const GATEWAY_URL = "https://connector-gateway.lovable.dev/slack/api";
+
 interface SlackNotifyRequest {
   type: "opportunity_created" | "opportunity_won";
   card: {
@@ -124,32 +126,50 @@ serve(async (req) => {
       return createErrorResponse("type et card sont requis", 400);
     }
 
-    // Fetch Slack webhook URL from app_settings
+    // Check required env vars for connector gateway
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) {
+      return createJsonResponse({ success: true, skipped: true, reason: "LOVABLE_API_KEY not configured" });
+    }
+
+    const SLACK_API_KEY = Deno.env.get("SLACK_API_KEY");
+    if (!SLACK_API_KEY) {
+      return createJsonResponse({ success: true, skipped: true, reason: "SLACK_API_KEY not configured" });
+    }
+
+    // Fetch Slack channel from app_settings (fallback to #general)
     const supabase = getSupabaseClient();
     const { data: settings } = await supabase
       .from("app_settings")
       .select("setting_value")
-      .eq("setting_key", "slack_crm_webhook_url")
+      .eq("setting_key", "slack_crm_channel")
       .single();
 
-    const webhookUrl = settings?.setting_value;
-    if (!webhookUrl) {
-      // No webhook configured - silently succeed
-      return createJsonResponse({ success: true, skipped: true, reason: "No Slack webhook configured" });
-    }
+    const channel = settings?.setting_value || "general";
 
     const message = buildSlackMessage(body);
 
-    const slackResponse = await fetch(webhookUrl, {
+    const slackResponse = await fetch(`${GATEWAY_URL}/chat.postMessage`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(message),
+      headers: {
+        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+        "X-Connection-Api-Key": SLACK_API_KEY,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        channel,
+        text: message.text,
+        blocks: message.blocks,
+        username: "SuperTools CRM",
+        icon_emoji: ":briefcase:",
+      }),
     });
 
-    if (!slackResponse.ok) {
-      const errorText = await slackResponse.text();
-      console.error("Slack webhook error:", slackResponse.status, errorText);
-      return createJsonResponse({ success: false, error: `Slack error: ${slackResponse.status}` });
+    const slackData = await slackResponse.json();
+
+    if (!slackResponse.ok || !slackData.ok) {
+      console.error("Slack API error:", slackResponse.status, JSON.stringify(slackData));
+      return createJsonResponse({ success: false, error: `Slack error: ${slackData.error || slackResponse.status}` });
     }
 
     return createJsonResponse({ success: true });
