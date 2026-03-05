@@ -1630,6 +1630,7 @@ export type Database = {
           elearning_access_email_content: string | null
           formation_config_id: string
           id: string
+          learndash_course_id: number | null
           name: string
           prix: number | null
           supports_url: string | null
@@ -1644,6 +1645,7 @@ export type Database = {
           elearning_access_email_content?: string | null
           formation_config_id: string
           id?: string
+          learndash_course_id?: number | null
           name: string
           prix?: number | null
           supports_url?: string | null
@@ -1658,6 +1660,7 @@ export type Database = {
           elearning_access_email_content?: string | null
           formation_config_id?: string
           id?: string
+          learndash_course_id?: number | null
           name?: string
           prix?: number | null
           supports_url?: string | null

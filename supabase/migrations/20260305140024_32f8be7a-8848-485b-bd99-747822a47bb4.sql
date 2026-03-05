@@ -1,0 +1,1 @@
+ALTER TABLE public.formation_formulas ADD COLUMN IF NOT EXISTS learndash_course_id integer;
