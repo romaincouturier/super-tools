@@ -121,6 +121,29 @@ serve(async (req) => {
     }
     console.log(`[${VERSION}] Missions à facturer: ${globalActions.filter(a => a.category === "missions_a_facturer").length}`);
 
+    // 1b. MISSIONS SANS DATE DE DÉBUT
+    const { data: missionsNoStartDate } = await supabase
+      .from("missions")
+      .select("id, title, client_name, emoji")
+      .in("status", ["not_started", "in_progress"])
+      .is("start_date", null);
+
+    if (missionsNoStartDate) {
+      for (const m of missionsNoStartDate) {
+        const label = m.client_name ? `${m.client_name} — ${m.title}` : m.title;
+        const emoji = m.emoji ? `${m.emoji} ` : "";
+        globalActions.push({
+          category: "missions_sans_date",
+          title: `${emoji}${label}`,
+          description: "Date de début à définir",
+          link: `${appUrl}/missions/${m.id}`,
+          entity_type: "mission",
+          entity_id: m.id,
+        });
+      }
+    }
+    console.log(`[${VERSION}] Missions sans date de début: ${globalActions.filter(a => a.category === "missions_sans_date").length}`);
+
     // 2-4. CRM: Devis à faire, Opportunités, Devis à relancer
     const { data: crmColumns } = await supabase
       .from("crm_columns")

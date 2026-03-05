@@ -36,6 +36,7 @@ interface CategoryConfig {
 const CATEGORY_ORDER = [
   "formations_facture",
   "missions_a_facturer",
+  "missions_sans_date",
   "devis_a_faire",
   "devis_a_relancer",
   "opportunites",
@@ -49,6 +50,7 @@ const CATEGORY_ORDER = [
 const CATEGORIES: Record<string, CategoryConfig> = {
   formations_facture: { label: "Factures à émettre", emoji: "🧾", color: "text-red-600" },
   missions_a_facturer: { label: "Factures missions", emoji: "💰", color: "text-green-600" },
+  missions_sans_date: { label: "Missions sans date", emoji: "📅", color: "text-orange-600" },
   devis_a_faire: { label: "Devis à faire", emoji: "📝", color: "text-blue-600" },
   devis_a_relancer: { label: "Devis à relancer", emoji: "🔄", color: "text-orange-600" },
   opportunites: { label: "Opportunités à contacter", emoji: "🎯", color: "text-amber-600" },

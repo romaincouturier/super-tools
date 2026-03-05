@@ -796,7 +796,10 @@ const CardDetailDrawer = ({
     const params = new URLSearchParams();
     if (missionTitle) params.set("title", missionTitle);
     if (company) params.set("clientName", company);
-    if (firstName || lastName) params.set("clientContact", [firstName, lastName].filter(Boolean).join(" "));
+    if (firstName) params.set("contactFirstName", firstName);
+    if (lastName) params.set("contactLastName", lastName);
+    if (email) params.set("contactEmail", email);
+    if (phone) params.set("contactPhone", phone);
     if (estimatedValue && parseFloat(estimatedValue) > 0) params.set("totalAmount", estimatedValue);
     if (card?.id) params.set("fromCrmCardId", card.id);
     navigate(`/missions?${params.toString()}`);

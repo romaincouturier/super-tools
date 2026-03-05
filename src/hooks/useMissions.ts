@@ -103,10 +103,13 @@ export const useCreateMission = () => {
 
       const maxPosition = existingMissions?.[0]?.position ?? -1;
 
+      // Strip contact fields that belong to mission_contacts, not missions table
+      const { contact_first_name, contact_last_name, contact_email, contact_phone, ...missionData } = input;
+
       const { data, error } = await (supabase as unknown as { from: (table: string) => { insert: (row: unknown) => { select: () => { single: () => Promise<{ data: unknown; error: Error | null }> } } } })
         .from("missions")
         .insert({
-          ...input,
+          ...missionData,
           position: maxPosition + 1,
         })
         .select()
@@ -115,8 +118,20 @@ export const useCreateMission = () => {
       if (error) throw error;
       const mission = data as Mission;
 
-      // Auto-create a contact from client_contact if provided
-      if (input.client_contact?.trim()) {
+      // Auto-create a contact: prefer structured fields from CRM, fallback to parsing client_contact string
+      const hasStructuredContact = input.contact_first_name || input.contact_last_name || input.contact_email || input.contact_phone;
+      if (hasStructuredContact) {
+        await (supabase as any).from("mission_contacts").insert({
+          mission_id: mission.id,
+          first_name: input.contact_first_name || null,
+          last_name: input.contact_last_name || null,
+          email: input.contact_email || null,
+          phone: input.contact_phone || null,
+          is_primary: true,
+          language: "fr",
+          position: 0,
+        });
+      } else if (input.client_contact?.trim()) {
         const contactStr = input.client_contact.trim();
         // Try to extract email
         const emailMatch = contactStr.match(/[\w.+-]+@[\w.-]+\.\w+/);
