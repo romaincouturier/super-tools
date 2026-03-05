@@ -904,6 +904,23 @@ const ParticipantList = ({
         );
       })()}
 
+      {/* 5. Documents/Facture - inter only */}
+      {isInterEntreprise && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className={`h-7 w-7 ${participant.invoice_file_url ? "text-primary" : "text-muted-foreground hover:text-primary"}`}
+              onClick={() => setDocumentsParticipant(participant)}
+            >
+              <Receipt className="h-3.5 w-3.5" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent><p>{participant.invoice_file_url ? "Facture uploadée" : "Gérer la facture"}</p></TooltipContent>
+        </Tooltip>
+      )}
+
       {/* 6. Edit */}
       <EditParticipantDialog
         participant={participant}
