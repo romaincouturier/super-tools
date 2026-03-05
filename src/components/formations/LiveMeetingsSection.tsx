@@ -113,8 +113,10 @@ const LiveMeetingsSection = ({ trainingId }: LiveMeetingsSectionProps) => {
 
   const openDuplicate = (meeting: LiveMeeting) => {
     const dt = parseISO(meeting.scheduled_at);
+    const nextWeek = new Date(dt);
+    nextWeek.setDate(nextWeek.getDate() + 7);
     setTitle(meeting.title);
-    setScheduledDate("");
+    setScheduledDate(format(nextWeek, "yyyy-MM-dd"));
     setScheduledTime(format(dt, "HH:mm"));
     setDuration(String(meeting.duration_minutes));
     setMeetingUrl(meeting.meeting_url || "");
