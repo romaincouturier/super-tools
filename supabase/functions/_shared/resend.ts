@@ -123,6 +123,28 @@ export async function sendEmail(options: SendEmailOptions): Promise<SendEmailRes
 
       const data = await response.json();
       console.log("Email sent successfully:", data.id);
+
+      // Auto-log to sent_emails_log for Qualiopi traceability
+      try {
+        const url = Deno.env.get("SUPABASE_URL");
+        const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+        if (url && key) {
+          const sb = createClient(url, key);
+          await sb.from("sent_emails_log").insert({
+            recipient_email: toArray.join(", "),
+            cc_emails: options.cc || [],
+            subject: options.subject,
+            html_content: options.html,
+            email_type: options._emailType || null,
+            training_id: options._trainingId || null,
+            participant_id: options._participantId || null,
+            resend_email_id: data.id || null,
+          });
+        }
+      } catch (logErr) {
+        console.warn("Could not log sent email:", logErr);
+      }
+
       return { success: true, id: data.id };
     }
 

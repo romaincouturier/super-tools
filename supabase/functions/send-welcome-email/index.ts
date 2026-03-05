@@ -257,6 +257,9 @@ serve(async (req) => {
       bcc: bccList,
       subject,
       html: htmlContent,
+      _emailType: "welcome",
+      _trainingId: trainingId,
+      _participantId: participantId,
     });
 
     if (!result.success) {

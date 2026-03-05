@@ -286,6 +286,8 @@ serve(async (req: Request): Promise<Response> => {
           content: pdfBase64,
         },
       ],
+      _emailType: "convention",
+      _trainingId: trainingId,
     });
 
     if (!result.success) {

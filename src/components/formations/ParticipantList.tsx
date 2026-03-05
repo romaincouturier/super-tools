@@ -1,4 +1,4 @@
-import { HelpCircle, Mail, MailCheck, Clock, CheckCircle, AlertTriangle, Trash2, Loader2, Send, RefreshCw, Receipt, Building, Scroll, Award, Download, Forward, UserCheck, RotateCw, FileSignature, Eye, BellRing, StickyNote, ArrowUpDown, ArrowUp, ArrowDown, ClipboardCheck, Star, UserCheck as CoachingIcon } from "lucide-react";
+import { HelpCircle, Mail, MailCheck, Clock, CheckCircle, AlertTriangle, Trash2, Loader2, Send, RefreshCw, Receipt, Building, Scroll, Award, Download, Forward, UserCheck, RotateCw, FileSignature, Eye, BellRing, StickyNote, ArrowUpDown, ArrowUp, ArrowDown, ClipboardCheck, Star, UserCheck as CoachingIcon, History } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -41,6 +41,7 @@ import ViewQuestionnaireDialog from "./ViewQuestionnaireDialog";
 import ParticipantDocumentsDialog from "./ParticipantDocumentsDialog";
 import EditParticipantDialog from "./EditParticipantDialog";
 import EvaluationDetailDialog, { type EvaluationData } from "./EvaluationDetailDialog";
+import ParticipantTraceabilityDrawer from "./ParticipantTraceabilityDrawer";
 import {
   type EvaluationInfo,
   type CertificateInfo as CertInfo,
@@ -207,6 +208,7 @@ const ParticipantList = ({
   const [evaluationsByParticipant, setEvaluationsByParticipant] = useState<Map<string, EvaluationInfo>>(new Map());
   const [selectedEvaluation, setSelectedEvaluation] = useState<EvaluationData | null>(null);
   const [showEvaluationDetail, setShowEvaluationDetail] = useState(false);
+  const [traceabilityParticipant, setTraceabilityParticipant] = useState<Participant | null>(null);
   const { toast } = useToast();
 
   const isInterEntreprise = isInterEntrepriseProp ?? (formatFormation === "inter-entreprises" || formatFormation === "e_learning");
@@ -921,7 +923,17 @@ const ParticipantList = ({
         </Tooltip>
       )}
 
-      {/* 6. Edit */}
+      {/* 6. Traçabilité Qualiopi */}
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-primary" onClick={() => setTraceabilityParticipant(participant)}>
+            <History className="h-3.5 w-3.5" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent><p>Traçabilité participant</p></TooltipContent>
+      </Tooltip>
+
+      {/* 7. Edit */}
       <EditParticipantDialog
         participant={participant}
         trainingId={trainingId}
@@ -1240,6 +1252,23 @@ const ParticipantList = ({
         evaluation={selectedEvaluation}
         trainingName={trainingName}
       />
+
+      {/* Traceability drawer */}
+      {traceabilityParticipant && (
+        <ParticipantTraceabilityDrawer
+          open={!!traceabilityParticipant}
+          onOpenChange={(open) => !open && setTraceabilityParticipant(null)}
+          participantId={traceabilityParticipant.id}
+          participantEmail={traceabilityParticipant.email}
+          participantName={
+            traceabilityParticipant.first_name || traceabilityParticipant.last_name
+              ? `${traceabilityParticipant.first_name || ""} ${traceabilityParticipant.last_name || ""}`.trim()
+              : traceabilityParticipant.email
+          }
+          trainingId={trainingId}
+          trainingName={trainingName}
+        />
+      )}
     </>
   );
 };

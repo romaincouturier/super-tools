@@ -225,6 +225,9 @@ serve(async (req) => {
       bcc: bccList,
       subject,
       html: htmlContent,
+      _emailType: templateType === "evaluation_reminder_j5" ? "evaluation_reminder" : "evaluation_reminder",
+      _trainingId: trainingId,
+      _participantId: participantId,
     });
 
     if (!result.success) {
