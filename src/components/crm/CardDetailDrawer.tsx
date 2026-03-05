@@ -74,6 +74,7 @@ import {
   Wand2,
   ImageIcon,
   ChevronDown,
+  ChevronUp,
   Trophy,
   XCircle,
   MoreVertical,
@@ -172,6 +173,9 @@ const CardDetailDrawer = ({
   const [estimatedValue, setEstimatedValue] = useState("");
   const [quoteUrl, setQuoteUrl] = useState("");
   const [columnId, setColumnId] = useState("");
+
+  // Contact card collapsed by default
+  const [contactExpanded, setContactExpanded] = useState(false);
 
   // Contact fields state (editable)
   const [firstName, setFirstName] = useState("");
@@ -489,17 +493,40 @@ const CardDetailDrawer = ({
   // Shared helpers to avoid duplication
   const parseValue = () => parseFloat(estimatedValue) || 0;
 
-  const buildCardDataForAi = () => ({
-    title: card?.title ?? "",
-    description: descriptionHtml,
-    company,
-    first_name: firstName,
-    last_name: lastName,
-    service_type: serviceType,
-    estimated_value: parseValue(),
-    comments: details?.comments || [],
-    brief_questions: card?.brief_questions || [],
-  });
+  const buildCardDataForAi = () => {
+    // Build client profile from available data
+    const profileParts: string[] = [];
+    if (firstName || lastName) profileParts.push(`Contact : ${[firstName, lastName].filter(Boolean).join(" ")}`);
+    if (company) profileParts.push(`Entreprise : ${company}`);
+    if (email) profileParts.push(`Email : ${email}`);
+    if (phone) profileParts.push(`Téléphone : ${phone}`);
+    if (linkedinUrl) profileParts.push(`LinkedIn : ${linkedinUrl}`);
+    if (websiteUrl) profileParts.push(`Site web : ${websiteUrl}`);
+    const currentColumn = allColumns.find(col => col.id === card?.column_id);
+    if (currentColumn) profileParts.push(`Étape CRM : ${currentColumn.name}`);
+    if (card?.confidence_score != null) profileParts.push(`Confiance : ${card.confidence_score}%`);
+    if (card?.acquisition_source) profileParts.push(`Source : ${card.acquisition_source}`);
+
+    return {
+      title: card?.title ?? "",
+      description: descriptionHtml,
+      company,
+      first_name: firstName,
+      last_name: lastName,
+      service_type: serviceType,
+      estimated_value: parseValue(),
+      comments: details?.comments || [],
+      brief_questions: card?.brief_questions || [],
+      activities: details?.activity || [],
+      emails_sent: (details?.emails || []).map(e => ({
+        subject: e.subject,
+        body_html: e.body_html,
+        sent_at: e.sent_at,
+        recipient_email: e.recipient_email,
+      })),
+      client_profile: profileParts.join("\n"),
+    };
+  };
 
   // AI Analysis function
   const handleAiAnalysis = async () => {
@@ -1552,85 +1579,59 @@ const CardDetailDrawer = ({
 
         {/* ═══ CONTACT ═══ */}
         <div className="p-4 bg-muted/50 rounded-lg space-y-3 mt-4">
-          <h4 className="font-medium text-sm flex items-center gap-2">
-            <User className="h-4 w-4" />
-            Contact
-          </h4>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <Label className="text-xs">Prénom</Label>
-              <Input
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-                placeholder="Prénom"
-                className="h-8"
-              />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs">Nom</Label>
-              <Input
-                value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
-                placeholder="Nom"
-                className="h-8"
-              />
-            </div>
-            <div className="space-y-1 col-span-2">
-              <Label className="text-xs flex items-center gap-1">
-                <Building2 className="h-3 w-3" />
-                Entreprise
-              </Label>
-              <Input
-                value={company}
-                onChange={(e) => setCompany(e.target.value)}
-                placeholder="Nom de l'entreprise"
-                className="h-8"
-              />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs flex items-center gap-1">
-                <Mail className="h-3 w-3" />
-                Email
-              </Label>
-              <div className="flex gap-1">
-                <Input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="email@exemple.com"
-                  className="h-8 flex-1"
-                />
-                {email.trim() && (
+          <button
+            onClick={() => setContactExpanded(!contactExpanded)}
+            className="flex items-center justify-between w-full"
+          >
+            <h4 className="font-medium text-sm flex items-center gap-2">
+              <User className="h-4 w-4" />
+              Contact
+              {(firstName || lastName) && (
+                <span className="text-muted-foreground font-normal">
+                  — {[firstName, lastName].filter(Boolean).join(" ")}
+                  {company && ` (${company})`}
+                </span>
+              )}
+            </h4>
+            {contactExpanded ? (
+              <ChevronUp className="h-4 w-4 text-muted-foreground" />
+            ) : (
+              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+            )}
+          </button>
+
+          {/* Mini contact: phone, QR code, copy email — always visible */}
+          {!contactExpanded && (
+            <div className="flex items-center gap-2 flex-wrap">
+              {email.trim() && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 gap-1.5 text-xs"
+                  onClick={() => copyToClipboard(email)}
+                  title={email}
+                >
+                  <Copy className="h-3 w-3" />
+                  Email
+                </Button>
+              )}
+              {phone.trim() && (
+                <>
                   <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 shrink-0"
-                    onClick={() => copyToClipboard(email)}
-                    title="Copier l'email"
+                    variant="outline"
+                    size="sm"
+                    className="h-7 gap-1.5 text-xs"
+                    onClick={() => window.open(`tel:${phone.trim()}`)}
+                    title={phone}
                   >
-                    <Copy className="h-3.5 w-3.5" />
+                    <Phone className="h-3 w-3" />
+                    Appeler
                   </Button>
-                )}
-              </div>
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs flex items-center gap-1">
-                <Phone className="h-3 w-3" />
-                Téléphone
-              </Label>
-              <div className="flex items-center gap-2">
-                <Input
-                  type="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="06 12 34 56 78"
-                  className="h-8 flex-1"
-                />
-                {phone.trim() && (
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button variant="outline" size="icon" className="h-8 w-8 shrink-0" title="QR Code téléphone">
-                        <Phone className="h-3.5 w-3.5" />
+                      <Button variant="outline" size="sm" className="h-7 gap-1.5 text-xs" title="QR Code téléphone">
+                        <QRCodeSVG value={`tel:${phone.trim()}`} size={12} className="h-3 w-3" />
+                        QR
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-4" align="end">
@@ -1640,41 +1641,144 @@ const CardDetailDrawer = ({
                       </div>
                     </PopoverContent>
                   </Popover>
-                )}
-              </div>
-            </div>
-            {linkedinUrl && (
-              <div className="col-span-2">
-                <Button variant="outline" size="sm" className="gap-1.5 h-8" onClick={() => window.open(linkedinUrl, '_blank', 'noopener')}>
-                    <Linkedin className="h-3.5 w-3.5" />
-                    LinkedIn
-                    <ExternalLink className="h-3 w-3" />
+                </>
+              )}
+              {linkedinUrl && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 gap-1.5 text-xs"
+                  onClick={() => window.open(linkedinUrl, '_blank', 'noopener')}
+                >
+                  <Linkedin className="h-3 w-3" />
+                  LinkedIn
                 </Button>
-              </div>
-            )}
-            <div className="space-y-1 col-span-2">
-              <Label className="text-xs flex items-center gap-1">
-                <Globe className="h-3 w-3" />
-                Site web
-              </Label>
-              <div className="flex gap-2">
+              )}
+            </div>
+          )}
+
+          {/* Full contact form — expanded */}
+          {contactExpanded && (
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Prénom</Label>
                 <Input
-                  type="url"
-                  value={websiteUrl}
-                  onChange={(e) => setWebsiteUrl(e.target.value)}
-                  placeholder="https://www.exemple.com"
-                  className="h-8 flex-1"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  placeholder="Prénom"
+                  className="h-8"
                 />
-                {websiteUrl && (
-                  <Button variant="outline" size="sm" asChild>
-                    <a href={websiteUrl} target="_blank" rel="noopener noreferrer">
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Nom</Label>
+                <Input
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  placeholder="Nom"
+                  className="h-8"
+                />
+              </div>
+              <div className="space-y-1 col-span-2">
+                <Label className="text-xs flex items-center gap-1">
+                  <Building2 className="h-3 w-3" />
+                  Entreprise
+                </Label>
+                <Input
+                  value={company}
+                  onChange={(e) => setCompany(e.target.value)}
+                  placeholder="Nom de l'entreprise"
+                  className="h-8"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs flex items-center gap-1">
+                  <Mail className="h-3 w-3" />
+                  Email
+                </Label>
+                <div className="flex gap-1">
+                  <Input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="email@exemple.com"
+                    className="h-8 flex-1"
+                  />
+                  {email.trim() && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 shrink-0"
+                      onClick={() => copyToClipboard(email)}
+                      title="Copier l'email"
+                    >
+                      <Copy className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs flex items-center gap-1">
+                  <Phone className="h-3 w-3" />
+                  Téléphone
+                </Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="tel"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="06 12 34 56 78"
+                    className="h-8 flex-1"
+                  />
+                  {phone.trim() && (
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" size="icon" className="h-8 w-8 shrink-0" title="QR Code téléphone">
+                          <Phone className="h-3.5 w-3.5" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-4" align="end">
+                        <div className="flex flex-col items-center gap-2">
+                          <QRCodeSVG value={`tel:${phone.trim()}`} size={140} />
+                          <span className="text-xs text-muted-foreground">Scannez pour appeler</span>
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  )}
+                </div>
+              </div>
+              {linkedinUrl && (
+                <div className="col-span-2">
+                  <Button variant="outline" size="sm" className="gap-1.5 h-8" onClick={() => window.open(linkedinUrl, '_blank', 'noopener')}>
+                      <Linkedin className="h-3.5 w-3.5" />
+                      LinkedIn
                       <ExternalLink className="h-3 w-3" />
-                    </a>
                   </Button>
-                )}
+                </div>
+              )}
+              <div className="space-y-1 col-span-2">
+                <Label className="text-xs flex items-center gap-1">
+                  <Globe className="h-3 w-3" />
+                  Site web
+                </Label>
+                <div className="flex gap-2">
+                  <Input
+                    type="url"
+                    value={websiteUrl}
+                    onChange={(e) => setWebsiteUrl(e.target.value)}
+                    placeholder="https://www.exemple.com"
+                    className="h-8 flex-1"
+                  />
+                  {websiteUrl && (
+                    <Button variant="outline" size="sm" asChild>
+                      <a href={websiteUrl} target="_blank" rel="noopener noreferrer">
+                        <ExternalLink className="h-3 w-3" />
+                      </a>
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* ═══ QUALIFICATION ═══ */}

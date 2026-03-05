@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -31,17 +32,31 @@ interface CategoryConfig {
   color: string;
 }
 
+// Display order for categories (matches daily digest email order)
+const CATEGORY_ORDER = [
+  "formations_facture",
+  "missions_a_facturer",
+  "devis_a_faire",
+  "devis_a_relancer",
+  "opportunites",
+  "articles_relire",
+  "cfp_soumettre",
+  "formations_conventions",
+  "evenements",
+  "cfp_surveiller",
+];
+
 const CATEGORIES: Record<string, CategoryConfig> = {
-  missions_a_facturer: { label: "Missions à facturer", emoji: "💰", color: "text-green-600" },
+  formations_facture: { label: "Factures à émettre", emoji: "🧾", color: "text-red-600" },
+  missions_a_facturer: { label: "Factures missions", emoji: "💰", color: "text-green-600" },
   devis_a_faire: { label: "Devis à faire", emoji: "📝", color: "text-blue-600" },
-  opportunites: { label: "Opportunités", emoji: "🎯", color: "text-amber-600" },
   devis_a_relancer: { label: "Devis à relancer", emoji: "🔄", color: "text-orange-600" },
-  formations_conventions: { label: "Formations", emoji: "🎓", color: "text-red-600" },
+  opportunites: { label: "Opportunités à contacter", emoji: "🎯", color: "text-amber-600" },
   articles_relire: { label: "Articles à relire", emoji: "📋", color: "text-purple-600" },
-  evenements: { label: "Événements", emoji: "📅", color: "text-teal-600" },
   cfp_soumettre: { label: "CFP à soumettre", emoji: "📨", color: "text-orange-600" },
+  formations_conventions: { label: "Formations", emoji: "🎓", color: "text-red-600" },
+  evenements: { label: "Événements", emoji: "📅", color: "text-teal-600" },
   cfp_surveiller: { label: "CFP à surveiller", emoji: "🔁", color: "text-blue-600" },
-  formations_facture: { label: "Factures formation", emoji: "🧾", color: "text-red-600" },
 };
 
 // ── Types ──
@@ -73,6 +88,7 @@ interface DailyAnalytics {
 // ── Component ──
 
 const DailyTodoPanel = () => {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [actions, setActions] = useState<DailyAction[]>([]);
   const [analytics, setAnalytics] = useState<DailyAnalytics | null>(null);
@@ -207,11 +223,18 @@ const DailyTodoPanel = () => {
     });
   };
 
-  // Group actions by category
-  const grouped = actions.reduce<Record<string, DailyAction[]>>((acc, action) => {
+  // Group actions by category, respecting display order
+  const groupedMap = actions.reduce<Record<string, DailyAction[]>>((acc, action) => {
     (acc[action.category] = acc[action.category] || []).push(action);
     return acc;
   }, {});
+
+  // Sort categories according to CATEGORY_ORDER
+  const grouped = Object.fromEntries(
+    [...CATEGORY_ORDER, ...Object.keys(groupedMap).filter((k) => !CATEGORY_ORDER.includes(k))]
+      .filter((k) => groupedMap[k])
+      .map((k) => [k, groupedMap[k]])
+  );
 
   const totalCount = actions.length;
   const completedCount = actions.filter((a) => a.is_completed).length;
@@ -337,15 +360,20 @@ const DailyTodoPanel = () => {
                           )}
                         </div>
                         {action.link && (
-                          <a
-                            href={action.link}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={(e) => e.stopPropagation()}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              try {
+                                const url = new URL(action.link!, window.location.origin);
+                                navigate(url.pathname);
+                              } catch {
+                                navigate(action.link!);
+                              }
+                            }}
                             className="shrink-0 p-1 rounded hover:bg-muted transition-colors"
                           >
                             <ExternalLink className="h-3 w-3 text-muted-foreground" />
-                          </a>
+                          </button>
                         )}
                       </div>
                     ))}
