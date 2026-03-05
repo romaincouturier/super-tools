@@ -185,6 +185,7 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
         elearning_access_email_content: f.elearning_access_email_content.trim() || null,
         woocommerce_product_id: f.woocommerce_product_id ? parseInt(f.woocommerce_product_id, 10) : null,
         supports_url: f.supports_url.trim() || null,
+        coaching_sessions_count: f.coaching_sessions_count ? parseInt(f.coaching_sessions_count, 10) : 0,
         display_order: i,
       };
 
