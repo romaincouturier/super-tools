@@ -324,7 +324,7 @@ interface StorageBackupResult {
 }
 
 async function backupStorageBucket(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   accessToken: string,
   bucketName: string,
   storageFolderId: string,
@@ -458,7 +458,7 @@ interface IntegrityResult {
 }
 
 async function verifyBackupIntegrity(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   backupJson: string,
   tablesToBackup: string[],
 ): Promise<IntegrityResult> {
