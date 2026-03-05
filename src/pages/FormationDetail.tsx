@@ -42,6 +42,7 @@ import EntityMediaManager from "@/components/media/EntityMediaManager";
 import TrainerAdequacy from "@/components/formations/TrainerAdequacy";
 import TrainerEvaluationBlock from "@/components/formations/TrainerEvaluationBlock";
 import ThankYouEmailPreviewDialog from "@/components/formations/ThankYouEmailPreviewDialog";
+import DuplicateTrainingDialog from "@/components/formations/DuplicateTrainingDialog";
 import LogisticsBookingButtons from "@/components/shared/LogisticsBookingButtons";
 import LiveMeetingsSection from "@/components/formations/LiveMeetingsSection";
 import CoachingSlotsSection from "@/components/formations/CoachingSlotsSection";
@@ -143,6 +144,7 @@ const FormationDetail = () => {
   const [thankYouSentAt, setThankYouSentAt] = useState<string | null>(null);
   const [assignedUserName, setAssignedUserName] = useState<string | null>(null);
   const [availableFormulas, setAvailableFormulas] = useState<FormationFormula[]>([]);
+  const [duplicateDialogOpen, setDuplicateDialogOpen] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -725,6 +727,10 @@ const FormationDetail = () => {
                     <Copy className="h-4 w-4 mr-2" />
                     Copier lien participant
                   </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setDuplicateDialogOpen(true)}>
+                    <Copy className="h-4 w-4 mr-2" />
+                    Dupliquer
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
@@ -877,6 +883,13 @@ const FormationDetail = () => {
               >
                 <Edit2 className="h-4 w-4 mr-2" />
                 Modifier
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setDuplicateDialogOpen(true)}
+              >
+                <Copy className="h-4 w-4 mr-2" />
+                Dupliquer
               </Button>
             </div>
           )}
@@ -1527,6 +1540,16 @@ const FormationDetail = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Duplicate Training Dialog */}
+      <DuplicateTrainingDialog
+        open={duplicateDialogOpen}
+        onOpenChange={setDuplicateDialogOpen}
+        trainingId={training.id}
+        trainingName={training.training_name}
+        isElearning={isElearningSession}
+        userId={user?.id || ""}
+      />
 
       {/* Thank You Email Preview Dialog */}
       <ThankYouEmailPreviewDialog
