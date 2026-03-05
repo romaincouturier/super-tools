@@ -302,8 +302,9 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
           console.warn("Failed to pre-create questionnaire record:", qErr);
         }
       }
-      // If we need to send welcome email now (J-7 to J-2 window), trigger the edge function
-      if (sendWelcomeNow && insertedParticipant) {
+      // If we need to send welcome email now, trigger the edge function
+      // Skip for e-learning: participants receive an access email instead of a convocation
+      if (sendWelcomeNow && insertedParticipant && formatFormation !== "e_learning") {
         try {
           await supabase.functions.invoke("send-welcome-email", {
             body: {
