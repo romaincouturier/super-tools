@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
+import ReactMarkdown from "react-markdown";
 import {
   Loader2,
   ClipboardList,
@@ -11,7 +12,8 @@ import {
   ExternalLink,
   AlertCircle,
   CheckCircle2,
-  GraduationCap
+  GraduationCap,
+  Sparkles,
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -34,6 +36,15 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { useToast } from "@/hooks/use-toast";
 
 interface NeedsSurvey {
   id: string;
@@ -75,6 +86,10 @@ const BesoinsParticipants = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [participantDrawerOpen, setParticipantDrawerOpen] = useState(false);
+  const [analysisOpen, setAnalysisOpen] = useState(false);
+  const [analysisLoading, setAnalysisLoading] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState<string | null>(null);
+  const { toast } = useToast();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -188,6 +203,29 @@ const BesoinsParticipants = () => {
     });
   };
 
+  const runAnalysis = async () => {
+    const ids = filteredSurveys.map((s) => s.id);
+    if (ids.length === 0) return;
+    setAnalysisLoading(true);
+    setAnalysisResult(null);
+    setAnalysisOpen(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("analyze-needs-survey", {
+        body: { surveyIds: ids },
+      });
+      if (error) throw new Error(error.message);
+      if (data?.error) throw new Error(data.error);
+      setAnalysisResult(data.analysis);
+    } catch (e: any) {
+      console.error("Analysis error:", e);
+      toast({ title: "Erreur", description: e.message || "Impossible de générer l'analyse.", variant: "destructive" });
+      setAnalysisOpen(false);
+    } finally {
+      setAnalysisLoading(false);
+    }
+  };
+
   const filteredSurveys = surveys.filter((survey) => {
     return (
       searchTerm === "" ||
@@ -226,10 +264,24 @@ const BesoinsParticipants = () => {
               </div>
             </div>
           </div>
-          <Button variant="outline" onClick={() => setParticipantDrawerOpen(true)}>
-            <GraduationCap className="h-4 w-4 mr-2" />
-            Parcours apprenant
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={runAnalysis}
+              disabled={filteredSurveys.length === 0 || analysisLoading}
+            >
+              {analysisLoading ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Sparkles className="h-4 w-4 mr-2" />
+              )}
+              Analyser avec l'IA
+            </Button>
+            <Button variant="outline" onClick={() => setParticipantDrawerOpen(true)}>
+              <GraduationCap className="h-4 w-4 mr-2" />
+              Parcours apprenant
+            </Button>
+          </div>
         </div>
 
         {/* Stats */}
@@ -466,6 +518,40 @@ const BesoinsParticipants = () => {
         open={participantDrawerOpen}
         onOpenChange={setParticipantDrawerOpen}
       />
+      <Dialog open={analysisOpen} onOpenChange={setAnalysisOpen}>
+        <DialogContent className="max-w-3xl max-h-[85vh]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" />
+              Analyse IA des besoins
+            </DialogTitle>
+            <DialogDescription>
+              {filteredSurveys.length} questionnaire{filteredSurveys.length > 1 ? "s" : ""} analysé{filteredSurveys.length > 1 ? "s" : ""}
+            </DialogDescription>
+          </DialogHeader>
+          <ScrollArea className="max-h-[60vh] pr-4">
+            {analysisLoading && (
+              <div className="flex flex-col items-center justify-center py-12 gap-4">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <p className="text-muted-foreground">Analyse en cours...</p>
+              </div>
+            )}
+            {analysisResult && !analysisLoading && (
+              <div className="prose prose-sm max-w-none dark:prose-invert">
+                <ReactMarkdown>{analysisResult}</ReactMarkdown>
+              </div>
+            )}
+          </ScrollArea>
+          {analysisResult && !analysisLoading && (
+            <div className="flex justify-end gap-2 pt-4 border-t">
+              <Button variant="outline" onClick={runAnalysis}>
+                <Sparkles className="h-4 w-4 mr-2" />
+                Régénérer
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </ModuleLayout>
   );
 };
