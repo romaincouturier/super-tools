@@ -1498,7 +1498,8 @@ const CardDetailDrawer = ({
               <Label className="text-xs mb-1.5 block">Quand</Label>
               <div className="flex flex-wrap gap-1 mb-2">
                 {[
-                  { label: "J+2", businessDays: 2 },
+                  { label: "Demain", businessDays: 1 },
+                  { label: "Après-demain", businessDays: 2 },
                   { label: "J+3", businessDays: 3 },
                   { label: "J+5", businessDays: 5 },
                   { label: "J+10", businessDays: 10 },
@@ -1620,16 +1621,6 @@ const CardDetailDrawer = ({
               )}
               {phone.trim() && (
                 <>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-7 gap-1.5 text-xs"
-                    onClick={() => window.open(`tel:${phone.trim()}`)}
-                    title={phone}
-                  >
-                    <Phone className="h-3 w-3" />
-                    Appeler
-                  </Button>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button variant="outline" size="sm" className="h-7 gap-1.5 text-xs" title="QR Code téléphone">
