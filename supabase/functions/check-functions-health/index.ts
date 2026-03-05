@@ -24,7 +24,9 @@ import {
  */
 const FUNCTION_NAMES = [
   "ai-content-assist",
+  "alert-form-error",
   "analyze-evaluations",
+  "analyze-needs-survey",
   "arena-orchestrate",
   "arena-orchestrator",
   "arena-suggest-experts",
