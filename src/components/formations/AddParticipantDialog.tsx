@@ -347,25 +347,6 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
         }
       }
 
-      // For coachee participants: schedule coaching booking invitation (J+7 after enrollment)
-      if (selectedFormula && formula.toLowerCase().includes("coach") && insertedParticipant) {
-        try {
-          const inviteDate = new Date();
-          inviteDate.setDate(inviteDate.getDate() + 7);
-          inviteDate.setHours(9, 0, 0, 0);
-
-          await supabase.from("scheduled_emails").insert({
-            training_id: trainingId,
-            participant_id: insertedParticipant.id,
-            email_type: "coaching_booking_invite",
-            scheduled_for: inviteDate.toISOString(),
-            status: "pending",
-          });
-        } catch (err) {
-          console.warn("Failed to schedule coaching booking invite:", err);
-        }
-      }
-
       // Schedule needs survey email for future trainings (after welcome email is sent)
       let needsSurveySkipped = false;
       if (sendWelcomeNow && insertedParticipant && trainingStartDate) {
