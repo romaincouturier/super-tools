@@ -55,6 +55,7 @@ const FUNCTION_NAMES = [
   "log-login-attempt",
   "onboard-collaborator",
   "process-action-reminders",
+  "process-coaching-reminders",
   "process-crm-reminders",
   "process-daily-summary",
   "process-evaluation-submission",
