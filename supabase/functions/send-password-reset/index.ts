@@ -2,7 +2,6 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { getSenderFrom, getBccList } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
-import { getAppUrls } from "../_shared/app-urls.ts";
 import { sendEmail } from "../_shared/resend.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -92,9 +91,8 @@ serve(async (req: Request) => {
       _emailType: "password_reset",
     });
 
-    if (!emailResponse.ok) {
-      const errorText = await emailResponse.text();
-      console.error("Email error:", errorText);
+    if (!emailResponse.success) {
+      console.error("Email error:", emailResponse.error || "Unknown email error");
     }
 
     console.log(`Password reset email sent to: ${email}`);
