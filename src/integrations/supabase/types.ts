@@ -2899,13 +2899,13 @@ export type Database = {
           niveau_actuel: number | null
           niveau_motivation: number | null
           nom: string | null
-          participant_id: string
+          participant_id: string | null
           prenom: string | null
           prerequis_details: string | null
           prerequis_validation: string | null
           societe: string | null
           token: string
-          training_id: string
+          training_id: string | null
           updated_at: string
         }
         Insert: {
@@ -2937,13 +2937,13 @@ export type Database = {
           niveau_actuel?: number | null
           niveau_motivation?: number | null
           nom?: string | null
-          participant_id: string
+          participant_id?: string | null
           prenom?: string | null
           prerequis_details?: string | null
           prerequis_validation?: string | null
           societe?: string | null
           token: string
-          training_id: string
+          training_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -2975,13 +2975,13 @@ export type Database = {
           niveau_actuel?: number | null
           niveau_motivation?: number | null
           nom?: string | null
-          participant_id?: string
+          participant_id?: string | null
           prenom?: string | null
           prerequis_details?: string | null
           prerequis_validation?: string | null
           societe?: string | null
           token?: string
-          training_id?: string
+          training_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -3830,13 +3830,13 @@ export type Database = {
           message_recommandation: string | null
           objectif_prioritaire: string | null
           objectifs_evaluation: Json | null
-          participant_id: string
+          participant_id: string | null
           qualification_intervenant_adequate: boolean | null
           recommandation: string | null
           remarques_libres: string | null
           rythme: string | null
           token: string
-          training_id: string
+          training_id: string | null
           updated_at: string
           woocommerce_product_id: number | null
         }
@@ -3865,13 +3865,13 @@ export type Database = {
           message_recommandation?: string | null
           objectif_prioritaire?: string | null
           objectifs_evaluation?: Json | null
-          participant_id: string
+          participant_id?: string | null
           qualification_intervenant_adequate?: boolean | null
           recommandation?: string | null
           remarques_libres?: string | null
           rythme?: string | null
           token: string
-          training_id: string
+          training_id?: string | null
           updated_at?: string
           woocommerce_product_id?: number | null
         }
@@ -3900,13 +3900,13 @@ export type Database = {
           message_recommandation?: string | null
           objectif_prioritaire?: string | null
           objectifs_evaluation?: Json | null
-          participant_id?: string
+          participant_id?: string | null
           qualification_intervenant_adequate?: boolean | null
           recommandation?: string | null
           remarques_libres?: string | null
           rythme?: string | null
           token?: string
-          training_id?: string
+          training_id?: string | null
           updated_at?: string
           woocommerce_product_id?: number | null
         }
