@@ -60,6 +60,7 @@ interface FormulaEdit {
   elearning_access_email_content: string;
   woocommerce_product_id: string;
   supports_url: string;
+  coaching_sessions_count: string;
   _deleted?: boolean;
 }
 
