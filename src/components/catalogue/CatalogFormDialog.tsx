@@ -110,6 +110,7 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
     elearning_access_email_content: f.elearning_access_email_content || "",
     woocommerce_product_id: f.woocommerce_product_id != null ? String(f.woocommerce_product_id) : "",
     supports_url: f.supports_url || "",
+    coaching_sessions_count: f.coaching_sessions_count ? String(f.coaching_sessions_count) : "0",
   });
 
   // Always keep latest values in ref
@@ -497,6 +498,7 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
                         elearning_access_email_content: "",
                         woocommerce_product_id: "",
                         supports_url: "",
+                        coaching_sessions_count: "0",
                       },
                     ]);
                     setExpandedFormula(nextVisibleIdx);
