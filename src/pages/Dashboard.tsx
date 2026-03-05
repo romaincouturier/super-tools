@@ -674,12 +674,12 @@ const Dashboard = () => {
           </section>
 
           {/* Daily TODO + Calendar — right column */}
-          <aside className="hidden lg:block w-80 shrink-0 space-y-4">
-            <Card className="p-4 sticky top-6">
-              <DailyTodoPanel />
-            </Card>
+          <aside className="hidden lg:flex lg:flex-col w-80 shrink-0 gap-4 sticky top-6 self-start max-h-[calc(100vh-6rem)]">
             <Card className="p-4">
               <UpcomingCalendarPanel />
+            </Card>
+            <Card className="p-4 min-h-0 flex flex-col overflow-hidden">
+              <DailyTodoPanel />
             </Card>
           </aside>
         </div>

@@ -75,13 +75,13 @@ export const useSearchMissions = (searchTerm: string) => {
 
       const { data, error } = await (supabase as unknown as { from: (table: string) => { select: (cols: string) => { or: (filter: string) => { order: (col: string, opts: { ascending: boolean }) => { limit: (n: number) => Promise<{ data: unknown[] | null; error: Error | null }> } } } } })
         .from("missions")
-        .select("id, title, client_name, status, start_date, end_date")
-        .or(`title.ilike.%${searchTerm}%,client_name.ilike.%${searchTerm}%`)
+        .select("id, title, client_name, client_contact, status, start_date, end_date")
+        .or(`title.ilike.%${searchTerm}%,client_name.ilike.%${searchTerm}%,client_contact.ilike.%${searchTerm}%`)
         .order("created_at", { ascending: false })
         .limit(10);
 
       if (error) throw error;
-      return (data || []) as Pick<Mission, 'id' | 'title' | 'client_name' | 'status' | 'start_date' | 'end_date'>[];
+      return (data || []) as Pick<Mission, 'id' | 'title' | 'client_name' | 'client_contact' | 'status' | 'start_date' | 'end_date'>[];
     },
     enabled: searchTerm.length >= 2,
   });
