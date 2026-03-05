@@ -25,6 +25,8 @@ interface CrmSendEmailRequest {
   subject: string;
   body_html: string;
   attachments?: EmailAttachment[];
+  cc?: string[];
+  bcc?: string[];
 }
 
 /**
@@ -101,7 +103,7 @@ serve(async (req) => {
     }
 
     const body = await req.json() as CrmSendEmailRequest;
-    const { card_id, recipient_email, subject, body_html, attachments } = body;
+    const { card_id, recipient_email, subject, body_html, attachments, cc, bcc: extraBcc } = body;
 
     console.log("Request received - attachments present:", !!attachments, "count:", attachments?.length || 0);
     if (attachments && attachments.length > 0) {
@@ -147,12 +149,21 @@ serve(async (req) => {
 </html>
     `;
 
+    // Merge auto BCC with any extra BCC from the user
+    const allBcc = [...bccList];
+    if (extraBcc && extraBcc.length > 0) {
+      for (const addr of extraBcc) {
+        if (addr && !allBcc.includes(addr)) allBcc.push(addr);
+      }
+    }
+
     // Send the email using Resend
     const emailResult = await sendEmail({
       to: [recipient_email],
       subject: subject,
       html: completeHtml,
-      bcc: bccList,
+      cc: cc && cc.length > 0 ? cc : undefined,
+      bcc: allBcc,
       attachments: attachments,
     });
 

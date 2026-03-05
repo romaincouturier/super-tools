@@ -226,6 +226,9 @@ const CardDetailDrawer = ({
 
   // Email state
   const [emailTo, setEmailTo] = useState("");
+  const [emailCc, setEmailCc] = useState("");
+  const [emailBcc, setEmailBcc] = useState("");
+  const [showCcBcc, setShowCcBcc] = useState(false);
   const [emailSubject, setEmailSubject] = useState("");
   const [emailBody, setEmailBody] = useState("");
   const [emailSubjectBeforeAi, setEmailSubjectBeforeAi] = useState<string | null>(null);
@@ -1169,11 +1172,16 @@ const CardDetailDrawer = ({
     setEmailAttachments((prev) => prev.filter((_, i) => i !== index));
   };
 
+  const parseEmails = (str: string): string[] =>
+    str.split(/[,;\s]+/).map(s => s.trim()).filter(s => s.includes("@"));
+
   const handleSendEmail = async () => {
     if (!card || !user?.email || !emailTo.trim() || !emailSubject.trim()) return;
     const sentSubject = emailSubject.trim();
     const sentBody = DOMPurify.sanitize(emailBody);
     const templateSnapshot = selectedTemplateRef.current;
+    const ccList = parseEmails(emailCc);
+    const bccList = parseEmails(emailBcc);
     await sendEmail.mutateAsync({
       input: {
         card_id: card.id,
@@ -1181,10 +1189,15 @@ const CardDetailDrawer = ({
         subject: sentSubject,
         body_html: sentBody,
         attachments: emailAttachments.length > 0 ? emailAttachments : undefined,
+        cc: ccList.length > 0 ? ccList : undefined,
+        bcc: bccList.length > 0 ? bccList : undefined,
       },
       senderEmail: user.email,
     });
     setEmailTo("");
+    setEmailCc("");
+    setEmailBcc("");
+    setShowCcBcc(false);
     setEmailSubject("");
     setEmailBody("");
     setEmailAttachments([]);
@@ -2144,28 +2157,71 @@ const CardDetailDrawer = ({
               </Popover>
             </div>
 
-            <div className="flex items-center gap-2">
-              <Label className="text-xs text-muted-foreground whitespace-nowrap flex items-center gap-1">
-                Destinataire
-                {email && email !== emailTo && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Label className="text-xs text-muted-foreground whitespace-nowrap flex items-center gap-1">
+                  À
+                  {email && email !== emailTo && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setEmailTo(email)}
+                      title={`Utiliser ${email}`}
+                      className="h-5 px-1.5 text-[10px] text-primary"
+                    >
+                      <Copy className="h-3 w-3 mr-0.5" />
+                      Client
+                    </Button>
+                  )}
+                </Label>
+                <Input
+                  placeholder="email@exemple.com (séparer par des virgules)"
+                  value={emailTo}
+                  onChange={(e) => setEmailTo(e.target.value)}
+                  className="flex-1"
+                />
+                {!showCcBcc && (
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => setEmailTo(email)}
-                    title={`Utiliser ${email}`}
-                    className="h-5 px-1.5 text-[10px] text-primary"
+                    onClick={() => setShowCcBcc(true)}
+                    className="h-7 px-2 text-xs text-muted-foreground"
                   >
-                    <Copy className="h-3 w-3 mr-0.5" />
-                    Client
+                    Cc/Cci
                   </Button>
                 )}
-              </Label>
-              <Input
-                placeholder="email@exemple.com"
-                value={emailTo}
-                onChange={(e) => setEmailTo(e.target.value)}
-                className="flex-1"
-              />
+              </div>
+              {showCcBcc && (
+                <>
+                  <div className="flex items-center gap-2">
+                    <Label className="text-xs text-muted-foreground whitespace-nowrap w-6">Cc</Label>
+                    <Input
+                      placeholder="Copie visible (séparer par des virgules)"
+                      value={emailCc}
+                      onChange={(e) => setEmailCc(e.target.value)}
+                      className="flex-1"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Label className="text-xs text-muted-foreground whitespace-nowrap w-6">Cci</Label>
+                    <Input
+                      placeholder="Copie invisible (séparer par des virgules)"
+                      value={emailBcc}
+                      onChange={(e) => setEmailBcc(e.target.value)}
+                      className="flex-1"
+                    />
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => { setShowCcBcc(false); setEmailCc(""); setEmailBcc(""); }}
+                      className="h-7 w-7 p-0 text-muted-foreground"
+                      title="Masquer Cc/Cci"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </>
+              )}
             </div>
             <div className="flex gap-2">
               <Input
@@ -2336,7 +2392,7 @@ const CardDetailDrawer = ({
                             attachments: emailAttachments.length > 0 ? emailAttachments : null,
                           });
                           toast({ title: "Email programmé", description: `Envoi prévu le ${format(hours, "d MMM yyyy 'à' HH:mm", { locale: fr })}` });
-                          setEmailTo(""); setEmailSubject(""); setEmailBody(""); setEmailAttachments([]);
+                          setEmailTo(""); setEmailCc(""); setEmailBcc(""); setShowCcBcc(false); setEmailSubject(""); setEmailBody(""); setEmailAttachments([]);
                         } catch {
                           toast({ title: "Erreur", description: "Impossible de programmer l'email.", variant: "destructive" });
                         }
