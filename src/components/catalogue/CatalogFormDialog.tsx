@@ -630,6 +630,24 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
                                 />
                               </div>
                             </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs">Séances de coaching individuel incluses</Label>
+                              <Input
+                                type="number"
+                                min="0"
+                                value={formula.coaching_sessions_count}
+                                onChange={(e) =>
+                                  setFormulas((prev) =>
+                                    prev.map((f, i) => (i === idx ? { ...f, coaching_sessions_count: e.target.value } : f))
+                                  )
+                                }
+                                placeholder="0"
+                                className="h-8 text-sm"
+                              />
+                              <p className="text-xs text-muted-foreground">
+                                Nombre de séances de coaching individuel incluses dans cette formule (0 = pas de coaching)
+                              </p>
+                            </div>
                           </div>
                         )}
                       </div>
