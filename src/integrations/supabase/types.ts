@@ -3896,6 +3896,7 @@ export type Database = {
           created_at: string
           description: string | null
           duration_minutes: number
+          email_content: string | null
           id: string
           meeting_url: string | null
           scheduled_at: string
@@ -3908,6 +3909,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           duration_minutes?: number
+          email_content?: string | null
           id?: string
           meeting_url?: string | null
           scheduled_at: string
@@ -3920,6 +3922,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           duration_minutes?: number
+          email_content?: string | null
           id?: string
           meeting_url?: string | null
           scheduled_at?: string

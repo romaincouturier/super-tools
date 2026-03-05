@@ -6,6 +6,7 @@ import { Video, Plus, Trash2, Loader2, ExternalLink, Check, X, Pencil, Copy } fr
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -43,6 +44,7 @@ interface LiveMeeting {
   duration_minutes: number;
   meeting_url: string | null;
   description: string | null;
+  email_content: string | null;
   status: string;
 }
 
@@ -62,6 +64,7 @@ const LiveMeetingsSection = ({ trainingId }: LiveMeetingsSectionProps) => {
   const [duration, setDuration] = useState("60");
   const [meetingUrl, setMeetingUrl] = useState("");
   const [description, setDescription] = useState("");
+  const [emailContent, setEmailContent] = useState("");
   const { toast } = useToast();
 
   const fetchMeetings = async () => {
@@ -86,6 +89,7 @@ const LiveMeetingsSection = ({ trainingId }: LiveMeetingsSectionProps) => {
     setDuration("60");
     setMeetingUrl("");
     setDescription("");
+    setEmailContent("");
     setEditingMeeting(null);
   };
 
@@ -102,6 +106,7 @@ const LiveMeetingsSection = ({ trainingId }: LiveMeetingsSectionProps) => {
     setDuration(String(meeting.duration_minutes));
     setMeetingUrl(meeting.meeting_url || "");
     setDescription(meeting.description || "");
+    setEmailContent(meeting.email_content || "");
     setEditingMeeting(meeting);
     setDialogOpen(true);
   };
@@ -114,27 +119,24 @@ const LiveMeetingsSection = ({ trainingId }: LiveMeetingsSectionProps) => {
     setDuration(String(meeting.duration_minutes));
     setMeetingUrl(meeting.meeting_url || "");
     setDescription(meeting.description || "");
+    setEmailContent(meeting.email_content || "");
     setEditingMeeting(null);
     setDialogOpen(true);
   };
 
   const scheduleLiveReminders = async (meetingId: string, scheduledAt: string) => {
     try {
-      // Fetch participants with a non-solo formula (Communauté, Coachée, etc.)
+      // Fetch all participants of the training session
       const { data: eligibleParticipants } = await supabase
         .from("training_participants")
-        .select("id, formula")
-        .eq("training_id", trainingId)
-        .not("formula_id", "is", null)
-        .neq("formula", "Solo");
+        .select("id")
+        .eq("training_id", trainingId);
 
       if (!eligibleParticipants?.length) return;
 
-      // Schedule a reminder 1 day before the live at 09:00
+      // Schedule a reminder 6 hours before the live
       const liveDate = new Date(scheduledAt);
-      const reminderDate = new Date(liveDate);
-      reminderDate.setDate(reminderDate.getDate() - 1);
-      reminderDate.setHours(9, 0, 0, 0);
+      const reminderDate = new Date(liveDate.getTime() - 6 * 60 * 60 * 1000);
 
       // Only schedule if the reminder is in the future
       if (reminderDate <= new Date()) return;
@@ -169,6 +171,7 @@ const LiveMeetingsSection = ({ trainingId }: LiveMeetingsSectionProps) => {
       duration_minutes: parseInt(duration) || 60,
       meeting_url: meetingUrl.trim() || null,
       description: description.trim() || null,
+      email_content: emailContent.trim() || null,
     };
 
     try {
@@ -275,7 +278,7 @@ const LiveMeetingsSection = ({ trainingId }: LiveMeetingsSectionProps) => {
       <CardContent>
         {meetings.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-4">
-            Aucun live programmé. Les lives sont accessibles aux participants Communauté et Coachée.
+            Aucun live programmé.
           </p>
         ) : (
           <div className="space-y-2">
@@ -429,6 +432,18 @@ const LiveMeetingsSection = ({ trainingId }: LiveMeetingsSectionProps) => {
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Thème ou contenu du live"
               />
+            </div>
+            <div className="space-y-2">
+              <Label>Contenu de l'email de rappel</Label>
+              <Textarea
+                value={emailContent}
+                onChange={(e) => setEmailContent(e.target.value)}
+                placeholder="Corps du mail envoyé 6h avant le live à tous les participants. Laissez vide pour utiliser le message par défaut."
+                rows={4}
+              />
+              <p className="text-xs text-muted-foreground">
+                Envoyé automatiquement 6h avant le live à tous les participants.
+              </p>
             </div>
           </div>
           <DialogFooter>
