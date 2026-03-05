@@ -375,16 +375,7 @@ export const useCreateCard = () => {
 
       await logActivity(data.id, "card_created", actorEmail, null, input.title);
 
-      // Slack notification (fire-and-forget)
-      notifySlack("opportunity_created", {
-        title: input.title,
-        company: input.company || undefined,
-        first_name: input.first_name || undefined,
-        last_name: input.last_name || undefined,
-        service_type: input.service_type || undefined,
-        estimated_value: input.estimated_value,
-        email: input.email || undefined,
-      }, actorEmail);
+      // No Slack notification on creation — only on WON
 
       return data;
     },
