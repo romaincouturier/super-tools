@@ -1542,7 +1542,6 @@ export type Database = {
           id: string
           is_active: boolean
           is_default: boolean
-          learndash_course_id: number | null
           objectives: string[] | null
           prerequisites: string[] | null
           prix: number
@@ -1565,7 +1564,6 @@ export type Database = {
           id?: string
           is_active?: boolean
           is_default?: boolean
-          learndash_course_id?: number | null
           objectives?: string[] | null
           prerequisites?: string[] | null
           prix?: number
@@ -1588,7 +1586,6 @@ export type Database = {
           id?: string
           is_active?: boolean
           is_default?: boolean
-          learndash_course_id?: number | null
           objectives?: string[] | null
           prerequisites?: string[] | null
           prix?: number
@@ -1633,7 +1630,6 @@ export type Database = {
           elearning_access_email_content: string | null
           formation_config_id: string
           id: string
-          learndash_course_id: number | null
           name: string
           prix: number | null
           supports_url: string | null
@@ -1648,7 +1644,6 @@ export type Database = {
           elearning_access_email_content?: string | null
           formation_config_id: string
           id?: string
-          learndash_course_id?: number | null
           name: string
           prix?: number | null
           supports_url?: string | null
@@ -1663,7 +1658,6 @@ export type Database = {
           elearning_access_email_content?: string | null
           formation_config_id?: string
           id?: string
-          learndash_course_id?: number | null
           name?: string
           prix?: number | null
           supports_url?: string | null
