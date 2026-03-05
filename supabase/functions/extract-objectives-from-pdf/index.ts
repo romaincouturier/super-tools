@@ -84,7 +84,8 @@ Instructions:
 
     console.log("Calling AI Gateway to extract", extractType, "...");
 
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const aiGatewayUrl = Deno.env.get("AI_GATEWAY_URL") || "https://ai.gateway.lovable.dev/v1/chat/completions";
+    const aiResponse = await fetch(aiGatewayUrl, {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${apiKey}`,

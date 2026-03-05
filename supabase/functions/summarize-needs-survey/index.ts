@@ -121,8 +121,9 @@ Analyse ces questionnaires et fournis:
 
 Sois concis et actionnable.`;
 
-    // Call Lovable AI Gateway
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    // Call AI Gateway
+    const aiGatewayUrl = Deno.env.get("AI_GATEWAY_URL") || "https://ai.gateway.lovable.dev/v1/chat/completions";
+    const response = await fetch(aiGatewayUrl, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${LOVABLE_API_KEY}`,
