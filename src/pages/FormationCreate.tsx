@@ -303,11 +303,11 @@ const FormationCreate = () => {
           objectives,
           program_file_url: programFileUrl || null,
           supertilt_link: supertiltLink || null,
-          sponsor_first_name: isPermanent ? null : (sponsorFirstName || null),
-          sponsor_last_name: isPermanent ? null : (sponsorLastName || null),
-          sponsor_email: isPermanent ? null : (sponsorEmail || null),
-          sponsor_formal_address: isPermanent ? true : sponsorFormalAddress,
-          financeur_same_as_sponsor: isPermanent ? true : financeurSameAsSponsor,
+          sponsor_first_name: isInter ? null : (sponsorFirstName || null),
+          sponsor_last_name: isInter ? null : (sponsorLastName || null),
+          sponsor_email: isInter ? null : (sponsorEmail || null),
+          sponsor_formal_address: isInter ? true : sponsorFormalAddress,
+          financeur_same_as_sponsor: isInter ? true : financeurSameAsSponsor,
           financeur_name: (isPermanent || financeurSameAsSponsor) ? null : (financeurName || null),
           financeur_url: (isPermanent || financeurSameAsSponsor) ? null : (financeurUrl || null),
           trainer_id: null,
@@ -813,8 +813,8 @@ const FormationCreate = () => {
             />
           )}
 
-          {/* Sponsor/Commanditaire - hidden for permanent */}
-          {!isPermanent && <Card>
+          {/* Sponsor/Commanditaire - hidden for inter-entreprises and permanent */}
+          {!isInter && <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle>Commanditaire</CardTitle>
@@ -867,8 +867,8 @@ const FormationCreate = () => {
             </CardContent>
           </Card>}
 
-          {/* Financeur - hidden for permanent */}
-          {!isPermanent && <Card>
+          {/* Financeur - hidden for inter-entreprises and permanent */}
+          {!isInter && <Card>
             <CardHeader>
               <CardTitle>Financeur</CardTitle>
             </CardHeader>
