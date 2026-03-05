@@ -109,6 +109,44 @@ function buildSlackMessage(req: SlackNotifyRequest): { text: string; blocks: unk
   return { text, blocks };
 }
 
+async function resolveChannelIdByName(
+  channelName: string,
+  headers: { Authorization: string; "X-Connection-Api-Key": string },
+): Promise<string | null> {
+  const normalized = channelName.replace(/^#/, "").trim().toLowerCase();
+  if (!normalized) return null;
+
+  let cursor = "";
+  do {
+    const url = new URL(`${GATEWAY_URL}/conversations.list`);
+    url.searchParams.set("types", "public_channel,private_channel");
+    url.searchParams.set("exclude_archived", "true");
+    url.searchParams.set("limit", "200");
+    if (cursor) url.searchParams.set("cursor", cursor);
+
+    const res = await fetch(url.toString(), { headers });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || data?.ok === false) {
+      const reason = data?.error || `HTTP ${res.status}`;
+      throw new Error(`Slack conversations.list failed: ${reason}`);
+    }
+
+    const match = data?.channels?.find(
+      (c: { id?: string; name?: string; name_normalized?: string }) => {
+        const name = (c.name || "").toLowerCase();
+        const normalizedName = (c.name_normalized || "").toLowerCase();
+        return name === normalized || normalizedName === normalized;
+      },
+    );
+
+    if (match?.id) return match.id;
+
+    cursor = data?.response_metadata?.next_cursor || "";
+  } while (cursor);
+
+  return null;
+}
+
 serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
