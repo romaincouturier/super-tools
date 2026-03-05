@@ -923,7 +923,17 @@ const ParticipantList = ({
         </Tooltip>
       )}
 
-      {/* 6. Edit */}
+      {/* 6. Traçabilité Qualiopi */}
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-primary" onClick={() => setTraceabilityParticipant(participant)}>
+            <History className="h-3.5 w-3.5" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent><p>Traçabilité participant</p></TooltipContent>
+      </Tooltip>
+
+      {/* 7. Edit */}
       <EditParticipantDialog
         participant={participant}
         trainingId={trainingId}
@@ -1242,6 +1252,23 @@ const ParticipantList = ({
         evaluation={selectedEvaluation}
         trainingName={trainingName}
       />
+
+      {/* Traceability drawer */}
+      {traceabilityParticipant && (
+        <ParticipantTraceabilityDrawer
+          open={!!traceabilityParticipant}
+          onOpenChange={(open) => !open && setTraceabilityParticipant(null)}
+          participantId={traceabilityParticipant.id}
+          participantEmail={traceabilityParticipant.email}
+          participantName={
+            traceabilityParticipant.first_name || traceabilityParticipant.last_name
+              ? `${traceabilityParticipant.first_name || ""} ${traceabilityParticipant.last_name || ""}`.trim()
+              : traceabilityParticipant.email
+          }
+          trainingId={trainingId}
+          trainingName={trainingName}
+        />
+      )}
     </>
   );
 };
