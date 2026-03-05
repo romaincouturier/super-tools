@@ -8,33 +8,115 @@ const corsHeaders = {
 
 // List of all tables to backup
 const TABLES_TO_BACKUP = [
+  // Core settings & config
+  "app_settings",
+  "ai_brand_settings",
+  "email_templates",
+  "email_snippets",
+  "profiles",
+  "user_module_access",
+  "user_security_metadata",
+  "user_preferences",
+  "api_keys",
+  "google_drive_tokens",
+  "google_calendar_tokens",
+  "program_files",
+
+  // Formation catalog
+  "formation_configs",
+  "formation_dates",
+  "formation_formulas",
+
+  // Trainings & related
   "trainings",
   "training_participants",
-  "training_evaluations",
   "training_schedules",
   "training_actions",
+  "training_evaluations",
+  "training_documents",
+  "training_media",
+  "training_live_meetings",
+  "training_coaching_slots",
+  "participant_files",
+  "scheduled_emails",
+  "attendance_signatures",
+  "convention_signatures",
+  "devis_signatures",
+
+  // Trainers
+  "trainers",
+  "trainer_evaluations",
+  "trainer_training_adequacy",
+  "trainer_attendance_signatures",
+  "trainer_documents",
+
+  // Questionnaires & evaluations
   "questionnaire_besoins",
   "questionnaire_events",
-  "attendance_signatures",
   "evaluation_analyses",
-  "improvements",
+  "post_evaluation_emails",
+  "sponsor_cold_evaluations",
+  "stakeholder_appreciations",
+  "session_start_notifications",
+
+  // Content management
   "content_cards",
   "content_columns",
   "content_reviews",
   "content_notifications",
   "review_comments",
-  "ai_brand_settings",
-  "email_templates",
-  "formation_configs",
-  "formation_dates",
-  "app_settings",
-  "profiles",
+  "newsletter_cards",
+  "newsletters",
+
+  // CRM
+  "crm_columns",
+  "crm_tags",
+  "crm_settings",
+  "crm_revenue_targets",
+  "crm_cards",
+  "crm_card_tags",
+  "crm_card_emails",
+  "crm_comments",
+  "crm_attachments",
+  "crm_activity_log",
+
+  // Events
+  "events",
+  "event_shares",
+  "event_media",
+
+  // Missions
+  "missions",
+  "mission_actions",
+  "mission_activities",
+  "mission_contacts",
+  "mission_documents",
+  "mission_media",
+  "mission_page_templates",
+  "mission_pages",
+
+  // OKR
+  "okr_objectives",
+  "okr_key_results",
+  "okr_initiatives",
+  "okr_check_ins",
+  "okr_participants",
+
+  // Daily actions
+  "daily_actions",
+  "daily_action_analytics",
+
+  // Other
+  "improvements",
+  "reclamations",
+  "media",
+  "inbound_emails",
+  "chatbot_conversations",
+  "chatbot_knowledge_base",
+  "commercial_coach_contexts",
+  "woocommerce_coupons",
   "activity_logs",
-  "scheduled_emails",
-  "program_files",
-  "google_drive_tokens",
-  "user_module_access",
-  "user_security_metadata",
+  "failed_emails",
 ];
 
 async function refreshGoogleAccessToken(refreshToken: string): Promise<string> {
