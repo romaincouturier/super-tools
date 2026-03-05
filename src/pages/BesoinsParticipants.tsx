@@ -48,11 +48,19 @@ interface NeedsSurvey {
   competences_actuelles: string | null;
   competences_visees: string | null;
   experience_sujet: string | null;
+  experience_details: string | null;
   lien_mission: string | null;
   contraintes_orga: string | null;
   besoins_accessibilite: string | null;
+  necessite_amenagement: boolean | null;
   commentaires_libres: string | null;
   date_soumission: string | null;
+  niveau_actuel: number | null;
+  niveau_motivation: number | null;
+  lecture_programme: string | null;
+  prerequis_validation: string | null;
+  prerequis_details: string | null;
+  modalites_preferences: any | null;
   training: {
     training_name: string;
     start_date: string;
@@ -97,42 +105,65 @@ const BesoinsParticipants = () => {
   }, [navigate]);
 
   const fetchSurveys = async () => {
-    const { data, error } = await supabase
-      .from("questionnaire_besoins")
-      .select(`
-        id,
-        participant_id,
-        training_id,
-        etat,
-        nom,
-        prenom,
-        email,
-        societe,
-        fonction,
-        competences_actuelles,
-        competences_visees,
-        experience_sujet,
-        lien_mission,
-        contraintes_orga,
-        besoins_accessibilite,
-        commentaires_libres,
-        date_soumission,
-        trainings:training_id (
-          training_name,
-          start_date,
-          client_name
-        )
-      `)
-      .eq("etat", "complete")
-      .order("date_soumission", { ascending: false, nullsFirst: false });
+    const allData: any[] = [];
+    let offset = 0;
+    const batchSize = 1000;
+    let hasMore = true;
 
-    if (error) {
-      console.error("Error fetching surveys:", error);
-      return;
+    while (hasMore) {
+      const { data, error } = await supabase
+        .from("questionnaire_besoins")
+        .select(`
+          id,
+          participant_id,
+          training_id,
+          etat,
+          nom,
+          prenom,
+          email,
+          societe,
+          fonction,
+          competences_actuelles,
+          competences_visees,
+          experience_sujet,
+          experience_details,
+          lien_mission,
+          contraintes_orga,
+          besoins_accessibilite,
+          necessite_amenagement,
+          commentaires_libres,
+          date_soumission,
+          niveau_actuel,
+          niveau_motivation,
+          lecture_programme,
+          prerequis_validation,
+          prerequis_details,
+          modalites_preferences,
+          trainings:training_id (
+            training_name,
+            start_date,
+            client_name
+          )
+        `)
+        .eq("etat", "complete")
+        .order("date_soumission", { ascending: false, nullsFirst: false })
+        .range(offset, offset + batchSize - 1);
+
+      if (error) {
+        console.error("Error fetching surveys:", error);
+        return;
+      }
+
+      if (data && data.length > 0) {
+        allData.push(...data);
+        offset += batchSize;
+        hasMore = data.length === batchSize;
+      } else {
+        hasMore = false;
+      }
     }
 
-    // Transform the data to match our interface
-    const transformed = (data || []).map((item: any) => ({
+    const transformed = allData.map((item: any) => ({
       ...item,
       training: item.trainings,
     }));
@@ -314,6 +345,22 @@ const BesoinsParticipants = () => {
                                     </h4>
                                     <p>{survey.fonction || "-"} / {survey.societe || "-"}</p>
                                   </div>
+                                  {(survey.niveau_actuel != null || survey.niveau_motivation != null) && (
+                                    <div className="flex gap-4">
+                                      {survey.niveau_actuel != null && (
+                                        <div>
+                                          <h4 className="font-medium text-sm text-muted-foreground mb-1">Niveau actuel</h4>
+                                          <Badge variant="outline">{survey.niveau_actuel}/5</Badge>
+                                        </div>
+                                      )}
+                                      {survey.niveau_motivation != null && (
+                                        <div>
+                                          <h4 className="font-medium text-sm text-muted-foreground mb-1">Motivation</h4>
+                                          <Badge variant="outline">{survey.niveau_motivation}/5</Badge>
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
                                   <div>
                                     <h4 className="font-medium text-sm text-muted-foreground mb-1">
                                       Compétences actuelles
@@ -331,7 +378,25 @@ const BesoinsParticipants = () => {
                                       Expérience sur le sujet
                                     </h4>
                                     <p>{survey.experience_sujet || "-"}</p>
+                                    {survey.experience_details && (
+                                      <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap">{survey.experience_details}</p>
+                                    )}
                                   </div>
+                                  {survey.lecture_programme && (
+                                    <div>
+                                      <h4 className="font-medium text-sm text-muted-foreground mb-1">Lecture du programme</h4>
+                                      <p>{survey.lecture_programme}</p>
+                                    </div>
+                                  )}
+                                  {survey.prerequis_validation && (
+                                    <div>
+                                      <h4 className="font-medium text-sm text-muted-foreground mb-1">Prérequis</h4>
+                                      <p>{survey.prerequis_validation}</p>
+                                      {survey.prerequis_details && (
+                                        <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap">{survey.prerequis_details}</p>
+                                      )}
+                                    </div>
+                                  )}
                                 </div>
 
                                 {/* Right column */}
@@ -348,7 +413,20 @@ const BesoinsParticipants = () => {
                                     </h4>
                                     <p className="whitespace-pre-wrap">{survey.contraintes_orga || "-"}</p>
                                   </div>
-                                  {survey.besoins_accessibilite && (
+                                  {survey.modalites_preferences && (
+                                    <div>
+                                      <h4 className="font-medium text-sm text-muted-foreground mb-1">Préférences de modalités</h4>
+                                      <p className="whitespace-pre-wrap">
+                                        {typeof survey.modalites_preferences === 'object'
+                                          ? Object.entries(survey.modalites_preferences)
+                                              .filter(([, v]) => v)
+                                              .map(([k]) => k)
+                                              .join(", ") || "-"
+                                          : String(survey.modalites_preferences)}
+                                      </p>
+                                    </div>
+                                  )}
+                                  {(survey.besoins_accessibilite || survey.necessite_amenagement) && (
                                     <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200">
                                       <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
                                       <div>
@@ -356,7 +434,7 @@ const BesoinsParticipants = () => {
                                           Besoins d'accessibilité
                                         </h4>
                                         <p className="text-amber-700 whitespace-pre-wrap">
-                                          {survey.besoins_accessibilite}
+                                          {survey.besoins_accessibilite || "Aménagement nécessaire (détails non précisés)"}
                                         </p>
                                       </div>
                                     </div>
