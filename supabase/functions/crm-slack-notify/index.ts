@@ -149,13 +149,22 @@ serve(async (req) => {
 
     const message = buildSlackMessage(body);
 
+    const gatewayHeaders = {
+      "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+      "X-Connection-Api-Key": SLACK_API_KEY,
+      "Content-Type": "application/json",
+    };
+
+    // Auto-join the channel first (idempotent — no error if already joined)
+    await fetch(`${GATEWAY_URL}/conversations.join`, {
+      method: "POST",
+      headers: gatewayHeaders,
+      body: JSON.stringify({ channel }),
+    });
+
     const slackResponse = await fetch(`${GATEWAY_URL}/chat.postMessage`, {
       method: "POST",
-      headers: {
-        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
-        "X-Connection-Api-Key": SLACK_API_KEY,
-        "Content-Type": "application/json",
-      },
+      headers: gatewayHeaders,
       body: JSON.stringify({
         channel,
         text: message.text,
