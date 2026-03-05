@@ -1001,6 +1001,40 @@ const EditParticipantDialog = ({
                 />
               </div>
 
+              {/* Coaching sessions */}
+              {formulaAllowsCoaching && (
+                <>
+                  <div className="pt-4 border-t">
+                    <Label className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+                      <UserCheck className="h-4 w-4" />
+                      Séances de coaching individuel
+                    </Label>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-3">
+                      <Input
+                        type="number"
+                        min="0"
+                        value={coachingSessionsTotal}
+                        onChange={(e) => setCoachingSessionsTotal(e.target.value)}
+                        className="w-24"
+                      />
+                      <span className="text-sm text-muted-foreground">
+                        séance(s) — {participant.coaching_sessions_completed || 0} réalisée(s)
+                      </span>
+                    </div>
+                    {participant.coaching_deadline && (
+                      <p className="text-xs text-muted-foreground">
+                        Validité : jusqu'au {new Date(participant.coaching_deadline).toLocaleDateString("fr-FR")}
+                      </p>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      Par défaut : {selectedFormula?.coaching_sessions_count || 0} séance(s) (formule {selectedFormula?.name})
+                    </p>
+                  </div>
+                </>
+              )}
+
               {/* Fichiers libres */}
               <div className="pt-4 border-t">
                 <div className="flex items-center justify-between">
