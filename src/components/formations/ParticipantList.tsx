@@ -832,7 +832,7 @@ const ParticipantList = ({
         </Tooltip>
       )}
 
-      {/* 4. Évaluation */}
+      {/* 3. Évaluation */}
       {(() => {
         const evalInfo = evaluationsByParticipant.get(participant.id);
         if (!evalInfo) return null;
