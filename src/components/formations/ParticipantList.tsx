@@ -1152,6 +1152,47 @@ const ParticipantList = ({
                       <TooltipContent><p>{statusConfig.tooltip}</p></TooltipContent>
                     </Tooltip>
                   </TableCell>
+                  {hasCoachingParticipants && (
+                    <TableCell>
+                      {(participant.coaching_sessions_total || 0) > 0 ? (
+                        <div className="flex items-center gap-1.5">
+                          {Array.from({ length: participant.coaching_sessions_total || 0 }).map((_, i) => {
+                            const isCompleted = i < (participant.coaching_sessions_completed || 0);
+                            return (
+                              <Tooltip key={i}>
+                                <TooltipTrigger asChild>
+                                  <button
+                                    className={`h-5 w-5 rounded-full border-2 flex items-center justify-center transition-colors ${
+                                      isCompleted
+                                        ? "bg-primary border-primary text-primary-foreground"
+                                        : "border-muted-foreground/30 hover:border-primary"
+                                    }`}
+                                    onClick={() => {
+                                      if (isCompleted && i === (participant.coaching_sessions_completed || 0) - 1) {
+                                        handleUncheckCoachingSession(participant);
+                                      } else if (!isCompleted && i === (participant.coaching_sessions_completed || 0)) {
+                                        handleToggleCoachingSession(participant);
+                                      }
+                                    }}
+                                  >
+                                    {isCompleted && <CheckCircle className="h-3 w-3" />}
+                                  </button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Séance {i + 1}/{participant.coaching_sessions_total} {isCompleted ? "(réalisée)" : "(à programmer)"}</p>
+                                  {participant.coaching_deadline && (
+                                    <p className="text-xs">Validité : {new Date(participant.coaching_deadline).toLocaleDateString("fr-FR")}</p>
+                                  )}
+                                </TooltipContent>
+                              </Tooltip>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
+                  )}
                   <TableCell>
                     <div className="flex justify-end">
                       {renderParticipantActions(participant, displayName)}
