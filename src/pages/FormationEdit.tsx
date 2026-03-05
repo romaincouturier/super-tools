@@ -1016,7 +1016,7 @@ const FormationEdit = () => {
           </div>
         </form>
       </main>
-    </div>
+    </ModuleLayout>
   );
 };
 
