@@ -65,7 +65,7 @@ const Formations = () => {
   const [trainings, setTrainings] = useState<Training[]>([]);
   const [trainingActions, setTrainingActions] = useState<TrainingAction[]>([]);
   const [participantsByTraining, setParticipantsByTraining] = useState<Map<string, ParticipantSearchData[]>>(new Map());
-  const [filter, setFilter] = useState<"upcoming" | "ongoing" | "past">("upcoming");
+  const [filter, setFilter] = useState<"upcoming" | "ongoing" | "past" | "permanent">("upcoming");
   const [searchQuery, setSearchQuery] = useState("");
 
   // Sorting state (for past trainings only)
@@ -169,9 +169,11 @@ const Formations = () => {
     };
   }, [searchQuery, participantsByTraining]);
 
-  // Filter trainings (null start_date = "formation permanente" → always ongoing)
+  // Filter trainings
+  const isPermanent = (t: Training) => !t.start_date;
+
   const isOngoing = (t: Training) => {
-    if (!t.start_date) return true; // Permanent e-learning
+    if (!t.start_date) return false; // Permanent → separate tab
     const startDate = parseISO(t.start_date);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -206,6 +208,11 @@ const Formations = () => {
       if (isFuture(startDate) && !isToday(startDate)) return false;
       return matchesSearch(t);
     }),
+    [trainings, matchesSearch]
+  );
+
+  const permanentTrainings = useMemo(() =>
+    trainings.filter((t) => isPermanent(t) && matchesSearch(t)),
     [trainings, matchesSearch]
   );
 
@@ -263,7 +270,7 @@ const Formations = () => {
     }
   };
 
-  const filteredTrainings = filter === "upcoming" ? upcomingTrainings : filter === "ongoing" ? ongoingTrainings : paginatedPastTrainings;
+  const filteredTrainings = filter === "upcoming" ? upcomingTrainings : filter === "ongoing" ? ongoingTrainings : filter === "permanent" ? permanentTrainings : paginatedPastTrainings;
 
   // formatDateRange imported from @/lib/dateFormatters
 
@@ -323,7 +330,7 @@ const Formations = () => {
           <CardHeader className="pb-3 px-3 md:px-6">
             <div className="flex flex-col gap-3">
               <div className="flex items-center justify-between gap-3">
-                <Tabs value={filter} onValueChange={(v) => setFilter(v as "upcoming" | "ongoing" | "past")}>
+                <Tabs value={filter} onValueChange={(v) => setFilter(v as "upcoming" | "ongoing" | "past" | "permanent")}>
                   <TabsList className="h-8 md:h-9">
                     <TabsTrigger value="upcoming" className="text-xs md:text-sm px-2 md:px-3">
                       À venir ({upcomingTrainings.length})
@@ -333,6 +340,9 @@ const Formations = () => {
                     </TabsTrigger>
                     <TabsTrigger value="past" className="text-xs md:text-sm px-2 md:px-3">
                       Passées ({pastTrainings.length})
+                    </TabsTrigger>
+                    <TabsTrigger value="permanent" className="text-xs md:text-sm px-2 md:px-3">
+                      Permanentes ({permanentTrainings.length})
                     </TabsTrigger>
                   </TabsList>
                 </Tabs>
@@ -426,6 +436,20 @@ const Formations = () => {
                   <>
                     <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
                     <p className="text-lg">Aucune formation passée</p>
+                  </>
+                )}
+              </div>
+            ) : filteredTrainings.length === 0 && filter === "permanent" ? (
+              <div className="text-center py-12 text-muted-foreground">
+                {searchQuery ? (
+                  <>
+                    <Search className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p className="text-lg">Aucune formation permanente ne correspond à « {searchQuery} »</p>
+                  </>
+                ) : (
+                  <>
+                    <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p className="text-lg">Aucune formation permanente</p>
                   </>
                 )}
               </div>
