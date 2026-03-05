@@ -1,25 +1,16 @@
-import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Database, Clock, Zap } from "lucide-react";
-import AppHeader from "@/components/AppHeader";
-import { Button } from "@/components/ui/button";
+import { Database, Clock, Zap } from "lucide-react";
+import ModuleLayout from "@/components/ModuleLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import DbSizeTab from "@/components/monitoring/DbSizeTab";
 import CronJobsTab from "@/components/monitoring/CronJobsTab";
 import EdgeFunctionsTab from "@/components/monitoring/EdgeFunctionsTab";
 
 const Monitoring = () => {
-  const navigate = useNavigate();
-
   return (
-    <div className="min-h-screen bg-background">
-      <AppHeader />
-
+    <ModuleLayout>
       <main className="max-w-6xl mx-auto p-6 space-y-6">
         {/* Header */}
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/")}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-primary/10">
               <Database className="h-6 w-6 text-primary" />
@@ -58,7 +49,7 @@ const Monitoring = () => {
           </TabsContent>
         </Tabs>
       </main>
-    </div>
+    </ModuleLayout>
   );
 };
 

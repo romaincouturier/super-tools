@@ -1,14 +1,11 @@
-import { useNavigate } from "react-router-dom";
-import { Loader2, Star, ArrowLeft, BarChart3 } from "lucide-react";
-import AppHeader from "@/components/AppHeader";
-import { Button } from "@/components/ui/button";
+import { Loader2, Star, BarChart3 } from "lucide-react";
+import ModuleLayout from "@/components/ModuleLayout";
 import WeeklyChart from "@/components/dashboard/WeeklyChart";
 import StatCard from "@/components/dashboard/StatCard";
 import TopImprovements from "@/components/dashboard/TopImprovements";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
 
 const Statistiques = () => {
-  const navigate = useNavigate();
   const {
     microDevisWeekly,
     formationsWeekly,
@@ -19,19 +16,10 @@ const Statistiques = () => {
   } = useDashboardStats();
 
   return (
-    <div className="min-h-screen bg-background">
-      <AppHeader />
-
+    <ModuleLayout>
       <main className="max-w-[1600px] mx-auto p-6 space-y-6">
-        {/* Back button and title */}
+        {/* Title */}
         <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate("/")}
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-primary/10">
               <BarChart3 className="h-6 w-6 text-primary" />
@@ -78,7 +66,7 @@ const Statistiques = () => {
           </div>
         )}
       </main>
-    </div>
+    </ModuleLayout>
   );
 };
 

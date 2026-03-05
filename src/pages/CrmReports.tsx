@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Loader2, TrendingUp, TrendingDown, Target, DollarSign, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,7 +16,7 @@ import {
   Legend,
 } from "recharts";
 import { useCrmReports } from "@/hooks/useCrmBoard";
-import AppHeader from "@/components/AppHeader";
+import ModuleLayout from "@/components/ModuleLayout";
 
 const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8", "#82ca9d"];
 
@@ -26,23 +26,21 @@ const CrmReports = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background">
-        <AppHeader />
+      <ModuleLayout>
         <div className="flex items-center justify-center h-64">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
         </div>
-      </div>
+      </ModuleLayout>
     );
   }
 
   if (!reports) {
     return (
-      <div className="min-h-screen bg-background">
-        <AppHeader />
+      <ModuleLayout>
         <div className="text-center py-8">
           <p className="text-muted-foreground">Aucune donnée disponible</p>
         </div>
-      </div>
+      </ModuleLayout>
     );
   }
 
@@ -52,8 +50,7 @@ const CrmReports = () => {
       : 0;
 
   return (
-    <div className="min-h-screen bg-background">
-      <AppHeader />
+    <ModuleLayout>
 
       <main className="max-w-7xl mx-auto p-6 space-y-6">
         {/* Header */}
@@ -232,7 +229,7 @@ const CrmReports = () => {
         </CardContent>
       </Card>
       </main>
-    </div>
+    </ModuleLayout>
   );
 };
 

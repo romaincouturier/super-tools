@@ -1,29 +1,18 @@
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowLeft, Briefcase } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import AppHeader from "@/components/AppHeader";
+import { useSearchParams } from "react-router-dom";
+import { Briefcase } from "lucide-react";
+import ModuleLayout from "@/components/ModuleLayout";
 import MissionsKanbanBoard from "@/components/missions/MissionsKanbanBoard";
 import MissionProfitabilityDashboard from "@/components/missions/MissionProfitabilityDashboard";
 
 const Missions = () => {
-  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
   return (
-    <div className="min-h-screen bg-background">
-      <AppHeader />
-
+    <ModuleLayout>
       <main className="max-w-[1600px] mx-auto p-6 h-[calc(100vh-80px)] flex flex-col">
         {/* Header with back navigation */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => navigate("/")}
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-purple-500/10">
                 <Briefcase className="h-6 w-6 text-purple-500" />
@@ -55,7 +44,7 @@ const Missions = () => {
           />
         </div>
       </main>
-    </div>
+    </ModuleLayout>
   );
 };
 

@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import AppHeader from "@/components/AppHeader";
+import ModuleLayout from "@/components/ModuleLayout";
 import { useMediaLibrary, MediaItem } from "@/hooks/useMedia";
 import { useMissions } from "@/hooks/useMissions";
 import { useEvents } from "@/hooks/useEvents";
@@ -147,19 +147,16 @@ const MediaLibrary = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background">
-        <AppHeader />
+      <ModuleLayout>
         <div className="flex items-center justify-center h-[60vh]">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
         </div>
-      </div>
+      </ModuleLayout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <AppHeader />
-
+    <ModuleLayout>
       <main className="max-w-7xl mx-auto p-6 space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -213,7 +210,7 @@ const MediaLibrary = () => {
           />
         )}
       </main>
-    </div>
+    </ModuleLayout>
   );
 };
 

@@ -9,7 +9,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useToast } from "@/hooks/use-toast";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
-import AppHeader from "@/components/AppHeader";
+import ModuleLayout from "@/components/ModuleLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -581,9 +581,11 @@ const FormationDetail = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
+      <ModuleLayout>
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      </ModuleLayout>
     );
   }
 
@@ -592,8 +594,7 @@ const FormationDetail = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <AppHeader />
+    <ModuleLayout>
 
       {/* Main content */}
       <main className="max-w-7xl mx-auto p-3 md:p-6">
@@ -1535,7 +1536,7 @@ const FormationDetail = () => {
         onConfirmSend={handleSendThankYouEmail}
         isSending={sendingThankYou}
       />
-    </div>
+    </ModuleLayout>
   );
 };
 

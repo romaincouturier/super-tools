@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { CalendarDays, Send, Loader2 } from "lucide-react";
-import AppHeader from "@/components/AppHeader";
+import ModuleLayout from "@/components/ModuleLayout";
 import PageLoading from "@/components/PageLoading";
 import PageNotFound from "@/components/PageNotFound";
 import PageHeader from "@/components/PageHeader";
@@ -196,8 +196,7 @@ const EventEdit = () => {
   if (!event) return <PageNotFound message="Événement introuvable." backTo="/events" backLabel="Retour aux événements" />;
 
   return (
-    <div className="min-h-screen bg-background">
-      <AppHeader />
+    <ModuleLayout>
 
       <main className="max-w-2xl mx-auto p-6">
         <PageHeader icon={CalendarDays} title="Modifier l'événement" backTo={`/events/${id}`} />
@@ -261,7 +260,7 @@ const EventEdit = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </ModuleLayout>
   );
 };
 

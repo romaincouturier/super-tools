@@ -4,7 +4,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 import {
   Loader2,
-  ArrowLeft,
   Star,
   Filter,
   Sparkles,
@@ -14,7 +13,7 @@ import {
   Lightbulb,
   Trash2,
 } from "lucide-react";
-import AppHeader from "@/components/AppHeader";
+import ModuleLayout from "@/components/ModuleLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -367,15 +366,10 @@ const Evaluations = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <AppHeader />
-
+    <ModuleLayout>
       {/* Main content */}
       <main className="max-w-6xl mx-auto p-4 sm:p-6">
         <div className="flex items-center gap-4 mb-6">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/")}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
           <h1 className="text-2xl font-bold">Évaluations</h1>
         </div>
 
@@ -688,7 +682,7 @@ const Evaluations = () => {
           </DialogContent>
         </Dialog>
       </main>
-    </div>
+    </ModuleLayout>
   );
 };
 

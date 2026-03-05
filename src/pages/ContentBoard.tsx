@@ -2,8 +2,8 @@ import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
-import { Loader2, ArrowLeft, Newspaper, Eye, EyeOff } from "lucide-react";
-import AppHeader from "@/components/AppHeader";
+import { Loader2, Newspaper, Eye, EyeOff } from "lucide-react";
+import ModuleLayout from "@/components/ModuleLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import KanbanBoard from "@/components/content/KanbanBoard";
@@ -70,15 +70,10 @@ const ContentBoard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <AppHeader />
-
+    <ModuleLayout>
       <main className="flex-1 max-w-full mx-auto p-6 overflow-hidden">
         <div className="flex items-center justify-between gap-4 mb-6">
           <div className="flex items-center gap-4">
-            <Button variant="outline" size="icon" onClick={() => navigate("/")}>
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
             <div className="flex items-center gap-3">
               <Newspaper className="h-8 w-8 text-primary" />
               <div>
@@ -129,7 +124,7 @@ const ContentBoard = () => {
           onNewsletterChange={() => setNewsletterRefreshKey((k) => k + 1)}
         />
       </main>
-    </div>
+    </ModuleLayout>
   );
 };
 

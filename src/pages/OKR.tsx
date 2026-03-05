@@ -17,7 +17,6 @@ import {
   TrendingUp,
   Loader2,
   Sparkles,
-  ArrowLeft,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -77,7 +76,7 @@ import {
   getProgressColor,
 } from "@/types/okr";
 import OKRDetailDrawer from "@/components/okr/OKRDetailDrawer";
-import AppHeader from "@/components/AppHeader";
+import ModuleLayout from "@/components/ModuleLayout";
 
 const OKR = () => {
   const { toast } = useToast();
@@ -193,20 +192,11 @@ const OKR = () => {
   const favoriteObjectives = (objectives || []).filter((o) => o.is_favorite);
 
   return (
-    <div className="min-h-screen bg-background">
-      <AppHeader />
-
+    <ModuleLayout>
       <main className="max-w-[1600px] mx-auto p-6 space-y-6">
-        {/* Header with back navigation */}
+        {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => navigate("/")}
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-primary/10">
                 <Target className="h-6 w-6 text-primary" />
@@ -465,7 +455,7 @@ const OKR = () => {
         onOpenChange={setDrawerOpen}
       />
       </main>
-    </div>
+    </ModuleLayout>
   );
 };
 

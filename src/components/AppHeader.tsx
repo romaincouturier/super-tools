@@ -1,58 +1,49 @@
-import { useNavigate } from "react-router-dom";
-import { Settings, AlertTriangle, Sparkles } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { Settings, AlertTriangle, Sparkles, ArrowLeft } from "lucide-react";
+import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import SupertiltLogo from "@/components/SupertiltLogo";
 import UserMenu from "@/components/UserMenu";
-import OnboardCollaboratorDialog from "@/components/OnboardCollaboratorDialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
 import { useModuleAccess } from "@/hooks/useModuleAccess";
+import { useUserPreference } from "@/hooks/useUserPreferences";
+import { MODULE_ICONS } from "@/components/moduleIcons";
 
-interface AppHeaderProps {
-  showOnboarding?: boolean;
+interface ModuleLayout {
+  order: string[];
+  sizes: Record<string, string>;
 }
 
-const AppHeader = ({ showOnboarding = false }: AppHeaderProps) => {
+const AppHeader = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, logout } = useAuth();
-  const { hasAccess, isAdmin } = useModuleAccess();
-  const [firstName, setFirstName] = useState<string | null>(null);
+  const { hasAccess } = useModuleAccess();
   const [failedEmailCount, setFailedEmailCount] = useState(0);
 
-  useEffect(() => {
-    const fetchProfile = async () => {
-      if (!user) return;
+  const isDashboard = location.pathname === "/";
 
-      const { data } = await supabase
-        .from("profiles")
-        .select("first_name")
-        .eq("user_id", user.id)
-        .maybeSingle();
+  // Load saved layout to find "mini" modules (shortcuts)
+  const { value: savedLayout } = useUserPreference<ModuleLayout>("module_layout", {
+    order: [],
+    sizes: {},
+  });
 
-      if (data?.first_name) {
-        setFirstName(data.first_name);
-      } else {
-        // Fallback: extract first name from email
-        const emailName = user.email?.split("@")[0] || "";
-        const capitalized = emailName.charAt(0).toUpperCase() + emailName.slice(1);
-        setFirstName(capitalized);
-      }
-    };
-
-    fetchProfile();
-  }, [user]);
+  const shortcuts = useMemo(() => {
+    if (!savedLayout?.sizes) return [];
+    return Object.entries(savedLayout.sizes)
+      .filter(([, size]) => size === "mini")
+      .map(([id]) => id);
+  }, [savedLayout]);
 
   useEffect(() => {
     if (!user) return;
     const checkFailedEmails = async () => {
-      // Check scheduled_emails with failed status
       const { count: scheduledCount } = await supabase
         .from("scheduled_emails")
         .select("*", { count: "exact", head: true })
         .eq("status", "failed");
 
-      // Check failed_emails table
       const { count: failedCount } = await (supabase
         .from("failed_emails" as any)
         .select("*", { count: "exact", head: true })
@@ -64,24 +55,62 @@ const AppHeader = ({ showOnboarding = false }: AppHeaderProps) => {
   }, [user]);
 
   return (
-    <header className="bg-foreground text-background py-4 px-6 shadow-lg">
+    <header className="bg-foreground text-background py-3 px-6 shadow-lg">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-4">
+          {!isDashboard && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => navigate("/")}
+                    className="p-2 rounded-lg hover:bg-background/10 transition-colors"
+                  >
+                    <ArrowLeft className="w-5 h-5" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Retour au tableau de bord</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
           <button
             onClick={() => navigate("/")}
-            className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+            className="text-xl font-bold hover:opacity-80 transition-opacity"
           >
-            <SupertiltLogo className="h-10" invert />
-            <span className="text-xl font-bold">SuperTools</span>
+            SuperTools
           </button>
-          {firstName && (
-            <span className="text-sm text-background/80 hidden sm:block">
-              Bonjour {firstName}, SuperTools te souhaite une bonne journée
-            </span>
+
+          {/* Module shortcuts (modules set to "mini" size on dashboard) */}
+          {shortcuts.length > 0 && (
+            <div className="hidden sm:flex items-center gap-1 ml-2 border-l border-background/20 pl-4">
+              {shortcuts.map((moduleId) => {
+                const moduleInfo = MODULE_ICONS[moduleId];
+                if (!moduleInfo) return null;
+                const Icon = moduleInfo.icon;
+                return (
+                  <TooltipProvider key={moduleId}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          onClick={() => navigate(moduleInfo.path)}
+                          className="p-1.5 rounded-lg hover:bg-background/10 transition-colors"
+                        >
+                          <Icon className="w-4 h-4" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>{moduleInfo.label}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                );
+              })}
+            </div>
           )}
         </div>
         <div className="flex items-center gap-3">
-          {showOnboarding && <OnboardCollaboratorDialog isAdmin={isAdmin} />}
           {failedEmailCount > 0 && (
             <TooltipProvider>
               <Tooltip>

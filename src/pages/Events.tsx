@@ -3,9 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { format, parseISO, isPast, endOfDay } from "date-fns";
 import { fr } from "date-fns/locale";
 import { formatDateWithDayOfWeek } from "@/lib/dateFormatters";
-import { Plus, CalendarDays, ArrowLeft, MapPin, Video, Search, X, Ban, Globe } from "lucide-react";
+import { Plus, CalendarDays, MapPin, Video, Search, X, Ban, Globe } from "lucide-react";
 import { getCfpDaysLeft } from "@/types/events";
-import AppHeader from "@/components/AppHeader";
+import ModuleLayout from "@/components/ModuleLayout";
 import PageLoading from "@/components/PageLoading";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -53,16 +53,11 @@ const Events = () => {
   if (isLoading) return <PageLoading />;
 
   return (
-    <div className="min-h-screen bg-background">
-      <AppHeader />
-
+    <ModuleLayout>
       <main className="max-w-6xl mx-auto p-4 sm:p-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
           <div className="flex items-center gap-3 sm:gap-4">
-            <Button variant="ghost" size="icon" className="shrink-0" onClick={() => navigate("/")}>
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-primary/10 hidden sm:block">
                 <CalendarDays className="h-6 w-6 text-primary" />
@@ -213,7 +208,7 @@ const Events = () => {
           </CardContent>
         </Card>
       </main>
-    </div>
+    </ModuleLayout>
   );
 };
 
