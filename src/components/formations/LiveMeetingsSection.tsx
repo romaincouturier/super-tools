@@ -159,7 +159,9 @@ const LiveMeetingsSection = ({ trainingId }: LiveMeetingsSectionProps) => {
     if (!title.trim() || !scheduledDate || !scheduledTime) return;
     setSaving(true);
 
-    const scheduledAt = `${scheduledDate}T${scheduledTime}:00`;
+    // Build a local Date and convert to ISO with correct timezone offset
+    const localDate = new Date(`${scheduledDate}T${scheduledTime}:00`);
+    const scheduledAt = localDate.toISOString();
     const payload = {
       training_id: trainingId,
       title: title.trim(),
