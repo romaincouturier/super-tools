@@ -12,6 +12,7 @@ import { MODULE_ICONS } from "@/components/moduleIcons";
 interface ModuleLayout {
   order: string[];
   sizes: Record<string, string>;
+  favorites?: string[];
 }
 
 const AppHeader = () => {
@@ -23,17 +24,14 @@ const AppHeader = () => {
 
   const isDashboard = location.pathname === "/";
 
-  // Load saved layout to find "mini" modules (shortcuts)
+  // Load saved layout to find favorite modules (shortcuts)
   const { value: savedLayout } = useUserPreference<ModuleLayout>("module_layout", {
     order: [],
     sizes: {},
   });
 
   const shortcuts = useMemo(() => {
-    if (!savedLayout?.sizes) return [];
-    return Object.entries(savedLayout.sizes)
-      .filter(([, size]) => size === "mini")
-      .map(([id]) => id);
+    return savedLayout?.favorites ?? [];
   }, [savedLayout]);
 
   useEffect(() => {
@@ -82,7 +80,7 @@ const AppHeader = () => {
             SuperTools
           </button>
 
-          {/* Module shortcuts (modules set to "mini" size on dashboard) */}
+          {/* Module shortcuts (modules marked as favorite on dashboard) */}
           {shortcuts.length > 0 && (
             <div className="hidden sm:flex items-center gap-1 ml-2 border-l border-background/20 pl-4">
               {shortcuts.map((moduleId) => {

@@ -24,6 +24,7 @@ import {
   Square,
   LayoutGrid,
   BookOpen,
+  Star,
 } from "lucide-react";
 import {
   DndContext,
@@ -74,6 +75,7 @@ interface Tool {
 interface ModuleLayout {
   order: string[];
   sizes: Record<string, ModuleSize>;
+  favorites?: string[];
 }
 
 // ---------- tool definitions ----------
@@ -254,9 +256,11 @@ const SIZES: ModuleSize[] = ["full", "normal", "mini"];
 interface SizeSelectorProps {
   currentSize: ModuleSize;
   onSizeChange: (size: ModuleSize) => void;
+  isFavorite: boolean;
+  onToggleFavorite: () => void;
 }
 
-const SizeSelector = ({ currentSize, onSizeChange }: SizeSelectorProps) => (
+const SizeSelector = ({ currentSize, onSizeChange, isFavorite, onToggleFavorite }: SizeSelectorProps) => (
   <TooltipProvider delayDuration={200}>
     <div className="flex items-center gap-0.5 bg-background/90 backdrop-blur border rounded-md p-0.5 shadow-sm">
       {SIZES.map((size) => {
@@ -286,6 +290,28 @@ const SizeSelector = ({ currentSize, onSizeChange }: SizeSelectorProps) => (
           </Tooltip>
         );
       })}
+      <div className="w-px h-3 bg-border mx-0.5" />
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            className={cn(
+              "p-1 rounded transition-colors",
+              isFavorite
+                ? "text-yellow-500 hover:text-yellow-600"
+                : "hover:bg-muted text-muted-foreground"
+            )}
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleFavorite();
+            }}
+          >
+            <Star className={cn("h-3 w-3", isFavorite && "fill-current")} />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="bottom" className="text-xs">
+          {isFavorite ? "Retirer des favoris" : "Ajouter aux favoris"}
+        </TooltipContent>
+      </Tooltip>
     </div>
   </TooltipProvider>
 );
@@ -297,6 +323,8 @@ interface SortableToolCardProps {
   size: ModuleSize;
   onClick: () => void;
   onSizeChange: (size: ModuleSize) => void;
+  isFavorite: boolean;
+  onToggleFavorite: () => void;
 }
 
 const SortableToolCard = ({
@@ -304,6 +332,8 @@ const SortableToolCard = ({
   size,
   onClick,
   onSizeChange,
+  isFavorite,
+  onToggleFavorite,
 }: SortableToolCardProps) => {
   const {
     attributes,
@@ -333,7 +363,7 @@ const SortableToolCard = ({
       >
         {/* Controls — appear on hover */}
         <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
-          <SizeSelector currentSize={size} onSizeChange={onSizeChange} />
+          <SizeSelector currentSize={size} onSizeChange={onSizeChange} isFavorite={isFavorite} onToggleFavorite={onToggleFavorite} />
         </div>
         <div
           {...attributes}
@@ -370,7 +400,7 @@ const SortableToolCard = ({
       >
         {/* Controls — appear on hover */}
         <div className="absolute top-2 right-10 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
-          <SizeSelector currentSize={size} onSizeChange={onSizeChange} />
+          <SizeSelector currentSize={size} onSizeChange={onSizeChange} isFavorite={isFavorite} onToggleFavorite={onToggleFavorite} />
         </div>
         <div
           {...attributes}
@@ -463,6 +493,7 @@ const Dashboard = () => {
   const [moduleSizes, setModuleSizes] = useState<Record<string, ModuleSize>>(
     {}
   );
+  const [favorites, setFavorites] = useState<string[]>([]);
 
   // Migrate from old "module_order" preference — read once
   const { value: legacyOrder } = useUserPreference<string[]>(
@@ -498,14 +529,17 @@ const Dashboard = () => {
       if (savedLayout.sizes) {
         setModuleSizes(savedLayout.sizes);
       }
+      if (savedLayout.favorites) {
+        setFavorites(savedLayout.favorites);
+      }
     }
   }, [savedLayout, legacyOrder]);
 
   // Persist layout helper
   const persistLayout = useCallback(
-    async (order: string[], sizes: Record<string, ModuleSize>) => {
+    async (order: string[], sizes: Record<string, ModuleSize>, favs: string[]) => {
       try {
-        await saveLayout({ order, sizes });
+        await saveLayout({ order, sizes, favorites: favs });
       } catch (error) {
         console.error("Failed to save layout:", error);
       }
@@ -524,9 +558,21 @@ const Dashboard = () => {
     (id: string, newSize: ModuleSize) => {
       const updated = { ...moduleSizes, [id]: newSize };
       setModuleSizes(updated);
-      persistLayout(moduleOrder, updated);
+      persistLayout(moduleOrder, updated, favorites);
     },
-    [moduleSizes, moduleOrder, persistLayout]
+    [moduleSizes, moduleOrder, favorites, persistLayout]
+  );
+
+  // Toggle favorite for a module
+  const handleToggleFavorite = useCallback(
+    (id: string) => {
+      const updated = favorites.includes(id)
+        ? favorites.filter((f) => f !== id)
+        : [...favorites, id];
+      setFavorites(updated);
+      persistLayout(moduleOrder, moduleSizes, updated);
+    },
+    [favorites, moduleOrder, moduleSizes, persistLayout]
   );
 
   // Filter & sort tools
@@ -573,7 +619,7 @@ const Dashboard = () => {
       }
 
       setModuleOrder(newFullOrder);
-      persistLayout(newFullOrder, moduleSizes);
+      persistLayout(newFullOrder, moduleSizes, favorites);
     }
   };
 
@@ -617,6 +663,8 @@ const Dashboard = () => {
                         size={getSize(tool.id)}
                         onClick={() => navigate(tool.path)}
                         onSizeChange={(s) => handleSizeChange(tool.id, s)}
+                        isFavorite={favorites.includes(tool.id)}
+                        onToggleFavorite={() => handleToggleFavorite(tool.id)}
                       />
                     ))}
                   </div>
