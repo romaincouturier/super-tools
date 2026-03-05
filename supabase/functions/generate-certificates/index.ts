@@ -3,6 +3,7 @@ import { zipSync } from "https://esm.sh/fflate@0.8.2";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { getSenderFrom, getBccList } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
+import { sendEmail } from "../_shared/resend.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -361,7 +362,7 @@ async function findOrCreateFolder(accessToken: string, folderName: string, paren
   return createData.id;
 }
 
-// Send email with Resend API
+// Send email with shared sendEmail helper
 async function sendEmailWithResend(
   participantEmail: string,
   participantName: string,
@@ -373,12 +374,6 @@ async function sendEmailWithResend(
   websiteUrl: string,
   youtubeUrl: string
 ): Promise<void> {
-  const resendApiKey = Deno.env.get("RESEND_API_KEY");
-
-  if (!resendApiKey) {
-    throw new Error("RESEND_API_KEY is not set");
-  }
-
   // Download PDF for attachment
   const pdfResponse = await fetch(pdfUrl);
   const pdfBuffer = await pdfResponse.arrayBuffer();
@@ -398,24 +393,42 @@ async function sendEmailWithResend(
   const [senderFrom, bccList] = await Promise.all([getSenderFrom(), getBccList()]);
 
   // Send to participant
-  const participantEmailResponse = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${resendApiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
+  await sendEmail({
+    from: senderFrom,
+    to: [participantEmail],
+    bcc: bccList,
+    subject: `Ton certificat de réalisation pour la formation ${formationName}`,
+    html: `
+      <p>${greeting}</p>
+      <p>Tu trouveras en pièce jointe ton certificat de réalisation pour la formation ${safeFormationName}.</p>
+      <p>Je te souhaite de bien exploiter tout ce que tu as vu pendant la formation !</p>
+      <p>Si tu souhaites aller plus loin, je t'invite à te rendre régulièrement sur <a href="${websiteUrl}">${websiteUrl.replace(/^https?:\/\/(www\.)?/, "")}</a> et à consulter ma <a href="${youtubeUrl}">chaîne YouTube</a>.</p>
+      <p>Bonne continuation et à bientôt !</p>
+      ${signature}
+    `,
+    attachments: [
+      {
+        filename: fileName,
+        content: pdfBase64,
+      },
+    ],
+    _emailType: "certificate",
+  });
+
+  // Send copy to admin
+  if (emailDestinataire && emailDestinataire !== participantEmail) {
+    const safeParticipantEmail = escapeHtml(participantEmail);
+    const safeParticipantNameForAdmin = escapeHtml(participantName);
+
+    await sendEmail({
       from: senderFrom,
-      to: [participantEmail],
-      bcc: bccList,
-      subject: `Ton certificat de réalisation pour la formation ${formationName}`,
+      to: [emailDestinataire],
+      subject: `[Copie] Certificat envoyé à ${participantName} - ${formationName}`,
       html: `
-        <p>${greeting}</p>
-        <p>Tu trouveras en pièce jointe ton certificat de réalisation pour la formation ${safeFormationName}.</p>
-        <p>Je te souhaite de bien exploiter tout ce que tu as vu pendant la formation !</p>
-        <p>Si tu souhaites aller plus loin, je t'invite à te rendre régulièrement sur <a href="${websiteUrl}">${websiteUrl.replace(/^https?:\/\/(www\.)?/, "")}</a> et à consulter ma <a href="${youtubeUrl}">chaîne YouTube</a>.</p>
-        <p>Bonne continuation et à bientôt !</p>
-        ${signature}
+        <h1>Certificat envoyé</h1>
+        <p>Le certificat de formation a été envoyé à <strong>${safeParticipantNameForAdmin}</strong> (${safeParticipantEmail}).</p>
+        <p><strong>Formation :</strong> ${safeFormationName}</p>
+        <p>Une copie du certificat est jointe à cet email.</p>
       `,
       attachments: [
         {
@@ -423,48 +436,8 @@ async function sendEmailWithResend(
           content: pdfBase64,
         },
       ],
-    }),
-  });
-
-  if (!participantEmailResponse.ok) {
-    const errorText = await participantEmailResponse.text();
-    console.error("Resend error:", errorText);
-    throw new Error(`Failed to send email: ${errorText}`);
-  }
-
-  // Send copy to admin
-  if (emailDestinataire && emailDestinataire !== participantEmail) {
-    const safeParticipantEmail = escapeHtml(participantEmail);
-    const safeParticipantNameForAdmin = escapeHtml(participantName);
-
-    const adminEmailResponse = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${resendApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from: senderFrom,
-        to: [emailDestinataire],
-        subject: `[Copie] Certificat envoyé à ${participantName} - ${formationName}`,
-        html: `
-          <h1>Certificat envoyé</h1>
-          <p>Le certificat de formation a été envoyé à <strong>${safeParticipantNameForAdmin}</strong> (${safeParticipantEmail}).</p>
-          <p><strong>Formation :</strong> ${safeFormationName}</p>
-          <p>Une copie du certificat est jointe à cet email.</p>
-        `,
-        attachments: [
-          {
-            filename: fileName,
-            content: pdfBase64,
-          },
-        ],
-      }),
+      _emailType: "certificate_admin_copy",
     });
-
-    if (!adminEmailResponse.ok) {
-      console.warn("Failed to send admin copy email");
-    }
   }
 
   console.log(`Email sent successfully to ${participantEmail}`);
@@ -477,12 +450,6 @@ async function sendCertificatesToCommanditaire(
   pdfDataList: PdfData[],
   signature: string
 ): Promise<void> {
-  const resendApiKey = Deno.env.get("RESEND_API_KEY");
-
-  if (!resendApiKey) {
-    throw new Error("RESEND_API_KEY is not set");
-  }
-
   const senderFrom = await getSenderFrom();
   const bccList = await getBccList();
 
@@ -493,37 +460,25 @@ async function sendCertificatesToCommanditaire(
 
     console.log(`Sending single certificate to commanditaire: ${emailCommanditaire}`);
 
-    const emailResponse = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${resendApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from: senderFrom,
-        to: [emailCommanditaire],
-        bcc: bccList,
-        subject: `Certificat de réalisation - Formation ${formationName}`,
-        html: `
-          <p>Bonjour,</p>
-          <p>Veuillez trouver ci-joint le certificat de réalisation pour la formation <strong>${escapeHtml(formationName)}</strong>.</p>
-          <p>Cordialement,</p>
-          ${signature}
-        `,
-        attachments: [
-          {
-            filename: pdfData.fileName,
-            content: pdfBase64,
-          },
-        ],
-      }),
+    await sendEmail({
+      from: senderFrom,
+      to: [emailCommanditaire],
+      bcc: bccList,
+      subject: `Certificat de réalisation - Formation ${formationName}`,
+      html: `
+        <p>Bonjour,</p>
+        <p>Veuillez trouver ci-joint le certificat de réalisation pour la formation <strong>${escapeHtml(formationName)}</strong>.</p>
+        <p>Cordialement,</p>
+        ${signature}
+      `,
+      attachments: [
+        {
+          filename: pdfData.fileName,
+          content: pdfBase64,
+        },
+      ],
+      _emailType: "certificate_commanditaire",
     });
-
-    if (!emailResponse.ok) {
-      const errorText = await emailResponse.text();
-      console.error("Failed to send certificate to commanditaire:", errorText);
-      throw new Error(`Failed to send certificate: ${errorText}`);
-    }
 
     console.log(`Certificate sent successfully to ${emailCommanditaire}`);
     return;
@@ -544,38 +499,26 @@ async function sendCertificatesToCommanditaire(
 
   console.log(`Sending ZIP to commanditaire: ${emailCommanditaire}`);
 
-  const emailResponse = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${resendApiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      from: senderFrom,
-      to: [emailCommanditaire],
-      bcc: bccList,
-      subject: `Certificats de réalisation - Formation ${formationName}`,
-      html: `
-        <p>Bonjour,</p>
-        <p>Veuillez trouver ci-joint l'ensemble des certificats de réalisation pour la formation <strong>${escapeHtml(formationName)}</strong>.</p>
-        <p>Cette archive contient ${pdfDataList.length} certificat(s).</p>
-        <p>Cordialement,</p>
-        ${signature}
-      `,
-      attachments: [
-        {
-          filename: zipFileName,
-          content: zipBase64,
-        },
-      ],
-    }),
+  await sendEmail({
+    from: senderFrom,
+    to: [emailCommanditaire],
+    bcc: bccList,
+    subject: `Certificats de réalisation - Formation ${formationName}`,
+    html: `
+      <p>Bonjour,</p>
+      <p>Veuillez trouver ci-joint l'ensemble des certificats de réalisation pour la formation <strong>${escapeHtml(formationName)}</strong>.</p>
+      <p>Cette archive contient ${pdfDataList.length} certificat(s).</p>
+      <p>Cordialement,</p>
+      ${signature}
+    `,
+    attachments: [
+      {
+        filename: zipFileName,
+        content: zipBase64,
+      },
+    ],
+    _emailType: "certificate_commanditaire",
   });
-
-  if (!emailResponse.ok) {
-    const errorText = await emailResponse.text();
-    console.error("Failed to send ZIP to commanditaire:", errorText);
-    throw new Error(`Failed to send ZIP: ${errorText}`);
-  }
 
   console.log(`ZIP sent successfully to ${emailCommanditaire}`);
 }

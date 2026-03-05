@@ -1,9 +1,9 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { Resend } from "https://esm.sh/resend@2.0.0";
 import { encode as base64Encode } from "https://deno.land/std@0.190.0/encoding/base64.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
 import { getSenderFrom, getSenderEmail, getBccList } from "../_shared/email-settings.ts";
 import { getAppUrls } from "../_shared/app-urls.ts";
+import { sendEmail } from "../_shared/resend.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -130,12 +130,6 @@ serve(async (req: Request): Promise<Response> => {
       );
     }
 
-    const resendApiKey = Deno.env.get("RESEND_API_KEY");
-    if (!resendApiKey) {
-      throw new Error("RESEND_API_KEY is not set");
-    }
-
-    const resend = new Resend(resendApiKey);
     const urls = await getAppUrls();
     const appUrl = urls.app_url;
 
@@ -197,7 +191,7 @@ serve(async (req: Request): Promise<Response> => {
     const icsBase64 = base64Encode(icsContent);
 
     // Send email with ICS attachment
-    const emailResponse = await resend.emails.send({
+    const emailResponse = await sendEmail({
       from: senderFrom,
       to: [trainerEmail],
       bcc: bccList,
@@ -209,6 +203,7 @@ serve(async (req: Request): Promise<Response> => {
           content: icsBase64,
         },
       ],
+      _emailType: "training_calendar_invite",
     });
 
     console.log("Email sent successfully:", emailResponse);

@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { Resend } from "https://esm.sh/resend@2.0.0";
 
 import {
   createErrorResponse,
@@ -10,8 +9,7 @@ import { getSupabaseClient, verifyAuth } from "../_shared/supabase-client.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
 import { getSenderFrom, getBccList } from "../_shared/email-settings.ts";
 import { processTemplate, textToHtml } from "../_shared/templates.ts";
-
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+import { sendEmail } from "../_shared/resend.ts";
 
 // Default templates
 const DEFAULT_SUBJECT_TU = "Certificat de réalisation - {{training_name}} - {{participant_name}}";
@@ -124,13 +122,16 @@ serve(async (req: Request): Promise<Response> => {
 
     const fileName = `Certificat_${training.training_name.replace(/[^a-zA-Z0-9]/g, "_")}_${participantName.replace(/\s+/g, "_")}.pdf`;
 
-    await resend.emails.send({
+    await sendEmail({
       from: senderFrom,
       to: [recipientEmail],
       bcc: bccList,
       subject,
       html: emailHtml,
       attachments: [{ filename: fileName, content: pdfBase64 }],
+      _emailType: "certificate_sponsor",
+      _trainingId: evaluation.training_id,
+      _participantId: (evaluation as any).participant_id || undefined,
     });
 
     // Log activity
