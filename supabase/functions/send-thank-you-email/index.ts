@@ -24,9 +24,9 @@ function generateEvaluationToken(): string {
 const DEFAULT_SUBJECT_TU = "Merci pour ta participation à la formation {{training_name}}";
 const DEFAULT_CONTENT_TU = `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
 
-Quelle belle journée de découverte visuelle nous avons partagé ! Merci pour ton énergie et ta participation pendant notre formation "{{training_name}}".
+{{#is_presentiel}}Merci pour ton énergie et ta participation pendant notre formation "{{training_name}}".
 
-Pour finaliser cette formation, j'ai besoin que tu prennes quelques minutes pour compléter le questionnaire d'évaluation :
+Pour la finaliser, j'ai besoin que tu prennes quelques minutes pour compléter le questionnaire d'évaluation :
 {{evaluation_link}}
 
 {{#supports_url}}
@@ -34,7 +34,14 @@ Tu trouveras également tous les supports de la formation ici, pour continuer à
 {{supports_url}}
 {{/supports_url}}
 
-Je suis curieux de voir comment tu vas utiliser tout ce que nous avons vu ! N'hésite pas à me contacter si tu as des questions ou des besoins de compléments d'informations.
+Je suis curieux de voir comment tu vas utiliser tout ce que nous avons vu ! N'hésite pas à me contacter si tu as des questions ou des besoins de compléments d'informations.{{/is_presentiel}}{{#is_elearning}}Bravo pour avoir terminé ta formation en ligne "{{training_name}}" ! 🎉
+
+Pour finaliser cette formation, j'ai besoin que tu prennes quelques minutes pour compléter le questionnaire d'évaluation :
+{{evaluation_link}}
+
+Ton retour est précieux pour améliorer continuellement nos formations.
+
+N'hésite pas à me contacter si tu as des questions ou si tu souhaites aller plus loin sur ces sujets.{{/is_elearning}}
 
 Je te souhaite une bonne journée`;
 
@@ -42,9 +49,9 @@ Je te souhaite une bonne journée`;
 const DEFAULT_SUBJECT_VOUS = "Merci pour votre participation à la formation {{training_name}}";
 const DEFAULT_CONTENT_VOUS = `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
 
-Quelle belle journée de découverte visuelle nous avons partagé ! Merci pour votre énergie et votre participation pendant notre formation "{{training_name}}".
+{{#is_presentiel}}Merci pour votre énergie et votre participation pendant notre formation "{{training_name}}".
 
-Pour finaliser cette formation, j'ai besoin que vous preniez quelques minutes pour compléter le questionnaire d'évaluation :
+Pour la finaliser, j'ai besoin que vous preniez quelques minutes pour compléter le questionnaire d'évaluation :
 {{evaluation_link}}
 
 {{#supports_url}}
@@ -52,7 +59,14 @@ Vous trouverez également tous les supports de la formation ici, pour continuer 
 {{supports_url}}
 {{/supports_url}}
 
-Je suis curieux de voir comment vous allez utiliser tout ce que nous avons vu ! N'hésitez pas à me contacter si vous avez des questions ou des besoins de compléments d'informations.
+Je suis curieux de voir comment vous allez utiliser tout ce que nous avons vu ! N'hésitez pas à me contacter si vous avez des questions ou des besoins de compléments d'informations.{{/is_presentiel}}{{#is_elearning}}Bravo pour avoir terminé votre formation en ligne "{{training_name}}" ! 🎉
+
+Pour finaliser cette formation, j'ai besoin que vous preniez quelques minutes pour compléter le questionnaire d'évaluation :
+{{evaluation_link}}
+
+Votre retour est précieux pour améliorer continuellement nos formations.
+
+N'hésitez pas à me contacter si vous avez des questions ou si vous souhaitez aller plus loin sur ces sujets.{{/is_elearning}}
 
 Je vous souhaite une bonne journée`;
 
@@ -136,11 +150,14 @@ serve(async (req) => {
     if (testEmail) {
       console.log("Sending TEST email to:", testEmail);
 
+      const isElearningTest = training.format_formation === "e_learning";
       const variables = {
         first_name: "Test",
         training_name: trainingName,
         evaluation_link: `${baseUrl}/evaluation/test-token-preview`,
         supports_url: supportsUrl,
+        is_presentiel: !isElearningTest,
+        is_elearning: isElearningTest,
       };
 
       const subject = `[TEST] ${processTemplate(subjectTemplate, variables, false)}`;
