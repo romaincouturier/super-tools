@@ -43,7 +43,7 @@ interface CatalogEntry {
   last_session_date: string | null;
 }
 
-type SortColumn = "formation_name" | "duree_heures" | "prix" | "training_count" | "formula_names" | "last_session_date";
+type SortColumn = "formation_name" | "duree_heures" | "training_count" | "formula_names" | "last_session_date";
 type SortDirection = "asc" | "desc";
 
 const Catalogue = () => {
@@ -164,8 +164,6 @@ const Catalogue = () => {
           return dir * a.formation_name.localeCompare(b.formation_name, "fr");
         case "duree_heures":
           return dir * ((a.duree_heures || 0) - (b.duree_heures || 0));
-        case "prix":
-          return dir * ((a.prix || 0) - (b.prix || 0));
         case "training_count":
           return dir * (a.training_count - b.training_count);
         case "formula_names":
@@ -319,7 +317,7 @@ const Catalogue = () => {
                           )}
                         </div>
                         <p className="text-sm text-muted-foreground">
-                          {entry.duree_heures}h &middot; {entry.prix}€
+                          {entry.duree_heures}h
                         </p>
                       </div>
                       {!entry.is_active && (
@@ -366,15 +364,6 @@ const Catalogue = () => {
                       <div className="flex items-center">
                         Durée
                         <SortIcon column="duree_heures" />
-                      </div>
-                    </TableHead>
-                    <TableHead
-                      className="w-[100px] cursor-pointer select-none"
-                      onClick={() => handleSort("prix")}
-                    >
-                      <div className="flex items-center">
-                        Prix HT
-                        <SortIcon column="prix" />
                       </div>
                     </TableHead>
                     <TableHead
@@ -438,7 +427,6 @@ const Catalogue = () => {
                         </div>
                       </TableCell>
                       <TableCell>{entry.duree_heures}h</TableCell>
-                      <TableCell>{entry.prix}€</TableCell>
                       <TableCell>
                         <Badge variant="secondary">{entry.training_count}</Badge>
                       </TableCell>
