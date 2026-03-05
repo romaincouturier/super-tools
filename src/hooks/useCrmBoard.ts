@@ -594,6 +594,8 @@ export const useSendEmail = () =>
         subject: input.subject,
         body_html: input.body_html,
         attachments: input.attachments,
+        cc: input.cc,
+        bcc: input.bcc,
       },
     });
     if (error) throw new Error(error.message || "Échec de l'envoi de l'email");

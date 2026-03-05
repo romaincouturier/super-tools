@@ -300,6 +300,8 @@ export interface SendEmailInput {
   subject: string;
   body_html: string;
   attachments?: EmailAttachment[];
+  cc?: string[];
+  bcc?: string[];
 }
 
 // Board state type
