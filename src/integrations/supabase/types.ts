@@ -4506,16 +4506,16 @@ export type Database = {
       is_signup_allowed: { Args: { p_email: string }; Returns: boolean }
       register_formulaire_orphan: {
         Args: {
+          p_course_id: number
           p_email: string
           p_first_name: string
           p_form_type: string
           p_last_name: string
-          p_product_id: number
         }
         Returns: Json
       }
       resolve_formulaire_token: {
-        Args: { p_email: string; p_form_type: string; p_product_id: number }
+        Args: { p_course_id: number; p_email: string; p_form_type: string }
         Returns: Json
       }
       update_api_key_last_used: { Args: { key_id: string }; Returns: undefined }
