@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { getSenderFrom } from "../_shared/email-settings.ts";
+import { getBccList } from "../_shared/bcc-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
 import { getAppUrls } from "../_shared/app-urls.ts";
 
@@ -64,11 +65,12 @@ serve(async (req: Request) => {
       );
     }
 
-    // Get Signitic signature
-    const signature = await getSigniticSignature();
-
-    // Send email with reset link
-    const senderFrom = await getSenderFrom();
+    // Get Signitic signature and BCC list
+    const [signature, senderFrom, bccList] = await Promise.all([
+      getSigniticSignature(),
+      getSenderFrom(),
+      getBccList(),
+    ]);
     const emailResponse = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
@@ -78,6 +80,7 @@ serve(async (req: Request) => {
       body: JSON.stringify({
         from: senderFrom,
         to: [email],
+        bcc: bccList,
         subject: "Réinitialisation de votre mot de passe SuperTools",
         html: `
           <p>Bonjour,</p>
