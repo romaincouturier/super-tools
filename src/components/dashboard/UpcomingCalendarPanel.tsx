@@ -13,17 +13,19 @@ import {
   CalendarDays,
   MapPin,
   ExternalLink,
+  Video,
 } from "lucide-react";
 import { format, parseISO, isToday, isTomorrow } from "date-fns";
 import { fr } from "date-fns/locale";
 
 interface CalendarEntry {
   id: string;
-  type: "formation" | "event";
+  type: "formation" | "event" | "live";
   title: string;
   date: string;
   endDate?: string | null;
   location?: string | null;
+  time?: string | null;
   path: string;
 }
 
@@ -44,8 +46,8 @@ const UpcomingCalendarPanel = () => {
     const endDate = addWorkingDays(today, 15, workingDays);
     const endDateStr = format(endDate, "yyyy-MM-dd");
 
-    // Fetch formations and events in parallel
-    const [trainingsRes, eventsRes] = await Promise.all([
+    // Fetch formations, events, and live meetings in parallel
+    const [trainingsRes, eventsRes, livesRes] = await Promise.all([
       supabase
         .from("trainings")
         .select("id, training_name, start_date, end_date, location")
@@ -59,6 +61,13 @@ const UpcomingCalendarPanel = () => {
         .gte("event_date", todayStr)
         .lte("event_date", endDateStr)
         .order("event_date", { ascending: true }),
+      supabase
+        .from("training_live_meetings")
+        .select("id, training_id, title, scheduled_at, duration_minutes, status")
+        .eq("status", "scheduled")
+        .gte("scheduled_at", `${todayStr}T00:00:00`)
+        .lte("scheduled_at", `${endDateStr}T23:59:59`)
+        .order("scheduled_at", { ascending: true }),
     ]);
 
     const items: CalendarEntry[] = [];
@@ -86,6 +95,20 @@ const UpcomingCalendarPanel = () => {
           date: e.event_date,
           location: e.location,
           path: `/events/${e.id}`,
+        });
+      }
+    }
+
+    if (livesRes.data) {
+      for (const l of livesRes.data) {
+        const dt = parseISO(l.scheduled_at);
+        items.push({
+          id: l.id,
+          type: "live",
+          title: l.title,
+          date: format(dt, "yyyy-MM-dd"),
+          time: format(dt, "HH:mm"),
+          path: `/formations/${l.training_id}`,
         });
       }
     }
@@ -167,11 +190,18 @@ const UpcomingCalendarPanel = () => {
                 >
                   {entry.type === "formation" ? (
                     <GraduationCap className="h-3.5 w-3.5 text-blue-600 mt-0.5 shrink-0" />
+                  ) : entry.type === "live" ? (
+                    <Video className="h-3.5 w-3.5 text-purple-600 mt-0.5 shrink-0" />
                   ) : (
                     <CalendarDays className="h-3.5 w-3.5 text-teal-600 mt-0.5 shrink-0" />
                   )}
                   <div className="min-w-0 flex-1">
                     <p className="text-sm leading-tight truncate">{entry.title}</p>
+                    {entry.time && (
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        à {entry.time}
+                      </p>
+                    )}
                     {entry.location && (
                       <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
                         <MapPin className="h-2.5 w-2.5" />
@@ -187,10 +217,14 @@ const UpcomingCalendarPanel = () => {
                   <Badge
                     variant="secondary"
                     className={`text-[10px] shrink-0 ${
-                      entry.type === "formation" ? "bg-blue-50 text-blue-700" : "bg-teal-50 text-teal-700"
+                      entry.type === "formation"
+                        ? "bg-blue-50 text-blue-700"
+                        : entry.type === "live"
+                        ? "bg-purple-50 text-purple-700"
+                        : "bg-teal-50 text-teal-700"
                     }`}
                   >
-                    {entry.type === "formation" ? "Formation" : "Événement"}
+                    {entry.type === "formation" ? "Formation" : entry.type === "live" ? "Live" : "Événement"}
                   </Badge>
                 </button>
               ))}

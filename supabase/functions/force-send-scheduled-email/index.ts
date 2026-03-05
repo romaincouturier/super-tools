@@ -645,6 +645,73 @@ Règles :
         break;
       }
 
+      case "live_reminder": {
+        recipientEmail = participant?.email || "";
+        if (!recipientEmail) throw new Error("No participant email for live reminder");
+
+        // Get the live meeting from the error_message field (format: "live:{meetingId}")
+        const liveIdMatch = scheduledEmail.error_message?.match(/live:(.+)/);
+        const liveMeetingId = liveIdMatch ? liveIdMatch[1] : null;
+
+        let liveTitle = "un live collectif";
+        let liveDate = "";
+        let liveTime = "";
+        let liveMeetingUrl = "";
+
+        if (liveMeetingId) {
+          const { data: liveMeeting } = await supabase
+            .from("training_live_meetings")
+            .select("title, scheduled_at, meeting_url, status")
+            .eq("id", liveMeetingId)
+            .single();
+
+          if (liveMeeting) {
+            if (liveMeeting.status === "cancelled") {
+              await supabase
+                .from("scheduled_emails")
+                .update({ status: "cancelled", error_message: "Live annulé" })
+                .eq("id", scheduledEmailId);
+              return new Response(
+                JSON.stringify({ success: true, message: "Reminder cancelled - live cancelled" }),
+                { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+              );
+            }
+            liveTitle = liveMeeting.title;
+            const liveDateTime = new Date(liveMeeting.scheduled_at);
+            liveDate = liveDateTime.toLocaleDateString("fr-FR", {
+              weekday: "long",
+              day: "numeric",
+              month: "long",
+              year: "numeric",
+            });
+            liveTime = liveDateTime.toLocaleTimeString("fr-FR", {
+              hour: "2-digit",
+              minute: "2-digit",
+            });
+            liveMeetingUrl = liveMeeting.meeting_url || "";
+          }
+        }
+
+        const meetingUrlSection = liveMeetingUrl
+          ? `<p><a href="${liveMeetingUrl}" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Rejoindre le live</a></p>`
+          : "";
+
+        subject = `📺 Rappel : Live "${liveTitle}" demain – ${training.training_name}`;
+        htmlContent = `
+          <p>${greeting}</p>
+          <p>Pour rappel, ${formalAddress ? "vous avez" : "tu as"} un live collectif prévu demain dans le cadre de la formation <strong>"${training.training_name}"</strong> :</p>
+          <ul>
+            <li><strong>${liveTitle}</strong></li>
+            <li>📅 ${liveDate} à ${liveTime}</li>
+          </ul>
+          ${meetingUrlSection}
+          <p>${formalAddress ? "Votre" : "Ta"} présence est importante pour profiter pleinement de ce moment d'échange.</p>
+          <p>À demain !</p>
+          ${signatureHtml}
+        `;
+        break;
+      }
+
       default:
         throw new Error(`Unknown email type: ${scheduledEmail.email_type}`);
     }
