@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getSenderFrom, getSenderEmail, getSenderName, getBccList } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
+import { processTemplate } from "../_shared/templates.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -47,28 +48,47 @@ async function sendBookingReminderEmail(
   senderFrom: string,
   bccList: string[],
   signature: string,
+  template: { subject: string; html_content: string } | null,
 ): Promise<ReminderResult> {
   const bookingText = reminder.bookingItems.join(" et ");
   const typeLabel = reminder.entityType === "training" ? "la formation" : "la mission";
 
-  const subject = `Rappel : Réservation pour ${typeLabel} "${reminder.entityName}"`;
+  let subject: string;
+  let htmlContent: string;
 
-  const htmlContent = `
-    <p>Bonjour ${reminder.recipientFirstName},</p>
-
-    <p>Ceci est un rappel automatique concernant ${typeLabel} <strong>"${reminder.entityName}"</strong> prévue le <strong>${formatDate(reminder.startDate)}</strong> à <strong>${reminder.location}</strong> pour ${reminder.clientName}.</p>
-
-    <p style="background-color: #fff3cd; border: 1px solid #ffc107; padding: 15px; border-radius: 4px;">
-      <strong>⚠️ À réserver :</strong> ${bookingText}<br/>
-      <em>${typeLabel.charAt(0).toUpperCase() + typeLabel.slice(1)} a lieu dans ${reminder.daysUntil} jour${reminder.daysUntil > 1 ? 's' : ''}.</em>
-    </p>
-    ${reminder.extraHtml || ''}
-    <p>Merci de procéder à la réservation dès que possible et de cocher les cases correspondantes dans l'interface de gestion.</p>
-
-    <p>Ce rappel sera envoyé chaque lundi jusqu'à ce que les réservations soient confirmées.</p>
-
-    ${signature}
-  `;
+  if (template) {
+    const vars = {
+      first_name: reminder.recipientFirstName,
+      entity_type: typeLabel,
+      entity_name: reminder.entityName,
+      start_date: formatDate(reminder.startDate),
+      location: reminder.location,
+      client_name: reminder.clientName,
+      booking_items: bookingText,
+      days_until: String(reminder.daysUntil),
+      extra_html: reminder.extraHtml || "",
+    };
+    subject = processTemplate(template.subject, vars, false);
+    const body = processTemplate(template.html_content, vars, false);
+    htmlContent = body
+      .split(/\n\n+/)
+      .map((p: string) => `<p>${p.replace(/\n/g, "<br>")}</p>`)
+      .join("") + "\n" + signature;
+  } else {
+    subject = `Rappel : Réservation pour ${typeLabel} "${reminder.entityName}"`;
+    htmlContent = `
+      <p>Bonjour ${reminder.recipientFirstName},</p>
+      <p>Ceci est un rappel automatique concernant ${typeLabel} <strong>"${reminder.entityName}"</strong> prévue le <strong>${formatDate(reminder.startDate)}</strong> à <strong>${reminder.location}</strong> pour ${reminder.clientName}.</p>
+      <p style="background-color: #fff3cd; border: 1px solid #ffc107; padding: 15px; border-radius: 4px;">
+        <strong>⚠️ À réserver :</strong> ${bookingText}<br/>
+        <em>${typeLabel.charAt(0).toUpperCase() + typeLabel.slice(1)} a lieu dans ${reminder.daysUntil} jour${reminder.daysUntil > 1 ? 's' : ''}.</em>
+      </p>
+      ${reminder.extraHtml || ''}
+      <p>Merci de procéder à la réservation dès que possible et de cocher les cases correspondantes dans l'interface de gestion.</p>
+      <p>Ce rappel sera envoyé chaque lundi jusqu'à ce que les réservations soient confirmées.</p>
+      ${signature}
+    `;
+  }
 
   try {
     const emailResponse = await fetch("https://api.resend.com/emails", {
@@ -139,6 +159,13 @@ serve(async (req) => {
     const signature = await getSigniticSignature();
     const senderFrom = await getSenderFrom();
 
+    // Fetch booking_reminder template (use _tu since it's internal)
+    const { data: bookingTemplate } = await supabase
+      .from("email_templates")
+      .select("subject, html_content")
+      .eq("template_type", "booking_reminder_tu")
+      .maybeSingle();
+
     const now = new Date();
     const threeMonthsFromNow = new Date(now);
     threeMonthsFromNow.setMonth(threeMonthsFromNow.getMonth() + 3);
@@ -146,8 +173,6 @@ serve(async (req) => {
     const results: ReminderResult[] = [];
 
     // ─── TRAININGS ───────────────────────────────────────────────────────
-
-    // Only send booking reminders for présentiel trainings
     const { data: trainings, error: trainingsError } = await supabase
       .from("trainings")
       .select(`
@@ -169,7 +194,6 @@ serve(async (req) => {
     console.log(`Found ${trainings?.length || 0} trainings requiring booking reminders`);
 
     for (const training of (trainings || [])) {
-      // Resolve trainer
       const trainersData = training.trainers;
       let trainer: { id: string; first_name: string; last_name: string; email: string } | null = null;
       if (trainersData) {
@@ -231,13 +255,13 @@ serve(async (req) => {
         senderFrom,
         bccList,
         signature,
+        bookingTemplate,
       );
       results.push(result);
       await new Promise((resolve) => setTimeout(resolve, 600));
     }
 
     // ─── MISSIONS ────────────────────────────────────────────────────────
-
     const { data: missions, error: missionsError } = await supabase
       .from("missions")
       .select("id, title, start_date, location, client_name, train_booked, hotel_booked, status, created_by")
@@ -249,12 +273,10 @@ serve(async (req) => {
 
     if (missionsError) {
       console.error("Error fetching missions:", missionsError);
-      // Don't throw — trainings were already processed
     }
 
     console.log(`Found ${missions?.length || 0} missions requiring booking reminders`);
 
-    // Get the admin user email/name for sending mission reminders
     const adminEmail = await getSenderEmail();
     const adminFullName = await getSenderName();
     const adminFirstName = adminFullName.split(" ")[0];
@@ -291,13 +313,13 @@ serve(async (req) => {
         senderFrom,
         bccList,
         signature,
+        bookingTemplate,
       );
       results.push(result);
       await new Promise((resolve) => setTimeout(resolve, 600));
     }
 
     // ─── RESPONSE ────────────────────────────────────────────────────────
-
     const successCount = results.filter((r) => r.success).length;
     console.log(`Booking reminders sent: ${successCount}/${results.length}`);
 

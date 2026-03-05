@@ -11,6 +11,7 @@ import {
   sendEmail,
   escapeHtml,
 } from "../_shared/mod.ts";
+import { processTemplate } from "../_shared/templates.ts";
 
 // Send notification to sponsor (intra-enterprise)
 async function sendSponsorNotification(
@@ -20,30 +21,57 @@ async function sendSponsorNotification(
   trainingName: string,
   participantsList: string[],
   signature: string,
-  bccList: string[]
+  bccList: string[],
+  supabase: any,
 ): Promise<void> {
-  const greeting = sponsorFormalAddress
-    ? 'Bonjour,'
-    : (sponsorFirstName ? `Bonjour ${escapeHtml(sponsorFirstName)},` : 'Bonjour,');
-
   const participantsFormatted = participantsList.map(p => `<li>${escapeHtml(p)}</li>`).join('');
 
-  const htmlContent = `
-    <p>${greeting}</p>
-    <p>Nous avons le plaisir de vous informer que les convocations à la formation <strong>${escapeHtml(trainingName)}</strong> ont été envoyées aux participants suivants :</p>
-    <ul style="margin-left: 20px;">
-      ${participantsFormatted}
-    </ul>
-    <p>Chaque participant a reçu un email contenant toutes les informations pratiques relatives à la formation.</p>
-    <p>Nous restons à votre disposition pour toute question.</p>
-    <p>Bien cordialement,</p>
-    ${signature}
-  `;
+  // Try template
+  const suffix = sponsorFormalAddress ? "vous" : "tu";
+  const { data: template } = await supabase
+    .from("email_templates")
+    .select("subject, html_content")
+    .eq("template_type", `sponsor_notification_${suffix}`)
+    .maybeSingle();
+
+  let subject: string;
+  let htmlContent: string;
+
+  if (template) {
+    const vars = {
+      first_name: sponsorFirstName || "",
+      training_name: trainingName,
+      participants_list: `<ul style="margin-left: 20px;">${participantsFormatted}</ul>`,
+    };
+    subject = processTemplate(template.subject, vars, false);
+    const body = processTemplate(template.html_content, vars, false);
+    htmlContent = body
+      .split(/\n\n+/)
+      .map((p: string) => `<p>${p.replace(/\n/g, "<br>")}</p>`)
+      .join("") + "\n" + signature;
+  } else {
+    const greeting = sponsorFormalAddress
+      ? 'Bonjour,'
+      : (sponsorFirstName ? `Bonjour ${escapeHtml(sponsorFirstName)},` : 'Bonjour,');
+
+    subject = `Convocations envoyées - ${trainingName}`;
+    htmlContent = `
+      <p>${greeting}</p>
+      <p>Nous avons le plaisir de vous informer que les convocations à la formation <strong>${escapeHtml(trainingName)}</strong> ont été envoyées aux participants suivants :</p>
+      <ul style="margin-left: 20px;">
+        ${participantsFormatted}
+      </ul>
+      <p>Chaque participant a reçu un email contenant toutes les informations pratiques relatives à la formation.</p>
+      <p>Nous restons à votre disposition pour toute question.</p>
+      <p>Bien cordialement,</p>
+      ${signature}
+    `;
+  }
 
   const result = await sendEmail({
     to: [sponsorEmail],
     bcc: bccList,
-    subject: `Convocations envoyées - ${trainingName}`,
+    subject,
     html: htmlContent,
   });
 
@@ -282,7 +310,8 @@ serve(async (req) => {
             training.training_name,
             participantNames,
             signature,
-            bccList
+            bccList,
+            supabase,
           );
         }
       }

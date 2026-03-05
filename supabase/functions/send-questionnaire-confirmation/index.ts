@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getSenderFrom, getSenderEmail, getBccList } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
+import { processTemplate } from "../_shared/templates.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,10 +12,8 @@ const corsHeaders = {
 
 // Format date to Google Calendar format: YYYYMMDDTHHMMSS
 function formatDateForCalendar(dateStr: string, timeStr: string): string {
-  // Parse date string directly to avoid timezone issues with new Date()
   const [year, month, day] = dateStr.split('-').map(Number);
   const [hours, minutes] = timeStr.split(':').map(Number);
-  
   return `${year}${String(month).padStart(2, '0')}${String(day).padStart(2, '0')}T${String(hours).padStart(2, '0')}${String(minutes).padStart(2, '0')}00`;
 }
 
@@ -37,8 +36,7 @@ function generatePerDayCalendarLinks(
     const calStart = formatDateForCalendar(sched.day_date, sched.start_time);
     const calEnd = formatDateForCalendar(sched.day_date, sched.end_time);
 
-    // Format label like "Jour 1 – lun. 16 mars"
-    const d = new Date(sched.day_date + "T12:00:00"); // noon to avoid TZ shift
+    const d = new Date(sched.day_date + "T12:00:00");
     const dayNames = ["dim.", "lun.", "mar.", "mer.", "jeu.", "ven.", "sam."];
     const monthNames = ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."];
     const label = sortedSchedules.length > 1
@@ -110,7 +108,6 @@ serve(async (req) => {
     const youtubeUrl = urlSettings?.find((s: any) => s.setting_key === "youtube_url")?.setting_value || "https://www.youtube.com/@supertilt";
     const blogUrl = urlSettings?.find((s: any) => s.setting_key === "blog_url")?.setting_value || "https://supertilt.fr/blog/";
 
-    // Fetch BCC settings
     const bccList = await getBccList();
 
     // Fetch training info
@@ -137,27 +134,19 @@ serve(async (req) => {
                  (training.location && training.location.toLowerCase().includes("en ligne"));
     }
 
-    // Fetch training schedules for accurate times
+    // Fetch training schedules
     const { data: schedules } = await supabase
       .from("training_schedules")
       .select("day_date, start_time, end_time")
       .eq("training_id", trainingId)
       .order("day_date", { ascending: true });
 
-    // Generate per-day calendar links
-    // Get sender email first so we can pass it to calendar link generator
     const senderEmail = await getSenderEmail();
 
     const calendarDays = generatePerDayCalendarLinks(
-      trainingName,
-      location,
-      startDate,
-      endDate,
-      schedules || [],
-      senderEmail
+      trainingName, location, startDate, endDate, schedules || [], senderEmail
     );
 
-    // Get signature and sender info
     const [signature, senderFrom] = await Promise.all([
       getSigniticSignature(),
       getSenderFrom(),
@@ -165,35 +154,24 @@ serve(async (req) => {
 
     const firstName = participantFirstName || "participant";
 
-    // Build email content based on format
+    // Build format-specific content
     let formatSpecificContent = "";
-    
     if (isOnline) {
-      formatSpecificContent = `
-        <p>Je te laisse continuer ton parcours de formation à partir de ton espace personnel.</p>
-      `;
+      formatSpecificContent = `<p>Je te laisse continuer ton parcours de formation à partir de ton espace personnel.</p>`;
     } else {
-      formatSpecificContent = `
-        <p>Je te donne rendez-vous le jour J, ce qui te laisse le temps suffisant pour préparer toutes tes questions et libérer ton agenda pour être dédié à 100% :-)</p>
-        <p>Si tu as un empêchement ou un retard pour arriver, préviens-moi, je verrai comment on peut s'adapter à cette situation :-)</p>
-      `;
+      formatSpecificContent = `<p>Je te donne rendez-vous le jour J, ce qui te laisse le temps suffisant pour préparer toutes tes questions et libérer ton agenda pour être dédié à 100% :-)</p>
+        <p>Si tu as un empêchement ou un retard pour arriver, préviens-moi, je verrai comment on peut s'adapter à cette situation :-)</p>`;
     }
 
-    // Calendar section HTML - one row per day
+    // Calendar section HTML
     const calendarRows = calendarDays.map((day) => `
       <tr>
-        <td style="padding: 6px 12px 6px 0; font-size: 14px; font-weight: 600; color: #1a1a1a; white-space: nowrap;">
-          ${day.label}
-        </td>
+        <td style="padding: 6px 12px 6px 0; font-size: 14px; font-weight: 600; color: #1a1a1a; white-space: nowrap;">${day.label}</td>
         <td style="padding: 6px 8px 6px 0;">
-          <a href="${day.google}" target="_blank" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 6px 14px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 13px;">
-            Google
-          </a>
+          <a href="${day.google}" target="_blank" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 6px 14px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 13px;">Google</a>
         </td>
         <td style="padding: 6px 0;">
-          <a href="${day.outlook}" target="_blank" style="display: inline-block; background-color: #0078d4; color: #ffffff; padding: 6px 14px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 13px;">
-            Outlook
-          </a>
+          <a href="${day.outlook}" target="_blank" style="display: inline-block; background-color: #0078d4; color: #ffffff; padding: 6px 14px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 13px;">Outlook</a>
         </td>
       </tr>
     `).join("");
@@ -201,32 +179,50 @@ serve(async (req) => {
     const calendarSection = `
       <div style="margin: 25px 0; padding: 20px; background-color: #f8f9fa; border-radius: 8px; border-left: 4px solid #e6bc00;">
         <p style="margin: 0 0 15px 0; font-weight: bold; color: #1a1a1a;">📅 Ajoute la formation à ton agenda :</p>
-        <table role="presentation" cellspacing="0" cellpadding="0" border="0">
-          ${calendarRows}
-        </table>
-        <p style="margin: 12px 0 0 0; font-size: 12px; color: #666;">
-          Apple Calendar : ouvre le lien Google depuis Safari, puis "Ajouter à Calendrier"
-        </p>
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0">${calendarRows}</table>
+        <p style="margin: 12px 0 0 0; font-size: 12px; color: #666;">Apple Calendar : ouvre le lien Google depuis Safari, puis "Ajouter à Calendrier"</p>
       </div>
     `;
 
-    const htmlContent = `
-      <p>Bonjour ${firstName},</p>
-      
-      <p>Merci d'avoir rempli le formulaire de recueil des besoins pour la formation.</p>
-      
-      ${formatSpecificContent}
-      
-      ${calendarSection}
-      
-      <p>Tu peux aussi flâner sur notre <a href="${youtubeUrl}">chaîne YouTube</a> et notre <a href="${blogUrl}">blog</a> sur lesquels tu trouveras des éléments en rapport avec le programme.</p>
-      
-      <p>Si tu as la moindre question, je reste à ta disposition par mail <a href="mailto:${senderEmail}">${senderEmail}</a></p>
-      
-      <p>À très vite,</p>
-      
-      ${signature}
-    `;
+    // Try template
+    const { data: template } = await supabase
+      .from("email_templates")
+      .select("subject, html_content")
+      .eq("template_type", "questionnaire_confirmation_tu")
+      .maybeSingle();
+
+    let subject: string;
+    let htmlContent: string;
+
+    if (template) {
+      const vars = {
+        first_name: firstName,
+        training_name: trainingName,
+        format_specific_content: formatSpecificContent,
+        calendar_section: calendarSection,
+        youtube_url: youtubeUrl,
+        blog_url: blogUrl,
+        sender_email: senderEmail,
+      };
+      subject = processTemplate(template.subject, vars, false);
+      const body = processTemplate(template.html_content, vars, false);
+      htmlContent = body
+        .split(/\n\n+/)
+        .map((p: string) => `<p>${p.replace(/\n/g, "<br>")}</p>`)
+        .join("") + "\n" + signature;
+    } else {
+      subject = `Questionnaire complété - ${trainingName}`;
+      htmlContent = `
+        <p>Bonjour ${firstName},</p>
+        <p>Merci d'avoir rempli le formulaire de recueil des besoins pour la formation.</p>
+        ${formatSpecificContent}
+        ${calendarSection}
+        <p>Tu peux aussi flâner sur notre <a href="${youtubeUrl}">chaîne YouTube</a> et notre <a href="${blogUrl}">blog</a> sur lesquels tu trouveras des éléments en rapport avec le programme.</p>
+        <p>Si tu as la moindre question, je reste à ta disposition par mail <a href="mailto:${senderEmail}">${senderEmail}</a></p>
+        <p>À très vite,</p>
+        ${signature}
+      `;
+    }
 
     // Send email
     const emailResponse = await fetch("https://api.resend.com/emails", {
@@ -239,7 +235,7 @@ serve(async (req) => {
         from: senderFrom,
         to: [participantEmail],
         bcc: bccList,
-        subject: `Questionnaire complété - ${trainingName}`,
+        subject,
         html: htmlContent,
         reply_to: senderEmail,
       }),

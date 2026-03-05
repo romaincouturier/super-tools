@@ -1,6 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getSenderFrom, getSenderEmail, getBccList } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
+import { processTemplate } from "../_shared/templates.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -28,6 +30,10 @@ serve(async (req) => {
       throw new Error("RESEND_API_KEY not configured");
     }
 
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
     // Get signature and sender info
     const [signature, senderFrom, senderEmail, bccList] = await Promise.all([
       getSigniticSignature(),
@@ -50,30 +56,54 @@ serve(async (req) => {
       ? unvalidatedPrereqs.join("<br/>") 
       : "Certains prérequis n'ont pas été validés.";
 
-    // Build email
     const firstName = participantName.split(" ")[0] || participantName;
 
-    const htmlContent = `
-      <p>Bonjour ${firstName},</p>
-      
-      <p>Merci d'avoir complété le questionnaire de recueil des besoins pour la formation <strong>"${trainingName}"</strong>.</p>
-      
-      <p>J'ai bien noté que certains prérequis de la formation ne sont pas entièrement validés de votre côté :</p>
-      
-      <div style="background-color: #f9f9f9; padding: 15px; border-left: 4px solid #eab308; margin: 20px 0;">
-        ${prereqList}
-      </div>
-      
-      <p>Pas d'inquiétude ! Ces prérequis sont là pour vous aider à tirer le meilleur parti de la formation, mais ils ne sont pas forcément bloquants.</p>
-      
-      <p><strong>Pourriez-vous me répondre en m'expliquant ce qui vous manque ?</strong></p>
-      
-      <p>Ensemble, nous verrons comment adapter la formation à votre situation ou, si nécessaire, comment vous préparer au mieux avant la session.</p>
-      
-      <p>Je reste à votre disposition pour en discuter.</p>
-      
-      ${signature}
-    `;
+    // Try to load template (always use "vous" for prerequis_warning)
+    const { data: template } = await supabase
+      .from("email_templates")
+      .select("subject, html_content")
+      .eq("template_type", "prerequis_warning_vous")
+      .maybeSingle();
+
+    let subject: string;
+    let htmlContent: string;
+
+    if (template) {
+      const vars = {
+        first_name: firstName,
+        training_name: trainingName,
+        prereq_list: `<div style="background-color: #f9f9f9; padding: 15px; border-left: 4px solid #eab308; margin: 20px 0;">${prereqList}</div>`,
+      };
+      subject = processTemplate(template.subject, vars, false);
+      const body = processTemplate(template.html_content, vars, false);
+      htmlContent = body
+        .split(/\n\n+/)
+        .map((p: string) => `<p>${p.replace(/\n/g, "<br>")}</p>`)
+        .join("") + "\n" + signature;
+    } else {
+      subject = `Prérequis de la formation "${trainingName}" - Faisons le point`;
+      htmlContent = `
+        <p>Bonjour ${firstName},</p>
+        
+        <p>Merci d'avoir complété le questionnaire de recueil des besoins pour la formation <strong>"${trainingName}"</strong>.</p>
+        
+        <p>J'ai bien noté que certains prérequis de la formation ne sont pas entièrement validés de votre côté :</p>
+        
+        <div style="background-color: #f9f9f9; padding: 15px; border-left: 4px solid #eab308; margin: 20px 0;">
+          ${prereqList}
+        </div>
+        
+        <p>Pas d'inquiétude ! Ces prérequis sont là pour vous aider à tirer le meilleur parti de la formation, mais ils ne sont pas forcément bloquants.</p>
+        
+        <p><strong>Pourriez-vous me répondre en m'expliquant ce qui vous manque ?</strong></p>
+        
+        <p>Ensemble, nous verrons comment adapter la formation à votre situation ou, si nécessaire, comment vous préparer au mieux avant la session.</p>
+        
+        <p>Je reste à votre disposition pour en discuter.</p>
+        
+        ${signature}
+      `;
+    }
 
     // Send email
     const emailResponse = await fetch("https://api.resend.com/emails", {
@@ -87,7 +117,7 @@ serve(async (req) => {
         to: [participantEmail],
         cc: [senderEmail],
         bcc: bccList,
-        subject: `Prérequis de la formation "${trainingName}" - Faisons le point`,
+        subject,
         html: htmlContent,
         reply_to: senderEmail,
       }),
