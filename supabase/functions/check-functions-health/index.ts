@@ -99,6 +99,7 @@ const FUNCTION_NAMES = [
   "send-training-calendar-invite",
   "send-training-documents",
   "send-welcome-email",
+  "slack-list-channels",
   "submit-attendance-signature",
   "submit-convention-signature",
   "submit-devis-signature",
