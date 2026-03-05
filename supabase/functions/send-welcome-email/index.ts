@@ -310,7 +310,8 @@ serve(async (req) => {
             training.training_name,
             participantNames,
             signature,
-            bccList
+            bccList,
+            supabase,
           );
         }
       }
