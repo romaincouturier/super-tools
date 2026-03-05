@@ -807,7 +807,7 @@ const ParticipantList = ({
         );
       })()}
 
-      {/* 3. Questionnaire des besoins */}
+      {/* 2. Questionnaire des besoins */}
       {(participant.needs_survey_status === "complete" || participant.needs_survey_status === "valide_formateur") && (
         <ViewQuestionnaireDialog participantId={participant.id} participantName={displayName} trainingId={trainingId} />
       )}
