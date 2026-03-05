@@ -796,6 +796,309 @@ Cordialement,`,
     },
     variables: ["first_name", "mission_title", "deliverables_link"],
   },
+  // ── New templates (previously hardcoded in edge functions) ──
+  welcome: {
+    name: "Convocation / Confirmation d'inscription",
+    timing: "before",
+    subject: {
+      tu: "{{training_name}} – {{training_date}} – Confirmation d'inscription",
+      vous: "{{training_name}} – {{training_date}} – Confirmation d'inscription",
+    },
+    content: {
+      tu: `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
+
+Nous avons le plaisir de te confirmer ton inscription à la formation "{{training_name}}".
+
+Informations pratiques :
+- Date : {{training_date}}
+- Horaires :
+{{training_schedule}}
+- Lieu : {{training_location}}
+
+Nous restons à ta disposition pour toute question.
+
+À très bientôt !`,
+      vous: `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
+
+Nous avons le plaisir de vous confirmer votre inscription à la formation "{{training_name}}".
+
+Informations pratiques :
+- Date : {{training_date}}
+- Horaires :
+{{training_schedule}}
+- Lieu : {{training_location}}
+
+Nous restons à votre disposition pour toute question.
+
+À très bientôt !`,
+    },
+    variables: ["first_name", "training_name", "training_date", "training_schedule", "training_location"],
+  },
+  reminder: {
+    name: "Rappel formation imminente",
+    timing: "before",
+    delayKey: "delay_reminder_days",
+    subject: {
+      tu: "Rappel : Formation {{training_name}} – {{training_date}}",
+      vous: "Rappel : Formation {{training_name}} – {{training_date}}",
+    },
+    content: {
+      tu: `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
+
+Ta formation "{{training_name}}" approche !
+
+Pour rappel :
+- Date : {{training_date}}
+- Horaires :
+{{training_schedule}}
+- Lieu : {{training_location}}
+
+N'hésite pas à me contacter si tu as des questions.
+
+À très bientôt !`,
+      vous: `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
+
+Votre formation "{{training_name}}" approche !
+
+Pour rappel :
+- Date : {{training_date}}
+- Horaires :
+{{training_schedule}}
+- Lieu : {{training_location}}
+
+N'hésitez pas à me contacter si vous avez des questions.
+
+À très bientôt !`,
+    },
+    variables: ["first_name", "training_name", "training_date", "training_schedule", "training_location"],
+  },
+  trainer_summary: {
+    name: "Synthèse pré-formation (formateur)",
+    timing: "before",
+    delayKey: "delay_trainer_summary_days",
+    subject: {
+      tu: "☀️ Demain c'est le grand jour ! Synthèse pré-formation – {{training_name}}",
+      vous: "☀️ Synthèse pré-formation – {{training_name}}",
+    },
+    content: {
+      tu: `Salut {{first_name}} 👋
+
+Ta formation "{{training_name}}" pour {{client_name}} a lieu demain {{training_date}} !
+
+📍 Lieu : {{training_location}}
+{{#training_schedule}}
+🕐 Horaires :
+{{training_schedule}}
+{{/training_schedule}}
+
+🎯 Synthèse des besoins des participants
+
+{{survey_stats}}
+
+{{ai_summary}}
+
+Bonne préparation et bonne formation demain ! 🚀`,
+      vous: `Bonjour {{first_name}},
+
+Votre formation "{{training_name}}" pour {{client_name}} a lieu demain {{training_date}}.
+
+📍 Lieu : {{training_location}}
+{{#training_schedule}}
+🕐 Horaires :
+{{training_schedule}}
+{{/training_schedule}}
+
+🎯 Synthèse des besoins des participants
+
+{{survey_stats}}
+
+{{ai_summary}}
+
+Bonne préparation et bonne formation demain !`,
+    },
+    variables: ["first_name", "training_name", "client_name", "training_date", "training_location", "training_schedule", "survey_stats", "ai_summary"],
+  },
+  live_reminder: {
+    name: "Rappel de live collectif",
+    timing: "during",
+    subject: {
+      tu: "📺 Rappel : Live \"{{live_title}}\" aujourd'hui – {{training_name}}",
+      vous: "📺 Rappel : Live \"{{live_title}}\" aujourd'hui – {{training_name}}",
+    },
+    content: {
+      tu: `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
+
+Pour rappel, tu as un live collectif prévu aujourd'hui dans le cadre de la formation "{{training_name}}" :
+- {{live_title}}
+- 📅 {{live_date}} à {{live_time}}
+
+{{#meeting_url}}
+<p><a href="{{meeting_url}}" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Rejoindre le live</a></p>
+{{/meeting_url}}
+
+Ta présence est importante pour profiter pleinement de ce moment d'échange.
+
+À tout à l'heure !`,
+      vous: `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
+
+Pour rappel, vous avez un live collectif prévu aujourd'hui dans le cadre de la formation "{{training_name}}" :
+- {{live_title}}
+- 📅 {{live_date}} à {{live_time}}
+
+{{#meeting_url}}
+<p><a href="{{meeting_url}}" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Rejoindre le live</a></p>
+{{/meeting_url}}
+
+Votre présence est importante pour profiter pleinement de ce moment d'échange.
+
+À tout à l'heure !`,
+    },
+    variables: ["first_name", "training_name", "live_title", "live_date", "live_time", "meeting_url"],
+  },
+  prerequis_warning: {
+    name: "Alerte prérequis non validés",
+    timing: "before",
+    subject: {
+      tu: "Prérequis de la formation \"{{training_name}}\" - Faisons le point",
+      vous: "Prérequis de la formation \"{{training_name}}\" - Faisons le point",
+    },
+    content: {
+      tu: `Bonjour {{first_name}},
+
+Merci d'avoir complété le questionnaire de recueil des besoins pour la formation "{{training_name}}".
+
+J'ai bien noté que certains prérequis de la formation ne sont pas entièrement validés de ton côté :
+
+{{prereq_list}}
+
+Pas d'inquiétude ! Ces prérequis sont là pour t'aider à tirer le meilleur parti de la formation, mais ils ne sont pas forcément bloquants.
+
+Pourrais-tu me répondre en m'expliquant ce qui te manque ?
+
+Ensemble, nous verrons comment adapter la formation à ta situation ou, si nécessaire, comment te préparer au mieux avant la session.
+
+Je reste à ta disposition pour en discuter.`,
+      vous: `Bonjour {{first_name}},
+
+Merci d'avoir complété le questionnaire de recueil des besoins pour la formation "{{training_name}}".
+
+J'ai bien noté que certains prérequis de la formation ne sont pas entièrement validés de votre côté :
+
+{{prereq_list}}
+
+Pas d'inquiétude ! Ces prérequis sont là pour vous aider à tirer le meilleur parti de la formation, mais ils ne sont pas forcément bloquants.
+
+Pourriez-vous me répondre en m'expliquant ce qui vous manque ?
+
+Ensemble, nous verrons comment adapter la formation à votre situation ou, si nécessaire, comment vous préparer au mieux avant la session.
+
+Je reste à votre disposition pour en discuter.`,
+    },
+    variables: ["first_name", "training_name", "prereq_list"],
+  },
+  questionnaire_confirmation: {
+    name: "Confirmation questionnaire complété",
+    timing: "before",
+    subject: {
+      tu: "Questionnaire complété - {{training_name}}",
+      vous: "Questionnaire complété - {{training_name}}",
+    },
+    content: {
+      tu: `Bonjour {{first_name}},
+
+Merci d'avoir rempli le formulaire de recueil des besoins pour la formation.
+
+{{format_specific_content}}
+
+{{calendar_section}}
+
+Tu peux aussi flâner sur notre <a href="{{youtube_url}}">chaîne YouTube</a> et notre <a href="{{blog_url}}">blog</a> sur lesquels tu trouveras des éléments en rapport avec le programme.
+
+Si tu as la moindre question, je reste à ta disposition par mail <a href="mailto:{{sender_email}}">{{sender_email}}</a>
+
+À très vite,`,
+      vous: `Bonjour {{first_name}},
+
+Merci d'avoir rempli le formulaire de recueil des besoins pour la formation.
+
+{{format_specific_content}}
+
+{{calendar_section}}
+
+Vous pouvez aussi consulter notre <a href="{{youtube_url}}">chaîne YouTube</a> et notre <a href="{{blog_url}}">blog</a> sur lesquels vous trouverez des éléments en rapport avec le programme.
+
+Si vous avez la moindre question, je reste à votre disposition par mail <a href="mailto:{{sender_email}}">{{sender_email}}</a>
+
+À très vite,`,
+    },
+    variables: ["first_name", "training_name", "format_specific_content", "calendar_section", "youtube_url", "blog_url", "sender_email"],
+  },
+  booking_reminder: {
+    name: "Rappel réservation logistique",
+    timing: "before",
+    subject: {
+      tu: "Rappel : Réservation pour {{entity_type}} \"{{entity_name}}\"",
+      vous: "Rappel : Réservation pour {{entity_type}} \"{{entity_name}}\"",
+    },
+    content: {
+      tu: `Bonjour {{first_name}},
+
+Ceci est un rappel automatique concernant {{entity_type}} "{{entity_name}}" prévue le {{start_date}} à {{location}} pour {{client_name}}.
+
+⚠️ À réserver : {{booking_items}}
+{{entity_type}} a lieu dans {{days_until}} jour(s).
+
+{{extra_html}}
+
+Merci de procéder à la réservation dès que possible et de cocher les cases correspondantes dans l'interface de gestion.
+
+Ce rappel sera envoyé chaque lundi jusqu'à ce que les réservations soient confirmées.`,
+      vous: `Bonjour {{first_name}},
+
+Ceci est un rappel automatique concernant {{entity_type}} "{{entity_name}}" prévue le {{start_date}} à {{location}} pour {{client_name}}.
+
+⚠️ À réserver : {{booking_items}}
+{{entity_type}} a lieu dans {{days_until}} jour(s).
+
+{{extra_html}}
+
+Merci de procéder à la réservation dès que possible et de cocher les cases correspondantes dans l'interface de gestion.
+
+Ce rappel sera envoyé chaque lundi jusqu'à ce que les réservations soient confirmées.`,
+    },
+    variables: ["first_name", "entity_type", "entity_name", "start_date", "location", "client_name", "booking_items", "days_until", "extra_html"],
+  },
+  sponsor_notification: {
+    name: "Notification convocations au commanditaire",
+    timing: "manual",
+    subject: {
+      tu: "Convocations envoyées - {{training_name}}",
+      vous: "Convocations envoyées - {{training_name}}",
+    },
+    content: {
+      tu: `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
+
+Nous avons le plaisir de t'informer que les convocations à la formation "{{training_name}}" ont été envoyées aux participants suivants :
+
+{{participants_list}}
+
+Chaque participant a reçu un email contenant toutes les informations pratiques relatives à la formation.
+
+Nous restons à ta disposition pour toute question.`,
+      vous: `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
+
+Nous avons le plaisir de vous informer que les convocations à la formation "{{training_name}}" ont été envoyées aux participants suivants :
+
+{{participants_list}}
+
+Chaque participant a reçu un email contenant toutes les informations pratiques relatives à la formation.
+
+Nous restons à votre disposition pour toute question.
+
+Bien cordialement,`,
+    },
+    variables: ["first_name", "training_name", "participants_list"],
+  },
 };
 
 // Centralized settings registry: single source of truth for keys, defaults, and descriptions
