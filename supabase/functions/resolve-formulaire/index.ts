@@ -90,7 +90,7 @@ serve(async (req: Request): Promise<Response> => {
           p_email: email,
           p_first_name: first_name,
           p_last_name: last_name,
-          p_course_id: cid,
+          p_product_id: cid,
           p_form_type: form_type,
         }
       );
@@ -105,12 +105,12 @@ serve(async (req: Request): Promise<Response> => {
 
     // Standard resolution: look up participant
     const { data: result, error: rpcError } = await supabase.rpc(
-      "resolve_formulaire_token",
-      {
-        p_email: email,
-        p_course_id: cid,
-        p_form_type: form_type,
-      }
+        "resolve_formulaire_token",
+        {
+          p_email: email,
+          p_product_id: cid,
+          p_form_type: form_type,
+        }
     );
 
     if (rpcError) {
