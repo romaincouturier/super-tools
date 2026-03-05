@@ -1623,6 +1623,7 @@ export type Database = {
       }
       formation_formulas: {
         Row: {
+          coaching_sessions_count: number
           created_at: string
           display_order: number
           duree_heures: number | null
@@ -1636,6 +1637,7 @@ export type Database = {
           woocommerce_product_id: number | null
         }
         Insert: {
+          coaching_sessions_count?: number
           created_at?: string
           display_order?: number
           duree_heures?: number | null
@@ -1649,6 +1651,7 @@ export type Database = {
           woocommerce_product_id?: number | null
         }
         Update: {
+          coaching_sessions_count?: number
           created_at?: string
           display_order?: number
           duree_heures?: number | null
@@ -1670,6 +1673,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      formulaire_rate_limits: {
+        Row: {
+          id: string
+          ip_address: string
+          requested_at: string
+        }
+        Insert: {
+          id?: string
+          ip_address: string
+          requested_at?: string
+        }
+        Update: {
+          id?: string
+          ip_address?: string
+          requested_at?: string
+        }
+        Relationships: []
       }
       google_calendar_tokens: {
         Row: {
@@ -3807,6 +3828,7 @@ export type Database = {
           token: string
           training_id: string
           updated_at: string
+          woocommerce_product_id: number | null
         }
         Insert: {
           amelioration_suggeree?: string | null
@@ -3840,6 +3862,7 @@ export type Database = {
           token: string
           training_id: string
           updated_at?: string
+          woocommerce_product_id?: number | null
         }
         Update: {
           amelioration_suggeree?: string | null
@@ -3873,6 +3896,7 @@ export type Database = {
           token?: string
           training_id?: string
           updated_at?: string
+          woocommerce_product_id?: number | null
         }
         Relationships: [
           {
@@ -3991,6 +4015,9 @@ export type Database = {
       training_participants: {
         Row: {
           added_at: string
+          coaching_deadline: string | null
+          coaching_sessions_completed: number
+          coaching_sessions_total: number
           company: string | null
           convention_document_id: string | null
           convention_file_url: string | null
@@ -4019,6 +4046,9 @@ export type Database = {
         }
         Insert: {
           added_at?: string
+          coaching_deadline?: string | null
+          coaching_sessions_completed?: number
+          coaching_sessions_total?: number
           company?: string | null
           convention_document_id?: string | null
           convention_file_url?: string | null
@@ -4047,6 +4077,9 @@ export type Database = {
         }
         Update: {
           added_at?: string
+          coaching_deadline?: string | null
+          coaching_sessions_completed?: number
+          coaching_sessions_total?: number
           company?: string | null
           convention_document_id?: string | null
           convention_file_url?: string | null
@@ -4436,6 +4469,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_formulaire_rate_limit: {
+        Args: {
+          p_ip_address: string
+          p_max_requests: number
+          p_window_seconds: number
+        }
+        Returns: boolean
+      }
       decrypt_token: {
         Args: { encrypted_token: string; encryption_key: string }
         Returns: string

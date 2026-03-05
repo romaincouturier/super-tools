@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Pencil, Loader2, FileText, Upload, Trash2, ExternalLink, CheckCircle2, Download, Paperclip, StickyNote, Check, Tag } from "lucide-react";
+import { Pencil, Loader2, FileText, Upload, Trash2, ExternalLink, CheckCircle2, Download, Paperclip, StickyNote, Check, Tag, UserCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
@@ -81,6 +81,10 @@ interface Participant {
   elearning_duration?: number | null;
   notes?: string | null;
   formula?: string | null;
+  formula_id?: string | null;
+  coaching_sessions_total?: number;
+  coaching_sessions_completed?: number;
+  coaching_deadline?: string | null;
 }
 
 interface ConventionSignatureStatus {
@@ -149,10 +153,17 @@ const EditParticipantDialog = ({
   const [conventionSignature, setConventionSignature] = useState<ConventionSignatureStatus | null>(null);
   const [notes, setNotes] = useState(participant.notes || "");
   const [formula, setFormula] = useState(participant.formula || "");
+  const [coachingSessionsTotal, setCoachingSessionsTotal] = useState(
+    participant.coaching_sessions_total != null ? String(participant.coaching_sessions_total) : "0"
+  );
   const [participantFiles, setParticipantFiles] = useState<ParticipantFile[]>([]);
   const [uploadingFile, setUploadingFile] = useState(false);
   const [couponCode, setCouponCode] = useState<string | null>(null);
   const { toast } = useToast();
+
+  // Check if the participant's formula supports coaching
+  const selectedFormula = availableFormulas.find(f => f.id === participant.formula_id);
+  const formulaAllowsCoaching = (selectedFormula?.coaching_sessions_count || 0) > 0;
 
   // Auto-save refs
   const saveTimerRef = useRef<ReturnType<typeof setTimeout>>();
@@ -165,7 +176,7 @@ const EditParticipantDialog = ({
   formValuesRef.current = {
     firstName, lastName, email, company, sponsorFirstName, sponsorLastName,
     sponsorEmail, financeurSameAsSponsor, financeurName, financeurUrl,
-    paymentMode, soldPriceHt, elearningDuration, notes, formula,
+    paymentMode, soldPriceHt, elearningDuration, notes, formula, coachingSessionsTotal,
   };
 
   // Form hash for change detection
@@ -190,7 +201,7 @@ const EditParticipantDialog = ({
         sponsorFirstName: string; sponsorLastName: string; sponsorEmail: string;
         financeurSameAsSponsor: boolean; financeurName: string; financeurUrl: string;
         paymentMode: string; soldPriceHt: string; elearningDuration: string;
-        notes: string; formula: string;
+        notes: string; formula: string; coachingSessionsTotal: string;
       };
 
       if (!v.email.trim()) return;
@@ -220,6 +231,11 @@ const EditParticipantDialog = ({
           if (availableFormulas.length > 0) {
             updateData.formula = v.formula || null;
           }
+        }
+
+        // Coaching sessions (only if formula allows it)
+        if (formulaAllowsCoaching) {
+          updateData.coaching_sessions_total = v.coachingSessionsTotal ? parseInt(v.coachingSessionsTotal, 10) : 0;
         }
 
         const { error } = await supabase
@@ -285,6 +301,7 @@ const EditParticipantDialog = ({
     setSignedConventionUrl(participant.signed_convention_url || null);
     setNotes(participant.notes || "");
     setFormula(participant.formula || "");
+    setCoachingSessionsTotal(participant.coaching_sessions_total != null ? String(participant.coaching_sessions_total) : "0");
     lastSavedHashRef.current = "";
     setLastSaved(null);
   }, [participant, trainingElearningDuration]);
@@ -489,6 +506,9 @@ const EditParticipantDialog = ({
           if (availableFormulas.length > 0) {
             updateData.formula = v.formula || null;
           }
+        }
+        if (formulaAllowsCoaching) {
+          updateData.coaching_sessions_total = v.coachingSessionsTotal ? parseInt(v.coachingSessionsTotal, 10) : 0;
         }
         supabase
           .from("training_participants")
@@ -983,6 +1003,40 @@ const EditParticipantDialog = ({
                   rows={3}
                 />
               </div>
+
+              {/* Coaching sessions */}
+              {formulaAllowsCoaching && (
+                <>
+                  <div className="pt-4 border-t">
+                    <Label className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+                      <UserCheck className="h-4 w-4" />
+                      Séances de coaching individuel
+                    </Label>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-3">
+                      <Input
+                        type="number"
+                        min="0"
+                        value={coachingSessionsTotal}
+                        onChange={(e) => setCoachingSessionsTotal(e.target.value)}
+                        className="w-24"
+                      />
+                      <span className="text-sm text-muted-foreground">
+                        séance(s) — {participant.coaching_sessions_completed || 0} réalisée(s)
+                      </span>
+                    </div>
+                    {participant.coaching_deadline && (
+                      <p className="text-xs text-muted-foreground">
+                        Validité : jusqu'au {new Date(participant.coaching_deadline).toLocaleDateString("fr-FR")}
+                      </p>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      Par défaut : {selectedFormula?.coaching_sessions_count || 0} séance(s) (formule {selectedFormula?.name})
+                    </p>
+                  </div>
+                </>
+              )}
 
               {/* Fichiers libres */}
               <div className="pt-4 border-t">

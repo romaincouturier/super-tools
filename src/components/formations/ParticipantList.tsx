@@ -1,4 +1,4 @@
-import { HelpCircle, Mail, MailCheck, Clock, CheckCircle, AlertTriangle, Trash2, Loader2, Send, RefreshCw, Receipt, Building, Scroll, Award, Download, Forward, UserCheck, RotateCw, FileSignature, Eye, BellRing, StickyNote, ArrowUpDown, ArrowUp, ArrowDown, ClipboardCheck, Star } from "lucide-react";
+import { HelpCircle, Mail, MailCheck, Clock, CheckCircle, AlertTriangle, Trash2, Loader2, Send, RefreshCw, Receipt, Building, Scroll, Award, Download, Forward, UserCheck, RotateCw, FileSignature, Eye, BellRing, StickyNote, ArrowUpDown, ArrowUp, ArrowDown, ClipboardCheck, Star, UserCheck as CoachingIcon } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -73,6 +73,9 @@ interface Participant {
   notes?: string | null;
   formula?: string | null;
   formula_id?: string | null;
+  coaching_sessions_total?: number;
+  coaching_sessions_completed?: number;
+  coaching_deadline?: string | null;
 }
 
 interface ParticipantListProps {
@@ -206,6 +209,7 @@ const ParticipantList = ({
 
   const isInterEntreprise = formatFormation === "inter-entreprises" || formatFormation === "e_learning";
   const isIndividualConvention = formatFormation === "inter-entreprises" || formatFormation === "e_learning";
+  const hasCoachingParticipants = participants.some((p) => (p.coaching_sessions_total || 0) > 0);
 
   // Fetch all evaluations (certificates + status) for all participants
   useEffect(() => {
@@ -721,6 +725,28 @@ const ParticipantList = ({
     toast({ title: "Email copié", description: email });
   };
 
+  // Toggle a coaching session completed/uncompleted
+  const handleToggleCoachingSession = async (participant: Participant) => {
+    const current = participant.coaching_sessions_completed || 0;
+    const total = participant.coaching_sessions_total || 0;
+    const newCompleted = current < total ? current + 1 : current - 1;
+    const { error } = await (supabase as any)
+      .from("training_participants")
+      .update({ coaching_sessions_completed: Math.max(0, newCompleted) })
+      .eq("id", participant.id);
+    if (!error) onParticipantUpdated();
+  };
+
+  const handleUncheckCoachingSession = async (participant: Participant) => {
+    const current = participant.coaching_sessions_completed || 0;
+    if (current <= 0) return;
+    const { error } = await (supabase as any)
+      .from("training_participants")
+      .update({ coaching_sessions_completed: current - 1 })
+      .eq("id", participant.id);
+    if (!error) onParticipantUpdated();
+  };
+
   // Helper to render action buttons for a participant in chronological training order
   const renderParticipantActions = (participant: Participant, displayName: string) => (
     <div className="flex items-center gap-0.5">
@@ -1044,6 +1070,7 @@ const ParticipantList = ({
                 </TableHead>
               )}
               <TableHead>Recueil</TableHead>
+              {hasCoachingParticipants && <TableHead>Coaching</TableHead>}
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -1125,6 +1152,47 @@ const ParticipantList = ({
                       <TooltipContent><p>{statusConfig.tooltip}</p></TooltipContent>
                     </Tooltip>
                   </TableCell>
+                  {hasCoachingParticipants && (
+                    <TableCell>
+                      {(participant.coaching_sessions_total || 0) > 0 ? (
+                        <div className="flex items-center gap-1.5">
+                          {Array.from({ length: participant.coaching_sessions_total || 0 }).map((_, i) => {
+                            const isCompleted = i < (participant.coaching_sessions_completed || 0);
+                            return (
+                              <Tooltip key={i}>
+                                <TooltipTrigger asChild>
+                                  <button
+                                    className={`h-5 w-5 rounded-full border-2 flex items-center justify-center transition-colors ${
+                                      isCompleted
+                                        ? "bg-primary border-primary text-primary-foreground"
+                                        : "border-muted-foreground/30 hover:border-primary"
+                                    }`}
+                                    onClick={() => {
+                                      if (isCompleted && i === (participant.coaching_sessions_completed || 0) - 1) {
+                                        handleUncheckCoachingSession(participant);
+                                      } else if (!isCompleted && i === (participant.coaching_sessions_completed || 0)) {
+                                        handleToggleCoachingSession(participant);
+                                      }
+                                    }}
+                                  >
+                                    {isCompleted && <CheckCircle className="h-3 w-3" />}
+                                  </button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Séance {i + 1}/{participant.coaching_sessions_total} {isCompleted ? "(réalisée)" : "(à programmer)"}</p>
+                                  {participant.coaching_deadline && (
+                                    <p className="text-xs">Validité : {new Date(participant.coaching_deadline).toLocaleDateString("fr-FR")}</p>
+                                  )}
+                                </TooltipContent>
+                              </Tooltip>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
+                  )}
                   <TableCell>
                     <div className="flex justify-end">
                       {renderParticipantActions(participant, displayName)}

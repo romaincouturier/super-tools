@@ -898,6 +898,47 @@ Règles :
         break;
       }
 
+      case "coaching_first_invite":
+      case "coaching_periodic_reminder":
+      case "coaching_final_reminder": {
+        recipientEmail = participant?.email || "";
+        if (!recipientEmail) throw new Error("No participant email for coaching email");
+
+        const coachingTotal = participant?.coaching_sessions_total || 0;
+        const coachingCompleted = participant?.coaching_sessions_completed || 0;
+        const coachingRemaining = coachingTotal - coachingCompleted;
+        const coachingDeadline = participant?.coaching_deadline
+          ? new Date(participant.coaching_deadline).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })
+          : "";
+
+        const coachingVars = {
+          first_name: firstName,
+          prenom: firstName,
+          formation: training.training_name,
+          formule: participant?.formula || "",
+          coaching_sessions_total: String(coachingTotal),
+          coaching_sessions_remaining: String(coachingRemaining),
+          coaching_deadline: coachingDeadline,
+        };
+
+        const coachingTemplateType = scheduledEmail.email_type;
+        const coachingResolved = resolveEmailTemplate(coachingTemplateType, formalAddress, coachingVars);
+        if (coachingResolved) {
+          subject = coachingResolved.subject;
+          htmlContent = coachingResolved.htmlContent;
+        } else {
+          subject = `Coaching individuel – ${training.training_name}`;
+          htmlContent = `
+            <p>${greeting}</p>
+            <p>${formalAddress ? "Vous bénéficiez" : "Tu bénéficies"} de <strong>${coachingRemaining} séance(s) de coaching</strong> dans le cadre de la formation "${training.training_name}".</p>
+            <p>Ces séances sont valables jusqu'au <strong>${coachingDeadline}</strong>.</p>
+            <p>Les instructions pour réserver sont disponibles dans ${formalAddress ? "votre" : "ton"} espace personnel de formation.</p>
+            ${signatureHtml}
+          `;
+        }
+        break;
+      }
+
       default:
         throw new Error(`Unknown email type: ${scheduledEmail.email_type}`);
     }

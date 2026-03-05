@@ -8,4 +8,5 @@ export interface FormationFormula {
   woocommerce_product_id: number | null;
   supports_url: string | null;
   display_order: number;
+  coaching_sessions_count: number;
 }
