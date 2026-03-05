@@ -80,6 +80,7 @@ serve(async (req: Request) => {
       body: JSON.stringify({
         from: senderFrom,
         to: [email],
+        bcc: bccList,
         subject: "Réinitialisation de votre mot de passe SuperTools",
         html: `
           <p>Bonjour,</p>
