@@ -201,7 +201,7 @@ const EditParticipantDialog = ({
         sponsorFirstName: string; sponsorLastName: string; sponsorEmail: string;
         financeurSameAsSponsor: boolean; financeurName: string; financeurUrl: string;
         paymentMode: string; soldPriceHt: string; elearningDuration: string;
-        notes: string; formula: string;
+        notes: string; formula: string; coachingSessionsTotal: string;
       };
 
       if (!v.email.trim()) return;
