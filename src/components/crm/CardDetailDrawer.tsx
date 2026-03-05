@@ -1317,7 +1317,7 @@ const CardDetailDrawer = ({
                   const { data: { session } } = await supabase.auth.getSession();
                   if (!session) return;
                   const notifType = salesStatus === "WON" ? "opportunity_won" : "opportunity_created";
-                  await supabase.functions.invoke("crm-slack-notify", {
+                  const { data, error } = await supabase.functions.invoke("crm-slack-notify", {
                     body: {
                       type: notifType,
                       card: {
@@ -1332,9 +1332,15 @@ const CardDetailDrawer = ({
                       actor_email: user?.email,
                     },
                   });
+
+                  if (error || data?.error || data?.success === false) {
+                    throw new Error(error?.message || data?.error || "Erreur Slack");
+                  }
+
                   toast({ title: "Notification Slack envoyée ✅" });
-                } catch {
-                  toast({ title: "Erreur Slack", variant: "destructive" });
+                } catch (err: unknown) {
+                  const message = err instanceof Error ? err.message : "Erreur Slack";
+                  toast({ title: "Erreur Slack", description: message, variant: "destructive" });
                 }
               }}>
                 <MessageSquare className="h-4 w-4 mr-2" />

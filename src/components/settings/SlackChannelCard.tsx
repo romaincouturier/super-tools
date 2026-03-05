@@ -79,14 +79,21 @@ export default function SlackChannelCard({ currentChannel, onChannelChange }: Sl
           {error && channels.length === 0 ? (
             <p className="text-sm text-destructive">{error}</p>
           ) : (
-            <Select value={currentChannel || "general"} onValueChange={onChannelChange}>
+            <Select
+              value={
+                currentChannel
+                  ? (channels.find((ch) => ch.id === currentChannel || ch.name === currentChannel)?.id ?? currentChannel)
+                  : ""
+              }
+              onValueChange={onChannelChange}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Sélectionner un canal" />
               </SelectTrigger>
               <SelectContent>
                 {channels.length > 0 ? (
                   channels.map((ch) => (
-                    <SelectItem key={ch.id} value={ch.name}>
+                    <SelectItem key={ch.id} value={ch.id}>
                       <span className="flex items-center gap-1.5">
                         <Hash className="h-3 w-3 text-muted-foreground" />
                         {ch.name}
@@ -95,12 +102,12 @@ export default function SlackChannelCard({ currentChannel, onChannelChange }: Sl
                     </SelectItem>
                   ))
                 ) : loading ? (
-                  <SelectItem value={currentChannel || "general"} disabled>
+                  <SelectItem value="__loading__" disabled>
                     Chargement…
                   </SelectItem>
                 ) : (
-                  <SelectItem value={currentChannel || "general"}>
-                    {currentChannel || "general"}
+                  <SelectItem value="__none__" disabled>
+                    Aucun canal disponible
                   </SelectItem>
                 )}
               </SelectContent>
