@@ -271,9 +271,9 @@ const DailyTodoPanel = () => {
   }
 
   return (
-    <div className="space-y-3">
+    <div className="flex flex-col min-h-0 flex-1 gap-3">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between shrink-0">
         <h2 className="text-lg font-semibold">TODO du jour</h2>
         <TooltipProvider delayDuration={200}>
           <Tooltip>
@@ -292,7 +292,7 @@ const DailyTodoPanel = () => {
       </div>
 
       {/* Progress bar */}
-      <div className="space-y-1">
+      <div className="space-y-1 shrink-0">
         <div className="flex items-center justify-between text-xs text-muted-foreground">
           <span>{completedCount}/{totalCount} actions</span>
           <span>{progressPercent}%</span>
@@ -301,7 +301,7 @@ const DailyTodoPanel = () => {
       </div>
 
       {/* Actions list */}
-      <ScrollArea className="max-h-[calc(100vh-320px)]">
+      <ScrollArea className="min-h-0 flex-1">
         <div className="space-y-3 pr-2">
           {Object.entries(grouped).map(([category, catActions]) => {
             const config = CATEGORIES[category] || { label: category, emoji: "📌", color: "text-gray-600" };
@@ -387,7 +387,7 @@ const DailyTodoPanel = () => {
 
       {/* Analytics toggle */}
       {themeRanking.length > 0 && (
-        <div className="border-t pt-3">
+        <div className="border-t pt-3 shrink-0">
           <button
             onClick={() => setShowAnalytics(!showAnalytics)}
             className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors w-full"
