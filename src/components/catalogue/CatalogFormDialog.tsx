@@ -60,6 +60,7 @@ interface FormulaEdit {
   elearning_access_email_content: string;
   woocommerce_product_id: string;
   supports_url: string;
+  coaching_sessions_count: string;
   _deleted?: boolean;
 }
 
@@ -109,6 +110,7 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
     elearning_access_email_content: f.elearning_access_email_content || "",
     woocommerce_product_id: f.woocommerce_product_id != null ? String(f.woocommerce_product_id) : "",
     supports_url: f.supports_url || "",
+    coaching_sessions_count: f.coaching_sessions_count ? String(f.coaching_sessions_count) : "0",
   });
 
   // Always keep latest values in ref
@@ -183,6 +185,7 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
         elearning_access_email_content: f.elearning_access_email_content.trim() || null,
         woocommerce_product_id: f.woocommerce_product_id ? parseInt(f.woocommerce_product_id, 10) : null,
         supports_url: f.supports_url.trim() || null,
+        coaching_sessions_count: f.coaching_sessions_count ? parseInt(f.coaching_sessions_count, 10) : 0,
         display_order: i,
       };
 
@@ -496,6 +499,7 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
                         elearning_access_email_content: "",
                         woocommerce_product_id: "",
                         supports_url: "",
+                        coaching_sessions_count: "0",
                       },
                     ]);
                     setExpandedFormula(nextVisibleIdx);
@@ -625,6 +629,24 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
                                   className="h-8 text-sm"
                                 />
                               </div>
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs">Séances de coaching individuel incluses</Label>
+                              <Input
+                                type="number"
+                                min="0"
+                                value={formula.coaching_sessions_count}
+                                onChange={(e) =>
+                                  setFormulas((prev) =>
+                                    prev.map((f, i) => (i === idx ? { ...f, coaching_sessions_count: e.target.value } : f))
+                                  )
+                                }
+                                placeholder="0"
+                                className="h-8 text-sm"
+                              />
+                              <p className="text-xs text-muted-foreground">
+                                Nombre de séances de coaching individuel incluses dans cette formule (0 = pas de coaching)
+                              </p>
                             </div>
                           </div>
                         )}

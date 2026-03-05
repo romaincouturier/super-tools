@@ -231,6 +231,16 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
       const { status, sendWelcomeNow } = getEmailMode(trainingStartDate);
       console.log("[AddParticipantDialog] Submit - status:", status, "sendWelcomeNow:", sendWelcomeNow);
 
+      // Compute coaching fields from selected formula
+      const coachingTotal = selectedFormula?.coaching_sessions_count || 0;
+      const coachingDeadline = coachingTotal > 0
+        ? (() => {
+            const d = new Date();
+            d.setFullYear(d.getFullYear() + 1);
+            return format(d, "yyyy-MM-dd");
+          })()
+        : null;
+
       const participantData = {
         training_id: trainingId,
         first_name: capitalizeName(firstName) || null,
@@ -239,6 +249,9 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
         company: company.trim() || null,
         needs_survey_token: token,
         needs_survey_status: status,
+        coaching_sessions_total: coachingTotal,
+        coaching_sessions_completed: 0,
+        coaching_deadline: coachingDeadline,
         // Add formula if available (from catalog formulas)
         ...(formulaId && {
           formula,
@@ -344,25 +357,6 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
           });
         } catch (emailError) {
           console.error("Failed to send e-learning access email:", emailError);
-        }
-      }
-
-      // For coachee participants: schedule coaching booking invitation (J+7 after enrollment)
-      if (selectedFormula && formula.toLowerCase().includes("coach") && insertedParticipant) {
-        try {
-          const inviteDate = new Date();
-          inviteDate.setDate(inviteDate.getDate() + 7);
-          inviteDate.setHours(9, 0, 0, 0);
-
-          await supabase.from("scheduled_emails").insert({
-            training_id: trainingId,
-            participant_id: insertedParticipant.id,
-            email_type: "coaching_booking_invite",
-            scheduled_for: inviteDate.toISOString(),
-            status: "pending",
-          });
-        } catch (err) {
-          console.warn("Failed to schedule coaching booking invite:", err);
         }
       }
 

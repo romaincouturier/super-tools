@@ -1623,6 +1623,7 @@ export type Database = {
       }
       formation_formulas: {
         Row: {
+          coaching_sessions_count: number
           created_at: string
           display_order: number
           duree_heures: number | null
@@ -1636,6 +1637,7 @@ export type Database = {
           woocommerce_product_id: number | null
         }
         Insert: {
+          coaching_sessions_count?: number
           created_at?: string
           display_order?: number
           duree_heures?: number | null
@@ -1649,6 +1651,7 @@ export type Database = {
           woocommerce_product_id?: number | null
         }
         Update: {
+          coaching_sessions_count?: number
           created_at?: string
           display_order?: number
           duree_heures?: number | null
@@ -3991,6 +3994,9 @@ export type Database = {
       training_participants: {
         Row: {
           added_at: string
+          coaching_deadline: string | null
+          coaching_sessions_completed: number
+          coaching_sessions_total: number
           company: string | null
           convention_document_id: string | null
           convention_file_url: string | null
@@ -4019,6 +4025,9 @@ export type Database = {
         }
         Insert: {
           added_at?: string
+          coaching_deadline?: string | null
+          coaching_sessions_completed?: number
+          coaching_sessions_total?: number
           company?: string | null
           convention_document_id?: string | null
           convention_file_url?: string | null
@@ -4047,6 +4056,9 @@ export type Database = {
         }
         Update: {
           added_at?: string
+          coaching_deadline?: string | null
+          coaching_sessions_completed?: number
+          coaching_sessions_total?: number
           company?: string | null
           convention_document_id?: string | null
           convention_file_url?: string | null
