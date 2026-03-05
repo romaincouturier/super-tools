@@ -355,9 +355,9 @@ const BulkAddParticipantsDialog = ({
         }
       }
 
-      // If status is "programme", create scheduled emails for needs survey
+      // If status is "programme", create scheduled emails for needs survey (skip for e-learning)
       let needsSurveySkipped = false;
-      if (status === "programme" && data && data.length > 0 && trainingStartDate) {
+      if (status === "programme" && data && data.length > 0 && trainingStartDate && formatFormation !== "e_learning") {
         try {
           const [workingDays, needsSurveyDelay] = await Promise.all([
             fetchWorkingDays(supabase),
