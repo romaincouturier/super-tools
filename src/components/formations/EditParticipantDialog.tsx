@@ -153,10 +153,17 @@ const EditParticipantDialog = ({
   const [conventionSignature, setConventionSignature] = useState<ConventionSignatureStatus | null>(null);
   const [notes, setNotes] = useState(participant.notes || "");
   const [formula, setFormula] = useState(participant.formula || "");
+  const [coachingSessionsTotal, setCoachingSessionsTotal] = useState(
+    participant.coaching_sessions_total != null ? String(participant.coaching_sessions_total) : "0"
+  );
   const [participantFiles, setParticipantFiles] = useState<ParticipantFile[]>([]);
   const [uploadingFile, setUploadingFile] = useState(false);
   const [couponCode, setCouponCode] = useState<string | null>(null);
   const { toast } = useToast();
+
+  // Check if the participant's formula supports coaching
+  const selectedFormula = availableFormulas.find(f => f.id === participant.formula_id);
+  const formulaAllowsCoaching = (selectedFormula?.coaching_sessions_count || 0) > 0;
 
   // Auto-save refs
   const saveTimerRef = useRef<ReturnType<typeof setTimeout>>();
@@ -169,7 +176,7 @@ const EditParticipantDialog = ({
   formValuesRef.current = {
     firstName, lastName, email, company, sponsorFirstName, sponsorLastName,
     sponsorEmail, financeurSameAsSponsor, financeurName, financeurUrl,
-    paymentMode, soldPriceHt, elearningDuration, notes, formula,
+    paymentMode, soldPriceHt, elearningDuration, notes, formula, coachingSessionsTotal,
   };
 
   // Form hash for change detection
