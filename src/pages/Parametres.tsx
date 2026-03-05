@@ -1644,6 +1644,47 @@ const Parametres = () => {
 
                 <Separator />
 
+                {/* Application & Technical URLs */}
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium">URLs techniques</h3>
+                  <p className="text-sm text-muted-foreground">
+                    URLs utilisées par le système pour les emails, les cartes et les pièces jointes.
+                  </p>
+                  <div className="space-y-3 max-w-lg">
+                    <div className="space-y-2">
+                      <Label htmlFor="app-url">URL de l'application</Label>
+                      <Input
+                        id="app-url"
+                        type="url"
+                        value={settings.app_url}
+                        onChange={(e) => updateSetting("app_url", e.target.value)}
+                        placeholder="https://super-tools.lovable.app"
+                      />
+                      <p className="text-xs text-muted-foreground">URL de base utilisée dans tous les liens des emails.</p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="google-maps-api-key">Clé API Google Maps</Label>
+                      <Input
+                        id="google-maps-api-key"
+                        value={settings.google_maps_api_key}
+                        onChange={(e) => updateSetting("google_maps_api_key", e.target.value)}
+                        placeholder="AIzaSy..."
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="qualiopi-path">Chemin certificat Qualiopi (storage)</Label>
+                      <Input
+                        id="qualiopi-path"
+                        value={settings.qualiopi_certificate_path}
+                        onChange={(e) => updateSetting("qualiopi_certificate_path", e.target.value)}
+                        placeholder="certificat-qualiopi/Certificat QUALIOPI v3.pdf"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
                 {/* Newsletter Tool URL */}
                 <div className="space-y-4">
                   <h3 className="text-sm font-medium">Outil de newsletter</h3>
