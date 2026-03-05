@@ -545,7 +545,7 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
                           </Button>
                         </div>
                         {isExpanded && (
-                          <div className="px-3 pb-3 space-y-3 border-t pt-3">
+                          <div className="px-3 pb-3 space-y-3 border-t pt-3" onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
                             <div className="space-y-1">
                               <Label className="text-xs">Nom *</Label>
                               <Input
