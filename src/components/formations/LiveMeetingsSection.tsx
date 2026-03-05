@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { format, parseISO, addMinutes, differenceInMinutes } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Video, Plus, Trash2, Loader2, ExternalLink, Check, X, Pencil } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,7 +15,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -53,8 +59,7 @@ const LiveMeetingsSection = ({ trainingId }: LiveMeetingsSectionProps) => {
   const [title, setTitle] = useState("");
   const [scheduledDate, setScheduledDate] = useState("");
   const [scheduledTime, setScheduledTime] = useState("10:00");
-  const [endDate, setEndDate] = useState("");
-  const [endTime, setEndTime] = useState("11:00");
+  const [duration, setDuration] = useState("60");
   const [meetingUrl, setMeetingUrl] = useState("");
   const [description, setDescription] = useState("");
   const { toast } = useToast();
@@ -78,8 +83,7 @@ const LiveMeetingsSection = ({ trainingId }: LiveMeetingsSectionProps) => {
     setTitle("");
     setScheduledDate("");
     setScheduledTime("10:00");
-    setEndDate("");
-    setEndTime("11:00");
+    setDuration("60");
     setMeetingUrl("");
     setDescription("");
     setEditingMeeting(null);
@@ -92,12 +96,10 @@ const LiveMeetingsSection = ({ trainingId }: LiveMeetingsSectionProps) => {
 
   const openEdit = (meeting: LiveMeeting) => {
     const dt = parseISO(meeting.scheduled_at);
-    const dtEnd = addMinutes(dt, meeting.duration_minutes);
     setTitle(meeting.title);
     setScheduledDate(format(dt, "yyyy-MM-dd"));
     setScheduledTime(format(dt, "HH:mm"));
-    setEndDate(format(dtEnd, "yyyy-MM-dd"));
-    setEndTime(format(dtEnd, "HH:mm"));
+    setDuration(String(meeting.duration_minutes));
     setMeetingUrl(meeting.meeting_url || "");
     setDescription(meeting.description || "");
     setEditingMeeting(meeting);
@@ -142,24 +144,15 @@ const LiveMeetingsSection = ({ trainingId }: LiveMeetingsSectionProps) => {
   };
 
   const handleSave = async () => {
-    if (!title.trim() || !scheduledDate || !scheduledTime || !endDate || !endTime) return;
+    if (!title.trim() || !scheduledDate || !scheduledTime) return;
     setSaving(true);
 
     const scheduledAt = `${scheduledDate}T${scheduledTime}:00`;
-    const endAt = `${endDate}T${endTime}:00`;
-    const durationMinutes = differenceInMinutes(new Date(endAt), new Date(scheduledAt));
-
-    if (durationMinutes <= 0) {
-      toast({ title: "Erreur", description: "La date/heure de fin doit être après la date/heure de début", variant: "destructive" });
-      setSaving(false);
-      return;
-    }
-
     const payload = {
       training_id: trainingId,
       title: title.trim(),
       scheduled_at: scheduledAt,
-      duration_minutes: durationMinutes,
+      duration_minutes: parseInt(duration) || 60,
       meeting_url: meetingUrl.trim() || null,
       description: description.trim() || null,
     };
@@ -283,15 +276,8 @@ const LiveMeetingsSection = ({ trainingId }: LiveMeetingsSectionProps) => {
                     {statusBadge(meeting.status)}
                   </div>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    {(() => {
-                      const start = parseISO(meeting.scheduled_at);
-                      const end = addMinutes(start, meeting.duration_minutes);
-                      const sameDay = format(start, "yyyy-MM-dd") === format(end, "yyyy-MM-dd");
-                      if (sameDay) {
-                        return `${format(start, "EEEE d MMMM yyyy", { locale: fr })} · ${format(start, "HH:mm")} - ${format(end, "HH:mm")}`;
-                      }
-                      return `${format(start, "EEEE d MMMM yyyy 'à' HH:mm", { locale: fr })} → ${format(end, "EEEE d MMMM yyyy 'à' HH:mm", { locale: fr })}`;
-                    })()}
+                    {format(parseISO(meeting.scheduled_at), "EEEE d MMMM yyyy 'à' HH:mm", { locale: fr })}
+                    {" · "}{meeting.duration_minutes} min
                   </p>
                   {meeting.description && (
                     <p className="text-xs text-muted-foreground mt-0.5 truncate">{meeting.description}</p>
@@ -373,20 +359,15 @@ const LiveMeetingsSection = ({ trainingId }: LiveMeetingsSectionProps) => {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Date de début *</Label>
+                <Label>Date *</Label>
                 <Input
                   type="date"
                   value={scheduledDate}
-                  onChange={(e) => {
-                    setScheduledDate(e.target.value);
-                    if (!endDate || endDate < e.target.value) {
-                      setEndDate(e.target.value);
-                    }
-                  }}
+                  onChange={(e) => setScheduledDate(e.target.value)}
                 />
               </div>
               <div className="space-y-2">
-                <Label>Heure de début *</Label>
+                <Label>Heure *</Label>
                 <Input
                   type="time"
                   value={scheduledTime}
@@ -394,24 +375,20 @@ const LiveMeetingsSection = ({ trainingId }: LiveMeetingsSectionProps) => {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Date de fin *</Label>
-                <Input
-                  type="date"
-                  value={endDate}
-                  min={scheduledDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Heure de fin *</Label>
-                <Input
-                  type="time"
-                  value={endTime}
-                  onChange={(e) => setEndTime(e.target.value)}
-                />
-              </div>
+            <div className="space-y-2">
+              <Label>Durée (minutes)</Label>
+              <Select value={duration} onValueChange={setDuration}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="30">30 min</SelectItem>
+                  <SelectItem value="45">45 min</SelectItem>
+                  <SelectItem value="60">1h</SelectItem>
+                  <SelectItem value="90">1h30</SelectItem>
+                  <SelectItem value="120">2h</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label>Lien de la réunion</Label>
@@ -432,7 +409,7 @@ const LiveMeetingsSection = ({ trainingId }: LiveMeetingsSectionProps) => {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Annuler</Button>
-            <Button onClick={handleSave} disabled={saving || !title.trim() || !scheduledDate || !endDate}>
+            <Button onClick={handleSave} disabled={saving || !title.trim() || !scheduledDate}>
               {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               {editingMeeting ? "Enregistrer" : "Ajouter"}
             </Button>
