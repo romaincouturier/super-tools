@@ -226,6 +226,9 @@ const CardDetailDrawer = ({
 
   // Email state
   const [emailTo, setEmailTo] = useState("");
+  const [emailCc, setEmailCc] = useState("");
+  const [emailBcc, setEmailBcc] = useState("");
+  const [showCcBcc, setShowCcBcc] = useState(false);
   const [emailSubject, setEmailSubject] = useState("");
   const [emailBody, setEmailBody] = useState("");
   const [emailSubjectBeforeAi, setEmailSubjectBeforeAi] = useState<string | null>(null);
