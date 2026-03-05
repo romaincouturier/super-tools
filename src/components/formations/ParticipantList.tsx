@@ -73,6 +73,9 @@ interface Participant {
   notes?: string | null;
   formula?: string | null;
   formula_id?: string | null;
+  coaching_sessions_total?: number;
+  coaching_sessions_completed?: number;
+  coaching_deadline?: string | null;
 }
 
 interface ParticipantListProps {
