@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getSenderFrom, getSenderEmail, getSenderName, getBccList } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
+import { sendEmail } from "../_shared/resend.ts";
 
 /**
  * Process Participant List Reminders
@@ -262,23 +263,23 @@ serve(async (req) => {
         html: bodyHtml,
       };
 
-      const resendRes = await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${resendApiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(emailPayload),
+      const resendResult = await sendEmail({
+        from: senderFrom,
+        to: [trainerEmail],
+        bcc: bccAddresses,
+        subject,
+        html: bodyHtml,
+        _emailType: "participant_list_reminder",
+        _trainingId: training.id,
       });
 
-      if (!resendRes.ok) {
-        const errText = await resendRes.text();
-        console.error(`[participant-list-reminders] Resend error for ${training.id}:`, errText);
+      if (!resendResult.success) {
+        console.error(`[participant-list-reminders] sendEmail error for ${training.id}:`, resendResult.error);
         results.push({
           trainingId: training.id,
           trainingName: training.training_name,
           sent: false,
-          reason: `Resend error: ${resendRes.status}`,
+          reason: `sendEmail error: ${resendResult.error}`,
         });
         continue;
       }

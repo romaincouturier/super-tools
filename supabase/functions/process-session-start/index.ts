@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getSenderFrom, getBccList, getSenderEmail } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
+import { sendEmail } from "../_shared/resend.ts";
 
 /**
  * Process Session Start
@@ -254,24 +255,19 @@ serve(async (req) => {
               ${signature}
             `;
 
-            const emailResponse = await fetch("https://api.resend.com/emails", {
-              method: "POST",
-              headers: {
-                "Authorization": `Bearer ${RESEND_API_KEY}`,
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                from: senderFrom,
-                to: [participant.email],
-                bcc: bccList,
-                subject: `✍️ Émargement – ${training.training_name} – ${formattedDate} ${periodLabel}`,
-                html: htmlContent,
-              }),
+            const result = await sendEmail({
+              from: senderFrom,
+              to: [participant.email],
+              bcc: bccList,
+              subject: `✍️ Émargement – ${training.training_name} – ${formattedDate} ${periodLabel}`,
+              html: htmlContent,
+              _emailType: "attendance_signature_auto",
+              _trainingId: trainingId,
+              _participantId: participant.id,
             });
 
-            if (!emailResponse.ok) {
-              const errorText = await emailResponse.text();
-              console.error(`[process-session-start] Resend error for ${participant.email}:`, errorText);
+            if (!result.success) {
+              console.error(`[process-session-start] sendEmail error for ${participant.email}:`, result.error);
               continue;
             }
 
@@ -319,22 +315,17 @@ serve(async (req) => {
               ${signature}
             `;
 
-            const trainerResponse = await fetch("https://api.resend.com/emails", {
-              method: "POST",
-              headers: {
-                "Authorization": `Bearer ${RESEND_API_KEY}`,
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                from: senderFrom,
-                to: [trainerEmail],
-                bcc: bccList,
-                subject: `📋 Début de session – ${training.training_name} – ${formattedDate} ${periodLabel}`,
-                html: trainerHtml,
-              }),
+            const trainerResult = await sendEmail({
+              from: senderFrom,
+              to: [trainerEmail],
+              bcc: bccList,
+              subject: `📋 Début de session – ${training.training_name} – ${formattedDate} ${periodLabel}`,
+              html: trainerHtml,
+              _emailType: "session_start_trainer",
+              _trainingId: trainingId,
             });
 
-            if (trainerResponse.ok) {
+            if (trainerResult.success) {
               console.log(`[process-session-start] Trainer notified: ${trainerEmail}`);
               totalTrainerNotifications++;
             } else {

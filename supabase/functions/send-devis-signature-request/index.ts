@@ -1,9 +1,9 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { Resend } from "https://esm.sh/resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { getSenderFrom, getBccList } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
 import { getAppUrls } from "../_shared/app-urls.ts";
+import { sendEmail } from "../_shared/resend.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -60,11 +60,6 @@ serve(async (req: Request): Promise<Response> => {
         JSON.stringify({ error: "Champs obligatoires manquants" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
-    }
-
-    const resendApiKey = Deno.env.get("RESEND_API_KEY");
-    if (!resendApiKey) {
-      throw new Error("RESEND_API_KEY is not set");
     }
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
@@ -150,13 +145,13 @@ serve(async (req: Request): Promise<Response> => {
 
     // Send email
     const [senderFrom, bccList] = await Promise.all([getSenderFrom(), getBccList()]);
-    const resend = new Resend(resendApiKey);
-    const emailResponse = await resend.emails.send({
+    const emailResponse = await sendEmail({
       from: senderFrom,
       to: [recipientEmail],
       bcc: bccList,
       subject: `Signature de devis - Formation "${formationName}"`,
       html: htmlContent,
+      _emailType: "devis_signature_request",
     });
 
     console.log("Email sent successfully:", emailResponse);

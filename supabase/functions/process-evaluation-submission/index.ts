@@ -1,9 +1,9 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { Resend } from "https://esm.sh/resend@2.0.0";
 import { getSenderFrom, getBccList, getSenderEmail } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
 import { processTemplate, textToHtml } from "../_shared/templates.ts";
+import { sendEmail } from "../_shared/resend.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,7 +11,6 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 const PDFMONKEY_API_KEY = Deno.env.get("PDFMONKEY_API_KEY");
 const GOOGLE_SERVICE_ACCOUNT_JSON = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_JSON");
 
@@ -439,12 +438,15 @@ const handler = async (req: Request): Promise<Response> => {
       ${signatureHtml}
     `;
 
-    await resend.emails.send({
-      from: senderFrom,
+    await sendEmail({
       to: [evaluationNotificationEmail],
+      from: senderFrom,
       bcc: bccList,
       subject: `Commentaire à créer sur le site - ${training.training_name}`,
       html: notificationHtml,
+      _emailType: "evaluation_notification",
+      _trainingId: training.id,
+      _participantId: evaluation.participant_id || undefined,
     });
 
     // Wait to avoid rate limit (Resend: 2 requests per second)
@@ -532,9 +534,9 @@ Bonne continuation et à bientôt !`;
     // Build CC list: add sponsor for inter/e-learning
     const ccList = sponsorEmail ? [sponsorEmail] : [];
 
-    await resend.emails.send({
-      from: senderFrom,
+    await sendEmail({
       to: [email],
+      from: senderFrom,
       cc: ccList,
       bcc: bccList,
       subject: certSubject,
@@ -545,6 +547,9 @@ Bonne continuation et à bientôt !`;
           content: pdfBase64,
         },
       ],
+      _emailType: "certificate",
+      _trainingId: training.id,
+      _participantId: evaluation.participant_id || undefined,
     });
 
     // Log certificate email
@@ -602,12 +607,15 @@ Bonne continuation et à bientôt !`;
         ${signatureHtml}
       `;
 
-      await resend.emails.send({
-        from: senderFrom,
+      await sendEmail({
         to: [email],
+        from: senderFrom,
         bcc: bccList,
         subject: finalSubject,
         html: postEvalHtml,
+        _emailType: "post_evaluation",
+        _trainingId: training.id,
+        _participantId: evaluation.participant_id || undefined,
       });
 
       await supabase.from("activity_logs").insert({

@@ -1,10 +1,10 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { getSenderEmail, getSenderFrom } from "../_shared/email-settings.ts";
+import { sendEmail } from "../_shared/resend.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY")!;
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -93,48 +93,42 @@ serve(async (req: Request) => {
 
             const maskedIp = ipAddress.replace(/(\d+)\.(\d+)\.(\d+)\.(\d+)/, "$1.$2.xxx.xxx");
 
-            await fetch("https://api.resend.com/emails", {
-              method: "POST",
-              headers: {
-                "Authorization": `Bearer ${RESEND_API_KEY}`,
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                from: senderFrom,
-                to: [ADMIN_EMAIL],
-                subject: "🚫 Alerte sécurité SuperTools - Tentative de connexion non autorisée",
-                html: `
-                  <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                    <h1 style="color: #b91c1c;">🚫 Tentative de connexion non autorisée</h1>
-                    <p><strong>Une tentative de connexion a été détectée avec un email qui n'existe pas dans le système.</strong></p>
+            await sendEmail({
+              from: senderFrom,
+              to: [ADMIN_EMAIL],
+              subject: "🚫 Alerte sécurité SuperTools - Tentative de connexion non autorisée",
+              html: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                  <h1 style="color: #b91c1c;">🚫 Tentative de connexion non autorisée</h1>
+                  <p><strong>Une tentative de connexion a été détectée avec un email qui n'existe pas dans le système.</strong></p>
 
-                    <div style="background-color: #fef2f2; border-left: 4px solid #b91c1c; padding: 16px; margin: 20px 0;">
-                      <p style="margin: 0;"><strong>Email utilisé :</strong> ${email}</p>
-                      <p style="margin: 8px 0 0;"><strong>Adresse IP :</strong> ${maskedIp}</p>
-                      <p style="margin: 8px 0 0;"><strong>User Agent :</strong> ${userAgent}</p>
-                      <p style="margin: 8px 0 0;"><strong>Date :</strong> ${formattedDate} à ${formattedTime}</p>
-                    </div>
-
-                    <p>Cet email <strong>n'appartient à aucun utilisateur enregistré</strong> dans SuperTools. Cela peut indiquer :</p>
-                    <ul>
-                      <li>Une tentative d'intrusion par un tiers</li>
-                      <li>Un utilisateur qui utilise un mauvais email</li>
-                    </ul>
-
-                    <p>Si les tentatives persistent depuis la même IP, pensez à bloquer cette adresse.</p>
-
-                    <p style="color: #666; font-size: 14px; margin-top: 30px;">
-                      Cet email a été envoyé automatiquement par le système de sécurité SuperTools.<br>
-                      L'adresse IP a été partiellement masquée pour votre sécurité.<br>
-                      Les alertes pour un même email inconnu sont limitées à une par heure.
-                    </p>
-
-                    <p style="margin-top: 40px;">--<br>
-                    <strong>SuperTools</strong><br>
-                    Supertilt</p>
+                  <div style="background-color: #fef2f2; border-left: 4px solid #b91c1c; padding: 16px; margin: 20px 0;">
+                    <p style="margin: 0;"><strong>Email utilisé :</strong> ${email}</p>
+                    <p style="margin: 8px 0 0;"><strong>Adresse IP :</strong> ${maskedIp}</p>
+                    <p style="margin: 8px 0 0;"><strong>User Agent :</strong> ${userAgent}</p>
+                    <p style="margin: 8px 0 0;"><strong>Date :</strong> ${formattedDate} à ${formattedTime}</p>
                   </div>
-                `,
-              }),
+
+                  <p>Cet email <strong>n'appartient à aucun utilisateur enregistré</strong> dans SuperTools. Cela peut indiquer :</p>
+                  <ul>
+                    <li>Une tentative d'intrusion par un tiers</li>
+                    <li>Un utilisateur qui utilise un mauvais email</li>
+                  </ul>
+
+                  <p>Si les tentatives persistent depuis la même IP, pensez à bloquer cette adresse.</p>
+
+                  <p style="color: #666; font-size: 14px; margin-top: 30px;">
+                    Cet email a été envoyé automatiquement par le système de sécurité SuperTools.<br>
+                    L'adresse IP a été partiellement masquée pour votre sécurité.<br>
+                    Les alertes pour un même email inconnu sont limitées à une par heure.
+                  </p>
+
+                  <p style="margin-top: 40px;">--<br>
+                  <strong>SuperTools</strong><br>
+                  Supertilt</p>
+                </div>
+              `,
+              _emailType: "security_alert_unauthorized",
             });
 
             console.log("Unauthorized access alert email sent successfully");
@@ -179,44 +173,38 @@ serve(async (req: Request) => {
           // Masquer partiellement l'IP pour la sécurité
           const maskedIp = ipAddress.replace(/(\d+)\.(\d+)\.(\d+)\.(\d+)/, "$1.$2.xxx.xxx");
 
-          await fetch("https://api.resend.com/emails", {
-            method: "POST",
-            headers: {
-              "Authorization": `Bearer ${RESEND_API_KEY}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              from: senderFrom,
-              to: [ADMIN_EMAIL],
-              subject: "⚠️ Alerte sécurité SuperTools - Tentatives de connexion suspectes",
-              html: `
-                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                  <h1 style="color: #dc2626;">⚠️ Alerte Sécurité</h1>
-                  <p><strong>${ALERT_THRESHOLD} tentatives de connexion échouées détectées</strong></p>
-                  
-                  <div style="background-color: #fef2f2; border-left: 4px solid #dc2626; padding: 16px; margin: 20px 0;">
-                    <p style="margin: 0;"><strong>Email ciblé :</strong> ${email}</p>
-                    <p style="margin: 8px 0 0;"><strong>Adresse IP :</strong> ${maskedIp}</p>
-                    <p style="margin: 8px 0 0;"><strong>Date :</strong> ${formattedDate} à ${formattedTime}</p>
-                  </div>
-                  
-                  <p>Si ce n'était pas vous, nous vous recommandons de :</p>
-                  <ul>
-                    <li>Changer votre mot de passe immédiatement</li>
-                    <li>Vérifier qu'aucune activité suspecte n'a eu lieu sur votre compte</li>
-                  </ul>
-                  
-                  <p style="color: #666; font-size: 14px; margin-top: 30px;">
-                    Cet email a été envoyé automatiquement par le système de sécurité SuperTools.<br>
-                    L'adresse IP a été partiellement masquée pour votre sécurité.
-                  </p>
-                  
-                  <p style="margin-top: 40px;">--<br>
-                  <strong>SuperTools</strong><br>
-                  Supertilt</p>
+          await sendEmail({
+            from: senderFrom,
+            to: [ADMIN_EMAIL],
+            subject: "⚠️ Alerte sécurité SuperTools - Tentatives de connexion suspectes",
+            html: `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <h1 style="color: #dc2626;">⚠️ Alerte Sécurité</h1>
+                <p><strong>${ALERT_THRESHOLD} tentatives de connexion échouées détectées</strong></p>
+                
+                <div style="background-color: #fef2f2; border-left: 4px solid #dc2626; padding: 16px; margin: 20px 0;">
+                  <p style="margin: 0;"><strong>Email ciblé :</strong> ${email}</p>
+                  <p style="margin: 8px 0 0;"><strong>Adresse IP :</strong> ${maskedIp}</p>
+                  <p style="margin: 8px 0 0;"><strong>Date :</strong> ${formattedDate} à ${formattedTime}</p>
                 </div>
-              `,
-            }),
+                
+                <p>Si ce n'était pas vous, nous vous recommandons de :</p>
+                <ul>
+                  <li>Changer votre mot de passe immédiatement</li>
+                  <li>Vérifier qu'aucune activité suspecte n'a eu lieu sur votre compte</li>
+                </ul>
+                
+                <p style="color: #666; font-size: 14px; margin-top: 30px;">
+                  Cet email a été envoyé automatiquement par le système de sécurité SuperTools.<br>
+                  L'adresse IP a été partiellement masquée pour votre sécurité.
+                </p>
+                
+                <p style="margin-top: 40px;">--<br>
+                <strong>SuperTools</strong><br>
+                Supertilt</p>
+              </div>
+            `,
+            _emailType: "security_alert_bruteforce",
           });
           
           console.log("Security alert email sent successfully");

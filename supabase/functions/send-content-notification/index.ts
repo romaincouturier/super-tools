@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getSenderFrom, getBccList } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
+import { sendEmail } from "../_shared/resend.ts";
 
 // Bump this when you deploy to confirm the latest code is running.
 const VERSION = "send-content-notification@2026-02-05.1";
@@ -174,25 +175,17 @@ serve(async (req) => {
         );
     }
 
-    const response = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${RESEND_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from: senderFrom,
-        to: [recipientEmail],
-        bcc: bccList,
-        subject,
-        html: htmlContent,
-      }),
+    const result = await sendEmail({
+      from: senderFrom,
+      to: [recipientEmail],
+      bcc: bccList,
+      subject,
+      html: htmlContent,
+      _emailType: "content_notification",
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("Resend error:", response.status, errorText);
-      // Don't fail the whole operation if email fails
+    if (!result.success) {
+      console.error("sendEmail error:", result.error);
       return new Response(
         JSON.stringify({ success: false, error: "Email sending failed", _version: VERSION }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }

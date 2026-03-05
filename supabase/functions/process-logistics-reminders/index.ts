@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getSenderFrom, getBccList } from "../_shared/email-settings.ts";
+import { sendEmail } from "../_shared/resend.ts";
 
 /**
  * Consolidated Daily Digest
@@ -662,24 +663,17 @@ serve(async (req) => {
       `;
 
       try {
-        const emailResponse = await fetch("https://api.resend.com/emails", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${resendApiKey}`,
-          },
-          body: JSON.stringify({
-            from: senderFrom,
-            to: [recipient.email],
-            bcc: bccList,
-            subject: `🔔 ${alertCount} alerte${alertCount > 1 ? "s" : ""} — Récapitulatif quotidien`,
-            html: htmlContent,
-          }),
+        const result = await sendEmail({
+          from: senderFrom,
+          to: [recipient.email],
+          bcc: bccList,
+          subject: `🔔 ${alertCount} alerte${alertCount > 1 ? "s" : ""} — Récapitulatif quotidien`,
+          html: htmlContent,
+          _emailType: "logistics_digest",
         });
 
-        if (!emailResponse.ok) {
-          const errorText = await emailResponse.text();
-          console.error(`[${VERSION}] Email failed for ${recipient.email}:`, errorText);
+        if (!result.success) {
+          console.error(`[${VERSION}] Email failed for ${recipient.email}:`, result.error);
         } else {
           emailsSent++;
           totalAlertsSent += alertCount;

@@ -1,9 +1,9 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { Resend } from "https://esm.sh/resend@2.0.0";
 import { encode as base64Encode } from "https://deno.land/std@0.190.0/encoding/base64.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { getSenderFrom, getSenderEmail, getBccList } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
+import { sendEmail } from "../_shared/resend.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -326,14 +326,6 @@ async function sendEmailWithResend(
   pdfUrlAvecSubrogation: string | null,
   typeSubrogation: "sans" | "avec" | "les2"
 ): Promise<{ subject: string; htmlContent: string; attachmentNames: string[]; attachments: EmailAttachmentPayload[] }> {
-  const resendApiKey = Deno.env.get("RESEND_API_KEY");
-  
-  if (!resendApiKey) {
-    throw new Error("RESEND_API_KEY is not set");
-  }
-
-  const resend = new Resend(resendApiKey);
-
   console.log(`Sending email to ${emailCommanditaire}...`);
 
   // Fetch custom email template if exists (micro_devis always uses vouvoiement)
@@ -473,13 +465,14 @@ async function sendEmailWithResend(
   const senderFrom = await getSenderFrom();
   const bccList = await getBccList();
 
-  const emailResponse = await resend.emails.send({
+  const emailResponse = await sendEmail({
     from: senderFrom,
     to: [emailCommanditaire],
     bcc: bccList,
     subject,
     html: htmlContent,
     attachments,
+    _emailType: "micro_devis",
   });
 
   console.log("Email sent successfully:", emailResponse);

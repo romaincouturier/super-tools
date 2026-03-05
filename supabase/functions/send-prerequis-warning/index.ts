@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getSenderFrom, getSenderEmail, getBccList } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
 import { processTemplate } from "../_shared/templates.ts";
+import { sendEmail } from "../_shared/resend.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -106,31 +107,24 @@ serve(async (req) => {
     }
 
     // Send email
-    const emailResponse = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${RESEND_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from: senderFrom,
-        to: [participantEmail],
-        cc: [senderEmail],
-        bcc: bccList,
-        subject,
-        html: htmlContent,
-        reply_to: senderEmail,
-      }),
+    const result = await sendEmail({
+      from: senderFrom,
+      to: [participantEmail],
+      cc: [senderEmail],
+      bcc: bccList,
+      subject,
+      html: htmlContent,
+      replyTo: senderEmail,
+      _emailType: "prerequis_warning",
+      _trainingId: trainingId,
+      _participantId: participantId || undefined,
     });
 
-    if (!emailResponse.ok) {
-      const errorText = await emailResponse.text();
-      console.error("Resend error:", errorText);
-      throw new Error(`Failed to send email: ${emailResponse.status}`);
+    if (!result.success) {
+      throw new Error(`Failed to send email: ${result.error}`);
     }
 
-    const result = await emailResponse.json();
-    console.log("Prerequisite warning email sent to:", participantEmail, result);
+    console.log("Prerequisite warning email sent to:", participantEmail, result.id);
 
     return new Response(
       JSON.stringify({ success: true, messageId: result.id }),
