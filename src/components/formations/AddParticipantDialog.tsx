@@ -361,9 +361,9 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
         }
       }
 
-      // Schedule needs survey email for future trainings (after welcome email is sent)
+      // Schedule needs survey email for future trainings (skip for e-learning)
       let needsSurveySkipped = false;
-      if (sendWelcomeNow && insertedParticipant && trainingStartDate) {
+      if (sendWelcomeNow && insertedParticipant && trainingStartDate && formatFormation !== "e_learning") {
         try {
           const [workingDays, needsSurveyDelay] = await Promise.all([
             fetchWorkingDays(supabase),
