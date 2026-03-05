@@ -440,7 +440,7 @@ const SortableToolCard = ({
     >
       {/* Controls — appear on hover */}
       <div className="absolute top-2 right-10 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
-        <SizeSelector currentSize={size} onSizeChange={onSizeChange} />
+        <SizeSelector currentSize={size} onSizeChange={onSizeChange} isFavorite={isFavorite} onToggleFavorite={onToggleFavorite} />
       </div>
       <div
         {...attributes}
