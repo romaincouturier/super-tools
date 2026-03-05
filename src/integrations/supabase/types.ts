@@ -1674,6 +1674,24 @@ export type Database = {
           },
         ]
       }
+      formulaire_rate_limits: {
+        Row: {
+          id: string
+          ip_address: string
+          requested_at: string
+        }
+        Insert: {
+          id?: string
+          ip_address: string
+          requested_at?: string
+        }
+        Update: {
+          id?: string
+          ip_address?: string
+          requested_at?: string
+        }
+        Relationships: []
+      }
       google_calendar_tokens: {
         Row: {
           access_token: string
@@ -3810,6 +3828,7 @@ export type Database = {
           token: string
           training_id: string
           updated_at: string
+          woocommerce_product_id: number | null
         }
         Insert: {
           amelioration_suggeree?: string | null
@@ -3843,6 +3862,7 @@ export type Database = {
           token: string
           training_id: string
           updated_at?: string
+          woocommerce_product_id?: number | null
         }
         Update: {
           amelioration_suggeree?: string | null
@@ -3876,6 +3896,7 @@ export type Database = {
           token?: string
           training_id?: string
           updated_at?: string
+          woocommerce_product_id?: number | null
         }
         Relationships: [
           {
@@ -4448,6 +4469,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_formulaire_rate_limit: {
+        Args: {
+          p_ip_address: string
+          p_max_requests: number
+          p_window_seconds: number
+        }
+        Returns: boolean
+      }
       decrypt_token: {
         Args: { encrypted_token: string; encryption_key: string }
         Returns: string
