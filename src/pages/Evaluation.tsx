@@ -154,9 +154,18 @@ const Evaluation = () => {
       }
     } catch (e: any) {
       console.error("Failed to load evaluation", e);
-      setError(
-        "Impossible d'ouvrir cette évaluation (lien invalide, expiré, ou accès refusé)."
-      );
+      const errorMsg = "Impossible d'ouvrir cette évaluation (lien invalide, expiré, ou accès refusé).";
+      setError(errorMsg);
+      // Fire-and-forget alert to admin
+      supabase.functions.invoke("alert-form-error", {
+        body: {
+          formType: "evaluation",
+          token,
+          errorMessage: e?.message || e?.code || errorMsg,
+          userAgent: navigator.userAgent,
+          url: window.location.href,
+        },
+      }).catch(() => {});
     } finally {
       setLoading(false);
     }

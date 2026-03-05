@@ -246,9 +246,18 @@ const Questionnaire = () => {
       }
     } catch (e: any) {
       console.error("Failed to load questionnaire", e);
-      setError(
-        "Impossible d'ouvrir ce questionnaire (lien invalide, expiré, ou accès refusé)."
-      );
+      const errorMsg = "Impossible d'ouvrir ce questionnaire (lien invalide, expiré, ou accès refusé).";
+      setError(errorMsg);
+      // Fire-and-forget alert to admin
+      supabase.functions.invoke("alert-form-error", {
+        body: {
+          formType: "besoins",
+          token,
+          errorMessage: e?.message || e?.code || errorMsg,
+          userAgent: navigator.userAgent,
+          url: window.location.href,
+        },
+      }).catch(() => {});
     } finally {
       setLoading(false);
       initialLoadCompleteRef.current = true;
