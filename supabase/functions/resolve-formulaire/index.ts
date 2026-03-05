@@ -90,7 +90,7 @@ serve(async (req: Request): Promise<Response> => {
           p_email: email,
           p_first_name: first_name,
           p_last_name: last_name,
-          p_product_id: cid,
+          p_course_id: cid,
           p_form_type: form_type,
         }
       );
@@ -108,7 +108,7 @@ serve(async (req: Request): Promise<Response> => {
         "resolve_formulaire_token",
         {
           p_email: email,
-          p_product_id: cid,
+          p_course_id: cid,
           p_form_type: form_type,
         }
     );

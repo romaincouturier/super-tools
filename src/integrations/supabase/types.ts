@@ -1542,6 +1542,7 @@ export type Database = {
           id: string
           is_active: boolean
           is_default: boolean
+          learndash_course_id: number | null
           objectives: string[] | null
           prerequisites: string[] | null
           prix: number
@@ -1564,6 +1565,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           is_default?: boolean
+          learndash_course_id?: number | null
           objectives?: string[] | null
           prerequisites?: string[] | null
           prix?: number
@@ -1586,6 +1588,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           is_default?: boolean
+          learndash_course_id?: number | null
           objectives?: string[] | null
           prerequisites?: string[] | null
           prix?: number
@@ -2887,6 +2890,7 @@ export type Database = {
           experience_sujet: string | null
           fonction: string | null
           id: string
+          learndash_course_id: number | null
           lecture_programme: string | null
           lien_mission: string | null
           modalites_preferences: Json | null
@@ -2895,13 +2899,13 @@ export type Database = {
           niveau_actuel: number | null
           niveau_motivation: number | null
           nom: string | null
-          participant_id: string
+          participant_id: string | null
           prenom: string | null
           prerequis_details: string | null
           prerequis_validation: string | null
           societe: string | null
           token: string
-          training_id: string
+          training_id: string | null
           updated_at: string
         }
         Insert: {
@@ -2924,6 +2928,7 @@ export type Database = {
           experience_sujet?: string | null
           fonction?: string | null
           id?: string
+          learndash_course_id?: number | null
           lecture_programme?: string | null
           lien_mission?: string | null
           modalites_preferences?: Json | null
@@ -2932,13 +2937,13 @@ export type Database = {
           niveau_actuel?: number | null
           niveau_motivation?: number | null
           nom?: string | null
-          participant_id: string
+          participant_id?: string | null
           prenom?: string | null
           prerequis_details?: string | null
           prerequis_validation?: string | null
           societe?: string | null
           token: string
-          training_id: string
+          training_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -2961,6 +2966,7 @@ export type Database = {
           experience_sujet?: string | null
           fonction?: string | null
           id?: string
+          learndash_course_id?: number | null
           lecture_programme?: string | null
           lien_mission?: string | null
           modalites_preferences?: Json | null
@@ -2969,13 +2975,13 @@ export type Database = {
           niveau_actuel?: number | null
           niveau_motivation?: number | null
           nom?: string | null
-          participant_id?: string
+          participant_id?: string | null
           prenom?: string | null
           prerequis_details?: string | null
           prerequis_validation?: string | null
           societe?: string | null
           token?: string
-          training_id?: string
+          training_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -3820,16 +3826,17 @@ export type Database = {
           freins_application: string | null
           id: string
           last_name: string | null
+          learndash_course_id: number | null
           message_recommandation: string | null
           objectif_prioritaire: string | null
           objectifs_evaluation: Json | null
-          participant_id: string
+          participant_id: string | null
           qualification_intervenant_adequate: boolean | null
           recommandation: string | null
           remarques_libres: string | null
           rythme: string | null
           token: string
-          training_id: string
+          training_id: string | null
           updated_at: string
           woocommerce_product_id: number | null
         }
@@ -3854,16 +3861,17 @@ export type Database = {
           freins_application?: string | null
           id?: string
           last_name?: string | null
+          learndash_course_id?: number | null
           message_recommandation?: string | null
           objectif_prioritaire?: string | null
           objectifs_evaluation?: Json | null
-          participant_id: string
+          participant_id?: string | null
           qualification_intervenant_adequate?: boolean | null
           recommandation?: string | null
           remarques_libres?: string | null
           rythme?: string | null
           token: string
-          training_id: string
+          training_id?: string | null
           updated_at?: string
           woocommerce_product_id?: number | null
         }
@@ -3888,16 +3896,17 @@ export type Database = {
           freins_application?: string | null
           id?: string
           last_name?: string | null
+          learndash_course_id?: number | null
           message_recommandation?: string | null
           objectif_prioritaire?: string | null
           objectifs_evaluation?: Json | null
-          participant_id?: string
+          participant_id?: string | null
           qualification_intervenant_adequate?: boolean | null
           recommandation?: string | null
           remarques_libres?: string | null
           rythme?: string | null
           token?: string
-          training_id?: string
+          training_id?: string | null
           updated_at?: string
           woocommerce_product_id?: number | null
         }
@@ -4506,16 +4515,16 @@ export type Database = {
       is_signup_allowed: { Args: { p_email: string }; Returns: boolean }
       register_formulaire_orphan: {
         Args: {
+          p_course_id: number
           p_email: string
           p_first_name: string
           p_form_type: string
           p_last_name: string
-          p_product_id: number
         }
         Returns: Json
       }
       resolve_formulaire_token: {
-        Args: { p_email: string; p_form_type: string; p_product_id: number }
+        Args: { p_course_id: number; p_email: string; p_form_type: string }
         Returns: Json
       }
       update_api_key_last_used: { Args: { key_id: string }; Returns: undefined }
