@@ -715,29 +715,33 @@ const ParticipantList = ({
     );
   }
 
-  // Helper to render action buttons for a participant (shared between mobile and desktop)
+  // Copy email to clipboard
+  const handleCopyEmail = (email: string) => {
+    navigator.clipboard.writeText(email);
+    toast({ title: "Email copié", description: email });
+  };
+
+  // Helper to render action buttons for a participant in chronological training order
   const renderParticipantActions = (participant: Participant, displayName: string) => (
-    <div className="flex items-center gap-1 flex-wrap">
-      {/* Documents button - only for inter-enterprise */}
+    <div className="flex items-center gap-0.5">
+      {/* 1. Documents/Facture - inter only */}
       {isInterEntreprise && (
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
               variant="ghost"
               size="icon"
-              className={`h-8 w-8 ${participant.invoice_file_url ? "text-primary" : "text-muted-foreground hover:text-primary"}`}
+              className={`h-7 w-7 ${participant.invoice_file_url ? "text-primary" : "text-muted-foreground hover:text-primary"}`}
               onClick={() => setDocumentsParticipant(participant)}
             >
-              <Receipt className="h-4 w-4" />
+              <Receipt className="h-3.5 w-3.5" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>
-            <p>{participant.invoice_file_url ? "Facture uploadée - Gérer les documents" : "Gérer la facture"}</p>
-          </TooltipContent>
+          <TooltipContent><p>{participant.invoice_file_url ? "Facture uploadée" : "Gérer la facture"}</p></TooltipContent>
         </Tooltip>
       )}
 
-      {/* Convention button - for inter-enterprise and e-learning */}
+      {/* 2. Convention - inter/e-learning */}
       {isIndividualConvention && (() => {
         const hasConvention = !!participant.convention_file_url;
         const sigInfo = conventionSignatures.get(participant.id);
@@ -747,23 +751,11 @@ const ParticipantList = ({
           return (
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 text-muted-foreground hover:text-primary"
-                  onClick={() => handleGenerateConvention(participant)}
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Scroll className="h-4 w-4" />
-                  )}
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-primary" onClick={() => handleGenerateConvention(participant)} disabled={isLoading}>
+                  {isLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Scroll className="h-3.5 w-3.5" />}
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>
-                <p>Générer la convention de formation</p>
-              </TooltipContent>
+              <TooltipContent><p>Générer la convention</p></TooltipContent>
             </Tooltip>
           );
         }
@@ -771,59 +763,32 @@ const ParticipantList = ({
         return (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 text-primary"
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Scroll className="h-4 w-4" />
-                )}
+              <Button variant="ghost" size="icon" className="h-7 w-7 text-primary" disabled={isLoading}>
+                {isLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Scroll className="h-3.5 w-3.5" />}
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem
-                onClick={() => handleDownloadConvention(participant)}
-              >
-                <Download className="h-4 w-4 mr-2" />
-                Télécharger la convention
+              <DropdownMenuItem onClick={() => handleDownloadConvention(participant)}>
+                <Download className="h-4 w-4 mr-2" />Télécharger
               </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => handleGenerateConvention(participant)}
-              >
-                <RotateCw className="h-4 w-4 mr-2" />
-                Ré-générer la convention
+              <DropdownMenuItem onClick={() => handleGenerateConvention(participant)}>
+                <RotateCw className="h-4 w-4 mr-2" />Ré-générer
               </DropdownMenuItem>
               {sigInfo && !participant.signed_convention_url && (
                 <DropdownMenuItem disabled className="text-xs opacity-70">
                   <FileSignature className="h-4 w-4 mr-2" />
-                  {sigInfo.status === "signed"
-                    ? `Signée le ${new Date(sigInfo.signed_at!).toLocaleDateString("fr-FR")}`
-                    : sigInfo.status === "pending"
-                      ? "En attente de signature"
-                      : `Signature : ${sigInfo.status}`}
+                  {sigInfo.status === "signed" ? `Signée le ${new Date(sigInfo.signed_at!).toLocaleDateString("fr-FR")}` : sigInfo.status === "pending" ? "En attente de signature" : `Signature : ${sigInfo.status}`}
                 </DropdownMenuItem>
               )}
               {participant.signed_convention_url && (
                 <DropdownMenuItem disabled className="text-xs opacity-70">
-                  <FileSignature className="h-4 w-4 mr-2" />
-                  Convention signée (upload manuel)
+                  <FileSignature className="h-4 w-4 mr-2" />Convention signée
                 </DropdownMenuItem>
               )}
               {canSendConventionReminderFor(participant) && (
-                <DropdownMenuItem
-                  onClick={() => handleSendConventionReminder(participant)}
-                  disabled={conventionRemindingId === participant.id}
-                >
-                  {conventionRemindingId === participant.id ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <BellRing className="h-4 w-4 mr-2" />
-                  )}
-                  Relancer pour la convention
+                <DropdownMenuItem onClick={() => handleSendConventionReminder(participant)} disabled={conventionRemindingId === participant.id}>
+                  {conventionRemindingId === participant.id ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <BellRing className="h-4 w-4 mr-2" />}
+                  Relancer convention
                 </DropdownMenuItem>
               )}
             </DropdownMenuContent>
@@ -831,92 +796,75 @@ const ParticipantList = ({
         );
       })()}
 
-      {/* View questionnaire button - only for completed status */}
+      {/* 3. Questionnaire des besoins */}
       {(participant.needs_survey_status === "complete" || participant.needs_survey_status === "valide_formateur") && (
-        <ViewQuestionnaireDialog
-          participantId={participant.id}
-          participantName={displayName}
-          trainingId={trainingId}
-        />
+        <ViewQuestionnaireDialog participantId={participant.id} participantName={displayName} trainingId={trainingId} />
       )}
-
       {canSendSurveyFor(participant) && (
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-muted-foreground hover:text-primary"
-              onClick={() => handleSendSurvey(participant)}
-              disabled={sendingId === participant.id}
-            >
-              {sendingId === participant.id ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Send className="h-4 w-4" />
-              )}
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-primary" onClick={() => handleSendSurvey(participant)} disabled={sendingId === participant.id}>
+              {sendingId === participant.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
             </Button>
           </TooltipTrigger>
-          <TooltipContent>
-            <p>Envoyer le questionnaire</p>
-          </TooltipContent>
+          <TooltipContent><p>Envoyer le questionnaire</p></TooltipContent>
         </Tooltip>
       )}
-
-      {/* Reminder button - always visible for sent/in-progress statuses */}
       {canSendReminderFor(participant) && (
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-muted-foreground hover:text-primary"
-              onClick={() => handleSendReminder(participant)}
-              disabled={remindingId === participant.id}
-            >
-              {remindingId === participant.id ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <RefreshCw className="h-4 w-4" />
-              )}
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-primary" onClick={() => handleSendReminder(participant)} disabled={remindingId === participant.id}>
+              {remindingId === participant.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
             </Button>
           </TooltipTrigger>
-          <TooltipContent>
-            <p>Relancer pour recueillir le besoin</p>
-          </TooltipContent>
+          <TooltipContent><p>Relancer recueil des besoins</p></TooltipContent>
         </Tooltip>
       )}
 
-      {/* Attestation / Certificate button */}
+      {/* 4. Évaluation */}
+      {(() => {
+        const evalInfo = evaluationsByParticipant.get(participant.id);
+        if (!evalInfo) return null;
+        if (evalInfo.etat === "soumis") {
+          return (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-green-600 hover:text-green-700" onClick={() => { if (evalInfo.fullData) { setSelectedEvaluation(evalInfo.fullData); setShowEvaluationDetail(true); } }}>
+                  <ClipboardCheck className="h-3.5 w-3.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent><p>Évaluation soumise{evalInfo.appreciation_generale ? ` — ${evalInfo.appreciation_generale}/5` : ""}</p></TooltipContent>
+            </Tooltip>
+          );
+        }
+        return (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="inline-flex items-center justify-center h-7 w-7">
+                <ClipboardCheck className="h-3.5 w-3.5 text-muted-foreground/50" />
+              </span>
+            </TooltipTrigger>
+            <TooltipContent><p>Évaluation {evalInfo.etat === "envoye" ? "en attente" : evalInfo.etat}</p></TooltipContent>
+          </Tooltip>
+        );
+      })()}
+
+      {/* 5. Attestation */}
       {(() => {
         const cert = certificatesByParticipant.get(participant.id);
         const hasCert = !!cert?.certificateUrl;
         const sponsorEmail = participant.sponsor_email;
-        const sponsorName = [participant.sponsor_first_name, participant.sponsor_last_name]
-          .filter(Boolean)
-          .join(" ");
+        const sponsorName = [participant.sponsor_first_name, participant.sponsor_last_name].filter(Boolean).join(" ");
 
         if (!hasCert) {
           return (
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 text-muted-foreground hover:text-primary"
-                  disabled={generatingCertId === participant.id}
-                  onClick={() => handleGenerateCertificate(participant)}
-                >
-                  {generatingCertId === participant.id ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Award className="h-4 w-4" />
-                  )}
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-primary" disabled={generatingCertId === participant.id} onClick={() => handleGenerateCertificate(participant)}>
+                  {generatingCertId === participant.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Award className="h-3.5 w-3.5" />}
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>
-                <p>Générer et envoyer l'attestation</p>
-              </TooltipContent>
+              <TooltipContent><p>Générer l'attestation</p></TooltipContent>
             </Tooltip>
           );
         }
@@ -924,46 +872,20 @@ const ParticipantList = ({
         return (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 text-primary"
-                disabled={sendingCertId === participant.id}
-              >
-                {sendingCertId === participant.id ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Award className="h-4 w-4" />
-                )}
+              <Button variant="ghost" size="icon" className="h-7 w-7 text-primary" disabled={sendingCertId === participant.id}>
+                {sendingCertId === participant.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Award className="h-3.5 w-3.5" />}
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem
-                onClick={() => window.open(cert!.certificateUrl!, "_blank")}
-              >
-                <Download className="h-4 w-4 mr-2" />
-                Télécharger l'attestation
+              <DropdownMenuItem onClick={() => window.open(cert!.certificateUrl!, "_blank")}>
+                <Download className="h-4 w-4 mr-2" />Télécharger
               </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => handleSendCertificate(
-                  participant,
-                  participant.email,
-                  participant.first_name || ""
-                )}
-              >
-                <Forward className="h-4 w-4 mr-2" />
-                Envoyer au participant
+              <DropdownMenuItem onClick={() => handleSendCertificate(participant, participant.email, participant.first_name || "")}>
+                <Forward className="h-4 w-4 mr-2" />Envoyer au participant
               </DropdownMenuItem>
               {sponsorEmail && (
-                <DropdownMenuItem
-                  onClick={() => handleSendCertificate(
-                    participant,
-                    sponsorEmail,
-                    sponsorName
-                  )}
-                >
-                  <UserCheck className="h-4 w-4 mr-2" />
-                  Envoyer au commanditaire
+                <DropdownMenuItem onClick={() => handleSendCertificate(participant, sponsorEmail, sponsorName)}>
+                  <UserCheck className="h-4 w-4 mr-2" />Envoyer au commanditaire
                 </DropdownMenuItem>
               )}
             </DropdownMenuContent>
@@ -971,57 +893,7 @@ const ParticipantList = ({
         );
       })()}
 
-      {/* Evaluation status button */}
-      {(() => {
-        const evalInfo = evaluationsByParticipant.get(participant.id);
-        if (!evalInfo) return null;
-
-        if (evalInfo.etat === "soumis") {
-          return (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 text-green-600 hover:text-green-700"
-                  onClick={() => {
-                    if (evalInfo.fullData) {
-                      setSelectedEvaluation(evalInfo.fullData);
-                      setShowEvaluationDetail(true);
-                    }
-                  }}
-                >
-                  <ClipboardCheck className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>
-                  Évaluation soumise
-                  {evalInfo.appreciation_generale ? ` — ${evalInfo.appreciation_generale}/5` : ""}
-                  {" · Cliquer pour voir le détail"}
-                </p>
-              </TooltipContent>
-            </Tooltip>
-          );
-        }
-
-        return (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span className="inline-flex items-center justify-center h-8 w-8">
-                <ClipboardCheck className="h-4 w-4 text-muted-foreground/50" />
-              </span>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>
-                Évaluation {evalInfo.etat === "envoye" ? "envoyée — en attente de réponse" : evalInfo.etat}
-              </p>
-            </TooltipContent>
-          </Tooltip>
-        );
-      })()}
-
-      {/* Edit participant button */}
+      {/* 6. Edit */}
       <EditParticipantDialog
         participant={participant}
         trainingId={trainingId}
@@ -1031,38 +903,23 @@ const ParticipantList = ({
         onParticipantUpdated={onParticipantUpdated}
       />
 
+      {/* 7. Delete */}
       {participantsWithSignatures.has(participant.id) ? (
         <Tooltip>
           <TooltipTrigger asChild>
             <span>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 text-muted-foreground cursor-not-allowed opacity-50"
-                disabled
-              >
-                <Trash2 className="h-4 w-4" />
+              <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground cursor-not-allowed opacity-50" disabled>
+                <Trash2 className="h-3.5 w-3.5" />
               </Button>
             </span>
           </TooltipTrigger>
-          <TooltipContent>
-            <p>Ce participant a signé l'émargement et ne peut plus être supprimé</p>
-          </TooltipContent>
+          <TooltipContent><p>Émargement signé — suppression impossible</p></TooltipContent>
         </Tooltip>
       ) : (
         <AlertDialog>
           <AlertDialogTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-muted-foreground hover:text-destructive"
-              disabled={deletingId === participant.id}
-            >
-              {deletingId === participant.id ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Trash2 className="h-4 w-4" />
-              )}
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" disabled={deletingId === participant.id}>
+              {deletingId === participant.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
             </Button>
           </AlertDialogTrigger>
           <AlertDialogContent>
@@ -1070,15 +927,11 @@ const ParticipantList = ({
               <AlertDialogTitle>Supprimer ce participant ?</AlertDialogTitle>
               <AlertDialogDescription>
                 {displayName} sera définitivement retiré de cette formation.
-                Ses réponses au questionnaire seront également supprimées.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Annuler</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={() => handleDelete(participant)}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              >
+              <AlertDialogAction onClick={() => handleDelete(participant)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
                 Supprimer
               </AlertDialogAction>
             </AlertDialogFooter>
