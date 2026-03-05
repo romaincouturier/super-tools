@@ -1312,40 +1312,6 @@ const CardDetailDrawer = ({
                 {nextActionSuggesting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Wand2 className="h-4 w-4 mr-2" />}
                 Suggestion IA
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={async () => {
-                try {
-                  const { data: { session } } = await supabase.auth.getSession();
-                  if (!session) return;
-                  const notifType = salesStatus === "WON" ? "opportunity_won" : "opportunity_created";
-                  const { data, error } = await supabase.functions.invoke("crm-slack-notify", {
-                    body: {
-                      type: notifType,
-                      card: {
-                        title,
-                        company,
-                        first_name: firstName,
-                        last_name: lastName,
-                        service_type: serviceType,
-                        estimated_value: parseFloat(estimatedValue) || 0,
-                        email,
-                      },
-                      actor_email: user?.email,
-                    },
-                  });
-
-                  if (error || data?.error || data?.success === false) {
-                    throw new Error(error?.message || data?.error || "Erreur Slack");
-                  }
-
-                  toast({ title: "Notification Slack envoyée ✅" });
-                } catch (err: unknown) {
-                  const message = err instanceof Error ? err.message : "Erreur Slack";
-                  toast({ title: "Erreur Slack", description: message, variant: "destructive" });
-                }
-              }}>
-                <MessageSquare className="h-4 w-4 mr-2" />
-                Notifier sur Slack
-              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
 
