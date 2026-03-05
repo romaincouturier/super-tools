@@ -63,7 +63,9 @@ serve(async (req) => {
     }
 
     const missionTitle = mission.title;
-    const baseUrl = Deno.env.get("APP_URL") || "https://super-tools.lovable.app";
+    const { getAppUrls } = await import("../_shared/app-urls.ts");
+    const urls = await getAppUrls();
+    const baseUrl = urls.app_url;
     const deliverablesLink = `${baseUrl}/mission-info/${mission_id}`;
 
     // Fetch custom templates for both modes

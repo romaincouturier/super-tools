@@ -3,6 +3,7 @@ import { Resend } from "https://esm.sh/resend@2.0.0";
 import { encode as base64Encode } from "https://deno.land/std@0.190.0/encoding/base64.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
 import { getSenderFrom, getSenderEmail, getBccList } from "../_shared/email-settings.ts";
+import { getAppUrls } from "../_shared/app-urls.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -135,7 +136,8 @@ serve(async (req: Request): Promise<Response> => {
     }
 
     const resend = new Resend(resendApiKey);
-    const appUrl = Deno.env.get("APP_URL") || "https://super-tools.lovable.app";
+    const urls = await getAppUrls();
+    const appUrl = urls.app_url;
 
     // Fetch email settings, signature, and generate ICS in parallel
     const [organizerEmail, senderFrom, bccList, emailSignature] = await Promise.all([

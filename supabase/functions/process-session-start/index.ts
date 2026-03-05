@@ -33,7 +33,9 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
-    const baseUrl = Deno.env.get("APP_URL") || "https://super-tools.lovable.app";
+    const { getAppUrls } = await import("../_shared/app-urls.ts");
+    const urls = await getAppUrls();
+    const baseUrl = urls.app_url;
 
     const now = new Date();
     // Window: from 15 minutes ago to now (so we catch any slot that started in the last 15 min)

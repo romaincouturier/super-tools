@@ -128,7 +128,9 @@ serve(async (req) => {
     const supportsUrl = training.supports_url || "";
 
     // Base URL for evaluation links
-    const baseUrl = Deno.env.get("APP_URL") || "https://super-tools.lovable.app";
+    const { getAppUrls } = await import("../_shared/app-urls.ts");
+    const urls = await getAppUrls();
+    const baseUrl = urls.app_url;
 
     // TEST MODE: Send only to the test email
     if (testEmail) {

@@ -145,7 +145,9 @@ serve(async (req) => {
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
   const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-  const appUrl = Deno.env.get("APP_URL") || "https://super-tools.lovable.app";
+  const { getAppUrls } = await import("../_shared/app-urls.ts");
+  const urls = await getAppUrls();
+  const appUrl = urls.app_url;
 
   let requestBody: TrainingInput | null = null;
   let keyId: string | null = null;
