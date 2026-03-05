@@ -56,6 +56,7 @@ import { useNavigate } from "react-router-dom";
 import { useUserPreference } from "@/hooks/useUserPreferences";
 import { cn } from "@/lib/utils";
 import DailyTodoPanel from "@/components/dashboard/DailyTodoPanel";
+import UpcomingCalendarPanel from "@/components/dashboard/UpcomingCalendarPanel";
 
 // ---------- types ----------
 
@@ -624,10 +625,13 @@ const Dashboard = () => {
             )}
           </section>
 
-          {/* Daily TODO — right column */}
-          <aside className="hidden lg:block w-80 shrink-0">
+          {/* Daily TODO + Calendar — right column */}
+          <aside className="hidden lg:block w-80 shrink-0 space-y-4">
             <Card className="p-4 sticky top-6">
               <DailyTodoPanel />
+            </Card>
+            <Card className="p-4">
+              <UpcomingCalendarPanel />
             </Card>
           </aside>
         </div>

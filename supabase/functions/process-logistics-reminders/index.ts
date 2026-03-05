@@ -7,15 +7,16 @@ import { getSenderFrom } from "../_shared/email-settings.ts";
  *
  * Called daily at 7:00 AM by a cron job.
  * Sends a SINGLE digest email per user with all alerts, in this order:
- *   1. Missions à facturer
- *   2. Devis à faire (colonne contacté)
- *   3. Opportunités à traiter (première colonne)
+ *   1. Factures à émettre (formations terminées sans facture)
+ *   2. Missions à facturer
+ *   3. Devis à faire (colonne contacté)
  *   4. Devis à relancer (devis envoyé)
- *   5. Formations à traiter (conventions manquantes + signature en attente)
+ *   5. Opportunités à contacter (première colonne)
  *   6. Articles à relire
- *   7. Événements approchant (< 15 jours)
- *   8. CFP à soumettre (< 30 jours)
- *   9. Rappels CFP année suivante (10 mois après deadline)
+ *   7. CFP à soumettre (< 30 jours)
+ *   8. Formations à traiter (conventions manquantes + signature en attente)
+ *   9. Événements approchant (< 15 jours)
+ *  10. Rappels CFP année suivante (10 mois après deadline)
  *
  * Admins see everything; non-admins see only their assigned trainings.
  */
@@ -501,23 +502,25 @@ serve(async (req) => {
       const sections: string[] = [];
       let alertCount = 0;
 
-      // 1. Missions à facturer (visible to all)
+      // 1. Factures à émettre (formations terminées sans facture)
+      const userInvoiceAlerts = invoiceAlerts.filter(
+        (a) => userCanSeeTraining(recipient, a.assignedTo)
+      );
+      if (userInvoiceAlerts.length > 0) {
+        sections.push(sectionHtml("🧾", "Factures à émettre", COLORS.red, userInvoiceAlerts.map((a) => a.html), userInvoiceAlerts.length));
+        alertCount += userInvoiceAlerts.length;
+      }
+
+      // 2. Missions à facturer (visible to all)
       if (missionAlerts.length > 0) {
-        sections.push(sectionHtml("💰", "Missions à facturer", COLORS.green, missionAlerts, missionAlerts.length));
+        sections.push(sectionHtml("💰", "Factures missions", COLORS.green, missionAlerts, missionAlerts.length));
         alertCount += missionAlerts.length;
       }
 
-      // 2. Devis à faire (colonne contacté)
+      // 3. Devis à faire (colonne contacté)
       if (devisAFaireAlerts.length > 0) {
         sections.push(sectionHtml("📝", "Devis à faire", COLORS.blue, devisAFaireAlerts, devisAFaireAlerts.length));
         alertCount += devisAFaireAlerts.length;
-      }
-
-      // 3. Opportunités à traiter (première colonne)
-      if (opportunitesAlerts.length > 0) {
-        const colName = firstColumn?.name || "Nouvelles";
-        sections.push(sectionHtml("🎯", `Opportunités à traiter (${colName})`, COLORS.amber, opportunitesAlerts, opportunitesAlerts.length));
-        alertCount += opportunitesAlerts.length;
       }
 
       // 4. Devis à relancer (devis envoyé)
@@ -526,20 +529,11 @@ serve(async (req) => {
         alertCount += devisRelanceAlerts.length;
       }
 
-      // 5. Formations à traiter (conventions)
-      const userConvNotGen = conventionNotGenAlerts.filter(
-        (a) => userCanSeeTraining(recipient, a.assignedTo)
-      );
-      const userConvNotSigned = conventionNotSignedAlerts.filter(
-        (a) => userCanSeeTraining(recipient, a.assignedTo)
-      );
-      const formationItems = [
-        ...userConvNotGen.map((a) => a.html),
-        ...userConvNotSigned.map((a) => a.html),
-      ];
-      if (formationItems.length > 0) {
-        sections.push(sectionHtml("🎓", "Formations à traiter", COLORS.red, formationItems, formationItems.length));
-        alertCount += formationItems.length;
+      // 5. Opportunités à contacter (première colonne)
+      if (opportunitesAlerts.length > 0) {
+        const colName = firstColumn?.name || "Nouvelles";
+        sections.push(sectionHtml("🎯", `Opportunités à contacter (${colName})`, COLORS.amber, opportunitesAlerts, opportunitesAlerts.length));
+        alertCount += opportunitesAlerts.length;
       }
 
       // 6. Articles à relire
@@ -570,31 +564,38 @@ serve(async (req) => {
         alertCount += userReviews.length;
       }
 
-      // 7. Événements approchant
-      if (eventAlerts.length > 0) {
-        sections.push(sectionHtml("📅", "Événements approchant", COLORS.teal, eventAlerts, eventAlerts.length));
-        alertCount += eventAlerts.length;
-      }
-
-      // 8. CFP à soumettre
+      // 7. CFP à soumettre
       if (cfpAlerts.length > 0) {
         sections.push(sectionHtml("📨", "CFP à soumettre", COLORS.orange, cfpAlerts, cfpAlerts.length));
         alertCount += cfpAlerts.length;
       }
 
-      // 9. Rappels CFP année suivante
+      // 8. Formations à traiter (conventions)
+      const userConvNotGen = conventionNotGenAlerts.filter(
+        (a) => userCanSeeTraining(recipient, a.assignedTo)
+      );
+      const userConvNotSigned = conventionNotSignedAlerts.filter(
+        (a) => userCanSeeTraining(recipient, a.assignedTo)
+      );
+      const formationItems = [
+        ...userConvNotGen.map((a) => a.html),
+        ...userConvNotSigned.map((a) => a.html),
+      ];
+      if (formationItems.length > 0) {
+        sections.push(sectionHtml("🎓", "Formations à traiter", COLORS.red, formationItems, formationItems.length));
+        alertCount += formationItems.length;
+      }
+
+      // 9. Événements approchant
+      if (eventAlerts.length > 0) {
+        sections.push(sectionHtml("📅", "Événements approchant", COLORS.teal, eventAlerts, eventAlerts.length));
+        alertCount += eventAlerts.length;
+      }
+
+      // 10. Rappels CFP année suivante
       if (cfpReminderAlerts.length > 0) {
         sections.push(sectionHtml("🔁", "CFP à surveiller (année suivante)", COLORS.blue, cfpReminderAlerts, cfpReminderAlerts.length));
         alertCount += cfpReminderAlerts.length;
-      }
-
-      // EXTRA: Formations terminées sans facture
-      const userInvoiceAlerts = invoiceAlerts.filter(
-        (a) => userCanSeeTraining(recipient, a.assignedTo)
-      );
-      if (userInvoiceAlerts.length > 0) {
-        sections.push(sectionHtml("🧾", "Formations terminées sans facture", COLORS.red, userInvoiceAlerts.map((a) => a.html), userInvoiceAlerts.length));
-        alertCount += userInvoiceAlerts.length;
       }
 
       // Skip if no alerts for this user

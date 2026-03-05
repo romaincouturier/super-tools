@@ -1,0 +1,205 @@
+import { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { addWorkingDays, fetchWorkingDays } from "@/lib/workingDays";
+import { Card } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
+import {
+  Loader2,
+  Calendar as CalendarIcon,
+  GraduationCap,
+  CalendarDays,
+  MapPin,
+  ExternalLink,
+} from "lucide-react";
+import { format, parseISO, isToday, isTomorrow } from "date-fns";
+import { fr } from "date-fns/locale";
+
+interface CalendarEntry {
+  id: string;
+  type: "formation" | "event";
+  title: string;
+  date: string;
+  endDate?: string | null;
+  location?: string | null;
+  path: string;
+}
+
+const UpcomingCalendarPanel = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const [entries, setEntries] = useState<CalendarEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchUpcoming = useCallback(async () => {
+    if (!user) return;
+
+    const today = new Date();
+    const todayStr = format(today, "yyyy-MM-dd");
+
+    // Get working days config to calculate J+15
+    const workingDays = await fetchWorkingDays(supabase);
+    const endDate = addWorkingDays(today, 15, workingDays);
+    const endDateStr = format(endDate, "yyyy-MM-dd");
+
+    // Fetch formations and events in parallel
+    const [trainingsRes, eventsRes] = await Promise.all([
+      supabase
+        .from("trainings")
+        .select("id, training_name, start_date, end_date, location")
+        .gte("start_date", todayStr)
+        .lte("start_date", endDateStr)
+        .order("start_date", { ascending: true }),
+      (supabase as any)
+        .from("events")
+        .select("id, title, event_date, location, status")
+        .eq("status", "active")
+        .gte("event_date", todayStr)
+        .lte("event_date", endDateStr)
+        .order("event_date", { ascending: true }),
+    ]);
+
+    const items: CalendarEntry[] = [];
+
+    if (trainingsRes.data) {
+      for (const t of trainingsRes.data) {
+        items.push({
+          id: t.id,
+          type: "formation",
+          title: t.training_name,
+          date: t.start_date,
+          endDate: t.end_date,
+          location: t.location,
+          path: `/formations/${t.id}`,
+        });
+      }
+    }
+
+    if (eventsRes.data) {
+      for (const e of eventsRes.data) {
+        items.push({
+          id: e.id,
+          type: "event",
+          title: e.title,
+          date: e.event_date,
+          location: e.location,
+          path: `/events/${e.id}`,
+        });
+      }
+    }
+
+    // Sort chronologically
+    items.sort((a, b) => a.date.localeCompare(b.date));
+    setEntries(items);
+  }, [user]);
+
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      await fetchUpcoming();
+      setLoading(false);
+    };
+    load();
+  }, [fetchUpcoming]);
+
+  const formatEntryDate = (dateStr: string, endDateStr?: string | null) => {
+    const date = parseISO(dateStr);
+    if (isToday(date)) {
+      return "Aujourd'hui";
+    }
+    if (isTomorrow(date)) {
+      return "Demain";
+    }
+    const formatted = format(date, "EEE d MMM", { locale: fr });
+    if (endDateStr && endDateStr !== dateStr) {
+      const endDate = parseISO(endDateStr);
+      return `${formatted} → ${format(endDate, "d MMM", { locale: fr })}`;
+    }
+    return formatted;
+  };
+
+  if (loading) {
+    return (
+      <Card className="p-4 flex items-center justify-center h-32">
+        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+      </Card>
+    );
+  }
+
+  if (entries.length === 0) {
+    return (
+      <Card className="p-4 text-center">
+        <CalendarIcon className="h-6 w-6 text-muted-foreground mx-auto mb-2" />
+        <p className="text-sm text-muted-foreground">
+          Aucun événement dans les 15 prochains jours ouvrés
+        </p>
+      </Card>
+    );
+  }
+
+  // Group entries by date
+  const grouped: Record<string, CalendarEntry[]> = {};
+  for (const entry of entries) {
+    (grouped[entry.date] = grouped[entry.date] || []).push(entry);
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2">
+        <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+        <h2 className="text-lg font-semibold">Calendrier J+15</h2>
+      </div>
+
+      <ScrollArea className="max-h-[300px]">
+        <div className="space-y-2 pr-2">
+          {Object.entries(grouped).map(([dateKey, dayEntries]) => (
+            <div key={dateKey}>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">
+                {formatEntryDate(dateKey)}
+              </p>
+              {dayEntries.map((entry) => (
+                <button
+                  key={`${entry.type}-${entry.id}`}
+                  onClick={() => navigate(entry.path)}
+                  className="flex items-start gap-2 w-full text-left py-1.5 px-2 rounded-md hover:bg-muted/50 transition-colors"
+                >
+                  {entry.type === "formation" ? (
+                    <GraduationCap className="h-3.5 w-3.5 text-blue-600 mt-0.5 shrink-0" />
+                  ) : (
+                    <CalendarDays className="h-3.5 w-3.5 text-teal-600 mt-0.5 shrink-0" />
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm leading-tight truncate">{entry.title}</p>
+                    {entry.location && (
+                      <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                        <MapPin className="h-2.5 w-2.5" />
+                        <span className="truncate">{entry.location}</span>
+                      </p>
+                    )}
+                    {entry.type === "formation" && entry.endDate && entry.endDate !== entry.date && (
+                      <p className="text-[10px] text-muted-foreground mt-0.5">
+                        jusqu'au {format(parseISO(entry.endDate), "d MMM", { locale: fr })}
+                      </p>
+                    )}
+                  </div>
+                  <Badge
+                    variant="secondary"
+                    className={`text-[10px] shrink-0 ${
+                      entry.type === "formation" ? "bg-blue-50 text-blue-700" : "bg-teal-50 text-teal-700"
+                    }`}
+                  >
+                    {entry.type === "formation" ? "Formation" : "Événement"}
+                  </Badge>
+                </button>
+              ))}
+            </div>
+          ))}
+        </div>
+      </ScrollArea>
+    </div>
+  );
+};
+
+export default UpcomingCalendarPanel;
