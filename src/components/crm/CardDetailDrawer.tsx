@@ -2166,28 +2166,71 @@ const CardDetailDrawer = ({
               </Popover>
             </div>
 
-            <div className="flex items-center gap-2">
-              <Label className="text-xs text-muted-foreground whitespace-nowrap flex items-center gap-1">
-                Destinataire
-                {email && email !== emailTo && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Label className="text-xs text-muted-foreground whitespace-nowrap flex items-center gap-1">
+                  À
+                  {email && email !== emailTo && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setEmailTo(email)}
+                      title={`Utiliser ${email}`}
+                      className="h-5 px-1.5 text-[10px] text-primary"
+                    >
+                      <Copy className="h-3 w-3 mr-0.5" />
+                      Client
+                    </Button>
+                  )}
+                </Label>
+                <Input
+                  placeholder="email@exemple.com (séparer par des virgules)"
+                  value={emailTo}
+                  onChange={(e) => setEmailTo(e.target.value)}
+                  className="flex-1"
+                />
+                {!showCcBcc && (
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => setEmailTo(email)}
-                    title={`Utiliser ${email}`}
-                    className="h-5 px-1.5 text-[10px] text-primary"
+                    onClick={() => setShowCcBcc(true)}
+                    className="h-7 px-2 text-xs text-muted-foreground"
                   >
-                    <Copy className="h-3 w-3 mr-0.5" />
-                    Client
+                    Cc/Cci
                   </Button>
                 )}
-              </Label>
-              <Input
-                placeholder="email@exemple.com"
-                value={emailTo}
-                onChange={(e) => setEmailTo(e.target.value)}
-                className="flex-1"
-              />
+              </div>
+              {showCcBcc && (
+                <>
+                  <div className="flex items-center gap-2">
+                    <Label className="text-xs text-muted-foreground whitespace-nowrap w-6">Cc</Label>
+                    <Input
+                      placeholder="Copie visible (séparer par des virgules)"
+                      value={emailCc}
+                      onChange={(e) => setEmailCc(e.target.value)}
+                      className="flex-1"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Label className="text-xs text-muted-foreground whitespace-nowrap w-6">Cci</Label>
+                    <Input
+                      placeholder="Copie invisible (séparer par des virgules)"
+                      value={emailBcc}
+                      onChange={(e) => setEmailBcc(e.target.value)}
+                      className="flex-1"
+                    />
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => { setShowCcBcc(false); setEmailCc(""); setEmailBcc(""); }}
+                      className="h-7 w-7 p-0 text-muted-foreground"
+                      title="Masquer Cc/Cci"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </>
+              )}
             </div>
             <div className="flex gap-2">
               <Input
