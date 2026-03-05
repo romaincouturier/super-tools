@@ -518,6 +518,40 @@ const BesoinsParticipants = () => {
         open={participantDrawerOpen}
         onOpenChange={setParticipantDrawerOpen}
       />
+      <Dialog open={analysisOpen} onOpenChange={setAnalysisOpen}>
+        <DialogContent className="max-w-3xl max-h-[85vh]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" />
+              Analyse IA des besoins
+            </DialogTitle>
+            <DialogDescription>
+              {filteredSurveys.length} questionnaire{filteredSurveys.length > 1 ? "s" : ""} analysé{filteredSurveys.length > 1 ? "s" : ""}
+            </DialogDescription>
+          </DialogHeader>
+          <ScrollArea className="max-h-[60vh] pr-4">
+            {analysisLoading && (
+              <div className="flex flex-col items-center justify-center py-12 gap-4">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <p className="text-muted-foreground">Analyse en cours...</p>
+              </div>
+            )}
+            {analysisResult && !analysisLoading && (
+              <div className="prose prose-sm max-w-none dark:prose-invert">
+                <ReactMarkdown>{analysisResult}</ReactMarkdown>
+              </div>
+            )}
+          </ScrollArea>
+          {analysisResult && !analysisLoading && (
+            <div className="flex justify-end gap-2 pt-4 border-t">
+              <Button variant="outline" onClick={runAnalysis}>
+                <Sparkles className="h-4 w-4 mr-2" />
+                Régénérer
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </ModuleLayout>
   );
 };
