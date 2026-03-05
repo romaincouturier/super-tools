@@ -3228,6 +3228,60 @@ export type Database = {
           },
         ]
       }
+      sent_emails_log: {
+        Row: {
+          cc_emails: string[] | null
+          email_type: string | null
+          html_content: string
+          id: string
+          participant_id: string | null
+          recipient_email: string
+          resend_email_id: string | null
+          sent_at: string
+          subject: string
+          training_id: string | null
+        }
+        Insert: {
+          cc_emails?: string[] | null
+          email_type?: string | null
+          html_content: string
+          id?: string
+          participant_id?: string | null
+          recipient_email: string
+          resend_email_id?: string | null
+          sent_at?: string
+          subject: string
+          training_id?: string | null
+        }
+        Update: {
+          cc_emails?: string[] | null
+          email_type?: string | null
+          html_content?: string
+          id?: string
+          participant_id?: string | null
+          recipient_email?: string
+          resend_email_id?: string | null
+          sent_at?: string
+          subject?: string
+          training_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sent_emails_log_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "training_participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sent_emails_log_training_id_fkey"
+            columns: ["training_id"]
+            isOneToOne: false
+            referencedRelation: "trainings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       session_start_notifications: {
         Row: {
           created_at: string
