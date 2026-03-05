@@ -1542,7 +1542,6 @@ export type Database = {
           id: string
           is_active: boolean
           is_default: boolean
-          learndash_course_id: number | null
           objectives: string[] | null
           prerequisites: string[] | null
           prix: number
@@ -1565,7 +1564,6 @@ export type Database = {
           id?: string
           is_active?: boolean
           is_default?: boolean
-          learndash_course_id?: number | null
           objectives?: string[] | null
           prerequisites?: string[] | null
           prix?: number
@@ -1588,7 +1586,6 @@ export type Database = {
           id?: string
           is_active?: boolean
           is_default?: boolean
-          learndash_course_id?: number | null
           objectives?: string[] | null
           prerequisites?: string[] | null
           prix?: number
