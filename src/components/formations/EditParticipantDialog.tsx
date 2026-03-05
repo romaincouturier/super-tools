@@ -301,6 +301,7 @@ const EditParticipantDialog = ({
     setSignedConventionUrl(participant.signed_convention_url || null);
     setNotes(participant.notes || "");
     setFormula(participant.formula || "");
+    setCoachingSessionsTotal(participant.coaching_sessions_total != null ? String(participant.coaching_sessions_total) : "0");
     lastSavedHashRef.current = "";
     setLastSaved(null);
   }, [participant, trainingElearningDuration]);
