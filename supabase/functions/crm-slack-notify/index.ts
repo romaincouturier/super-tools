@@ -145,7 +145,7 @@ serve(async (req) => {
       .eq("setting_key", "slack_crm_channel")
       .single();
 
-    const channel = settings?.setting_value || "general";
+    const channelName = settings?.setting_value || "general";
 
     const message = buildSlackMessage(body);
 
@@ -155,18 +155,35 @@ serve(async (req) => {
       "Content-Type": "application/json",
     };
 
-    // Auto-join the channel first (idempotent — no error if already joined)
-    await fetch(`${GATEWAY_URL}/conversations.join`, {
+    // Resolve channel name to ID
+    const listRes = await fetch(
+      `${GATEWAY_URL}/conversations.list?types=public_channel&exclude_archived=true&limit=200`,
+      { headers: { "Authorization": `Bearer ${LOVABLE_API_KEY}`, "X-Connection-Api-Key": SLACK_API_KEY } }
+    );
+    const listData = await listRes.json();
+    const channelObj = listData.channels?.find((c: { name: string }) => c.name === channelName);
+
+    if (!channelObj) {
+      console.error("Slack channel not found:", channelName);
+      return createJsonResponse({ success: false, error: `Canal Slack "${channelName}" introuvable` });
+    }
+
+    const channelId = channelObj.id;
+
+    // Auto-join the channel (idempotent)
+    const joinRes = await fetch(`${GATEWAY_URL}/conversations.join`, {
       method: "POST",
       headers: gatewayHeaders,
-      body: JSON.stringify({ channel }),
+      body: JSON.stringify({ channel: channelId }),
     });
+    const joinData = await joinRes.json();
+    console.log("conversations.join result:", JSON.stringify(joinData));
 
     const slackResponse = await fetch(`${GATEWAY_URL}/chat.postMessage`, {
       method: "POST",
       headers: gatewayHeaders,
       body: JSON.stringify({
-        channel,
+        channel: channelId,
         text: message.text,
         blocks: message.blocks,
         username: "SuperTools CRM",
