@@ -1,6 +1,13 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
+// Cross-instance sync: when one hook instance saves, others with the same key update
+const PREFERENCE_EVENT = "user-preference-updated";
+
+function emitPreferenceUpdate(key: string, value: unknown) {
+  window.dispatchEvent(new CustomEvent(PREFERENCE_EVENT, { detail: { key, value } }));
+}
+
 interface UserPreference<T> {
   value: T | null;
   loading: boolean;
@@ -54,6 +61,18 @@ export function useUserPreference<T>(key: string, defaultValue: T): UserPreferen
     fetchPreference();
   }, [key]);
 
+  // Listen for cross-instance updates
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const { key: updatedKey, value: updatedValue } = (e as CustomEvent).detail;
+      if (updatedKey === key) {
+        setValue(updatedValue as T);
+      }
+    };
+    window.addEventListener(PREFERENCE_EVENT, handler);
+    return () => window.removeEventListener(PREFERENCE_EVENT, handler);
+  }, [key]);
+
   const save = useCallback(async (newValue: T) => {
     try {
       const { data: session } = await supabase.auth.getSession();
@@ -78,6 +97,7 @@ export function useUserPreference<T>(key: string, defaultValue: T): UserPreferen
       if (upsertError) throw upsertError;
 
       setValue(newValue);
+      emitPreferenceUpdate(key, newValue);
     } catch (err) {
       console.error("Error saving user preference:", err);
       setError(err as Error);
