@@ -657,11 +657,12 @@ Règles :
         let liveDate = "";
         let liveTime = "";
         let liveMeetingUrl = "";
+        let liveEmailContent = "";
 
         if (liveMeetingId) {
           const { data: liveMeeting } = await supabase
             .from("training_live_meetings")
-            .select("title, scheduled_at, meeting_url, status")
+            .select("title, scheduled_at, meeting_url, status, email_content")
             .eq("id", liveMeetingId)
             .single();
 
@@ -689,6 +690,7 @@ Règles :
               minute: "2-digit",
             });
             liveMeetingUrl = liveMeeting.meeting_url || "";
+            liveEmailContent = liveMeeting.email_content || "";
           }
         }
 
@@ -696,19 +698,31 @@ Règles :
           ? `<p><a href="${liveMeetingUrl}" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Rejoindre le live</a></p>`
           : "";
 
-        subject = `📺 Rappel : Live "${liveTitle}" demain – ${training.training_name}`;
-        htmlContent = `
-          <p>${greeting}</p>
-          <p>Pour rappel, ${formalAddress ? "vous avez" : "tu as"} un live collectif prévu demain dans le cadre de la formation <strong>"${training.training_name}"</strong> :</p>
-          <ul>
-            <li><strong>${liveTitle}</strong></li>
-            <li>📅 ${liveDate} à ${liveTime}</li>
-          </ul>
-          ${meetingUrlSection}
-          <p>${formalAddress ? "Votre" : "Ta"} présence est importante pour profiter pleinement de ce moment d'échange.</p>
-          <p>À demain !</p>
-          ${signatureHtml}
-        `;
+        subject = `📺 Rappel : Live "${liveTitle}" aujourd'hui – ${training.training_name}`;
+
+        if (liveEmailContent) {
+          // Use custom email content - convert newlines to <br> for HTML
+          const customBody = liveEmailContent.replace(/\n/g, "<br>");
+          htmlContent = `
+            <p>${greeting}</p>
+            ${customBody}
+            ${meetingUrlSection}
+            ${signatureHtml}
+          `;
+        } else {
+          htmlContent = `
+            <p>${greeting}</p>
+            <p>Pour rappel, ${formalAddress ? "vous avez" : "tu as"} un live collectif prévu aujourd'hui dans le cadre de la formation <strong>"${training.training_name}"</strong> :</p>
+            <ul>
+              <li><strong>${liveTitle}</strong></li>
+              <li>📅 ${liveDate} à ${liveTime}</li>
+            </ul>
+            ${meetingUrlSection}
+            <p>${formalAddress ? "Votre" : "Ta"} présence est importante pour profiter pleinement de ce moment d'échange.</p>
+            <p>À tout à l'heure !</p>
+            ${signatureHtml}
+          `;
+        }
         break;
       }
 
