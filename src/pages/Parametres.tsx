@@ -34,6 +34,7 @@ import GoogleCalendarConnect from "@/components/GoogleCalendarConnect";
 import { useModuleAccess } from "@/hooks/useModuleAccess";
 import ArenaKeySettings from "@/components/settings/ArenaKeySettings";
 import PostEvaluationEmailManager from "@/components/settings/PostEvaluationEmailManager";
+import SlackChannelCard from "@/components/settings/SlackChannelCard";
 
 interface EmailTemplate {
   id: string;
