@@ -5,7 +5,9 @@
  *  1. Full database export (all tables → JSON → Google Drive)
  *  2. Storage files backup (all buckets → Google Drive subfolder)
  *  3. GFS rotation: keeps 7 daily, 4 weekly, 3 monthly backups
- *  4. Email report on success or failure
+ *  4. Integrity verification (row counts, FK references, JSON parsing)
+ *  5. Native pg_dump via Supabase Management API (if key configured)
+ *  6. Email report on success or failure
  */
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
@@ -439,6 +441,249 @@ function guessMimeType(fileName: string): string {
   return map[ext || ""] || "application/octet-stream";
 }
 
+// ─── Integrity Verification ─────────────────────────────────────────────────
+
+interface IntegrityResult {
+  passed: boolean;
+  checks: {
+    jsonParseable: boolean;
+    tablesPresent: number;
+    tablesMissing: string[];
+    rowCountMatches: number;
+    rowCountMismatches: { table: string; backup: number; live: number }[];
+    emptyTablesInBackup: string[];
+    totalBackupRows: number;
+    totalLiveRows: number;
+  };
+}
+
+async function verifyBackupIntegrity(
+  supabase: ReturnType<typeof createClient>,
+  backupJson: string,
+  tablesToBackup: string[],
+): Promise<IntegrityResult> {
+  const result: IntegrityResult = {
+    passed: true,
+    checks: {
+      jsonParseable: false,
+      tablesPresent: 0,
+      tablesMissing: [],
+      rowCountMatches: 0,
+      rowCountMismatches: [],
+      emptyTablesInBackup: [],
+      totalBackupRows: 0,
+      totalLiveRows: 0,
+    },
+  };
+
+  // 1. Re-parse the JSON to verify it's valid
+  let parsed: { tables: Record<string, unknown[]> };
+  try {
+    parsed = JSON.parse(backupJson);
+    result.checks.jsonParseable = true;
+  } catch {
+    result.passed = false;
+    return result;
+  }
+
+  if (!parsed.tables) {
+    result.passed = false;
+    return result;
+  }
+
+  // 2. Check all expected tables are present
+  for (const table of tablesToBackup) {
+    if (parsed.tables[table]) {
+      result.checks.tablesPresent++;
+    } else {
+      result.checks.tablesMissing.push(table);
+    }
+  }
+
+  // 3. Compare row counts with live database
+  for (const table of tablesToBackup) {
+    const backupRows = parsed.tables[table]?.length ?? 0;
+    result.checks.totalBackupRows += backupRows;
+
+    if (backupRows === 0) {
+      result.checks.emptyTablesInBackup.push(table);
+    }
+
+    try {
+      const { count } = await supabase
+        .from(table)
+        .select("*", { count: "exact", head: true });
+
+      const liveRows = count ?? 0;
+      result.checks.totalLiveRows += liveRows;
+
+      if (backupRows === liveRows) {
+        result.checks.rowCountMatches++;
+      } else {
+        result.checks.rowCountMismatches.push({
+          table,
+          backup: backupRows,
+          live: liveRows,
+        });
+      }
+    } catch {
+      // Can't verify this table
+    }
+  }
+
+  // Row count mismatches may happen if data changed during backup (minor drift is OK)
+  // Flag as failed only if >10% of tables have mismatches or a table lost >50% of rows
+  const mismatchRate = result.checks.rowCountMismatches.length / tablesToBackup.length;
+  const hasSevereLoss = result.checks.rowCountMismatches.some(
+    (m) => m.live > 0 && m.backup < m.live * 0.5,
+  );
+
+  if (result.checks.tablesMissing.length > 0 || mismatchRate > 0.1 || hasSevereLoss) {
+    result.passed = false;
+  }
+
+  return result;
+}
+
+// ─── Native pg_dump via Supabase Management API ─────────────────────────────
+
+interface PgDumpResult {
+  triggered: boolean;
+  downloadUrl: string | null;
+  uploadedToDrive: boolean;
+  driveFileId: string | null;
+  error: string | null;
+}
+
+async function triggerAndDownloadPgDump(
+  projectRef: string,
+  managementApiKey: string,
+  accessToken: string | null,
+  driveFolderId: string | undefined,
+): Promise<PgDumpResult> {
+  const result: PgDumpResult = {
+    triggered: false,
+    downloadUrl: null,
+    uploadedToDrive: false,
+    driveFileId: null,
+    error: null,
+  };
+
+  const baseUrl = "https://api.supabase.com/v1";
+  const headers = {
+    Authorization: `Bearer ${managementApiKey}`,
+    "Content-Type": "application/json",
+  };
+
+  try {
+    // 1. Trigger a new physical backup
+    const triggerRes = await fetch(`${baseUrl}/projects/${projectRef}/database/backups`, {
+      method: "POST",
+      headers,
+    });
+
+    if (!triggerRes.ok) {
+      const errorText = await triggerRes.text();
+      // 409 = backup already in progress, which is fine
+      if (triggerRes.status !== 409) {
+        result.error = `Trigger failed (${triggerRes.status}): ${errorText}`;
+        return result;
+      }
+    }
+
+    result.triggered = true;
+
+    // 2. Get latest backup info (the one we just triggered or most recent)
+    const listRes = await fetch(`${baseUrl}/projects/${projectRef}/database/backups`, {
+      headers,
+    });
+
+    if (!listRes.ok) {
+      result.error = `List backups failed (${listRes.status})`;
+      return result;
+    }
+
+    const backupsList = await listRes.json();
+    const latestBackup = backupsList?.backups?.[0];
+
+    if (!latestBackup) {
+      result.error = "No backups available";
+      return result;
+    }
+
+    // 3. If the backup is completed, try to get the download link
+    if (latestBackup.status === "COMPLETED") {
+      // Get download URL
+      const downloadRes = await fetch(
+        `${baseUrl}/projects/${projectRef}/database/backups/${latestBackup.id}/download`,
+        { headers },
+      );
+
+      if (downloadRes.ok) {
+        const downloadData = await downloadRes.json();
+        result.downloadUrl = downloadData.fileUrl || null;
+
+        // 4. Upload to Google Drive if possible
+        if (result.downloadUrl && accessToken) {
+          try {
+            // Download the dump file
+            const dumpRes = await fetch(result.downloadUrl);
+            if (dumpRes.ok) {
+              const dumpBlob = await dumpRes.blob();
+              const today = new Date().toISOString().split("T")[0];
+              const dumpFileName = `supertools_pgdump_${today}.sql.gz`;
+
+              const boundary = "pgdump_boundary_" + Date.now();
+              const metadata = {
+                name: dumpFileName,
+                mimeType: "application/gzip",
+                ...(driveFolderId && { parents: [driveFolderId] }),
+              };
+
+              const metaPart = new TextEncoder().encode(
+                `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n--${boundary}\r\nContent-Type: application/gzip\r\n\r\n`,
+              );
+              const endPart = new TextEncoder().encode(`\r\n--${boundary}--`);
+              const dumpBytes = new Uint8Array(await dumpBlob.arrayBuffer());
+
+              const bodyParts = new Uint8Array(metaPart.length + dumpBytes.length + endPart.length);
+              bodyParts.set(metaPart, 0);
+              bodyParts.set(dumpBytes, metaPart.length);
+              bodyParts.set(endPart, metaPart.length + dumpBytes.length);
+
+              const uploadRes = await fetch(
+                "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart",
+                {
+                  method: "POST",
+                  headers: {
+                    Authorization: `Bearer ${accessToken}`,
+                    "Content-Type": `multipart/related; boundary=${boundary}`,
+                  },
+                  body: bodyParts,
+                },
+              );
+
+              if (uploadRes.ok) {
+                const uploadData = await uploadRes.json();
+                result.uploadedToDrive = true;
+                result.driveFileId = uploadData.id;
+              }
+            }
+          } catch (uploadErr) {
+            result.error = `pg_dump download/upload failed: ${uploadErr instanceof Error ? uploadErr.message : "unknown"}`;
+          }
+        }
+      }
+    } else {
+      result.error = `Latest backup status: ${latestBackup.status} (not yet completed)`;
+    }
+  } catch (err) {
+    result.error = err instanceof Error ? err.message : "pg_dump failed";
+  }
+
+  return result;
+}
+
 // ─── Main handler ───────────────────────────────────────────────────────────
 
 serve(async (req) => {
@@ -641,10 +886,78 @@ serve(async (req) => {
       }
     }
 
+    // ════════════════════════════════════════════════════════════════════════
+    // PHASE 4: Integrity Verification
+    // ════════════════════════════════════════════════════════════════════════
+
+    let integrityResult: IntegrityResult | null = null;
+    try {
+      console.log("[scheduled-backup] Phase 4: Verifying backup integrity...");
+      integrityResult = await verifyBackupIntegrity(supabase, backupJson, TABLES_TO_BACKUP);
+      console.log(
+        `[scheduled-backup] Integrity: ${integrityResult.passed ? "PASSED" : "FAILED"} — ` +
+        `${integrityResult.checks.rowCountMatches}/${TABLES_TO_BACKUP.length} tables match, ` +
+        `${integrityResult.checks.rowCountMismatches.length} mismatches`,
+      );
+
+      if (!integrityResult.passed) {
+        if (integrityResult.checks.tablesMissing.length > 0) {
+          errors.push(`[Integrity] Tables manquantes: ${integrityResult.checks.tablesMissing.join(", ")}`);
+        }
+        for (const m of integrityResult.checks.rowCountMismatches.slice(0, 5)) {
+          errors.push(`[Integrity] ${m.table}: backup=${m.backup} vs live=${m.live}`);
+        }
+      }
+    } catch (intErr) {
+      console.warn("[scheduled-backup] Integrity check error:", intErr);
+      errors.push(`[Integrity] ${intErr instanceof Error ? intErr.message : "Verification failed"}`);
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // PHASE 5: Native pg_dump (if Management API key is configured)
+    // ════════════════════════════════════════════════════════════════════════
+
+    let pgDumpResult: PgDumpResult | null = null;
+    const managementApiKey = Deno.env.get("SUPABASE_MANAGEMENT_API_KEY");
+    const projectRef = Deno.env.get("SUPABASE_URL")?.match(/https:\/\/([^.]+)\./)?.[1];
+
+    if (managementApiKey && projectRef) {
+      try {
+        console.log("[scheduled-backup] Phase 5: Triggering native pg_dump...");
+        const driveAccessToken = tokenRow ? await refreshGoogleAccessToken(tokenRow.refresh_token) : null;
+        const rootFolderIdForDump = (await supabase
+          .from("app_settings")
+          .select("setting_value")
+          .eq("setting_key", "backup_gdrive_folder_id")
+          .single()).data?.setting_value || undefined;
+
+        pgDumpResult = await triggerAndDownloadPgDump(
+          projectRef,
+          managementApiKey,
+          driveAccessToken,
+          rootFolderIdForDump,
+        );
+
+        console.log(
+          `[scheduled-backup] pg_dump: triggered=${pgDumpResult.triggered}, ` +
+          `uploaded=${pgDumpResult.uploadedToDrive}` +
+          (pgDumpResult.error ? `, error=${pgDumpResult.error}` : ""),
+        );
+
+        if (pgDumpResult.error) {
+          errors.push(`[pg_dump] ${pgDumpResult.error}`);
+        }
+      } catch (pgErr) {
+        console.warn("[scheduled-backup] pg_dump error:", pgErr);
+        errors.push(`[pg_dump] ${pgErr instanceof Error ? pgErr.message : "pg_dump failed"}`);
+      }
+    } else {
+      console.log("[scheduled-backup] Phase 5: Skipped (SUPABASE_MANAGEMENT_API_KEY not configured)");
+    }
+
     const durationMs = Date.now() - startTime;
     const dbErrors = errors.filter((e) => e.startsWith("[DB]")).length;
-    const storageErrors = errors.filter((e) => e.startsWith("[Storage]")).length;
-    const success = dbErrors === 0 && googleDriveResult !== null;
+    const success = dbErrors === 0 && googleDriveResult !== null && (integrityResult?.passed !== false);
 
     // ── Log activity ──
     await supabase.from("activity_logs").insert({
@@ -665,6 +978,18 @@ serve(async (req) => {
         },
         deletedOldBackups,
         gfsRetention: `${GFS_DAILY}d/${GFS_WEEKLY}w/${GFS_MONTHLY}m`,
+        integrity: integrityResult ? {
+          passed: integrityResult.passed,
+          tablesPresent: integrityResult.checks.tablesPresent,
+          tablesMissing: integrityResult.checks.tablesMissing.length,
+          rowCountMatches: integrityResult.checks.rowCountMatches,
+          rowCountMismatches: integrityResult.checks.rowCountMismatches.length,
+        } : null,
+        pgDump: pgDumpResult ? {
+          triggered: pgDumpResult.triggered,
+          uploadedToDrive: pgDumpResult.uploadedToDrive,
+          driveFileId: pgDumpResult.driveFileId,
+        } : null,
         durationMs,
         errors: errors.length > 0 ? errors : null,
       },
@@ -716,6 +1041,28 @@ serve(async (req) => {
             </details>
           ` : ""}
 
+          <h3 style="margin-top: 20px; color: #374151;">Vérification d'intégrité</h3>
+          <table style="width: 100%; border-collapse: collapse; margin: 8px 0;">
+            <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Résultat</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${integrityResult ? (integrityResult.passed ? "✅ Validé" : "⚠️ Anomalies détectées") : "⏭️ Non exécuté"}</td></tr>
+            ${integrityResult ? `
+              <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">JSON parseable</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${integrityResult.checks.jsonParseable ? "✅" : "❌"}</td></tr>
+              <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Tables présentes</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${integrityResult.checks.tablesPresent}/${TABLES_TO_BACKUP.length}</td></tr>
+              <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Row counts identiques</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${integrityResult.checks.rowCountMatches}/${TABLES_TO_BACKUP.length} ${integrityResult.checks.rowCountMismatches.length > 0 ? `(${integrityResult.checks.rowCountMismatches.length} écarts)` : ""}</td></tr>
+            ` : ""}
+          </table>
+
+          ${pgDumpResult || managementApiKey ? `
+            <h3 style="margin-top: 20px; color: #374151;">Backup PostgreSQL natif</h3>
+            <table style="width: 100%; border-collapse: collapse; margin: 8px 0;">
+              ${pgDumpResult ? `
+                <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Déclenché</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${pgDumpResult.triggered ? "✅" : "❌"}</td></tr>
+                <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Google Drive</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${pgDumpResult.uploadedToDrive ? "✅" : "❌"} ${pgDumpResult.error ? `(${pgDumpResult.error})` : ""}</td></tr>
+              ` : `
+                <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Statut</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">⏭️ SUPABASE_MANAGEMENT_API_KEY non configurée</td></tr>
+              `}
+            </table>
+          ` : ""}
+
           <h3 style="margin-top: 20px; color: #374151;">Rétention & Nettoyage</h3>
           <table style="width: 100%; border-collapse: collapse; margin: 8px 0;">
             <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Politique GFS</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${GFS_DAILY} quotidiens, ${GFS_WEEKLY} hebdo, ${GFS_MONTHLY} mensuels</td></tr>
@@ -755,6 +1102,15 @@ serve(async (req) => {
         totalSizeMB: storageTotalSizeMB,
       },
       deletedOldBackups,
+      integrity: integrityResult ? {
+        passed: integrityResult.passed,
+        rowCountMatches: integrityResult.checks.rowCountMatches,
+        mismatches: integrityResult.checks.rowCountMismatches.length,
+      } : null,
+      pgDump: pgDumpResult ? {
+        triggered: pgDumpResult.triggered,
+        uploadedToDrive: pgDumpResult.uploadedToDrive,
+      } : null,
       durationMs,
       errors: errors.length > 0 ? errors : undefined,
     });

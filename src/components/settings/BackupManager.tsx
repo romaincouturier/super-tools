@@ -54,6 +54,17 @@ interface LastBackupInfo {
     totalSizeMB: string;
   } | null;
   gfsRetention: string | null;
+  integrity: {
+    passed: boolean;
+    tablesPresent: number;
+    rowCountMatches: number;
+    rowCountMismatches: number;
+  } | null;
+  pgDump: {
+    triggered: boolean;
+    uploadedToDrive: boolean;
+    driveFileId: string | null;
+  } | null;
 }
 
 export default function BackupManager({
@@ -96,6 +107,8 @@ export default function BackupManager({
           durationMs: (d.durationMs as number) ?? 0,
           storage: (d.storage as LastBackupInfo["storage"]) ?? null,
           gfsRetention: (d.gfsRetention as string) ?? null,
+          integrity: (d.integrity as LastBackupInfo["integrity"]) ?? null,
+          pgDump: (d.pgDump as LastBackupInfo["pgDump"]) ?? null,
         });
       }
     } catch {
@@ -297,6 +310,30 @@ export default function BackupManager({
                     <p className="text-muted-foreground text-xs">Rétention</p>
                     <p className="font-medium">{lastBackup.gfsRetention || "14j"}</p>
                   </div>
+                </div>
+              )}
+              {(lastBackup.integrity || lastBackup.pgDump) && (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+                  {lastBackup.integrity && (
+                    <>
+                      <div className={`p-3 rounded-lg ${lastBackup.integrity.passed ? "bg-green-50 dark:bg-green-950/20" : "bg-amber-50 dark:bg-amber-950/20"}`}>
+                        <p className="text-muted-foreground text-xs">Intégrité</p>
+                        <p className="font-medium">{lastBackup.integrity.passed ? "Validée" : "Anomalies"}</p>
+                      </div>
+                      <div className="p-3 rounded-lg bg-muted/50">
+                        <p className="text-muted-foreground text-xs">Row counts OK</p>
+                        <p className="font-medium">{lastBackup.integrity.rowCountMatches}/{lastBackup.integrity.tablesPresent}</p>
+                      </div>
+                    </>
+                  )}
+                  {lastBackup.pgDump && (
+                    <>
+                      <div className={`p-3 rounded-lg ${lastBackup.pgDump.uploadedToDrive ? "bg-green-50 dark:bg-green-950/20" : "bg-muted/50"}`}>
+                        <p className="text-muted-foreground text-xs">pg_dump natif</p>
+                        <p className="font-medium">{lastBackup.pgDump.uploadedToDrive ? "Sur Drive" : lastBackup.pgDump.triggered ? "Déclenché" : "Non"}</p>
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
               {lastBackup.errors && lastBackup.errors.length > 0 && (
