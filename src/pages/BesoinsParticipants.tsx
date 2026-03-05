@@ -203,6 +203,29 @@ const BesoinsParticipants = () => {
     });
   };
 
+  const runAnalysis = async () => {
+    const ids = filteredSurveys.map((s) => s.id);
+    if (ids.length === 0) return;
+    setAnalysisLoading(true);
+    setAnalysisResult(null);
+    setAnalysisOpen(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("analyze-needs-survey", {
+        body: { surveyIds: ids },
+      });
+      if (error) throw new Error(error.message);
+      if (data?.error) throw new Error(data.error);
+      setAnalysisResult(data.analysis);
+    } catch (e: any) {
+      console.error("Analysis error:", e);
+      toast({ title: "Erreur", description: e.message || "Impossible de générer l'analyse.", variant: "destructive" });
+      setAnalysisOpen(false);
+    } finally {
+      setAnalysisLoading(false);
+    }
+  };
+
   const filteredSurveys = surveys.filter((survey) => {
     return (
       searchTerm === "" ||
