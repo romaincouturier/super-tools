@@ -367,7 +367,11 @@ async function sendEmailWithResend(
   }
 
   // Fetch Qualiopi certificate from Supabase Storage bucket
-  const qualiopiPublicUrl = "https://yewffntzgrdgztrwtava.supabase.co/storage/v1/object/public/certificat-qualiopi/Certificat%20QUALIOPI%20v3.pdf";
+  const { getAppUrls } = await import("../_shared/app-urls.ts");
+  const urls = await getAppUrls();
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const qualiopiPath = urls.qualiopi_certificate_path;
+  const qualiopiPublicUrl = `${supabaseUrl}/storage/v1/object/public/${encodeURI(qualiopiPath)}`;
   
   let qualiopiCertificate: ArrayBuffer | null = null;
   try {
@@ -426,10 +430,11 @@ async function sendEmailWithResend(
     const contentHtml = templateIsHtml ? contentProcessed : textToHtml(contentProcessed);
 
   // Fallback signature if Signitic fails
+  const websiteUrl = urls.website_url;
   const fallbackSignature = `
     <p style="margin-top: 20px;">
       <strong>Romain</strong><br>
-      <a href="https://www.supertilt.fr" style="color: #666; text-decoration: underline;">SuperTilt</a>
+      <a href="${websiteUrl}" style="color: #666; text-decoration: underline;">SuperTilt</a>
     </p>
   `;
 

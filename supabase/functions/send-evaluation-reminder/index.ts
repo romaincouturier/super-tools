@@ -81,7 +81,9 @@ serve(async (req) => {
     }
 
     const supabase = getSupabaseClient();
-    const appUrl = Deno.env.get("APP_URL") || "https://super-tools.lovable.app";
+    const { getAppUrls } = await import("../_shared/app-urls.ts");
+    const urls = await getAppUrls();
+    const appUrl = urls.app_url;
 
     // Fetch the scheduled email
     const { data: scheduledEmail, error: scheduledError } = await supabase

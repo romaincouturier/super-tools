@@ -90,7 +90,9 @@ serve(async (req) => {
       ? `${senderProfile.first_name} ${senderProfile.last_name}`
       : senderProfile?.display_name || user.email || "Un collaborateur";
 
-    const appUrl = Deno.env.get("APP_URL") || "https://super-tools.lovable.app";
+    const { getAppUrls } = await import("../_shared/app-urls.ts");
+    const urls = await getAppUrls();
+    const appUrl = urls.app_url;
     const eventLink = `${appUrl}/events/${event_id}`;
     const emailSignature = await getSigniticSignature();
     const bccList = await getBccList();

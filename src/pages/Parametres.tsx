@@ -835,6 +835,9 @@ const SETTINGS_REGISTRY: Record<string, { default: string; description: string }
   woocommerce_consumer_key: { default: "", description: "Clé API WooCommerce (Consumer Key, commence par ck_)" },
   woocommerce_consumer_secret: { default: "", description: "Secret API WooCommerce (Consumer Secret, commence par cs_)" },
   woocommerce_cart_base_url: { default: "", description: "URL de base du panier WooCommerce pour les accès e-learning (ex: https://supertilt.fr/commande/?add-to-cart=)" },
+  app_url: { default: "https://super-tools.lovable.app", description: "URL principale de l'application SuperTools (utilisée dans tous les emails)" },
+  google_maps_api_key: { default: "AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8", description: "Clé API Google Maps pour les cartes intégrées" },
+  qualiopi_certificate_path: { default: "certificat-qualiopi/Certificat QUALIOPI v3.pdf", description: "Chemin du certificat Qualiopi dans le storage (bucket/fichier)" },
 };
 
 const SETTINGS_DEFAULTS = Object.fromEntries(
@@ -1634,6 +1637,47 @@ const Parametres = () => {
                         value={settings.blog_url}
                         onChange={(e) => updateSetting("blog_url", e.target.value)}
                         placeholder="https://supertilt.fr/blog/"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Application & Technical URLs */}
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium">URLs techniques</h3>
+                  <p className="text-sm text-muted-foreground">
+                    URLs utilisées par le système pour les emails, les cartes et les pièces jointes.
+                  </p>
+                  <div className="space-y-3 max-w-lg">
+                    <div className="space-y-2">
+                      <Label htmlFor="app-url">URL de l'application</Label>
+                      <Input
+                        id="app-url"
+                        type="url"
+                        value={settings.app_url}
+                        onChange={(e) => updateSetting("app_url", e.target.value)}
+                        placeholder="https://super-tools.lovable.app"
+                      />
+                      <p className="text-xs text-muted-foreground">URL de base utilisée dans tous les liens des emails.</p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="google-maps-api-key">Clé API Google Maps</Label>
+                      <Input
+                        id="google-maps-api-key"
+                        value={settings.google_maps_api_key}
+                        onChange={(e) => updateSetting("google_maps_api_key", e.target.value)}
+                        placeholder="AIzaSy..."
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="qualiopi-path">Chemin certificat Qualiopi (storage)</Label>
+                      <Input
+                        id="qualiopi-path"
+                        value={settings.qualiopi_certificate_path}
+                        onChange={(e) => updateSetting("qualiopi_certificate_path", e.target.value)}
+                        placeholder="certificat-qualiopi/Certificat QUALIOPI v3.pdf"
                       />
                     </div>
                   </div>

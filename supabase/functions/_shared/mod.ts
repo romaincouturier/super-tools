@@ -58,3 +58,6 @@ export {
   wrapEmailHtml,
   type TemplateVariables,
 } from "./templates.ts";
+
+// App URLs
+export { getAppUrls } from "./app-urls.ts";

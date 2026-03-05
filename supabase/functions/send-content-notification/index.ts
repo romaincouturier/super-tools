@@ -29,7 +29,9 @@ serve(async (req) => {
 
     const { type, recipientEmail, cardTitle, externalUrl, cardId, authorName, commentText } = body ?? {};
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
-    const APP_URL = Deno.env.get("APP_URL") || "https://super-tools.lovable.app";
+    const { getAppUrls } = await import("../_shared/app-urls.ts");
+    const urls = await getAppUrls();
+    const APP_URL = urls.app_url;
 
     if (!RESEND_API_KEY) {
       throw new Error("RESEND_API_KEY is not configured");
