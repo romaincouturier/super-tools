@@ -268,7 +268,7 @@ const FormationCreate = () => {
     if (isPermanent && !selectedFormulaId) missingFields.push("formule (sélectionnez une formule pour la session permanente)");
     if (!hasValidDates) missingFields.push("jours de formation");
     if (!isPermanent && !isElearning && !finalLocation) missingFields.push("lieu de la formation");
-    if (!isPermanent && !clientName) missingFields.push("client");
+    if (!isInter && !clientName) missingFields.push("client");
     if (!isPermanent && (!maxParticipants || parseInt(maxParticipants, 10) < 1)) missingFields.push("nombre maximum de participants (minimum 1)");
 
     if (missingFields.length > 0 || !user) {
@@ -291,8 +291,8 @@ const FormationCreate = () => {
           end_date: endDate ? format(endDate, "yyyy-MM-dd") : null,
           training_name: trainingName,
           location: isPermanent ? "En ligne en accédant à son compte sur supertilt.fr" : finalLocation,
-          client_name: isPermanent ? "Formation permanente" : clientName,
-          client_address: isPermanent ? null : (clientAddress || null),
+          client_name: isInter ? "Inter-entreprises" : clientName,
+          client_address: isInter ? null : (clientAddress || null),
           sold_price_ht: isPermanent ? null : (soldPriceHt ? Math.round(parseFloat(soldPriceHt) * 100) / 100 : null),
           max_participants: isPermanent ? 0 : (maxParticipants ? parseInt(maxParticipants, 10) : 0),
           evaluation_link: "", // Field hidden from UI but required by schema
@@ -303,11 +303,11 @@ const FormationCreate = () => {
           objectives,
           program_file_url: programFileUrl || null,
           supertilt_link: supertiltLink || null,
-          sponsor_first_name: isPermanent ? null : (sponsorFirstName || null),
-          sponsor_last_name: isPermanent ? null : (sponsorLastName || null),
-          sponsor_email: isPermanent ? null : (sponsorEmail || null),
-          sponsor_formal_address: isPermanent ? true : sponsorFormalAddress,
-          financeur_same_as_sponsor: isPermanent ? true : financeurSameAsSponsor,
+          sponsor_first_name: isInter ? null : (sponsorFirstName || null),
+          sponsor_last_name: isInter ? null : (sponsorLastName || null),
+          sponsor_email: isInter ? null : (sponsorEmail || null),
+          sponsor_formal_address: isInter ? true : sponsorFormalAddress,
+          financeur_same_as_sponsor: isInter ? true : financeurSameAsSponsor,
           financeur_name: (isPermanent || financeurSameAsSponsor) ? null : (financeurName || null),
           financeur_url: (isPermanent || financeurSameAsSponsor) ? null : (financeurUrl || null),
           trainer_id: null,
@@ -696,8 +696,8 @@ const FormationCreate = () => {
                 </div>
               )}
 
-              {/* Client - hidden for permanent */}
-              {!isPermanent && (
+              {/* Client - hidden for inter-entreprises and permanent */}
+              {!isInter && (
               <div className="space-y-2">
                 <Label htmlFor="clientName">Client *</Label>
                 <Input
@@ -710,8 +710,8 @@ const FormationCreate = () => {
               </div>
               )}
 
-              {/* Client address - hidden for permanent */}
-              {!isPermanent && (
+              {/* Client address - hidden for inter-entreprises and permanent */}
+              {!isInter && (
               <div className="space-y-2">
                 <Label htmlFor="clientAddress">Adresse du client</Label>
                 <Input
@@ -813,8 +813,8 @@ const FormationCreate = () => {
             />
           )}
 
-          {/* Sponsor/Commanditaire - hidden for permanent */}
-          {!isPermanent && <Card>
+          {/* Sponsor/Commanditaire - hidden for inter-entreprises and permanent */}
+          {!isInter && <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle>Commanditaire</CardTitle>
@@ -867,8 +867,8 @@ const FormationCreate = () => {
             </CardContent>
           </Card>}
 
-          {/* Financeur - hidden for permanent */}
-          {!isPermanent && <Card>
+          {/* Financeur - hidden for inter-entreprises and permanent */}
+          {!isInter && <Card>
             <CardHeader>
               <CardTitle>Financeur</CardTitle>
             </CardHeader>

@@ -85,6 +85,7 @@ interface ParticipantListProps {
   trainingStartDate: string | null;
   trainingEndDate: string | null;
   formatFormation: string | null;
+  isInterEntreprise?: boolean;
   elearningDuration?: number | null;
   availableFormulas?: FormationFormula[];
   attendanceSheetsUrls: string[];
@@ -180,6 +181,7 @@ const ParticipantList = ({
   trainingStartDate,
   trainingEndDate,
   formatFormation,
+  isInterEntreprise: isInterEntrepriseProp,
   elearningDuration,
   availableFormulas = [],
   attendanceSheetsUrls,
@@ -207,8 +209,8 @@ const ParticipantList = ({
   const [showEvaluationDetail, setShowEvaluationDetail] = useState(false);
   const { toast } = useToast();
 
-  const isInterEntreprise = formatFormation === "inter-entreprises" || formatFormation === "e_learning";
-  const isIndividualConvention = formatFormation === "inter-entreprises" || formatFormation === "e_learning";
+  const isInterEntreprise = isInterEntrepriseProp ?? (formatFormation === "inter-entreprises" || formatFormation === "e_learning");
+  const isIndividualConvention = isInterEntreprise;
   const hasCoachingParticipants = participants.some((p) => (p.coaching_sessions_total || 0) > 0);
 
   // Fetch all evaluations (certificates + status) for all participants
@@ -924,6 +926,7 @@ const ParticipantList = ({
         participant={participant}
         trainingId={trainingId}
         formatFormation={formatFormation}
+        isInterEntreprise={isInterEntreprise}
         trainingElearningDuration={elearningDuration}
         availableFormulas={availableFormulas}
         onParticipantUpdated={onParticipantUpdated}

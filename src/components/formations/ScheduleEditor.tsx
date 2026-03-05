@@ -170,7 +170,7 @@ const ScheduleEditor = ({ schedules, onSchedulesChange }: ScheduleEditorProps) =
               >
                 <div className="flex-1 min-w-0">
                   <p className="font-medium capitalize truncate">
-                    {format(parseISO(schedule.day_date), "EEEE d MMMM", { locale: fr })}
+                    Jour {index + 1} – {format(parseISO(schedule.day_date), "EEEE d MMMM yyyy", { locale: fr })}
                   </p>
                 </div>
 

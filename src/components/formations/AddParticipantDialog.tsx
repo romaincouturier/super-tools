@@ -48,6 +48,7 @@ interface AddParticipantDialogProps {
   trainingStartDate?: string;
   clientName?: string;
   formatFormation?: string | null;
+  isInterEntreprise?: boolean;
   availableFormulas?: FormationFormula[];
   trainingFormulaId?: string | null;
   onParticipantAdded: () => void;
@@ -77,7 +78,7 @@ const capitalizeName = (name: string): string => {
     .join("");
 };
 
-const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, formatFormation, availableFormulas = [], trainingFormulaId, onParticipantAdded, onScheduledEmailsRefresh, initialFirstName, initialLastName, initialEmail, initialCompany, initialSoldPriceHt, externalOpen, onExternalOpenChange }: AddParticipantDialogProps) => {
+const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, formatFormation, isInterEntreprise: isInterEntrepriseProp, availableFormulas = [], trainingFormulaId, onParticipantAdded, onScheduledEmailsRefresh, initialFirstName, initialLastName, initialEmail, initialCompany, initialSoldPriceHt, externalOpen, onExternalOpenChange }: AddParticipantDialogProps) => {
   const [internalOpen, setInternalOpen] = useState(false);
   const open = externalOpen !== undefined ? externalOpen : internalOpen;
   const setOpen = (v: boolean) => {
@@ -107,7 +108,7 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
   const [isManualMode, setIsManualMode] = useState(false);
   const { toast } = useToast();
   
-  const isInterEntreprise = formatFormation === "inter-entreprises" || formatFormation === "e_learning";
+  const isInterEntreprise = isInterEntrepriseProp ?? (formatFormation === "inter-entreprises" || formatFormation === "e_learning");
 
   // Populate initial values when dialog opens with prefill data
   useEffect(() => {

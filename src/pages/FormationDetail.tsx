@@ -1229,6 +1229,7 @@ const FormationDetail = () => {
                       trainingStartDate={training.start_date}
                       clientName={training.client_name}
                       formatFormation={training.format_formation}
+                      isInterEntreprise={isInterSession}
                       availableFormulas={availableFormulas}
                       trainingFormulaId={(training as any).formula_id ?? undefined}
                       onParticipantAdded={fetchParticipants}
@@ -1256,6 +1257,7 @@ const FormationDetail = () => {
                 trainingStartDate={training.start_date}
                 trainingEndDate={training.end_date}
                 formatFormation={training.format_formation}
+                isInterEntreprise={isInterSession}
                 elearningDuration={training.elearning_duration}
                 availableFormulas={availableFormulas}
                 attendanceSheetsUrls={training.attendance_sheets_urls}
@@ -1357,6 +1359,7 @@ const FormationDetail = () => {
               supportsUrl={training.supports_url}
               evaluationLink={training.evaluation_link}
               formatFormation={training.format_formation}
+              isInterEntreprise={isInterSession}
               conventionFileUrl={training.convention_file_url}
               trainerName={training.trainer_name}
               location={training.location}
