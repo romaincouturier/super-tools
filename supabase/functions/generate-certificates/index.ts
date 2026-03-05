@@ -395,7 +395,7 @@ async function sendEmailWithResend(
   // Use first name only for greeting
   const greeting = safeParticipantFirstName ? `Bonjour ${safeParticipantFirstName},` : "Bonjour,";
 
-  const senderFrom = await getSenderFrom();
+  const [senderFrom, bccList] = await Promise.all([getSenderFrom(), getBccList()]);
 
   // Send to participant
   const participantEmailResponse = await fetch("https://api.resend.com/emails", {
@@ -407,6 +407,7 @@ async function sendEmailWithResend(
     body: JSON.stringify({
       from: senderFrom,
       to: [participantEmail],
+      bcc: bccList,
       subject: `Ton certificat de réalisation pour la formation ${formationName}`,
       html: `
         <p>${greeting}</p>
@@ -817,6 +818,10 @@ serve(async (req: Request): Promise<Response> => {
             });
 
             try {
+              // Rate limit between participant emails
+              if (i > 0) {
+                await new Promise(resolve => setTimeout(resolve, 400));
+              }
               await sendEmailWithResend(
                 participant.email,
                 participantName,

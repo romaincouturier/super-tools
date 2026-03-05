@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { getSenderFrom, getSenderEmail, getSenderName } from "../_shared/email-settings.ts";
+import { getSenderFrom, getSenderEmail, getSenderName, getBccList } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
 
 /**
@@ -252,27 +252,15 @@ serve(async (req) => {
       }
 
       // BCC settings
-      let bccAddresses: string[] = [];
-      try {
-        const { data: bccData } = await supabase
-          .from("app_settings")
-          .select("setting_value")
-          .eq("setting_key", "bcc_emails")
-          .single();
-        if (bccData?.setting_value) {
-          bccAddresses = JSON.parse(bccData.setting_value);
-        }
-      } catch (_e) { /* no bcc */ }
+      const bccAddresses = await getBccList();
 
       const emailPayload: Record<string, unknown> = {
         from: senderFrom,
         to: [trainerEmail],
+        bcc: bccAddresses,
         subject,
         html: bodyHtml,
       };
-      if (bccAddresses.length > 0) {
-        emailPayload.bcc = bccAddresses;
-      }
 
       const resendRes = await fetch("https://api.resend.com/emails", {
         method: "POST",

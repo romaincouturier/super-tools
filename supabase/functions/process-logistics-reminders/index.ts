@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { getSenderFrom } from "../_shared/email-settings.ts";
+import { getSenderFrom, getBccList } from "../_shared/email-settings.ts";
 
 /**
  * Consolidated Daily Digest
@@ -517,7 +517,7 @@ serve(async (req) => {
     // ════════════════════════════════════════════
     // SEND PER-USER DIGEST EMAIL
     // ════════════════════════════════════════════
-    const senderFrom = await getSenderFrom();
+    const [senderFrom, bccList] = await Promise.all([getSenderFrom(), getBccList()]);
     let emailsSent = 0;
     let totalAlertsSent = 0;
 
@@ -671,6 +671,7 @@ serve(async (req) => {
           body: JSON.stringify({
             from: senderFrom,
             to: [recipient.email],
+            bcc: bccList,
             subject: `🔔 ${alertCount} alerte${alertCount > 1 ? "s" : ""} — Récapitulatif quotidien`,
             html: htmlContent,
           }),

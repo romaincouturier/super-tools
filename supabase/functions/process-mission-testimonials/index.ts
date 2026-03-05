@@ -21,6 +21,7 @@ import {
   corsHeaders,
   handleCorsPreflightIfNeeded,
 } from "../_shared/mod.ts";
+import { getBccList } from "../_shared/email-settings.ts";
 
 const DAYS_BEFORE_GOOGLE_REVIEW = 2;
 const DAYS_BETWEEN_EMAILS = 2;
@@ -97,8 +98,15 @@ serve(async (req: Request) => {
 
     let googleReviewsSent = 0;
     let testimonialsSent = 0;
+    const bccList = await getBccList();
 
-    for (const mission of missionsWithEmail) {
+    for (let mi = 0; mi < missionsWithEmail.length; mi++) {
+      const mission = missionsWithEmail[mi];
+
+      // Rate limit between missions
+      if (mi > 0) {
+        await new Promise(resolve => setTimeout(resolve, 400));
+      }
       const endDate = new Date(mission.end_date);
       const daysSinceEnd = Math.floor((today.getTime() - endDate.getTime()) / (1000 * 60 * 60 * 24));
 
@@ -175,6 +183,7 @@ Best regards,`;
 
         const result = await sendEmail({
           to: clientEmail,
+          bcc: bccList,
           subject,
           html,
           _emailType: "mission_google_review",
@@ -254,6 +263,7 @@ Best regards,`;
 
           const result = await sendEmail({
             to: clientEmail,
+            bcc: bccList,
             subject,
             html,
             _emailType: "mission_video_testimonial",

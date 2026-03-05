@@ -7,6 +7,7 @@ import {
   getSupabaseClient,
   sendEmail,
 } from "../_shared/mod.ts";
+import { getBccList } from "../_shared/email-settings.ts";
 
 serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
@@ -28,7 +29,7 @@ serve(async (req) => {
       return createErrorResponse("trainerEmail and evaluationLink are required", 400);
     }
 
-    const signature = await getSigniticSignature();
+    const [signature, bccList] = await Promise.all([getSigniticSignature(), getBccList()]);
 
     const formatDate = (date: string | null | undefined) => {
       if (!date) return "";
@@ -64,6 +65,7 @@ serve(async (req) => {
 
     const result = await sendEmail({
       to: [trainerEmail],
+      bcc: bccList,
       subject: `Votre retour – ${trainingName}${clientName ? ` (${clientName})` : ""}${dateLine ? ` – ${dateLine}` : ""}`,
       html,
     });
