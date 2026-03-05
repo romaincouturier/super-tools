@@ -6,6 +6,7 @@
  */
 
 import { getSigniticUrl, getSenderName, getSenderEmail } from "./email-settings.ts";
+import { getAppUrls } from "./app-urls.ts";
 
 /**
  * Default signature HTML when Signitic API is unavailable
@@ -13,12 +14,14 @@ import { getSigniticUrl, getSenderName, getSenderEmail } from "./email-settings.
 async function getDefaultSignature(): Promise<string> {
   const name = await getSenderName();
   const email = await getSenderEmail();
+  const urls = await getAppUrls();
+  const websiteUrl = urls.website_url;
   return `
     <p style="margin-top: 20px;">--</p>
     <p style="font-size: 14px; color: #333;">
       <strong>${name}</strong><br>
       <a href="mailto:${email}" style="color: #0066cc;">${email}</a><br>
-      <a href="https://www.supertilt.fr" style="color: #0066cc;">www.supertilt.fr</a>
+      <a href="${websiteUrl}" style="color: #0066cc;">${websiteUrl.replace(/^https?:\/\//, "")}</a>
     </p>
   `;
 }
