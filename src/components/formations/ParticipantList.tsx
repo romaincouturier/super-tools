@@ -41,6 +41,7 @@ import ViewQuestionnaireDialog from "./ViewQuestionnaireDialog";
 import ParticipantDocumentsDialog from "./ParticipantDocumentsDialog";
 import EditParticipantDialog from "./EditParticipantDialog";
 import EvaluationDetailDialog, { type EvaluationData } from "./EvaluationDetailDialog";
+import ParticipantTraceabilityDrawer from "./ParticipantTraceabilityDrawer";
 import {
   type EvaluationInfo,
   type CertificateInfo as CertInfo,
@@ -207,6 +208,7 @@ const ParticipantList = ({
   const [evaluationsByParticipant, setEvaluationsByParticipant] = useState<Map<string, EvaluationInfo>>(new Map());
   const [selectedEvaluation, setSelectedEvaluation] = useState<EvaluationData | null>(null);
   const [showEvaluationDetail, setShowEvaluationDetail] = useState(false);
+  const [traceabilityParticipant, setTraceabilityParticipant] = useState<Participant | null>(null);
   const { toast } = useToast();
 
   const isInterEntreprise = isInterEntrepriseProp ?? (formatFormation === "inter-entreprises" || formatFormation === "e_learning");
