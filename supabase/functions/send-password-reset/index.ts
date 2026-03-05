@@ -65,11 +65,12 @@ serve(async (req: Request) => {
       );
     }
 
-    // Get Signitic signature
-    const signature = await getSigniticSignature();
-
-    // Send email with reset link
-    const senderFrom = await getSenderFrom();
+    // Get Signitic signature and BCC list
+    const [signature, senderFrom, bccList] = await Promise.all([
+      getSigniticSignature(),
+      getSenderFrom(),
+      getBccList(),
+    ]);
     const emailResponse = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
