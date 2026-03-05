@@ -1172,11 +1172,16 @@ const CardDetailDrawer = ({
     setEmailAttachments((prev) => prev.filter((_, i) => i !== index));
   };
 
+  const parseEmails = (str: string): string[] =>
+    str.split(/[,;\s]+/).map(s => s.trim()).filter(s => s.includes("@"));
+
   const handleSendEmail = async () => {
     if (!card || !user?.email || !emailTo.trim() || !emailSubject.trim()) return;
     const sentSubject = emailSubject.trim();
     const sentBody = DOMPurify.sanitize(emailBody);
     const templateSnapshot = selectedTemplateRef.current;
+    const ccList = parseEmails(emailCc);
+    const bccList = parseEmails(emailBcc);
     await sendEmail.mutateAsync({
       input: {
         card_id: card.id,
@@ -1184,10 +1189,15 @@ const CardDetailDrawer = ({
         subject: sentSubject,
         body_html: sentBody,
         attachments: emailAttachments.length > 0 ? emailAttachments : undefined,
+        cc: ccList.length > 0 ? ccList : undefined,
+        bcc: bccList.length > 0 ? bccList : undefined,
       },
       senderEmail: user.email,
     });
     setEmailTo("");
+    setEmailCc("");
+    setEmailBcc("");
+    setShowCcBcc(false);
     setEmailSubject("");
     setEmailBody("");
     setEmailAttachments([]);
