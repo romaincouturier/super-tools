@@ -264,10 +264,24 @@ const BesoinsParticipants = () => {
               </div>
             </div>
           </div>
-          <Button variant="outline" onClick={() => setParticipantDrawerOpen(true)}>
-            <GraduationCap className="h-4 w-4 mr-2" />
-            Parcours apprenant
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={runAnalysis}
+              disabled={filteredSurveys.length === 0 || analysisLoading}
+            >
+              {analysisLoading ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Sparkles className="h-4 w-4 mr-2" />
+              )}
+              Analyser avec l'IA
+            </Button>
+            <Button variant="outline" onClick={() => setParticipantDrawerOpen(true)}>
+              <GraduationCap className="h-4 w-4 mr-2" />
+              Parcours apprenant
+            </Button>
+          </div>
         </div>
 
         {/* Stats */}
