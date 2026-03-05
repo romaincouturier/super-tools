@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getSenderFrom, getBccList } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
 import { getAppUrls } from "../_shared/app-urls.ts";
+import { sendEmail } from "../_shared/resend.ts";
 
 const VERSION = "send-action-reminder@2026-02-02.3";
 
@@ -85,24 +86,18 @@ serve(async (req) => {
 
     console.log(`[${VERSION}] Sending reminder to ${assignedEmail} for action ${actionId}`);
 
-    const response = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${RESEND_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from: senderFrom,
-        to: [assignedEmail],
-        bcc: bccList,
-        subject: `🔔 Rappel : ${description.substring(0, 50)}${description.length > 50 ? "..." : ""}`,
-        html: htmlContent,
-      }),
+    const response = await sendEmail({
+      from: senderFrom,
+      to: [assignedEmail],
+      bcc: bccList,
+      subject: `🔔 Rappel : ${description.substring(0, 50)}${description.length > 50 ? "..." : ""}`,
+      html: htmlContent,
+      _emailType: "action_reminder",
+      _trainingId: trainingId || undefined,
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("[send-action-reminder] Resend error:", response.status, errorText);
+    if (!response.success) {
+      console.error("[send-action-reminder] sendEmail error:", response.error);
       return new Response(
         JSON.stringify({ success: false, error: "Email sending failed", _version: VERSION }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }

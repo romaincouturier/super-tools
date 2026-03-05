@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getSenderFrom, getSenderEmail, getSenderName, getBccList } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
 import { processTemplate } from "../_shared/templates.ts";
+import { sendEmail } from "../_shared/resend.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -91,31 +92,24 @@ async function sendBookingReminderEmail(
   }
 
   try {
-    const emailResponse = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${resendApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from: senderFrom,
-        to: [reminder.recipientEmail],
-        bcc: bccList,
-        subject,
-        html: htmlContent,
-      }),
+    const result = await sendEmail({
+      from: senderFrom,
+      to: [reminder.recipientEmail],
+      bcc: bccList,
+      subject,
+      html: htmlContent,
+      _emailType: "booking_reminder",
     });
 
-    if (!emailResponse.ok) {
-      const errorText = await emailResponse.text();
-      console.error(`Resend error for ${reminder.entityType} ${reminder.entityId}:`, errorText);
+    if (!result.success) {
+      console.error(`Resend error for ${reminder.entityType} ${reminder.entityId}:`, result.error);
       return {
         entity_type: reminder.entityType,
         entity_id: reminder.entityId,
         entity_name: reminder.entityName,
         recipient_email: reminder.recipientEmail,
         success: false,
-        error: errorText,
+        error: result.error,
       };
     }
 

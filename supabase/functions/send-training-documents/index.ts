@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getSenderFrom, getBccList } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
 import { processTemplate, textToHtml } from "../_shared/templates.ts";
+import { sendEmail } from "../_shared/resend.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -227,31 +228,20 @@ Bonne réception.`;
 
     const senderFrom = await getSenderFrom();
 
-    const emailResponse = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${RESEND_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from: senderFrom,
-        to: toList,
-        cc: ccList.length > 0 ? ccList : undefined,
-        bcc: bccList,
-        subject,
-        html: htmlContent,
-        attachments,
-      }),
+    const result = await sendEmail({
+      from: senderFrom,
+      to: toList,
+      cc: ccList.length > 0 ? ccList : undefined,
+      bcc: bccList,
+      subject,
+      html: htmlContent,
+      attachments,
+      _emailType: "training_documents",
+      _trainingId: trainingId,
+      _participantId: participantId || undefined,
     });
 
-    if (!emailResponse.ok) {
-      const errorText = await emailResponse.text();
-      console.error("Resend error:", errorText);
-      throw new Error(`Failed to send email: ${emailResponse.status}`);
-    }
-
-    const result = await emailResponse.json();
-    console.log("Email sent successfully:", result);
+    console.log("Email sent successfully:", result.id);
 
     // Log activity
     try {
