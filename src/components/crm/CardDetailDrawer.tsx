@@ -2401,7 +2401,7 @@ const CardDetailDrawer = ({
                             attachments: emailAttachments.length > 0 ? emailAttachments : null,
                           });
                           toast({ title: "Email programmé", description: `Envoi prévu le ${format(hours, "d MMM yyyy 'à' HH:mm", { locale: fr })}` });
-                          setEmailTo(""); setEmailSubject(""); setEmailBody(""); setEmailAttachments([]);
+                          setEmailTo(""); setEmailCc(""); setEmailBcc(""); setShowCcBcc(false); setEmailSubject(""); setEmailBody(""); setEmailAttachments([]);
                         } catch {
                           toast({ title: "Erreur", description: "Impossible de programmer l'email.", variant: "destructive" });
                         }
