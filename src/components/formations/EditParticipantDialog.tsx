@@ -233,6 +233,11 @@ const EditParticipantDialog = ({
           }
         }
 
+        // Coaching sessions (only if formula allows it)
+        if (formulaAllowsCoaching) {
+          updateData.coaching_sessions_total = v.coachingSessionsTotal ? parseInt(v.coachingSessionsTotal, 10) : 0;
+        }
+
         const { error } = await supabase
           .from("training_participants")
           .update(updateData)
