@@ -21,6 +21,10 @@ interface CreateMissionDialogProps {
   prefillClientName?: string;
   prefillClientContact?: string;
   prefillTotalAmount?: string;
+  prefillContactFirstName?: string;
+  prefillContactLastName?: string;
+  prefillContactEmail?: string;
+  prefillContactPhone?: string;
 }
 
 const CreateMissionDialog = ({
@@ -31,6 +35,10 @@ const CreateMissionDialog = ({
   prefillClientName,
   prefillClientContact,
   prefillTotalAmount,
+  prefillContactFirstName,
+  prefillContactLastName,
+  prefillContactEmail,
+  prefillContactPhone,
 }: CreateMissionDialogProps) => {
   const createMission = useCreateMission();
   const [title, setTitle] = useState("");
@@ -42,10 +50,13 @@ const CreateMissionDialog = ({
     if (open) {
       setTitle(prefillTitle || "");
       setClientName(prefillClientName || "");
-      setClientContact(prefillClientContact || "");
+      // Build clientContact display from structured fields if available
+      const structuredContact = [prefillContactFirstName, prefillContactLastName].filter(Boolean).join(" ");
+      const contactParts = [structuredContact, prefillContactEmail].filter(Boolean).join(" ");
+      setClientContact(contactParts || prefillClientContact || "");
       setTotalAmount(prefillTotalAmount || "");
     }
-  }, [open, prefillTitle, prefillClientName, prefillClientContact, prefillTotalAmount]);
+  }, [open, prefillTitle, prefillClientName, prefillClientContact, prefillTotalAmount, prefillContactFirstName, prefillContactLastName, prefillContactEmail]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,6 +69,11 @@ const CreateMissionDialog = ({
         client_contact: clientContact.trim() || undefined,
         initial_amount: totalAmount ? parseFloat(totalAmount) || undefined : undefined,
         status: defaultStatus,
+        // Pass structured contact fields from CRM
+        contact_first_name: prefillContactFirstName || undefined,
+        contact_last_name: prefillContactLastName || undefined,
+        contact_email: prefillContactEmail || undefined,
+        contact_phone: prefillContactPhone || undefined,
       });
 
       setTitle("");

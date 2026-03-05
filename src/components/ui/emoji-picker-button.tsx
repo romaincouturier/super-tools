@@ -1,7 +1,12 @@
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
 import EmojiPicker, { EmojiClickData, EmojiStyle, Theme } from "emoji-picker-react";
 import { Button } from "@/components/ui/button";
-import { Smile } from "lucide-react";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Smile, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface EmojiPickerButtonProps {
@@ -18,19 +23,6 @@ const EmojiPickerButton = ({
   className,
 }: EmojiPickerButtonProps) => {
   const [open, setOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    };
-    if (open) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [open]);
 
   const handleEmojiClick = (emojiData: EmojiClickData) => {
     onEmojiChange(emojiData.emoji);
@@ -50,44 +42,53 @@ const EmojiPickerButton = ({
   };
 
   return (
-    <div ref={containerRef} className={cn("relative inline-block", className)} data-emoji-picker>
-      <button
-        type="button"
-        onClick={() => setOpen(!open)}
-        className={cn(
-          "flex items-center justify-center rounded hover:bg-muted transition-colors",
-          sizeClasses[size],
-          !emoji && "text-muted-foreground/40 hover:text-muted-foreground/60"
-        )}
-        title={emoji ? "Changer l'emoji" : "Ajouter un emoji"}
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className={cn(
+            "flex items-center justify-center rounded hover:bg-muted transition-colors",
+            sizeClasses[size],
+            !emoji && "text-muted-foreground/40 hover:text-muted-foreground/60",
+            className,
+          )}
+          title={emoji ? "Changer l'emoji" : "Ajouter un emoji"}
+        >
+          {emoji || <Smile className={size === "sm" ? "h-3.5 w-3.5" : "h-4 w-4"} />}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        className="w-auto p-0 border-0 shadow-xl rounded-xl overflow-hidden"
+        side="bottom"
+        align="start"
+        sideOffset={4}
       >
-        {emoji || <Smile className={size === "sm" ? "h-3.5 w-3.5" : "h-4 w-4"} />}
-      </button>
-
-      {open && (
-        <div className="absolute z-50 top-full left-0 mt-1">
-          <EmojiPicker
-            onEmojiClick={handleEmojiClick}
-            theme={Theme.AUTO}
-            emojiStyle={EmojiStyle.NATIVE}
-            width={320}
-            height={400}
-            searchPlaceHolder="Rechercher..."
-            previewConfig={{ showPreview: false }}
-          />
-          {emoji && (
+        <EmojiPicker
+          onEmojiClick={handleEmojiClick}
+          theme={Theme.AUTO}
+          emojiStyle={EmojiStyle.NATIVE}
+          width={352}
+          height={420}
+          searchPlaceHolder="Rechercher un emoji..."
+          previewConfig={{ showPreview: true }}
+          skinTonesDisabled
+          lazyLoadEmojis
+        />
+        {emoji && (
+          <div className="border-t bg-background px-2 py-1.5">
             <Button
               variant="ghost"
               size="sm"
-              className="w-full mt-1 text-xs text-muted-foreground"
+              className="w-full text-xs text-muted-foreground hover:text-destructive gap-1.5"
               onClick={handleRemove}
             >
+              <X className="h-3 w-3" />
               Supprimer l'emoji
             </Button>
-          )}
-        </div>
-      )}
-    </div>
+          </div>
+        )}
+      </PopoverContent>
+    </Popover>
   );
 };
 

@@ -45,6 +45,11 @@ export interface CreateMissionInput {
   initial_amount?: number;
   tags?: string[];
   color?: string;
+  // Structured contact fields (from CRM)
+  contact_first_name?: string;
+  contact_last_name?: string;
+  contact_email?: string;
+  contact_phone?: string;
 }
 
 export interface UpdateMissionInput {

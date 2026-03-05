@@ -796,7 +796,10 @@ const CardDetailDrawer = ({
     const params = new URLSearchParams();
     if (missionTitle) params.set("title", missionTitle);
     if (company) params.set("clientName", company);
-    if (firstName || lastName) params.set("clientContact", [firstName, lastName].filter(Boolean).join(" "));
+    if (firstName) params.set("contactFirstName", firstName);
+    if (lastName) params.set("contactLastName", lastName);
+    if (email) params.set("contactEmail", email);
+    if (phone) params.set("contactPhone", phone);
     if (estimatedValue && parseFloat(estimatedValue) > 0) params.set("totalAmount", estimatedValue);
     if (card?.id) params.set("fromCrmCardId", card.id);
     navigate(`/missions?${params.toString()}`);
@@ -864,8 +867,15 @@ const CardDetailDrawer = ({
   const handleSalesStatusChange = async (newStatus: SalesStatus) => {
     if (!card || !user?.email) return;
 
-    // Intercept LOST transition: show loss reason dialog first
     const previousStatus = salesStatus;
+
+    // Toggle: clicking the same status reverts to OPEN
+    if (newStatus === previousStatus) {
+      await applyStatusChange("OPEN", previousStatus);
+      return;
+    }
+
+    // Intercept LOST transition: show loss reason dialog first
     if (newStatus === "LOST" && previousStatus !== "LOST") {
       setPendingLossStatus(true);
       setShowLossReasonDialog(true);
@@ -1406,6 +1416,19 @@ const CardDetailDrawer = ({
           <div className="flex-1" />
 
           {/* Won / Lost icons */}
+          {(salesStatus === "WON" || salesStatus === "LOST") && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="gap-1 text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+              onClick={() => handleSalesStatusChange(salesStatus)}
+              disabled={updateCard.isPending}
+              title="Réouvrir l'opportunité"
+            >
+              <Undo2 className="h-4 w-4" />
+              <span className="text-xs">Réouvrir</span>
+            </Button>
+          )}
           <Button
             variant="ghost"
             size="sm"

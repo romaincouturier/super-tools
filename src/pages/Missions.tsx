@@ -39,6 +39,10 @@ const Missions = () => {
               clientContact: searchParams.get("clientContact") || "",
               totalAmount: searchParams.get("totalAmount") || "",
               fromCrmCardId: searchParams.get("fromCrmCardId") || "",
+              contactFirstName: searchParams.get("contactFirstName") || "",
+              contactLastName: searchParams.get("contactLastName") || "",
+              contactEmail: searchParams.get("contactEmail") || "",
+              contactPhone: searchParams.get("contactPhone") || "",
             } : undefined}
             onPrefillConsumed={() => setSearchParams({})}
           />

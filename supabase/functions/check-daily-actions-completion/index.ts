@@ -67,7 +67,7 @@ serve(async (req) => {
     // Fetch current states
     const [missionsResult, cardsResult, trainingsResult, reviewsResult] = await Promise.all([
       missionIds.length > 0
-        ? supabase.from("missions").select("id, consumed_amount, billed_amount, status").in("id", missionIds)
+        ? supabase.from("missions").select("id, consumed_amount, billed_amount, status, start_date").in("id", missionIds)
         : { data: [] },
       crmCardIds.length > 0
         ? supabase.from("crm_cards").select("id, sales_status, column_id").in("id", crmCardIds)
@@ -131,6 +131,14 @@ serve(async (req) => {
             const consumed = Number(m.consumed_amount) || 0;
             const billed = Number(m.billed_amount) || 0;
             if (billed >= consumed || m.status === "cancelled") resolved = true;
+          }
+          break;
+        }
+
+        case "missions_sans_date": {
+          const m = missions.get(action.entity_id);
+          if (m) {
+            if (m.start_date || m.status === "cancelled") resolved = true;
           }
           break;
         }

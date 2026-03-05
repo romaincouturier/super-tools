@@ -147,6 +147,27 @@ serve(async (req) => {
     console.log(`[${VERSION}] Missions à facturer: ${missionAlerts.length}`);
 
     // ════════════════════════════════════════════
+    // 1b. MISSIONS SANS DATE DE DÉBUT
+    // ════════════════════════════════════════════
+    const { data: missionsNoStartDate } = await supabase
+      .from("missions")
+      .select("id, title, client_name, emoji")
+      .in("status", ["not_started", "in_progress"])
+      .is("start_date", null);
+
+    const missionNoDateAlerts: string[] = [];
+    if (missionsNoStartDate) {
+      for (const m of missionsNoStartDate) {
+        const label = m.client_name ? `${m.client_name} — ${m.title}` : m.title;
+        const emojiPrefix = m.emoji ? `${m.emoji} ` : "";
+        missionNoDateAlerts.push(
+          `<li>${emojiPrefix}<a href="${appUrl}/missions/${m.id}" style="color: ${COLORS.primary}; text-decoration: underline;">${label}</a> — <strong>Date de début à définir</strong></li>`
+        );
+      }
+    }
+    console.log(`[${VERSION}] Missions sans date de début: ${missionNoDateAlerts.length}`);
+
+    // ════════════════════════════════════════════
     // 2-4. CRM: Devis à faire, Opportunités, Devis à relancer
     // ════════════════════════════════════════════
     // Fetch CRM columns to find the target columns dynamically
@@ -517,6 +538,12 @@ serve(async (req) => {
       if (missionAlerts.length > 0) {
         sections.push(sectionHtml("💰", "Factures missions", COLORS.green, missionAlerts, missionAlerts.length));
         alertCount += missionAlerts.length;
+      }
+
+      // 2b. Missions sans date de début
+      if (missionNoDateAlerts.length > 0) {
+        sections.push(sectionHtml("📅", "Missions sans date de début", COLORS.orange, missionNoDateAlerts, missionNoDateAlerts.length));
+        alertCount += missionNoDateAlerts.length;
       }
 
       // 3. Devis à faire (colonne contacté)

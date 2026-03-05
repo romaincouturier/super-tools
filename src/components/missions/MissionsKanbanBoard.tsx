@@ -20,6 +20,10 @@ interface CrmPrefill {
   clientContact: string;
   totalAmount: string;
   fromCrmCardId: string;
+  contactFirstName?: string;
+  contactLastName?: string;
+  contactEmail?: string;
+  contactPhone?: string;
 }
 
 interface MissionsKanbanBoardProps {
@@ -176,6 +180,10 @@ const MissionsKanbanBoard = ({ prefillFromCrm, onPrefillConsumed }: MissionsKanb
         prefillClientName={prefillData?.clientName}
         prefillClientContact={prefillData?.clientContact}
         prefillTotalAmount={prefillData?.totalAmount}
+        prefillContactFirstName={prefillData?.contactFirstName}
+        prefillContactLastName={prefillData?.contactLastName}
+        prefillContactEmail={prefillData?.contactEmail}
+        prefillContactPhone={prefillData?.contactPhone}
       />
 
       <MissionDetailDrawer
