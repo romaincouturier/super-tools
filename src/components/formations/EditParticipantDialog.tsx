@@ -97,6 +97,7 @@ interface EditParticipantDialogProps {
   participant: Participant;
   trainingId: string;
   formatFormation?: string | null;
+  isInterEntreprise?: boolean;
   trainingElearningDuration?: number | null;
   availableFormulas?: FormationFormula[];
   onParticipantUpdated: () => void;
@@ -118,6 +119,7 @@ const EditParticipantDialog = ({
   participant,
   trainingId,
   formatFormation,
+  isInterEntreprise: isInterEntrepriseProp,
   trainingElearningDuration,
   availableFormulas = [],
   onParticipantUpdated,
@@ -170,7 +172,7 @@ const EditParticipantDialog = ({
   const lastSavedHashRef = useRef("");
   const formValuesRef = useRef<Record<string, unknown>>({});
 
-  const isInterEntreprise = formatFormation === "inter-entreprises" || formatFormation === "e_learning";
+  const isInterEntreprise = isInterEntrepriseProp ?? (formatFormation === "inter-entreprises" || formatFormation === "e_learning");
 
   // Always keep latest values in ref
   formValuesRef.current = {
