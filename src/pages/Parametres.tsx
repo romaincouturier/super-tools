@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
@@ -2384,27 +2384,10 @@ const Parametres = () => {
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">Slack</CardTitle>
-                  <CardDescription>Recevez une notification Slack quand une opportunité CRM est créée ou gagnée (via l'app Slack connectée).</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="space-y-2">
-                    <Label htmlFor="slack-channel">Canal Slack</Label>
-                    <Input
-                      id="slack-channel"
-                      type="text"
-                      value={settings.slack_crm_channel}
-                      onChange={(e) => updateSetting("slack_crm_channel", e.target.value)}
-                      placeholder="general"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Nom du canal Slack où envoyer les notifications CRM (sans le #). L'app Slack Lovable doit être connectée.
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
+              <SlackChannelCard
+                currentChannel={settings.slack_crm_channel}
+                onChannelChange={(val) => updateSetting("slack_crm_channel", val)}
+              />
 
               <Card>
                 <CardHeader>
