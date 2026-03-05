@@ -128,7 +128,8 @@ async function resolveChannelIdByName(
     const data = await res.json().catch(() => ({}));
     if (!res.ok || data?.ok === false) {
       const reason = data?.error || `HTTP ${res.status}`;
-      throw new Error(`Slack conversations.list failed: ${reason}`);
+      console.warn(`Slack conversations.list unavailable (${reason}), fallback to raw channel target`);
+      return null;
     }
 
     const match = data?.channels?.find(
