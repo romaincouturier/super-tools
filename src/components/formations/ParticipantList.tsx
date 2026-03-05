@@ -860,7 +860,7 @@ const ParticipantList = ({
         );
       })()}
 
-      {/* 5. Attestation */}
+      {/* 4. Attestation */}
       {(() => {
         const cert = certificatesByParticipant.get(participant.id);
         const hasCert = !!cert?.certificateUrl;
