@@ -145,39 +145,42 @@ serve(async (req) => {
       .eq("setting_key", "slack_crm_channel")
       .single();
 
-    const channelName = settings?.setting_value || "general";
+    const configuredChannel = (settings?.setting_value || "general").trim();
 
     const message = buildSlackMessage(body);
 
     const gatewayHeaders = {
       "Authorization": `Bearer ${LOVABLE_API_KEY}`,
       "X-Connection-Api-Key": SLACK_API_KEY,
-      "Content-Type": "application/json",
+      "Content-Type": "application/json; charset=utf-8",
     };
 
-    // Resolve channel name to ID
-    const listRes = await fetch(
-      `${GATEWAY_URL}/conversations.list?types=public_channel&exclude_archived=true&limit=200`,
-      { headers: { "Authorization": `Bearer ${LOVABLE_API_KEY}`, "X-Connection-Api-Key": SLACK_API_KEY } }
-    );
-    const listData = await listRes.json();
-    const channelObj = listData.channels?.find((c: { name: string }) => c.name === channelName);
+    const isLikelyChannelId = /^(C|G)[A-Z0-9]+$/.test(configuredChannel);
+    let channelId = configuredChannel;
 
-    if (!channelObj) {
-      console.error("Slack channel not found:", channelName);
-      return createJsonResponse({ success: false, error: `Canal Slack "${channelName}" introuvable` });
+    // If user stored a channel name, resolve it to ID
+    if (!isLikelyChannelId) {
+      const listRes = await fetch(
+        `${GATEWAY_URL}/conversations.list?types=public_channel,private_channel&exclude_archived=true&limit=1000`,
+        { headers: { "Authorization": `Bearer ${LOVABLE_API_KEY}`, "X-Connection-Api-Key": SLACK_API_KEY } }
+      );
+      const listData = await listRes.json();
+      const normalized = configuredChannel.replace(/^#/, "");
+      const channelObj = listData.channels?.find((c: { name: string }) => c.name === normalized);
+
+      if (!channelObj?.id) {
+        return createErrorResponse(`Canal Slack introuvable: ${configuredChannel}`, 400);
+      }
+      channelId = channelObj.id;
     }
 
-    const channelId = channelObj.id;
-
-    // Auto-join the channel (idempotent)
+    // Try join (best effort) then post
     const joinRes = await fetch(`${GATEWAY_URL}/conversations.join`, {
       method: "POST",
       headers: gatewayHeaders,
       body: JSON.stringify({ channel: channelId }),
     });
-    const joinData = await joinRes.json();
-    console.log("conversations.join result:", JSON.stringify(joinData));
+    const joinData = await joinRes.json().catch(() => ({}));
 
     const slackResponse = await fetch(`${GATEWAY_URL}/chat.postMessage`, {
       method: "POST",
@@ -194,8 +197,12 @@ serve(async (req) => {
     const slackData = await slackResponse.json();
 
     if (!slackResponse.ok || !slackData.ok) {
+      if (slackData?.error === "not_in_channel") {
+        const joinError = joinData?.error ? ` (join: ${joinData.error})` : "";
+        return createErrorResponse(`Le bot Slack n'est pas dans ce canal${joinError}. Invite-le avec /invite @Lovable App`, 400);
+      }
       console.error("Slack API error:", slackResponse.status, JSON.stringify(slackData));
-      return createJsonResponse({ success: false, error: `Slack error: ${slackData.error || slackResponse.status}` });
+      return createErrorResponse(`Slack error: ${slackData.error || slackResponse.status}`, 502);
     }
 
     return createJsonResponse({ success: true });
