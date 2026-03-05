@@ -211,16 +211,21 @@ const EmailEditor = ({
     editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
   }, [editor]);
 
-  const insertBonjour = useCallback((gender: "M" | "Mme") => {
+  const insertBonjour = useCallback((variant: "M" | "Mme" | "prenom") => {
     if (!editor) return;
-    const lastName = variables?.last_name || "";
-    const greeting = gender === "M"
-      ? `Bonjour M. ${lastName}`
-      : `Bonjour Mme ${lastName}`;
+    let greeting: string;
+    if (variant === "prenom") {
+      greeting = `Bonjour ${variables?.first_name || ""}`;
+    } else {
+      const lastName = variables?.last_name || "";
+      greeting = variant === "M"
+        ? `Bonjour M. ${lastName}`
+        : `Bonjour Mme ${lastName}`;
+    }
     editor.chain().focus().insertContent(`<p>${greeting},</p>`).run();
-    onGenderSelect?.(gender);
+    if (variant !== "prenom") onGenderSelect?.(variant);
     setBonjourPopoverOpen(false);
-  }, [editor, variables?.last_name, onGenderSelect]);
+  }, [editor, variables?.first_name, variables?.last_name, onGenderSelect]);
 
   const insertSnippet = (snippet: EmailSnippet) => {
     if (!editor) return;
@@ -246,7 +251,7 @@ const EmailEditor = ({
     <div className={cn("border rounded-md bg-background relative", className)}>
       <div className="flex items-center gap-0.5 p-1.5 border-b bg-muted/30 flex-wrap">
         {/* Bonjour button */}
-        {variables?.last_name && (
+        {(variables?.last_name || variables?.first_name) && (
           <Popover open={bonjourPopoverOpen} onOpenChange={setBonjourPopoverOpen}>
             <PopoverTrigger asChild>
               <Button variant="ghost" size="sm" className="h-7 px-2 text-xs gap-1" title="Insérer une salutation">
@@ -255,18 +260,30 @@ const EmailEditor = ({
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-1" align="start">
-              <button
-                className="w-full text-left px-3 py-1.5 text-sm hover:bg-accent rounded transition-colors"
-                onClick={() => insertBonjour("M")}
-              >
-                Bonjour M. {variables.last_name}
-              </button>
-              <button
-                className="w-full text-left px-3 py-1.5 text-sm hover:bg-accent rounded transition-colors"
-                onClick={() => insertBonjour("Mme")}
-              >
-                Bonjour Mme {variables.last_name}
-              </button>
+              {variables?.first_name && (
+                <button
+                  className="w-full text-left px-3 py-1.5 text-sm hover:bg-accent rounded transition-colors"
+                  onClick={() => insertBonjour("prenom")}
+                >
+                  Bonjour {variables.first_name}
+                </button>
+              )}
+              {variables?.last_name && (
+                <>
+                  <button
+                    className="w-full text-left px-3 py-1.5 text-sm hover:bg-accent rounded transition-colors"
+                    onClick={() => insertBonjour("M")}
+                  >
+                    Bonjour M. {variables.last_name}
+                  </button>
+                  <button
+                    className="w-full text-left px-3 py-1.5 text-sm hover:bg-accent rounded transition-colors"
+                    onClick={() => insertBonjour("Mme")}
+                  >
+                    Bonjour Mme {variables.last_name}
+                  </button>
+                </>
+              )}
             </PopoverContent>
           </Popover>
         )}

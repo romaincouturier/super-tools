@@ -1926,6 +1926,7 @@ const CardDetailDrawer = ({
                           <div className="font-medium">{mission.title}</div>
                           <div className="text-xs text-muted-foreground flex items-center gap-2">
                             {mission.client_name && <span>{mission.client_name}</span>}
+                            {mission.client_contact && <span>· {mission.client_contact}</span>}
                             <span
                               className="px-1.5 py-0.5 rounded text-[10px]"
                               style={{
