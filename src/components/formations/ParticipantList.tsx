@@ -1033,16 +1033,9 @@ const ParticipantList = ({
             <TableRow>
               <TableHead>
                 <button onClick={() => toggleSort("last_name")} className="flex items-center hover:text-foreground transition-colors">
-                  Nom <SortIcon field="last_name" />
+                  Participant <SortIcon field="last_name" />
                 </button>
               </TableHead>
-              <TableHead>
-                <button onClick={() => toggleSort("email")} className="flex items-center hover:text-foreground transition-colors">
-                  Email <SortIcon field="email" />
-                </button>
-              </TableHead>
-              <TableHead>Société</TableHead>
-              {isInterEntreprise && <TableHead>Commanditaire</TableHead>}
               {isInterEntreprise && (
                 <TableHead>
                   <button onClick={() => toggleSort("amount")} className="flex items-center hover:text-foreground transition-colors">
@@ -1050,8 +1043,8 @@ const ParticipantList = ({
                   </button>
                 </TableHead>
               )}
-              <TableHead>Recueil des besoins</TableHead>
-              <TableHead className="w-28"></TableHead>
+              <TableHead>Recueil</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -1062,64 +1055,60 @@ const ParticipantList = ({
                 ? `${participant.first_name || ""} ${participant.last_name || ""}`.trim()
                 : participant.email;
 
-              const sponsorDisplayName = participant.sponsor_first_name || participant.sponsor_last_name
-                ? `${participant.sponsor_first_name || ""} ${participant.sponsor_last_name || ""}`.trim()
-                : null;
-
               return (
                 <TableRow key={participant.id}>
-                  <TableCell className="font-medium">
+                  <TableCell>
                     <div className="flex items-center gap-2">
-                      {participant.first_name || participant.last_name
-                        ? `${participant.first_name || ""} ${participant.last_name || ""}`.trim()
-                        : "—"}
-                      {participant.formula && (
-                        <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-                          {participant.formula}
-                        </Badge>
-                      )}
-                      {isInterEntreprise && participant.payment_mode === "invoice" && (
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <span className="inline-block w-2.5 h-2.5 rounded-full bg-warning" />
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>À facturer après la formation</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      )}
-                      {isInterEntreprise && participant.notes && (
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <StickyNote className="h-3.5 w-3.5 text-muted-foreground" />
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p className="max-w-xs whitespace-pre-wrap">{participant.notes}</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>{participant.email}</TableCell>
-                  <TableCell>{participant.company || "—"}</TableCell>
-                  {isInterEntreprise && (
-                    <TableCell>
-                      {sponsorDisplayName || participant.sponsor_email ? (
-                        <div className="flex flex-col gap-0.5">
-                          {sponsorDisplayName && (
-                            <span className="text-sm">{sponsorDisplayName}</span>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">
+                            {participant.first_name || participant.last_name
+                              ? `${participant.last_name || ""} ${participant.first_name || ""}`.trim()
+                              : "—"}
+                          </span>
+                          {participant.company && (
+                            <span className="text-xs text-muted-foreground">· {participant.company}</span>
                           )}
-                          {participant.sponsor_email && (
-                            <span className="text-xs text-muted-foreground">{participant.sponsor_email}</span>
+                          {participant.formula && (
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                              {participant.formula}
+                            </Badge>
+                          )}
+                          {isInterEntreprise && participant.payment_mode === "invoice" && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="inline-block w-2 h-2 rounded-full bg-warning" />
+                              </TooltipTrigger>
+                              <TooltipContent><p>À facturer</p></TooltipContent>
+                            </Tooltip>
+                          )}
+                          {participant.notes && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <StickyNote className="h-3 w-3 text-muted-foreground shrink-0" />
+                              </TooltipTrigger>
+                              <TooltipContent><p className="max-w-xs whitespace-pre-wrap">{participant.notes}</p></TooltipContent>
+                            </Tooltip>
                           )}
                         </div>
-                      ) : (
-                        "—"
-                      )}
-                    </TableCell>
-                  )}
+                      </div>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 text-muted-foreground hover:text-primary shrink-0"
+                            onClick={() => handleCopyEmail(participant.email)}
+                          >
+                            <Mail className="h-3 w-3" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent><p>Copier {participant.email}</p></TooltipContent>
+                      </Tooltip>
+                    </div>
+                  </TableCell>
                   {isInterEntreprise && (
-                    <TableCell>
+                    <TableCell className="tabular-nums">
                       {participant.sold_price_ht != null
                         ? `${participant.sold_price_ht.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`
                         : "—"}
@@ -1128,21 +1117,18 @@ const ParticipantList = ({
                   <TableCell>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Badge
-                          variant={statusConfig.variant}
-                          className="cursor-help gap-1"
-                        >
+                        <Badge variant={statusConfig.variant} className="cursor-help gap-1">
                           <StatusIcon className="h-3 w-3" />
                           {statusConfig.label}
                         </Badge>
                       </TooltipTrigger>
-                      <TooltipContent>
-                        <p>{statusConfig.tooltip}</p>
-                      </TooltipContent>
+                      <TooltipContent><p>{statusConfig.tooltip}</p></TooltipContent>
                     </Tooltip>
                   </TableCell>
                   <TableCell>
-                    {renderParticipantActions(participant, displayName)}
+                    <div className="flex justify-end">
+                      {renderParticipantActions(participant, displayName)}
+                    </div>
                   </TableCell>
                 </TableRow>
               );
