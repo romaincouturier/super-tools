@@ -28,7 +28,10 @@ interface CrmAiRequest {
     confidence_score?: number | null;
     current_next_action?: string;
     days_in_pipeline?: number | null;
-    activities?: Array<{ action_type: string; new_value?: string; created_at: string }>;
+    activities?: Array<{ action_type: string; new_value?: string; created_at: string; actor_email?: string }>;
+    // Rich context fields
+    emails_sent?: Array<{ subject: string; body_html: string; sent_at: string; recipient_email: string }>;
+    client_profile?: string;
   };
 }
 
@@ -45,7 +48,7 @@ async function callAnthropic(systemPrompt: string, userPrompt: string): Promise<
       "anthropic-version": "2023-06-01",
     },
     body: JSON.stringify({
-      model: "claude-3-haiku-20240307",
+      model: "claude-haiku-4-5-20251001",
       max_tokens: 2048,
       system: systemPrompt,
       messages: [
@@ -71,12 +74,15 @@ function buildContextFromCard(cardData: CrmAiRequest["card_data"]): string {
   let context = `# Opportunité CRM\n\n`;
   context += `**Titre:** ${cardData.title}\n`;
 
-  if (cardData.company) {
-    context += `**Entreprise:** ${cardData.company}\n`;
-  }
-
-  if (cardData.first_name || cardData.last_name) {
-    context += `**Contact:** ${[cardData.first_name, cardData.last_name].filter(Boolean).join(" ")}\n`;
+  if (cardData.client_profile) {
+    context += `\n## Profil client\n${cardData.client_profile}\n`;
+  } else {
+    if (cardData.company) {
+      context += `**Entreprise:** ${cardData.company}\n`;
+    }
+    if (cardData.first_name || cardData.last_name) {
+      context += `**Contact:** ${[cardData.first_name, cardData.last_name].filter(Boolean).join(" ")}\n`;
+    }
   }
 
   if (cardData.service_type) {
@@ -100,6 +106,23 @@ function buildContextFromCard(cardData: CrmAiRequest["card_data"]): string {
     context += `\n## Historique des commentaires\n`;
     cardData.comments.forEach((c) => {
       context += `- [${c.created_at}] ${c.author_email}: ${c.content}\n`;
+    });
+  }
+
+  if (cardData.activities && cardData.activities.length > 0) {
+    context += `\n## Historique d'activité\n`;
+    cardData.activities.forEach((a) => {
+      context += `- [${a.created_at}] ${a.action_type}${a.new_value ? ` → ${a.new_value}` : ""}${a.actor_email ? ` (${a.actor_email})` : ""}\n`;
+    });
+  }
+
+  if (cardData.emails_sent && cardData.emails_sent.length > 0) {
+    context += `\n## Emails envoyés\n`;
+    cardData.emails_sent.forEach((e) => {
+      // Strip HTML for context, keep it concise
+      const plainBody = e.body_html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+      const truncated = plainBody.length > 500 ? plainBody.substring(0, 500) + "…" : plainBody;
+      context += `- [${e.sent_at}] À: ${e.recipient_email} | Objet: ${e.subject}\n  ${truncated}\n`;
     });
   }
 
@@ -185,16 +208,15 @@ Génère uniquement la description, sans titre ni en-tête.`;
       case "improve_email_subject": {
         const systemPrompt = `Tu es un expert en copywriting commercial pour SuperTilt, organisme de formation professionnelle certifié Qualiopi.
 Tu réécris les objets d'emails pour maximiser le taux d'ouverture : clairs, spécifiques, qui créent une légère urgence ou curiosité sans être racoleurs.
+Tu tiens compte du contexte complet de l'opportunité pour personnaliser l'objet.
 Tu réponds UNIQUEMENT avec l'objet amélioré, sans explication ni guillemets.`;
 
         const subject = card_data.subject || "";
-        const company = card_data.company || "";
-        const firstName = card_data.first_name || "";
 
         const userPrompt = `Réécris cet objet d'email pour qu'il soit plus percutant et incitatif à l'ouverture :
 Objet actuel : "${subject}"
-${company ? `Entreprise : ${company}` : ""}
-${firstName ? `Prénom du contact : ${firstName}` : ""}
+
+${context}
 
 Contraintes :
 - Maximum 55 caractères
@@ -203,6 +225,7 @@ Contraintes :
 - Peut contenir le prénom ou l'entreprise si pertinent
 - Crée une légère curiosité ou sentiment d'urgence subtile
 - Spécifique à la formation/prestation concernée
+- Tient compte de l'historique des échanges pour adapter la formulation
 
 Exemples de bons objets : "Votre devis – formations facilitation graphique", "Votre inscription en attente – SuperTilt", "Suite à notre échange – quelques précisions"
 
@@ -216,25 +239,24 @@ Réponds uniquement avec l'objet amélioré.`;
         const systemPrompt = `Tu es un expert en rédaction d'emails commerciaux B2B pour SuperTilt, organisme de formation professionnelle certifié Qualiopi.
 Tu réécris les emails pour qu'ils soient plus percutants, chaleureux et orientés action.
 Ton style : phrases courtes et rythmées, direct mais bienveillant, focus sur la valeur pour le client, appel à l'action clair.
+Tu utilises tout le contexte de l'opportunité (historique, profil client, échanges précédents) pour adapter le ton et le contenu.
 Tu réponds UNIQUEMENT avec le contenu HTML amélioré, sans explication.`;
 
         const body = card_data.body || "";
         const subject = card_data.subject || "";
-        const company = card_data.company || "";
-        const firstName = card_data.first_name || "";
-        const emailContext = card_data.context || "";
 
-        const userPrompt = `Réécris ce corps d'email pour le rendre plus percutant et efficace commercialement :
+        const userPrompt = `Réécris ce corps d'email pour le rendre plus percutant et efficace commercialement.
 
-Objet : "${subject}"
-${company ? `Entreprise : ${company}` : ""}
-${firstName ? `Contact : ${firstName}` : ""}
-${emailContext ? `\nContexte de l'opportunité :\n${emailContext}` : ""}
+${context}
+
+Objet de l'email : "${subject}"
 
 Email original (HTML) :
 ${body}
 
 Objectifs de la réécriture :
+- Utilise l'historique complet de l'opportunité ci-dessus pour personnaliser le message (références aux échanges précédents, à la situation du client, etc.)
+- Adapte le ton au profil du client et à l'étape dans le pipeline
 - Phrases plus courtes et rythmées (éviter les longues énumérations)
 - Ton direct mais chaleureux, comme si on parlait à quelqu'un qu'on connaît
 - Mettre en avant ce que ça apporte au client (bénéfices > caractéristiques)

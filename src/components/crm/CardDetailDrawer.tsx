@@ -493,17 +493,40 @@ const CardDetailDrawer = ({
   // Shared helpers to avoid duplication
   const parseValue = () => parseFloat(estimatedValue) || 0;
 
-  const buildCardDataForAi = () => ({
-    title: card?.title ?? "",
-    description: descriptionHtml,
-    company,
-    first_name: firstName,
-    last_name: lastName,
-    service_type: serviceType,
-    estimated_value: parseValue(),
-    comments: details?.comments || [],
-    brief_questions: card?.brief_questions || [],
-  });
+  const buildCardDataForAi = () => {
+    // Build client profile from available data
+    const profileParts: string[] = [];
+    if (firstName || lastName) profileParts.push(`Contact : ${[firstName, lastName].filter(Boolean).join(" ")}`);
+    if (company) profileParts.push(`Entreprise : ${company}`);
+    if (email) profileParts.push(`Email : ${email}`);
+    if (phone) profileParts.push(`Téléphone : ${phone}`);
+    if (linkedinUrl) profileParts.push(`LinkedIn : ${linkedinUrl}`);
+    if (websiteUrl) profileParts.push(`Site web : ${websiteUrl}`);
+    const currentColumn = allColumns.find(col => col.id === card?.column_id);
+    if (currentColumn) profileParts.push(`Étape CRM : ${currentColumn.name}`);
+    if (card?.confidence_score != null) profileParts.push(`Confiance : ${card.confidence_score}%`);
+    if (card?.acquisition_source) profileParts.push(`Source : ${card.acquisition_source}`);
+
+    return {
+      title: card?.title ?? "",
+      description: descriptionHtml,
+      company,
+      first_name: firstName,
+      last_name: lastName,
+      service_type: serviceType,
+      estimated_value: parseValue(),
+      comments: details?.comments || [],
+      brief_questions: card?.brief_questions || [],
+      activities: details?.activity || [],
+      emails_sent: (details?.emails || []).map(e => ({
+        subject: e.subject,
+        body_html: e.body_html,
+        sent_at: e.sent_at,
+        recipient_email: e.recipient_email,
+      })),
+      client_profile: profileParts.join("\n"),
+    };
+  };
 
   // AI Analysis function
   const handleAiAnalysis = async () => {
