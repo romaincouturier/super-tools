@@ -12,9 +12,9 @@ import AgentCard from "@/components/arena/AgentCard";
 import { createDefaultAgent } from "@/lib/arena/store";
 import { callSuggestExperts, loadArenaApiKeys, saveArenaApiKeys } from "@/lib/arena/api";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
-import AppHeader from "@/components/AppHeader";
+import ModuleLayout from "@/components/ModuleLayout";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Sparkles } from "lucide-react";
+import { Sparkles } from "lucide-react";
 
 export default function ArenaSetup() {
   const navigate = useNavigate();
@@ -282,21 +282,12 @@ export default function ArenaSetup() {
   const usedProviders = new Set(agents.map((a) => a.provider));
 
   return (
-    <div className="min-h-screen bg-background">
-      <AppHeader />
+    <ModuleLayout>
 
       {/* Sub-header with back navigation — same pattern as CRM */}
       <div className="mx-auto max-w-5xl px-4 sm:px-6 py-4">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 sm:gap-4 min-w-0">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="shrink-0"
-              onClick={() => navigate("/")}
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-primary/10 hidden sm:block">
                 <Sparkles className="h-6 w-6 text-primary" />
@@ -975,6 +966,6 @@ export default function ArenaSetup() {
         )}
         </>)}
       </main>
-    </div>
+    </ModuleLayout>
   );
 }

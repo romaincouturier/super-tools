@@ -1,10 +1,10 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Plus, Calendar, ArrowLeft, ArrowUpDown, ChevronLeft, ChevronRight, Search, X, MapPin, Building } from "lucide-react";
+import { Loader2, Plus, Calendar, ArrowUpDown, ChevronLeft, ChevronRight, Search, X, MapPin, Building } from "lucide-react";
 import { parseISO, isPast, isFuture, isToday, differenceInDays } from "date-fns";
 import { formatDateRange } from "@/lib/dateFormatters";
-import AppHeader from "@/components/AppHeader";
+import ModuleLayout from "@/components/ModuleLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -299,22 +299,12 @@ const Formations = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <AppHeader />
-
+    <ModuleLayout>
       {/* Main content */}
       <main className="max-w-6xl mx-auto p-3 md:p-6">
-        {/* Back button and title */}
+        {/* Title */}
         <div className="flex items-center justify-between mb-4 md:mb-6 gap-2">
           <div className="flex items-center gap-2 md:gap-4 min-w-0">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="shrink-0"
-              onClick={() => navigate("/")}
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
             <div className="flex items-center gap-2 md:gap-3 min-w-0">
               <div className="p-2 rounded-lg bg-primary/10 shrink-0 hidden md:block">
                 <Calendar className="h-6 w-6 text-primary" />
@@ -630,7 +620,7 @@ const Formations = () => {
           </CardContent>
         </Card>
       </main>
-    </div>
+    </ModuleLayout>
   );
 };
 

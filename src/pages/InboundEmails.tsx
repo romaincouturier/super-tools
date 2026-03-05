@@ -4,7 +4,6 @@ import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Loader2,
-  ArrowLeft,
   Mail,
   Inbox,
   Search,
@@ -17,7 +16,7 @@ import {
   Calendar,
   Paperclip,
 } from "lucide-react";
-import AppHeader from "@/components/AppHeader";
+import ModuleLayout from "@/components/ModuleLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -157,23 +156,21 @@ export default function InboundEmails() {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
+      <ModuleLayout>
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+      </ModuleLayout>
     );
   }
 
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-background">
-      <AppHeader />
+    <ModuleLayout>
       <main className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="flex items-center gap-4 mb-6">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/")}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-primary/10">
               <Inbox className="h-6 w-6 text-primary" />
@@ -402,6 +399,6 @@ export default function InboundEmails() {
           </DialogContent>
         </Dialog>
       </main>
-    </div>
+    </ModuleLayout>
   );
 }

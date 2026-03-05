@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
-import { BarChart3, Sparkles, ArrowLeft, Kanban, BrainCircuit, Settings2 } from "lucide-react";
+import { Link, useParams } from "react-router-dom";
+import { BarChart3, Sparkles, Kanban, BrainCircuit, Settings2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import AppHeader from "@/components/AppHeader";
+import ModuleLayout from "@/components/ModuleLayout";
 import CrmKanbanBoard from "@/components/crm/CrmKanbanBoard";
 import { NewOpportunityDialog } from "@/components/crm/NewOpportunityDialog";
 import CoachCommercialSettings from "@/components/crm/CoachCommercialSettings";
@@ -11,28 +11,17 @@ import { useCommercialCoachData } from "@/hooks/useCommercialCoachData";
 
 const Crm = () => {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const { cardId } = useParams<{ cardId?: string }>();
   const [showNewOpportunity, setShowNewOpportunity] = useState(false);
   const [showCoachSettings, setShowCoachSettings] = useState(false);
   const { launchCoach, isLoading: isCoachLoading } = useCommercialCoachData();
 
   return (
-    <div className="min-h-screen bg-background">
-      <AppHeader />
-
+    <ModuleLayout>
       <main className="max-w-[1600px] mx-auto p-4 sm:p-6 h-[calc(100vh-80px)] flex flex-col">
         {/* Header with back navigation */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 sm:mb-6">
           <div className="flex items-center gap-3 sm:gap-4">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="shrink-0"
-              onClick={() => navigate("/")}
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-primary/10 hidden sm:block">
                 <Kanban className="h-6 w-6 text-primary" />
@@ -98,7 +87,7 @@ const Crm = () => {
           onOpenChange={setShowCoachSettings}
         />
       </main>
-    </div>
+    </ModuleLayout>
   );
 };
 

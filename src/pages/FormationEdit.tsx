@@ -5,7 +5,7 @@ import { User } from "@supabase/supabase-js";
 import { Loader2, ArrowLeft, Calendar, Save, ExternalLink } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
-import AppHeader from "@/components/AppHeader";
+import ModuleLayout from "@/components/ModuleLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -446,8 +446,7 @@ const FormationEdit = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <AppHeader />
+    <ModuleLayout>
 
       {/* Main content */}
       <main className="max-w-7xl mx-auto p-6">

@@ -3,10 +3,10 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 import type { FormationFormula } from "@/types/training";
-import { Loader2, FileText, ArrowLeft, Send, Settings, Save, X, Plus, Trash2, Star, Eye, Search, ChevronUp, ChevronDown, History, Mail, Copy } from "lucide-react";
+import { Loader2, FileText, Send, Settings, Save, X, Plus, Trash2, Star, Eye, Search, ChevronUp, ChevronDown, History, Mail, Copy } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import AppHeader from "@/components/AppHeader";
+import ModuleLayout from "@/components/ModuleLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -1099,19 +1099,9 @@ const MicroDevis = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <AppHeader />
-
+    <ModuleLayout>
       {/* Main content */}
       <main className="max-w-4xl mx-auto p-6">
-        <Button
-          variant="ghost"
-          onClick={() => navigate("/")}
-          className="mb-4"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Retour aux outils
-        </Button>
 
         <Card className="border-2 shadow-xl">
           <CardHeader>
@@ -2241,7 +2231,7 @@ const MicroDevis = () => {
           </CardContent>
         </Card>
       </main>
-    </div>
+    </ModuleLayout>
   );
 };
 

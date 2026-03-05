@@ -7,9 +7,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Award, Loader2, Send, ArrowLeft } from "lucide-react";
+import { Award, Loader2, Send } from "lucide-react";
 import { User } from "@supabase/supabase-js";
-import AppHeader from "@/components/AppHeader";
+import ModuleLayout from "@/components/ModuleLayout";
 import ProcessingLog, { LogEntry } from "@/components/ProcessingLog";
 import GoogleDriveConnect from "@/components/GoogleDriveConnect";
 import {
@@ -297,26 +297,19 @@ const Index = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
+      <ModuleLayout>
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      </ModuleLayout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <AppHeader />
+    <ModuleLayout>
 
       {/* Main content */}
       <main className="max-w-4xl mx-auto p-6">
-        <Button
-          variant="ghost"
-          onClick={() => navigate("/")}
-          className="mb-4"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Retour aux outils
-        </Button>
         <Card className="border-2 shadow-xl">
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -498,7 +491,7 @@ const Index = () => {
         totalParticipants={totalParticipants}
         completedCount={completedCount}
       />
-    </div>
+    </ModuleLayout>
   );
 };
 

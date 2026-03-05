@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, ArrowLeft, Mail, CheckCircle, AlertTriangle, Trash2, Eye } from "lucide-react";
-import AppHeader from "@/components/AppHeader";
+import ModuleLayout from "@/components/ModuleLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -118,8 +118,7 @@ const FailedEmails = () => {
   const totalErrors = failedEmails.filter((e) => e.status === "failed").length + scheduledFailed.length;
 
   return (
-    <div className="min-h-screen bg-background">
-      <AppHeader />
+    <ModuleLayout>
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
         <div className="flex items-center gap-4 mb-6">
           <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
@@ -315,7 +314,7 @@ const FailedEmails = () => {
           )}
         </DialogContent>
       </Dialog>
-    </div>
+    </ModuleLayout>
   );
 };
 

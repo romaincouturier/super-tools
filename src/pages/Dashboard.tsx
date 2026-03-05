@@ -42,7 +42,7 @@ import {
   rectSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import AppHeader from "@/components/AppHeader";
+import ModuleLayout from "@/components/ModuleLayout";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import {
   Tooltip,
@@ -585,10 +585,8 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <AppHeader showOnboarding />
-
-      <main className="max-w-[1400px] mx-auto p-6">
+    <ModuleLayout>
+      <div className="max-w-[1400px] mx-auto p-6">
         <h1 className="text-2xl font-bold mb-6">Tableau de bord</h1>
         <div className="flex gap-6">
           {/* Module grid — left */}
@@ -633,8 +631,8 @@ const Dashboard = () => {
             </Card>
           </aside>
         </div>
-      </main>
-    </div>
+      </div>
+    </ModuleLayout>
   );
 };
 

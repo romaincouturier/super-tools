@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
-import AppHeader from "@/components/AppHeader";
+import ModuleLayout from "@/components/ModuleLayout";
 import { KnowledgeBaseManager } from "@/components/chatbot/KnowledgeBaseManager";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -37,9 +37,11 @@ export default function ChatbotAdmin() {
 
   if (loading || checkingAdmin) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
+      <ModuleLayout>
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+      </ModuleLayout>
     );
   }
 
@@ -49,8 +51,7 @@ export default function ChatbotAdmin() {
 
   if (!isAdmin) {
     return (
-      <div className="min-h-screen bg-background">
-        <AppHeader />
+      <ModuleLayout>
         <main className="container mx-auto px-4 py-8">
           <div className="text-center py-16">
             <h1 className="text-2xl font-bold text-destructive mb-4">Accès refusé</h1>
@@ -59,16 +60,15 @@ export default function ChatbotAdmin() {
             </p>
           </div>
         </main>
-      </div>
+      </ModuleLayout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <AppHeader />
+    <ModuleLayout>
       <main className="container mx-auto px-4 py-8">
         <KnowledgeBaseManager />
       </main>
-    </div>
+    </ModuleLayout>
   );
 }

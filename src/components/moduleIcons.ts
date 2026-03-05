@@ -1,0 +1,50 @@
+import {
+  Kanban,
+  Briefcase,
+  Target,
+  ImageIcon,
+  CalendarDays,
+  Newspaper,
+  FileText,
+  BookOpen,
+  Calendar,
+  ClipboardCheck,
+  Award,
+  TrendingUp,
+  ClipboardList,
+  History,
+  Inbox,
+  BarChart3,
+  Database,
+  Sparkles,
+  MessageSquareWarning,
+  type LucideIcon,
+} from "lucide-react";
+
+interface ModuleIconInfo {
+  icon: LucideIcon;
+  label: string;
+  path: string;
+}
+
+export const MODULE_ICONS: Record<string, ModuleIconInfo> = {
+  crm: { icon: Kanban, label: "CRM", path: "/crm" },
+  missions: { icon: Briefcase, label: "Missions", path: "/missions" },
+  okr: { icon: Target, label: "OKR", path: "/okr" },
+  medias: { icon: ImageIcon, label: "Médiathèque", path: "/medias" },
+  events: { icon: CalendarDays, label: "Événements", path: "/events" },
+  contenu: { icon: Newspaper, label: "Contenu", path: "/contenu" },
+  "micro-devis": { icon: FileText, label: "Micro-devis", path: "/micro-devis" },
+  catalogue: { icon: BookOpen, label: "Catalogue", path: "/catalogue" },
+  formations: { icon: Calendar, label: "Formations", path: "/formations" },
+  evaluations: { icon: ClipboardCheck, label: "Évaluations", path: "/evaluations" },
+  certificates: { icon: Award, label: "Certificats", path: "/certificates" },
+  ameliorations: { icon: TrendingUp, label: "Améliorations", path: "/ameliorations" },
+  besoins: { icon: ClipboardList, label: "Besoins", path: "/besoins" },
+  historique: { icon: History, label: "Historique", path: "/historique" },
+  emails: { icon: Inbox, label: "Emails reçus", path: "/emails" },
+  statistiques: { icon: BarChart3, label: "Statistiques", path: "/statistiques" },
+  monitoring: { icon: Database, label: "Monitoring", path: "/monitoring" },
+  arena: { icon: Sparkles, label: "AI Arena", path: "/arena" },
+  reclamations: { icon: MessageSquareWarning, label: "Réclamations", path: "/reclamations" },
+};

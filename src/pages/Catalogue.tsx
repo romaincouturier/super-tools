@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Plus, ArrowLeft, BookOpen, Search, X, ArrowUpDown, ArrowUp, ArrowDown, FileDown } from "lucide-react";
-import AppHeader from "@/components/AppHeader";
+import { Loader2, Plus, BookOpen, Search, X, ArrowUpDown, ArrowUp, ArrowDown, FileDown } from "lucide-react";
+import ModuleLayout from "@/components/ModuleLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
@@ -230,30 +230,21 @@ const Catalogue = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background">
-        <AppHeader />
+      <ModuleLayout>
         <div className="flex items-center justify-center py-20">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
         </div>
-      </div>
+      </ModuleLayout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <AppHeader />
+    <ModuleLayout>
 
       <main className="max-w-7xl mx-auto p-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => navigate("/")}
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-primary/10">
                 <BookOpen className="h-6 w-6 text-primary" />
@@ -488,7 +479,7 @@ const Catalogue = () => {
         onDelete={handleDelete}
         trainingCount={editingEntry?.training_count ?? 0}
       />
-    </div>
+    </ModuleLayout>
   );
 };
 

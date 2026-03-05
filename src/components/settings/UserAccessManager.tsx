@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Loader2, Users, Shield } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { AppModule, MODULE_LABELS, ALL_MODULES } from "@/hooks/useModuleAccess";
+import OnboardCollaboratorDialog from "@/components/OnboardCollaboratorDialog";
 
 interface UserWithAccess {
   id: string;
@@ -156,9 +157,12 @@ export default function UserAccessManager() {
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center gap-2">
-          <Shield className="h-5 w-5 text-primary" />
-          <CardTitle>Gestion des accès utilisateurs</CardTitle>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Shield className="h-5 w-5 text-primary" />
+            <CardTitle>Gestion des accès utilisateurs</CardTitle>
+          </div>
+          <OnboardCollaboratorDialog isAdmin />
         </div>
         <CardDescription>
           Gérez les accès aux différents modules de l'application pour chaque utilisateur.

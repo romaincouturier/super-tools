@@ -4,13 +4,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 import {
   Loader2,
-  ArrowLeft,
   Filter,
   Plus,
   LayoutList,
   Columns3,
 } from "lucide-react";
-import AppHeader from "@/components/AppHeader";
+import ModuleLayout from "@/components/ModuleLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -102,16 +101,11 @@ const Ameliorations = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <AppHeader />
-
+    <ModuleLayout>
       <main className="max-w-6xl mx-auto p-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={() => navigate("/")}>
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
             <h1 className="text-2xl font-bold">Améliorations</h1>
           </div>
           <div className="flex items-center gap-2">
@@ -271,7 +265,7 @@ const Ameliorations = () => {
         addNote={addNote}
         userId={user?.id}
       />
-    </div>
+    </ModuleLayout>
   );
 };
 

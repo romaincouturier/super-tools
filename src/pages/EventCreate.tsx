@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { CalendarDays } from "lucide-react";
-import AppHeader from "@/components/AppHeader";
+import ModuleLayout from "@/components/ModuleLayout";
 import PageHeader from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import EventFormFields, { type EventFormValues } from "@/components/events/EventFormFields";
@@ -72,8 +72,7 @@ const EventCreate = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <AppHeader />
+    <ModuleLayout>
 
       <main className="max-w-2xl mx-auto p-6">
         <PageHeader icon={CalendarDays} title="Nouvel événement" backTo="/events" />
@@ -88,7 +87,7 @@ const EventCreate = () => {
           </Button>
         </div>
       </main>
-    </div>
+    </ModuleLayout>
   );
 };
 

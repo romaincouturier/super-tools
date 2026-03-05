@@ -25,7 +25,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { CANCELLATION_REASONS, getCfpDaysLeft } from "@/types/events";
 import ShareEventDialog from "@/components/events/ShareEventDialog";
-import AppHeader from "@/components/AppHeader";
+import ModuleLayout from "@/components/ModuleLayout";
 import PageLoading from "@/components/PageLoading";
 import PageNotFound from "@/components/PageNotFound";
 import { Button } from "@/components/ui/button";
@@ -191,8 +191,7 @@ const EventDetail = () => {
   if (!event) return <PageNotFound message="Événement introuvable." backTo="/events" backLabel="Retour aux événements" />;
 
   return (
-    <div className="min-h-screen bg-background">
-      <AppHeader />
+    <ModuleLayout>
 
       <main className="max-w-4xl mx-auto p-6 space-y-6">
         {/* Cancelled banner */}
@@ -542,7 +541,7 @@ const EventDetail = () => {
           </CardContent>
         </Card>
       </main>
-    </div>
+    </ModuleLayout>
   );
 };
 

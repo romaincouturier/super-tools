@@ -13,7 +13,7 @@ import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { v4 as uuidv4 } from "uuid";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import AppHeader from "@/components/AppHeader";
+import ModuleLayout from "@/components/ModuleLayout";
 
 export default function ArenaDiscussion() {
   const navigate = useNavigate();
@@ -960,17 +960,11 @@ REGLES CRITIQUES pour le livrable :
   const modeLabels: Record<string, string> = { exploration: "Exploration", decision: "Decision", deliverable: "Livrable" };
 
   return (
-    <div className="flex h-screen flex-col bg-background">
-      <AppHeader />
+    <ModuleLayout className="flex h-screen flex-col">
       {/* Header */}
       <header className="shrink-0 border-b border-border">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-3 sm:px-6 py-2 sm:py-3">
           <div className="flex items-center gap-3 min-w-0">
-            <button onClick={() => navigate("/")} className="shrink-0 rounded-lg p-1.5 text-muted-foreground transition-colors hover:text-foreground">
-              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-              </svg>
-            </button>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
                 <h1 className="text-sm font-semibold">AI Arena</h1>
@@ -1336,7 +1330,7 @@ REGLES CRITIQUES pour le livrable :
           )}
         </div>
       )}
-    </div>
+    </ModuleLayout>
   );
 }
 
