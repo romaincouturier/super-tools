@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { getSenderFrom, getSenderEmail, getSenderName, getBccList } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
+import { processTemplate } from "../_shared/templates.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -105,6 +106,35 @@ const handler = async (req: Request): Promise<Response> => {
     // Get Signitic signature using correct API URL with fallback
     const signatureHtml = await getSigniticSignature();
 
+    // Fetch all email templates for dynamic resolution
+    const { data: allEmailTemplates } = await supabase
+      .from("email_templates")
+      .select("template_type, subject, html_content");
+    const templatesByType: Record<string, { subject: string; html_content: string }> = {};
+    (allEmailTemplates || []).forEach((t: any) => {
+      templatesByType[t.template_type] = t;
+    });
+
+    // Helper to resolve email template with variables
+    function resolveEmailTemplate(
+      baseType: string,
+      useFormal: boolean,
+      variables: Record<string, string | null | undefined>,
+    ): { subject: string; htmlContent: string } | null {
+      const suffix = useFormal ? "vous" : "tu";
+      const template = templatesByType[`${baseType}_${suffix}`];
+      if (!template) return null;
+      
+      const resolvedSubject = processTemplate(template.subject, variables, false);
+      const body = processTemplate(template.html_content, variables, false);
+      // Convert plain text newlines to HTML paragraphs, preserving any HTML in template
+      const resolvedHtml = body
+        .split(/\n\n+/)
+        .map((p: string) => `<p>${p.replace(/\n/g, "<br>")}</p>`)
+        .join("") + "\n" + signatureHtml;
+      return { subject: resolvedSubject, htmlContent: resolvedHtml };
+    }
+
     // Format helpers
     const formatDate = (dateStr: string) => {
       const date = new Date(dateStr);
@@ -145,20 +175,33 @@ const handler = async (req: Request): Promise<Response> => {
     switch (scheduledEmail.email_type) {
       case "welcome": {
         recipientEmail = participant?.email || "";
-        subject = `${training.training_name} – ${formatDate(training.start_date)} – Confirmation d'inscription`;
-        htmlContent = `
-          <p>${greeting}</p>
-          <p>Nous avons le plaisir de ${formalAddress ? "vous" : "te"} confirmer ${formalAddress ? "votre" : "ton"} inscription à la formation <strong>"${training.training_name}"</strong>.</p>
-          <p><strong>Informations pratiques :</strong></p>
-          <ul>
-            <li>Date : ${formatDate(training.start_date)}</li>
-            <li>Horaires :<br>${formatSchedules(schedules || [])}</li>
-            <li>Lieu : ${training.location}</li>
-          </ul>
-          <p>Nous restons à ${formalAddress ? "votre" : "ta"} disposition pour toute question.</p>
-          <p>À très bientôt !</p>
-          ${signatureHtml}
-        `;
+        const vars = {
+          first_name: firstName,
+          training_name: training.training_name,
+          training_date: formatDate(training.start_date),
+          training_schedule: formatSchedules(schedules || []),
+          training_location: training.location,
+        };
+        const resolved = resolveEmailTemplate("welcome", formalAddress, vars);
+        if (resolved) {
+          subject = resolved.subject;
+          htmlContent = resolved.htmlContent;
+        } else {
+          subject = `${training.training_name} – ${formatDate(training.start_date)} – Confirmation d'inscription`;
+          htmlContent = `
+            <p>${greeting}</p>
+            <p>Nous avons le plaisir de ${formalAddress ? "vous" : "te"} confirmer ${formalAddress ? "votre" : "ton"} inscription à la formation <strong>"${training.training_name}"</strong>.</p>
+            <p><strong>Informations pratiques :</strong></p>
+            <ul>
+              <li>Date : ${formatDate(training.start_date)}</li>
+              <li>Horaires :<br>${formatSchedules(schedules || [])}</li>
+              <li>Lieu : ${training.location}</li>
+            </ul>
+            <p>Nous restons à ${formalAddress ? "votre" : "ta"} disposition pour toute question.</p>
+            <p>À très bientôt !</p>
+            ${signatureHtml}
+          `;
+        }
         break;
       }
 
@@ -166,35 +209,61 @@ const handler = async (req: Request): Promise<Response> => {
         recipientEmail = participant?.email || "";
         const surveyToken = participant?.needs_survey_token || "";
         const surveyUrl = `${appUrl}/questionnaire/${surveyToken}`;
-        subject = `${training.training_name} – Questionnaire de recueil des besoins`;
-        htmlContent = `
-          <p>${greeting}</p>
-          <p>${formalAddress ? "Vous êtes inscrit(e)" : "Tu es inscrit(e)"} à la formation <strong>"${training.training_name}"</strong> qui aura lieu le ${formatDate(training.start_date)}.</p>
-          <p>Afin de personnaliser cette formation à ${formalAddress ? "vos" : "tes"} attentes, je ${formalAddress ? "vous" : "t'"}invite à remplir un court questionnaire de recueil des besoins :</p>
-          <p><a href="${surveyUrl}" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Remplir le questionnaire</a></p>
-          <p>Ce questionnaire ${formalAddress ? "vous" : "te"} prendra environ 5 minutes et me permettra d'adapter le contenu de la formation à ${formalAddress ? "vos" : "tes"} besoins spécifiques.</p>
-          <p>Merci de le compléter au moins 2 jours avant la formation.</p>
-          ${signatureHtml}
-        `;
+        const vars = {
+          first_name: firstName,
+          training_name: training.training_name,
+          training_date: formatDate(training.start_date),
+          questionnaire_link: `<a href="${surveyUrl}" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Remplir le questionnaire</a>`,
+          deadline_date: "",
+        };
+        const resolved = resolveEmailTemplate("needs_survey", formalAddress, vars);
+        if (resolved) {
+          subject = resolved.subject;
+          htmlContent = resolved.htmlContent;
+        } else {
+          subject = `${training.training_name} – Questionnaire de recueil des besoins`;
+          htmlContent = `
+            <p>${greeting}</p>
+            <p>${formalAddress ? "Vous êtes inscrit(e)" : "Tu es inscrit(e)"} à la formation <strong>"${training.training_name}"</strong> qui aura lieu le ${formatDate(training.start_date)}.</p>
+            <p>Afin de personnaliser cette formation à ${formalAddress ? "vos" : "tes"} attentes, je ${formalAddress ? "vous" : "t'"}invite à remplir un court questionnaire de recueil des besoins :</p>
+            <p><a href="${surveyUrl}" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Remplir le questionnaire</a></p>
+            <p>Ce questionnaire ${formalAddress ? "vous" : "te"} prendra environ 5 minutes et me permettra d'adapter le contenu de la formation à ${formalAddress ? "vos" : "tes"} besoins spécifiques.</p>
+            <p>Merci de le compléter au moins 2 jours avant la formation.</p>
+            ${signatureHtml}
+          `;
+        }
         break;
       }
 
       case "reminder": {
         recipientEmail = participant?.email || "";
-        subject = `Rappel : Formation ${training.training_name} – ${formatDate(training.start_date)}`;
-        htmlContent = `
-          <p>${greeting}</p>
-          <p>${formalAddress ? "Votre" : "Ta"} formation <strong>"${training.training_name}"</strong> approche !</p>
-          <p><strong>Pour rappel :</strong></p>
-          <ul>
-            <li>Date : ${formatDate(training.start_date)}</li>
-            <li>Horaires :<br>${formatSchedules(schedules || [])}</li>
-            <li>Lieu : ${training.location}</li>
-          </ul>
-          <p>N'${formalAddress ? "hésitez" : "hésite"} pas à me contacter si ${formalAddress ? "vous avez" : "tu as"} des questions.</p>
-          <p>À très bientôt !</p>
-          ${signatureHtml}
-        `;
+        const vars = {
+          first_name: firstName,
+          training_name: training.training_name,
+          training_date: formatDate(training.start_date),
+          training_schedule: formatSchedules(schedules || []),
+          training_location: training.location,
+        };
+        const resolved = resolveEmailTemplate("reminder", formalAddress, vars);
+        if (resolved) {
+          subject = resolved.subject;
+          htmlContent = resolved.htmlContent;
+        } else {
+          subject = `Rappel : Formation ${training.training_name} – ${formatDate(training.start_date)}`;
+          htmlContent = `
+            <p>${greeting}</p>
+            <p>${formalAddress ? "Votre" : "Ta"} formation <strong>"${training.training_name}"</strong> approche !</p>
+            <p><strong>Pour rappel :</strong></p>
+            <ul>
+              <li>Date : ${formatDate(training.start_date)}</li>
+              <li>Horaires :<br>${formatSchedules(schedules || [])}</li>
+              <li>Lieu : ${training.location}</li>
+            </ul>
+            <p>N'${formalAddress ? "hésitez" : "hésite"} pas à me contacter si ${formalAddress ? "vous avez" : "tu as"} des questions.</p>
+            <p>À très bientôt !</p>
+            ${signatureHtml}
+          `;
+        }
         break;
       }
 
@@ -228,21 +297,33 @@ const handler = async (req: Request): Promise<Response> => {
         }
 
         const evaluationUrl = `${appUrl}/evaluation/${evaluationToken}`;
-        const supportsSection = training.supports_url
-          ? `<p>${formalAddress ? "Vous trouverez" : "Tu trouveras"} également tous les supports de la formation ici :<br><a href="${training.supports_url}">${training.supports_url}</a></p>`
-          : "";
+        const vars = {
+          first_name: firstName,
+          training_name: training.training_name,
+          evaluation_link: `<a href="${evaluationUrl}" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Remplir l'évaluation</a>`,
+          supports_url: training.supports_url || "",
+        };
+        const resolved = resolveEmailTemplate("thank_you", formalAddress, vars);
+        if (resolved) {
+          subject = resolved.subject;
+          htmlContent = resolved.htmlContent;
+        } else {
+          const supportsSection = training.supports_url
+            ? `<p>${formalAddress ? "Vous trouverez" : "Tu trouveras"} également tous les supports de la formation ici :<br><a href="${training.supports_url}">${training.supports_url}</a></p>`
+            : "";
 
-        subject = `${training.training_name} – Merci pour ${formalAddress ? "votre" : "ta"} participation !`;
-        htmlContent = `
-          <p>Bonjour à toutes et à tous,</p>
-          <p>Quelle belle journée de découverte visuelle nous avons partagé ! Merci pour ${formalAddress ? "votre" : "ton"} énergie et ${formalAddress ? "votre" : "ta"} participation pendant notre formation <strong>"${training.training_name}"</strong>.</p>
-          <p>Pour finaliser cette formation, j'ai besoin que ${formalAddress ? "vous preniez" : "tu prennes"} quelques minutes pour compléter le questionnaire d'évaluation :</p>
-          <p><a href="${evaluationUrl}" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Remplir l'évaluation</a></p>
-          ${supportsSection}
-          <p>Je suis curieux de voir comment ${formalAddress ? "vous allez" : "tu vas"} utiliser tout ce que nous avons vu ! N'${formalAddress ? "hésitez" : "hésite"} pas à me contacter si ${formalAddress ? "vous avez" : "tu as"} des questions.</p>
-          <p>Je ${formalAddress ? "vous" : "te"} souhaite une bonne journée</p>
-          ${signatureHtml}
-        `;
+          subject = `${training.training_name} – Merci pour ${formalAddress ? "votre" : "ta"} participation !`;
+          htmlContent = `
+            <p>Bonjour à toutes et à tous,</p>
+            <p>Quelle belle journée de découverte visuelle nous avons partagé ! Merci pour ${formalAddress ? "votre" : "ton"} énergie et ${formalAddress ? "votre" : "ta"} participation pendant notre formation <strong>"${training.training_name}"</strong>.</p>
+            <p>Pour finaliser cette formation, j'ai besoin que ${formalAddress ? "vous preniez" : "tu prennes"} quelques minutes pour compléter le questionnaire d'évaluation :</p>
+            <p><a href="${evaluationUrl}" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Remplir l'évaluation</a></p>
+            ${supportsSection}
+            <p>Je suis curieux de voir comment ${formalAddress ? "vous allez" : "tu vas"} utiliser tout ce que nous avons vu ! N'${formalAddress ? "hésitez" : "hésite"} pas à me contacter si ${formalAddress ? "vous avez" : "tu as"} des questions.</p>
+            <p>Je ${formalAddress ? "vous" : "te"} souhaite une bonne journée</p>
+            ${signatureHtml}
+          `;
+        }
         break;
       }
 
@@ -292,7 +373,6 @@ const handler = async (req: Request): Promise<Response> => {
             if (summaryResponse.ok) {
               const summaryData = await summaryResponse.json();
               if (summaryData.success && summaryData.summary) {
-                // Convert markdown-style text to HTML
                 const summaryText = summaryData.summary
                   .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
                   .replace(/^- (.*)/gm, "<li>$1</li>")
@@ -317,62 +397,98 @@ const handler = async (req: Request): Promise<Response> => {
           ? `<p>Pas de synthèse disponible car aucun participant n'a encore répondu au questionnaire de recueil des besoins.</p>`
           : "";
 
-        subject = `☀️ Demain c'est le grand jour ! Synthèse pré-formation – ${training.training_name}`;
-        htmlContent = `
-          <p>Salut ${trainerFirstName} 👋</p>
-          <p>Ta formation <strong>"${training.training_name}"</strong> pour <strong>${training.client_name}</strong> a lieu <strong>demain ${formatDate(training.start_date)}</strong> !</p>
-          <p>📍 Lieu : ${training.location}</p>
-          ${schedules && schedules.length > 0 ? `<p>🕐 Horaires :<br>${formatSchedules(schedules)}</p>` : ""}
-          <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
-          <h3 style="color: #333;">🎯 Synthèse des besoins des participants</h3>
-          ${statsLine}
-          ${aiSummaryHtml || noSummaryFallback}
-          <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
-          <p>Bonne préparation et bonne formation demain ! 🚀</p>
-          ${signatureHtml}
-        `;
+        const vars = {
+          first_name: trainerFirstName,
+          training_name: training.training_name,
+          client_name: training.client_name,
+          training_date: formatDate(training.start_date),
+          training_location: training.location,
+          training_schedule: schedules && schedules.length > 0 ? formatSchedules(schedules) : "",
+          survey_stats: statsLine,
+          ai_summary: aiSummaryHtml || noSummaryFallback,
+        };
+        const resolved = resolveEmailTemplate("trainer_summary", false, vars);
+        if (resolved) {
+          subject = resolved.subject;
+          htmlContent = resolved.htmlContent;
+        } else {
+          subject = `☀️ Demain c'est le grand jour ! Synthèse pré-formation – ${training.training_name}`;
+          htmlContent = `
+            <p>Salut ${trainerFirstName} 👋</p>
+            <p>Ta formation <strong>"${training.training_name}"</strong> pour <strong>${training.client_name}</strong> a lieu <strong>demain ${formatDate(training.start_date)}</strong> !</p>
+            <p>📍 Lieu : ${training.location}</p>
+            ${schedules && schedules.length > 0 ? `<p>🕐 Horaires :<br>${formatSchedules(schedules)}</p>` : ""}
+            <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+            <h3 style="color: #333;">🎯 Synthèse des besoins des participants</h3>
+            ${statsLine}
+            ${aiSummaryHtml || noSummaryFallback}
+            <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+            <p>Bonne préparation et bonne formation demain ! 🚀</p>
+            ${signatureHtml}
+          `;
+        }
         break;
       }
 
       case "google_review": {
         recipientEmail = participant?.email || "";
-        subject = `🤩 Ton avis sur la formation ${training.training_name}`;
-        htmlContent = `
-          <p>${greeting}</p>
-          <p>J'espère que tout va bien pour toi !</p>
-          <p>Pour continuer d'améliorer nos formations et partager des retours d'expérience avec d'autres professionnels, ton avis serait précieux.<br>
-          Pourrais-tu nous accorder 1 minute pour laisser un commentaire sur notre page Google ?</p>
-          <p><a href="${googleReviewLink}" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">👉 Clique ici pour laisser ton avis</a></p>
-          <p>Ton retour est essentiel pour nous permettre de progresser et d'aider d'autres personnes à découvrir nos formations.</p>
-          <p>Merci infiniment pour ton soutien et pour avoir participé à notre formation ! 😊</p>
-          <p>À bientôt,</p>
-          ${signatureHtml}
-        `;
+        const vars = {
+          first_name: firstName,
+          training_name: training.training_name,
+          google_review_link: googleReviewLink,
+        };
+        const resolved = resolveEmailTemplate("google_review", formalAddress, vars);
+        if (resolved) {
+          subject = resolved.subject;
+          htmlContent = resolved.htmlContent;
+        } else {
+          subject = `🤩 Ton avis sur la formation ${training.training_name}`;
+          htmlContent = `
+            <p>${greeting}</p>
+            <p>J'espère que tout va bien pour toi !</p>
+            <p>Pour continuer d'améliorer nos formations et partager des retours d'expérience avec d'autres professionnels, ton avis serait précieux.<br>
+            Pourrais-tu nous accorder 1 minute pour laisser un commentaire sur notre page Google ?</p>
+            <p><a href="${googleReviewLink}" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">👉 Clique ici pour laisser ton avis</a></p>
+            <p>Ton retour est essentiel pour nous permettre de progresser et d'aider d'autres personnes à découvrir nos formations.</p>
+            <p>Merci infiniment pour ton soutien et pour avoir participé à notre formation ! 😊</p>
+            <p>À bientôt,</p>
+            ${signatureHtml}
+          `;
+        }
         break;
       }
 
       case "video_testimonial": {
         recipientEmail = participant?.email || "";
-        subject = `🎥 Ton avis sur la formation ${training.training_name} ?`;
-        htmlContent = `
-          <p>${greeting}</p>
-          <p>J'espère que tu vas bien et que la formation <strong>"${training.training_name}"</strong> t'a apporté ce que tu en attendais.</p>
-          <p>Ton retour d'expérience serait très précieux pour moi et pour les futurs participants. Serais-tu d'accord pour partager ton témoignage en vidéo ?</p>
-          <p>Je te propose une courte interview ensemble via Zoom, cela prend seulement 10 minutes.</p>
-          <p><a href="mailto:${senderEmail}?subject=OK%20pour%20faire%20un%20t%C3%A9moignage%20Vid%C3%A9o&body=Salut%2C%0D%0A%0D%0AJe%20viens%20de%20recevoir%20ton%20mail%2C%20je%20suis%20partant%20pour%20faire%20un%20t%C3%A9moignage%20vid%C3%A9o%20%3A-)" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Je suis partant(e) !</a></p>
-          <p>Les témoignages authentiques de personnes qui ont vraiment vécu la formation sont les plus inspirants pour ceux qui hésitent encore.</p>
-          <p>Merci d'avance pour ton aide !</p>
-          <p>Bonne journée</p>
-          ${signatureHtml}
-        `;
+        const vars = {
+          first_name: firstName,
+          training_name: training.training_name,
+          sender_email: senderEmail,
+        };
+        const resolved = resolveEmailTemplate("video_testimonial", formalAddress, vars);
+        if (resolved) {
+          subject = resolved.subject;
+          htmlContent = resolved.htmlContent;
+        } else {
+          subject = `🎥 Ton avis sur la formation ${training.training_name} ?`;
+          htmlContent = `
+            <p>${greeting}</p>
+            <p>J'espère que tu vas bien et que la formation <strong>"${training.training_name}"</strong> t'a apporté ce que tu en attendais.</p>
+            <p>Ton retour d'expérience serait très précieux pour moi et pour les futurs participants. Serais-tu d'accord pour partager ton témoignage en vidéo ?</p>
+            <p>Je te propose une courte interview ensemble via Zoom, cela prend seulement 10 minutes.</p>
+            <p><a href="mailto:${senderEmail}?subject=OK%20pour%20faire%20un%20t%C3%A9moignage%20Vid%C3%A9o&body=Salut%2C%0D%0A%0D%0AJe%20viens%20de%20recevoir%20ton%20mail%2C%20je%20suis%20partant%20pour%20faire%20un%20t%C3%A9moignage%20vid%C3%A9o%20%3A-)" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Je suis partant(e) !</a></p>
+            <p>Les témoignages authentiques de personnes qui ont vraiment vécu la formation sont les plus inspirants pour ceux qui hésitent encore.</p>
+            <p>Merci d'avance pour ton aide !</p>
+            <p>Bonne journée</p>
+            ${signatureHtml}
+          `;
+        }
         break;
       }
 
       case "cold_evaluation": {
         const coldAppUrl = appUrl;
-        // Determine sponsor email: participant-level sponsor_email for inter, training-level (intra) from training.sponsor_email
         const sponsorEmail = participant?.sponsor_email || training.sponsor_email || "";
-        // Build sponsor name: for intra (no participant), use training.sponsor_first_name + sponsor_last_name
         const sponsorName = participant?.sponsor_name ||
           [training.sponsor_first_name, training.sponsor_last_name].filter(Boolean).join(" ") ||
           "";
@@ -383,10 +499,8 @@ const handler = async (req: Request): Promise<Response> => {
           throw new Error("No sponsor email found for cold evaluation");
         }
 
-        // Generate a unique token for the evaluation form
         const coldToken = crypto.randomUUID();
 
-        // Create sponsor_cold_evaluations record
         const { error: insertErr } = await supabase
           .from("sponsor_cold_evaluations")
           .insert({
@@ -409,33 +523,41 @@ const handler = async (req: Request): Promise<Response> => {
         }
 
         const coldFormUrl = `${coldAppUrl}/evaluation-commanditaire/${coldToken}`;
-
-        // Use sponsor first name for greeting if available
         const sponsorFirstName = sponsorName.split(" ")[0];
-        const sponsorGreeting = sponsorFirstName
-          ? training.sponsor_formal_address
-            ? `Bonjour ${sponsorFirstName},`
-            : `Bonjour ${sponsorFirstName},`
-          : "Bonjour,";
 
-        subject = `🫶🏻 Évaluation à froid de la formation ${training.training_name}`;
-        htmlContent = `
-          <p>${sponsorGreeting}</p>
-          <p>Comment allez-vous ?</p>
-          <p>Dans le cadre de mon processus qualité (Qualiopi), je vous propose de remplir une évaluation à froid de la formation <strong>"${training.training_name}"</strong>.</p>
-          <p>❓ Cela ne prend que 2 minutes :</p>
-          <p><a href="${coldFormUrl}" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Remplir le questionnaire</a></p>
-          <p>Vos retours sont précieux et m'aident à améliorer continuellement mes formations.</p>
-          <p>Merci pour votre temps !</p>
-          ${signatureHtml}
-        `;
+        const vars = {
+          first_name: sponsorFirstName,
+          training_name: training.training_name,
+          evaluation_link: `<a href="${coldFormUrl}" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Remplir le questionnaire</a>`,
+        };
+        const resolved = resolveEmailTemplate("cold_evaluation", training.sponsor_formal_address, vars);
+        if (resolved) {
+          subject = resolved.subject;
+          htmlContent = resolved.htmlContent;
+        } else {
+          const sponsorGreeting = sponsorFirstName
+            ? training.sponsor_formal_address
+              ? `Bonjour ${sponsorFirstName},`
+              : `Bonjour ${sponsorFirstName},`
+            : "Bonjour,";
+
+          subject = `🫶🏻 Évaluation à froid de la formation ${training.training_name}`;
+          htmlContent = `
+            <p>${sponsorGreeting}</p>
+            <p>Comment allez-vous ?</p>
+            <p>Dans le cadre de mon processus qualité (Qualiopi), je vous propose de remplir une évaluation à froid de la formation <strong>"${training.training_name}"</strong>.</p>
+            <p>❓ Cela ne prend que 2 minutes :</p>
+            <p><a href="${coldFormUrl}" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Remplir le questionnaire</a></p>
+            <p>Vos retours sont précieux et m'aident à améliorer continuellement mes formations.</p>
+            <p>Merci pour votre temps !</p>
+            ${signatureHtml}
+          `;
+        }
         break;
       }
 
       case "funder_reminder": {
-        // This email goes to the sender to remind about contacting the funder
         recipientEmail = await getSenderEmail();
-        // Check participant-level financeur first, fallback to training-level
         const financeurName = participant?.financeur_name || training.financeur_name || "Financeur inconnu";
         const financeurUrl = participant?.financeur_url || training.financeur_url || "";
         const participantName = participant
@@ -443,17 +565,31 @@ const handler = async (req: Request): Promise<Response> => {
           : "";
         const trainingUrl = `${appUrl}/formations/${training.id}`;
 
-        subject = `📋 Rappel : Contacter le financeur pour ${training.training_name}${participantName ? ` (${participantName})` : ""}`;
-        htmlContent = `
-          <p>Bonjour,</p>
-          <p>C'est le moment de contacter le financeur pour la formation <strong>"${training.training_name}"</strong> (${training.client_name}).</p>
-          ${participantName ? `<p><strong>Participant :</strong> ${participantName}${participant?.email ? ` (${participant.email})` : ""}</p>` : ""}
-          <p><strong>Financeur :</strong> ${financeurName}</p>
-          ${financeurUrl ? `<p><strong>URL :</strong> <a href="${financeurUrl}">${financeurUrl}</a></p>` : ""}
-          <p>N'oublie pas de faire le bilan qualité avec eux !</p>
-          <p><a href="${trainingUrl}" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 10px 20px; text-decoration: none; border-radius: 6px; font-weight: bold;">Voir la formation</a></p>
-          ${signatureHtml}
-        `;
+        const vars = {
+          first_name: "",
+          training_name: training.training_name,
+          financeur_name: financeurName,
+          financeur_url: financeurUrl,
+          participant_name: participantName,
+          training_url: trainingUrl,
+        };
+        const resolved = resolveEmailTemplate("funder_reminder", false, vars);
+        if (resolved) {
+          subject = resolved.subject;
+          htmlContent = resolved.htmlContent;
+        } else {
+          subject = `📋 Rappel : Contacter le financeur pour ${training.training_name}${participantName ? ` (${participantName})` : ""}`;
+          htmlContent = `
+            <p>Bonjour,</p>
+            <p>C'est le moment de contacter le financeur pour la formation <strong>"${training.training_name}"</strong> (${training.client_name}).</p>
+            ${participantName ? `<p><strong>Participant :</strong> ${participantName}${participant?.email ? ` (${participant.email})` : ""}</p>` : ""}
+            <p><strong>Financeur :</strong> ${financeurName}</p>
+            ${financeurUrl ? `<p><strong>URL :</strong> <a href="${financeurUrl}">${financeurUrl}</a></p>` : ""}
+            <p>N'oublie pas de faire le bilan qualité avec eux !</p>
+            <p><a href="${trainingUrl}" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 10px 20px; text-decoration: none; border-radius: 6px; font-weight: bold;">Voir la formation</a></p>
+            ${signatureHtml}
+          `;
+        }
         break;
       }
 
@@ -535,8 +671,18 @@ Règles :
           }
         }
 
-        // Fallback if AI unavailable
+        // Fallback: try template, then hardcoded
         if (!followUpBody) {
+          const vars = {
+            first_name: participantFirstName,
+            training_name: training.training_name,
+          };
+          const resolved = resolveEmailTemplate("follow_up_news", !useTu, vars);
+          if (resolved) {
+            subject = resolved.subject;
+            htmlContent = resolved.htmlContent;
+            break;
+          }
           followUpBody = useTu
             ? `<p>Salut ${participantFirstName},</p>
                <p>Ça fait environ un mois que tu as suivi la formation "${training.training_name}" et je voulais prendre de tes nouvelles !</p>
@@ -571,7 +717,6 @@ Règles :
           .single();
 
         if (evalCheck && evalCheck.etat === "soumis") {
-          // Mark as cancelled and return
           await supabase
             .from("scheduled_emails")
             .update({ status: "cancelled", error_message: "Évaluation déjà soumise" })
@@ -590,8 +735,18 @@ Règles :
         const evalUrl = `${appUrl}/evaluation/${evalCheck.token}`;
         const isFirstReminder = scheduledEmail.email_type === "evaluation_reminder_1";
         const useTutoiement = !training.participants_formal_address;
+        const templateType = isFirstReminder ? "evaluation_reminder_1" : "evaluation_reminder_2";
 
-        if (isFirstReminder) {
+        const vars = {
+          first_name: firstName,
+          training_name: training.training_name,
+          evaluation_link: `<a href="${evalUrl}" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Remplir l'évaluation</a>`,
+        };
+        const resolved = resolveEmailTemplate(templateType, !useTutoiement, vars);
+        if (resolved) {
+          subject = resolved.subject;
+          htmlContent = resolved.htmlContent;
+        } else if (isFirstReminder) {
           subject = useTutoiement 
             ? `📝 Petit rappel : ton avis compte pour "${training.training_name}"`
             : `📝 Petit rappel : votre avis compte pour "${training.training_name}"`;
@@ -649,7 +804,6 @@ Règles :
         recipientEmail = participant?.email || "";
         if (!recipientEmail) throw new Error("No participant email for live reminder");
 
-        // Get the live meeting from the error_message field (format: "live:{meetingId}")
         const liveIdMatch = scheduledEmail.error_message?.match(/live:(.+)/);
         const liveMeetingId = liveIdMatch ? liveIdMatch[1] : null;
 
@@ -694,15 +848,13 @@ Règles :
           }
         }
 
-        const meetingUrlSection = liveMeetingUrl
-          ? `<p><a href="${liveMeetingUrl}" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Rejoindre le live</a></p>`
-          : "";
-
-        subject = `📺 Rappel : Live "${liveTitle}" aujourd'hui – ${training.training_name}`;
-
+        // If custom email content was set on the live meeting, use it directly
         if (liveEmailContent) {
-          // Use custom email content - convert newlines to <br> for HTML
           const customBody = liveEmailContent.replace(/\n/g, "<br>");
+          const meetingUrlSection = liveMeetingUrl
+            ? `<p><a href="${liveMeetingUrl}" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Rejoindre le live</a></p>`
+            : "";
+          subject = `📺 Rappel : Live "${liveTitle}" aujourd'hui – ${training.training_name}`;
           htmlContent = `
             <p>${greeting}</p>
             ${customBody}
@@ -710,18 +862,38 @@ Règles :
             ${signatureHtml}
           `;
         } else {
-          htmlContent = `
-            <p>${greeting}</p>
-            <p>Pour rappel, ${formalAddress ? "vous avez" : "tu as"} un live collectif prévu aujourd'hui dans le cadre de la formation <strong>"${training.training_name}"</strong> :</p>
-            <ul>
-              <li><strong>${liveTitle}</strong></li>
-              <li>📅 ${liveDate} à ${liveTime}</li>
-            </ul>
-            ${meetingUrlSection}
-            <p>${formalAddress ? "Votre" : "Ta"} présence est importante pour profiter pleinement de ce moment d'échange.</p>
-            <p>À tout à l'heure !</p>
-            ${signatureHtml}
-          `;
+          // Try template
+          const vars = {
+            first_name: firstName,
+            training_name: training.training_name,
+            live_title: liveTitle,
+            live_date: liveDate,
+            live_time: liveTime,
+            meeting_url: liveMeetingUrl,
+          };
+          const resolved = resolveEmailTemplate("live_reminder", formalAddress, vars);
+          if (resolved) {
+            subject = resolved.subject;
+            htmlContent = resolved.htmlContent;
+          } else {
+            const meetingUrlSection = liveMeetingUrl
+              ? `<p><a href="${liveMeetingUrl}" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Rejoindre le live</a></p>`
+              : "";
+
+            subject = `📺 Rappel : Live "${liveTitle}" aujourd'hui – ${training.training_name}`;
+            htmlContent = `
+              <p>${greeting}</p>
+              <p>Pour rappel, ${formalAddress ? "vous avez" : "tu as"} un live collectif prévu aujourd'hui dans le cadre de la formation <strong>"${training.training_name}"</strong> :</p>
+              <ul>
+                <li><strong>${liveTitle}</strong></li>
+                <li>📅 ${liveDate} à ${liveTime}</li>
+              </ul>
+              ${meetingUrlSection}
+              <p>${formalAddress ? "Votre" : "Ta"} présence est importante pour profiter pleinement de ce moment d'échange.</p>
+              <p>À tout à l'heure !</p>
+              ${signatureHtml}
+            `;
+          }
         }
         break;
       }
