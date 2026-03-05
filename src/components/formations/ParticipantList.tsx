@@ -1070,6 +1070,7 @@ const ParticipantList = ({
                 </TableHead>
               )}
               <TableHead>Recueil</TableHead>
+              {hasCoachingParticipants && <TableHead>Coaching</TableHead>}
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
