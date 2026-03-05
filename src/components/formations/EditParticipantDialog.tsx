@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Pencil, Loader2, FileText, Upload, Trash2, ExternalLink, CheckCircle2, Download, Paperclip, StickyNote, Check, Tag } from "lucide-react";
+import { Pencil, Loader2, FileText, Upload, Trash2, ExternalLink, CheckCircle2, Download, Paperclip, StickyNote, Check, Tag, UserCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
