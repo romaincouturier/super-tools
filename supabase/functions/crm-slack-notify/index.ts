@@ -119,7 +119,7 @@ async function resolveChannelIdByName(
   let cursor = "";
   do {
     const url = new URL(`${GATEWAY_URL}/conversations.list`);
-    url.searchParams.set("types", "public_channel,private_channel");
+    url.searchParams.set("types", "public_channel");
     url.searchParams.set("exclude_archived", "true");
     url.searchParams.set("limit", "200");
     if (cursor) url.searchParams.set("cursor", cursor);
