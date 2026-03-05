@@ -213,6 +213,7 @@ const CardDetailDrawer = ({
 
   // Brief questions local state
   const [localBriefQuestions, setLocalBriefQuestions] = useState<BriefQuestion[]>([]);
+  const [briefExpanded, setBriefExpanded] = useState(true);
 
   // Linked mission state
   const [linkedMissionId, setLinkedMissionId] = useState<string | null>(null);
@@ -351,8 +352,10 @@ const CardDetailDrawer = ({
       setNextActionText(card.next_action_text || "");
       setNextActionDone(card.next_action_done || false);
       setNextActionType((card as any).next_action_type || "other");
-      // Brief questions
+      // Brief questions — collapsed if description already filled
       setLocalBriefQuestions(card.brief_questions || []);
+      const hasDescription = !!(card.description_html && card.description_html.replace(/<[^>]*>/g, "").trim());
+      setBriefExpanded(!hasDescription);
       // Linked mission
       setLinkedMissionId(card.linked_mission_id || null);
       setMissionSearchQuery("");
@@ -1790,46 +1793,58 @@ const CardDetailDrawer = ({
           {/* Brief questions */}
           {localBriefQuestions && localBriefQuestions.length > 0 && (
             <div className="p-4 bg-amber-50 rounded-lg space-y-2">
-              <h4 className="font-medium text-sm flex items-center gap-2">
-                📋 Questions pour le brief
-                <span className="text-xs text-muted-foreground font-normal">
-                  ({localBriefQuestions.filter((q: BriefQuestion) => q.answered).length}/{localBriefQuestions.length})
-                </span>
-              </h4>
-              <ul className="space-y-1.5">
-                {localBriefQuestions.map((q: BriefQuestion) => {
-                  const toggleQuestion = () => {
-                    if (!user?.email) return;
-                    const updatedQuestions = localBriefQuestions.map((bq: BriefQuestion) =>
-                      bq.id === q.id ? { ...bq, answered: !bq.answered } : bq
+              <button
+                onClick={() => setBriefExpanded(!briefExpanded)}
+                className="flex items-center justify-between w-full"
+              >
+                <h4 className="font-medium text-sm flex items-center gap-2">
+                  📋 Questions pour le brief
+                  <span className="text-xs text-muted-foreground font-normal">
+                    ({localBriefQuestions.filter((q: BriefQuestion) => q.answered).length}/{localBriefQuestions.length})
+                  </span>
+                </h4>
+                {briefExpanded ? (
+                  <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                ) : (
+                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                )}
+              </button>
+              {briefExpanded && (
+                <ul className="space-y-1.5">
+                  {localBriefQuestions.map((q: BriefQuestion) => {
+                    const toggleQuestion = () => {
+                      if (!user?.email) return;
+                      const updatedQuestions = localBriefQuestions.map((bq: BriefQuestion) =>
+                        bq.id === q.id ? { ...bq, answered: !bq.answered } : bq
+                      );
+                      setLocalBriefQuestions(updatedQuestions);
+                      updateCard.mutate({
+                        id: card.id,
+                        updates: { brief_questions: updatedQuestions },
+                        actorEmail: user.email,
+                        oldCard: card,
+                      });
+                    };
+                    return (
+                      <li
+                        key={q.id}
+                        className="flex items-start gap-2.5 text-sm cursor-pointer select-none"
+                        onClick={toggleQuestion}
+                      >
+                        <Checkbox
+                          checked={q.answered}
+                          onCheckedChange={toggleQuestion}
+                          onClick={(e) => e.stopPropagation()}
+                          className="mt-0.5"
+                        />
+                        <span className={cn("flex-1", q.answered && "text-muted-foreground line-through")}>
+                          {q.question}
+                        </span>
+                      </li>
                     );
-                    setLocalBriefQuestions(updatedQuestions);
-                    updateCard.mutate({
-                      id: card.id,
-                      updates: { brief_questions: updatedQuestions },
-                      actorEmail: user.email,
-                      oldCard: card,
-                    });
-                  };
-                  return (
-                    <li
-                      key={q.id}
-                      className="flex items-start gap-2.5 text-sm cursor-pointer select-none"
-                      onClick={toggleQuestion}
-                    >
-                      <Checkbox
-                        checked={q.answered}
-                        onCheckedChange={toggleQuestion}
-                        onClick={(e) => e.stopPropagation()}
-                        className="mt-0.5"
-                      />
-                      <span className={cn("flex-1", q.answered && "text-muted-foreground line-through")}>
-                        {q.question}
-                      </span>
-                    </li>
-                  );
-                })}
-              </ul>
+                  })}
+                </ul>
+              )}
             </div>
           )}
 
