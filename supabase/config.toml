@@ -209,3 +209,6 @@ verify_jwt = false
 
 [functions.crm-slack-notify]
 verify_jwt = false
+
+[functions.scheduled-backup]
+verify_jwt = false

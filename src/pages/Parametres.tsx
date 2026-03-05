@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
-import { Loader2, Settings, Mail, RotateCcw, Sparkles, Cog, ExternalLink, Shield, Users, Key, Tag, Upload, FileText, Trash2, Check, Copy } from "lucide-react";
+import { Loader2, Settings, Mail, RotateCcw, Sparkles, Cog, ExternalLink, Shield, Users, Key, Tag, Upload, FileText, Trash2, Check, Copy, Database } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import ModuleLayout from "@/components/ModuleLayout";
 import { Button } from "@/components/ui/button";
@@ -1142,6 +1142,8 @@ const SETTINGS_REGISTRY: Record<string, { default: string; description: string }
   app_url: { default: "https://super-tools.lovable.app", description: "URL principale de l'application SuperTools (utilisée dans tous les emails)" },
   google_maps_api_key: { default: "AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8", description: "Clé API Google Maps pour les cartes intégrées" },
   qualiopi_certificate_path: { default: "certificat-qualiopi/Certificat QUALIOPI v3.pdf", description: "Chemin du certificat Qualiopi dans le storage (bucket/fichier)" },
+  backup_enabled: { default: "false", description: "Activer les sauvegardes automatiques quotidiennes vers Google Drive" },
+  backup_gdrive_folder_id: { default: "", description: "ID du dossier Google Drive pour les sauvegardes" },
 };
 
 const SETTINGS_DEFAULTS = Object.fromEntries(
@@ -1191,7 +1193,7 @@ const Parametres = () => {
 
   // UI-only state (not persisted settings)
   const [uploadingReglement, setUploadingReglement] = useState(false);
-
+  const [hasGoogleDrive, setHasGoogleDrive] = useState(false);
 
   // Auto-save infrastructure
   const initialLoadDoneRef = useRef(false);
@@ -1216,6 +1218,9 @@ const Parametres = () => {
       }
       setUser(session.user);
       await Promise.all([fetchTemplates(), fetchSettings()]);
+      // Check Google Drive connection
+      const { count } = await supabase.from("google_drive_tokens").select("*", { count: "exact", head: true });
+      setHasGoogleDrive((count ?? 0) > 0);
       setLoading(false);
       initialLoadDoneRef.current = true;
     };
@@ -1744,6 +1749,12 @@ const Parametres = () => {
               <TabsTrigger value="integrations" className="flex items-center gap-2">
                 <Key className="h-4 w-4" />
                 Intégrations
+              </TabsTrigger>
+            )}
+            {isAdmin && (
+              <TabsTrigger value="backup" className="flex items-center gap-2">
+                <Database className="h-4 w-4" />
+                Sauvegarde
               </TabsTrigger>
             )}
             <TabsTrigger value="arena" className="flex items-center gap-2">
@@ -2864,6 +2875,17 @@ const Parametres = () => {
                 </CardContent>
               </Card>
               <AutoSaveIndicator status={autoSaveStatus} />
+            </TabsContent>
+          )}
+
+          {isAdmin && (
+            <TabsContent value="backup">
+              <BackupManager
+                backupEnabled={settings.backup_enabled === "true"}
+                gdriveFolderId={settings.backup_gdrive_folder_id}
+                onSettingsChange={updateSetting}
+                hasGoogleDrive={hasGoogleDrive}
+              />
             </TabsContent>
           )}
 
