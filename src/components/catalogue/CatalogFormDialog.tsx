@@ -484,6 +484,9 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
                   size="sm"
                   className="h-7 text-xs"
                   onClick={() => {
+                    // Prevent immediate auto-save from removing a newly added (still empty) formula
+                    skipNextAutoSave.current++;
+                    const nextVisibleIdx = formulas.filter((f) => !f._deleted).length;
                     setFormulas((prev) => [
                       ...prev,
                       {
@@ -495,7 +498,7 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
                         supports_url: "",
                       },
                     ]);
-                    setExpandedFormula(formulas.filter((f) => !f._deleted).length);
+                    setExpandedFormula(nextVisibleIdx);
                   }}
                 >
                   <Plus className="h-3 w-3 mr-1" />
