@@ -10,12 +10,12 @@ import {
 /**
  * Edge Function: resolve-formulaire
  *
- * Public entry point for WooCommerce / LearnDash form links.
- * Validates product_id, applies IP-based rate limiting,
+ * Public entry point for LearnDash / WordPress form links.
+ * Validates course_id (LearnDash), applies IP-based rate limiting,
  * and resolves or creates the form token.
  *
  * POST /resolve-formulaire
- * Body: { email, product_id, form_type, first_name?, last_name? }
+ * Body: { email, course_id, form_type, first_name?, last_name? }
  *
  * When first_name + last_name are provided → registers an orphan entry
  * (participant not found in any training session).
@@ -35,16 +35,16 @@ serve(async (req: Request): Promise<Response> => {
 
   try {
     const body = await req.json();
-    const { email, product_id, form_type, first_name, last_name } = body;
+    const { email, course_id, form_type, first_name, last_name } = body;
 
     // Basic validation
-    if (!email || !product_id || !form_type) {
-      return createErrorResponse("Paramètres manquants : email, product_id et form_type sont requis.", 400);
+    if (!email || !course_id || !form_type) {
+      return createErrorResponse("Paramètres manquants : email, course_id et form_type sont requis.", 400);
     }
 
-    const pid = typeof product_id === "number" ? product_id : parseInt(product_id, 10);
-    if (isNaN(pid)) {
-      return createErrorResponse("product_id invalide.", 400);
+    const cid = typeof course_id === "number" ? course_id : parseInt(course_id, 10);
+    if (isNaN(cid)) {
+      return createErrorResponse("course_id invalide.", 400);
     }
 
     if (!["besoins", "evaluation"].includes(form_type)) {
@@ -90,7 +90,7 @@ serve(async (req: Request): Promise<Response> => {
           p_email: email,
           p_first_name: first_name,
           p_last_name: last_name,
-          p_product_id: pid,
+          p_course_id: cid,
           p_form_type: form_type,
         }
       );
@@ -108,7 +108,7 @@ serve(async (req: Request): Promise<Response> => {
       "resolve_formulaire_token",
       {
         p_email: email,
-        p_product_id: pid,
+        p_course_id: cid,
         p_form_type: form_type,
       }
     );

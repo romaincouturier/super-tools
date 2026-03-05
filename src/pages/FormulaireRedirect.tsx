@@ -10,8 +10,8 @@ import { Label } from "@/components/ui/label";
  * Public redirect page for e-learning integrations (LearnDash / WordPress).
  *
  * URLs:
- *   /formulaire/besoins?email=xxx&product_id=123
- *   /formulaire/evaluation?email=xxx&product_id=123
+ *   /formulaire/besoins?email=xxx&course_id=123
+ *   /formulaire/evaluation?email=xxx&course_id=123
  *
  * Flow:
  * 1. Calls resolve-formulaire Edge Function (with IP rate limiting)
@@ -39,7 +39,7 @@ const FormulaireRedirect = () => {
   const [lastName, setLastName] = useState("");
 
   const email = searchParams.get("email");
-  const productId = searchParams.get("product_id");
+  const courseId = searchParams.get("course_id");
   const formType = location.pathname.includes("besoins") ? "besoins" : "evaluation";
 
   const formLabel = formType === "besoins" ? "recueil des besoins" : "évaluation";
@@ -81,22 +81,22 @@ const FormulaireRedirect = () => {
   // Initial resolution
   useEffect(() => {
     const resolve = async () => {
-      if (!email || !productId) {
-        setError("Paramètres manquants : email et product_id sont requis.");
+      if (!email || !courseId) {
+        setError("Paramètres manquants : email et course_id sont requis.");
         setLoading(false);
         return;
       }
 
-      const pid = parseInt(productId, 10);
-      if (isNaN(pid)) {
-        setError("product_id invalide.");
+      const cid = parseInt(courseId, 10);
+      if (isNaN(cid)) {
+        setError("course_id invalide.");
         setLoading(false);
         return;
       }
 
       const result = await callResolve({
         email,
-        product_id: pid,
+        course_id: cid,
         form_type: formType,
       });
 
@@ -134,7 +134,7 @@ const FormulaireRedirect = () => {
     };
 
     resolve();
-  }, [email, productId, formType, callResolve, redirectToForm]);
+  }, [email, courseId, formType, callResolve, redirectToForm]);
 
   // Handle registration form submit
   const handleRegister = async (e: React.FormEvent) => {
@@ -145,10 +145,10 @@ const FormulaireRedirect = () => {
     setRegistering(true);
     setError(null);
 
-    const pid = parseInt(productId!, 10);
+    const cid = parseInt(courseId!, 10);
     const result = await callResolve({
       email,
-      product_id: pid,
+      course_id: cid,
       form_type: formType,
       first_name: firstName.trim(),
       last_name: lastName.trim(),

@@ -59,6 +59,7 @@ interface FormulaEdit {
   prix: string;
   elearning_access_email_content: string;
   woocommerce_product_id: string;
+  learndash_course_id: string;
   supports_url: string;
   coaching_sessions_count: string;
   _deleted?: boolean;
@@ -109,6 +110,7 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
     prix: f.prix != null ? String(f.prix) : "",
     elearning_access_email_content: f.elearning_access_email_content || "",
     woocommerce_product_id: f.woocommerce_product_id != null ? String(f.woocommerce_product_id) : "",
+    learndash_course_id: f.learndash_course_id != null ? String(f.learndash_course_id) : "",
     supports_url: f.supports_url || "",
     coaching_sessions_count: f.coaching_sessions_count ? String(f.coaching_sessions_count) : "0",
   });
@@ -127,7 +129,7 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
     formationName, description, prix, dureeHeures, programmeUrl, supportsUrl,
     supertiltLink, objectives, prerequisites, elearningDuration,
     elearningAccessEmailContent, woocommerceProductId, isActive,
-    fml: activeFormulas.map(f => `${f.id || ""}|${f.name}|${f.duree_heures}|${f.prix}|${f.woocommerce_product_id}|${f.supports_url}|${f.elearning_access_email_content}`),
+    fml: activeFormulas.map(f => `${f.id || ""}|${f.name}|${f.duree_heures}|${f.prix}|${f.woocommerce_product_id}|${f.learndash_course_id}|${f.supports_url}|${f.elearning_access_email_content}`),
   });
 
   // Shared save logic (used by both auto-save and manual create)
@@ -184,6 +186,7 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
         prix: f.prix ? parseFloat(f.prix) : null,
         elearning_access_email_content: f.elearning_access_email_content.trim() || null,
         woocommerce_product_id: f.woocommerce_product_id ? parseInt(f.woocommerce_product_id, 10) : null,
+        learndash_course_id: f.learndash_course_id ? parseInt(f.learndash_course_id, 10) : null,
         supports_url: f.supports_url.trim() || null,
         coaching_sessions_count: f.coaching_sessions_count ? parseInt(f.coaching_sessions_count, 10) : 0,
         display_order: i,
@@ -375,6 +378,7 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
           prix: f.prix ? parseFloat(f.prix) : null,
           elearning_access_email_content: f.elearning_access_email_content.trim() || null,
           woocommerce_product_id: f.woocommerce_product_id ? parseInt(f.woocommerce_product_id, 10) : null,
+          learndash_course_id: f.learndash_course_id ? parseInt(f.learndash_course_id, 10) : null,
           supports_url: f.supports_url.trim() || null,
           display_order: i,
         });
@@ -498,6 +502,7 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
                         prix: "",
                         elearning_access_email_content: "",
                         woocommerce_product_id: "",
+                        learndash_course_id: "",
                         supports_url: "",
                         coaching_sessions_count: "0",
                       },
@@ -616,6 +621,23 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
                                   className="h-8 text-sm"
                                 />
                               </div>
+                              <div className="space-y-1">
+                                <Label className="text-xs">ID Cours LearnDash</Label>
+                                <Input
+                                  type="number"
+                                  min="1"
+                                  value={formula.learndash_course_id}
+                                  onChange={(e) =>
+                                    setFormulas((prev) =>
+                                      prev.map((f, i) => (i === idx ? { ...f, learndash_course_id: e.target.value } : f))
+                                    )
+                                  }
+                                  placeholder="Ex: 5678"
+                                  className="h-8 text-sm"
+                                />
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
                               <div className="space-y-1">
                                 <Label className="text-xs">URL des supports</Label>
                                 <Input
