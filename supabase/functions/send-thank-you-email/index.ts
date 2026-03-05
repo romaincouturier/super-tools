@@ -222,11 +222,14 @@ serve(async (req) => {
       const evaluationLink = `${baseUrl}/evaluation/${evaluationToken}`;
 
       // Process templates with variables
+      const isElearning = training.format_formation === "e_learning";
       const variables = {
         first_name: participant.first_name,
         training_name: trainingName,
         evaluation_link: evaluationLink,
         supports_url: supportsUrl,
+        is_presentiel: !isElearning,
+        is_elearning: isElearning,
       };
 
       const subject = processTemplate(subjectTemplate, variables, false);
