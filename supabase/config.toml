@@ -212,3 +212,9 @@ verify_jwt = false
 
 [functions.scheduled-backup]
 verify_jwt = false
+
+[functions.analyze-needs-survey]
+verify_jwt = false
+
+[functions.alert-form-error]
+verify_jwt = false
