@@ -156,37 +156,34 @@ serve(async (req) => {
     };
 
     const isLikelyChannelId = /^(C|G)[A-Z0-9]+$/.test(configuredChannel);
-    let channelId = configuredChannel;
+    let channelTarget = configuredChannel;
 
-    // If user stored a channel name, resolve it to ID
     if (!isLikelyChannelId) {
-      const listRes = await fetch(
-        `${GATEWAY_URL}/conversations.list?types=public_channel,private_channel&exclude_archived=true&limit=1000`,
-        { headers: { "Authorization": `Bearer ${LOVABLE_API_KEY}`, "X-Connection-Api-Key": SLACK_API_KEY } }
-      );
-      const listData = await listRes.json();
-      const normalized = configuredChannel.replace(/^#/, "");
-      const channelObj = listData.channels?.find((c: { name: string }) => c.name === normalized);
+      const resolvedId = await resolveChannelIdByName(configuredChannel, {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "X-Connection-Api-Key": SLACK_API_KEY,
+      });
 
-      if (!channelObj?.id) {
-        return createErrorResponse(`Canal Slack introuvable: ${configuredChannel}`, 400);
-      }
-      channelId = channelObj.id;
+      // Fallback: Slack may still resolve #channel directly depending on workspace setup.
+      channelTarget = resolvedId || (configuredChannel.startsWith("#") ? configuredChannel : `#${configuredChannel}`);
     }
 
-    // Try join (best effort) then post
-    const joinRes = await fetch(`${GATEWAY_URL}/conversations.join`, {
-      method: "POST",
-      headers: gatewayHeaders,
-      body: JSON.stringify({ channel: channelId }),
-    });
-    const joinData = await joinRes.json().catch(() => ({}));
+    // Try join (best effort), only useful for channel IDs.
+    let joinData: Record<string, unknown> = {};
+    if (/^(C|G)[A-Z0-9]+$/.test(channelTarget)) {
+      const joinRes = await fetch(`${GATEWAY_URL}/conversations.join`, {
+        method: "POST",
+        headers: gatewayHeaders,
+        body: JSON.stringify({ channel: channelTarget }),
+      });
+      joinData = await joinRes.json().catch(() => ({}));
+    }
 
     const slackResponse = await fetch(`${GATEWAY_URL}/chat.postMessage`, {
       method: "POST",
       headers: gatewayHeaders,
       body: JSON.stringify({
-        channel: channelId,
+        channel: channelTarget,
         text: message.text,
         blocks: message.blocks,
         username: "SuperTools CRM",
@@ -194,15 +191,28 @@ serve(async (req) => {
       }),
     });
 
-    const slackData = await slackResponse.json();
+    const slackData = await slackResponse.json().catch(() => ({}));
 
-    if (!slackResponse.ok || !slackData.ok) {
-      if (slackData?.error === "not_in_channel") {
-        const joinError = joinData?.error ? ` (join: ${joinData.error})` : "";
-        return createErrorResponse(`Le bot Slack n'est pas dans ce canal${joinError}. Invite-le avec /invite @Lovable App`, 400);
+    if (!slackResponse.ok || (slackData as { ok?: boolean }).ok === false) {
+      const slackError = (slackData as { error?: string })?.error || `HTTP ${slackResponse.status}`;
+
+      if (slackError === "not_in_channel") {
+        const joinError = typeof joinData?.error === "string" ? ` (join: ${joinData.error})` : "";
+        return createJsonResponse({
+          success: false,
+          error: `Le bot Slack n'est pas dans ce canal${joinError}. Invite-le avec /invite @Lovable App`,
+        });
       }
+
+      if (slackError === "channel_not_found") {
+        return createJsonResponse({
+          success: false,
+          error: `Canal Slack introuvable: ${configuredChannel}. Re-sélectionne le canal dans Paramètres > Slack.`,
+        });
+      }
+
       console.error("Slack API error:", slackResponse.status, JSON.stringify(slackData));
-      return createErrorResponse(`Slack error: ${slackData.error || slackResponse.status}`, 502);
+      return createJsonResponse({ success: false, error: `Slack error: ${slackError}` });
     }
 
     return createJsonResponse({ success: true });
