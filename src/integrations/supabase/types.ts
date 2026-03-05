@@ -2887,6 +2887,7 @@ export type Database = {
           experience_sujet: string | null
           fonction: string | null
           id: string
+          learndash_course_id: number | null
           lecture_programme: string | null
           lien_mission: string | null
           modalites_preferences: Json | null
@@ -2924,6 +2925,7 @@ export type Database = {
           experience_sujet?: string | null
           fonction?: string | null
           id?: string
+          learndash_course_id?: number | null
           lecture_programme?: string | null
           lien_mission?: string | null
           modalites_preferences?: Json | null
@@ -2961,6 +2963,7 @@ export type Database = {
           experience_sujet?: string | null
           fonction?: string | null
           id?: string
+          learndash_course_id?: number | null
           lecture_programme?: string | null
           lien_mission?: string | null
           modalites_preferences?: Json | null
@@ -3820,6 +3823,7 @@ export type Database = {
           freins_application: string | null
           id: string
           last_name: string | null
+          learndash_course_id: number | null
           message_recommandation: string | null
           objectif_prioritaire: string | null
           objectifs_evaluation: Json | null
@@ -3854,6 +3858,7 @@ export type Database = {
           freins_application?: string | null
           id?: string
           last_name?: string | null
+          learndash_course_id?: number | null
           message_recommandation?: string | null
           objectif_prioritaire?: string | null
           objectifs_evaluation?: Json | null
@@ -3888,6 +3893,7 @@ export type Database = {
           freins_application?: string | null
           id?: string
           last_name?: string | null
+          learndash_course_id?: number | null
           message_recommandation?: string | null
           objectif_prioritaire?: string | null
           objectifs_evaluation?: Json | null
