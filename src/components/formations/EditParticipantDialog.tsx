@@ -507,6 +507,9 @@ const EditParticipantDialog = ({
             updateData.formula = v.formula || null;
           }
         }
+        if (formulaAllowsCoaching) {
+          updateData.coaching_sessions_total = v.coachingSessionsTotal ? parseInt(v.coachingSessionsTotal, 10) : 0;
+        }
         supabase
           .from("training_participants")
           .update(updateData)
