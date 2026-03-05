@@ -1,159 +1,140 @@
 
 
-# Audit Qualiopi -- Analyse et plan d'action
+# Plan: Migration des URLs en dur + Fix build error
 
-## Tableau synthetique des indicateurs
+## 1. Fix build error (priorité immédiate)
 
-| Indicateur | Statut | Ce qui manque | Action prioritaire |
-|---|---|---|---|
-| 1 - Info publique | Couvert | Page catalogue + TrainingSummary exposent objectifs, prerequis, duree, modalites | Aucune |
-| 4 - Analyse besoin | Couvert | Module "Besoins participants" avec questionnaire par token | Aucune |
-| 5 - Objectifs operationnels | Couvert | Champs `objectives` sur catalogue et formations, editeur dedie | Aucune |
-| 6 - Contenus adaptes | Couvert | Programme PDF, format formation, supports, lien SuperTilt | Aucune |
-| 8 - Positionnement entree | Partiel | Prerequis definis mais pas de champ formel "validation des prerequis a l'entree" | Ajouter un champ "prerequis valides" par participant (recueil besoins existant couvre partiellement) |
-| 10 - Adaptation au profil | Couvert | Recueil besoins + adaptations notees dans les notes de formation | Aucune |
-| 11 - Evaluation atteinte objectifs | Couvert | Questionnaire evaluation avec notation par objectif | Aucune |
-| 17 - Moyens humains/techniques | Partiel | Formateurs existent mais sans competences ni diplomes traces | **PRIORITE 1** |
-| 19 - Ressources pedagogiques | Couvert | Documents formation, supports URL, programme PDF | Aucune |
-| 21 - Competences intervenants | Manquant | Pas de competences, pas de diplomes/certifs, pas d'historique formation, pas de lien adequation | **PRIORITE 1** |
-| 22 - Dev competences intervenants | Manquant | Pas d'historique des formations suivies par les formateurs | **PRIORITE 1** (inclus) |
-| 26 - Referent handicap | Partiel | Pas de champ "referent handicap" ni de reseau partenaires PSH visible | Ajouter un champ referent handicap dans les parametres |
-| 27 - Sous-traitants | Partiel | Pas de registre sous-traitants formel | Peut etre documente hors app (peu de sous-traitance) |
-| 30 - Appreciations parties prenantes | Partiel | Beneficiaires (a chaud) + Sponsors (a froid) couverts. Manquent : equipes pedagogiques, financeurs, appreciations a froid beneficiaires | **PRIORITE 2** |
-| 31 - Reclamations | Couvert | Module reclamations complet avec IA, registre, formulaire public | Aucune |
-| 32 - Mesures amelioration | Partiel | Module "Ameliorations" existe mais pas de lien source (reclamation, appreciation, alea) | **PRIORITE 3** |
+**Fichier:** `src/pages/FormationEdit.tsx` ligne 1019
+
+Le `<ModuleLayout>` ouvert ligne 449 n'est jamais fermé. La ligne 1019 (`</div>`) devrait être `</ModuleLayout>`.
 
 ---
 
-## PRIORITE 1 -- Indicateur 21 : Competences des intervenants
+## 2. Migration des URLs en dur vers `app_settings`
 
-### Modifications base de donnees
+### Principe
 
-**Nouvelles colonnes sur la table `trainers`** :
-- `competences` (text[]) -- domaines de competence / intervention
-- `diplomes_certifications` (text) -- texte libre ou JSON pour diplomes et certifications
-- `formations_suivies` (jsonb) -- tableau d'objets `[{titre, organisme, date, duree}]`
+Centraliser toutes les URLs hardcodées dans la table `app_settings` (déjà utilisée pour `google_my_business_url`, `website_url`, etc.) et les lire dynamiquement dans les Edge Functions et le frontend.
 
-**Nouvelle table `trainer_documents`** :
-- `id` (uuid PK)
-- `trainer_id` (uuid FK trainers)
-- `file_name` (text)
-- `file_url` (text)
-- `document_type` (text) -- cv, diplome, certification, autre
-- `created_at` (timestamptz)
+### 2a. Nouvelles clés `app_settings` à créer
 
-**Nouvelle table `trainer_training_adequacy`** :
-- `id` (uuid PK)
-- `trainer_id` (uuid FK trainers)
-- `training_id` (uuid FK trainings)
-- `validated_by` (text) -- nom de la personne qui valide
-- `validated_at` (date)
-- `notes` (text)
-- `created_at` (timestamptz)
+| Clé | Valeur par défaut | Utilisée dans |
+|-----|-------------------|---------------|
+| `app_url` | `https://super-tools.lovable.app` | ~20 edge functions |
+| `website_url` | `https://www.supertilt.fr` | signitic, certificates, eval, testimonials |
+| `blog_url` | `https://supertilt.fr/blog/` | questionnaire confirmation |
+| `youtube_url` | `https://www.youtube.com/@supertilt` | certificates, eval |
+| `google_maps_api_key` | `AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8` | FormationDetail, TrainingSummary |
+| `qualiopi_certificate_path` | `certificat-qualiopi/Certificat QUALIOPI v3.pdf` | generate-micro-devis |
 
-RLS : acces authentifie pour toutes ces tables.
+Note : `google_my_business_url`, `supertilt_site_url`, `website_url`, `youtube_url` existent déjà dans certaines fonctions. Il faut harmoniser les noms et s'assurer que toutes les fonctions les lisent depuis `app_settings`.
 
-### Modifications UI
+### 2b. Création d'un helper partagé `app-urls.ts`
 
-**`TrainerManager.tsx`** : enrichir le formulaire d'edition pour ajouter :
-- Section "Competences et domaines d'intervention" (tags/chips editables)
-- Section "Diplomes et certifications" (textarea)
-- Section "Formations suivies" (tableau simple avec ajout/suppression : titre, organisme, date)
-- Section "Documents" (upload CV, diplomes, certifications -- reutilise le pattern EntityDocumentsManager)
+Nouveau fichier `supabase/functions/_shared/app-urls.ts` exposant une fonction :
 
-**`FormationDetail.tsx`** ou nouveau composant : afficher l'adequation formateur/formation avec :
-- Bouton "Valider l'adequation" (nom + date)
-- Affichage du statut d'adequation
+```typescript
+export async function getAppUrls(): Promise<Record<string, string>>
+```
+
+Cette fonction charge en une seule requête toutes les clés URL depuis `app_settings` et retourne un dictionnaire avec des valeurs par défaut. Mise en cache possible via variable globale (durée de vie = durée de l'invocation).
+
+Export ajouté dans `_shared/mod.ts`.
+
+### 2c. Edge Functions à modifier (~20 fichiers)
+
+Remplacer le pattern :
+```typescript
+const appUrl = Deno.env.get("APP_URL") || "https://super-tools.lovable.app";
+```
+par :
+```typescript
+import { getAppUrls } from "../_shared/app-urls.ts";
+const urls = await getAppUrls();
+const appUrl = urls.app_url;
+```
+
+**Fichiers concernés :**
+- `send-devis-signature-request`
+- `send-event-share-email`
+- `send-convention-reminder`
+- `process-session-start`
+- `send-training-calendar-invite`
+- `force-send-scheduled-email`
+- `process-logistics-reminders`
+- `send-attendance-signature-request`
+- `send-action-reminder`
+- `send-event-update-email`
+- `send-thank-you-email`
+- `generate-daily-actions`
+- `send-evaluation-reminder`
+- `send-mission-deliverables`
+- `zapier-create-training`
+- `send-content-notification`
+- `send-needs-survey`
+- `send-needs-survey-reminder`
+- `send-welcome-email`
+- `send-elearning-access`
+
+### 2d. Edge Functions avec URLs supertilt.fr/youtube
+
+- `_shared/signitic.ts` : lire `website_url` depuis `getAppUrls()`
+- `generate-certificates` : déjà lu depuis `app_settings` (OK, garder)
+- `process-evaluation-submission` : déjà lu (OK)
+- `send-questionnaire-confirmation` : déjà lu (OK)
+- `process-mission-testimonials` : déjà lu (OK)
+
+### 2e. URL Supabase Storage en dur
+
+- `generate-micro-devis` : remplacer l'URL hardcodée par construction dynamique via `SUPABASE_URL` + chemin bucket
+
+### 2f. Frontend — Google Maps API Key
+
+- `FormationDetail.tsx` et `TrainingSummary.tsx` : lire `google_maps_api_key` depuis `app_settings` (via un hook ou une requête au chargement) au lieu du hardcode `AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8`
+
+### 2g. Frontend — Liens supertilt.fr
+
+- `TrainingSummary.tsx` ligne 331 et `Questionnaire.tsx` ligne 817 : lire `website_url` depuis `app_settings`
+- `Evaluation.tsx` lignes 694/707 : texte statique, acceptable en dur (contenu de formulaire, pas une URL cliquable technique)
+- `FormationCreate.tsx` : le texte "supertilt.fr" dans les lieux prédéfinis est du contenu métier, acceptable en dur
+
+### 2h. URLs Google API (googleapis.com)
+
+Ces URLs sont des endpoints d'API Google stables et ne doivent **pas** être migrées dans `app_settings`. Elles restent en dur :
+- `oauth2.googleapis.com/token`
+- `www.googleapis.com/upload/drive/v3/files`
+- `www.googleapis.com/calendar/v3/...`
+- `generativelanguage.googleapis.com/v1beta/openai/`
+
+### 2i. URL AI Gateway (ai.gateway.lovable.dev)
+
+C'est une URL d'infrastructure Lovable, stable et identique pour tous les projets. Elle reste en dur dans les 7 fonctions concernées.
+
+### 2j. Migration SQL
+
+Insertion des valeurs par défaut pour les nouvelles clés :
+
+```sql
+INSERT INTO app_settings (setting_key, setting_value) VALUES
+  ('app_url', 'https://super-tools.lovable.app')
+ON CONFLICT (setting_key) DO NOTHING;
+```
+
+### 2k. UI Paramètres
+
+Ajouter `app_url` et `google_maps_api_key` dans la page Paramètres pour qu'ils soient éditables.
 
 ---
 
-## PRIORITE 2 -- Indicateur 30 : Appreciations multi-parties prenantes
+## Résumé des actions
 
-### Etat actuel
-- `training_evaluations` = appreciations beneficiaires a chaud (OK)
-- `sponsor_cold_evaluations` = appreciations commanditaires/sponsors a froid (OK)
-- Manquent : equipes pedagogiques, financeurs, appreciations a froid beneficiaires
-
-### Modifications base de donnees
-
-**Nouvelle table `stakeholder_appreciations`** :
-- `id` (uuid PK)
-- `training_id` (uuid FK trainings, nullable)
-- `stakeholder_type` (text) -- 'pedagogique', 'financeur', 'beneficiaire_froid'
-- `stakeholder_name` (text)
-- `stakeholder_email` (text, nullable)
-- `token` (text UNIQUE) -- pour formulaire public
-- `date_envoi` (timestamptz, nullable)
-- `date_reception` (timestamptz, nullable)
-- `status` (text) -- 'draft', 'envoye', 'recu'
-- `satisfaction_globale` (integer, nullable)
-- `points_forts` (text, nullable)
-- `axes_amelioration` (text, nullable)
-- `commentaires` (text, nullable)
-- `year` (integer) -- pour le bilan annuel financeurs
-- `created_at` (timestamptz)
-- `updated_at` (timestamptz)
-
-RLS : authentifie pour CRUD, anon pour SELECT/UPDATE par token.
-
-### Modifications UI
-
-**Nouvelle page `src/pages/Appreciations.tsx`** (ou section dans Evaluations) :
-- Vue consolidee de toutes les appreciations par type de partie prenante
-- Filtres par type, par formation, par statut
-- Bouton "Envoyer un recueil" (genere un token + lien public)
-- Statistiques : taux de retour par type
-
-**Formulaire public** : `/appreciation/:token` -- formulaire simple adapte au type de partie prenante
-
-**Dashboard FormationDetail** : section recapitulative montrant le statut des appreciations pour chaque partie prenante liee a cette formation
-
----
-
-## PRIORITE 3 -- Indicateur 32 : Plan d'amelioration avec sources
-
-### Etat actuel
-La table `improvements` existe avec `training_id`, `category`, `status` mais sans lien vers la source (reclamation, appreciation, alea).
-
-### Modifications base de donnees
-
-**Nouvelles colonnes sur `improvements`** :
-- `source_type` (text, nullable) -- 'reclamation', 'appreciation', 'evaluation', 'alea', 'audit', 'autre'
-- `source_id` (uuid, nullable) -- id de la reclamation, appreciation, ou evaluation source
-- `source_description` (text, nullable) -- description libre de la source quand pas de lien direct
-- `priority` (text, nullable) -- 'haute', 'moyenne', 'basse'
-- `deadline` (date, nullable) -- echeance prevue
-- `responsible` (text, nullable) -- personne responsable
-
-### Modifications UI
-
-**`Ameliorations.tsx`** : enrichir pour :
-- Ajouter les champs source (type + description ou lien) dans le formulaire d'ajout
-- Afficher la source dans la liste (badge + lien cliquable vers la reclamation/evaluation)
-- Filtrer par source
-- Ajouter priorite et echeance
-- Vue "Plan d'amelioration" exportable (tableau : source | action | responsable | echeance | statut)
-
----
-
-## Fichiers concernes
-
-| Fichier | Action |
-|---|---|
-| Migration SQL | Tables `trainer_documents`, `trainer_training_adequacy`, `stakeholder_appreciations` + colonnes `trainers` + colonnes `improvements` |
-| `src/components/settings/TrainerManager.tsx` | Enrichir avec competences, diplomes, formations suivies, documents |
-| `src/pages/FormationDetail.tsx` | Ajouter validation adequation formateur |
-| `src/pages/Appreciations.tsx` | Creation -- page consolidee appreciations |
-| `src/pages/AppreciationPublic.tsx` | Creation -- formulaire public par token |
-| `src/pages/Ameliorations.tsx` | Enrichir avec source, priorite, echeance |
-| `src/App.tsx` | Ajout routes `/appreciation/:token` et eventuellement `/appreciations` |
-| `src/pages/Dashboard.tsx` | Ajout tuile si nouveau module |
-| `src/hooks/useModuleAccess.ts` | Eventuellement pas de nouveau module (integre dans evaluations) |
-
-## Ordre d'implementation
-
-1. Migration SQL unique avec toutes les modifications
-2. Priorite 1 : TrainerManager enrichi + adequation formateur/formation
-3. Priorite 2 : Table stakeholder_appreciations + page Appreciations + formulaire public
-4. Priorite 3 : Colonnes improvements + enrichissement Ameliorations.tsx
+1. **Fix build** : fermer `</ModuleLayout>` dans FormationEdit.tsx
+2. **Migration SQL** : insérer les nouvelles clés dans `app_settings`
+3. **Helper partagé** : créer `_shared/app-urls.ts` + export dans `mod.ts`
+4. **~20 Edge Functions** : remplacer les fallbacks hardcodés par le helper
+5. **1 Edge Function** : construire l'URL storage dynamiquement
+6. **2 pages frontend** : lire `google_maps_api_key` depuis la base
+7. **2 pages frontend** : lire `website_url` depuis la base
+8. **Page Paramètres** : ajouter les nouvelles clés éditables
+9. **Redéployer** toutes les Edge Functions
 
