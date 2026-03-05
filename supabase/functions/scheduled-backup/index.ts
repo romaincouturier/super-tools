@@ -1,16 +1,16 @@
 /**
  * Scheduled Backup
  *
- * Called daily by an external cron service. Checks if automatic backups are
- * enabled in app_settings, exports all tables to JSON, uploads to Google Drive,
- * manages retention (keeps last N backups), and sends an email report on
- * success or failure.
+ * Called daily by an external cron service. Performs:
+ *  1. Full database export (all tables → JSON → Google Drive)
+ *  2. Storage files backup (all buckets → Google Drive subfolder)
+ *  3. GFS rotation: keeps 7 daily, 4 weekly, 3 monthly backups
+ *  4. Email report on success or failure
  */
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import {
-  corsHeaders,
   handleCorsPreflightIfNeeded,
   createErrorResponse,
   createJsonResponse,
@@ -18,97 +18,61 @@ import {
 import { sendEmail } from "../_shared/resend.ts";
 import { getSenderEmail } from "../_shared/email-settings.ts";
 
-// All tables to backup (same list as backup-export)
+// ─── Tables to backup ───────────────────────────────────────────────────────
+
 const TABLES_TO_BACKUP = [
-  "app_settings",
-  "ai_brand_settings",
-  "email_templates",
-  "email_snippets",
-  "profiles",
-  "user_module_access",
-  "user_security_metadata",
-  "user_preferences",
-  "api_keys",
-  "google_drive_tokens",
-  "google_calendar_tokens",
-  "program_files",
-  "formation_configs",
-  "formation_dates",
-  "formation_formulas",
-  "trainings",
-  "training_participants",
-  "training_schedules",
-  "training_actions",
-  "training_evaluations",
-  "training_documents",
-  "training_media",
-  "training_live_meetings",
-  "training_coaching_slots",
-  "participant_files",
-  "scheduled_emails",
-  "attendance_signatures",
-  "convention_signatures",
-  "devis_signatures",
-  "trainers",
-  "trainer_evaluations",
-  "trainer_training_adequacy",
-  "trainer_attendance_signatures",
-  "trainer_documents",
-  "questionnaire_besoins",
-  "questionnaire_events",
-  "evaluation_analyses",
-  "post_evaluation_emails",
-  "sponsor_cold_evaluations",
-  "stakeholder_appreciations",
+  "app_settings", "ai_brand_settings", "email_templates", "email_snippets",
+  "profiles", "user_module_access", "user_security_metadata", "user_preferences",
+  "api_keys", "google_drive_tokens", "google_calendar_tokens", "program_files",
+  "formation_configs", "formation_dates", "formation_formulas",
+  "trainings", "training_participants", "training_schedules", "training_actions",
+  "training_evaluations", "training_documents", "training_media",
+  "training_live_meetings", "training_coaching_slots", "participant_files",
+  "scheduled_emails", "attendance_signatures", "convention_signatures", "devis_signatures",
+  "trainers", "trainer_evaluations", "trainer_training_adequacy",
+  "trainer_attendance_signatures", "trainer_documents",
+  "questionnaire_besoins", "questionnaire_events", "evaluation_analyses",
+  "post_evaluation_emails", "sponsor_cold_evaluations", "stakeholder_appreciations",
   "session_start_notifications",
-  "content_cards",
-  "content_columns",
-  "content_reviews",
-  "content_notifications",
-  "review_comments",
-  "newsletter_cards",
-  "newsletters",
-  "crm_columns",
-  "crm_tags",
-  "crm_settings",
-  "crm_revenue_targets",
-  "crm_cards",
-  "crm_card_tags",
-  "crm_card_emails",
-  "crm_comments",
-  "crm_attachments",
-  "crm_activity_log",
-  "events",
-  "event_shares",
-  "event_media",
-  "missions",
-  "mission_actions",
-  "mission_activities",
-  "mission_contacts",
-  "mission_documents",
-  "mission_media",
-  "mission_page_templates",
-  "mission_pages",
-  "okr_objectives",
-  "okr_key_results",
-  "okr_initiatives",
-  "okr_check_ins",
-  "okr_participants",
-  "daily_actions",
-  "daily_action_analytics",
-  "improvements",
-  "reclamations",
-  "media",
-  "inbound_emails",
-  "chatbot_conversations",
-  "chatbot_knowledge_base",
-  "commercial_coach_contexts",
-  "woocommerce_coupons",
-  "activity_logs",
-  "failed_emails",
+  "content_cards", "content_columns", "content_reviews", "content_notifications",
+  "review_comments", "newsletter_cards", "newsletters",
+  "crm_columns", "crm_tags", "crm_settings", "crm_revenue_targets",
+  "crm_cards", "crm_card_tags", "crm_card_emails", "crm_comments",
+  "crm_attachments", "crm_activity_log",
+  "events", "event_shares", "event_media",
+  "missions", "mission_actions", "mission_activities", "mission_contacts",
+  "mission_documents", "mission_media", "mission_page_templates", "mission_pages",
+  "okr_objectives", "okr_key_results", "okr_initiatives", "okr_check_ins", "okr_participants",
+  "daily_actions", "daily_action_analytics",
+  "improvements", "reclamations", "media", "inbound_emails",
+  "chatbot_conversations", "chatbot_knowledge_base", "commercial_coach_contexts",
+  "woocommerce_coupons", "activity_logs", "failed_emails",
 ];
 
-const MAX_BACKUPS_TO_KEEP = 14; // 2 weeks of daily backups
+// ─── Storage buckets ────────────────────────────────────────────────────────
+
+const STORAGE_BUCKETS = [
+  "training-programs",
+  "training-documents",
+  "training-media",
+  "content-images",
+  "review-images",
+  "crm-attachments",
+  "certificates",
+  "mission-media",
+  "mission-documents",
+  "event-media",
+  "signature-proofs",
+  "media",
+  "devis-pdfs",
+];
+
+// ─── GFS Retention ──────────────────────────────────────────────────────────
+// Grandfather-Father-Son: 7 daily + 4 weekly (Sunday) + 3 monthly (1st)
+
+const GFS_DAILY = 7;
+const GFS_WEEKLY = 4;
+const GFS_MONTHLY = 3;
 
 // ─── Google Drive helpers ───────────────────────────────────────────────────
 
@@ -136,7 +100,7 @@ async function refreshGoogleAccessToken(refreshToken: string): Promise<string> {
   return (await response.json()).access_token;
 }
 
-async function uploadToGoogleDrive(
+async function uploadJsonToGoogleDrive(
   accessToken: string,
   fileName: string,
   content: string,
@@ -181,19 +145,110 @@ async function uploadToGoogleDrive(
   return await response.json();
 }
 
-async function listBackupsInFolder(
+async function uploadBlobToGoogleDrive(
   accessToken: string,
-  folderId: string,
-): Promise<{ id: string; name: string; createdTime: string }[]> {
-  const query = `'${folderId}' in parents and name contains 'supertools_backup_' and trashed = false`;
+  fileName: string,
+  blob: Blob,
+  mimeType: string,
+  folderId?: string,
+): Promise<{ id: string; name: string }> {
+  const boundary = "storage_backup_" + Date.now();
+  const metadata = {
+    name: fileName,
+    mimeType,
+    ...(folderId && { parents: [folderId] }),
+  };
+
+  // Build multipart body with binary content
+  const metaPart = new TextEncoder().encode(
+    `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n--${boundary}\r\nContent-Type: ${mimeType}\r\n\r\n`,
+  );
+  const endPart = new TextEncoder().encode(`\r\n--${boundary}--`);
+  const blobBytes = new Uint8Array(await blob.arrayBuffer());
+
+  const bodyParts = new Uint8Array(metaPart.length + blobBytes.length + endPart.length);
+  bodyParts.set(metaPart, 0);
+  bodyParts.set(blobBytes, metaPart.length);
+  bodyParts.set(endPart, metaPart.length + blobBytes.length);
+
   const response = await fetch(
-    `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&orderBy=createdTime desc&fields=files(id,name,createdTime)&pageSize=100`,
-    { headers: { Authorization: `Bearer ${accessToken}` } },
+    "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart",
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": `multipart/related; boundary=${boundary}`,
+      },
+      body: bodyParts,
+    },
   );
 
-  if (!response.ok) return [];
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Google Drive upload failed (${response.status}): ${errorText}`);
+  }
+
+  return await response.json();
+}
+
+async function createGoogleDriveFolder(
+  accessToken: string,
+  folderName: string,
+  parentFolderId?: string,
+): Promise<string> {
+  const metadata = {
+    name: folderName,
+    mimeType: "application/vnd.google-apps.folder",
+    ...(parentFolderId && { parents: [parentFolderId] }),
+  };
+
+  const response = await fetch("https://www.googleapis.com/drive/v3/files", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(metadata),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to create Drive folder: ${response.status}`);
+  }
+
   const data = await response.json();
-  return data.files || [];
+  return data.id;
+}
+
+async function listFilesInFolder(
+  accessToken: string,
+  folderId: string,
+  nameFilter?: string,
+): Promise<{ id: string; name: string; createdTime: string }[]> {
+  let query = `'${folderId}' in parents and trashed = false`;
+  if (nameFilter) query += ` and name contains '${nameFilter}'`;
+
+  const allFiles: { id: string; name: string; createdTime: string }[] = [];
+  let pageToken: string | undefined;
+
+  do {
+    const url = new URL("https://www.googleapis.com/drive/v3/files");
+    url.searchParams.set("q", query);
+    url.searchParams.set("orderBy", "createdTime desc");
+    url.searchParams.set("fields", "files(id,name,createdTime),nextPageToken");
+    url.searchParams.set("pageSize", "200");
+    if (pageToken) url.searchParams.set("pageToken", pageToken);
+
+    const response = await fetch(url.toString(), {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+
+    if (!response.ok) break;
+    const data = await response.json();
+    allFiles.push(...(data.files || []));
+    pageToken = data.nextPageToken;
+  } while (pageToken);
+
+  return allFiles;
 }
 
 async function deleteGoogleDriveFile(accessToken: string, fileId: string): Promise<void> {
@@ -201,6 +256,187 @@ async function deleteGoogleDriveFile(accessToken: string, fileId: string): Promi
     method: "DELETE",
     headers: { Authorization: `Bearer ${accessToken}` },
   });
+}
+
+// ─── GFS Rotation Logic ─────────────────────────────────────────────────────
+
+function computeGfsKeepSet(
+  backups: { id: string; name: string; createdTime: string }[],
+): Set<string> {
+  // Parse dates from backup names: supertools_backup_YYYY-MM-DD_*.json
+  // or from createdTime
+  const keep = new Set<string>();
+  const now = new Date();
+
+  // Sort newest first
+  const sorted = [...backups].sort(
+    (a, b) => new Date(b.createdTime).getTime() - new Date(a.createdTime).getTime(),
+  );
+
+  // 1. Keep last N daily backups
+  let dailyKept = 0;
+  for (const b of sorted) {
+    if (dailyKept >= GFS_DAILY) break;
+    keep.add(b.id);
+    dailyKept++;
+  }
+
+  // 2. Keep last N weekly backups (one per calendar week, Sunday)
+  const weeksKept = new Set<string>();
+  for (const b of sorted) {
+    if (weeksKept.size >= GFS_WEEKLY) break;
+    const d = new Date(b.createdTime);
+    // Get ISO week key: year-weekNumber
+    const weekStart = new Date(d);
+    weekStart.setDate(d.getDate() - d.getDay()); // Go to Sunday
+    const weekKey = `${weekStart.getFullYear()}-${weekStart.getMonth()}-${weekStart.getDate()}`;
+    if (!weeksKept.has(weekKey)) {
+      weeksKept.add(weekKey);
+      keep.add(b.id);
+    }
+  }
+
+  // 3. Keep last N monthly backups (one per calendar month)
+  const monthsKept = new Set<string>();
+  for (const b of sorted) {
+    if (monthsKept.size >= GFS_MONTHLY) break;
+    const d = new Date(b.createdTime);
+    const monthKey = `${d.getFullYear()}-${d.getMonth()}`;
+    if (!monthsKept.has(monthKey)) {
+      monthsKept.add(monthKey);
+      keep.add(b.id);
+    }
+  }
+
+  return keep;
+}
+
+// ─── Storage Backup ─────────────────────────────────────────────────────────
+
+interface StorageBackupResult {
+  bucket: string;
+  filesCount: number;
+  totalSizeBytes: number;
+  uploadedFiles: number;
+  errors: string[];
+}
+
+async function backupStorageBucket(
+  supabase: ReturnType<typeof createClient>,
+  accessToken: string,
+  bucketName: string,
+  storageFolderId: string,
+): Promise<StorageBackupResult> {
+  const result: StorageBackupResult = {
+    bucket: bucketName,
+    filesCount: 0,
+    totalSizeBytes: 0,
+    uploadedFiles: 0,
+    errors: [],
+  };
+
+  try {
+    // Create a subfolder for this bucket
+    const bucketFolderId = await createGoogleDriveFolder(accessToken, bucketName, storageFolderId);
+
+    // List all files in the bucket (recursive)
+    const files = await listBucketFiles(supabase, bucketName);
+    result.filesCount = files.length;
+
+    for (const file of files) {
+      try {
+        // Download from Supabase Storage
+        const { data, error } = await supabase.storage.from(bucketName).download(file.name);
+        if (error || !data) {
+          result.errors.push(`${bucketName}/${file.name}: ${error?.message || "download failed"}`);
+          continue;
+        }
+
+        result.totalSizeBytes += data.size;
+
+        // Skip files > 25MB to stay within edge function limits
+        if (data.size > 25 * 1024 * 1024) {
+          result.errors.push(`${bucketName}/${file.name}: skipped (${(data.size / 1024 / 1024).toFixed(1)}MB > 25MB limit)`);
+          continue;
+        }
+
+        // Flatten path for Drive (replace / with ___)
+        const driveName = file.name.replace(/\//g, "___");
+        const mimeType = guessMimeType(file.name);
+
+        await uploadBlobToGoogleDrive(accessToken, driveName, data, mimeType, bucketFolderId);
+        result.uploadedFiles++;
+      } catch (fileErr) {
+        result.errors.push(
+          `${bucketName}/${file.name}: ${fileErr instanceof Error ? fileErr.message : "unknown error"}`,
+        );
+      }
+    }
+  } catch (err) {
+    result.errors.push(
+      `${bucketName}: ${err instanceof Error ? err.message : "bucket backup failed"}`,
+    );
+  }
+
+  return result;
+}
+
+async function listBucketFiles(
+  supabase: ReturnType<typeof createClient>,
+  bucketName: string,
+  path = "",
+): Promise<{ name: string }[]> {
+  const allFiles: { name: string }[] = [];
+
+  try {
+    const { data, error } = await supabase.storage.from(bucketName).list(path, {
+      limit: 1000,
+      sortBy: { column: "name", order: "asc" },
+    });
+
+    if (error || !data) return allFiles;
+
+    for (const item of data) {
+      const fullPath = path ? `${path}/${item.name}` : item.name;
+      if (item.id === null) {
+        // It's a folder, recurse
+        const subFiles = await listBucketFiles(supabase, bucketName, fullPath);
+        allFiles.push(...subFiles);
+      } else {
+        allFiles.push({ name: fullPath });
+      }
+    }
+  } catch {
+    // Bucket might not exist or be empty
+  }
+
+  return allFiles;
+}
+
+function guessMimeType(fileName: string): string {
+  const ext = fileName.split(".").pop()?.toLowerCase();
+  const map: Record<string, string> = {
+    pdf: "application/pdf",
+    png: "image/png",
+    jpg: "image/jpeg",
+    jpeg: "image/jpeg",
+    gif: "image/gif",
+    webp: "image/webp",
+    svg: "image/svg+xml",
+    mp4: "video/mp4",
+    webm: "video/webm",
+    doc: "application/msword",
+    docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    xls: "application/vnd.ms-excel",
+    xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    ppt: "application/vnd.ms-powerpoint",
+    pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    json: "application/json",
+    txt: "text/plain",
+    csv: "text/csv",
+    zip: "application/zip",
+  };
+  return map[ext || ""] || "application/octet-stream";
 }
 
 // ─── Main handler ───────────────────────────────────────────────────────────
@@ -230,30 +466,34 @@ serve(async (req) => {
 
     console.log("[scheduled-backup] Starting automatic backup...");
 
-    // ── Export all tables ──
-    const backup: Record<string, unknown[]> = {};
     const errors: string[] = [];
+
+    // ════════════════════════════════════════════════════════════════════════
+    // PHASE 1: Database backup
+    // ════════════════════════════════════════════════════════════════════════
+
+    const backup: Record<string, unknown[]> = {};
     let totalRows = 0;
 
     for (const tableName of TABLES_TO_BACKUP) {
       try {
         const { data, error } = await supabase.from(tableName).select("*");
         if (error) {
-          errors.push(`${tableName}: ${error.message}`);
+          errors.push(`[DB] ${tableName}: ${error.message}`);
           backup[tableName] = [];
         } else {
           backup[tableName] = data || [];
           totalRows += (data || []).length;
         }
       } catch (err) {
-        errors.push(`${tableName}: ${err instanceof Error ? err.message : "Unknown error"}`);
+        errors.push(`[DB] ${tableName}: ${err instanceof Error ? err.message : "Unknown error"}`);
         backup[tableName] = [];
       }
     }
 
     const backupData = {
       exportedAt: new Date().toISOString(),
-      version: "1.0",
+      version: "2.0",
       source: "scheduled-backup",
       tables: backup,
       errors: errors.length > 0 ? errors : undefined,
@@ -265,11 +505,18 @@ serve(async (req) => {
     const backupSizeBytes = new TextEncoder().encode(backupJson).length;
     const backupSizeMB = (backupSizeBytes / 1024 / 1024).toFixed(2);
 
-    console.log(`[scheduled-backup] Exported ${TABLES_TO_BACKUP.length} tables, ${totalRows} rows, ${backupSizeMB} MB`);
+    console.log(`[scheduled-backup] Phase 1: Exported ${TABLES_TO_BACKUP.length} tables, ${totalRows} rows, ${backupSizeMB} MB`);
 
-    // ── Upload to Google Drive ──
+    // ════════════════════════════════════════════════════════════════════════
+    // GOOGLE DRIVE SETUP
+    // ════════════════════════════════════════════════════════════════════════
+
     let googleDriveResult: { id: string; name: string } | null = null;
     let deletedOldBackups = 0;
+    let storageResults: StorageBackupResult[] = [];
+    let storageTotalFiles = 0;
+    let storageUploadedFiles = 0;
+    let storageTotalSizeMB = "0";
 
     // Find first user with Google Drive tokens
     const { data: tokenRow } = await supabase
@@ -300,32 +547,104 @@ serve(async (req) => {
         .eq("setting_key", "backup_gdrive_folder_id")
         .single();
 
-      const folderId = folderSetting?.setting_value || undefined;
+      const rootFolderId = folderSetting?.setting_value || undefined;
 
-      // Upload
-      googleDriveResult = await uploadToGoogleDrive(accessToken, fileName, backupJson, folderId);
-      console.log("[scheduled-backup] Uploaded to Google Drive:", googleDriveResult.id);
+      // ── Upload DB backup ──
+      googleDriveResult = await uploadJsonToGoogleDrive(accessToken, fileName, backupJson, rootFolderId);
+      console.log("[scheduled-backup] DB backup uploaded to Google Drive:", googleDriveResult.id);
 
-      // ── Retention: delete old backups ──
-      if (folderId) {
-        const existingBackups = await listBackupsInFolder(accessToken, folderId);
-        if (existingBackups.length > MAX_BACKUPS_TO_KEEP) {
-          const toDelete = existingBackups.slice(MAX_BACKUPS_TO_KEEP);
-          for (const file of toDelete) {
-            try {
-              await deleteGoogleDriveFile(accessToken, file.id);
-              deletedOldBackups++;
-              console.log(`[scheduled-backup] Deleted old backup: ${file.name}`);
-            } catch (delErr) {
-              console.warn(`[scheduled-backup] Failed to delete ${file.name}:`, delErr);
+      // ══════════════════════════════════════════════════════════════════════
+      // PHASE 2: Storage files backup
+      // ══════════════════════════════════════════════════════════════════════
+
+      console.log("[scheduled-backup] Phase 2: Starting storage backup...");
+
+      try {
+        // Create a dated subfolder for storage files
+        const storageFolderName = `storage_${today}`;
+        const storageFolderId = await createGoogleDriveFolder(
+          accessToken,
+          storageFolderName,
+          rootFolderId,
+        );
+
+        for (const bucket of STORAGE_BUCKETS) {
+          // Check remaining time (leave 30s margin for cleanup + email)
+          const elapsed = Date.now() - startTime;
+          if (elapsed > 480_000) { // 8 min = leave 2 min for wrap-up (Pro plan 10 min limit)
+            errors.push(`[Storage] Timeout après ${bucket} — buckets restants non sauvegardés`);
+            break;
+          }
+
+          console.log(`[scheduled-backup] Backing up storage bucket: ${bucket}`);
+          const bucketResult = await backupStorageBucket(supabase, accessToken, bucket, storageFolderId);
+          storageResults.push(bucketResult);
+          storageTotalFiles += bucketResult.filesCount;
+          storageUploadedFiles += bucketResult.uploadedFiles;
+
+          if (bucketResult.errors.length > 0) {
+            // Only add first 3 errors per bucket to avoid flooding
+            errors.push(...bucketResult.errors.slice(0, 3));
+            if (bucketResult.errors.length > 3) {
+              errors.push(`[Storage] ${bucket}: +${bucketResult.errors.length - 3} autres erreurs`);
             }
           }
+        }
+
+        const totalStorageBytes = storageResults.reduce((sum, r) => sum + r.totalSizeBytes, 0);
+        storageTotalSizeMB = (totalStorageBytes / 1024 / 1024).toFixed(2);
+        console.log(
+          `[scheduled-backup] Phase 2: ${storageUploadedFiles}/${storageTotalFiles} files uploaded, ${storageTotalSizeMB} MB`,
+        );
+      } catch (storageErr) {
+        errors.push(`[Storage] ${storageErr instanceof Error ? storageErr.message : "Storage backup failed"}`);
+      }
+
+      // ══════════════════════════════════════════════════════════════════════
+      // PHASE 3: GFS Rotation
+      // ══════════════════════════════════════════════════════════════════════
+
+      if (rootFolderId) {
+        try {
+          // Rotate DB backups (JSON files)
+          const dbBackups = await listFilesInFolder(accessToken, rootFolderId, "supertools_backup_");
+          const keepIds = computeGfsKeepSet(dbBackups);
+          for (const b of dbBackups) {
+            if (!keepIds.has(b.id)) {
+              try {
+                await deleteGoogleDriveFile(accessToken, b.id);
+                deletedOldBackups++;
+                console.log(`[scheduled-backup] GFS: deleted ${b.name}`);
+              } catch {
+                // non-critical
+              }
+            }
+          }
+
+          // Rotate storage folders
+          const storageFolders = await listFilesInFolder(accessToken, rootFolderId, "storage_");
+          const keepStorageIds = computeGfsKeepSet(storageFolders);
+          for (const sf of storageFolders) {
+            if (!keepStorageIds.has(sf.id)) {
+              try {
+                await deleteGoogleDriveFile(accessToken, sf.id);
+                deletedOldBackups++;
+                console.log(`[scheduled-backup] GFS: deleted storage folder ${sf.name}`);
+              } catch {
+                // non-critical
+              }
+            }
+          }
+        } catch (rotErr) {
+          console.warn("[scheduled-backup] Rotation error:", rotErr);
         }
       }
     }
 
     const durationMs = Date.now() - startTime;
-    const success = errors.length === 0 && googleDriveResult !== null;
+    const dbErrors = errors.filter((e) => e.startsWith("[DB]")).length;
+    const storageErrors = errors.filter((e) => e.startsWith("[Storage]")).length;
+    const success = dbErrors === 0 && googleDriveResult !== null;
 
     // ── Log activity ──
     await supabase.from("activity_logs").insert({
@@ -338,7 +657,14 @@ serve(async (req) => {
         totalRows,
         backupSizeMB,
         googleDriveFileId: googleDriveResult?.id || null,
+        storage: {
+          bucketsCount: storageResults.length,
+          totalFiles: storageTotalFiles,
+          uploadedFiles: storageUploadedFiles,
+          totalSizeMB: storageTotalSizeMB,
+        },
         deletedOldBackups,
+        gfsRetention: `${GFS_DAILY}d/${GFS_WEEKLY}w/${GFS_MONTHLY}m`,
         durationMs,
         errors: errors.length > 0 ? errors : null,
       },
@@ -349,33 +675,66 @@ serve(async (req) => {
     const statusEmoji = success ? "✅" : "⚠️";
     const statusText = success ? "réussie" : "avec des erreurs";
 
+    const storageRowsHtml = storageResults
+      .map(
+        (r) =>
+          `<tr><td style="padding: 4px 8px; color: #6b7280;">${r.bucket}</td><td style="padding: 4px 8px;">${r.uploadedFiles}/${r.filesCount}</td><td style="padding: 4px 8px;">${r.errors.length > 0 ? "⚠️" : "✅"}</td></tr>`,
+      )
+      .join("");
+
     await sendEmail({
       to: adminEmail,
       subject: `${statusEmoji} Sauvegarde SuperTools ${today} ${statusText}`,
       html: `
         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: ${success ? '#16a34a' : '#dc2626'};">
+          <h2 style="color: ${success ? "#16a34a" : "#dc2626"};">
             Sauvegarde automatique ${statusText}
           </h2>
-          <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
-            <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Date</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${today}</td></tr>
+
+          <h3 style="margin-top: 20px; color: #374151;">Base de données</h3>
+          <table style="width: 100%; border-collapse: collapse; margin: 8px 0;">
             <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Tables</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${TABLES_TO_BACKUP.length}</td></tr>
             <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Lignes</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${totalRows.toLocaleString("fr-FR")}</td></tr>
-            <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Taille</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${backupSizeMB} Mo</td></tr>
-            <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Durée</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${(durationMs / 1000).toFixed(1)}s</td></tr>
-            <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Google Drive</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${googleDriveResult ? `✅ ${googleDriveResult.id}` : "❌ Non uploadé"}</td></tr>
-            ${deletedOldBackups > 0 ? `<tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Anciennes sauvegardes supprimées</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${deletedOldBackups}</td></tr>` : ""}
+            <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Taille JSON</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${backupSizeMB} Mo</td></tr>
+            <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Google Drive</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${googleDriveResult ? "✅" : "❌"}</td></tr>
           </table>
+
+          <h3 style="margin-top: 20px; color: #374151;">Fichiers Storage</h3>
+          <table style="width: 100%; border-collapse: collapse; margin: 8px 0;">
+            <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Buckets traités</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${storageResults.length}/${STORAGE_BUCKETS.length}</td></tr>
+            <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Fichiers copiés</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${storageUploadedFiles}/${storageTotalFiles}</td></tr>
+            <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Taille totale</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${storageTotalSizeMB} Mo</td></tr>
+          </table>
+
+          ${storageResults.length > 0 ? `
+            <details style="margin-top: 8px;">
+              <summary style="cursor: pointer; color: #6b7280; font-size: 13px;">Détail par bucket</summary>
+              <table style="width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 13px;">
+                <tr style="background: #f3f4f6;"><th style="padding: 4px 8px; text-align: left;">Bucket</th><th style="padding: 4px 8px;">Fichiers</th><th style="padding: 4px 8px;">Statut</th></tr>
+                ${storageRowsHtml}
+              </table>
+            </details>
+          ` : ""}
+
+          <h3 style="margin-top: 20px; color: #374151;">Rétention & Nettoyage</h3>
+          <table style="width: 100%; border-collapse: collapse; margin: 8px 0;">
+            <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Politique GFS</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${GFS_DAILY} quotidiens, ${GFS_WEEKLY} hebdo, ${GFS_MONTHLY} mensuels</td></tr>
+            <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Anciens backups supprimés</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${deletedOldBackups}</td></tr>
+            <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Durée totale</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${(durationMs / 1000).toFixed(1)}s</td></tr>
+          </table>
+
           ${errors.length > 0 ? `
             <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 12px; margin-top: 16px;">
               <h3 style="color: #dc2626; margin: 0 0 8px 0;">Erreurs (${errors.length})</h3>
-              <ul style="margin: 0; padding-left: 20px; color: #991b1b;">
-                ${errors.map((e) => `<li style="margin-bottom: 4px;">${e}</li>`).join("")}
+              <ul style="margin: 0; padding-left: 20px; color: #991b1b; font-size: 13px;">
+                ${errors.slice(0, 15).map((e) => `<li style="margin-bottom: 4px;">${e}</li>`).join("")}
+                ${errors.length > 15 ? `<li>... et ${errors.length - 15} autres</li>` : ""}
               </ul>
             </div>
           ` : ""}
+
           <p style="color: #9ca3af; font-size: 12px; margin-top: 24px;">
-            Sauvegarde automatique SuperTools — Rétention : ${MAX_BACKUPS_TO_KEEP} jours
+            Sauvegarde automatique SuperTools — GFS: ${GFS_DAILY}j / ${GFS_WEEKLY}s / ${GFS_MONTHLY}m
           </p>
         </div>
       `,
@@ -389,6 +748,12 @@ serve(async (req) => {
       totalRows,
       backupSizeMB,
       googleDrive: googleDriveResult,
+      storage: {
+        bucketsProcessed: storageResults.length,
+        totalFiles: storageTotalFiles,
+        uploadedFiles: storageUploadedFiles,
+        totalSizeMB: storageTotalSizeMB,
+      },
       deletedOldBackups,
       durationMs,
       errors: errors.length > 0 ? errors : undefined,

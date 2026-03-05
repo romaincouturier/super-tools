@@ -47,6 +47,13 @@ interface LastBackupInfo {
   googleDriveFileId: string | null;
   errors: string[] | null;
   durationMs: number;
+  storage: {
+    bucketsCount: number;
+    totalFiles: number;
+    uploadedFiles: number;
+    totalSizeMB: string;
+  } | null;
+  gfsRetention: string | null;
 }
 
 export default function BackupManager({
@@ -87,6 +94,8 @@ export default function BackupManager({
           googleDriveFileId: (d.googleDriveFileId as string) ?? (d.googleDrive as { fileId?: string })?.fileId ?? null,
           errors: (d.errors as string[]) ?? null,
           durationMs: (d.durationMs as number) ?? 0,
+          storage: (d.storage as LastBackupInfo["storage"]) ?? null,
+          gfsRetention: (d.gfsRetention as string) ?? null,
         });
       }
     } catch {
@@ -262,7 +271,7 @@ export default function BackupManager({
                   <p className="font-medium">{lastBackup.totalRows.toLocaleString("fr-FR")}</p>
                 </div>
                 <div className="p-3 rounded-lg bg-muted/50">
-                  <p className="text-muted-foreground text-xs">Taille</p>
+                  <p className="text-muted-foreground text-xs">Taille DB</p>
                   <p className="font-medium">{lastBackup.backupSizeMB} Mo</p>
                 </div>
                 <div className="p-3 rounded-lg bg-muted/50">
@@ -270,6 +279,26 @@ export default function BackupManager({
                   <p className="font-medium">{lastBackup.googleDriveFileId ? "Oui" : "Non"}</p>
                 </div>
               </div>
+              {lastBackup.storage && (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+                  <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-950/20">
+                    <p className="text-muted-foreground text-xs">Buckets Storage</p>
+                    <p className="font-medium">{lastBackup.storage.bucketsCount}</p>
+                  </div>
+                  <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-950/20">
+                    <p className="text-muted-foreground text-xs">Fichiers copiés</p>
+                    <p className="font-medium">{lastBackup.storage.uploadedFiles}/{lastBackup.storage.totalFiles}</p>
+                  </div>
+                  <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-950/20">
+                    <p className="text-muted-foreground text-xs">Taille fichiers</p>
+                    <p className="font-medium">{lastBackup.storage.totalSizeMB} Mo</p>
+                  </div>
+                  <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-950/20">
+                    <p className="text-muted-foreground text-xs">Rétention</p>
+                    <p className="font-medium">{lastBackup.gfsRetention || "14j"}</p>
+                  </div>
+                </div>
+              )}
               {lastBackup.errors && lastBackup.errors.length > 0 && (
                 <div className="p-3 rounded-lg bg-destructive/10 text-sm">
                   <p className="font-medium text-destructive mb-1">Erreurs ({lastBackup.errors.length})</p>
@@ -312,7 +341,7 @@ export default function BackupManager({
               <div className="space-y-0.5">
                 <Label htmlFor="backup-enabled">Activer les sauvegardes quotidiennes</Label>
                 <p className="text-sm text-muted-foreground">
-                  Sauvegarde automatique vers Google Drive chaque nuit (rétention 14 jours)
+                  Sauvegarde automatique (DB + fichiers Storage) vers Google Drive chaque nuit. Rétention GFS : 7 quotidiens, 4 hebdo, 3 mensuels.
                 </p>
               </div>
               <Switch
@@ -334,7 +363,7 @@ export default function BackupManager({
               <div className="flex items-center gap-2 p-3 rounded-lg bg-green-50 dark:bg-green-950/20 text-green-700 dark:text-green-400">
                 <CheckCircle className="h-4 w-4" />
                 <p className="text-sm">
-                  Sauvegarde automatique active. Un email de rapport est envoyé chaque jour.
+                  Sauvegarde automatique active (DB + fichiers Storage). Un email de rapport est envoyé chaque jour.
                 </p>
               </div>
             )}
