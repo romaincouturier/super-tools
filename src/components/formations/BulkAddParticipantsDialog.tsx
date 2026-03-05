@@ -300,8 +300,9 @@ const BulkAddParticipantsDialog = ({
         }
       }
 
-      // If we need to send welcome emails now (J-7 to J-2 window), trigger for each participant
-      if (sendWelcomeNow && data && data.length > 0) {
+      // If we need to send welcome emails now, trigger for each participant
+      // Skip for e-learning: participants receive an access email instead of a convocation
+      if (sendWelcomeNow && data && data.length > 0 && formatFormation !== "e_learning") {
         // Send welcome emails with a small delay between each to respect rate limits
         for (const participant of data) {
           try {
@@ -354,9 +355,9 @@ const BulkAddParticipantsDialog = ({
         }
       }
 
-      // If status is "programme", create scheduled emails for needs survey
+      // If status is "programme", create scheduled emails for needs survey (skip for e-learning)
       let needsSurveySkipped = false;
-      if (status === "programme" && data && data.length > 0 && trainingStartDate) {
+      if (status === "programme" && data && data.length > 0 && trainingStartDate && formatFormation !== "e_learning") {
         try {
           const [workingDays, needsSurveyDelay] = await Promise.all([
             fetchWorkingDays(supabase),

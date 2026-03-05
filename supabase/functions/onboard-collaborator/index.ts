@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
-import { getSenderFrom, getSenderEmail, getSenderName } from "../_shared/email-settings.ts";
+import { getSenderFrom, getSenderEmail, getSenderName, getBccList } from "../_shared/email-settings.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -167,7 +167,7 @@ serve(async (req: Request) => {
     // Send welcome email with temporary password
     const APP_URL = Deno.env.get("APP_URL") || "https://super-tools.lovable.app";
     
-    const [senderFrom, senderName] = await Promise.all([getSenderFrom(), getSenderName()]);
+    const [senderFrom, senderName, bccList] = await Promise.all([getSenderFrom(), getSenderName(), getBccList()]);
     const emailResponse = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
@@ -177,6 +177,7 @@ serve(async (req: Request) => {
       body: JSON.stringify({
         from: senderFrom,
         to: [email],
+        bcc: bccList,
         subject: "Bienvenue sur SuperTools - Vos identifiants de connexion",
         html: `
           <h1>Bienvenue sur SuperTools !</h1>

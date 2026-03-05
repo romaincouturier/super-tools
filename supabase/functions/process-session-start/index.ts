@@ -328,6 +328,7 @@ serve(async (req) => {
               body: JSON.stringify({
                 from: senderFrom,
                 to: [trainerEmail],
+                bcc: bccList,
                 subject: `📋 Début de session – ${training.training_name} – ${formattedDate} ${periodLabel}`,
                 html: trainerHtml,
               }),
