@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Video, Plus, Trash2, Loader2, ExternalLink, Check, X, Pencil } from "lucide-react";
+import { Video, Plus, Trash2, Loader2, ExternalLink, Check, X, Pencil, Copy } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -103,6 +103,18 @@ const LiveMeetingsSection = ({ trainingId }: LiveMeetingsSectionProps) => {
     setMeetingUrl(meeting.meeting_url || "");
     setDescription(meeting.description || "");
     setEditingMeeting(meeting);
+    setDialogOpen(true);
+  };
+
+  const openDuplicate = (meeting: LiveMeeting) => {
+    const dt = parseISO(meeting.scheduled_at);
+    setTitle(meeting.title);
+    setScheduledDate("");
+    setScheduledTime(format(dt, "HH:mm"));
+    setDuration(String(meeting.duration_minutes));
+    setMeetingUrl(meeting.meeting_url || "");
+    setDescription(meeting.description || "");
+    setEditingMeeting(null);
     setDialogOpen(true);
   };
 
@@ -311,8 +323,18 @@ const LiveMeetingsSection = ({ trainingId }: LiveMeetingsSectionProps) => {
                     size="icon"
                     className="h-7 w-7"
                     onClick={() => openEdit(meeting)}
+                    title="Modifier"
                   >
                     <Pencil className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={() => openDuplicate(meeting)}
+                    title="Dupliquer"
+                  >
+                    <Copy className="h-3.5 w-3.5" />
                   </Button>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
