@@ -1301,21 +1301,6 @@ const Questionnaire = () => {
 
         {/* Actions */}
         <div className="flex flex-col sm:flex-row gap-3 justify-end pb-6">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => saveDraft()}
-            disabled={saving || submitting}
-          >
-            {saving ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Sauvegarde...
-              </>
-            ) : (
-              "Sauvegarder"
-            )}
-          </Button>
           <Button type="button" onClick={submit} disabled={saving || submitting}>
             {submitting ? (
               <>
