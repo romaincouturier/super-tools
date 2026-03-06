@@ -130,6 +130,7 @@ const emptyDestination = (): TravelDestination => ({
   nights: 0,
   distanceKm: 0,
   tollCostOneWay: 0,
+  durationHours: 0,
   ticketPriceRoundTrip: 0,
   isFetchingDistance: false,
 });
