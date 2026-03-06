@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
   DialogContent,
@@ -209,24 +210,38 @@ async function geocode(query: string): Promise<GeoResult[]> {
 // Distance (OSRM)
 // ---------------------------------------------------------------------------
 
-async function fetchDistance(
+async function fetchRouteViaGoogle(
   fromLat: number,
   fromLon: number,
   toLat: number,
   toLon: number
-): Promise<{ distanceKm: number; durationMin: number } | null> {
+): Promise<{ distanceKm: number; durationHours: number; tollCostEur: number } | null> {
   try {
-    const url = `https://router.project-osrm.org/route/v1/driving/${fromLon},${fromLat};${toLon},${toLat}?overview=false`;
-    const res = await fetch(url);
-    if (!res.ok) return null;
-    const data = await res.json();
-    if (data.routes && data.routes.length > 0) {
-      return {
-        distanceKm: Math.round(data.routes[0].distance / 1000),
-        durationMin: Math.round(data.routes[0].duration / 60),
-      };
+    const { data, error } = await supabase.functions.invoke("google-routes", {
+      body: { originLat: fromLat, originLon: fromLon, destLat: toLat, destLon: toLon },
+    });
+    if (error || !data || data.error) {
+      console.warn("Google Routes error, falling back to OSRM", error || data?.error);
+      // Fallback to OSRM
+      const url = `https://router.project-osrm.org/route/v1/driving/${fromLon},${fromLat};${toLon},${toLat}?overview=false`;
+      const res = await fetch(url);
+      if (!res.ok) return null;
+      const osrmData = await res.json();
+      if (osrmData.routes && osrmData.routes.length > 0) {
+        const distanceKm = Math.round(osrmData.routes[0].distance / 1000);
+        return {
+          distanceKm,
+          durationHours: +(osrmData.routes[0].duration / 3600).toFixed(1),
+          tollCostEur: Math.round(distanceKm * TOLL_ESTIMATE_PER_KM),
+        };
+      }
+      return null;
     }
-    return null;
+    return {
+      distanceKm: data.distanceKm,
+      durationHours: data.durationHours,
+      tollCostEur: data.tollCostEur,
+    };
   } catch {
     return null;
   }
