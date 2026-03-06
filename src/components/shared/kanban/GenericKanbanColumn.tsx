@@ -34,10 +34,8 @@ export default function GenericKanbanColumn<
   renderEmpty,
   className,
 }: GenericKanbanColumnProps<TCard, TColumn>) {
-  // Only use useDroppable when NOT using column sortable (to avoid double registration)
-  const { setNodeRef: setDroppableRef, isOver: isDroppableOver } = useDroppable({
+  const { setNodeRef: setDroppableRef, isOver } = useDroppable({
     id: column.id,
-    disabled: !!columnSortableId,
   });
 
   const {
@@ -47,13 +45,10 @@ export default function GenericKanbanColumn<
     transform,
     transition,
     isDragging: isColumnDragging,
-    isOver: isSortableOver,
   } = useSortable({
     id: columnSortableId ?? `__col_disabled_${column.id}`,
     disabled: !columnSortableId,
   });
-
-  const isOver = columnSortableId ? isSortableOver : isDroppableOver;
 
   const style = columnSortableId
     ? { transform: CSS.Transform.toString(transform), transition }
@@ -72,11 +67,8 @@ export default function GenericKanbanColumn<
   return (
     <div
       ref={(node) => {
-        if (columnSortableId) {
-          setSortableRef(node);
-        } else {
-          setDroppableRef(node);
-        }
+        setDroppableRef(node);
+        if (columnSortableId) setSortableRef(node);
       }}
       style={style}
       className={cn(
