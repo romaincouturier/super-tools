@@ -95,10 +95,10 @@ serve(async (req) => {
     const globalActions: ActionItem[] = [];
     const perUserActions: ActionItem[] = []; // actions with assignedTo
 
-    // 1. MISSIONS À FACTURER
+    // 1. MISSIONS À FACTURER (filtered by assigned_to)
     const { data: missionsToInvoice } = await supabase
       .from("missions")
-      .select("id, title, client_name, consumed_amount, billed_amount, emoji")
+      .select("id, title, client_name, consumed_amount, billed_amount, emoji, assigned_to")
       .in("status", ["in_progress", "completed"]);
 
     if (missionsToInvoice) {
@@ -109,22 +109,23 @@ serve(async (req) => {
         const remaining = consumed - billed;
         const label = m.client_name ? `${m.client_name} — ${m.title}` : m.title;
         const emoji = m.emoji ? `${m.emoji} ` : "";
-        globalActions.push({
+        perUserActions.push({
           category: "missions_a_facturer",
           title: `${emoji}${label}`,
           description: `${remaining.toLocaleString("fr-FR")} € à facturer`,
           link: `${appUrl}/missions/${m.id}`,
           entity_type: "mission",
           entity_id: m.id,
+          assignedTo: m.assigned_to,
         });
       }
     }
-    console.log(`[${VERSION}] Missions à facturer: ${globalActions.filter(a => a.category === "missions_a_facturer").length}`);
+    console.log(`[${VERSION}] Missions à facturer: ${perUserActions.filter(a => a.category === "missions_a_facturer").length}`);
 
-    // 1b. MISSIONS SANS DATE DE DÉBUT
+    // 1b. MISSIONS SANS DATE DE DÉBUT (filtered by assigned_to)
     const { data: missionsNoStartDate } = await supabase
       .from("missions")
-      .select("id, title, client_name, emoji")
+      .select("id, title, client_name, emoji, assigned_to")
       .in("status", ["not_started", "in_progress"])
       .is("start_date", null);
 
@@ -132,17 +133,18 @@ serve(async (req) => {
       for (const m of missionsNoStartDate) {
         const label = m.client_name ? `${m.client_name} — ${m.title}` : m.title;
         const emoji = m.emoji ? `${m.emoji} ` : "";
-        globalActions.push({
+        perUserActions.push({
           category: "missions_sans_date",
           title: `${emoji}${label}`,
           description: "Date de début à définir",
           link: `${appUrl}/missions/${m.id}`,
           entity_type: "mission",
           entity_id: m.id,
+          assignedTo: m.assigned_to,
         });
       }
     }
-    console.log(`[${VERSION}] Missions sans date de début: ${globalActions.filter(a => a.category === "missions_sans_date").length}`);
+    console.log(`[${VERSION}] Missions sans date de début: ${perUserActions.filter(a => a.category === "missions_sans_date").length}`);
 
     // 2-4. CRM: Devis à faire, Opportunités, Devis à relancer
     const { data: crmColumns } = await supabase
@@ -165,7 +167,7 @@ serve(async (req) => {
     if (targetColumnIds.size > 0) {
       const { data: cards } = await supabase
         .from("crm_cards")
-        .select("id, title, company, first_name, last_name, column_id, estimated_value, emoji")
+        .select("id, title, company, first_name, last_name, column_id, estimated_value, emoji, assigned_to")
         .eq("sales_status", "OPEN")
         .in("column_id", [...targetColumnIds]);
       crmCards = cards || [];
@@ -191,13 +193,14 @@ serve(async (req) => {
       }
       if (!category) continue;
       const { title, desc } = formatCrmCard(card);
-      globalActions.push({
+      perUserActions.push({
         category,
         title,
         description: desc || null,
         link: `${appUrl}/crm`,
         entity_type: "crm_card",
         entity_id: card.id,
+        assignedTo: card.assigned_to,
       });
     }
 
@@ -345,7 +348,7 @@ serve(async (req) => {
 
     const { data: upcomingEvents } = await supabase
       .from("events")
-      .select("id, title, event_date, location")
+      .select("id, title, event_date, location, assigned_to")
       .gte("event_date", today)
       .lte("event_date", maxEventDate)
       .eq("status", "active")
@@ -356,13 +359,14 @@ serve(async (req) => {
         const daysUntil = Math.ceil((new Date(ev.event_date).getTime() - todayDate.getTime()) / (1000 * 60 * 60 * 24));
         const eventDate = new Date(ev.event_date).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" });
         const daysLabel = daysUntil === 0 ? "Aujourd'hui" : daysUntil === 1 ? "Demain" : `J-${daysUntil}`;
-        globalActions.push({
+        perUserActions.push({
           category: "evenements",
           title: ev.title,
           description: `${eventDate}${ev.location ? ` — ${ev.location}` : ""} (${daysLabel})`,
           link: `${appUrl}/events/${ev.id}`,
           entity_type: "event",
           entity_id: ev.id,
+          assignedTo: ev.assigned_to,
         });
       }
     }
@@ -374,7 +378,7 @@ serve(async (req) => {
 
     const { data: cfpEvents } = await supabase
       .from("events")
-      .select("id, title, cfp_deadline")
+      .select("id, title, cfp_deadline, assigned_to")
       .eq("event_type", "external")
       .eq("status", "active")
       .not("cfp_deadline", "is", null)
@@ -386,13 +390,14 @@ serve(async (req) => {
       for (const ev of cfpEvents) {
         const daysUntil = Math.ceil((new Date(ev.cfp_deadline).getTime() - todayDate.getTime()) / (1000 * 60 * 60 * 24));
         const deadlineDate = new Date(ev.cfp_deadline).toLocaleDateString("fr-FR", { day: "numeric", month: "long" });
-        globalActions.push({
+        perUserActions.push({
           category: "cfp_soumettre",
           title: ev.title,
           description: `Deadline CFP : ${deadlineDate} (J-${daysUntil})`,
           link: `${appUrl}/events/${ev.id}`,
           entity_type: "event",
           entity_id: ev.id,
+          assignedTo: ev.assigned_to,
         });
       }
     }
@@ -407,7 +412,7 @@ serve(async (req) => {
 
     const { data: cfpReminderEvents } = await supabase
       .from("events")
-      .select("id, title, cfp_deadline")
+      .select("id, title, cfp_deadline, assigned_to")
       .eq("event_type", "external")
       .not("cfp_deadline", "is", null)
       .gte("cfp_deadline", tenMonthsAgoMinus7Str)
@@ -415,13 +420,14 @@ serve(async (req) => {
 
     if (cfpReminderEvents) {
       for (const ev of cfpReminderEvents) {
-        globalActions.push({
+        perUserActions.push({
           category: "cfp_surveiller",
           title: ev.title,
           description: "Vérifier le CFP de cette année",
           link: `${appUrl}/events/${ev.id}`,
           entity_type: "event",
           entity_id: ev.id,
+          assignedTo: ev.assigned_to,
         });
       }
     }
@@ -473,9 +479,9 @@ serve(async (req) => {
         });
       }
 
-      // Per-user actions: only if admin or assigned
+      // Per-user actions: only if admin or assigned (unassigned items only visible to admins)
       for (const action of perUserActions) {
-        if (!recipient.isAdmin && action.assignedTo !== recipient.userId) continue;
+        if (!recipient.isAdmin && (!action.assignedTo || action.assignedTo !== recipient.userId)) continue;
         userActions.push({
           user_id: recipient.userId,
           action_date: today,

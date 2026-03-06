@@ -19,6 +19,8 @@ import {
 import EventFormFields, { type EventFormValues } from "@/components/events/EventFormFields";
 import { useToast } from "@/hooks/use-toast";
 import { useEvent, useUpdateEvent } from "@/hooks/useEvents";
+import AssignedUserSelector from "@/components/formations/AssignedUserSelector";
+import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 
 type ChangeMap = Record<string, { old: string | null; new: string | null }>;
@@ -51,6 +53,7 @@ const EventEdit = () => {
   const [pendingChanges, setPendingChanges] = useState<ChangeMap>({});
   const [sharesCount, setSharesCount] = useState(0);
   const [notifying, setNotifying] = useState(false);
+  const [assignedTo, setAssignedTo] = useState<string | null>(null);
 
   useEffect(() => {
     if (event) {
@@ -67,6 +70,7 @@ const EventEdit = () => {
         cfpUrl: event.cfp_url || "",
       };
       setValues(mapped);
+      setAssignedTo(event.assigned_to || null);
       // Store original DB values for change detection
       originalRef.current = {
         title: event.title,
@@ -112,6 +116,7 @@ const EventEdit = () => {
       cfp_deadline: isExternal && values.cfpDeadline ? values.cfpDeadline : null,
       event_url: isExternal && values.eventUrl.trim() ? values.eventUrl.trim() : null,
       cfp_url: isExternal && values.cfpUrl.trim() ? values.cfpUrl.trim() : null,
+      assigned_to: assignedTo,
     };
   };
 
@@ -202,6 +207,11 @@ const EventEdit = () => {
         <PageHeader icon={CalendarDays} title="Modifier l'événement" backTo={`/events/${id}`} />
 
         <EventFormFields values={values} onChange={handleChange} />
+
+        <div className="space-y-2 mt-6">
+          <Label>Assigné à</Label>
+          <AssignedUserSelector value={assignedTo} onChange={setAssignedTo} />
+        </div>
 
         <div className="flex justify-end gap-3 pt-4">
           <Button variant="outline" onClick={() => navigate(`/events/${id}`)}>

@@ -67,12 +67,14 @@ const EmojiPickerButton = ({
           onEmojiClick={handleEmojiClick}
           theme={Theme.AUTO}
           emojiStyle={EmojiStyle.NATIVE}
-          width={352}
-          height={420}
+          width={320}
+          height={380}
           searchPlaceHolder="Rechercher un emoji..."
-          previewConfig={{ showPreview: true }}
+          previewConfig={{ showPreview: false }}
           skinTonesDisabled
           lazyLoadEmojis
+          emojiSize={24}
+          style={{ "--epr-emoji-size": "24px" } as React.CSSProperties}
         />
         {emoji && (
           <div className="border-t bg-background px-2 py-1.5">
