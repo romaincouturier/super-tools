@@ -62,13 +62,13 @@ async function extractWithAI(rawInput: string): Promise<ExtractionResult> {
 - email: adresse email
 - linkedin_url: URL LinkedIn si mentionnée
 - service_type: "formation" ou "mission" selon le contexte
-- title: titre descriptif pour l'opportunité (format: "(ENTREPRISE) Intitulé de la prestation")
+- title: titre descriptif court pour l'opportunité (intitulé de la prestation, sans le nom du client ni de l'entreprise)
 - brief_questions: tableau de 3-5 questions pertinentes à poser lors du brief initial
 
 Règles:
 - Si une information n'est pas présente, utilise null
 - Le nom de l'entreprise peut être déduit du domaine de l'email
-- Pour le titre, utilise le format "(ENTREPRISE) Description courte de la prestation"
+- Pour le titre, donne uniquement l'intitulé de la prestation (ex: "Formation management", "Mission audit RH"). Ne PAS inclure le nom du client ou de l'entreprise dans le titre
 - Les questions du brief doivent être pertinentes pour qualifier l'opportunité
 - Si le type de prestation n'est pas clair, utilise null
 
@@ -158,7 +158,7 @@ Réponds UNIQUEMENT avec un JSON valide, sans texte autour.`;
       email: null,
       linkedin_url: null,
       service_type: null,
-      title: "(INCONNU) Nouvelle opportunité",
+      title: "Nouvelle opportunité",
       brief_questions: [
         { id: generateId(), question: "Quel est le contexte de cette demande ?", answered: false },
         { id: generateId(), question: "Quel est le budget envisagé ?", answered: false },
