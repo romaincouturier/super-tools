@@ -1,20 +1,7 @@
-import { useState, useEffect } from "react";
-import {
-  DndContext,
-  DragOverlay,
-  closestCorners,
-  DragStartEvent,
-  DragEndEvent,
-  DragOverEvent,
-} from "@dnd-kit/core";
-import {
-  arrayMove,
-  SortableContext,
-  horizontalListSortingStrategy,
-} from "@dnd-kit/sortable";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Loader2, Settings2 } from "lucide-react";
+import { Plus, Loader2, Settings2, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -23,10 +10,17 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useUserPreference } from "@/hooks/useUserPreferences";
-import { useKanbanDnd } from "@/hooks/useKanbanDnd";
-import KanbanColumn from "./KanbanColumn";
+import GenericKanbanBoard from "@/components/shared/kanban/GenericKanbanBoard";
+import type { KanbanColumnDef, KanbanCardDef } from "@/types/kanban";
 import ContentCard from "./ContentCard";
 import ContentCardDialog from "./ContentCardDialog";
 import AddColumnDialog from "@/components/shared/AddColumnDialog";
@@ -40,13 +34,6 @@ const DEFAULT_CONTENT_TYPE_COLORS: ContentTypeColors = {
   article: "#3b82f6",
   post: "#a855f7",
 };
-
-export interface Column {
-  id: string;
-  name: string;
-  display_order: number;
-  is_system: boolean;
-}
 
 export type ReviewStatus = "none" | "pending" | "in_review" | "approved" | "changes_requested";
 
@@ -65,6 +52,17 @@ export interface Card {
   emoji?: string | null;
 }
 
+export interface Column {
+  id: string;
+  name: string;
+  display_order: number;
+  is_system: boolean;
+}
+
+// Mapped types for GenericKanbanBoard
+type ContentKanbanCard = Card & KanbanCardDef;
+type ContentKanbanColumn = Column & KanbanColumnDef;
+
 interface KanbanBoardProps {
   openCardId?: string | null;
   onCloseCard?: () => void;
@@ -79,20 +77,18 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
   const [cardIdsInReview, setCardIdsInReview] = useState<Set<string>>(new Set());
   const [cardIdsInSentNewsletter, setCardIdsInSentNewsletter] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
-  const [activeCard, setActiveCard] = useState<Card | null>(null);
-  const [activeColumn, setActiveColumn] = useState<Column | null>(null);
   const [showAddColumn, setShowAddColumn] = useState(false);
   const [showColorSettings, setShowColorSettings] = useState(false);
   const [editingCard, setEditingCard] = useState<Card | null>(null);
   const [newCardColumnId, setNewCardColumnId] = useState<string | null>(null);
+  const [renameColumn, setRenameColumn] = useState<Column | null>(null);
+  const [renameValue, setRenameValue] = useState("");
 
   const {
     value: typeColors,
     save: saveTypeColors,
   } = useUserPreference<ContentTypeColors>("content_type_colors", DEFAULT_CONTENT_TYPE_COLORS);
   const colors = typeColors ?? DEFAULT_CONTENT_TYPE_COLORS;
-
-  const { sensors } = useKanbanDnd({ enableKeyboard: true });
 
   useEffect(() => {
     fetchData();
@@ -123,7 +119,6 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
           .from("content_reviews")
           .select("card_id, status")
           .order("created_at", { ascending: false }),
-        // Fetch card IDs belonging to sent newsletters
         (async () => {
           const { data: sentNl } = await (supabase as any)
             .from("newsletters")
@@ -142,16 +137,13 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
       if (columnsRes.error) throw columnsRes.error;
       if (cardsRes.error) throw cardsRes.error;
 
-      // Build map of card IDs to their most recent review status
       const cardReviewStatus = new Map<string, ReviewStatus>();
       for (const r of reviewsRes.data || []) {
-        // Only keep the first (most recent) status for each card
         if (!cardReviewStatus.has(r.card_id)) {
           cardReviewStatus.set(r.card_id, r.status as ReviewStatus);
         }
       }
 
-      // Build set of card IDs that are currently in review (for filtering)
       const reviewCardIds = new Set<string>(
         (reviewsRes.data || [])
           .filter((r) => r.status === "pending" || r.status === "in_review")
@@ -159,7 +151,6 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
       );
       setCardIdsInReview(reviewCardIds);
 
-      // Build set of card IDs that belong to a sent newsletter
       const sentNlCardIds = new Set<string>(
         (sentNewslettersRes.data || []).map((nc: any) => nc.card_id)
       );
@@ -188,151 +179,36 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
     }
   };
 
-  const handleDragStart = (event: DragStartEvent) => {
-    const { active } = event;
-    // Check if dragging a column (prefixed with "column-")
-    const activeIdStr = String(active.id);
-    if (activeIdStr.startsWith("column-")) {
-      const col = columns.find((c) => `column-${c.id}` === activeIdStr);
-      if (col) setActiveColumn(col);
-      return;
+  // --- Map data to GenericKanbanBoard types ---
+
+  const kanbanColumns: ContentKanbanColumn[] = useMemo(() => {
+    let cols = columns.map((col) => ({
+      ...col,
+      position: col.display_order,
+      name: col.name,
+    }));
+    if (!showPublished) {
+      cols = cols.filter((c) => c.name.toLowerCase() !== "archive");
     }
-    const card = cards.find((c) => c.id === active.id);
-    if (card) {
-      setActiveCard(card);
+    return cols;
+  }, [columns, showPublished]);
+
+  const kanbanCards: ContentKanbanCard[] = useMemo(() => {
+    let filtered = cards;
+    if (filterReviewOnly) {
+      filtered = filtered.filter((c) => cardIdsInReview.has(c.id));
     }
-  };
-
-  const handleDragOver = (event: DragOverEvent) => {
-    const { active, over } = event;
-    if (!over) return;
-
-    // Skip if dragging a column
-    if (String(active.id).startsWith("column-")) return;
-
-    const activeCardId = active.id as string;
-    const overId = over.id as string;
-
-    const activeCard = cards.find((c) => c.id === activeCardId);
-    if (!activeCard) return;
-
-    // Check if we're over a column
-    const overColumn = columns.find((col) => col.id === overId);
-    if (overColumn) {
-      // Moving to an empty column or the column itself
-      if (activeCard.column_id !== overColumn.id) {
-        setCards((prev) =>
-          prev.map((c) =>
-            c.id === activeCardId ? { ...c, column_id: overColumn.id } : c
-          )
-        );
-      }
-      return;
+    if (!showPublished) {
+      filtered = filtered.filter((c) => !cardIdsInSentNewsletter.has(c.id));
     }
+    return filtered.map((card) => ({
+      ...card,
+      columnId: card.column_id,
+      position: card.display_order,
+    }));
+  }, [cards, filterReviewOnly, showPublished, cardIdsInReview, cardIdsInSentNewsletter]);
 
-    // Check if we're over another card
-    const overCard = cards.find((c) => c.id === overId);
-    if (overCard && activeCard.column_id !== overCard.column_id) {
-      setCards((prev) =>
-        prev.map((c) =>
-          c.id === activeCardId ? { ...c, column_id: overCard.column_id } : c
-        )
-      );
-    }
-  };
-
-  const handleDragEnd = async (event: DragEndEvent) => {
-    const { active, over } = event;
-    setActiveCard(null);
-    setActiveColumn(null);
-
-    if (!over) return;
-
-    const activeIdStr = String(active.id);
-    const overIdStr = String(over.id);
-
-    // Handle column reordering
-    if (activeIdStr.startsWith("column-") && overIdStr.startsWith("column-")) {
-      const activeColId = activeIdStr.replace("column-", "");
-      const overColId = overIdStr.replace("column-", "");
-      if (activeColId === overColId) return;
-
-      const oldIndex = columns.findIndex((c) => c.id === activeColId);
-      const newIndex = columns.findIndex((c) => c.id === overColId);
-      if (oldIndex === -1 || newIndex === -1) return;
-
-      const newColumns = arrayMove(columns, oldIndex, newIndex);
-      setColumns(newColumns);
-
-      // Persist new order to database
-      try {
-        await Promise.all(
-          newColumns.map((col, idx) =>
-            supabase
-              .from("content_columns")
-              .update({ display_order: idx })
-              .eq("id", col.id)
-          )
-        );
-      } catch (error) {
-        console.error("Error reordering columns:", error);
-        toast.error("Erreur lors du réordonnancement des colonnes");
-        fetchData();
-      }
-      return;
-    }
-
-    const activeCardId = active.id as string;
-    const overId = over.id as string;
-
-    const activeCard = cards.find((c) => c.id === activeCardId);
-    if (!activeCard) return;
-
-    // Find the target column
-    let targetColumnId = activeCard.column_id;
-    const overColumn = columns.find((col) => col.id === overId);
-    const overCard = cards.find((c) => c.id === overId);
-
-    if (overColumn) {
-      targetColumnId = overColumn.id;
-    } else if (overCard) {
-      targetColumnId = overCard.column_id;
-    }
-
-    // Get cards in the target column
-    const columnCards = cards.filter((c) => c.column_id === targetColumnId);
-    const oldIndex = columnCards.findIndex((c) => c.id === activeCardId);
-    const newIndex = overCard
-      ? columnCards.findIndex((c) => c.id === overId)
-      : columnCards.length;
-
-    if (oldIndex !== -1 && oldIndex !== newIndex) {
-      const newOrder = arrayMove(columnCards, oldIndex, newIndex);
-      const updatedCards = cards.map((c) => {
-        const orderIndex = newOrder.findIndex((nc) => nc.id === c.id);
-        if (orderIndex !== -1) {
-          return { ...c, display_order: orderIndex };
-        }
-        return c;
-      });
-      setCards(updatedCards);
-    }
-
-    // Update in database
-    try {
-      await supabase
-        .from("content_cards")
-        .update({
-          column_id: targetColumnId,
-          display_order: newIndex >= 0 ? newIndex : 0,
-        })
-        .eq("id", activeCardId);
-    } catch (error) {
-      console.error("Error updating card position:", error);
-      toast.error("Erreur lors du déplacement de la carte");
-      fetchData();
-    }
-  };
+  // --- Column actions ---
 
   const handleAddColumn = async (name: string) => {
     try {
@@ -341,7 +217,6 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
         ? archiveColumn.display_order
         : columns.length;
 
-      // Shift archive column
       if (archiveColumn) {
         await supabase
           .from("content_columns")
@@ -349,7 +224,7 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
           .eq("id", archiveColumn.id);
       }
 
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from("content_columns")
         .insert({ name, display_order: newOrder })
         .select()
@@ -366,23 +241,25 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
     setShowAddColumn(false);
   };
 
-  const handleRenameColumn = async (columnId: string, newName: string) => {
+  const handleRenameColumn = async () => {
+    if (!renameColumn || !renameValue.trim()) return;
     try {
       const { error } = await supabase
         .from("content_columns")
-        .update({ name: newName })
-        .eq("id", columnId);
+        .update({ name: renameValue.trim() })
+        .eq("id", renameColumn.id);
 
       if (error) throw error;
 
       setColumns((prev) =>
-        prev.map((c) => (c.id === columnId ? { ...c, name: newName } : c))
+        prev.map((c) => (c.id === renameColumn.id ? { ...c, name: renameValue.trim() } : c))
       );
       toast.success("Colonne renommée");
     } catch (error) {
       console.error("Error renaming column:", error);
       toast.error("Erreur lors du renommage");
     }
+    setRenameColumn(null);
   };
 
   const handleDeleteColumn = async (columnId: string) => {
@@ -400,6 +277,59 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
     } catch (error) {
       console.error("Error deleting column:", error);
       toast.error("Erreur lors de la suppression");
+    }
+  };
+
+  const handleColumnReorder = async (columnIds: string[]) => {
+    const newColumns = columnIds
+      .map((id, idx) => {
+        const col = columns.find((c) => c.id === id);
+        return col ? { ...col, display_order: idx } : null;
+      })
+      .filter(Boolean) as Column[];
+
+    setColumns(newColumns);
+
+    try {
+      await Promise.all(
+        newColumns.map((col) =>
+          supabase
+            .from("content_columns")
+            .update({ display_order: col.display_order })
+            .eq("id", col.id)
+        )
+      );
+    } catch (error) {
+      console.error("Error reordering columns:", error);
+      toast.error("Erreur lors du réordonnancement des colonnes");
+      fetchData();
+    }
+  };
+
+  // --- Card actions ---
+
+  const handleCardMove = async ({ card, targetColumnId, newPosition }: { card: ContentKanbanCard; sourceColumnId: string; targetColumnId: string; newPosition: number }) => {
+    // Optimistic update
+    setCards((prev) =>
+      prev.map((c) =>
+        c.id === card.id
+          ? { ...c, column_id: targetColumnId, display_order: newPosition }
+          : c
+      )
+    );
+
+    try {
+      await supabase
+        .from("content_cards")
+        .update({
+          column_id: targetColumnId,
+          display_order: newPosition >= 0 ? newPosition : 0,
+        })
+        .eq("id", card.id);
+    } catch (error) {
+      console.error("Error updating card position:", error);
+      toast.error("Erreur lors du déplacement de la carte");
+      fetchData();
     }
   };
 
@@ -435,7 +365,6 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
 
         if (error) throw error;
 
-        // Attach to newsletter if requested
         if (options?.newsletterId && newCard) {
           const { data: existing } = await (supabase as any)
             .from("newsletter_cards")
@@ -535,51 +464,79 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
         </Button>
       </div>
 
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCorners}
-        onDragStart={handleDragStart}
-        onDragOver={handleDragOver}
-        onDragEnd={handleDragEnd}
-      >
-        <div className="flex gap-4 overflow-x-auto pb-4 h-full">
-          <SortableContext
-            items={columns.map((c) => `column-${c.id}`)}
-            strategy={horizontalListSortingStrategy}
-          >
-            {columns.map((column) => {
-              // Skip Archive column when not showing published content
-              if (!showPublished && column.name.toLowerCase() === "archive") return null;
-
-              const columnCards = cards.filter((c) => c.column_id === column.id);
-
-              // Apply filters
-              let filteredCards = columnCards;
-              if (filterReviewOnly) {
-                filteredCards = filteredCards.filter((c) => cardIdsInReview.has(c.id));
-              }
-              if (!showPublished) {
-                filteredCards = filteredCards.filter((c) => !cardIdsInSentNewsletter.has(c.id));
-              }
-
-              return (
-                <KanbanColumn
-                  key={column.id}
-                  column={column}
-                  cards={filteredCards}
-                  typeColors={colors}
-                  onRename={handleRenameColumn}
-                  onDelete={handleDeleteColumn}
-                  onAddCard={() => setNewCardColumnId(column.id)}
-                  onEditCard={setEditingCard}
-                  onViewCard={setEditingCard}
-                  onDeleteCard={handleDeleteCard}
-                  onEmojiChange={handleCardEmojiChange}
-                />
-              );
-            })}
-          </SortableContext>
-
+      <GenericKanbanBoard<ContentKanbanCard, ContentKanbanColumn>
+        columns={kanbanColumns}
+        cards={kanbanCards}
+        config={{
+          cardSortable: true,
+          columnSortable: true,
+          enableKeyboard: true,
+        }}
+        renderCard={(card, isDragging) => (
+          <ContentCard
+            card={card}
+            isDragging={isDragging}
+            typeColors={colors}
+            onView={() => setEditingCard(card)}
+            onEdit={() => setEditingCard(card)}
+            onDelete={() => handleDeleteCard(card.id)}
+            onEmojiChange={handleCardEmojiChange}
+          />
+        )}
+        renderColumnHeader={(column, colCards, dragHandle) => (
+          <div className="p-3 flex items-center justify-between">
+            <div className="flex items-center gap-1">
+              {dragHandle}
+              <h3 className="font-semibold text-sm flex items-center gap-2">
+                {column.name}
+                <span className="bg-muted text-muted-foreground text-xs px-1.5 py-0.5 rounded-full">
+                  {colCards.length}
+                </span>
+              </h3>
+            </div>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                onClick={() => setNewCardColumnId(column.id)}
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+              {!column.is_system && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-7 w-7">
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => {
+                      setRenameColumn(column);
+                      setRenameValue(column.name);
+                    }}>
+                      <Pencil className="h-4 w-4 mr-2" />
+                      Renommer
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="text-destructive"
+                      onClick={() => handleDeleteColumn(column.id)}
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Supprimer
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+            </div>
+          </div>
+        )}
+        renderEmptyColumn={() => (
+          <div className="text-center py-8 text-muted-foreground text-sm">
+            Aucune carte
+          </div>
+        )}
+        renderAfterColumns={() => (
           <div className="flex-shrink-0 w-72">
             <Button
               variant="outline"
@@ -590,18 +547,12 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
               Ajouter une colonne
             </Button>
           </div>
-        </div>
-
-        <DragOverlay>
-          {activeCard ? (
-            <ContentCard card={activeCard} isDragging typeColors={colors} />
-          ) : activeColumn ? (
-            <div className="flex-shrink-0 w-72 bg-muted/50 rounded-lg p-3 opacity-80 shadow-lg rotate-1">
-              <h3 className="font-semibold text-sm">{activeColumn.name}</h3>
-            </div>
-          ) : null}
-        </DragOverlay>
-      </DndContext>
+        )}
+        onCardMove={handleCardMove}
+        onColumnReorder={handleColumnReorder}
+        onCardClick={(card) => setEditingCard(card)}
+        columnClassName="max-h-[calc(100vh-280px)]"
+      />
 
       <AddColumnDialog
         open={showAddColumn}
@@ -622,6 +573,32 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
         onSave={handleSaveCard}
         onNewsletterChange={onNewsletterChange}
       />
+
+      {/* Rename column dialog */}
+      <Dialog open={!!renameColumn} onOpenChange={(open) => !open && setRenameColumn(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Renommer la colonne</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="column-name">Nom</Label>
+              <Input
+                id="column-name"
+                value={renameValue}
+                onChange={(e) => setRenameValue(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleRenameColumn()}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRenameColumn(null)}>
+              Annuler
+            </Button>
+            <Button onClick={handleRenameColumn}>Renommer</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Color Settings Dialog */}
       <ColorSettingsDialog
