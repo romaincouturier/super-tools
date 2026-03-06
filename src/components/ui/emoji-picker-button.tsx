@@ -46,6 +46,8 @@ const EmojiPickerButton = ({
       <PopoverTrigger asChild>
         <button
           type="button"
+          onClick={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
           className={cn(
             "flex items-center justify-center rounded hover:bg-muted transition-colors",
             sizeClasses[size],
@@ -62,6 +64,8 @@ const EmojiPickerButton = ({
         side="bottom"
         align="start"
         sideOffset={4}
+        onClick={(e) => e.stopPropagation()}
+        onPointerDown={(e) => e.stopPropagation()}
       >
         <EmojiPicker
           onEmojiClick={handleEmojiClick}
@@ -73,8 +77,8 @@ const EmojiPickerButton = ({
           previewConfig={{ showPreview: false }}
           skinTonesDisabled
           lazyLoadEmojis
-          emojiSize={24}
-          style={{ "--epr-emoji-size": "24px" } as React.CSSProperties}
+          emojiSize={18}
+          style={{ "--epr-emoji-size": "18px", "--epr-emoji-padding": "4px" } as React.CSSProperties}
         />
         {emoji && (
           <div className="border-t bg-background px-2 py-1.5">

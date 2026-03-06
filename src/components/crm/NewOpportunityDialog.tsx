@@ -14,7 +14,8 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Sparkles, User, Building2, Phone, Mail, Linkedin, FileText, Euro, TrendingUp } from "lucide-react";
 import { useExtractOpportunity, useCreateCard, useCrmBoard } from "@/hooks/useCrmBoard";
-import { OpportunityExtraction, BriefQuestion, AcquisitionSource } from "@/types/crm";
+import { OpportunityExtraction, BriefQuestion, AcquisitionSource, acquisitionSourceConfig } from "@/types/crm";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 
 interface NewOpportunityDialogProps {
@@ -30,6 +31,7 @@ export function NewOpportunityDialog({ open, onOpenChange, userEmail }: NewOppor
   const [editedExtraction, setEditedExtraction] = useState<OpportunityExtraction | null>(null);
   const [estimatedValue, setEstimatedValue] = useState("");
   const [valueEstimation, setValueEstimation] = useState<{ value: number; source: string; count: number } | null>(null);
+  const [acquisitionSource, setAcquisitionSource] = useState<AcquisitionSource | null>(null);
 
   const { data: boardData } = useCrmBoard();
   const extractMutation = useExtractOpportunity();
@@ -101,6 +103,9 @@ export function NewOpportunityDialog({ open, onOpenChange, userEmail }: NewOppor
       setStep("review");
       // Auto-estimate value from CRM history
       estimateValueFromHistory(result);
+      // Auto-detect acquisition source
+      const detectedSource = await detectAcquisitionSource(rawInput, result.email);
+      if (detectedSource) setAcquisitionSource(detectedSource);
     } catch {
       // Error handled by mutation
     }
@@ -146,8 +151,6 @@ export function NewOpportunityDialog({ open, onOpenChange, userEmail }: NewOppor
     if (!editedExtraction || !entrantColumn) return;
 
     try {
-      const acquisitionSource = await detectAcquisitionSource(rawInput, editedExtraction.email);
-
       await createCardMutation.mutateAsync({
         input: {
           column_id: entrantColumn.id,
@@ -162,7 +165,7 @@ export function NewOpportunityDialog({ open, onOpenChange, userEmail }: NewOppor
           estimated_value: parseFloat(estimatedValue) || 0,
           brief_questions: editedExtraction.brief_questions,
           raw_input: rawInput,
-          acquisition_source: acquisitionSource,
+          acquisition_source: acquisitionSource || undefined,
           description_html: rawInput
             .replace(/\r\n/g, "\n")
             .replace(/[\u2028\u2029]/g, "\n")
@@ -190,6 +193,7 @@ export function NewOpportunityDialog({ open, onOpenChange, userEmail }: NewOppor
       setEditedExtraction(null);
       setEstimatedValue("");
       setValueEstimation(null);
+      setAcquisitionSource(null);
       onOpenChange(false);
     } catch {
       // Error handled by mutation
@@ -203,6 +207,7 @@ export function NewOpportunityDialog({ open, onOpenChange, userEmail }: NewOppor
     setEditedExtraction(null);
     setEstimatedValue("");
     setValueEstimation(null);
+    setAcquisitionSource(null);
     onOpenChange(false);
   };
 
@@ -286,21 +291,48 @@ Tel: 06 12 34 56 78"
             </div>
 
             {/* Service type badge */}
-            <div className="flex gap-2">
-              <Badge
-                variant={editedExtraction.service_type === "formation" ? "default" : "outline"}
-                className="cursor-pointer"
-                onClick={() => updateField("service_type", "formation")}
+            <div>
+              <Label className="flex items-center gap-1">
+                Type <span className="text-destructive">*</span>
+              </Label>
+              <div className="flex gap-2 mt-1">
+                <Badge
+                  variant={editedExtraction.service_type === "formation" ? "default" : "outline"}
+                  className={`cursor-pointer ${!editedExtraction.service_type ? "ring-1 ring-destructive/30" : ""}`}
+                  onClick={() => updateField("service_type", "formation")}
+                >
+                  Formation
+                </Badge>
+                <Badge
+                  variant={editedExtraction.service_type === "mission" ? "default" : "outline"}
+                  className={`cursor-pointer ${!editedExtraction.service_type ? "ring-1 ring-destructive/30" : ""}`}
+                  onClick={() => updateField("service_type", "mission")}
+                >
+                  Mission
+                </Badge>
+              </div>
+            </div>
+
+            {/* Acquisition source */}
+            <div>
+              <Label className="flex items-center gap-1">
+                Source d'acquisition <span className="text-destructive">*</span>
+              </Label>
+              <Select
+                value={acquisitionSource || ""}
+                onValueChange={(v) => setAcquisitionSource(v as AcquisitionSource)}
               >
-                Formation
-              </Badge>
-              <Badge
-                variant={editedExtraction.service_type === "mission" ? "default" : "outline"}
-                className="cursor-pointer"
-                onClick={() => updateField("service_type", "mission")}
-              >
-                Mission
-              </Badge>
+                <SelectTrigger className={`mt-1 ${!acquisitionSource ? "ring-1 ring-destructive/30" : ""}`}>
+                  <SelectValue placeholder="Sélectionner une source..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(acquisitionSourceConfig).map(([key, label]) => (
+                    <SelectItem key={key} value={key}>
+                      {label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Contact info */}
@@ -462,7 +494,7 @@ Tel: 06 12 34 56 78"
               <Button variant="outline" onClick={() => setStep("input")}>
                 Retour
               </Button>
-              <Button onClick={handleCreate} disabled={createCardMutation.isPending}>
+              <Button onClick={handleCreate} disabled={createCardMutation.isPending || !editedExtraction?.service_type || !acquisitionSource}>
                 {createCardMutation.isPending ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />

@@ -9,7 +9,7 @@ import {
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
 
 interface CrmAiRequest {
-  action: "analyze_exchanges" | "generate_quote_description" | "improve_email_subject" | "improve_email_body" | "suggest_next_action" | "find_website" | "improve_template";
+  action: "analyze_exchanges" | "generate_quote_description" | "improve_email_subject" | "improve_email_body" | "cleanup_dictation" | "suggest_next_action" | "find_website" | "improve_template";
   card_data: {
     title?: string;
     description?: string;
@@ -267,6 +267,31 @@ Objectifs de la réécriture :
 - Ne PAS ajouter de signature ni modifier les formules de politesse existantes
 
 Réponds uniquement avec le HTML amélioré.`;
+
+        result = await callAnthropic(systemPrompt, userPrompt);
+        break;
+      }
+
+      case "cleanup_dictation": {
+        const systemPrompt = `Tu es un assistant de mise en forme de texte dicté vocalement.
+Tu corriges UNIQUEMENT :
+- La ponctuation (points, virgules, points d'interrogation, etc.)
+- L'orthographe et la grammaire
+- Les retours à la ligne logiques entre les idées/paragraphes
+
+RÈGLES STRICTES :
+- Tu ne CHANGES JAMAIS les mots, les formulations ou les tournures de phrases
+- Tu ne reformules RIEN
+- Tu ne supprimes et n'ajoutes AUCUN mot
+- Tu conserves le tutoiement ou vouvoiement tel quel
+- Tu réponds UNIQUEMENT avec le texte corrigé en HTML (balises <p> pour les paragraphes, <br> pour les retours à la ligne simples)
+- Pas d'explication, pas de commentaire`;
+
+        const dictatedText = card_data.body || "";
+
+        const userPrompt = `Mets en forme ce texte dicté vocalement. Corrige la ponctuation, l'orthographe et ajoute des retours à la ligne, mais ne change AUCUN mot ni aucune formulation :
+
+${dictatedText}`;
 
         result = await callAnthropic(systemPrompt, userPrompt);
         break;
