@@ -82,6 +82,7 @@ import {
   GraduationCap,
   UserPlus,
   Pencil,
+  Calculator,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format, addDays, isAfter, startOfDay, parseISO, isFuture } from "date-fns";
@@ -121,6 +122,7 @@ import AssignedUserSelector from "@/components/formations/AssignedUserSelector";
 import { missionStatusConfig } from "@/types/missions";
 import EmailEditor from "./EmailEditor";
 import SentDevisSection from "./SentDevisSection";
+import MacroPricingDialog, { PricingLine } from "./MacroPricingDialog";
 import { CreateTrainingDialog } from "./CreateTrainingDialog";
 import confetti from "canvas-confetti";
 import { useCrmEmailTemplates, useUpdateCrmTemplate, replaceCrmVariables } from "@/hooks/useCrmEmailTemplates";
@@ -260,6 +262,10 @@ const CardDetailDrawer = ({
 
   // Email history state
   const [expandedEmailId, setExpandedEmailId] = useState<string | null>(null);
+
+  // Macro pricing dialog state
+  const [showPricingDialog, setShowPricingDialog] = useState(false);
+  const [pricingLines, setPricingLines] = useState<PricingLine[]>([]);
 
   // Create training/mission dialog state (win choice)
   const [showCreateTrainingDialog, setShowCreateTrainingDialog] = useState(false);
@@ -1374,6 +1380,15 @@ const CardDetailDrawer = ({
               />
             </PopoverContent>
           </Popover>
+
+          {/* Macro pricing button */}
+          <button
+            className="inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium transition-colors cursor-pointer hover:opacity-80 text-violet-700 bg-violet-50 border-violet-200"
+            onClick={() => setShowPricingDialog(true)}
+            title="Macro chiffrage"
+          >
+            <Calculator className="h-3.5 w-3.5" />
+          </button>
 
           {/* Confidence score (editable) */}
           <Popover>
@@ -2719,6 +2734,18 @@ const CardDetailDrawer = ({
       open={showLossReasonDialog}
       onConfirm={handleLossReasonConfirm}
       onCancel={handleLossReasonCancel}
+    />
+
+    {/* Macro pricing dialog */}
+    <MacroPricingDialog
+      open={showPricingDialog}
+      onOpenChange={setShowPricingDialog}
+      initialValue={parseFloat(estimatedValue) || 0}
+      initialLines={pricingLines.length > 0 ? pricingLines : undefined}
+      onConfirm={(total, lines) => {
+        setEstimatedValue(String(total));
+        setPricingLines(lines);
+      }}
     />
 
     {/* Create Training Dialog - MUST be outside Sheet to display correctly */}
