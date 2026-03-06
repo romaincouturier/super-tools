@@ -85,18 +85,11 @@ const CrmCardComponent = ({ card, isDragging: isDraggingProp, onClick, serviceTy
     onClick?.();
   };
 
-  const companyTag = card.company
-    ? [{ key: "_company", label: card.company, icon: <Building2 className="h-3 w-3 shrink-0" />, style: { backgroundColor: "#6366f120", color: "#6366f1" } }]
-    : [];
-
-  const tags = [
-    ...companyTag,
-    ...(card.tags || []).map((tag) => ({
-      key: tag.id,
-      label: tag.name,
-      style: { backgroundColor: tag.color + "20", color: tag.color },
-    })),
-  ];
+  const tags = (card.tags || []).map((tag) => ({
+    key: tag.id,
+    label: tag.name,
+    style: { backgroundColor: tag.color + "20", color: tag.color },
+  }));
 
   return (
     <Card
@@ -181,7 +174,7 @@ const CrmCardComponent = ({ card, isDragging: isDraggingProp, onClick, serviceTy
           </div>
         )}
 
-        {/* Title */}
+        {/* Title + Company */}
         <div className="flex items-start gap-1">
           <span data-emoji-picker>
             <EmojiPickerButton
@@ -191,7 +184,15 @@ const CrmCardComponent = ({ card, isDragging: isDraggingProp, onClick, serviceTy
               className="shrink-0 mt-0.5"
             />
           </span>
-          <div className="font-medium text-sm line-clamp-2">{card.title}</div>
+          <div>
+            <div className="font-medium text-sm line-clamp-2">{card.title}</div>
+            {card.company && (
+              <div className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                <Building2 className="h-3 w-3 shrink-0" />
+                {card.company}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Tags */}

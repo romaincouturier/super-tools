@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Sparkles, User, Building2, Phone, Mail, Linkedin, FileText, Euro, TrendingUp } from "lucide-react";
 import { useExtractOpportunity, useCreateCard, useCrmBoard } from "@/hooks/useCrmBoard";
-import { OpportunityExtraction, BriefQuestion } from "@/types/crm";
+import { OpportunityExtraction, BriefQuestion, AcquisitionSource } from "@/types/crm";
 import { supabase } from "@/integrations/supabase/client";
 
 interface NewOpportunityDialogProps {
@@ -106,10 +106,48 @@ export function NewOpportunityDialog({ open, onOpenChange, userEmail }: NewOppor
     }
   };
 
+  // Detect acquisition source from raw input and contact history
+  const detectAcquisitionSource = async (raw: string, contactEmail: string | null): Promise<AcquisitionSource | undefined> => {
+    // Check for website form metadata (User Agent, IP, "Propulsé par", URL patterns)
+    const techPatterns = [
+      /agent utilisateur:/i,
+      /user.?agent:/i,
+      /ip distante:/i,
+      /remote.?ip:/i,
+      /propulsé par/i,
+      /powered by/i,
+      /elementor/i,
+      /wordpress/i,
+      /url de la page:/i,
+    ];
+    const hasWebFormMetadata = techPatterns.some((p) => p.test(raw));
+
+    // Check if contact email already exists in CRM
+    if (contactEmail) {
+      const { data: existingCards } = await supabase
+        .from("crm_cards")
+        .select("id")
+        .eq("email", contactEmail)
+        .limit(1);
+
+      if (existingCards && existingCards.length > 0) {
+        return "nouvelle_mission";
+      }
+    }
+
+    if (hasWebFormMetadata) {
+      return "site_web";
+    }
+
+    return undefined;
+  };
+
   const handleCreate = async () => {
     if (!editedExtraction || !entrantColumn) return;
 
     try {
+      const acquisitionSource = await detectAcquisitionSource(rawInput, editedExtraction.email);
+
       await createCardMutation.mutateAsync({
         input: {
           column_id: entrantColumn.id,
@@ -124,6 +162,7 @@ export function NewOpportunityDialog({ open, onOpenChange, userEmail }: NewOppor
           estimated_value: parseFloat(estimatedValue) || 0,
           brief_questions: editedExtraction.brief_questions,
           raw_input: rawInput,
+          acquisition_source: acquisitionSource,
           description_html: rawInput
             .replace(/\r\n/g, "\n")
             .replace(/[\u2028\u2029]/g, "\n")
