@@ -83,6 +83,7 @@ function makeCard(overrides: Partial<CrmCard> = {}): CrmCard {
     brief_questions: [],
     raw_input: null,
     tags: [],
+    assigned_to: null,
     created_at: "2025-01-15T10:00:00Z",
     updated_at: "2025-01-15T10:00:00Z",
     ...overrides,
@@ -173,6 +174,7 @@ function makeMission(overrides: Partial<Mission> = {}): Mission {
     created_at: "2025-01-01T00:00:00Z",
     updated_at: "2025-02-01T00:00:00Z",
     created_by: "user-1",
+    assigned_to: null,
     ...overrides,
   };
 }
