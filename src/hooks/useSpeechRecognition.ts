@@ -23,7 +23,7 @@ declare global {
   }
 }
 
-export function useSpeechRecognition(lang: string = "fr-FR") {
+export function useSpeechRecognition(lang: string = "fr-FR", continuous: boolean = false) {
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
 
@@ -40,7 +40,7 @@ export function useSpeechRecognition(lang: string = "fr-FR") {
       const recognition = new SpeechRecognitionClass();
       recognition.lang = lang;
       recognition.interimResults = false;
-      recognition.continuous = false;
+      recognition.continuous = continuous;
 
       recognition.onresult = (event: SpeechRecognitionEvent) => {
         const transcript = event.results[event.resultIndex][0].transcript;
@@ -61,7 +61,7 @@ export function useSpeechRecognition(lang: string = "fr-FR") {
       recognition.start();
       setIsListening(true);
     },
-    [isSupported, lang]
+    [isSupported, lang, continuous]
   );
 
   const stopListening = useCallback(() => {
