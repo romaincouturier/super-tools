@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { GraduationCap, Briefcase, Building2 } from "lucide-react";
+import { GraduationCap, Briefcase } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { CrmCard } from "@/types/crm";
@@ -85,11 +85,22 @@ const CrmCardComponent = ({ card, isDragging: isDraggingProp, onClick, serviceTy
     onClick?.();
   };
 
-  const tags = (card.tags || []).map((tag) => ({
-    key: tag.id,
-    label: tag.name,
-    style: { backgroundColor: tag.color + "20", color: tag.color },
-  }));
+  const companyTag = card.company
+    ? {
+        key: "company",
+        label: card.company,
+        style: { backgroundColor: "#e2e8f0", color: "#475569" },
+      }
+    : null;
+
+  const tags = [
+    ...(companyTag ? [companyTag] : []),
+    ...(card.tags || []).map((tag) => ({
+      key: tag.id,
+      label: tag.name,
+      style: { backgroundColor: tag.color + "20", color: tag.color },
+    })),
+  ];
 
   return (
     <Card
@@ -184,15 +195,7 @@ const CrmCardComponent = ({ card, isDragging: isDraggingProp, onClick, serviceTy
               className="shrink-0 mt-0.5"
             />
           </span>
-          <div>
-            <div className="font-medium text-sm line-clamp-2">{card.title}</div>
-            {card.company && (
-              <div className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                <Building2 className="h-3 w-3 shrink-0" />
-                {card.company}
-              </div>
-            )}
-          </div>
+          <div className="font-medium text-sm line-clamp-2">{card.title}</div>
         </div>
 
         {/* Tags */}
