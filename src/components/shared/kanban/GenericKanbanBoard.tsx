@@ -3,9 +3,12 @@ import {
   DndContext,
   DragOverlay,
   closestCorners,
+  pointerWithin,
+  rectIntersection,
   type DragStartEvent,
   type DragEndEvent,
   type DragOverEvent,
+  type CollisionDetection,
 } from "@dnd-kit/core";
 import {
   arrayMove,
@@ -24,6 +27,32 @@ import type {
 import { cn } from "@/lib/utils";
 
 const COLUMN_PREFIX = "column-";
+
+/**
+ * Custom collision detection that handles empty columns properly.
+ * closestCorners alone fails on empty columns because cards in adjacent
+ * columns have closer corners than the empty column container.
+ * We use pointerWithin first (reliable for containers), then closestCorners
+ * among the matched droppables for card-level precision.
+ */
+const multiContainerCollision: CollisionDetection = (args) => {
+  // pointerWithin detects all droppables under the pointer, sorted by area (smallest first)
+  const pointerCollisions = pointerWithin(args);
+  if (pointerCollisions.length > 0) {
+    // Filter closestCorners to only droppables that the pointer is within
+    const ids = new Set(pointerCollisions.map((c) => c.id));
+    const filtered = args.droppableContainers.filter((c) => ids.has(c.id));
+    if (filtered.length > 0) {
+      const refined = closestCorners({ ...args, droppableContainers: filtered });
+      if (refined.length > 0) return refined;
+    }
+    return pointerCollisions;
+  }
+  // Fallback: rectIntersection then closestCorners
+  const rectCollisions = rectIntersection(args);
+  if (rectCollisions.length > 0) return rectCollisions;
+  return closestCorners(args);
+};
 
 export default function GenericKanbanBoard<
   TCard extends KanbanCardDef,
@@ -252,7 +281,7 @@ export default function GenericKanbanBoard<
   return (
     <DndContext
       sensors={sensors}
-      collisionDetection={collisionDetection ?? closestCorners}
+      collisionDetection={collisionDetection ?? multiContainerCollision}
       onDragStart={handleDragStart}
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
