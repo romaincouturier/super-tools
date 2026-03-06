@@ -266,6 +266,7 @@ const CardDetailDrawer = ({
   // Macro pricing dialog state
   const [showPricingDialog, setShowPricingDialog] = useState(false);
   const [pricingLines, setPricingLines] = useState<PricingLine[]>([]);
+  const [pricingTravelTotal, setPricingTravelTotal] = useState(0);
 
   // Create training/mission dialog state (win choice)
   const [showCreateTrainingDialog, setShowCreateTrainingDialog] = useState(false);
@@ -2742,9 +2743,11 @@ const CardDetailDrawer = ({
       onOpenChange={setShowPricingDialog}
       initialValue={parseFloat(estimatedValue) || 0}
       initialLines={pricingLines.length > 0 ? pricingLines : undefined}
-      onConfirm={(total, lines) => {
+      initialTravelTotal={pricingTravelTotal}
+      onConfirm={(total, lines, travelTotal) => {
         setEstimatedValue(String(total));
         setPricingLines(lines);
+        setPricingTravelTotal(travelTotal);
       }}
     />
 
