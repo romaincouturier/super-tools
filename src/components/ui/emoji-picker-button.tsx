@@ -77,7 +77,7 @@ const EmojiPickerButton = ({
           previewConfig={{ showPreview: false }}
           skinTonesDisabled
           lazyLoadEmojis
-          emojiSize={18}
+          
           style={{ "--epr-emoji-size": "18px", "--epr-emoji-padding": "4px" } as React.CSSProperties}
         />
         {emoji && (

@@ -14,6 +14,7 @@ export interface Event {
   event_url: string | null;
   cfp_url: string | null;
   created_by: string | null;
+  assigned_to: string | null;
   created_at: string;
   updated_at: string;
 }
