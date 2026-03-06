@@ -93,6 +93,18 @@ export default function GenericKanbanBoard<
     if (card) setActiveCard(card);
   };
 
+  const resolveColumnId = useCallback(
+    (id: string): string | undefined => {
+      if (columns.find((col) => col.id === id)) return id;
+      if (id.startsWith(COLUMN_PREFIX)) {
+        const stripped = id.slice(COLUMN_PREFIX.length);
+        if (columns.find((col) => col.id === stripped)) return stripped;
+      }
+      return undefined;
+    },
+    [columns],
+  );
+
   const handleDragOver = (event: DragOverEvent) => {
     const { active, over } = event;
     if (!over) return;
@@ -111,9 +123,9 @@ export default function GenericKanbanBoard<
       : card.columnId;
 
     // Over a column directly
-    const overColumn = columns.find((col) => col.id === overId);
-    if (overColumn && currentColumnId !== overColumn.id) {
-      setDragColumnOverride({ cardId: activeCardId, columnId: overColumn.id });
+    const overColumnId = resolveColumnId(overId);
+    if (overColumnId && currentColumnId !== overColumnId) {
+      setDragColumnOverride({ cardId: activeCardId, columnId: overColumnId });
       return;
     }
 
@@ -170,10 +182,13 @@ export default function GenericKanbanBoard<
     const overCard = cards.find((c) => c.id === over.id);
     if (overCard) {
       targetColumnId = overCard.columnId;
-    } else if (columns.some((col) => col.id === over.id)) {
-      targetColumnId = over.id as string;
     } else {
-      return;
+      const resolvedColId = resolveColumnId(over.id as string);
+      if (resolvedColId) {
+        targetColumnId = resolvedColId;
+      } else {
+        return;
+      }
     }
 
     const targetCards = getCardsByColumn(targetColumnId);
