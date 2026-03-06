@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Receipt, Copy, RefreshCw, FileDown, AlertCircle, Loader2, ChevronDown, Mail, Paperclip, Eye, MousePointerClick, CheckCircle2, XCircle } from "lucide-react";
@@ -78,21 +78,21 @@ const SentDevisSection = ({ email, cardId, emails }: SentDevisSectionProps) => {
   });
 
   // Build a unified timeline: emails + devis, sorted by date desc
-  const timelineItems: Array<{ type: "email" | "devis"; date: string; email?: CrmEmail; devis?: SentDevis }> = [];
-
-  if (emails) {
-    for (const e of emails) {
-      timelineItems.push({ type: "email", date: e.sent_at, email: e });
+  const timelineItems = useMemo(() => {
+    const items: Array<{ type: "email" | "devis"; date: string; email?: CrmEmail; devis?: SentDevis }> = [];
+    if (emails) {
+      for (const e of emails) {
+        items.push({ type: "email", date: e.sent_at, email: e });
+      }
     }
-  }
-
-  if (sentDevis) {
-    for (const d of sentDevis) {
-      timelineItems.push({ type: "devis", date: d.created_at, devis: d });
+    if (sentDevis) {
+      for (const d of sentDevis) {
+        items.push({ type: "devis", date: d.created_at, devis: d });
+      }
     }
-  }
-
-  timelineItems.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    items.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    return items;
+  }, [emails, sentDevis]);
 
   const handleOpenPdf = async (storagePath: string | undefined | null, fallbackUrl: string | undefined | null, loadKey: string) => {
     // Prefer signed URL from Supabase Storage

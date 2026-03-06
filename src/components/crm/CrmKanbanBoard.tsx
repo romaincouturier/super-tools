@@ -234,7 +234,10 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
   };
 
   // Celebration confetti animation for won deals
+  const confettiFrameRef = useRef<number | null>(null);
   const celebrateWin = () => {
+    if (confettiFrameRef.current) cancelAnimationFrame(confettiFrameRef.current);
+
     const duration = 3000;
     const end = Date.now() + duration;
     const colors = ["#FFD700", "#FFA500", "#FF6347", "#32CD32", "#1E90FF", "#9370DB"];
@@ -256,7 +259,9 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
       });
 
       if (Date.now() < end) {
-        requestAnimationFrame(frame);
+        confettiFrameRef.current = requestAnimationFrame(frame);
+      } else {
+        confettiFrameRef.current = null;
       }
     };
 

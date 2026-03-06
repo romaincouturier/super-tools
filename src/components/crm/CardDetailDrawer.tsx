@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import DetailDrawer from "@/components/shared/DetailDrawer";
 import { supabase } from "@/integrations/supabase/client";
@@ -142,6 +142,17 @@ const salesStatusConfig: Record<SalesStatus, { label: string; color: string }> =
   LOST: { label: "Perdu", color: "bg-red-500 hover:bg-red-600" },
   CANCELED: { label: "Annulé", color: "bg-gray-500 hover:bg-gray-600" },
 };
+
+// Common email providers — module-level constant to avoid re-allocation on every render
+const COMMON_EMAIL_PROVIDERS = new Set([
+  "gmail.com", "googlemail.com", "hotmail.com", "hotmail.fr", "outlook.com", "outlook.fr",
+  "live.com", "live.fr", "msn.com", "yahoo.com", "yahoo.fr", "aol.com",
+  "icloud.com", "me.com", "mac.com", "protonmail.com", "proton.me",
+  "free.fr", "orange.fr", "sfr.fr", "laposte.net", "wanadoo.fr",
+  "bbox.fr", "numericable.fr", "neuf.fr", "cegetel.net",
+  "gmx.com", "gmx.fr", "mail.com", "zoho.com", "yandex.com",
+  "tutanota.com", "fastmail.com", "hey.com",
+]);
 
 const CardDetailDrawer = ({
   card,
@@ -327,8 +338,8 @@ const CardDetailDrawer = ({
     navigate(`/formations/${trainingId}${qs ? `?${qs}` : ""}`);
   };
 
-  // Get tomorrow's date as minimum for scheduling
-  const tomorrow = format(addDays(new Date(), 1), "yyyy-MM-dd");
+  // Get tomorrow's date as minimum for scheduling (stable across re-renders)
+  const tomorrow = useMemo(() => format(addDays(new Date(), 1), "yyyy-MM-dd"), []);
 
   // Initialize form when a DIFFERENT card is opened (not on every refetch)
   const prevCardIdRef = useRef<string | null>(null);
@@ -380,7 +391,8 @@ const CardDetailDrawer = ({
       setFieldSaved(false);
       // Mark card as loaded (skip first auto-save trigger)
       cardLoadedRef.current = false;
-      setTimeout(() => { cardLoadedRef.current = true; }, 100);
+      if (cardLoadedTimerRef.current) clearTimeout(cardLoadedTimerRef.current);
+      cardLoadedTimerRef.current = setTimeout(() => { cardLoadedRef.current = true; }, 100);
     }
   }, [card]);
 
@@ -393,8 +405,20 @@ const CardDetailDrawer = ({
 
   // Track whether card data is loaded (to avoid auto-saving on initial render)
   const cardLoadedRef = useRef(false);
+  const cardLoadedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const fieldSavedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const descSavedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Auto-save all fields (except description which has its own handler)
+  // NOTE: linkedinUrl and websiteUrl are excluded from deps to avoid the
+  // save → refetch → derived-state-update → save feedback loop that causes
+  // extreme memory consumption. They are saved via refs so the latest values
+  // are always captured without triggering the effect.
+  const linkedinUrlRef = useRef(linkedinUrl);
+  linkedinUrlRef.current = linkedinUrl;
+  const websiteUrlRef = useRef(websiteUrl);
+  websiteUrlRef.current = websiteUrl;
+
   useEffect(() => {
     if (!cardLoadedRef.current || !card) return;
     autoSaveField({
@@ -410,8 +434,8 @@ const CardDetailDrawer = ({
       company: company.trim() || null,
       email: email.trim() || null,
       phone: phone.trim() || null,
-      linkedin_url: linkedinUrl.trim() || null,
-      website_url: websiteUrl.trim() || null,
+      linkedin_url: linkedinUrlRef.current.trim() || null,
+      website_url: websiteUrlRef.current.trim() || null,
       service_type: serviceType,
       next_action_text: nextActionText.trim() || null,
       next_action_done: nextActionDone,
@@ -423,7 +447,7 @@ const CardDetailDrawer = ({
       assigned_to: assignedTo,
     });
   }, [title, salesStatus, estimatedValue, quoteUrl, columnId, scheduledDate, scheduledText,
-      firstName, lastName, company, email, phone, linkedinUrl, websiteUrl, serviceType,
+      firstName, lastName, company, email, phone, serviceType,
       nextActionText, nextActionDone, nextActionType, linkedMissionId, cardEmoji, confidenceScore, acquisitionSource, assignedTo]);
 
   // Auto-save description with debounce
@@ -444,7 +468,8 @@ const CardDetailDrawer = ({
       });
       setDescriptionSaved(true);
       // Reset saved indicator after 2 seconds
-      setTimeout(() => setDescriptionSaved(false), 2000);
+      if (descSavedTimerRef.current) clearTimeout(descSavedTimerRef.current);
+      descSavedTimerRef.current = setTimeout(() => setDescriptionSaved(false), 2000);
     } catch (error) {
       console.error("Failed to auto-save description:", error);
     } finally {
@@ -486,7 +511,8 @@ const CardDetailDrawer = ({
           oldCard: card,
         });
         setFieldSaved(true);
-        setTimeout(() => setFieldSaved(false), 2000);
+        if (fieldSavedTimerRef.current) clearTimeout(fieldSavedTimerRef.current);
+        fieldSavedTimerRef.current = setTimeout(() => setFieldSaved(false), 2000);
       } catch (error) {
         console.error("Failed to auto-save field:", error);
       } finally {
@@ -498,12 +524,12 @@ const CardDetailDrawer = ({
   // Cleanup timeouts on unmount
   useEffect(() => {
     return () => {
-      if (descriptionTimeoutRef.current) {
-        clearTimeout(descriptionTimeoutRef.current);
-      }
-      if (fieldTimeoutRef.current) {
-        clearTimeout(fieldTimeoutRef.current);
-      }
+      if (descriptionTimeoutRef.current) clearTimeout(descriptionTimeoutRef.current);
+      if (fieldTimeoutRef.current) clearTimeout(fieldTimeoutRef.current);
+      if (cardLoadedTimerRef.current) clearTimeout(cardLoadedTimerRef.current);
+      if (fieldSavedTimerRef.current) clearTimeout(fieldSavedTimerRef.current);
+      if (descSavedTimerRef.current) clearTimeout(descSavedTimerRef.current);
+      if (confettiFrameRef.current) cancelAnimationFrame(confettiFrameRef.current);
     };
   }, []);
 
@@ -704,16 +730,7 @@ const CardDetailDrawer = ({
     }
   }, [firstName, lastName, card?.linkedin_url]);
 
-  // Common email providers (domains that should NOT be used as website)
-  const commonEmailProviders = new Set([
-    "gmail.com", "googlemail.com", "hotmail.com", "hotmail.fr", "outlook.com", "outlook.fr",
-    "live.com", "live.fr", "msn.com", "yahoo.com", "yahoo.fr", "aol.com",
-    "icloud.com", "me.com", "mac.com", "protonmail.com", "proton.me",
-    "free.fr", "orange.fr", "sfr.fr", "laposte.net", "wanadoo.fr",
-    "bbox.fr", "numericable.fr", "neuf.fr", "cegetel.net",
-    "gmx.com", "gmx.fr", "mail.com", "zoho.com", "yandex.com",
-    "tutanota.com", "fastmail.com", "hey.com",
-  ]);
+  // commonEmailProviders is defined at module scope (see above)
 
   // Track whether we already looked up the website for this card
   const websiteLookedUpRef = useRef(false);
@@ -729,7 +746,7 @@ const CardDetailDrawer = ({
       const atIndex = email.indexOf("@");
       if (atIndex >= 0) {
         const domain = email.slice(atIndex + 1).trim().toLowerCase();
-        if (domain && domain.indexOf(".") >= 0 && !commonEmailProviders.has(domain)) {
+        if (domain && domain.indexOf(".") >= 0 && !COMMON_EMAIL_PROVIDERS.has(domain)) {
           const newUrl = `https://www.${domain}`;
           if (websiteUrl !== newUrl) {
             setWebsiteUrl(newUrl);
@@ -990,7 +1007,11 @@ const CardDetailDrawer = ({
   };
 
   // Celebration confetti animation for won deals
+  const confettiFrameRef = useRef<number | null>(null);
   const celebrateWin = () => {
+    // Cancel any previous animation
+    if (confettiFrameRef.current) cancelAnimationFrame(confettiFrameRef.current);
+
     const duration = 3000;
     const end = Date.now() + duration;
 
@@ -1013,7 +1034,9 @@ const CardDetailDrawer = ({
       });
 
       if (Date.now() < end) {
-        requestAnimationFrame(frame);
+        confettiFrameRef.current = requestAnimationFrame(frame);
+      } else {
+        confettiFrameRef.current = null;
       }
     };
 
@@ -1261,12 +1284,12 @@ const CardDetailDrawer = ({
   if (!card) return null;
 
   const cardTags = card.tags || [];
-  const tagsByCategory = allTags.reduce((acc, tag) => {
+  const tagsByCategory = useMemo(() => allTags.reduce((acc, tag) => {
     const cat = tag.category || "Autre";
     if (!acc[cat]) acc[cat] = [];
     acc[cat].push(tag);
     return acc;
-  }, {} as Record<string, CrmTag[]>);
+  }, {} as Record<string, CrmTag[]>), [allTags]);
 
   return (
     <>
