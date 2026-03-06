@@ -26,6 +26,7 @@ import LogisticsBookingButtons from "@/components/shared/LogisticsBookingButtons
 import EntityDocumentsManager from "@/components/shared/EntityDocumentsManager";
 import MissionActionsManager from "./MissionActionsManager";
 import SendDeliverablesDialog from "./SendDeliverablesDialog";
+import AssignedUserSelector from "@/components/formations/AssignedUserSelector";
 
 interface MissionDetailDrawerProps {
   mission: Mission | null;
@@ -107,6 +108,7 @@ const MissionDetailDrawer = ({
   const [hotelBooked, setHotelBooked] = useState(false);
   const [activeTab, setActiveTab] = useState("activities");
   const [activityPageRequest, setActivityPageRequest] = useState<{ activityId: string; description: string } | null>(null);
+  const [assignedTo, setAssignedTo] = useState<string | null>(null);
 
   // Initialize form when mission changes
   useEffect(() => {
@@ -128,6 +130,7 @@ const MissionDetailDrawer = ({
       setLocation(mission.location || "");
       setTrainBooked(mission.train_booked ?? false);
       setHotelBooked(mission.hotel_booked ?? false);
+      setAssignedTo(mission.assigned_to || null);
     }
   }, [mission]);
 
@@ -172,6 +175,7 @@ const MissionDetailDrawer = ({
         color,
         emoji: missionEmoji,
         location: location.trim() || null,
+        assigned_to: assignedTo,
       },
     };
 
@@ -185,7 +189,7 @@ const MissionDetailDrawer = ({
     }, 800);
 
     return () => { if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current); };
-  }, [title, description, clientName, status, startDate, endDate, dailyRate, totalDays, initialAmount, tags, color, missionEmoji, location]);
+  }, [title, description, clientName, status, startDate, endDate, dailyRate, totalDays, initialAmount, tags, color, missionEmoji, location, assignedTo]);
 
   const handleDelete = async () => {
     if (!mission) return;
@@ -425,6 +429,12 @@ const MissionDetailDrawer = ({
                   placeholder="Ville ou adresse (ex: Lyon, Paris...)"
                 />
               </div>
+            </div>
+
+            {/* Assigned user */}
+            <div>
+              <Label>Assigné à</Label>
+              <AssignedUserSelector value={assignedTo} onChange={setAssignedTo} />
             </div>
 
             {/* Multi-contact management */}

@@ -30,6 +30,7 @@ export interface Mission {
   created_at: string;
   updated_at: string;
   created_by: string | null;
+  assigned_to: string | null;
 }
 
 export interface CreateMissionInput {
@@ -50,6 +51,7 @@ export interface CreateMissionInput {
   contact_last_name?: string;
   contact_email?: string;
   contact_phone?: string;
+  assigned_to?: string | null;
 }
 
 export interface UpdateMissionInput {
@@ -71,6 +73,7 @@ export interface UpdateMissionInput {
   location?: string | null;
   train_booked?: boolean;
   hotel_booked?: boolean;
+  assigned_to?: string | null;
 }
 
 export interface MissionContact {

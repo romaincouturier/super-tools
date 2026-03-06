@@ -763,6 +763,7 @@ export type Database = {
       crm_cards: {
         Row: {
           acquisition_source: string | null
+          assigned_to: string | null
           brief_questions: Json | null
           column_id: string
           company: string | null
@@ -800,6 +801,7 @@ export type Database = {
         }
         Insert: {
           acquisition_source?: string | null
+          assigned_to?: string | null
           brief_questions?: Json | null
           column_id: string
           company?: string | null
@@ -837,6 +839,7 @@ export type Database = {
         }
         Update: {
           acquisition_source?: string | null
+          assigned_to?: string | null
           brief_questions?: Json | null
           column_id?: string
           company?: string | null
@@ -1407,6 +1410,7 @@ export type Database = {
       }
       events: {
         Row: {
+          assigned_to: string | null
           cancellation_reason: string | null
           cfp_deadline: string | null
           cfp_url: string | null
@@ -1426,6 +1430,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          assigned_to?: string | null
           cancellation_reason?: string | null
           cfp_deadline?: string | null
           cfp_url?: string | null
@@ -1445,6 +1450,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          assigned_to?: string | null
           cancellation_reason?: string | null
           cfp_deadline?: string | null
           cfp_url?: string | null
@@ -2328,6 +2334,7 @@ export type Database = {
       }
       missions: {
         Row: {
+          assigned_to: string | null
           billed_amount: number | null
           client_contact: string | null
           client_name: string | null
@@ -2357,6 +2364,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          assigned_to?: string | null
           billed_amount?: number | null
           client_contact?: string | null
           client_name?: string | null
@@ -2386,6 +2394,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          assigned_to?: string | null
           billed_amount?: number | null
           client_contact?: string | null
           client_name?: string | null

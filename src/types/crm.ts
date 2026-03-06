@@ -88,6 +88,8 @@ export interface CrmCard {
   // Loss reason
   loss_reason: LossReason | null;
   loss_reason_detail: string | null;
+  // Assignment
+  assigned_to: string | null;
   // Joined data
   tags?: CrmTag[];
 }
@@ -226,6 +228,8 @@ export interface UpdateCardInput {
   // Loss reason
   loss_reason?: LossReason | null;
   loss_reason_detail?: string | null;
+  // Assignment
+  assigned_to?: string | null;
 }
 
 // Revenue target for feature 4

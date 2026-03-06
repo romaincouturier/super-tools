@@ -128,10 +128,15 @@ serve(async (req) => {
     // ════════════════════════════════════════════
     const { data: missionsToInvoice } = await supabase
       .from("missions")
-      .select("id, title, client_name, consumed_amount, billed_amount, emoji")
+      .select("id, title, client_name, consumed_amount, billed_amount, emoji, assigned_to")
       .in("status", ["in_progress", "completed"]);
 
-    const missionAlerts: string[] = [];
+    interface MissionAlert {
+      assignedTo: string | null;
+      html: string;
+    }
+
+    const missionAlerts: MissionAlert[] = [];
     if (missionsToInvoice) {
       for (const m of missionsToInvoice) {
         const consumed = Number(m.consumed_amount) || 0;
@@ -140,9 +145,10 @@ serve(async (req) => {
         const remaining = consumed - billed;
         const label = m.client_name ? `${m.client_name} — ${m.title}` : m.title;
         const emojiPrefix = m.emoji ? `${m.emoji} ` : "";
-        missionAlerts.push(
-          `<li>${emojiPrefix}<a href="${appUrl}/missions/${m.id}" style="color: ${COLORS.primary}; text-decoration: underline;">${label}</a> — <strong>${remaining.toLocaleString("fr-FR")} € à facturer</strong> (${billed.toLocaleString("fr-FR")} € facturé / ${consumed.toLocaleString("fr-FR")} € consommé)</li>`
-        );
+        missionAlerts.push({
+          assignedTo: m.assigned_to,
+          html: `<li>${emojiPrefix}<a href="${appUrl}/missions/${m.id}" style="color: ${COLORS.primary}; text-decoration: underline;">${label}</a> — <strong>${remaining.toLocaleString("fr-FR")} € à facturer</strong> (${billed.toLocaleString("fr-FR")} € facturé / ${consumed.toLocaleString("fr-FR")} € consommé)</li>`,
+        });
       }
     }
     console.log(`[${VERSION}] Missions à facturer: ${missionAlerts.length}`);
@@ -152,18 +158,19 @@ serve(async (req) => {
     // ════════════════════════════════════════════
     const { data: missionsNoStartDate } = await supabase
       .from("missions")
-      .select("id, title, client_name, emoji")
+      .select("id, title, client_name, emoji, assigned_to")
       .in("status", ["not_started", "in_progress"])
       .is("start_date", null);
 
-    const missionNoDateAlerts: string[] = [];
+    const missionNoDateAlerts: MissionAlert[] = [];
     if (missionsNoStartDate) {
       for (const m of missionsNoStartDate) {
         const label = m.client_name ? `${m.client_name} — ${m.title}` : m.title;
         const emojiPrefix = m.emoji ? `${m.emoji} ` : "";
-        missionNoDateAlerts.push(
-          `<li>${emojiPrefix}<a href="${appUrl}/missions/${m.id}" style="color: ${COLORS.primary}; text-decoration: underline;">${label}</a> — <strong>Date de début à définir</strong></li>`
-        );
+        missionNoDateAlerts.push({
+          assignedTo: m.assigned_to,
+          html: `<li>${emojiPrefix}<a href="${appUrl}/missions/${m.id}" style="color: ${COLORS.primary}; text-decoration: underline;">${label}</a> — <strong>Date de début à définir</strong></li>`,
+        });
       }
     }
     console.log(`[${VERSION}] Missions sans date de début: ${missionNoDateAlerts.length}`);
@@ -194,7 +201,7 @@ serve(async (req) => {
     if (targetColumnIds.size > 0) {
       const { data: cards } = await supabase
         .from("crm_cards")
-        .select("id, title, company, first_name, last_name, email, phone, column_id, estimated_value, emoji, created_at")
+        .select("id, title, company, first_name, last_name, email, phone, column_id, estimated_value, emoji, created_at, assigned_to")
         .eq("sales_status", "OPEN")
         .in("column_id", [...targetColumnIds]);
       crmCards = cards || [];
@@ -208,8 +215,13 @@ serve(async (req) => {
       cardsByColumn.set(card.column_id, list);
     }
 
-    // Helper to format a CRM card as HTML list item
-    const formatCrmCard = (card: any): string => {
+    // Helper to format a CRM card as typed alert
+    interface CrmAlert {
+      assignedTo: string | null;
+      html: string;
+    }
+
+    const formatCrmCard = (card: any): CrmAlert => {
       const contactName = [card.first_name, card.last_name].filter(Boolean).join(" ");
       const label = card.company ? `${card.company} — ${card.title}` : card.title;
       const emojiPrefix = card.emoji ? `${card.emoji} ` : "";
@@ -221,12 +233,15 @@ serve(async (req) => {
       if (card.phone) contactParts.push(`<a href="tel:${card.phone.replace(/\s/g, "")}" style="color: #b8960a; text-decoration: none;">📞 ${card.phone}</a>`);
       if (card.email) contactParts.push(`<a href="mailto:${card.email}" style="color: #b8960a; text-decoration: none;">✉️ ${card.email}</a>`);
       const contactHtml = contactParts.length > 0 ? `<br/><span style="font-size: 13px;">${contactParts.join(" · ")}</span>` : "";
-      return `<li style="margin-bottom: 6px;">${emojiPrefix}<a href="${appUrl}/crm" style="color: ${COLORS.primary}; text-decoration: underline;">${label}</a>${value}${contactHtml}</li>`;
+      return {
+        assignedTo: card.assigned_to,
+        html: `<li style="margin-bottom: 6px;">${emojiPrefix}<a href="${appUrl}/crm" style="color: ${COLORS.primary}; text-decoration: underline;">${label}</a>${value}${contactHtml}</li>`,
+      };
     };
 
     // 2. Devis à faire (colonne contacté)
     const devisAFaireCards = contacteColumn ? (cardsByColumn.get(contacteColumn.id) || []) : [];
-    const devisAFaireAlerts = devisAFaireCards.map(formatCrmCard);
+    const devisAFaireAlerts: CrmAlert[] = devisAFaireCards.map(formatCrmCard);
     console.log(`[${VERSION}] Devis à faire (contacté): ${devisAFaireAlerts.length}`);
 
     // 3. Opportunités à traiter (première colonne)
@@ -236,12 +251,12 @@ serve(async (req) => {
       : firstColumn && firstColumn.id === contacteColumn?.id
         ? [] // already shown in devis à faire
         : [];
-    const opportunitesAlerts = firstColumnCards.map(formatCrmCard);
+    const opportunitesAlerts: CrmAlert[] = firstColumnCards.map(formatCrmCard);
     console.log(`[${VERSION}] Opportunités à traiter: ${opportunitesAlerts.length}`);
 
     // 4. Devis à relancer (devis envoyé)
     const devisRelanceCards = devisEnvoyeColumn ? (cardsByColumn.get(devisEnvoyeColumn.id) || []) : [];
-    const devisRelanceAlerts = devisRelanceCards.map(formatCrmCard);
+    const devisRelanceAlerts: CrmAlert[] = devisRelanceCards.map(formatCrmCard);
     console.log(`[${VERSION}] Devis à relancer (envoyé): ${devisRelanceAlerts.length}`);
 
     // ════════════════════════════════════════════
@@ -285,8 +300,9 @@ serve(async (req) => {
       signaturesByKey.set(`${sig.training_id}:${sig.recipient_email}`, sig.status);
     }
 
-    const userCanSeeTraining = (recipient: AlertRecipient, assignedTo: string | null): boolean => {
+    const userCanSee = (recipient: AlertRecipient, assignedTo: string | null): boolean => {
       if (recipient.isAdmin) return true;
+      if (!assignedTo) return false;
       return assignedTo === recipient.userId;
     };
 
@@ -399,15 +415,20 @@ serve(async (req) => {
     fifteenDaysFromNow.setDate(fifteenDaysFromNow.getDate() + 15);
     const maxEventDate = fifteenDaysFromNow.toISOString().split("T")[0];
 
+    interface EventAlert {
+      assignedTo: string | null;
+      html: string;
+    }
+
     const { data: upcomingEvents } = await supabase
       .from("events")
-      .select("id, title, event_date, event_time, location, location_type, event_type, cfp_deadline, cfp_url")
+      .select("id, title, event_date, event_time, location, location_type, event_type, cfp_deadline, cfp_url, assigned_to")
       .gte("event_date", today)
       .lte("event_date", maxEventDate)
       .eq("status", "active")
       .order("event_date", { ascending: true });
 
-    const eventAlerts: string[] = [];
+    const eventAlerts: EventAlert[] = [];
     if (upcomingEvents) {
       for (const ev of upcomingEvents) {
         const daysUntil = Math.ceil((new Date(ev.event_date).getTime() - todayDate.getTime()) / (1000 * 60 * 60 * 24));
@@ -415,9 +436,10 @@ serve(async (req) => {
         const timeStr = ev.event_time ? ` à ${ev.event_time.substring(0, 5)}` : "";
         const locationStr = ev.location ? ` — ${ev.location}` : "";
         const daysLabel = daysUntil === 0 ? "Aujourd'hui" : daysUntil === 1 ? "Demain" : `Dans ${daysUntil}j`;
-        eventAlerts.push(
-          `<li><a href="${appUrl}/events/${ev.id}" style="color: ${COLORS.primary}; text-decoration: underline;">${ev.title}</a> — ${eventDate}${timeStr}${locationStr} <strong>(${daysLabel})</strong></li>`
-        );
+        eventAlerts.push({
+          assignedTo: ev.assigned_to,
+          html: `<li><a href="${appUrl}/events/${ev.id}" style="color: ${COLORS.primary}; text-decoration: underline;">${ev.title}</a> — ${eventDate}${timeStr}${locationStr} <strong>(${daysLabel})</strong></li>`,
+        });
       }
     }
     console.log(`[${VERSION}] Événements approchant: ${eventAlerts.length}`);
@@ -431,7 +453,7 @@ serve(async (req) => {
 
     const { data: cfpEvents } = await supabase
       .from("events")
-      .select("id, title, event_date, cfp_deadline, cfp_url")
+      .select("id, title, event_date, cfp_deadline, cfp_url, assigned_to")
       .eq("event_type", "external")
       .eq("status", "active")
       .not("cfp_deadline", "is", null)
@@ -439,7 +461,7 @@ serve(async (req) => {
       .lte("cfp_deadline", maxCfpDate)
       .order("cfp_deadline", { ascending: true });
 
-    const cfpAlerts: string[] = [];
+    const cfpAlerts: EventAlert[] = [];
     if (cfpEvents) {
       for (const ev of cfpEvents) {
         const daysUntil = Math.ceil((new Date(ev.cfp_deadline).getTime() - todayDate.getTime()) / (1000 * 60 * 60 * 24));
@@ -448,9 +470,10 @@ serve(async (req) => {
         const cfpLink = ev.cfp_url
           ? ` — <a href="${ev.cfp_url}" style="color: ${COLORS.blue}; text-decoration: underline;">Soumettre →</a>`
           : "";
-        cfpAlerts.push(
-          `<li><a href="${appUrl}/events/${ev.id}" style="color: ${COLORS.primary}; text-decoration: underline;">${ev.title}</a> — deadline ${deadlineDate} <strong>(${daysLabel})</strong>${cfpLink}</li>`
-        );
+        cfpAlerts.push({
+          assignedTo: ev.assigned_to,
+          html: `<li><a href="${appUrl}/events/${ev.id}" style="color: ${COLORS.primary}; text-decoration: underline;">${ev.title}</a> — deadline ${deadlineDate} <strong>(${daysLabel})</strong>${cfpLink}</li>`,
+        });
       }
     }
     console.log(`[${VERSION}] CFP à soumettre: ${cfpAlerts.length}`);
@@ -470,23 +493,24 @@ serve(async (req) => {
 
     const { data: cfpReminderEvents } = await supabase
       .from("events")
-      .select("id, title, event_date, cfp_deadline, cfp_url, event_url")
+      .select("id, title, event_date, cfp_deadline, cfp_url, event_url, assigned_to")
       .eq("event_type", "external")
       .not("cfp_deadline", "is", null)
       .gte("cfp_deadline", tenMonthsAgoMinus7Str)
       .lte("cfp_deadline", tenMonthsAgoStr)
       .order("cfp_deadline", { ascending: true });
 
-    const cfpReminderAlerts: string[] = [];
+    const cfpReminderAlerts: EventAlert[] = [];
     if (cfpReminderEvents) {
       for (const ev of cfpReminderEvents) {
         const lastCfpDate = new Date(ev.cfp_deadline).toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
         const eventLink = ev.event_url
           ? ` — <a href="${ev.event_url}" style="color: ${COLORS.blue}; text-decoration: underline;">Voir le site →</a>`
           : "";
-        cfpReminderAlerts.push(
-          `<li><a href="${appUrl}/events/${ev.id}" style="color: ${COLORS.primary}; text-decoration: underline;">${ev.title}</a> — CFP précédent : ${lastCfpDate}. Pensez à vérifier le CFP de cette année !${eventLink}</li>`
-        );
+        cfpReminderAlerts.push({
+          assignedTo: ev.assigned_to,
+          html: `<li><a href="${appUrl}/events/${ev.id}" style="color: ${COLORS.primary}; text-decoration: underline;">${ev.title}</a> — CFP précédent : ${lastCfpDate}. Pensez à vérifier le CFP de cette année !${eventLink}</li>`,
+        });
       }
     }
     console.log(`[${VERSION}] CFP reminders (next year): ${cfpReminderAlerts.length}`);
@@ -528,42 +552,47 @@ serve(async (req) => {
 
       // 1. Factures à émettre (formations terminées sans facture)
       const userInvoiceAlerts = invoiceAlerts.filter(
-        (a) => userCanSeeTraining(recipient, a.assignedTo)
+        (a) => userCanSee(recipient, a.assignedTo)
       );
       if (userInvoiceAlerts.length > 0) {
         sections.push(sectionHtml("🧾", "Factures à émettre", COLORS.red, userInvoiceAlerts.map((a) => a.html), userInvoiceAlerts.length));
         alertCount += userInvoiceAlerts.length;
       }
 
-      // 2. Missions à facturer (visible to all)
-      if (missionAlerts.length > 0) {
-        sections.push(sectionHtml("💰", "Factures missions", COLORS.green, missionAlerts, missionAlerts.length));
-        alertCount += missionAlerts.length;
+      // 2. Missions à facturer (filtered by assigned_to)
+      const userMissionAlerts = missionAlerts.filter((a) => userCanSee(recipient, a.assignedTo));
+      if (userMissionAlerts.length > 0) {
+        sections.push(sectionHtml("💰", "Factures missions", COLORS.green, userMissionAlerts.map((a) => a.html), userMissionAlerts.length));
+        alertCount += userMissionAlerts.length;
       }
 
-      // 2b. Missions sans date de début
-      if (missionNoDateAlerts.length > 0) {
-        sections.push(sectionHtml("📅", "Missions sans date de début", COLORS.orange, missionNoDateAlerts, missionNoDateAlerts.length));
-        alertCount += missionNoDateAlerts.length;
+      // 2b. Missions sans date de début (filtered by assigned_to)
+      const userMissionNoDateAlerts = missionNoDateAlerts.filter((a) => userCanSee(recipient, a.assignedTo));
+      if (userMissionNoDateAlerts.length > 0) {
+        sections.push(sectionHtml("📅", "Missions sans date de début", COLORS.orange, userMissionNoDateAlerts.map((a) => a.html), userMissionNoDateAlerts.length));
+        alertCount += userMissionNoDateAlerts.length;
       }
 
-      // 3. Devis à faire (colonne contacté)
-      if (devisAFaireAlerts.length > 0) {
-        sections.push(sectionHtml("📝", "Devis à faire", COLORS.blue, devisAFaireAlerts, devisAFaireAlerts.length));
-        alertCount += devisAFaireAlerts.length;
+      // 3. Devis à faire (filtered by assigned_to)
+      const userDevisAFaire = devisAFaireAlerts.filter((a) => userCanSee(recipient, a.assignedTo));
+      if (userDevisAFaire.length > 0) {
+        sections.push(sectionHtml("📝", "Devis à faire", COLORS.blue, userDevisAFaire.map((a) => a.html), userDevisAFaire.length));
+        alertCount += userDevisAFaire.length;
       }
 
-      // 4. Devis à relancer (devis envoyé)
-      if (devisRelanceAlerts.length > 0) {
-        sections.push(sectionHtml("🔄", "Devis à relancer", COLORS.orange, devisRelanceAlerts, devisRelanceAlerts.length));
-        alertCount += devisRelanceAlerts.length;
+      // 4. Devis à relancer (filtered by assigned_to)
+      const userDevisRelance = devisRelanceAlerts.filter((a) => userCanSee(recipient, a.assignedTo));
+      if (userDevisRelance.length > 0) {
+        sections.push(sectionHtml("🔄", "Devis à relancer", COLORS.orange, userDevisRelance.map((a) => a.html), userDevisRelance.length));
+        alertCount += userDevisRelance.length;
       }
 
-      // 5. Opportunités à contacter (première colonne)
-      if (opportunitesAlerts.length > 0) {
+      // 5. Opportunités à contacter (filtered by assigned_to)
+      const userOpportunites = opportunitesAlerts.filter((a) => userCanSee(recipient, a.assignedTo));
+      if (userOpportunites.length > 0) {
         const colName = firstColumn?.name || "Nouvelles";
-        sections.push(sectionHtml("🎯", `Opportunités à contacter (${colName})`, COLORS.amber, opportunitesAlerts, opportunitesAlerts.length));
-        alertCount += opportunitesAlerts.length;
+        sections.push(sectionHtml("🎯", `Opportunités à contacter (${colName})`, COLORS.amber, userOpportunites.map((a) => a.html), userOpportunites.length));
+        alertCount += userOpportunites.length;
       }
 
       // 6. Articles à relire
@@ -594,18 +623,19 @@ serve(async (req) => {
         alertCount += userReviews.length;
       }
 
-      // 7. CFP à soumettre
-      if (cfpAlerts.length > 0) {
-        sections.push(sectionHtml("📨", "CFP à soumettre", COLORS.orange, cfpAlerts, cfpAlerts.length));
-        alertCount += cfpAlerts.length;
+      // 7. CFP à soumettre (filtered by assigned_to)
+      const userCfpAlerts = cfpAlerts.filter((a) => userCanSee(recipient, a.assignedTo));
+      if (userCfpAlerts.length > 0) {
+        sections.push(sectionHtml("📨", "CFP à soumettre", COLORS.orange, userCfpAlerts.map((a) => a.html), userCfpAlerts.length));
+        alertCount += userCfpAlerts.length;
       }
 
       // 8. Formations à traiter (conventions)
       const userConvNotGen = conventionNotGenAlerts.filter(
-        (a) => userCanSeeTraining(recipient, a.assignedTo)
+        (a) => userCanSee(recipient, a.assignedTo)
       );
       const userConvNotSigned = conventionNotSignedAlerts.filter(
-        (a) => userCanSeeTraining(recipient, a.assignedTo)
+        (a) => userCanSee(recipient, a.assignedTo)
       );
       const formationItems = [
         ...userConvNotGen.map((a) => a.html),
@@ -616,16 +646,18 @@ serve(async (req) => {
         alertCount += formationItems.length;
       }
 
-      // 9. Événements approchant
-      if (eventAlerts.length > 0) {
-        sections.push(sectionHtml("📅", "Événements approchant", COLORS.teal, eventAlerts, eventAlerts.length));
-        alertCount += eventAlerts.length;
+      // 9. Événements approchant (filtered by assigned_to)
+      const userEventAlerts = eventAlerts.filter((a) => userCanSee(recipient, a.assignedTo));
+      if (userEventAlerts.length > 0) {
+        sections.push(sectionHtml("📅", "Événements approchant", COLORS.teal, userEventAlerts.map((a) => a.html), userEventAlerts.length));
+        alertCount += userEventAlerts.length;
       }
 
-      // 10. Rappels CFP année suivante
-      if (cfpReminderAlerts.length > 0) {
-        sections.push(sectionHtml("🔁", "CFP à surveiller (année suivante)", COLORS.blue, cfpReminderAlerts, cfpReminderAlerts.length));
-        alertCount += cfpReminderAlerts.length;
+      // 10. Rappels CFP année suivante (filtered by assigned_to)
+      const userCfpReminders = cfpReminderAlerts.filter((a) => userCanSee(recipient, a.assignedTo));
+      if (userCfpReminders.length > 0) {
+        sections.push(sectionHtml("🔁", "CFP à surveiller (année suivante)", COLORS.blue, userCfpReminders.map((a) => a.html), userCfpReminders.length));
+        alertCount += userCfpReminders.length;
       }
 
       // Skip if no alerts for this user

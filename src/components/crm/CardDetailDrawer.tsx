@@ -117,6 +117,7 @@ import {
 } from "@/hooks/useCrmBoard";
 import { useAuth } from "@/hooks/useAuth";
 import { useSearchMissions } from "@/hooks/useMissions";
+import AssignedUserSelector from "@/components/formations/AssignedUserSelector";
 import { missionStatusConfig } from "@/types/missions";
 import EmailEditor from "./EmailEditor";
 import SentDevisSection from "./SentDevisSection";
@@ -186,6 +187,7 @@ const CardDetailDrawer = ({
   const [linkedinUrl, setLinkedinUrl] = useState("");
   const [websiteUrl, setWebsiteUrl] = useState("");
   const [serviceType, setServiceType] = useState<"formation" | "mission" | null>(null);
+  const [assignedTo, setAssignedTo] = useState<string | null>(null);
 
   // Confidence score state
   const [confidenceScore, setConfidenceScore] = useState<number | null>(null);
@@ -345,6 +347,7 @@ const CardDetailDrawer = ({
       setLinkedinUrl(card.linkedin_url || "");
       setWebsiteUrl(card.website_url || "");
       setServiceType(card.service_type || null);
+      setAssignedTo(card.assigned_to || null);
       // Confidence score
       setConfidenceScore(card.confidence_score ?? 50);
       // Acquisition source
@@ -410,10 +413,11 @@ const CardDetailDrawer = ({
       emoji: cardEmoji,
       confidence_score: confidenceScore,
       acquisition_source: acquisitionSource,
+      assigned_to: assignedTo,
     });
   }, [title, salesStatus, estimatedValue, quoteUrl, columnId, scheduledDate, scheduledText,
       firstName, lastName, company, email, phone, linkedinUrl, websiteUrl, serviceType,
-      nextActionText, nextActionDone, nextActionType, linkedMissionId, cardEmoji, confidenceScore, acquisitionSource]);
+      nextActionText, nextActionDone, nextActionType, linkedMissionId, cardEmoji, confidenceScore, acquisitionSource, assignedTo]);
 
   // Auto-save description with debounce
   const saveDescription = useCallback(async (newDescription: string) => {
@@ -853,6 +857,7 @@ const CardDetailDrawer = ({
         emoji: cardEmoji,
         confidence_score: confidenceScore,
         acquisition_source: acquisitionSource,
+        assigned_to: assignedTo,
       },
       actorEmail: user.email,
       oldCard: card,
@@ -1614,6 +1619,12 @@ const CardDetailDrawer = ({
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          {/* Assigned user */}
+          <div className="mt-2">
+            <Label className="text-xs text-muted-foreground mb-1 block">Assigné à</Label>
+            <AssignedUserSelector value={assignedTo} onChange={setAssignedTo} />
           </div>
         </div>
 

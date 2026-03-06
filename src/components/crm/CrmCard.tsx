@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { GraduationCap, Briefcase, Building2 } from "lucide-react";
+import { GraduationCap, Briefcase } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { CrmCard } from "@/types/crm";
@@ -86,11 +86,15 @@ const CrmCardComponent = ({ card, isDragging: isDraggingProp, onClick, serviceTy
   };
 
   const companyTag = card.company
-    ? [{ key: "_company", label: card.company, icon: <Building2 className="h-3 w-3 shrink-0" />, style: { backgroundColor: "#6366f120", color: "#6366f1" } }]
-    : [];
+    ? {
+        key: "company",
+        label: card.company,
+        style: { backgroundColor: "#e2e8f0", color: "#475569" },
+      }
+    : null;
 
   const tags = [
-    ...companyTag,
+    ...(companyTag ? [companyTag] : []),
     ...(card.tags || []).map((tag) => ({
       key: tag.id,
       label: tag.name,
@@ -181,7 +185,7 @@ const CrmCardComponent = ({ card, isDragging: isDraggingProp, onClick, serviceTy
           </div>
         )}
 
-        {/* Title */}
+        {/* Title + Company */}
         <div className="flex items-start gap-1">
           <span data-emoji-picker>
             <EmojiPickerButton
