@@ -57,6 +57,7 @@ const EventCreate = () => {
         cfp_url: isExternal && values.cfpUrl.trim() ? values.cfpUrl.trim() : null,
         notes: null,
         status: "active",
+        assigned_to: null,
         cancellation_reason: null,
       });
       toast({ title: "Événement créé" });
