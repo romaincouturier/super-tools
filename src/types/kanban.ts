@@ -23,6 +23,7 @@ export interface KanbanDropResult<TCard> {
 
 export interface KanbanBoardConfig {
   cardSortable?: boolean;
+  columnSortable?: boolean;
   enableKeyboard?: boolean;
   collisionDetection?: CollisionDetection;
 }
@@ -38,10 +39,12 @@ export interface GenericKanbanBoardProps<
   config?: KanbanBoardConfig;
 
   renderCard: (card: TCard, isDragging?: boolean) => ReactNode;
-  renderColumnHeader?: (column: TColumn, cards: TCard[]) => ReactNode;
+  renderColumnHeader?: (column: TColumn, cards: TCard[], dragHandle?: ReactNode) => ReactNode;
   renderEmptyColumn?: (column: TColumn) => ReactNode;
+  renderAfterColumns?: () => ReactNode;
 
   onCardMove: (result: KanbanDropResult<TCard>) => void | Promise<void>;
+  onColumnReorder?: (columnIds: string[]) => void | Promise<void>;
 
   onCardClick?: (card: TCard) => void;
 

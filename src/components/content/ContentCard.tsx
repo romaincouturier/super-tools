@@ -61,19 +61,17 @@ const ContentCard = ({ card, isDragging: isDraggingProp, typeColors, onEdit, onD
       ref={ref}
       style={style}
       {...attributes}
-      className={`bg-card border rounded-lg overflow-hidden cursor-pointer hover:border-primary/50 transition-colors ${
-        isDragging ? "opacity-50 shadow-lg rotate-2 cursor-grabbing" : ""
+      {...listeners}
+      className={`bg-card border rounded-lg overflow-hidden cursor-grab active:cursor-grabbing hover:border-primary/50 transition-colors ${
+        isDragging ? "opacity-50 shadow-lg rotate-2" : ""
       }`}
+      onClick={handleCardClick}
     >
-      {/* Drag handle - color indicator bar */}
+      {/* Color indicator bar */}
       <div
-        {...listeners}
-        className="h-1 w-full cursor-grab active:cursor-grabbing"
+        className="h-1 w-full"
         style={{ backgroundColor: borderColor }}
       />
-
-      {/* Clickable content area */}
-      <div onClick={handleCardClick}>
 
       {card.image_url && (
         <div className="aspect-video w-full overflow-hidden">
@@ -146,7 +144,6 @@ const ContentCard = ({ card, isDragging: isDraggingProp, typeColors, onEdit, onD
 
         <CardTagList tags={tags} className="mt-2" />
         </div>
-      </div>
     </div>
   );
 };
