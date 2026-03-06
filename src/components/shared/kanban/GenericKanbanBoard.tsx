@@ -182,10 +182,13 @@ export default function GenericKanbanBoard<
     const overCard = cards.find((c) => c.id === over.id);
     if (overCard) {
       targetColumnId = overCard.columnId;
-    } else if (columns.some((col) => col.id === over.id)) {
-      targetColumnId = over.id as string;
     } else {
-      return;
+      const resolvedColId = resolveColumnId(over.id as string);
+      if (resolvedColId) {
+        targetColumnId = resolvedColId;
+      } else {
+        return;
+      }
     }
 
     const targetCards = getCardsByColumn(targetColumnId);
