@@ -640,7 +640,7 @@ const TravelExpenseCalculator = ({
               </div>
 
               <p className="text-[10px] text-muted-foreground">
-                Barème IK 2024 (tranche ≤ 5 000 km). Estimation péages : ~{TOLL_ESTIMATE_PER_KM} €/km autoroute. Les paramètres sont sauvegardés localement.
+                Barème IK 2024 (tranche ≤ 5 000 km). Les distances, péages et durées sont calculés via Google Routes API. Les paramètres sont sauvegardés localement.
               </p>
             </div>
           </CollapsibleContent>
@@ -751,6 +751,11 @@ const TravelExpenseCalculator = ({
                       <span className="text-[10px] text-muted-foreground">
                         IK : {formatEur(dest.distanceKm * 2 * ikRate * dest.roundTrips)} € ({dest.distanceKm}×2×{ikRate}×{dest.roundTrips})
                       </span>
+                      {dest.durationHours > 0 && (
+                        <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                          🕐 {dest.durationHours} h (aller)
+                        </span>
+                      )}
                     </>
                   )}
 
