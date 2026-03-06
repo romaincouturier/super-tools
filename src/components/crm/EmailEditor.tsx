@@ -23,6 +23,8 @@ import { cn } from "@/lib/utils";
 import { useEffect, useCallback, useState, useMemo, useRef } from "react";
 import { useEmailSnippets, EmailSnippet } from "@/hooks/useEmailSnippets";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
+import { supabase } from "@/integrations/supabase/client";
+import { Loader2 } from "lucide-react";
 import { Extension } from "@tiptap/core";
 import { Plugin, PluginKey } from "@tiptap/pm/state";
 
@@ -59,6 +61,8 @@ const EmailEditor = ({
   const slashStartRef = useRef<number | null>(null);
   const { data: snippets } = useEmailSnippets();
   const { isListening, isSupported: speechSupported, startListening, stopListening } = useSpeechRecognition("fr-FR", true);
+  const [isCleaningUp, setIsCleaningUp] = useState(false);
+  const dictationActiveRef = useRef(false);
 
   // Build slash menu items from variables
   const slashItems = useMemo<SlashMenuItem[]>(() => {
@@ -380,21 +384,49 @@ const EmailEditor = ({
                 "h-7 px-2 text-xs gap-1",
                 isListening && "bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700"
               )}
-              onClick={() => {
+              disabled={isCleaningUp}
+              onClick={async () => {
                 if (isListening) {
                   stopListening();
+                  dictationActiveRef.current = false;
+                  // Cleanup dictated text with AI
+                  if (editor) {
+                    const currentHtml = editor.getHTML();
+                    if (currentHtml && currentHtml !== "<p></p>") {
+                      setIsCleaningUp(true);
+                      try {
+                        const { data, error } = await supabase.functions.invoke("crm-ai-assist", {
+                          body: { action: "cleanup_dictation", card_data: { body: currentHtml } },
+                        });
+                        if (!error && data?.result) {
+                          editor.commands.setContent(data.result, { emitUpdate: true });
+                        }
+                      } catch {
+                        // Silently fail - raw dictation is still usable
+                      } finally {
+                        setIsCleaningUp(false);
+                      }
+                    }
+                  }
                 } else {
+                  dictationActiveRef.current = true;
                   startListening((text) => {
                     if (editor) {
-                      editor.chain().focus().insertContent(text).run();
+                      editor.chain().focus().insertContent(text + " ").run();
                     }
                   });
                 }
               }}
-              title={isListening ? "Arrêter la dictée" : "Dicter le message"}
+              title={isListening ? "Arrêter et mettre en forme" : isCleaningUp ? "Mise en forme..." : "Dicter le message"}
             >
-              {isListening ? <MicOff className="h-3.5 w-3.5" /> : <Mic className="h-3.5 w-3.5" />}
-              {isListening ? "Stop" : "Dicter"}
+              {isCleaningUp ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : isListening ? (
+                <MicOff className="h-3.5 w-3.5" />
+              ) : (
+                <Mic className="h-3.5 w-3.5" />
+              )}
+              {isCleaningUp ? "Mise en forme..." : isListening ? "Stop" : "Dicter"}
             </Button>
           </>
         )}
