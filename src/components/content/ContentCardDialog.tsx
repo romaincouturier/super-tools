@@ -432,29 +432,64 @@ const ContentCardDialog = ({
         {/* Scrollable body */}
         <div className="flex-1 overflow-y-auto px-6 py-4">
           <div className="space-y-4">
-            {/* Type de contenu */}
-            <div className="space-y-2">
-              <Label>Type de contenu</Label>
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  variant={cardType === "article" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setCardType("article")}
-                  className="flex-1"
-                >
-                  Article
-                </Button>
-                <Button
-                  type="button"
-                  variant={cardType === "post" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setCardType("post")}
-                  className="flex-1"
-                >
-                  Post réseaux sociaux
-                </Button>
+            {/* Type de contenu + Newsletter (side by side on large screens) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Type de contenu</Label>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant={cardType === "article" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setCardType("article")}
+                    className="flex-1"
+                  >
+                    Article
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={cardType === "post" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setCardType("post")}
+                    className="flex-1"
+                  >
+                    Post réseaux sociaux
+                  </Button>
+                </div>
               </div>
+
+              {/* Newsletter */}
+              {draftNewsletters.length > 0 && (
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-1.5">
+                    <Mail className="h-3.5 w-3.5" />
+                    Newsletter
+                  </Label>
+                  <Select
+                    value={attachedNewsletterId || "none"}
+                    onValueChange={card ? handleNewsletterChange : setAttachedNewsletterId}
+                    disabled={attachingNewsletter}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Rattacher à une newsletter..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Aucune newsletter</SelectItem>
+                      {draftNewsletters.map((nl) => (
+                        <SelectItem key={nl.id} value={nl.id}>
+                          {nl.title || "Newsletter"} — {format(new Date(nl.scheduled_date), "d MMM yyyy", { locale: fr })}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {attachedNewsletterId && attachedNewsletterId !== "none" && (
+                    <p className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Check className="h-3 w-3 text-green-600" />
+                      {card ? "Rattachée à la newsletter" : "Sera rattachée à la newsletter à l'enregistrement"}
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Description avec boutons IA */}
