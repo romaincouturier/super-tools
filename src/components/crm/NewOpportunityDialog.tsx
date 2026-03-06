@@ -422,7 +422,7 @@ Tel: 06 12 34 56 78"
                   if (valueEstimation) setValueEstimation(null);
                 }}
                 placeholder="Ex: 2500"
-                className="mt-1"
+                className="mt-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
               />
               {valueEstimation && (
                 <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">

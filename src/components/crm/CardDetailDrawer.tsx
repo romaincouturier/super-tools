@@ -1376,7 +1376,7 @@ const CardDetailDrawer = ({
                 step="0.01"
                 value={estimatedValue}
                 onChange={(e) => setEstimatedValue(e.target.value)}
-                className="h-8 mt-1"
+                className="h-8 mt-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 autoFocus
               />
             </PopoverContent>
