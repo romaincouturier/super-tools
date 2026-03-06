@@ -173,12 +173,33 @@ export default function GenericKanbanBoard<
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
 
+    // Capture dragColumnOverride before clearing state
+    const lastDragOverride = dragColumnOverride;
+
     setActiveCard(null);
     setActiveColumn(null);
     setDragColumnOverride(null);
     setColumnOrder(null);
 
-    if (!over) return;
+    if (!over) {
+      // Fallback: if collision detection lost the target but we had a valid
+      // column override during drag, use it to complete the drop.
+      if (lastDragOverride) {
+        const card = cards.find((c) => c.id === active.id);
+        if (!card) return;
+        const targetCards = getCardsByColumn(lastDragOverride.columnId);
+        const newPosition = targetCards.length;
+        if (card.columnId === lastDragOverride.columnId && card.position === newPosition) return;
+        const dropResult: KanbanDropResult<TCard> = {
+          card,
+          sourceColumnId: card.columnId,
+          targetColumnId: lastDragOverride.columnId,
+          newPosition,
+        };
+        await onCardMove(dropResult);
+      }
+      return;
+    }
 
     const activeIdStr = String(active.id);
     const overIdStr = String(over.id);
@@ -215,6 +236,9 @@ export default function GenericKanbanBoard<
       const resolvedColId = resolveColumnId(over.id as string);
       if (resolvedColId) {
         targetColumnId = resolvedColId;
+      } else if (lastDragOverride) {
+        // Fallback to last known column override
+        targetColumnId = lastDragOverride.columnId;
       } else {
         return;
       }

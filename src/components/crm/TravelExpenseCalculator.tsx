@@ -48,6 +48,7 @@ export interface TravelSettings {
   departureLat: number | null;
   departureLon: number | null;
   parkingRate: number;
+  nightRate: number;
   lunchRate: number;
   dinnerRate: number;
   breakfastRate: number;
@@ -95,6 +96,7 @@ const IK_RATES: Record<number, { perKm: number; label: string }> = {
 const TOLL_ESTIMATE_PER_KM = 0.09; // estimation autoroute France
 
 const STORAGE_KEY = "crm-travel-settings";
+const DESTINATIONS_STORAGE_KEY = "crm-travel-destinations";
 
 const DEFAULT_SETTINGS: TravelSettings = {
   vehicleHp: 5,
@@ -102,6 +104,7 @@ const DEFAULT_SETTINGS: TravelSettings = {
   departureLat: null,
   departureLon: null,
   parkingRate: 15,
+  nightRate: 70,
   lunchRate: 20.70,
   dinnerRate: 20.70,
   breakfastRate: 10,
@@ -146,6 +149,30 @@ function loadSettings(): TravelSettings {
 function saveSettings(s: TravelSettings) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
+  } catch {
+    // ignore
+  }
+}
+
+function loadDestinations(): TravelDestination[] | null {
+  try {
+    const stored = localStorage.getItem(DESTINATIONS_STORAGE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored) as TravelDestination[];
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        // Reset fetching state and assign fresh IDs
+        return parsed.map((d) => ({ ...d, isFetchingDistance: false, id: createDestId() }));
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
+function saveDestinations(dests: TravelDestination[]) {
+  try {
+    localStorage.setItem(DESTINATIONS_STORAGE_KEY, JSON.stringify(dests));
   } catch {
     // ignore
   }
@@ -222,7 +249,8 @@ function calcDestinationCost(dest: TravelDestination, settings: TravelSettings) 
       break;
     case "train":
       transportCost = dest.ticketPriceRoundTrip * dest.roundTrips;
-      parkingCost = settings.parkingRate * dest.roundTrips;
+      // Parking gare : nuits + 1 jours de stationnement par A/R
+      parkingCost = settings.parkingRate * (dest.nights + 1) * dest.roundTrips;
       loyaltyCost = settings.trainLoyaltyPerTrip * dest.roundTrips;
       break;
     case "plane":
@@ -233,6 +261,8 @@ function calcDestinationCost(dest: TravelDestination, settings: TravelSettings) 
       break;
   }
 
+  const nightsCost = dest.nights * settings.nightRate;
+
   const mealsCost =
     dest.days * settings.lunchRate +
     dest.nights * settings.dinnerRate +
@@ -242,8 +272,9 @@ function calcDestinationCost(dest: TravelDestination, settings: TravelSettings) 
     transportCost,
     parkingCost,
     loyaltyCost,
+    nightsCost,
     mealsCost,
-    total: transportCost + parkingCost + loyaltyCost + mealsCost,
+    total: transportCost + parkingCost + loyaltyCost + nightsCost + mealsCost,
   };
 }
 
@@ -379,7 +410,8 @@ const TravelExpenseCalculator = ({
       if (initialDestinations && initialDestinations.length > 0) {
         setDestinations(initialDestinations);
       } else {
-        setDestinations([emptyDestination()]);
+        const saved = loadDestinations();
+        setDestinations(saved ?? [emptyDestination()]);
       }
 
       const s = initialSettings ?? loadSettings();
@@ -387,10 +419,14 @@ const TravelExpenseCalculator = ({
     }
   }, [open, initialDestinations, initialSettings]);
 
-  // Save settings on change
+  // Save settings and destinations on change
   useEffect(() => {
     if (open) saveSettings(settings);
   }, [settings, open]);
+
+  useEffect(() => {
+    if (open && destinations.length > 0) saveDestinations(destinations);
+  }, [destinations, open]);
 
   const updateSetting = <K extends keyof TravelSettings>(key: K, value: TravelSettings[K]) => {
     setSettings((prev) => ({ ...prev, [key]: value }));
@@ -528,9 +564,18 @@ const TravelExpenseCalculator = ({
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-6 gap-3">
                 <div className="space-y-1">
-                  <Label className="text-xs">Parking gare (€)</Label>
+                  <Label className="text-xs">Nuit (€)</Label>
+                  <Input
+                    type="number" min="0" step="1"
+                    value={settings.nightRate || ""}
+                    onChange={(e) => updateSetting("nightRate", parseFloat(e.target.value) || 0)}
+                    className="h-8 text-sm"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Parking gare (€/j)</Label>
                   <Input
                     type="number" min="0" step="0.5"
                     value={settings.parkingRate || ""}
@@ -716,6 +761,7 @@ const TravelExpenseCalculator = ({
                     )}
                     {costs.parkingCost > 0 && <span>Parking : {formatEur(costs.parkingCost)} €</span>}
                     {costs.loyaltyCost > 0 && <span>Carte : {formatEur(costs.loyaltyCost)} €</span>}
+                    {costs.nightsCost > 0 && <span>Nuits : {formatEur(costs.nightsCost)} €</span>}
                     {costs.mealsCost > 0 && <span>Repas : {formatEur(costs.mealsCost)} €</span>}
                     <span className="ml-auto font-semibold text-foreground text-xs">
                       {formatEur(costs.total)} €
