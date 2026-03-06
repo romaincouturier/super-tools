@@ -467,7 +467,7 @@ const TravelExpenseCalculator = ({
       if (settings.departureLat == null || settings.departureLon == null) return;
 
       updateDest(destId, { isFetchingDistance: true });
-      const result = await fetchDistance(
+      const result = await fetchRouteViaGoogle(
         settings.departureLat,
         settings.departureLon,
         destLat,
@@ -476,7 +476,8 @@ const TravelExpenseCalculator = ({
       if (result) {
         updateDest(destId, {
           distanceKm: result.distanceKm,
-          tollCostOneWay: Math.round(result.distanceKm * TOLL_ESTIMATE_PER_KM),
+          tollCostOneWay: result.tollCostEur,
+          durationHours: result.durationHours,
           isFetchingDistance: false,
         });
       } else {
