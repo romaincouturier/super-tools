@@ -67,6 +67,7 @@ export interface TravelDestination {
   // Car
   distanceKm: number;
   tollCostOneWay: number;
+  durationHours: number;
   // Train / Plane / Other
   ticketPriceRoundTrip: number;
   // Fetching state
