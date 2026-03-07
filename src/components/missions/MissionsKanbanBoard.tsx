@@ -29,6 +29,7 @@ interface CrmPrefill {
 interface MissionsKanbanBoardProps {
   prefillFromCrm?: CrmPrefill;
   onPrefillConsumed?: () => void;
+  openMissionId?: string | null;
 }
 
 const statuses: MissionStatus[] = ["not_started", "in_progress", "completed", "cancelled"];
