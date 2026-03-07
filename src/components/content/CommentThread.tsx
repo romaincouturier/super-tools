@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Send, Loader2, MessageCircle, X, Pencil, Image, FileText, Palette, Trash2, Copy } from "lucide-react";
+import { Send, Loader2, MessageCircle, X, Pencil, Image, FileText, Palette, Trash2, Copy, Mic, MicOff } from "lucide-react";
+import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -77,7 +78,10 @@ const CommentThread = ({
   const [showComments, setShowComments] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [pendingMentions, setPendingMentions] = useState<MentionUser[]>([]);
+  const [analyzingVoice, setAnalyzingVoice] = useState(false);
+  const [voiceTranscript, setVoiceTranscript] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { isListening, isSupported: speechSupported, startListening, stopListening } = useSpeechRecognition("fr-FR", true);
 
   useEffect(() => {
     fetchComments();
@@ -99,7 +103,31 @@ const CommentThread = ({
 
       if (error) throw error;
 
-      setComments((data || []) as Comment[]);
+      // Resolve author names from profiles
+      const rawComments = data || [];
+      const authorIds = [...new Set(rawComments.map((c: any) => c.author_id))];
+      
+      let profileMap: Record<string, string> = {};
+      if (authorIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("user_id, first_name, last_name, email")
+          .in("user_id", authorIds);
+        
+        if (profiles) {
+          for (const p of profiles) {
+            const fullName = p.first_name && p.last_name
+              ? `${p.first_name} ${p.last_name}`
+              : p.email || undefined;
+            if (fullName) profileMap[p.user_id] = fullName;
+          }
+        }
+      }
+
+      setComments(rawComments.map((c: any) => ({
+        ...c,
+        author_email: profileMap[c.author_id] || c.author_email,
+      })) as Comment[]);
     } catch (error) {
       console.error("Error fetching comments:", error);
     } finally {
@@ -372,15 +400,61 @@ const CommentThread = ({
     }
   };
 
-  const getInitials = (email?: string) => {
-    if (!email) return "?";
-    return email
-      .split("@")[0]
-      .split(".")
+  const getInitials = (authorId?: string, displayName?: string) => {
+    if (authorId === currentUserId) return "😊";
+    if (!displayName) return "?";
+    return displayName
+      .split(/[\s.@]+/)
+      .filter(Boolean)
       .map((n) => n[0])
       .join("")
       .toUpperCase()
       .slice(0, 2);
+  };
+
+  const handleVoiceToggle = () => {
+    if (isListening) {
+      stopListening();
+      // Analyze accumulated transcript
+      if (voiceTranscript.trim()) {
+        analyzeVoiceTranscript(voiceTranscript.trim());
+      }
+    } else {
+      setVoiceTranscript("");
+      startListening((text: string) => {
+        setVoiceTranscript((prev) => (prev ? prev + " " + text : text));
+      });
+    }
+  };
+
+  const analyzeVoiceTranscript = async (transcript: string) => {
+    setAnalyzingVoice(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("analyze-voice-review", {
+        body: { transcript },
+      });
+
+      if (error) throw error;
+
+      if (data?.problem) {
+        setNewComment(data.problem);
+      }
+      if (data?.correction) {
+        setProposedCorrection(data.correction);
+      }
+      if (data?.comment_type && (data.comment_type === "fond" || data.comment_type === "forme")) {
+        setCommentType(data.comment_type);
+      }
+
+      toast.success("Retour vocal analysé");
+    } catch (error) {
+      console.error("Error analyzing voice:", error);
+      // Fallback: put raw transcript in comment
+      setNewComment(transcript);
+      toast.error("Erreur d'analyse — transcription brute insérée");
+    } finally {
+      setAnalyzingVoice(false);
+    }
   };
 
   const renderCommentContent = (text: string) => {
@@ -447,13 +521,15 @@ const CommentThread = ({
                   >
                     <Avatar className="h-8 w-8 flex-shrink-0">
                       <AvatarFallback className="text-xs">
-                        {getInitials(comment.author_email)}
+                        {getInitials(comment.author_id, comment.author_email)}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-xs font-medium">
-                          {comment.author_email || "Utilisateur"}
+                          {comment.author_id === currentUserId
+                            ? "Moi"
+                            : comment.author_email || "Utilisateur"}
                         </span>
                         <span className="text-xs text-muted-foreground">
                           {new Date(comment.created_at).toLocaleString("fr-FR", {
@@ -634,6 +710,24 @@ const CommentThread = ({
                   >
                     <Image className="h-4 w-4" />
                   </Button>
+                  {speechSupported && (
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant={isListening ? "destructive" : "outline"}
+                      onClick={handleVoiceToggle}
+                      disabled={analyzingVoice}
+                      title={isListening ? "Arrêter et analyser" : "Retour vocal"}
+                    >
+                      {analyzingVoice ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : isListening ? (
+                        <MicOff className="h-4 w-4" />
+                      ) : (
+                        <Mic className="h-4 w-4" />
+                      )}
+                    </Button>
+                  )}
                   <Button
                     size="icon"
                     onClick={handleSubmit}
@@ -647,6 +741,14 @@ const CommentThread = ({
                   </Button>
                 </div>
               </div>
+
+              {/* Indicateur d'écoute vocale */}
+              {isListening && (
+                <div className="flex items-center gap-2 text-sm text-destructive animate-pulse">
+                  <Mic className="h-4 w-4" />
+                  <span>Écoute en cours… {voiceTranscript && `"${voiceTranscript}"`}</span>
+                </div>
+              )}
 
               {/* Prévisualisation de l'image */}
               {imagePreview && (
