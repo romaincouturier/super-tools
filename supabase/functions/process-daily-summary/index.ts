@@ -26,6 +26,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   devis_a_relancer: "Devis à relancer",
   formations_conventions: "Formations (conventions)",
   articles_relire: "Articles à relire",
+  articles_bloques: "Articles bloqués / en attente",
   evenements: "Événements",
   cfp_soumettre: "CFP à soumettre",
   cfp_surveiller: "CFP à surveiller",
