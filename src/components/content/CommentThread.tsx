@@ -396,11 +396,12 @@ const CommentThread = ({
     }
   };
 
-  const getInitials = (email?: string) => {
-    if (!email) return "?";
-    return email
-      .split("@")[0]
-      .split(".")
+  const getInitials = (authorId?: string, displayName?: string) => {
+    if (authorId === currentUserId) return "😊";
+    if (!displayName) return "?";
+    return displayName
+      .split(/[\s.@]+/)
+      .filter(Boolean)
       .map((n) => n[0])
       .join("")
       .toUpperCase()
