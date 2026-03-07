@@ -418,17 +418,20 @@ const CommentThread = ({
       stopListening();
       // Use ref to get the latest transcript (avoids stale closure)
       const transcript = voiceTranscriptRef.current.trim();
+      console.log("[Voice] Stopped. Transcript:", transcript);
       if (transcript) {
         analyzeVoiceTranscript(transcript);
+      } else {
+        toast.info("Aucun texte détecté — réessayez en parlant plus fort");
       }
     } else {
       setVoiceTranscript("");
       voiceTranscriptRef.current = "";
-      startListening((text: string) => {
-        voiceTranscriptRef.current = voiceTranscriptRef.current
-          ? voiceTranscriptRef.current + " " + text
-          : text;
-        setVoiceTranscript(voiceTranscriptRef.current);
+      startListening((fullTranscript: string) => {
+        // The hook now sends the full accumulated transcript each time
+        voiceTranscriptRef.current = fullTranscript;
+        setVoiceTranscript(fullTranscript);
+        console.log("[Voice] Transcript updated:", fullTranscript);
       });
     }
   };
