@@ -203,7 +203,7 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+    <div className="min-h-screen relative flex items-center justify-center bg-background p-4">
       <Card 
         className={cn(
           "w-full max-w-md border-2 shadow-xl transition-transform",
@@ -211,9 +211,6 @@ const Auth = () => {
         )}
       >
         <CardHeader className="text-center space-y-4">
-          <div className="mx-auto">
-            <SupertiltLogo className="h-12 mx-auto" />
-          </div>
           <CardTitle className="text-2xl font-bold">
             SuperTools
           </CardTitle>
@@ -285,6 +282,10 @@ const Auth = () => {
           )}
         </CardContent>
       </Card>
+      <footer className="absolute bottom-6 left-0 right-0 flex flex-col items-center gap-2 text-muted-foreground">
+        <SupertiltLogo className="h-8" />
+        <p className="text-xs">&copy; {new Date().getFullYear()} SuperTools. Tous droits réservés.</p>
+      </footer>
     </div>
   );
 };
