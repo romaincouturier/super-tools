@@ -326,23 +326,51 @@ serve(async (req) => {
       }
     }
 
-    // 6. ARTICLES À RELIRE
+    // 6. ARTICLES À RELIRE (exclude cards in "terminé" column)
     const { data: pendingReviews } = await supabase
       .from("content_reviews")
-      .select("id, card_id, reviewer_email, status, content_cards(title)")
+      .select("id, card_id, reviewer_email, status, content_cards(title, column_id, content_columns:column_id(name))")
       .in("status", ["pending", "in_review"]);
 
     if (pendingReviews) {
       for (const r of pendingReviews) {
-        const cardTitle = (r as any).content_cards?.title || "Sans titre";
+        const card = (r as any).content_cards;
+        const columnName = card?.content_columns?.name?.toLowerCase() || "";
+        // Skip cards in "terminé" or "publié" columns
+        if (columnName.includes("termin") || columnName.includes("publi")) continue;
+
+        const cardTitle = card?.title || "Sans titre";
+        const statusLabel = r.status === "in_review" ? "Relecture en cours" : "En attente de relecture";
         globalActions.push({
           category: "articles_relire",
           title: cardTitle,
-          description: `Relecture en attente (${r.reviewer_email})`,
+          description: `${statusLabel} (${r.reviewer_email})`,
           link: `${appUrl}/contenu?card=${r.card_id}`,
           entity_type: "content_review",
           entity_id: r.id,
         });
+      }
+    }
+
+    // 6b. ARTICLES BLOQUÉS (cards in waiting/blocked columns, no review filter)
+    const { data: blockedCards } = await supabase
+      .from("content_cards")
+      .select("id, title, column_id, content_columns:column_id(name)")
+      .not("column_id", "is", null);
+
+    if (blockedCards) {
+      for (const card of blockedCards) {
+        const columnName = ((card as any).content_columns?.name || "").toLowerCase();
+        if (columnName.includes("bloqu") || columnName.includes("attente")) {
+          globalActions.push({
+            category: "articles_bloques",
+            title: card.title,
+            description: `Colonne : ${(card as any).content_columns?.name}`,
+            link: `${appUrl}/contenu?card=${card.id}`,
+            entity_type: "content_card",
+            entity_id: card.id,
+          });
+        }
       }
     }
 
