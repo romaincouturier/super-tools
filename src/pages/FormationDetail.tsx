@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 import type { FormationFormula } from "@/types/training";
 import { Loader2, ArrowLeft, Calendar, Users, FileText, ExternalLink, Edit2, User as UserIcon, Mail, MapPin, Building, Map, Train, Hotel, UtensilsCrossed, DoorOpen, Clock, Copy, Check, AlertCircle, Share2, CheckCircle2, Euro, StickyNote, Save, MoreHorizontal, Heart, Send, AlertTriangle } from "lucide-react";
+import confetti from "canvas-confetti";
 import { Switch } from "@/components/ui/switch";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAppSetting } from "@/hooks/useAppSetting";
@@ -83,6 +84,7 @@ interface Training {
   elearning_duration?: number | null;
   notes?: string | null;
   assigned_to?: string | null;
+  max_participants?: number | null;
 }
 
 interface Schedule {
@@ -465,6 +467,45 @@ const FormationDetail = () => {
     }
   };
 
+  const prevParticipantCountRef = useRef<number>(0);
+
+  const celebrateFullSession = () => {
+    const duration = 3000;
+    const end = Date.now() + duration;
+    const colors = ["#ffd100", "#101820", "#f59e0b", "#10b981", "#3b82f6"];
+
+    const frame = () => {
+      confetti({
+        particleCount: 3,
+        angle: 60,
+        spread: 55,
+        origin: { x: 0 },
+        colors,
+      });
+      confetti({
+        particleCount: 3,
+        angle: 120,
+        spread: 55,
+        origin: { x: 1 },
+        colors,
+      });
+      if (Date.now() < end) requestAnimationFrame(frame);
+    };
+
+    confetti({
+      particleCount: 100,
+      spread: 70,
+      origin: { y: 0.6 },
+      colors,
+    });
+    requestAnimationFrame(frame);
+
+    toast({
+      title: "🎉 Session complète !",
+      description: "Le nombre maximum de participants est atteint.",
+    });
+  };
+
   const fetchParticipants = async () => {
     if (!id) return;
 
@@ -474,7 +515,24 @@ const FormationDetail = () => {
       .eq("training_id", id)
       .order("added_at", { ascending: true });
 
-    setParticipants(participantsData || []);
+    const newList = participantsData || [];
+    const prevCount = prevParticipantCountRef.current;
+    const newCount = newList.length;
+    prevParticipantCountRef.current = newCount;
+
+    // Celebrate when we just reached max_participants (inter-entreprises)
+    if (
+      training &&
+      training.max_participants &&
+      training.max_participants > 0 &&
+      newCount >= training.max_participants &&
+      prevCount < training.max_participants &&
+      prevCount > 0 // only if we were already tracking (not initial load)
+    ) {
+      celebrateFullSession();
+    }
+
+    setParticipants(newList);
   };
 
   const handleLogout = async () => {
