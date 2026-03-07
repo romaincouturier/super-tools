@@ -1,4 +1,4 @@
-import { MoreHorizontal, Pencil, Trash2, Eye } from "lucide-react";
+import { MoreHorizontal, Pencil, Trash2, Eye, Mail } from "lucide-react";
 import type { ContentTypeColors } from "./KanbanBoard";
 import { Button } from "@/components/ui/button";
 import {
@@ -55,6 +55,15 @@ const ContentCard = ({ card, isDragging: isDraggingProp, typeColors, onEdit, onD
     label: tag,
     className: getTagColor(tag),
   }));
+
+  // Add newsletter tag if present
+  if (card.newsletter_name) {
+    tags.unshift({
+      key: "__newsletter__",
+      label: `📬 ${card.newsletter_name}`,
+      className: "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200",
+    });
+  }
 
   return (
     <div

@@ -50,6 +50,7 @@ export interface Card {
   review_status?: ReviewStatus;
   card_type?: ContentCardType;
   emoji?: string | null;
+  newsletter_name?: string | null;
 }
 
 export interface Column {
@@ -106,7 +107,7 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
 
   const fetchData = async () => {
     try {
-      const [columnsRes, cardsRes, reviewsRes, sentNewslettersRes] = await Promise.all([
+      const [columnsRes, cardsRes, reviewsRes, sentNewslettersRes, newsletterAttachmentsRes] = await Promise.all([
         supabase
           .from("content_columns")
           .select("*")
@@ -132,6 +133,28 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
             .in("newsletter_id", nlIds);
           return { data: nlCards || [] };
         })(),
+        // Fetch all newsletter attachments with newsletter title
+        (async () => {
+          const { data: nlCards } = await (supabase as any)
+            .from("newsletter_cards")
+            .select("card_id, newsletter_id");
+          if (!nlCards || nlCards.length === 0) return new Map<string, string>();
+          const nlIds = [...new Set(nlCards.map((nc: any) => nc.newsletter_id))];
+          const { data: newsletters } = await (supabase as any)
+            .from("newsletters")
+            .select("id, title, scheduled_date")
+            .in("id", nlIds);
+          const nlMap = new Map<string, string>();
+          for (const nl of newsletters || []) {
+            nlMap.set(nl.id, nl.title || "Newsletter");
+          }
+          const cardNlMap = new Map<string, string>();
+          for (const nc of nlCards) {
+            const name = nlMap.get(nc.newsletter_id);
+            if (name) cardNlMap.set(nc.card_id, name);
+          }
+          return cardNlMap;
+        })(),
       ]);
 
       if (columnsRes.error) throw columnsRes.error;
@@ -156,6 +179,8 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
       );
       setCardIdsInSentNewsletter(sentNlCardIds);
 
+      const cardNewsletterMap = newsletterAttachmentsRes as Map<string, string>;
+
       setColumns(columnsRes.data || []);
       setCards(
         (cardsRes.data || []).map((c) => ({
@@ -169,6 +194,7 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
           review_status: cardReviewStatus.get(c.id) || "none",
           card_type: (c.card_type as ContentCardType) || "article",
           emoji: (c as any).emoji || null,
+          newsletter_name: cardNewsletterMap.get(c.id) || null,
         }))
       );
     } catch (error) {
