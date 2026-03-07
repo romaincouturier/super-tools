@@ -218,3 +218,6 @@ verify_jwt = false
 
 [functions.alert-form-error]
 verify_jwt = false
+
+[functions.analyze-voice-review]
+verify_jwt = false
