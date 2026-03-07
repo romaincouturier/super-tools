@@ -78,7 +78,10 @@ const CommentThread = ({
   const [showComments, setShowComments] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [pendingMentions, setPendingMentions] = useState<MentionUser[]>([]);
+  const [analyzingVoice, setAnalyzingVoice] = useState(false);
+  const [voiceTranscript, setVoiceTranscript] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { isListening, isSupported: speechSupported, startListening, stopListening } = useSpeechRecognition("fr-FR", true);
 
   useEffect(() => {
     fetchComments();
