@@ -99,7 +99,31 @@ const CommentThread = ({
 
       if (error) throw error;
 
-      setComments((data || []) as Comment[]);
+      // Resolve author names from profiles
+      const rawComments = data || [];
+      const authorIds = [...new Set(rawComments.map((c: any) => c.author_id))];
+      
+      let profileMap: Record<string, string> = {};
+      if (authorIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("user_id, first_name, last_name, email")
+          .in("user_id", authorIds);
+        
+        if (profiles) {
+          for (const p of profiles) {
+            const fullName = p.first_name && p.last_name
+              ? `${p.first_name} ${p.last_name}`
+              : p.email || undefined;
+            if (fullName) profileMap[p.user_id] = fullName;
+          }
+        }
+      }
+
+      setComments(rawComments.map((c: any) => ({
+        ...c,
+        author_email: profileMap[c.author_id] || c.author_email,
+      })) as Comment[]);
     } catch (error) {
       console.error("Error fetching comments:", error);
     } finally {
