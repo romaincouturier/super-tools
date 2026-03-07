@@ -477,7 +477,9 @@ const CommentThread = ({
                     <div className="flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-xs font-medium">
-                          {comment.author_email || "Utilisateur"}
+                          {comment.author_id === currentUserId
+                            ? "Moi"
+                            : comment.author_email || "Utilisateur"}
                         </span>
                         <span className="text-xs text-muted-foreground">
                           {new Date(comment.created_at).toLocaleString("fr-FR", {
