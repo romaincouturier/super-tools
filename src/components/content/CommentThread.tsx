@@ -412,6 +412,51 @@ const CommentThread = ({
       .slice(0, 2);
   };
 
+  const handleVoiceToggle = () => {
+    if (isListening) {
+      stopListening();
+      // Analyze accumulated transcript
+      if (voiceTranscript.trim()) {
+        analyzeVoiceTranscript(voiceTranscript.trim());
+      }
+    } else {
+      setVoiceTranscript("");
+      startListening((text: string) => {
+        setVoiceTranscript((prev) => (prev ? prev + " " + text : text));
+      });
+    }
+  };
+
+  const analyzeVoiceTranscript = async (transcript: string) => {
+    setAnalyzingVoice(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("analyze-voice-review", {
+        body: { transcript },
+      });
+
+      if (error) throw error;
+
+      if (data?.problem) {
+        setNewComment(data.problem);
+      }
+      if (data?.correction) {
+        setProposedCorrection(data.correction);
+      }
+      if (data?.comment_type && (data.comment_type === "fond" || data.comment_type === "forme")) {
+        setCommentType(data.comment_type);
+      }
+
+      toast.success("Retour vocal analysé");
+    } catch (error) {
+      console.error("Error analyzing voice:", error);
+      // Fallback: put raw transcript in comment
+      setNewComment(transcript);
+      toast.error("Erreur d'analyse — transcription brute insérée");
+    } finally {
+      setAnalyzingVoice(false);
+    }
+  };
+
   const renderCommentContent = (text: string) => {
     // Highlight @mentions: match @Name or @First Last (up to 3 words)
     const parts = text.split(/(@\w+(?:\s\w+){0,2})/g);
