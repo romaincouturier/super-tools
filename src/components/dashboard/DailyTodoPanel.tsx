@@ -35,13 +35,14 @@ interface CategoryConfig {
 // Display order for categories (matches daily digest email order)
 const CATEGORY_ORDER = [
   "formations_facture",
+  "cfp_soumettre",
   "missions_a_facturer",
   "missions_sans_date",
   "devis_a_faire",
   "devis_a_relancer",
   "opportunites",
   "articles_relire",
-  "cfp_soumettre",
+  "articles_bloques",
   "formations_conventions",
   "evenements",
   "cfp_surveiller",
@@ -55,6 +56,7 @@ const CATEGORIES: Record<string, CategoryConfig> = {
   devis_a_relancer: { label: "Devis à relancer", emoji: "🔄", color: "text-orange-600" },
   opportunites: { label: "Opportunités à contacter", emoji: "🎯", color: "text-amber-600" },
   articles_relire: { label: "Articles à relire", emoji: "📋", color: "text-purple-600" },
+  articles_bloques: { label: "Articles bloqués / en attente", emoji: "⏸️", color: "text-yellow-600" },
   cfp_soumettre: { label: "CFP à soumettre", emoji: "📨", color: "text-orange-600" },
   formations_conventions: { label: "Formations", emoji: "🎓", color: "text-red-600" },
   evenements: { label: "Événements", emoji: "📅", color: "text-teal-600" },
