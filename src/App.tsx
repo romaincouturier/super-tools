@@ -125,6 +125,7 @@ const App = () => (
               <Route path="/crm/reports" element={<CrmReports />} />
               {/* Missions Kanban */}
               <Route path="/missions" element={<Missions />} />
+              <Route path="/missions/:missionId" element={<Missions />} />
               {/* OKR Management */}
               <Route path="/okr" element={<OKR />} />
               {/* Media library */}

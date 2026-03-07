@@ -29,6 +29,7 @@ interface CrmPrefill {
 interface MissionsKanbanBoardProps {
   prefillFromCrm?: CrmPrefill;
   onPrefillConsumed?: () => void;
+  openMissionId?: string | null;
 }
 
 const statuses: MissionStatus[] = ["not_started", "in_progress", "completed", "cancelled"];
@@ -40,7 +41,7 @@ const columns: MissionKanbanColumn[] = statuses.map((s, idx) => ({
   statusColor: missionStatusConfig[s].color,
 }));
 
-const MissionsKanbanBoard = ({ prefillFromCrm, onPrefillConsumed }: MissionsKanbanBoardProps) => {
+const MissionsKanbanBoard = ({ prefillFromCrm, onPrefillConsumed, openMissionId }: MissionsKanbanBoardProps) => {
   const { data, isLoading, error } = useMissions();
   const moveMission = useMoveMission();
   const updateMission = useUpdateMission();
@@ -50,6 +51,16 @@ const MissionsKanbanBoard = ({ prefillFromCrm, onPrefillConsumed }: MissionsKanb
   const [createDialogStatus, setCreateDialogStatus] = useState<MissionStatus>("not_started");
   const [prefillData, setPrefillData] = useState<CrmPrefill | undefined>(undefined);
   const [searchTerm, setSearchTerm] = useState("");
+
+  // Auto-open mission drawer when openMissionId is provided (deep link from emails)
+  useEffect(() => {
+    if (openMissionId && data?.length) {
+      const mission = data.find((m) => m.id === openMissionId);
+      if (mission) {
+        setSelectedMission(mission);
+      }
+    }
+  }, [openMissionId, data]);
 
   // Auto-open create dialog when prefill data from CRM is provided
   useEffect(() => {
