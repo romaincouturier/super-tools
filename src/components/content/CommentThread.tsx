@@ -710,6 +710,24 @@ const CommentThread = ({
                   >
                     <Image className="h-4 w-4" />
                   </Button>
+                  {speechSupported && (
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant={isListening ? "destructive" : "outline"}
+                      onClick={handleVoiceToggle}
+                      disabled={analyzingVoice}
+                      title={isListening ? "Arrêter et analyser" : "Retour vocal"}
+                    >
+                      {analyzingVoice ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : isListening ? (
+                        <MicOff className="h-4 w-4" />
+                      ) : (
+                        <Mic className="h-4 w-4" />
+                      )}
+                    </Button>
+                  )}
                   <Button
                     size="icon"
                     onClick={handleSubmit}
@@ -723,6 +741,14 @@ const CommentThread = ({
                   </Button>
                 </div>
               </div>
+
+              {/* Indicateur d'écoute vocale */}
+              {isListening && (
+                <div className="flex items-center gap-2 text-sm text-destructive animate-pulse">
+                  <Mic className="h-4 w-4" />
+                  <span>Écoute en cours… {voiceTranscript && `"${voiceTranscript}"`}</span>
+                </div>
+              )}
 
               {/* Prévisualisation de l'image */}
               {imagePreview && (
