@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
   DialogContent,
@@ -67,6 +68,7 @@ export interface TravelDestination {
   // Car
   distanceKm: number;
   tollCostOneWay: number;
+  durationHours: number;
   // Train / Plane / Other
   ticketPriceRoundTrip: number;
   // Fetching state
@@ -129,6 +131,7 @@ const emptyDestination = (): TravelDestination => ({
   nights: 0,
   distanceKm: 0,
   tollCostOneWay: 0,
+  durationHours: 0,
   ticketPriceRoundTrip: 0,
   isFetchingDistance: false,
 });
@@ -207,24 +210,38 @@ async function geocode(query: string): Promise<GeoResult[]> {
 // Distance (OSRM)
 // ---------------------------------------------------------------------------
 
-async function fetchDistance(
+async function fetchRouteViaGoogle(
   fromLat: number,
   fromLon: number,
   toLat: number,
   toLon: number
-): Promise<{ distanceKm: number; durationMin: number } | null> {
+): Promise<{ distanceKm: number; durationHours: number; tollCostEur: number } | null> {
   try {
-    const url = `https://router.project-osrm.org/route/v1/driving/${fromLon},${fromLat};${toLon},${toLat}?overview=false`;
-    const res = await fetch(url);
-    if (!res.ok) return null;
-    const data = await res.json();
-    if (data.routes && data.routes.length > 0) {
-      return {
-        distanceKm: Math.round(data.routes[0].distance / 1000),
-        durationMin: Math.round(data.routes[0].duration / 60),
-      };
+    const { data, error } = await supabase.functions.invoke("google-routes", {
+      body: { originLat: fromLat, originLon: fromLon, destLat: toLat, destLon: toLon },
+    });
+    if (error || !data || data.error) {
+      console.warn("Google Routes error, falling back to OSRM", error || data?.error);
+      // Fallback to OSRM
+      const url = `https://router.project-osrm.org/route/v1/driving/${fromLon},${fromLat};${toLon},${toLat}?overview=false`;
+      const res = await fetch(url);
+      if (!res.ok) return null;
+      const osrmData = await res.json();
+      if (osrmData.routes && osrmData.routes.length > 0) {
+        const distanceKm = Math.round(osrmData.routes[0].distance / 1000);
+        return {
+          distanceKm,
+          durationHours: +(osrmData.routes[0].duration / 3600).toFixed(1),
+          tollCostEur: Math.round(distanceKm * TOLL_ESTIMATE_PER_KM),
+        };
+      }
+      return null;
     }
-    return null;
+    return {
+      distanceKm: data.distanceKm,
+      durationHours: data.durationHours,
+      tollCostEur: data.tollCostEur,
+    };
   } catch {
     return null;
   }
@@ -450,7 +467,7 @@ const TravelExpenseCalculator = ({
       if (settings.departureLat == null || settings.departureLon == null) return;
 
       updateDest(destId, { isFetchingDistance: true });
-      const result = await fetchDistance(
+      const result = await fetchRouteViaGoogle(
         settings.departureLat,
         settings.departureLon,
         destLat,
@@ -459,7 +476,8 @@ const TravelExpenseCalculator = ({
       if (result) {
         updateDest(destId, {
           distanceKm: result.distanceKm,
-          tollCostOneWay: Math.round(result.distanceKm * TOLL_ESTIMATE_PER_KM),
+          tollCostOneWay: result.tollCostEur,
+          durationHours: result.durationHours,
           isFetchingDistance: false,
         });
       } else {
@@ -622,7 +640,7 @@ const TravelExpenseCalculator = ({
               </div>
 
               <p className="text-[10px] text-muted-foreground">
-                Barème IK 2024 (tranche ≤ 5 000 km). Estimation péages : ~{TOLL_ESTIMATE_PER_KM} €/km autoroute. Les paramètres sont sauvegardés localement.
+                Barème IK 2024 (tranche ≤ 5 000 km). Les distances, péages et durées sont calculés via Google Routes API. Les paramètres sont sauvegardés localement.
               </p>
             </div>
           </CollapsibleContent>
@@ -733,6 +751,11 @@ const TravelExpenseCalculator = ({
                       <span className="text-[10px] text-muted-foreground">
                         IK : {formatEur(dest.distanceKm * 2 * ikRate * dest.roundTrips)} € ({dest.distanceKm}×2×{ikRate}×{dest.roundTrips})
                       </span>
+                      {dest.durationHours > 0 && (
+                        <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                          🕐 {dest.durationHours} h (aller)
+                        </span>
+                      )}
                     </>
                   )}
 

@@ -1,4 +1,4 @@
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useParams } from "react-router-dom";
 import { Briefcase } from "lucide-react";
 import ModuleLayout from "@/components/ModuleLayout";
 import MissionsKanbanBoard from "@/components/missions/MissionsKanbanBoard";
@@ -6,6 +6,10 @@ import MissionProfitabilityDashboard from "@/components/missions/MissionProfitab
 
 const Missions = () => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const { missionId } = useParams<{ missionId?: string }>();
+
+  // Support deep links: /missions/:missionId or /missions?open=:id
+  const openMissionId = missionId || searchParams.get("open");
 
   return (
     <ModuleLayout>
@@ -33,6 +37,7 @@ const Missions = () => {
         {/* Kanban Board */}
         <div className="flex-1 min-h-0">
           <MissionsKanbanBoard
+            openMissionId={openMissionId}
             prefillFromCrm={searchParams.get("title") ? {
               title: searchParams.get("title") || "",
               clientName: searchParams.get("clientName") || "",
