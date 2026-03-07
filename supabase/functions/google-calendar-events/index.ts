@@ -288,13 +288,15 @@ serve(async (req: Request): Promise<Response> => {
         }
       }
 
-      // Fetch events for the next 14 days
+      // Fetch events — use query params timeMin/timeMax if provided, otherwise default to next 14 days
+      const timeMinParam = url.searchParams.get("timeMin");
+      const timeMaxParam = url.searchParams.get("timeMax");
       const now = new Date();
       const twoWeeksLater = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
 
       const calendarUrl = new URL("https://www.googleapis.com/calendar/v3/calendars/primary/events");
-      calendarUrl.searchParams.set("timeMin", now.toISOString());
-      calendarUrl.searchParams.set("timeMax", twoWeeksLater.toISOString());
+      calendarUrl.searchParams.set("timeMin", timeMinParam || now.toISOString());
+      calendarUrl.searchParams.set("timeMax", timeMaxParam || twoWeeksLater.toISOString());
       calendarUrl.searchParams.set("singleEvents", "true");
       calendarUrl.searchParams.set("orderBy", "startTime");
       calendarUrl.searchParams.set("maxResults", "100");
@@ -320,6 +322,7 @@ serve(async (req: Request): Promise<Response> => {
         end: event.end?.dateTime || event.end?.date,
         allDay: !event.start?.dateTime,
         attendees: (event.attendees || []).length,
+        htmlLink: event.htmlLink || null,
       }));
 
       return new Response(JSON.stringify({ events }), {
