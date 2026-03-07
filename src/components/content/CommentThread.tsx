@@ -80,6 +80,7 @@ const CommentThread = ({
   const [pendingMentions, setPendingMentions] = useState<MentionUser[]>([]);
   const [analyzingVoice, setAnalyzingVoice] = useState(false);
   const [voiceTranscript, setVoiceTranscript] = useState("");
+  const voiceTranscriptRef = useRef("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { isListening, isSupported: speechSupported, startListening, stopListening } = useSpeechRecognition("fr-FR", true);
 
@@ -415,14 +416,19 @@ const CommentThread = ({
   const handleVoiceToggle = () => {
     if (isListening) {
       stopListening();
-      // Analyze accumulated transcript
-      if (voiceTranscript.trim()) {
-        analyzeVoiceTranscript(voiceTranscript.trim());
+      // Use ref to get the latest transcript (avoids stale closure)
+      const transcript = voiceTranscriptRef.current.trim();
+      if (transcript) {
+        analyzeVoiceTranscript(transcript);
       }
     } else {
       setVoiceTranscript("");
+      voiceTranscriptRef.current = "";
       startListening((text: string) => {
-        setVoiceTranscript((prev) => (prev ? prev + " " + text : text));
+        voiceTranscriptRef.current = voiceTranscriptRef.current
+          ? voiceTranscriptRef.current + " " + text
+          : text;
+        setVoiceTranscript(voiceTranscriptRef.current);
       });
     }
   };
