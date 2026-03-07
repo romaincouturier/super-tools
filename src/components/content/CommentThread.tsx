@@ -80,6 +80,7 @@ const CommentThread = ({
   const [pendingMentions, setPendingMentions] = useState<MentionUser[]>([]);
   const [analyzingVoice, setAnalyzingVoice] = useState(false);
   const [voiceTranscript, setVoiceTranscript] = useState("");
+  const voiceTranscriptRef = useRef("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { isListening, isSupported: speechSupported, startListening, stopListening } = useSpeechRecognition("fr-FR", true);
 
