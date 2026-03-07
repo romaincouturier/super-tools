@@ -472,7 +472,7 @@ const CommentThread = ({
                   >
                     <Avatar className="h-8 w-8 flex-shrink-0">
                       <AvatarFallback className="text-xs">
-                        {getInitials(comment.author_email)}
+                        {getInitials(comment.author_id, comment.author_email)}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1">
