@@ -99,7 +99,31 @@ const CommentThread = ({
 
       if (error) throw error;
 
-      setComments((data || []) as Comment[]);
+      // Resolve author names from profiles
+      const rawComments = data || [];
+      const authorIds = [...new Set(rawComments.map((c: any) => c.author_id))];
+      
+      let profileMap: Record<string, string> = {};
+      if (authorIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("user_id, first_name, last_name, email")
+          .in("user_id", authorIds);
+        
+        if (profiles) {
+          for (const p of profiles) {
+            const fullName = p.first_name && p.last_name
+              ? `${p.first_name} ${p.last_name}`
+              : p.email || undefined;
+            if (fullName) profileMap[p.user_id] = fullName;
+          }
+        }
+      }
+
+      setComments(rawComments.map((c: any) => ({
+        ...c,
+        author_email: profileMap[c.author_id] || c.author_email,
+      })) as Comment[]);
     } catch (error) {
       console.error("Error fetching comments:", error);
     } finally {
@@ -372,11 +396,12 @@ const CommentThread = ({
     }
   };
 
-  const getInitials = (email?: string) => {
-    if (!email) return "?";
-    return email
-      .split("@")[0]
-      .split(".")
+  const getInitials = (authorId?: string, displayName?: string) => {
+    if (authorId === currentUserId) return "😊";
+    if (!displayName) return "?";
+    return displayName
+      .split(/[\s.@]+/)
+      .filter(Boolean)
       .map((n) => n[0])
       .join("")
       .toUpperCase()
@@ -447,13 +472,15 @@ const CommentThread = ({
                   >
                     <Avatar className="h-8 w-8 flex-shrink-0">
                       <AvatarFallback className="text-xs">
-                        {getInitials(comment.author_email)}
+                        {getInitials(comment.author_id, comment.author_email)}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-xs font-medium">
-                          {comment.author_email || "Utilisateur"}
+                          {comment.author_id === currentUserId
+                            ? "Moi"
+                            : comment.author_email || "Utilisateur"}
                         </span>
                         <span className="text-xs text-muted-foreground">
                           {new Date(comment.created_at).toLocaleString("fr-FR", {
