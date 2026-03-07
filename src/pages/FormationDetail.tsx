@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 import type { FormationFormula } from "@/types/training";
 import { Loader2, ArrowLeft, Calendar, Users, FileText, ExternalLink, Edit2, User as UserIcon, Mail, MapPin, Building, Map, Train, Hotel, UtensilsCrossed, DoorOpen, Clock, Copy, Check, AlertCircle, Share2, CheckCircle2, Euro, StickyNote, Save, MoreHorizontal, Heart, Send, AlertTriangle } from "lucide-react";
+import confetti from "canvas-confetti";
 import { Switch } from "@/components/ui/switch";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAppSetting } from "@/hooks/useAppSetting";
@@ -83,6 +84,7 @@ interface Training {
   elearning_duration?: number | null;
   notes?: string | null;
   assigned_to?: string | null;
+  max_participants?: number | null;
 }
 
 interface Schedule {
