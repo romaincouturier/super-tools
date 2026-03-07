@@ -167,10 +167,15 @@ serve(async (req) => {
     if (targetColumnIds.size > 0) {
       const { data: cards } = await supabase
         .from("crm_cards")
-        .select("id, title, company, first_name, last_name, column_id, estimated_value, emoji, assigned_to")
+        .select("id, title, company, first_name, last_name, column_id, estimated_value, emoji, assigned_to, waiting_next_action_date, next_action_done")
         .eq("sales_status", "OPEN")
         .in("column_id", [...targetColumnIds]);
-      crmCards = cards || [];
+      // Filter: only cards with action due today or overdue (or no date = act now)
+      crmCards = (cards || []).filter((c: any) => {
+        if (c.next_action_done === true) return false;
+        if (!c.waiting_next_action_date) return true; // no date = needs action now
+        return c.waiting_next_action_date <= today; // due today or overdue
+      });
     }
 
     const formatCrmCard = (card: any): { title: string; desc: string } => {
