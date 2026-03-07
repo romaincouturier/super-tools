@@ -65,6 +65,7 @@ serve(async (req) => {
       attendanceSheetsUrls,
       certificateUrls,
       ccEmail,
+      participantId,
       formalAddress = true
     } = await req.json();
 
