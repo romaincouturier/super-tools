@@ -35,6 +35,7 @@ interface CategoryConfig {
 // Display order for categories (matches daily digest email order)
 const CATEGORY_ORDER = [
   "formations_facture",
+  "cfp_soumettre",
   "missions_a_facturer",
   "missions_sans_date",
   "devis_a_faire",
@@ -42,7 +43,6 @@ const CATEGORY_ORDER = [
   "opportunites",
   "articles_relire",
   "articles_bloques",
-  "cfp_soumettre",
   "formations_conventions",
   "evenements",
   "cfp_surveiller",
