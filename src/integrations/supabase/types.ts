@@ -2031,6 +2031,33 @@ export type Database = {
           },
         ]
       }
+      learner_magic_links: {
+        Row: {
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          token: string
+          used_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          expires_at?: string
+          id?: string
+          token?: string
+          used_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          token?: string
+          used_at?: string | null
+        }
+        Relationships: []
+      }
       login_attempts: {
         Row: {
           attempted_at: string
@@ -4952,6 +4979,7 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      get_learner_portal_data: { Args: { p_email: string }; Returns: Json }
       get_mission_actions_public: {
         Args: { p_mission_id: string }
         Returns: Json
@@ -5144,6 +5172,7 @@ export type Database = {
         Args: { p_display_name?: string; p_email: string; p_user_id: string }
         Returns: undefined
       }
+      validate_learner_token: { Args: { p_token: string }; Returns: Json }
     }
     Enums: {
       app_module:
