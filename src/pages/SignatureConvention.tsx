@@ -130,10 +130,7 @@ const SignatureConvention = () => {
 
         // Record first open
         if (!signature.email_opened_at) {
-          await (supabase.rpc as any)("mark_convention_opened", {
-            p_token: token,
-            p_timestamp: new Date().toISOString(),
-          });
+          await rpc.markConventionOpened(token, new Date().toISOString());
           trackEvent("first_link_opened");
         } else {
           trackEvent("link_reopened");

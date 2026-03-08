@@ -123,10 +123,7 @@ const SignatureDevis = () => {
 
         // Record first open
         if (!signature.email_opened_at) {
-          await (supabase.rpc as any)("mark_devis_opened", {
-            p_token: token,
-            p_timestamp: new Date().toISOString(),
-          });
+          await rpc.markDevisOpened(token, new Date().toISOString());
           trackEvent("first_link_opened");
         } else {
           trackEvent("link_reopened");
