@@ -150,6 +150,28 @@ export default function AiTools() {
     }
   };
 
+  const handleGenerateCoachingSummary = async () => {
+    if (!coachingNotes.trim()) {
+      toast({ title: "Veuillez saisir les notes de session", variant: "destructive" });
+      return;
+    }
+    setGeneratingCoachingSummary(true);
+    setCoachingSummary(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("summarize-coaching", {
+        body: { notes: coachingNotes, participant_name: coachingParticipant, training_name: coachingTraining },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      setCoachingSummary(data);
+      toast({ title: "Résumé généré ✨" });
+    } catch (e: any) {
+      toast({ title: "Erreur", description: e.message, variant: "destructive" });
+    } finally {
+      setGeneratingCoachingSummary(false);
+    }
+  };
+
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
     toast({ title: "Copié !" });
