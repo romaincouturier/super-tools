@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
-import { Loader2, Settings, Mail, RotateCcw, Sparkles, Cog, ExternalLink, Shield, Users, Key, Tag, Upload, FileText, Trash2, Check, Copy, Database } from "lucide-react";
+import { Loader2, Settings, Mail, RotateCcw, Sparkles, Cog, ExternalLink, Shield, Users, Key, Tag, Upload, FileText, Trash2, Check, Copy, Database, CreditCard } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import ModuleLayout from "@/components/ModuleLayout";
 import { Button } from "@/components/ui/button";
@@ -35,6 +35,7 @@ import { useModuleAccess } from "@/hooks/useModuleAccess";
 import ArenaKeySettings from "@/components/settings/ArenaKeySettings";
 import PostEvaluationEmailManager from "@/components/settings/PostEvaluationEmailManager";
 import SlackChannelCard from "@/components/settings/SlackChannelCard";
+import BillingSection from "@/components/settings/BillingSection";
 
 interface EmailTemplate {
   id: string;
@@ -1759,6 +1760,10 @@ const Parametres = () => {
                 Sauvegarde
               </TabsTrigger>
             )}
+            <TabsTrigger value="billing" className="flex items-center gap-2">
+              <CreditCard className="h-4 w-4" />
+              Abonnement
+            </TabsTrigger>
             <TabsTrigger value="arena" className="flex items-center gap-2">
               <Sparkles className="h-4 w-4" />
               AI Arena
@@ -2925,6 +2930,20 @@ const Parametres = () => {
               />
             </TabsContent>
           )}
+
+          <TabsContent value="billing">
+            <Card>
+              <CardHeader>
+                <CardTitle>Abonnement & Facturation</CardTitle>
+                <CardDescription>
+                  Gérez votre plan et votre facturation.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <BillingSection />
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           <TabsContent value="arena">
             <ArenaKeySettings />
