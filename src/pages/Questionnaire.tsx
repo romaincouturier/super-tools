@@ -284,10 +284,7 @@ const Questionnaire = () => {
         date_derniere_sauvegarde: nowIso,
       };
 
-      const { error: upErr } = await (supabase.rpc as any)("update_questionnaire_by_token", {
-        p_token: token!,
-        p_data: payload,
-      });
+      const { error: upErr } = await rpc.updateQuestionnaireByToken(token!, payload);
 
       if (upErr) throw upErr;
 

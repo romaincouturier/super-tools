@@ -113,8 +113,8 @@ const TrainingSummary = () => {
 
       // Fetch règlement intérieur URL via RPC
       const [{ data: settingValue }, { data: mapsKey }] = await Promise.all([
-        (supabase.rpc as any)("get_app_setting_public", { p_key: "reglement_interieur_url" }),
-        (supabase.rpc as any)("get_app_setting_public", { p_key: "google_maps_api_key" }),
+        rpc.getAppSettingPublic("reglement_interieur_url"),
+        rpc.getAppSettingPublic("google_maps_api_key"),
       ]);
 
       if (settingValue) {
