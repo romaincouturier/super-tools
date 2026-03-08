@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useAppSetting } from "@/hooks/useAppSetting";
+
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import { formatDateWithDayOfWeek, formatDateLong } from "@/lib/dateFormatters";
