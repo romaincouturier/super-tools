@@ -110,9 +110,10 @@ export default function Onboarding() {
 
       const { error } = await supabase.from("trainings").insert({
         training_name: trainingName,
-        duration_hours: parseInt(trainingDuration) || 7,
         created_by: user.id,
-        status: "draft",
+        evaluation_link: "",
+        location: "À définir",
+        client_name: company || "À définir",
       });
       if (error) throw error;
 
