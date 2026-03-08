@@ -98,16 +98,13 @@ const TrainerEvaluation = () => {
     }
     setSubmitting(true);
     try {
-      const { error } = await (supabase.rpc as any)("update_trainer_evaluation_by_token", {
-        p_token: token!,
-        p_data: {
-          satisfaction_globale: satisfaction,
-          points_forts: pointsForts.trim() || null,
-          axes_amelioration: axesAmelioration.trim() || null,
-          commentaires: commentaires.trim() || null,
-          status: "soumis",
-          date_submitted: new Date().toISOString(),
-        },
+      const { error } = await rpc.updateTrainerEvaluationByToken(token!, {
+        satisfaction_globale: satisfaction,
+        points_forts: pointsForts.trim() || null,
+        axes_amelioration: axesAmelioration.trim() || null,
+        commentaires: commentaires.trim() || null,
+        status: "soumis",
+        date_submitted: new Date().toISOString(),
       });
 
       if (error) throw error;
