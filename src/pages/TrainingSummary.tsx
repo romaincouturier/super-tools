@@ -90,7 +90,7 @@ const TrainingSummary = () => {
   const fetchTrainingData = async () => {
     try {
       // Fetch training via RPC
-      const { data: trainingData, error: trainingError } = await (supabase.rpc as any)("get_training_summary_info", { p_training_id: trainingId });
+      const { data: trainingData, error: trainingError } = await rpc.getTrainingSummaryInfo(trainingId!);
 
       if (trainingError) throw trainingError;
       if (!trainingData) {
