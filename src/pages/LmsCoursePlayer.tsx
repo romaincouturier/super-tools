@@ -35,6 +35,7 @@ export default function LmsCoursePlayer() {
   const { data: modules = [] } = useCourseModules(courseId);
   const { data: allLessons = [] } = useCourseLessons(courseId);
   const { data: progress = [] } = useLearnerProgress(courseId, learnerEmail || undefined);
+  const { data: badges = [] } = useLearnerBadges(learnerEmail || undefined);
   const markComplete = useMarkLessonComplete();
 
   const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null);
