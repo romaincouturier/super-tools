@@ -1759,6 +1759,10 @@ const Parametres = () => {
                 Sauvegarde
               </TabsTrigger>
             )}
+            <TabsTrigger value="billing" className="flex items-center gap-2">
+              <CreditCard className="h-4 w-4" />
+              Abonnement
+            </TabsTrigger>
             <TabsTrigger value="arena" className="flex items-center gap-2">
               <Sparkles className="h-4 w-4" />
               AI Arena
