@@ -72,7 +72,7 @@ interface Trainer {
 
 const TrainingSummary = () => {
   const { trainingId } = useParams<{ trainingId: string }>();
-  const googleMapsApiKey = useAppSetting("google_maps_api_key", "AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8");
+  const [googleMapsApiKey, setGoogleMapsApiKey] = useState("AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8");
   const [training, setTraining] = useState<Training | null>(null);
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [trainer, setTrainer] = useState<Trainer | null>(null);
