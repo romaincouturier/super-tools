@@ -35,6 +35,7 @@ import { useModuleAccess } from "@/hooks/useModuleAccess";
 import ArenaKeySettings from "@/components/settings/ArenaKeySettings";
 import PostEvaluationEmailManager from "@/components/settings/PostEvaluationEmailManager";
 import SlackChannelCard from "@/components/settings/SlackChannelCard";
+import BillingSection from "@/components/settings/BillingSection";
 
 interface EmailTemplate {
   id: string;
