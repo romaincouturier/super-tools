@@ -290,17 +290,12 @@ const Questionnaire = () => {
         date_derniere_sauvegarde: nowIso,
       };
 
-      const { data: updateData, error: upErr } = await supabase
-        .from("questionnaire_besoins")
-        .update(payload)
-        .eq("id", currentQuestionnaire.id)
-        .select();
+      const { error: upErr } = await (supabase.rpc as any)("update_questionnaire_by_token", {
+        p_token: token!,
+        p_data: payload,
+      });
 
       if (upErr) throw upErr;
-      
-      if (!updateData || updateData.length === 0) {
-        console.warn("No rows were updated - possible RLS policy issue");
-      }
 
       dirtyRef.current = false;
       setSaveStatus("saved");
