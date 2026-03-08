@@ -10,6 +10,7 @@ import { ChatbotProvider } from "@/components/chatbot/ChatbotProvider";
 import { GlobalChunkErrorHandler } from "@/components/GlobalChunkErrorHandler";
 import { RouteErrorBoundary } from "@/components/RouteErrorBoundary";
 import { lazyWithRetry } from "@/lib/lazyWithRetry";
+import "@/i18n";
 import { createIDBPersister } from "@/lib/queryPersister";
 import OfflineBanner from "@/components/OfflineBanner";
 
