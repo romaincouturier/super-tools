@@ -34,7 +34,7 @@ const TrainerEvaluation = () => {
   useEffect(() => {
     if (!token) return;
     const fetchEvaluation = async () => {
-      const { data, error } = await (supabase.rpc as any)("get_trainer_evaluation_by_token", { p_token: token });
+      const { data, error } = await rpc.getTrainerEvaluationByToken(token);
 
       if (error || !data) {
         setLoading(false);
