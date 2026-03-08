@@ -2931,6 +2931,20 @@ const Parametres = () => {
             </TabsContent>
           )}
 
+          <TabsContent value="billing">
+            <Card>
+              <CardHeader>
+                <CardTitle>Abonnement & Facturation</CardTitle>
+                <CardDescription>
+                  Gérez votre plan et votre facturation.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <BillingSection />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           <TabsContent value="arena">
             <ArenaKeySettings />
           </TabsContent>
