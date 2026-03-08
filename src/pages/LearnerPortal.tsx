@@ -47,7 +47,7 @@ const statusBadge = (status: string | null) => {
   switch (status) {
     case "complete":
     case "soumis":
-      return <Badge variant="default" className="bg-emerald-500/10 text-emerald-700 border-emerald-200"><CheckCircle2 className="w-3 h-3 mr-1" /> Complété</Badge>;
+      return <Badge className="bg-emerald-500/10 text-emerald-700 border-emerald-200 border"><CheckCircle2 className="w-3 h-3 mr-1" /> Complété</Badge>;
     case "en_cours":
       return <Badge variant="secondary"><Clock className="w-3 h-3 mr-1" /> En cours</Badge>;
     case "non_envoye":
