@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from "react-router-dom";
-import { Settings, AlertTriangle, Sparkles, ArrowLeft } from "lucide-react";
+import { Settings, AlertTriangle, Sparkles, ArrowLeft, Shield } from "lucide-react";
 import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import UserMenu from "@/components/UserMenu";
