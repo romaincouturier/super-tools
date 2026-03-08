@@ -169,7 +169,7 @@ export default function AiTools() {
   if (authLoading) return null;
 
   return (
-    <ModuleLayout module="ia_tools" title="IA Augmentée" description="Générez des programmes, quiz et analysez votre activité">
+    <ModuleLayout>
       <Tabs defaultValue="program" className="space-y-6">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="program" className="gap-2">
