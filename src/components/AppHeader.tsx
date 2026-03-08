@@ -61,7 +61,7 @@ const AppHeader = () => {
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button
-                    onClick={() => navigate("/")}
+                    onClick={() => navigate("/dashboard")}
                     className="p-2 rounded-lg hover:bg-background/10 transition-colors"
                   >
                     <ArrowLeft className="w-5 h-5" />
