@@ -253,6 +253,63 @@ export type Database = {
           },
         ]
       }
+      billing_plans: {
+        Row: {
+          created_at: string
+          currency: string
+          display_order: number
+          features: Json
+          id: string
+          is_active: boolean
+          max_emails_per_month: number | null
+          max_participants: number | null
+          max_storage_mb: number | null
+          max_trainings: number | null
+          name: string
+          price_monthly: number
+          price_yearly: number | null
+          slug: string
+          stripe_price_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          currency?: string
+          display_order?: number
+          features?: Json
+          id?: string
+          is_active?: boolean
+          max_emails_per_month?: number | null
+          max_participants?: number | null
+          max_storage_mb?: number | null
+          max_trainings?: number | null
+          name: string
+          price_monthly?: number
+          price_yearly?: number | null
+          slug: string
+          stripe_price_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          currency?: string
+          display_order?: number
+          features?: Json
+          id?: string
+          is_active?: boolean
+          max_emails_per_month?: number | null
+          max_participants?: number | null
+          max_storage_mb?: number | null
+          max_trainings?: number | null
+          name?: string
+          price_monthly?: number
+          price_yearly?: number | null
+          slug?: string
+          stripe_price_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       chatbot_conversations: {
         Row: {
           answer: string
@@ -3659,6 +3716,66 @@ export type Database = {
           },
         ]
       }
+      subscriptions: {
+        Row: {
+          cancel_at_period_end: boolean
+          created_at: string
+          current_period_end: string | null
+          current_period_start: string | null
+          id: string
+          org_id: string
+          plan_id: string
+          status: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          trial_end: string | null
+          updated_at: string
+        }
+        Insert: {
+          cancel_at_period_end?: boolean
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          org_id: string
+          plan_id: string
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          trial_end?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cancel_at_period_end?: boolean
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          org_id?: string
+          plan_id?: string
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          trial_end?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "billing_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trainer_attendance_signatures: {
         Row: {
           created_at: string | null
@@ -4569,6 +4686,50 @@ export type Database = {
             columns: ["trainer_id"]
             isOneToOne: false
             referencedRelation: "trainers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      usage_records: {
+        Row: {
+          created_at: string
+          emails_sent: number
+          id: string
+          org_id: string
+          participants_count: number
+          period_start: string
+          storage_used_mb: number
+          trainings_count: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          emails_sent?: number
+          id?: string
+          org_id: string
+          participants_count?: number
+          period_start: string
+          storage_used_mb?: number
+          trainings_count?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          emails_sent?: number
+          id?: string
+          org_id?: string
+          participants_count?: number
+          period_start?: string
+          storage_used_mb?: number
+          trainings_count?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "usage_records_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
