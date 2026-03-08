@@ -491,6 +491,7 @@ export default function AiTools() {
           )}
         </TabsContent>
       </Tabs>
+      </div>
     </ModuleLayout>
   );
 }
