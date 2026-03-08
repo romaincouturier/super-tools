@@ -121,7 +121,7 @@ const Evaluation = () => {
       if (evTyped.remarques_libres) setRemarquesLibres(evTyped.remarques_libres);
 
       // Fetch training
-      const { data: t, error: tErr } = await (supabase.rpc as any)("get_training_public_info", { p_training_id: evTyped.training_id });
+      const { data: t, error: tErr } = await rpc.getTrainingPublicInfo(evTyped.training_id);
 
       if (!tErr && t) {
         setTraining(t as unknown as TrainingRecord);
