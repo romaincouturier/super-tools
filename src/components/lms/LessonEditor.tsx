@@ -1,13 +1,14 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { useUpdateLesson, LmsLesson } from "@/hooks/useLms";
+import { useUpdateLesson, LmsLesson, uploadLmsVideo } from "@/hooks/useLms";
 import { useToast } from "@/hooks/use-toast";
-import { Save, Clock } from "lucide-react";
+import { Save, Clock, Upload, Loader2 } from "lucide-react";
 import RichTextEditor from "@/components/content/RichTextEditor";
+import { formatFileSize } from "@/lib/file-utils";
 
 interface Props {
   lesson: LmsLesson;
@@ -16,6 +17,8 @@ interface Props {
 export default function LmsLessonEditor({ lesson }: Props) {
   const updateLesson = useUpdateLesson();
   const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
   const [form, setForm] = useState({
     title: lesson.title,
     content_html: lesson.content_html || "",
@@ -27,6 +30,49 @@ export default function LmsLessonEditor({ lesson }: Props) {
   const handleSave = async () => {
     await updateLesson.mutateAsync({ id: lesson.id, ...form });
     toast({ title: "Leçon sauvegardée" });
+  };
+
+  const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 500 * 1024 * 1024) {
+      toast({ title: "Fichier trop volumineux", description: "Maximum 500 Mo", variant: "destructive" });
+      return;
+    }
+    setUploading(true);
+    try {
+      const url = await uploadLmsVideo(file, lesson.id);
+      setForm((f) => ({ ...f, video_url: url }));
+      toast({ title: `Vidéo uploadée (${formatFileSize(file.size)})` });
+    } catch (err: any) {
+      toast({ title: "Erreur d'upload", description: err.message, variant: "destructive" });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const renderVideoPlayer = (url: string) => {
+    if (url.includes("youtube") || url.includes("youtu.be")) {
+      return (
+        <iframe
+          src={url.replace("watch?v=", "embed/").replace("youtu.be/", "youtube.com/embed/")}
+          className="w-full h-full"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+        />
+      );
+    }
+    if (url.includes("vimeo")) {
+      return (
+        <iframe
+          src={url.replace("vimeo.com/", "player.vimeo.com/video/")}
+          className="w-full h-full"
+          allow="autoplay; fullscreen"
+          allowFullScreen
+        />
+      );
+    }
+    return <video src={url} controls className="w-full h-full" />;
   };
 
   return (
@@ -48,33 +94,36 @@ export default function LmsLessonEditor({ lesson }: Props) {
 
       {lesson.lesson_type === "video" && (
         <div className="space-y-3">
-          <div>
-            <Label>URL de la vidéo</Label>
-            <Input
-              value={form.video_url}
-              onChange={(e) => setForm({ ...form, video_url: e.target.value })}
-              placeholder="https://www.youtube.com/watch?v=... ou URL Vimeo/MP4"
-            />
+          <div className="flex gap-2 items-end">
+            <div className="flex-1">
+              <Label>URL de la vidéo</Label>
+              <Input
+                value={form.video_url}
+                onChange={(e) => setForm({ ...form, video_url: e.target.value })}
+                placeholder="https://youtube.com/... ou uploadez un fichier"
+              />
+            </div>
+            <div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="video/*"
+                className="hidden"
+                onChange={handleVideoUpload}
+              />
+              <Button
+                variant="outline"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+              >
+                {uploading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
+                {uploading ? "Upload..." : "Uploader"}
+              </Button>
+            </div>
           </div>
           {form.video_url && (
             <div className="aspect-video rounded-lg overflow-hidden bg-muted">
-              {form.video_url.includes("youtube") || form.video_url.includes("youtu.be") ? (
-                <iframe
-                  src={form.video_url.replace("watch?v=", "embed/").replace("youtu.be/", "youtube.com/embed/")}
-                  className="w-full h-full"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                />
-              ) : form.video_url.includes("vimeo") ? (
-                <iframe
-                  src={form.video_url.replace("vimeo.com/", "player.vimeo.com/video/")}
-                  className="w-full h-full"
-                  allow="autoplay; fullscreen"
-                  allowFullScreen
-                />
-              ) : (
-                <video src={form.video_url} controls className="w-full h-full" />
-              )}
+              {renderVideoPlayer(form.video_url)}
             </div>
           )}
         </div>

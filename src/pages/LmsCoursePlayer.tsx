@@ -456,44 +456,9 @@ function QuizPlayer({ quizId, learnerEmail, onComplete }: { quizId: string; lear
 // ---- Assignment Submitter ----
 function AssignmentSubmitter({ lessonId, learnerEmail }: { lessonId: string; learnerEmail: string }) {
   const [comment, setComment] = useState("");
-  const [submitted, setSubmitted] = useState(false);
-
-  // Simplified — full implementation would upload file to storage
-  const handleSubmit = () => {
-    setSubmitted(true);
-  };
-
-  if (submitted) {
-    return (
-      <Card>
-        <CardContent className="py-6 text-center space-y-2">
-          <CheckCircle2 className="w-10 h-10 mx-auto text-primary" />
-          <p className="font-medium">Devoir soumis</p>
-          <p className="text-sm text-muted-foreground">Votre formateur le corrigera prochainement</p>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">Remettre votre travail</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div>
-          <Label>Commentaire (optionnel)</Label>
-          <Textarea
-            value={comment}
-            onChange={(e) => setComment(e.target.value)}
-            placeholder="Un commentaire pour le formateur..."
-            rows={3}
-          />
-        </div>
-        <Button onClick={handleSubmit}>
-          Soumettre le devoir
-        </Button>
-      </CardContent>
-    </Card>
-  );
+  const [file, setFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const { useSubmitAssignment, useLearnerSubmissions, uploadAssignmentFile } = await import("@/hooks/useLms");
+  // We need to use dynamic imports differently - let's use the hooks directly
+  return <AssignmentSubmitterInner lessonId={lessonId} learnerEmail={learnerEmail} />;
 }
