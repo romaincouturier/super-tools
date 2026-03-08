@@ -10,6 +10,7 @@ import { ChatbotProvider } from "@/components/chatbot/ChatbotProvider";
 import { GlobalChunkErrorHandler } from "@/components/GlobalChunkErrorHandler";
 import { RouteErrorBoundary } from "@/components/RouteErrorBoundary";
 import { lazyWithRetry } from "@/lib/lazyWithRetry";
+import "@/i18n";
 import { createIDBPersister } from "@/lib/queryPersister";
 import OfflineBanner from "@/components/OfflineBanner";
 
@@ -62,6 +63,7 @@ const ReclamationPublic = lazyWithRetry(() => import("./pages/ReclamationPublic"
 const TrainerEvaluation = lazyWithRetry(() => import("./pages/TrainerEvaluation"));
 const Reclamations = lazyWithRetry(() => import("./pages/Reclamations"));
 const NotFound = lazyWithRetry(() => import("./pages/NotFound"));
+const Admin = lazyWithRetry(() => import("./pages/Admin"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -168,6 +170,8 @@ const App = () => (
               <Route path="/arena" element={<ArenaSetup />} />
               <Route path="/arena/discussion" element={<ArenaDiscussion />} />
               <Route path="/arena/results" element={<ArenaResults />} />
+              {/* Super Admin */}
+              <Route path="/admin" element={<Admin />} />
               {/* Reclamations */}
               <Route path="/reclamation/:token" element={<ReclamationPublic />} />
               <Route path="/reclamations" element={<Reclamations />} />

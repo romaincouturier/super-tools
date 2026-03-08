@@ -2748,6 +2748,89 @@ export type Database = {
           },
         ]
       }
+      org_members: {
+        Row: {
+          created_at: string | null
+          id: string
+          org_id: string
+          role: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          org_id: string
+          role?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          org_id?: string
+          role?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_members_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organizations: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_default: boolean | null
+          logo_url: string | null
+          max_active_trainings: number | null
+          max_participants: number | null
+          name: string
+          plan: string | null
+          settings: Json | null
+          slug: string
+          storage_limit_mb: number | null
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_default?: boolean | null
+          logo_url?: string | null
+          max_active_trainings?: number | null
+          max_participants?: number | null
+          name: string
+          plan?: string | null
+          settings?: Json | null
+          slug: string
+          storage_limit_mb?: number | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_default?: boolean | null
+          logo_url?: string | null
+          max_active_trainings?: number | null
+          max_participants?: number | null
+          name?: string
+          plan?: string | null
+          settings?: Json | null
+          slug?: string
+          storage_limit_mb?: number | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       participant_files: {
         Row: {
           file_name: string
@@ -2827,6 +2910,7 @@ export type Database = {
           id: string
           is_admin: boolean
           last_name: string | null
+          org_id: string | null
           updated_at: string
           user_id: string
         }
@@ -2838,6 +2922,7 @@ export type Database = {
           id?: string
           is_admin?: boolean
           last_name?: string | null
+          org_id?: string | null
           updated_at?: string
           user_id: string
         }
@@ -2849,10 +2934,19 @@ export type Database = {
           id?: string
           is_admin?: boolean
           last_name?: string | null
+          org_id?: string | null
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       program_files: {
         Row: {
@@ -4729,6 +4823,7 @@ export type Database = {
         Args: { p_training_id: string }
         Returns: Json
       }
+      get_user_org_id: { Args: { _user_id: string }; Returns: string }
       has_crm_access: { Args: { _user_id: string }; Returns: boolean }
       has_module_access: {
         Args: { _module: string; _user_id: string }
@@ -4743,6 +4838,7 @@ export type Database = {
         Returns: undefined
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_feature_enabled: { Args: { _flag: string }; Returns: boolean }
       is_signup_allowed: { Args: { p_email: string }; Returns: boolean }
       mark_attendance_opened: {
         Args: { p_timestamp: string; p_token: string }
