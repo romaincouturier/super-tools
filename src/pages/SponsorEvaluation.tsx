@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { rpc } from "@/lib/supabase-rpc";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -87,7 +88,7 @@ const SponsorEvaluation = () => {
     setError(null);
 
     try {
-      const { data: ev, error: evErr } = await (supabase.rpc as any)("get_sponsor_evaluation_by_token", { p_token: token });
+      const { data: ev, error: evErr } = await rpc.getSponsorEvaluationByToken(token);
 
       if (evErr || !ev) {
         throw evErr || new Error("Évaluation introuvable");
@@ -120,7 +121,7 @@ const SponsorEvaluation = () => {
         });
       } else {
         // Fallback for older records: fetch from trainings via RPC
-        const { data: t } = await (supabase.rpc as any)("get_training_public_info", { p_training_id: evTyped.training_id });
+        const { data: t } = await rpc.getTrainingPublicInfo(evTyped.training_id);
         if (t) {
           setTraining(t as unknown as TrainingInfo);
         }
@@ -128,10 +129,7 @@ const SponsorEvaluation = () => {
 
       // First open tracking
       if (!evTyped.date_premiere_ouverture) {
-        await (supabase.rpc as any)("update_sponsor_evaluation_by_token", {
-          p_token: token!,
-          p_data: { date_premiere_ouverture: new Date().toISOString() },
-        });
+        await rpc.updateSponsorEvaluationByToken(token!, { date_premiere_ouverture: new Date().toISOString() });
       }
     } catch (e: any) {
       console.error("Failed to load sponsor evaluation", e);
@@ -166,25 +164,22 @@ const SponsorEvaluation = () => {
     try {
       const nowIso = new Date().toISOString();
 
-      const { error: upErr } = await (supabase.rpc as any)("update_sponsor_evaluation_by_token", {
-        p_token: token!,
-        p_data: {
-          satisfaction_globale: satisfactionGlobale,
-          attentes_satisfaites: attentesSatisfaites,
-          objectifs_atteints: objectifsAtteints,
-          impact_competences: impactCompetences,
-          description_impact: descriptionImpact || null,
-          organisation_satisfaisante: organisationSatisfaisante === "oui",
-          communication_satisfaisante: communicationSatisfaisante === "oui",
-          recommandation,
-          message_recommandation: messageRecommandation || null,
-          consent_publication: consentPublication === "oui",
-          points_forts: pointsForts || null,
-          axes_amelioration: axesAmelioration || null,
-          commentaires_libres: commentairesLibres || null,
-          etat: "soumis",
-          date_soumission: nowIso,
-        },
+      const { error: upErr } = await rpc.updateSponsorEvaluationByToken(token!, {
+        satisfaction_globale: satisfactionGlobale,
+        attentes_satisfaites: attentesSatisfaites,
+        objectifs_atteints: objectifsAtteints,
+        impact_competences: impactCompetences,
+        description_impact: descriptionImpact || null,
+        organisation_satisfaisante: organisationSatisfaisante === "oui",
+        communication_satisfaisante: communicationSatisfaisante === "oui",
+        recommandation,
+        message_recommandation: messageRecommandation || null,
+        consent_publication: consentPublication === "oui",
+        points_forts: pointsForts || null,
+        axes_amelioration: axesAmelioration || null,
+        commentaires_libres: commentairesLibres || null,
+        etat: "soumis",
+        date_soumission: nowIso,
       });
 
       if (upErr) throw upErr;

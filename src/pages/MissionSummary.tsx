@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { rpc } from "@/lib/supabase-rpc";
 import { format, parseISO, isAfter, startOfDay } from "date-fns";
 import { fr, enUS } from "date-fns/locale";
 import {
@@ -351,11 +351,11 @@ const MissionSummary = () => {
     const fetchData = async () => {
       try {
         const [missionRes, activitiesRes, documentsRes, actionsRes, mediaRes] = await Promise.all([
-          (supabase.rpc as any)("get_mission_public_summary", { p_mission_id: missionId }),
-          (supabase.rpc as any)("get_mission_activities_public", { p_mission_id: missionId }),
-          (supabase.rpc as any)("get_mission_documents_public", { p_mission_id: missionId }),
-          (supabase.rpc as any)("get_mission_actions_public", { p_mission_id: missionId }),
-          (supabase.rpc as any)("get_mission_media_public", { p_mission_id: missionId }),
+          rpc.getMissionPublicSummary(missionId!),
+          rpc.getMissionActivitiesPublic(missionId!),
+          rpc.getMissionDocumentsPublic(missionId!),
+          rpc.getMissionActionsPublic(missionId!),
+          rpc.getMissionMediaPublic(missionId!),
         ]);
 
         if (missionRes.error || !missionRes.data) {
@@ -365,7 +365,7 @@ const MissionSummary = () => {
         }
 
         setMission(missionRes.data);
-        setActivities(Array.isArray(activitiesRes.data) ? activitiesRes.data : []);
+        setActivities(Array.isArray(activitiesRes.data) ? activitiesRes.data as Activity[] : []);
         setDocuments(Array.isArray(documentsRes.data) ? documentsRes.data : []);
         setMediaItems(Array.isArray(mediaRes.data) ? mediaRes.data : []);
         setActions(Array.isArray(actionsRes.data) ? actionsRes.data : []);

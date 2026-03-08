@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { rpc } from "@/lib/supabase-rpc";
 
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -90,7 +90,7 @@ const TrainingSummary = () => {
   const fetchTrainingData = async () => {
     try {
       // Fetch training via RPC
-      const { data: trainingData, error: trainingError } = await (supabase.rpc as any)("get_training_summary_info", { p_training_id: trainingId });
+      const { data: trainingData, error: trainingError } = await rpc.getTrainingSummaryInfo(trainingId!);
 
       if (trainingError) throw trainingError;
       if (!trainingData) {
@@ -101,20 +101,20 @@ const TrainingSummary = () => {
       setTraining(trainingData);
 
       // Fetch schedules via RPC
-      const { data: schedulesData } = await (supabase.rpc as any)("get_training_schedules_public", { p_training_id: trainingId });
+      const { data: schedulesData } = await rpc.getTrainingSchedulesPublic(trainingId!);
 
-      setSchedules(Array.isArray(schedulesData) ? schedulesData : []);
+      setSchedules(Array.isArray(schedulesData) ? schedulesData as Schedule[] : []);
 
       // Fetch trainer if exists via RPC
       if (trainingData.trainer_id) {
-        const { data: trainerData } = await (supabase.rpc as any)("get_trainer_public", { p_trainer_id: trainingData.trainer_id });
+        const { data: trainerData } = await rpc.getTrainerPublic(trainingData.trainer_id);
         setTrainer(trainerData);
       }
 
       // Fetch règlement intérieur URL via RPC
       const [{ data: settingValue }, { data: mapsKey }] = await Promise.all([
-        (supabase.rpc as any)("get_app_setting_public", { p_key: "reglement_interieur_url" }),
-        (supabase.rpc as any)("get_app_setting_public", { p_key: "google_maps_api_key" }),
+        rpc.getAppSettingPublic("reglement_interieur_url"),
+        rpc.getAppSettingPublic("google_maps_api_key"),
       ]);
 
       if (settingValue) {

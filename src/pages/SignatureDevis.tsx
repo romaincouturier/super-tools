@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { rpc } from "@/lib/supabase-rpc";
 import {
   Loader2,
   CheckCircle2,
@@ -83,7 +84,7 @@ const SignatureDevis = () => {
       }
 
       try {
-        const { data: signatureJson, error: sigError } = await (supabase.rpc as any)("get_devis_signature_by_token", { p_token: token });
+        const { data: signatureJson, error: sigError } = await rpc.getDevisSignatureByToken(token);
 
         if (sigError) {
           console.error("Error fetching signature:", sigError);
@@ -122,10 +123,7 @@ const SignatureDevis = () => {
 
         // Record first open
         if (!signature.email_opened_at) {
-          await (supabase.rpc as any)("mark_devis_opened", {
-            p_token: token,
-            p_timestamp: new Date().toISOString(),
-          });
+          await rpc.markDevisOpened(token, new Date().toISOString());
           trackEvent("first_link_opened");
         } else {
           trackEvent("link_reopened");

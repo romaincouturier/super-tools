@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { rpc } from "@/lib/supabase-rpc";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -149,11 +150,7 @@ const Questionnaire = () => {
 
   const insertEvent = async (questionnaireId: string, type_evenement: string, metadata?: Record<string, unknown>) => {
     try {
-      await (supabase.rpc as any)("insert_questionnaire_event", {
-        p_questionnaire_id: questionnaireId,
-        p_type_evenement: type_evenement,
-        p_metadata: (metadata ?? {}) as any,
-      });
+      await rpc.insertQuestionnaireEvent(questionnaireId, type_evenement, metadata);
     } catch (e) {
       console.warn("Failed to insert questionnaire event", e);
     }
@@ -170,7 +167,7 @@ const Questionnaire = () => {
     setError(null);
 
     try {
-      const { data: qArr, error: qErr } = await (supabase.rpc as any)("get_questionnaire_by_token", { p_token: token });
+      const { data: qArr, error: qErr } = await rpc.getQuestionnaireByToken(token);
 
       if (qErr || !qArr || qArr.length === 0) {
         throw qErr || new Error("Questionnaire introuvable");
@@ -191,7 +188,7 @@ const Questionnaire = () => {
         setPrerequisValidations(qTyped.modalites_preferences as Record<string, string>);
       }
 
-      const { data: t, error: tErr } = await (supabase.rpc as any)("get_training_public_info", { p_training_id: qTyped.training_id });
+      const { data: t, error: tErr } = await rpc.getTrainingPublicInfo(qTyped.training_id);
 
       if (!tErr && t) {
         setTraining(t as unknown as TrainingRecord);
@@ -208,7 +205,7 @@ const Questionnaire = () => {
       }
 
       // Fetch schedules
-      const { data: sched, error: schedErr } = await (supabase.rpc as any)("get_training_schedules_public", { p_training_id: qTyped.training_id });
+      const { data: sched, error: schedErr } = await rpc.getTrainingSchedulesPublic(qTyped.training_id);
 
       if (!schedErr && sched) {
         setSchedules((Array.isArray(sched) ? sched : []) as ScheduleRecord[]);
@@ -218,12 +215,9 @@ const Questionnaire = () => {
       if (!qTyped.date_premiere_ouverture) {
         const nowIso = new Date().toISOString();
         try {
-          await (supabase.rpc as any)("update_questionnaire_by_token", {
-            p_token: token,
-            p_data: {
-              date_premiere_ouverture: nowIso,
-              etat: qTyped.etat === "envoye" ? "accueil_envoye" : qTyped.etat,
-            },
+          await rpc.updateQuestionnaireByToken(token, {
+            date_premiere_ouverture: nowIso,
+            etat: qTyped.etat === "envoye" ? "accueil_envoye" : qTyped.etat,
           });
           await insertEvent(qTyped.id, "opened", { source: "public_link" });
         } catch (trackingErr) {
@@ -290,10 +284,7 @@ const Questionnaire = () => {
         date_derniere_sauvegarde: nowIso,
       };
 
-      const { error: upErr } = await (supabase.rpc as any)("update_questionnaire_by_token", {
-        p_token: token!,
-        p_data: payload,
-      });
+      const { error: upErr } = await rpc.updateQuestionnaireByToken(token!, payload);
 
       if (upErr) throw upErr;
 

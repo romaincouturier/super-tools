@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { rpc } from "@/lib/supabase-rpc";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -92,7 +93,7 @@ const Evaluation = () => {
     setError(null);
 
     try {
-      const { data: evArr, error: evErr } = await (supabase.rpc as any)("get_evaluation_by_token", { p_token: token });
+      const { data: evArr, error: evErr } = await rpc.getEvaluationByToken(token);
 
       if (evErr || !evArr || evArr.length === 0) {
         throw evErr || new Error("Évaluation introuvable");
@@ -120,7 +121,7 @@ const Evaluation = () => {
       if (evTyped.remarques_libres) setRemarquesLibres(evTyped.remarques_libres);
 
       // Fetch training
-      const { data: t, error: tErr } = await (supabase.rpc as any)("get_training_public_info", { p_training_id: evTyped.training_id });
+      const { data: t, error: tErr } = await rpc.getTrainingPublicInfo(evTyped.training_id);
 
       if (!tErr && t) {
         setTraining(t as unknown as TrainingRecord);
@@ -139,10 +140,7 @@ const Evaluation = () => {
       // First open tracking
       if (!evTyped.date_premiere_ouverture) {
         const nowIso = new Date().toISOString();
-        await (supabase.rpc as any)("update_evaluation_by_token", {
-          p_token: token,
-          p_data: { date_premiere_ouverture: nowIso },
-        });
+        await rpc.updateEvaluationByToken(token, { date_premiere_ouverture: nowIso });
       }
     } catch (e: any) {
       console.error("Failed to load evaluation", e);
@@ -195,28 +193,25 @@ const Evaluation = () => {
     try {
       const nowIso = new Date().toISOString();
 
-      const { error: upErr } = await (supabase.rpc as any)("update_evaluation_by_token", {
-        p_token: token!,
-        p_data: {
-          appreciation_generale: appreciationGenerale,
-          recommandation,
-          objectifs_evaluation: objectifsEvaluation,
-          objectif_prioritaire: objectifPrioritaire,
-          delai_application: delaiApplication,
-          freins_application: freinsApplication || null,
-          rythme,
-          equilibre_theorie_pratique: equilibreTheoriePratique,
-          amelioration_suggeree: ameliorationSuggeree || null,
-          conditions_info_satisfaisantes: conditionsInfoSatisfaisantes,
-          formation_adaptee_public: formationAdapteePublic,
-          qualification_intervenant_adequate: qualificationIntervenantAdequate,
-          appreciations_prises_en_compte: appreciationsPrisesEnCompte,
-          message_recommandation: messageRecommandation || null,
-          consent_publication: consentPublication,
-          remarques_libres: remarquesLibres || null,
-          etat: "soumis",
-          date_soumission: nowIso,
-        },
+      const { error: upErr } = await rpc.updateEvaluationByToken(token!, {
+        appreciation_generale: appreciationGenerale,
+        recommandation,
+        objectifs_evaluation: objectifsEvaluation,
+        objectif_prioritaire: objectifPrioritaire,
+        delai_application: delaiApplication,
+        freins_application: freinsApplication || null,
+        rythme,
+        equilibre_theorie_pratique: equilibreTheoriePratique,
+        amelioration_suggeree: ameliorationSuggeree || null,
+        conditions_info_satisfaisantes: conditionsInfoSatisfaisantes,
+        formation_adaptee_public: formationAdapteePublic,
+        qualification_intervenant_adequate: qualificationIntervenantAdequate,
+        appreciations_prises_en_compte: appreciationsPrisesEnCompte,
+        message_recommandation: messageRecommandation || null,
+        consent_publication: consentPublication,
+        remarques_libres: remarquesLibres || null,
+        etat: "soumis",
+        date_soumission: nowIso,
       });
 
       if (upErr) throw upErr;

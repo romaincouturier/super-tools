@@ -1,6 +1,5 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { Loader2, CheckCircle2, MapPin, Calendar, Clock, User, PenLine, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,7 +8,10 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import SupertiltLogo from "@/components/SupertiltLogo";
 import { formatDateWithDayOfWeek, getPeriodLabel } from "@/lib/dateFormatters";
-import SignaturePad from "signature_pad";
+import { supabase } from "@/integrations/supabase/client";
+import { rpc, type TrainingPublicInfo, type ParticipantPublicInfo, type ScheduleForDate } from "@/lib/supabase-rpc";
+import { useJourneyTracking } from "@/hooks/useJourneyTracking";
+import { useSignaturePad } from "@/hooks/useSignaturePad";
 
 interface AttendanceData {
   id: string;
@@ -20,25 +22,9 @@ interface AttendanceData {
   token: string;
   signature_data: string | null;
   signed_at: string | null;
-  training: {
-    training_name: string;
-    location: string;
-  };
-  participant: {
-    first_name: string | null;
-    last_name: string | null;
-    email: string;
-  };
-  schedule: {
-    start_time: string;
-    end_time: string;
-  } | null;
-}
-
-interface JourneyEvent {
-  event: string;
-  timestamp: string;
-  details?: Record<string, unknown>;
+  training: { training_name: string; location: string };
+  participant: { first_name: string | null; last_name: string | null; email: string };
+  schedule: { start_time: string; end_time: string } | null;
 }
 
 const Emargement = () => {
@@ -49,23 +35,14 @@ const Emargement = () => {
   const [alreadySigned, setAlreadySigned] = useState(false);
   const [signatureSubmitted, setSignatureSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
   const [consentGiven, setConsentGiven] = useState(false);
 
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const signaturePadRef = useRef<SignaturePad | null>(null);
-  const journeyEventsRef = useRef<JourneyEvent[]>([]);
-  const hasTrackedSignatureDrawn = useRef(false);
   const { toast } = useToast();
+  const { journeyEvents, trackEvent, trackPageLoaded, getDeviceInfo } = useJourneyTracking();
 
-  // Journey event tracker
-  const trackEvent = useCallback((event: string, details?: Record<string, unknown>) => {
-    journeyEventsRef.current.push({
-      event,
-      timestamp: new Date().toISOString(),
-      details,
-    });
-  }, []);
+  const { canvasRef, clear: clearSignature, isEmpty: isSignatureEmpty, toDataURL: getSignatureData } = useSignaturePad({
+    onFirstStroke: () => trackEvent("signature_drawing_started"),
+  });
 
   useEffect(() => {
     const fetchAttendanceData = async () => {
@@ -76,18 +53,10 @@ const Emargement = () => {
       }
 
       try {
-        const { data: signatureJson, error: sigError } = await (supabase.rpc as any)("get_attendance_by_token", { p_token: token });
+        const { data: signature, error: sigError } = await rpc.getAttendanceByToken(token);
 
-        if (sigError) {
-          console.error("Error fetching signature:", sigError);
-          setError("Erreur lors du chargement des données");
-          setLoading(false);
-          return;
-        }
-
-        const signature = signatureJson;
-        if (!signature) {
-          setError("Lien d'émargement invalide ou expiré");
+        if (sigError || !signature) {
+          setError(sigError ? "Erreur lors du chargement des données" : "Lien d'émargement invalide ou expiré");
           setLoading(false);
           return;
         }
@@ -96,33 +65,18 @@ const Emargement = () => {
           setAlreadySigned(true);
         }
 
-        // Track page loaded
-        trackEvent("page_loaded", {
-          user_agent: navigator.userAgent,
-          screen_width: window.screen.width,
-          screen_height: window.screen.height,
-          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-          language: navigator.language,
-        });
+        trackPageLoaded();
 
-        // Fetch training info via RPC
-        const { data: trainingInfo } = await (supabase.rpc as any)("get_training_public_info", { p_training_id: signature.training_id });
-
-        // Fetch participant info via RPC
-        const { data: participantInfo } = await (supabase.rpc as any)("get_participant_public_info", { p_participant_id: signature.participant_id });
-
-        // Fetch schedule for this date via RPC
-        const { data: scheduleInfo } = await (supabase.rpc as any)("get_training_schedule_for_date", {
-          p_training_id: signature.training_id,
-          p_day_date: signature.schedule_date,
-        });
+        // Fetch related data in parallel
+        const [trainingRes, participantRes, scheduleRes] = await Promise.all([
+          rpc.getTrainingPublicInfo(signature.training_id),
+          rpc.getParticipantPublicInfo(signature.participant_id),
+          rpc.getTrainingScheduleForDate(signature.training_id, signature.schedule_date),
+        ]);
 
         // Record first open
         if (!signature.email_opened_at) {
-          await (supabase.rpc as any)("mark_attendance_opened", {
-            p_token: token,
-            p_timestamp: new Date().toISOString(),
-          });
+          await rpc.markAttendanceOpened(token, new Date().toISOString());
           trackEvent("first_link_opened");
         } else {
           trackEvent("link_reopened");
@@ -130,9 +84,11 @@ const Emargement = () => {
 
         setAttendanceData({
           ...signature,
-          training: trainingInfo || { training_name: "Formation", location: "" },
-          participant: participantInfo || { first_name: null, last_name: null, email: "" },
-          schedule: scheduleInfo,
+          training: trainingRes.data
+            ? { training_name: (trainingRes.data as TrainingPublicInfo).training_name, location: (trainingRes.data as TrainingPublicInfo).location || "" }
+            : { training_name: "Formation", location: "" },
+          participant: (participantRes.data as ParticipantPublicInfo) || { first_name: null, last_name: null, email: "" },
+          schedule: scheduleRes.data as ScheduleForDate | null,
         });
       } catch (err) {
         console.error("Error:", err);
@@ -143,42 +99,7 @@ const Emargement = () => {
     };
 
     fetchAttendanceData();
-  }, [token, trackEvent]);
-
-  // Initialize signature pad
-  useEffect(() => {
-    if (canvasRef.current && !alreadySigned && attendanceData) {
-      const canvas = canvasRef.current;
-      const ratio = Math.max(window.devicePixelRatio || 1, 1);
-      canvas.width = canvas.offsetWidth * ratio;
-      canvas.height = canvas.offsetHeight * ratio;
-      const ctx = canvas.getContext("2d");
-      if (ctx) {
-        ctx.scale(ratio, ratio);
-      }
-
-      const pad = new SignaturePad(canvas, {
-        backgroundColor: "rgb(255, 255, 255)",
-        penColor: "rgb(0, 0, 0)",
-      });
-
-      // Track first stroke
-      pad.addEventListener("beginStroke", () => {
-        if (!hasTrackedSignatureDrawn.current) {
-          trackEvent("signature_drawing_started");
-          hasTrackedSignatureDrawn.current = true;
-        }
-      });
-
-      signaturePadRef.current = pad;
-    }
-
-    return () => {
-      if (signaturePadRef.current) {
-        signaturePadRef.current.off();
-      }
-    };
-  }, [attendanceData, alreadySigned, trackEvent]);
+  }, [token, trackEvent, trackPageLoaded]);
 
   const handleConsentChange = (checked: boolean) => {
     setConsentGiven(checked);
@@ -186,11 +107,8 @@ const Emargement = () => {
   };
 
   const handleClear = () => {
-    if (signaturePadRef.current) {
-      signaturePadRef.current.clear();
-      trackEvent("signature_cleared");
-      hasTrackedSignatureDrawn.current = false;
-    }
+    clearSignature();
+    trackEvent("signature_cleared");
   };
 
   const handleSubmit = async () => {
@@ -203,7 +121,7 @@ const Emargement = () => {
       return;
     }
 
-    if (!signaturePadRef.current || signaturePadRef.current.isEmpty()) {
+    if (isSignatureEmpty()) {
       toast({
         title: "Signature requise",
         description: "Veuillez signer dans le cadre prévu avant de valider.",
@@ -220,19 +138,8 @@ const Emargement = () => {
     setSubmitting(true);
 
     try {
-      const signatureData = signaturePadRef.current.toDataURL("image/png");
-
-      const deviceInfo = {
-        screenWidth: window.screen.width,
-        screenHeight: window.screen.height,
-        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-        language: navigator.language,
-        colorDepth: window.screen.colorDepth,
-        pixelRatio: window.devicePixelRatio,
-        platform: navigator.platform,
-        cookiesEnabled: navigator.cookieEnabled,
-        onLine: navigator.onLine,
-      };
+      const signatureData = getSignatureData("image/png");
+      const deviceInfo = getDeviceInfo();
 
       const response = await supabase.functions.invoke("submit-attendance-signature", {
         body: {
@@ -241,7 +148,7 @@ const Emargement = () => {
           userAgent: navigator.userAgent,
           consent: consentGiven,
           deviceInfo,
-          journeyEvents: journeyEventsRef.current,
+          journeyEvents: journeyEvents.current,
         },
       });
 

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { rpc } from "@/lib/supabase-rpc";
 import { Loader2, CheckCircle2, Star, CalendarDays, MapPin, Users, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -34,7 +34,7 @@ const TrainerEvaluation = () => {
   useEffect(() => {
     if (!token) return;
     const fetchEvaluation = async () => {
-      const { data, error } = await (supabase.rpc as any)("get_trainer_evaluation_by_token", { p_token: token });
+      const { data, error } = await rpc.getTrainerEvaluationByToken(token);
 
       if (error || !data) {
         setLoading(false);
@@ -57,7 +57,7 @@ const TrainerEvaluation = () => {
 
       // Fetch participant list via RPC
       if (data.training_id) {
-        const { data: participantsList } = await (supabase.rpc as any)("get_training_participants_list", { p_training_id: data.training_id });
+        const { data: participantsList } = await rpc.getTrainingParticipantsList(data.training_id);
         if (participantsList && Array.isArray(participantsList)) {
           setTrainingDetails(prev => ({ ...prev, participants: participantsList }));
         }
@@ -69,10 +69,7 @@ const TrainerEvaluation = () => {
 
       // Fetch previous evaluations by same trainer for suggestions
       if (data.trainer_email) {
-        const { data: prevEvals } = await (supabase.rpc as any)("get_previous_trainer_evaluations", {
-          p_trainer_email: data.trainer_email,
-          p_exclude_id: data.id,
-        });
+        const { data: prevEvals } = await rpc.getPreviousTrainerEvaluations(data.trainer_email, data.id);
 
         if (prevEvals && Array.isArray(prevEvals) && prevEvals.length > 0) {
           const extract = (field: string) => {
@@ -101,16 +98,13 @@ const TrainerEvaluation = () => {
     }
     setSubmitting(true);
     try {
-      const { error } = await (supabase.rpc as any)("update_trainer_evaluation_by_token", {
-        p_token: token!,
-        p_data: {
-          satisfaction_globale: satisfaction,
-          points_forts: pointsForts.trim() || null,
-          axes_amelioration: axesAmelioration.trim() || null,
-          commentaires: commentaires.trim() || null,
-          status: "soumis",
-          date_submitted: new Date().toISOString(),
-        },
+      const { error } = await rpc.updateTrainerEvaluationByToken(token!, {
+        satisfaction_globale: satisfaction,
+        points_forts: pointsForts.trim() || null,
+        axes_amelioration: axesAmelioration.trim() || null,
+        commentaires: commentaires.trim() || null,
+        status: "soumis",
+        date_submitted: new Date().toISOString(),
       });
 
       if (error) throw error;

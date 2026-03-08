@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { rpc } from "@/lib/supabase-rpc";
 import {
   Loader2,
   CheckCircle2,
@@ -87,7 +88,7 @@ const SignatureConvention = () => {
       }
 
       try {
-        const { data: signatureJson, error: sigError } = await (supabase.rpc as any)("get_convention_signature_by_token", { p_token: token });
+        const { data: signatureJson, error: sigError } = await rpc.getConventionSignatureByToken(token);
 
         if (sigError) {
           console.error("Error fetching convention signature:", sigError);
@@ -129,10 +130,7 @@ const SignatureConvention = () => {
 
         // Record first open
         if (!signature.email_opened_at) {
-          await (supabase.rpc as any)("mark_convention_opened", {
-            p_token: token,
-            p_timestamp: new Date().toISOString(),
-          });
+          await rpc.markConventionOpened(token, new Date().toISOString());
           trackEvent("first_link_opened");
         } else {
           trackEvent("link_reopened");
