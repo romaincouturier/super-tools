@@ -1144,6 +1144,8 @@ const SETTINGS_REGISTRY: Record<string, { default: string; description: string }
   qualiopi_certificate_path: { default: "certificat-qualiopi/Certificat QUALIOPI v3.pdf", description: "Chemin du certificat Qualiopi dans le storage (bucket/fichier)" },
   backup_enabled: { default: "false", description: "Activer les sauvegardes automatiques quotidiennes vers Google Drive" },
   backup_gdrive_folder_id: { default: "", description: "ID du dossier Google Drive pour les sauvegardes" },
+  stripe_secret_key: { default: "", description: "Clé secrète Stripe (sk_live_... ou sk_test_...) pour la facturation" },
+  stripe_webhook_secret: { default: "", description: "Secret du webhook Stripe (whsec_...) pour valider les événements" },
 };
 
 const SETTINGS_DEFAULTS = Object.fromEntries(
