@@ -13,7 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   Loader2, Sparkles, BookOpen, ClipboardCheck, Activity,
   CheckCircle2, AlertTriangle, TrendingUp, Target,
-  ArrowRight, Download, Copy, Brain, Zap,
+  ArrowRight, Download, Copy, Brain, Zap, MessageSquare,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
