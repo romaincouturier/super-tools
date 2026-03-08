@@ -1,6 +1,5 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { Loader2, CheckCircle2, MapPin, Calendar, Clock, User, PenLine, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,7 +8,10 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import SupertiltLogo from "@/components/SupertiltLogo";
 import { formatDateWithDayOfWeek, getPeriodLabel } from "@/lib/dateFormatters";
-import SignaturePad from "signature_pad";
+import { supabase } from "@/integrations/supabase/client";
+import { rpc, type TrainingPublicInfo, type ParticipantPublicInfo, type ScheduleForDate } from "@/lib/supabase-rpc";
+import { useJourneyTracking } from "@/hooks/useJourneyTracking";
+import { useSignaturePad } from "@/hooks/useSignaturePad";
 
 interface AttendanceData {
   id: string;
@@ -20,25 +22,9 @@ interface AttendanceData {
   token: string;
   signature_data: string | null;
   signed_at: string | null;
-  training: {
-    training_name: string;
-    location: string;
-  };
-  participant: {
-    first_name: string | null;
-    last_name: string | null;
-    email: string;
-  };
-  schedule: {
-    start_time: string;
-    end_time: string;
-  } | null;
-}
-
-interface JourneyEvent {
-  event: string;
-  timestamp: string;
-  details?: Record<string, unknown>;
+  training: { training_name: string; location: string };
+  participant: { first_name: string | null; last_name: string | null; email: string };
+  schedule: { start_time: string; end_time: string } | null;
 }
 
 const Emargement = () => {
@@ -49,23 +35,10 @@ const Emargement = () => {
   const [alreadySigned, setAlreadySigned] = useState(false);
   const [signatureSubmitted, setSignatureSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
   const [consentGiven, setConsentGiven] = useState(false);
 
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const signaturePadRef = useRef<SignaturePad | null>(null);
-  const journeyEventsRef = useRef<JourneyEvent[]>([]);
-  const hasTrackedSignatureDrawn = useRef(false);
   const { toast } = useToast();
-
-  // Journey event tracker
-  const trackEvent = useCallback((event: string, details?: Record<string, unknown>) => {
-    journeyEventsRef.current.push({
-      event,
-      timestamp: new Date().toISOString(),
-      details,
-    });
-  }, []);
+  const { journeyEvents, trackEvent, trackPageLoaded, getDeviceInfo } = useJourneyTracking();
 
   useEffect(() => {
     const fetchAttendanceData = async () => {
