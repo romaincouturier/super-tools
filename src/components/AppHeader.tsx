@@ -74,7 +74,7 @@ const AppHeader = () => {
             </TooltipProvider>
           )}
           <button
-            onClick={() => navigate("/")}
+            onClick={() => navigate("/dashboard")}
             className="text-xl font-bold hover:opacity-80 transition-opacity"
           >
             SuperTools
