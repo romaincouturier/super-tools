@@ -2179,6 +2179,62 @@ export type Database = {
         }
         Relationships: []
       }
+      lms_assignment_submissions: {
+        Row: {
+          comment: string | null
+          feedback: string | null
+          file_name: string | null
+          file_size: number | null
+          file_url: string | null
+          graded_at: string | null
+          graded_by: string | null
+          id: string
+          learner_email: string
+          lesson_id: string
+          score: number | null
+          status: string
+          submitted_at: string
+        }
+        Insert: {
+          comment?: string | null
+          feedback?: string | null
+          file_name?: string | null
+          file_size?: number | null
+          file_url?: string | null
+          graded_at?: string | null
+          graded_by?: string | null
+          id?: string
+          learner_email: string
+          lesson_id: string
+          score?: number | null
+          status?: string
+          submitted_at?: string
+        }
+        Update: {
+          comment?: string | null
+          feedback?: string | null
+          file_name?: string | null
+          file_size?: number | null
+          file_url?: string | null
+          graded_at?: string | null
+          graded_by?: string | null
+          id?: string
+          learner_email?: string
+          lesson_id?: string
+          score?: number | null
+          status?: string
+          submitted_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lms_assignment_submissions_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "lms_lessons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lms_assignments: {
         Row: {
           allow_late_submission: boolean | null
@@ -2222,6 +2278,57 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "lms_assignments_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "lms_courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lms_badge_awards: {
+        Row: {
+          awarded_at: string
+          badge_icon: string | null
+          badge_id: string | null
+          badge_name: string
+          badge_type: string
+          course_id: string
+          id: string
+          learner_email: string
+          metadata: Json | null
+        }
+        Insert: {
+          awarded_at?: string
+          badge_icon?: string | null
+          badge_id?: string | null
+          badge_name: string
+          badge_type?: string
+          course_id: string
+          id?: string
+          learner_email: string
+          metadata?: Json | null
+        }
+        Update: {
+          awarded_at?: string
+          badge_icon?: string | null
+          badge_id?: string | null
+          badge_name?: string
+          badge_type?: string
+          course_id?: string
+          id?: string
+          learner_email?: string
+          metadata?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lms_badge_awards_badge_id_fkey"
+            columns: ["badge_id"]
+            isOneToOne: false
+            referencedRelation: "lms_badges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lms_badge_awards_course_id_fkey"
             columns: ["course_id"]
             isOneToOne: false
             referencedRelation: "lms_courses"

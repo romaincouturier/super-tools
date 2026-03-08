@@ -589,6 +589,109 @@ export function useEnrollLearner() {
   });
 }
 
+// ---- Assignment submissions ----
+export interface LmsAssignmentSubmission {
+  id: string;
+  lesson_id: string;
+  learner_email: string;
+  comment: string | null;
+  file_url: string | null;
+  file_name: string | null;
+  file_size: number | null;
+  score: number | null;
+  feedback: string | null;
+  status: string;
+  submitted_at: string;
+  graded_at: string | null;
+  graded_by: string | null;
+}
+
+export function useSubmitAssignment() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { lesson_id: string; learner_email: string; comment?: string; file_url?: string; file_name?: string; file_size?: number }) => {
+      const { data, error } = await supabase
+        .from("lms_assignment_submissions")
+        .insert(input as any)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["lms-assignment-submissions"] });
+    },
+  });
+}
+
+export function useLearnerSubmissions(lessonId: string | undefined, email: string | undefined) {
+  return useQuery({
+    queryKey: ["lms-assignment-submissions", lessonId, email],
+    enabled: !!lessonId && !!email,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("lms_assignment_submissions")
+        .select("*")
+        .eq("lesson_id", lessonId!)
+        .eq("learner_email", email!)
+        .order("submitted_at", { ascending: false });
+      if (error) throw error;
+      return data as LmsAssignmentSubmission[];
+    },
+  });
+}
+
+// ---- Badges ----
+export interface LmsBadge {
+  id: string;
+  course_id: string;
+  learner_email: string;
+  badge_type: string;
+  badge_name: string;
+  badge_icon: string;
+  awarded_at: string;
+  metadata: any;
+}
+
+export function useLearnerBadges(email: string | undefined) {
+  return useQuery({
+    queryKey: ["lms-badge-awards", email],
+    enabled: !!email,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("lms_badge_awards" as any)
+        .select("*")
+        .eq("learner_email", email!)
+        .order("awarded_at", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as unknown as LmsBadge[];
+    },
+  });
+}
+
+// ---- Video upload helper ----
+export async function uploadLmsVideo(file: File, lessonId: string): Promise<string> {
+  const ext = file.name.split(".").pop()?.toLowerCase() || "mp4";
+  const path = `videos/${lessonId}/${Date.now()}.${ext}`;
+  const { error } = await supabase.storage
+    .from("lms-content")
+    .upload(path, file, { contentType: file.type || "video/mp4", upsert: true });
+  if (error) throw error;
+  const { data } = supabase.storage.from("lms-content").getPublicUrl(path);
+  return data.publicUrl;
+}
+
+export async function uploadAssignmentFile(file: File, lessonId: string, email: string): Promise<{ url: string; name: string; size: number }> {
+  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_").toLowerCase();
+  const path = `assignments/${lessonId}/${email}/${Date.now()}_${safeName}`;
+  const { error } = await supabase.storage
+    .from("lms-content")
+    .upload(path, file, { contentType: file.type, upsert: true });
+  if (error) throw error;
+  const { data } = supabase.storage.from("lms-content").getPublicUrl(path);
+  return { url: data.publicUrl, name: file.name, size: file.size };
+}
+
 // ---- Forum mutations ----
 export function useCreateForumPost() {
   const qc = useQueryClient();
