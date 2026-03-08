@@ -170,6 +170,8 @@ const App = () => (
               <Route path="/arena" element={<ArenaSetup />} />
               <Route path="/arena/discussion" element={<ArenaDiscussion />} />
               <Route path="/arena/results" element={<ArenaResults />} />
+              {/* Super Admin */}
+              <Route path="/admin" element={<Admin />} />
               {/* Reclamations */}
               <Route path="/reclamation/:token" element={<ReclamationPublic />} />
               <Route path="/reclamations" element={<Reclamations />} />

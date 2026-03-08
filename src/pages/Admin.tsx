@@ -95,7 +95,7 @@ export default function Admin() {
   return (
     <ModuleLayout>
       <div className="space-y-6">
-        <PageHeader title={t("admin.title")} icon={Shield} />
+        <PageHeader title={t("admin.title")} icon={Shield} backTo="/" />
 
         {/* Feature Flags */}
         <Card>
