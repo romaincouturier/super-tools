@@ -1,8 +1,171 @@
+# Plan de Refactoring — Clean Code sans Régression
 
+## Diagnostic (données réelles)
 
-# Audit Qualiopi -- Analyse et plan d'action
+### Fichiers les plus lourds (God Objects)
+| Fichier | Lignes | Problème |
+|---|---|---|
+| `CardDetailDrawer.tsx` | **2887** | Composant monolithique CRM |
+| `FormationDetail.tsx` | **1629** | Page-dieu formations |
+| `Questionnaire.tsx` | **1305** | Formulaire monolithique |
+| `AttendanceSignatureBlock.tsx` | **1199** | Logique émargement mélangée |
+| `useCommercialCoachData.ts` | **1166** | Hook-dieu coach commercial |
+| `Evaluation.tsx` | **771** | Formulaire évaluation |
+| `TrainingSummary.tsx` | **688** | Page résumé formation |
+| `MissionSummary.tsx` | **658** | Page résumé mission |
+| `useMissions.ts` | **617** | Hook missions non typé |
+| `SponsorEvaluation.tsx` | **606** | Formulaire sponsor |
 
-## Tableau synthetique des indicateurs
+### Dette technique transversale
+- **1419 occurrences de `as any`** dans 67 fichiers → bypass total de TypeScript
+- **196 appels `supabase.rpc as any`** → aucune vérification des paramètres RPC
+- Pas de couche d'abstraction DB (appels Supabase éparpillés dans les composants)
+- Duplication de patterns fetch/loading/error dans chaque page publique
+- Pas de tests sur les composants critiques
+
+---
+
+## Phase 1 — Type Safety (risque: nul)
+> Objectif : Éliminer les `as any` progressivement sans changer la logique
+
+### 1.1 Typer les appels RPC
+Créer `src/lib/supabase-rpc.ts` : un wrapper typé autour de `supabase.rpc()` qui :
+- Définit les types d'entrée/sortie pour chaque fonction RPC
+- Élimine les `as any` sur les 196 appels RPC
+- Fournit autocomplétion et validation compile-time
+
+### 1.2 Typer les accès Supabase directs
+Créer des helpers typés dans `src/lib/supabase-queries/` pour les tables non couvertes par les types auto-générés.
+
+### 1.3 Créer des types partagés manquants
+- Types pour les réponses RPC publiques
+- Types pour les payloads de formulaires (questionnaire, évaluation, etc.)
+
+---
+
+## Phase 2 — Extraction de composants (risque: faible)
+> Objectif : Casser les God Objects en sous-composants focalisés
+
+### 2.1 `CardDetailDrawer.tsx` (2887 lignes → ~8 fichiers)
+- `CardDetailHeader` — Titre, emoji, badges
+- `CardDetailInfo` — Infos client (email, phone, company)
+- `CardDetailDescription` — Éditeur description
+- `CardDetailActions` — Actions commerciales
+- `CardDetailEmails` — Section emails
+- `CardDetailComments` — Fil commentaires
+- `CardDetailAttachments` — Pièces jointes
+- `useCardDetail.ts` — Hook pour la logique métier
+
+### 2.2 `FormationDetail.tsx` (1629 lignes → ~6 fichiers)
+- `FormationDetailHeader` — Actions + statut
+- `FormationDetailInfo` — Infos générales
+- `FormationDetailSchedule` — Planning
+- `FormationDetailNotes` — Notes
+- `FormationDetailSidebar` — Sidebar latérale
+- `useFormationDetail.ts` — Logique métier
+
+### 2.3 `Questionnaire.tsx` (1305 lignes → ~5 fichiers)
+- `QuestionnaireInfoSection` — Contexte participant
+- `QuestionnaireSkillsSection` — Auto-évaluation
+- `QuestionnairePreferencesSection` — Préférences
+- `QuestionnaireConsentSection` — RGPD + soumission
+- `useQuestionnaire.ts` — Logique fetch/save/submit
+
+### 2.4 `AttendanceSignatureBlock.tsx` (1199 lignes → ~4 fichiers)
+- `AttendanceStatusTable` — Tableau des statuts
+- `AttendancePdfGenerator` — Génération PDF
+- `AttendanceSendDialog` — Envoi des demandes
+- `useAttendanceSignatures.ts` — Logique métier
+
+### 2.5 `useCommercialCoachData.ts` (1166 lignes → ~4 fichiers)
+- `useCoachContexts.ts` — Gestion des contextes
+- `useCoachAnalysis.ts` — Analyse IA
+- `useCoachHistory.ts` — Historique
+- Types partagés dans `src/types/commercial-coach.ts`
+
+---
+
+## Phase 3 — Couche service DB (risque: moyen, nécessite tests)
+> Objectif : Centraliser les accès DB pour éviter la duplication
+
+### 3.1 Pattern Repository
+Créer `src/services/` avec des fichiers par domaine :
+- `src/services/trainings.ts` — CRUD formations
+- `src/services/participants.ts` — CRUD participants
+- `src/services/evaluations.ts` — CRUD évaluations
+- `src/services/missions.ts` — CRUD missions
+- `src/services/crm.ts` — CRUD CRM
+
+### 3.2 Hooks simplifiés
+Les hooks React Query deviennent des wrappers fins autour des services :
+```ts
+// Avant (useMissions.ts — 617 lignes avec as unknown as {...})
+const { data } = await (supabase as unknown as {...}).from("missions").select("*")
+
+// Après
+const { data } = await missionService.getAll()
+```
+
+---
+
+## Phase 4 — Patterns partagés (risque: nul)
+> Objectif : Éliminer la duplication de code
+
+### 4.1 Hook `usePublicFormPage`
+Les 7 pages publiques partagent le même pattern :
+- Fetch par token → loading → error → already submitted → form
+- Logo + Card layout + journey tracking
+Extraire un hook `usePublicFormPage(token, fetchFn)`.
+
+### 4.2 Hook `useJourneyTracking`
+Le tracking des événements de parcours est dupliqué dans 5+ pages.
+
+### 4.3 Hook `useSignaturePad`
+La logique canvas + SignaturePad est dupliquée dans 3 pages.
+
+---
+
+## Phase 5 — Tests (risque: nul)
+> Objectif : Filet de sécurité pour les refactorings futurs
+
+### 5.1 Tests unitaires prioritaires
+- `supabase-rpc.ts` (wrapper typé)
+- Services DB (mocks Supabase)
+- Fonctions utilitaires existantes non testées
+
+### 5.2 Tests de composants
+- Pages publiques (token valide/invalide/déjà signé)
+- Formulaires critiques (soumission, validation)
+
+---
+
+## Ordre d'exécution recommandé
+
+```
+Phase 1.1 → Phase 4.1-4.3 → Phase 2.1 → Phase 2.2 → Phase 2.3 → Phase 1.2 → Phase 3 → Phase 5
+```
+
+1. **Types d'abord** (1.1) — Fondation, bloque les régressions à la compilation
+2. **Patterns partagés** (4.1-4.3) — Réduit le volume avant les gros fichiers
+3. **God Objects** (2.x) — Le plus visible, le plus impactant
+4. **Couche service** (3) — Nécessite types + tests
+5. **Tests** (5) — En continu, surtout après Phase 3
+
+---
+
+## Règles de refactoring (zéro régression)
+
+1. **Un fichier à la fois** — Jamais de refactoring transversal en un seul commit
+2. **Extract → Import → Delete** — Extraire dans un nouveau fichier, importer, puis supprimer
+3. **Tests avant suppression** — Vérifier que le comportement est identique
+4. **Pas de changement de logique** — Bug fixes = commits séparés
+5. **Types explicites** — Tout nouveau code strictement typé, zéro `any`
+
+---
+
+# Audit Qualiopi — Analyse et plan d'action (conservé)
+
+## Tableau synthétique des indicateurs
 
 | Indicateur | Statut | Ce qui manque | Action prioritaire |
 |---|---|---|---|
@@ -10,150 +173,16 @@
 | 4 - Analyse besoin | Couvert | Module "Besoins participants" avec questionnaire par token | Aucune |
 | 5 - Objectifs operationnels | Couvert | Champs `objectives` sur catalogue et formations, editeur dedie | Aucune |
 | 6 - Contenus adaptes | Couvert | Programme PDF, format formation, supports, lien SuperTilt | Aucune |
-| 8 - Positionnement entree | Partiel | Prerequis definis mais pas de champ formel "validation des prerequis a l'entree" | Ajouter un champ "prerequis valides" par participant (recueil besoins existant couvre partiellement) |
+| 8 - Positionnement entree | Partiel | Prerequis definis mais pas de champ formel "validation des prerequis a l'entree" | Ajouter un champ "prerequis valides" par participant |
 | 10 - Adaptation au profil | Couvert | Recueil besoins + adaptations notees dans les notes de formation | Aucune |
 | 11 - Evaluation atteinte objectifs | Couvert | Questionnaire evaluation avec notation par objectif | Aucune |
 | 17 - Moyens humains/techniques | Partiel | Formateurs existent mais sans competences ni diplomes traces | **PRIORITE 1** |
 | 19 - Ressources pedagogiques | Couvert | Documents formation, supports URL, programme PDF | Aucune |
-| 21 - Competences intervenants | Manquant | Pas de competences, pas de diplomes/certifs, pas d'historique formation, pas de lien adequation | **PRIORITE 1** |
-| 22 - Dev competences intervenants | Manquant | Pas d'historique des formations suivies par les formateurs | **PRIORITE 1** (inclus) |
-| 26 - Referent handicap | Partiel | Pas de champ "referent handicap" ni de reseau partenaires PSH visible | Ajouter un champ referent handicap dans les parametres |
-| 27 - Sous-traitants | Partiel | Pas de registre sous-traitants formel | Peut etre documente hors app (peu de sous-traitance) |
-| 30 - Appreciations parties prenantes | Partiel | Beneficiaires (a chaud) + Sponsors (a froid) couverts. Manquent : equipes pedagogiques, financeurs, appreciations a froid beneficiaires | **PRIORITE 2** |
-| 31 - Reclamations | Couvert | Module reclamations complet avec IA, registre, formulaire public | Aucune |
-| 32 - Mesures amelioration | Partiel | Module "Ameliorations" existe mais pas de lien source (reclamation, appreciation, alea) | **PRIORITE 3** |
-
----
-
-## PRIORITE 1 -- Indicateur 21 : Competences des intervenants
-
-### Modifications base de donnees
-
-**Nouvelles colonnes sur la table `trainers`** :
-- `competences` (text[]) -- domaines de competence / intervention
-- `diplomes_certifications` (text) -- texte libre ou JSON pour diplomes et certifications
-- `formations_suivies` (jsonb) -- tableau d'objets `[{titre, organisme, date, duree}]`
-
-**Nouvelle table `trainer_documents`** :
-- `id` (uuid PK)
-- `trainer_id` (uuid FK trainers)
-- `file_name` (text)
-- `file_url` (text)
-- `document_type` (text) -- cv, diplome, certification, autre
-- `created_at` (timestamptz)
-
-**Nouvelle table `trainer_training_adequacy`** :
-- `id` (uuid PK)
-- `trainer_id` (uuid FK trainers)
-- `training_id` (uuid FK trainings)
-- `validated_by` (text) -- nom de la personne qui valide
-- `validated_at` (date)
-- `notes` (text)
-- `created_at` (timestamptz)
-
-RLS : acces authentifie pour toutes ces tables.
-
-### Modifications UI
-
-**`TrainerManager.tsx`** : enrichir le formulaire d'edition pour ajouter :
-- Section "Competences et domaines d'intervention" (tags/chips editables)
-- Section "Diplomes et certifications" (textarea)
-- Section "Formations suivies" (tableau simple avec ajout/suppression : titre, organisme, date)
-- Section "Documents" (upload CV, diplomes, certifications -- reutilise le pattern EntityDocumentsManager)
-
-**`FormationDetail.tsx`** ou nouveau composant : afficher l'adequation formateur/formation avec :
-- Bouton "Valider l'adequation" (nom + date)
-- Affichage du statut d'adequation
-
----
-
-## PRIORITE 2 -- Indicateur 30 : Appreciations multi-parties prenantes
-
-### Etat actuel
-- `training_evaluations` = appreciations beneficiaires a chaud (OK)
-- `sponsor_cold_evaluations` = appreciations commanditaires/sponsors a froid (OK)
-- Manquent : equipes pedagogiques, financeurs, appreciations a froid beneficiaires
-
-### Modifications base de donnees
-
-**Nouvelle table `stakeholder_appreciations`** :
-- `id` (uuid PK)
-- `training_id` (uuid FK trainings, nullable)
-- `stakeholder_type` (text) -- 'pedagogique', 'financeur', 'beneficiaire_froid'
-- `stakeholder_name` (text)
-- `stakeholder_email` (text, nullable)
-- `token` (text UNIQUE) -- pour formulaire public
-- `date_envoi` (timestamptz, nullable)
-- `date_reception` (timestamptz, nullable)
-- `status` (text) -- 'draft', 'envoye', 'recu'
-- `satisfaction_globale` (integer, nullable)
-- `points_forts` (text, nullable)
-- `axes_amelioration` (text, nullable)
-- `commentaires` (text, nullable)
-- `year` (integer) -- pour le bilan annuel financeurs
-- `created_at` (timestamptz)
-- `updated_at` (timestamptz)
-
-RLS : authentifie pour CRUD, anon pour SELECT/UPDATE par token.
-
-### Modifications UI
-
-**Nouvelle page `src/pages/Appreciations.tsx`** (ou section dans Evaluations) :
-- Vue consolidee de toutes les appreciations par type de partie prenante
-- Filtres par type, par formation, par statut
-- Bouton "Envoyer un recueil" (genere un token + lien public)
-- Statistiques : taux de retour par type
-
-**Formulaire public** : `/appreciation/:token` -- formulaire simple adapte au type de partie prenante
-
-**Dashboard FormationDetail** : section recapitulative montrant le statut des appreciations pour chaque partie prenante liee a cette formation
-
----
-
-## PRIORITE 3 -- Indicateur 32 : Plan d'amelioration avec sources
-
-### Etat actuel
-La table `improvements` existe avec `training_id`, `category`, `status` mais sans lien vers la source (reclamation, appreciation, alea).
-
-### Modifications base de donnees
-
-**Nouvelles colonnes sur `improvements`** :
-- `source_type` (text, nullable) -- 'reclamation', 'appreciation', 'evaluation', 'alea', 'audit', 'autre'
-- `source_id` (uuid, nullable) -- id de la reclamation, appreciation, ou evaluation source
-- `source_description` (text, nullable) -- description libre de la source quand pas de lien direct
-- `priority` (text, nullable) -- 'haute', 'moyenne', 'basse'
-- `deadline` (date, nullable) -- echeance prevue
-- `responsible` (text, nullable) -- personne responsable
-
-### Modifications UI
-
-**`Ameliorations.tsx`** : enrichir pour :
-- Ajouter les champs source (type + description ou lien) dans le formulaire d'ajout
-- Afficher la source dans la liste (badge + lien cliquable vers la reclamation/evaluation)
-- Filtrer par source
-- Ajouter priorite et echeance
-- Vue "Plan d'amelioration" exportable (tableau : source | action | responsable | echeance | statut)
-
----
-
-## Fichiers concernes
-
-| Fichier | Action |
-|---|---|
-| Migration SQL | Tables `trainer_documents`, `trainer_training_adequacy`, `stakeholder_appreciations` + colonnes `trainers` + colonnes `improvements` |
-| `src/components/settings/TrainerManager.tsx` | Enrichir avec competences, diplomes, formations suivies, documents |
-| `src/pages/FormationDetail.tsx` | Ajouter validation adequation formateur |
-| `src/pages/Appreciations.tsx` | Creation -- page consolidee appreciations |
-| `src/pages/AppreciationPublic.tsx` | Creation -- formulaire public par token |
-| `src/pages/Ameliorations.tsx` | Enrichir avec source, priorite, echeance |
-| `src/App.tsx` | Ajout routes `/appreciation/:token` et eventuellement `/appreciations` |
-| `src/pages/Dashboard.tsx` | Ajout tuile si nouveau module |
-| `src/hooks/useModuleAccess.ts` | Eventuellement pas de nouveau module (integre dans evaluations) |
-
-## Ordre d'implementation
-
-1. Migration SQL unique avec toutes les modifications
-2. Priorite 1 : TrainerManager enrichi + adequation formateur/formation
-3. Priorite 2 : Table stakeholder_appreciations + page Appreciations + formulaire public
-4. Priorite 3 : Colonnes improvements + enrichissement Ameliorations.tsx
+| 21 - Competences intervenants | Manquant | Pas de competences, pas de diplomes/certifs | **PRIORITE 1** |
+| 22 - Dev competences intervenants | Manquant | Pas d'historique des formations suivies par les formateurs | **PRIORITE 1** |
+| 26 - Referent handicap | Partiel | Pas de champ "referent handicap" | Ajouter dans les parametres |
+| 27 - Sous-traitants | Partiel | Pas de registre sous-traitants formel | Documenté hors app |
+| 30 - Appreciations parties prenantes | Partiel | Manquent equipes pedagogiques, financeurs | **PRIORITE 2** |
+| 31 - Reclamations | Couvert | Module complet | Aucune |
+| 32 - Mesures amelioration | Partiel | Pas de lien source | **PRIORITE 3** |
 
