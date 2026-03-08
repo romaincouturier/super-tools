@@ -88,7 +88,7 @@ const SignatureConvention = () => {
       }
 
       try {
-        const { data: signatureJson, error: sigError } = await (supabase.rpc as any)("get_convention_signature_by_token", { p_token: token });
+        const { data: signatureJson, error: sigError } = await rpc.getConventionSignatureByToken(token);
 
         if (sigError) {
           console.error("Error fetching convention signature:", sigError);
