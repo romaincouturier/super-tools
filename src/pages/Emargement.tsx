@@ -121,7 +121,7 @@ const Emargement = () => {
       return;
     }
 
-    if (!signaturePadRef.current || signaturePadRef.current.isEmpty()) {
+    if (isSignatureEmpty()) {
       toast({
         title: "Signature requise",
         description: "Veuillez signer dans le cadre prévu avant de valider.",
