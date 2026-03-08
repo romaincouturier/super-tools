@@ -66,6 +66,7 @@ const NotFound = lazyWithRetry(() => import("./pages/NotFound"));
 const Admin = lazyWithRetry(() => import("./pages/Admin"));
 const Landing = lazyWithRetry(() => import("./pages/Landing"));
 const Signup = lazyWithRetry(() => import("./pages/Signup"));
+const Onboarding = lazyWithRetry(() => import("./pages/Onboarding"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
