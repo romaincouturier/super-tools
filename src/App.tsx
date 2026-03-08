@@ -148,6 +148,8 @@ const App = () => (
               <Route path="/monitoring" element={<Monitoring />} />
               {/* Training catalog */}
               <Route path="/catalogue" element={<Catalogue />} />
+              {/* AI Tools (M4) */}
+              <Route path="/ia" element={<AiTools />} />
               {/* Failed emails */}
               <Route path="/emails-erreur" element={<FailedEmails />} />
               {/* Public needs survey */}
