@@ -87,11 +87,7 @@ const SponsorEvaluation = () => {
     setError(null);
 
     try {
-      const { data: ev, error: evErr } = await (supabase as any)
-        .from("sponsor_cold_evaluations")
-        .select("*")
-        .eq("token", token)
-        .single();
+      const { data: ev, error: evErr } = await (supabase.rpc as any)("get_sponsor_evaluation_by_token", { p_token: token });
 
       if (evErr || !ev) {
         throw evErr || new Error("Évaluation introuvable");
@@ -123,13 +119,8 @@ const SponsorEvaluation = () => {
           end_date: evTyped.training_end_date,
         });
       } else {
-        // Fallback for older records: try fetching from trainings table
-        const { data: t } = await supabase
-          .from("trainings")
-          .select("training_name,start_date,end_date")
-          .eq("id", evTyped.training_id)
-          .single();
-
+        // Fallback for older records: fetch from trainings via RPC
+        const { data: t } = await (supabase.rpc as any)("get_training_public_info", { p_training_id: evTyped.training_id });
         if (t) {
           setTraining(t as unknown as TrainingInfo);
         }
@@ -137,10 +128,10 @@ const SponsorEvaluation = () => {
 
       // First open tracking
       if (!evTyped.date_premiere_ouverture) {
-        await (supabase as any)
-          .from("sponsor_cold_evaluations")
-          .update({ date_premiere_ouverture: new Date().toISOString() })
-          .eq("id", evTyped.id);
+        await (supabase.rpc as any)("update_sponsor_evaluation_by_token", {
+          p_token: token!,
+          p_data: { date_premiere_ouverture: new Date().toISOString() },
+        });
       }
     } catch (e: any) {
       console.error("Failed to load sponsor evaluation", e);
