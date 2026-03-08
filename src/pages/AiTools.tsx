@@ -79,6 +79,13 @@ export default function AiTools() {
   const [loadingHealth, setLoadingHealth] = useState(false);
   const [healthReport, setHealthReport] = useState<HealthReport | null>(null);
 
+  // Coaching summary
+  const [coachingNotes, setCoachingNotes] = useState("");
+  const [coachingParticipant, setCoachingParticipant] = useState("");
+  const [coachingTraining, setCoachingTraining] = useState("");
+  const [generatingCoachingSummary, setGeneratingCoachingSummary] = useState(false);
+  const [coachingSummary, setCoachingSummary] = useState<any>(null);
+
   const handleGenerateProgram = async () => {
     if (!programTitle.trim()) {
       toast({ title: "Veuillez saisir un titre", variant: "destructive" });
