@@ -119,7 +119,7 @@ function ForumThread({ forumId, onBack }: { forumId: string; onBack: () => void 
 
       <div className="space-y-3">
         {posts.map((post) => (
-          <Card key={post.id} className={post.is_pinned ? "border-l-4 border-l-amber-400" : ""}>
+          <Card key={post.id} className={post.is_pinned ? "border-l-4 border-l-primary" : ""}>
             <CardContent className="py-3">
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-sm font-medium">{post.author_email}</span>
