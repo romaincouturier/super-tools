@@ -351,32 +351,11 @@ const MissionSummary = () => {
     const fetchData = async () => {
       try {
         const [missionRes, activitiesRes, documentsRes, actionsRes, mediaRes] = await Promise.all([
-          (supabase as any)
-            .from("missions")
-            .select("id, title, description, client_name, status, start_date, end_date, initial_amount, daily_rate, total_days, emoji")
-            .eq("id", missionId)
-            .single(),
-          (supabase as any)
-            .from("mission_activities")
-            .select("*")
-            .eq("mission_id", missionId)
-            .order("activity_date", { ascending: true }),
-          (supabase as any)
-            .from("mission_documents")
-            .select("id, file_name, file_url, file_size, is_deliverable")
-            .eq("mission_id", missionId)
-            .order("created_at", { ascending: true }),
-          (supabase as any)
-            .from("mission_actions")
-            .select("id, title, status, position")
-            .eq("mission_id", missionId)
-            .order("position", { ascending: true }),
-          (supabase as any)
-            .from("media")
-            .select("id, file_name, file_url, file_size, file_type, is_deliverable")
-            .eq("source_type", "mission")
-            .eq("source_id", missionId)
-            .order("created_at", { ascending: true }),
+          (supabase.rpc as any)("get_mission_public_summary", { p_mission_id: missionId }),
+          (supabase.rpc as any)("get_mission_activities_public", { p_mission_id: missionId }),
+          (supabase.rpc as any)("get_mission_documents_public", { p_mission_id: missionId }),
+          (supabase.rpc as any)("get_mission_actions_public", { p_mission_id: missionId }),
+          (supabase.rpc as any)("get_mission_media_public", { p_mission_id: missionId }),
         ]);
 
         if (missionRes.error || !missionRes.data) {
@@ -386,10 +365,10 @@ const MissionSummary = () => {
         }
 
         setMission(missionRes.data);
-        setActivities(activitiesRes.data || []);
-        setDocuments(documentsRes.data || []);
-        setMediaItems(mediaRes.data || []);
-        setActions(actionsRes.data || []);
+        setActivities(Array.isArray(activitiesRes.data) ? activitiesRes.data : []);
+        setDocuments(Array.isArray(documentsRes.data) ? documentsRes.data : []);
+        setMediaItems(Array.isArray(mediaRes.data) ? mediaRes.data : []);
+        setActions(Array.isArray(actionsRes.data) ? actionsRes.data : []);
       } catch {
         setError(true);
       } finally {

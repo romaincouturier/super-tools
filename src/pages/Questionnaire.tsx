@@ -149,13 +149,11 @@ const Questionnaire = () => {
 
   const insertEvent = async (questionnaireId: string, type_evenement: string, metadata?: Record<string, unknown>) => {
     try {
-      await supabase.from("questionnaire_events").insert([
-        {
-          questionnaire_id: questionnaireId,
-          type_evenement,
-          metadata: (metadata ?? {}) as any,
-        },
-      ]);
+      await (supabase.rpc as any)("insert_questionnaire_event", {
+        p_questionnaire_id: questionnaireId,
+        p_type_evenement: type_evenement,
+        p_metadata: (metadata ?? {}) as any,
+      });
     } catch (e) {
       console.warn("Failed to insert questionnaire event", e);
     }
@@ -172,17 +170,13 @@ const Questionnaire = () => {
     setError(null);
 
     try {
-      const { data: q, error: qErr } = await supabase
-        .from("questionnaire_besoins")
-        .select("*")
-        .eq("token", token)
-        .single();
+      const { data: qArr, error: qErr } = await (supabase.rpc as any)("get_questionnaire_by_token", { p_token: token });
 
-      if (qErr || !q) {
+      if (qErr || !qArr || qArr.length === 0) {
         throw qErr || new Error("Questionnaire introuvable");
       }
 
-      const qTyped = q as unknown as QuestionnaireRecord;
+      const qTyped = qArr[0] as unknown as QuestionnaireRecord;
       setQuestionnaire(qTyped);
 
       // Initialize accessibility choice based on existing data
@@ -197,11 +191,7 @@ const Questionnaire = () => {
         setPrerequisValidations(qTyped.modalites_preferences as Record<string, string>);
       }
 
-      const { data: t, error: tErr } = await supabase
-        .from("trainings")
-        .select("training_name,start_date,end_date,prerequisites,program_file_url,format_formation,location")
-        .eq("id", qTyped.training_id)
-        .single();
+      const { data: t, error: tErr } = await (supabase.rpc as any)("get_training_public_info", { p_training_id: qTyped.training_id });
 
       if (!tErr && t) {
         setTraining(t as unknown as TrainingRecord);
@@ -218,27 +208,23 @@ const Questionnaire = () => {
       }
 
       // Fetch schedules
-      const { data: sched, error: schedErr } = await supabase
-        .from("training_schedules")
-        .select("day_date, start_time, end_time")
-        .eq("training_id", qTyped.training_id)
-        .order("day_date", { ascending: true });
+      const { data: sched, error: schedErr } = await (supabase.rpc as any)("get_training_schedules_public", { p_training_id: qTyped.training_id });
 
       if (!schedErr && sched) {
-        setSchedules(sched as ScheduleRecord[]);
+        setSchedules((Array.isArray(sched) ? sched : []) as ScheduleRecord[]);
       }
 
       // First open tracking - non-blocking to avoid preventing access
       if (!qTyped.date_premiere_ouverture) {
         const nowIso = new Date().toISOString();
         try {
-          await supabase
-            .from("questionnaire_besoins")
-            .update({
+          await (supabase.rpc as any)("update_questionnaire_by_token", {
+            p_token: token,
+            p_data: {
               date_premiere_ouverture: nowIso,
               etat: qTyped.etat === "envoye" ? "accueil_envoye" : qTyped.etat,
-            })
-            .eq("id", qTyped.id);
+            },
+          });
           await insertEvent(qTyped.id, "opened", { source: "public_link" });
         } catch (trackingErr) {
           console.warn("First open tracking failed (non-blocking):", trackingErr);
@@ -304,17 +290,12 @@ const Questionnaire = () => {
         date_derniere_sauvegarde: nowIso,
       };
 
-      const { data: updateData, error: upErr } = await supabase
-        .from("questionnaire_besoins")
-        .update(payload)
-        .eq("id", currentQuestionnaire.id)
-        .select();
+      const { error: upErr } = await (supabase.rpc as any)("update_questionnaire_by_token", {
+        p_token: token!,
+        p_data: payload,
+      });
 
       if (upErr) throw upErr;
-      
-      if (!updateData || updateData.length === 0) {
-        console.warn("No rows were updated - possible RLS policy issue");
-      }
 
       dirtyRef.current = false;
       setSaveStatus("saved");
@@ -402,30 +383,25 @@ const Questionnaire = () => {
       const nowIso = new Date().toISOString();
       const needsPrerequisEmail = hasUnvalidatedPrerequisites();
 
-      const { error: upErr } = await supabase
-        .from("questionnaire_besoins")
-        .update({
+      const { error: upErr } = await (supabase.rpc as any)("update_questionnaire_by_token", {
+        p_token: token!,
+        p_data: {
           etat: "complete",
           date_soumission: nowIso,
           date_consentement_rgpd: questionnaire.date_consentement_rgpd || nowIso,
           necessite_validation_formateur: needsPrerequisEmail,
-        })
-        .eq("id", questionnaire.id);
+        },
+      });
 
       if (upErr) throw upErr;
 
       // Also update participant status and sync company if changed
-      const participantUpdate: Record<string, string> = { needs_survey_status: "complete" };
-      if (questionnaire.societe) {
-        participantUpdate.company = questionnaire.societe;
-      }
-      
-      const { error: participantErr } = await supabase
-        .from("training_participants")
-        .update(participantUpdate)
-        .eq("id", questionnaire.participant_id);
-
-      if (participantErr) {
+      try {
+        await (supabase.rpc as any)("update_participant_after_questionnaire", {
+          p_token: token!,
+          p_company: questionnaire.societe || null,
+        });
+      } catch (participantErr) {
         console.warn("Failed to update participant", participantErr);
       }
 

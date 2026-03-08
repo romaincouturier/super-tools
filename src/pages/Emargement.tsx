@@ -76,11 +76,7 @@ const Emargement = () => {
       }
 
       try {
-        const { data: signature, error: sigError } = await supabase
-          .from("attendance_signatures")
-          .select("*")
-          .eq("token", token)
-          .maybeSingle();
+        const { data: signatureJson, error: sigError } = await (supabase.rpc as any)("get_attendance_by_token", { p_token: token });
 
         if (sigError) {
           console.error("Error fetching signature:", sigError);
@@ -89,6 +85,7 @@ const Emargement = () => {
           return;
         }
 
+        const signature = signatureJson;
         if (!signature) {
           setError("Lien d'émargement invalide ou expiré");
           setLoading(false);
@@ -108,34 +105,24 @@ const Emargement = () => {
           language: navigator.language,
         });
 
-        // Fetch training info
-        const { data: training } = await supabase
-          .from("trainings")
-          .select("training_name, location")
-          .eq("id", signature.training_id)
-          .single();
+        // Fetch training info via RPC
+        const { data: trainingInfo } = await (supabase.rpc as any)("get_training_public_info", { p_training_id: signature.training_id });
 
-        // Fetch participant info
-        const { data: participant } = await supabase
-          .from("training_participants")
-          .select("first_name, last_name, email")
-          .eq("id", signature.participant_id)
-          .single();
+        // Fetch participant info via RPC
+        const { data: participantInfo } = await (supabase.rpc as any)("get_participant_public_info", { p_participant_id: signature.participant_id });
 
-        // Fetch schedule for this date
-        const { data: schedule } = await supabase
-          .from("training_schedules")
-          .select("start_time, end_time")
-          .eq("training_id", signature.training_id)
-          .eq("day_date", signature.schedule_date)
-          .maybeSingle();
+        // Fetch schedule for this date via RPC
+        const { data: scheduleInfo } = await (supabase.rpc as any)("get_training_schedule_for_date", {
+          p_training_id: signature.training_id,
+          p_day_date: signature.schedule_date,
+        });
 
         // Record first open
         if (!signature.email_opened_at) {
-          await supabase
-            .from("attendance_signatures")
-            .update({ email_opened_at: new Date().toISOString() })
-            .eq("id", signature.id);
+          await (supabase.rpc as any)("mark_attendance_opened", {
+            p_token: token,
+            p_timestamp: new Date().toISOString(),
+          });
           trackEvent("first_link_opened");
         } else {
           trackEvent("link_reopened");
@@ -143,9 +130,9 @@ const Emargement = () => {
 
         setAttendanceData({
           ...signature,
-          training: training || { training_name: "Formation", location: "" },
-          participant: participant || { first_name: null, last_name: null, email: "" },
-          schedule: schedule,
+          training: trainingInfo || { training_name: "Formation", location: "" },
+          participant: participantInfo || { first_name: null, last_name: null, email: "" },
+          schedule: scheduleInfo,
         });
       } catch (err) {
         console.error("Error:", err);

@@ -34,11 +34,7 @@ const TrainerEvaluation = () => {
   useEffect(() => {
     if (!token) return;
     const fetchEvaluation = async () => {
-      const { data, error } = await (supabase as any)
-        .from("trainer_evaluations")
-        .select("*, trainings(training_name, start_date, end_date, location)")
-        .eq("token", token)
-        .maybeSingle();
+      const { data, error } = await (supabase.rpc as any)("get_trainer_evaluation_by_token", { p_token: token });
 
       if (error || !data) {
         setLoading(false);
@@ -48,7 +44,7 @@ const TrainerEvaluation = () => {
       setEvaluation(data);
       setTrainingName(data.trainings?.training_name || "");
 
-      // Fetch participants
+      // Parse training details from joined data
       const training = data.trainings;
       if (training) {
         setTrainingDetails({
@@ -59,15 +55,12 @@ const TrainerEvaluation = () => {
         });
       }
 
-      // Fetch participant list
-      const { data: participants } = await (supabase as any)
-        .from("training_participants")
-        .select("first_name, last_name")
-        .eq("training_id", data.training_id)
-        .order("last_name");
-
-      if (participants) {
-        setTrainingDetails(prev => ({ ...prev, participants }));
+      // Fetch participant list via RPC
+      if (data.training_id) {
+        const { data: participantsList } = await (supabase.rpc as any)("get_training_participants_list", { p_training_id: data.training_id });
+        if (participantsList && Array.isArray(participantsList)) {
+          setTrainingDetails(prev => ({ ...prev, participants: participantsList }));
+        }
       }
 
       if (data.status === "soumis") {
@@ -76,19 +69,16 @@ const TrainerEvaluation = () => {
 
       // Fetch previous evaluations by same trainer for suggestions
       if (data.trainer_email) {
-        const { data: prevEvals } = await (supabase as any)
-          .from("trainer_evaluations")
-          .select("points_forts, axes_amelioration, commentaires")
-          .eq("trainer_email", data.trainer_email)
-          .eq("status", "soumis")
-          .neq("id", data.id);
+        const { data: prevEvals } = await (supabase.rpc as any)("get_previous_trainer_evaluations", {
+          p_trainer_email: data.trainer_email,
+          p_exclude_id: data.id,
+        });
 
-        if (prevEvals && prevEvals.length > 0) {
+        if (prevEvals && Array.isArray(prevEvals) && prevEvals.length > 0) {
           const extract = (field: string) => {
             const values = prevEvals
               .map((e: any) => e[field]?.trim())
               .filter((v: string | undefined): v is string => !!v);
-            // Deduplicate
             return [...new Set(values)];
           };
           setPreviousSuggestions({
@@ -111,17 +101,17 @@ const TrainerEvaluation = () => {
     }
     setSubmitting(true);
     try {
-      const { error } = await (supabase as any)
-        .from("trainer_evaluations")
-        .update({
+      const { error } = await (supabase.rpc as any)("update_trainer_evaluation_by_token", {
+        p_token: token!,
+        p_data: {
           satisfaction_globale: satisfaction,
           points_forts: pointsForts.trim() || null,
           axes_amelioration: axesAmelioration.trim() || null,
           commentaires: commentaires.trim() || null,
           status: "soumis",
           date_submitted: new Date().toISOString(),
-        })
-        .eq("token", token);
+        },
+      });
 
       if (error) throw error;
       setSubmitted(true);
