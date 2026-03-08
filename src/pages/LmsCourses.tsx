@@ -65,8 +65,9 @@ export default function LmsCourses() {
     <ModuleLayout>
       <div className="container py-6 space-y-6 max-w-7xl">
         <PageHeader
+          icon={GraduationCap}
           title="LMS — Cours en ligne"
-          description="Créez et gérez vos parcours pédagogiques"
+          backTo="/dashboard"
         />
 
         {/* Stats */}

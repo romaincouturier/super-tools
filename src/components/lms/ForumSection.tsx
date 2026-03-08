@@ -10,7 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { MessageSquare, Pin, Plus, Send } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import useAuth from "@/hooks/useAuth";
+import { useAuth } from "@/hooks/useAuth";
 
 interface Props {
   courseId: string;
