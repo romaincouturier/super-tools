@@ -188,7 +188,7 @@ const Questionnaire = () => {
         setPrerequisValidations(qTyped.modalites_preferences as Record<string, string>);
       }
 
-      const { data: t, error: tErr } = await (supabase.rpc as any)("get_training_public_info", { p_training_id: qTyped.training_id });
+      const { data: t, error: tErr } = await rpc.getTrainingPublicInfo(qTyped.training_id);
 
       if (!tErr && t) {
         setTraining(t as unknown as TrainingRecord);
