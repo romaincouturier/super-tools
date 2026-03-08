@@ -19,7 +19,7 @@ const AppHeader = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout } = useAuth();
-  const { hasAccess } = useModuleAccess();
+  const { hasAccess, isAdmin } = useModuleAccess();
   const [failedEmailCount, setFailedEmailCount] = useState(0);
 
   const isDashboard = location.pathname === "/";
