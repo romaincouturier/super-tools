@@ -193,28 +193,25 @@ const Evaluation = () => {
     try {
       const nowIso = new Date().toISOString();
 
-      const { error: upErr } = await (supabase.rpc as any)("update_evaluation_by_token", {
-        p_token: token!,
-        p_data: {
-          appreciation_generale: appreciationGenerale,
-          recommandation,
-          objectifs_evaluation: objectifsEvaluation,
-          objectif_prioritaire: objectifPrioritaire,
-          delai_application: delaiApplication,
-          freins_application: freinsApplication || null,
-          rythme,
-          equilibre_theorie_pratique: equilibreTheoriePratique,
-          amelioration_suggeree: ameliorationSuggeree || null,
-          conditions_info_satisfaisantes: conditionsInfoSatisfaisantes,
-          formation_adaptee_public: formationAdapteePublic,
-          qualification_intervenant_adequate: qualificationIntervenantAdequate,
-          appreciations_prises_en_compte: appreciationsPrisesEnCompte,
-          message_recommandation: messageRecommandation || null,
-          consent_publication: consentPublication,
-          remarques_libres: remarquesLibres || null,
-          etat: "soumis",
-          date_soumission: nowIso,
-        },
+      const { error: upErr } = await rpc.updateEvaluationByToken(token!, {
+        appreciation_generale: appreciationGenerale,
+        recommandation,
+        objectifs_evaluation: objectifsEvaluation,
+        objectif_prioritaire: objectifPrioritaire,
+        delai_application: delaiApplication,
+        freins_application: freinsApplication || null,
+        rythme,
+        equilibre_theorie_pratique: equilibreTheoriePratique,
+        amelioration_suggeree: ameliorationSuggeree || null,
+        conditions_info_satisfaisantes: conditionsInfoSatisfaisantes,
+        formation_adaptee_public: formationAdapteePublic,
+        qualification_intervenant_adequate: qualificationIntervenantAdequate,
+        appreciations_prises_en_compte: appreciationsPrisesEnCompte,
+        message_recommandation: messageRecommandation || null,
+        consent_publication: consentPublication,
+        remarques_libres: remarquesLibres || null,
+        etat: "soumis",
+        date_soumission: nowIso,
       });
 
       if (upErr) throw upErr;
