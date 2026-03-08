@@ -63,6 +63,7 @@ const ReclamationPublic = lazyWithRetry(() => import("./pages/ReclamationPublic"
 const TrainerEvaluation = lazyWithRetry(() => import("./pages/TrainerEvaluation"));
 const Reclamations = lazyWithRetry(() => import("./pages/Reclamations"));
 const NotFound = lazyWithRetry(() => import("./pages/NotFound"));
+const Admin = lazyWithRetry(() => import("./pages/Admin"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
