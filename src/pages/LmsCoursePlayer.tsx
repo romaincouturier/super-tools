@@ -24,6 +24,7 @@ import {
   Trophy, Clock, ArrowLeft,
 } from "lucide-react";
 import SupertiltLogo from "@/components/SupertiltLogo";
+import { useToast } from "@/hooks/use-toast";
 
 export default function LmsCoursePlayer() {
   const { courseId } = useParams<{ courseId: string }>();
