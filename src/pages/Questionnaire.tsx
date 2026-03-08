@@ -215,12 +215,9 @@ const Questionnaire = () => {
       if (!qTyped.date_premiere_ouverture) {
         const nowIso = new Date().toISOString();
         try {
-          await (supabase.rpc as any)("update_questionnaire_by_token", {
-            p_token: token,
-            p_data: {
-              date_premiere_ouverture: nowIso,
-              etat: qTyped.etat === "envoye" ? "accueil_envoye" : qTyped.etat,
-            },
+          await rpc.updateQuestionnaireByToken(token, {
+            date_premiere_ouverture: nowIso,
+            etat: qTyped.etat === "envoye" ? "accueil_envoye" : qTyped.etat,
           });
           await insertEvent(qTyped.id, "opened", { source: "public_link" });
         } catch (trackingErr) {
