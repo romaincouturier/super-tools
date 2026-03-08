@@ -170,7 +170,11 @@ export default function AiTools() {
 
   return (
     <ModuleLayout>
-      <Tabs defaultValue="program" className="space-y-6">
+      <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold flex items-center gap-2"><Brain className="w-6 h-6 text-primary" /> IA Augmentée</h1>
+          <p className="text-muted-foreground">Générez des programmes, quiz et analysez votre activité</p>
+        </div>
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="program" className="gap-2">
             <BookOpen className="w-4 h-4" /> Programme
