@@ -152,6 +152,9 @@ const App = () => (
               <Route path="/catalogue" element={<Catalogue />} />
               {/* AI Tools (M4) */}
               <Route path="/ia" element={<AiTools />} />
+              {/* LMS (M7) */}
+              <Route path="/lms" element={<LmsCourses />} />
+              <Route path="/lms/:courseId" element={<LmsCourseBuilder />} />
               {/* Failed emails */}
               <Route path="/emails-erreur" element={<FailedEmails />} />
               {/* Public needs survey */}

@@ -83,7 +83,7 @@ export default function LmsCourses() {
           </Card>
           <Card>
             <CardContent className="flex items-center gap-3 py-4">
-              <BarChart3 className="w-8 h-8 text-emerald-600" />
+              <BarChart3 className="w-8 h-8 text-primary" />
               <div>
                 <p className="text-2xl font-bold">{stats.published}</p>
                 <p className="text-sm text-muted-foreground">Publiés</p>
@@ -92,7 +92,7 @@ export default function LmsCourses() {
           </Card>
           <Card>
             <CardContent className="flex items-center gap-3 py-4">
-              <Clock className="w-8 h-8 text-amber-600" />
+              <Clock className="w-8 h-8 text-accent-foreground" />
               <div>
                 <p className="text-2xl font-bold">{Math.round(stats.totalMinutes / 60)}h</p>
                 <p className="text-sm text-muted-foreground">Contenu total</p>
