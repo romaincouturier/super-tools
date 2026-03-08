@@ -88,7 +88,7 @@ const SponsorEvaluation = () => {
     setError(null);
 
     try {
-      const { data: ev, error: evErr } = await (supabase.rpc as any)("get_sponsor_evaluation_by_token", { p_token: token });
+      const { data: ev, error: evErr } = await rpc.getSponsorEvaluationByToken(token);
 
       if (evErr || !ev) {
         throw evErr || new Error("Évaluation introuvable");
