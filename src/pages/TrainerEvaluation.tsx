@@ -69,10 +69,7 @@ const TrainerEvaluation = () => {
 
       // Fetch previous evaluations by same trainer for suggestions
       if (data.trainer_email) {
-        const { data: prevEvals } = await (supabase.rpc as any)("get_previous_trainer_evaluations", {
-          p_trainer_email: data.trainer_email,
-          p_exclude_id: data.id,
-        });
+        const { data: prevEvals } = await rpc.getPreviousTrainerEvaluations(data.trainer_email, data.id);
 
         if (prevEvals && Array.isArray(prevEvals) && prevEvals.length > 0) {
           const extract = (field: string) => {
