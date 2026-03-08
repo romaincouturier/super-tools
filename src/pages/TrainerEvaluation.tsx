@@ -57,7 +57,7 @@ const TrainerEvaluation = () => {
 
       // Fetch participant list via RPC
       if (data.training_id) {
-        const { data: participantsList } = await (supabase.rpc as any)("get_training_participants_list", { p_training_id: data.training_id });
+        const { data: participantsList } = await rpc.getTrainingParticipantsList(data.training_id);
         if (participantsList && Array.isArray(participantsList)) {
           setTrainingDetails(prev => ({ ...prev, participants: participantsList }));
         }
