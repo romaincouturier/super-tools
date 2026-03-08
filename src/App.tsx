@@ -156,6 +156,7 @@ const App = () => (
               {/* LMS (M7) */}
               <Route path="/lms" element={<LmsCourses />} />
               <Route path="/lms/:courseId" element={<LmsCourseBuilder />} />
+              <Route path="/lms/:courseId/player" element={<LmsCoursePlayer />} />
               {/* Failed emails */}
               <Route path="/emails-erreur" element={<FailedEmails />} />
               {/* Public needs survey */}
