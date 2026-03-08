@@ -8,8 +8,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Building2, Users, Flag, Shield, BarChart3, CreditCard } from "lucide-react";
+import { Building2, Users, Flag, Shield, BarChart3, CreditCard, Save, Zap, Rocket, Crown } from "lucide-react";
 import { toast } from "sonner";
 import PageLoading from "@/components/PageLoading";
 
@@ -37,8 +39,24 @@ interface OrgStats {
   members: number;
 }
 
+interface BillingPlan {
+  id: string;
+  name: string;
+  slug: string;
+  stripe_price_id: string | null;
+  price_monthly: number;
+  price_yearly: number | null;
+  is_active: boolean;
+}
+
 const FEATURE_FLAGS = ["multi_tenant_enabled", "i18n_enabled", "billing_enabled"];
 const PLANS = ["free", "pro", "business"];
+
+const PLAN_ICONS: Record<string, React.ReactNode> = {
+  free: <Zap className="h-5 w-5" />,
+  pro: <Rocket className="h-5 w-5" />,
+  business: <Crown className="h-5 w-5" />,
+};
 
 export default function Admin() {
   const { t } = useTranslation();
@@ -46,6 +64,8 @@ export default function Admin() {
   const [orgs, setOrgs] = useState<Organization[]>([]);
   const [flags, setFlags] = useState<FeatureFlag[]>([]);
   const [orgStats, setOrgStats] = useState<Record<string, OrgStats>>({});
+  const [billingPlans, setBillingPlans] = useState<BillingPlan[]>([]);
+  const [editedPriceIds, setEditedPriceIds] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -55,9 +75,10 @@ export default function Admin() {
 
   const loadData = async () => {
     setLoading(true);
-    const [orgsRes, flagsRes] = await Promise.all([
+    const [orgsRes, flagsRes, plansRes] = await Promise.all([
       supabase.from("organizations").select("*").order("created_at"),
       supabase.from("app_settings").select("setting_key, setting_value, description").in("setting_key", FEATURE_FLAGS),
+      supabase.from("billing_plans").select("*").order("display_order"),
     ]);
 
     if (orgsRes.data) {
@@ -82,6 +103,15 @@ export default function Admin() {
 
     if (flagsRes.data) {
       setFlags(flagsRes.data as FeatureFlag[]);
+    }
+
+    if (plansRes.data) {
+      setBillingPlans(plansRes.data as unknown as BillingPlan[]);
+      const ids: Record<string, string> = {};
+      plansRes.data.forEach((p: any) => {
+        ids[p.id] = p.stripe_price_id || "";
+      });
+      setEditedPriceIds(ids);
     }
 
     setLoading(false);
@@ -118,6 +148,24 @@ export default function Admin() {
 
     setOrgs((prev) => prev.map((o) => (o.id === orgId ? { ...o, plan } : o)));
     toast.success(`Plan mis à jour → ${plan}`);
+  };
+
+  const savePriceId = async (planId: string) => {
+    const newPriceId = editedPriceIds[planId] || "";
+    const { error } = await supabase
+      .from("billing_plans")
+      .update({ stripe_price_id: newPriceId || null })
+      .eq("id", planId);
+
+    if (error) {
+      toast.error("Erreur lors de la sauvegarde");
+      return;
+    }
+
+    setBillingPlans((prev) =>
+      prev.map((p) => (p.id === planId ? { ...p, stripe_price_id: newPriceId || null } : p))
+    );
+    toast.success("Stripe Price ID sauvegardé");
   };
 
   if (authLoading || loading) return <PageLoading />;
@@ -158,6 +206,75 @@ export default function Admin() {
                 </div>
               </div>
             ))}
+          </CardContent>
+        </Card>
+
+        {/* Billing Plans — Stripe Price IDs */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CreditCard className="h-5 w-5" />
+              Plans & Stripe
+            </CardTitle>
+            <CardDescription>
+              Associez chaque plan à un Stripe Price ID. Récupérez-les depuis{" "}
+              <a
+                href="https://dashboard.stripe.com/products"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline text-primary"
+              >
+                Stripe Dashboard → Products
+              </a>.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {billingPlans.map((plan) => {
+              const currentValue = editedPriceIds[plan.id] || "";
+              const savedValue = plan.stripe_price_id || "";
+              const hasChanged = currentValue !== savedValue;
+
+              return (
+                <div key={plan.id} className="flex items-center gap-4 p-3 rounded-lg border bg-card">
+                  <div className="flex items-center gap-2 min-w-[140px]">
+                    <div className="text-primary">
+                      {PLAN_ICONS[plan.slug] || <CreditCard className="h-5 w-5" />}
+                    </div>
+                    <div>
+                      <p className="font-medium">{plan.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {plan.price_monthly === 0 ? "Gratuit" : `${plan.price_monthly}€/mois`}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex-1">
+                    <Input
+                      placeholder="price_xxxxxxxxxxxxxxxx"
+                      value={currentValue}
+                      onChange={(e) =>
+                        setEditedPriceIds((prev) => ({ ...prev, [plan.id]: e.target.value }))
+                      }
+                      className="font-mono text-sm"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {savedValue ? (
+                      <Badge variant="default" className="text-xs">Configuré</Badge>
+                    ) : (
+                      <Badge variant="secondary" className="text-xs">Non configuré</Badge>
+                    )}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => savePriceId(plan.id)}
+                      disabled={!hasChanged}
+                    >
+                      <Save className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
           </CardContent>
         </Card>
 
