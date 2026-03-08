@@ -655,16 +655,16 @@ export interface LmsBadge {
 
 export function useLearnerBadges(email: string | undefined) {
   return useQuery({
-    queryKey: ["lms-badges", email],
+    queryKey: ["lms-badge-awards", email],
     enabled: !!email,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("lms_badges")
+        .from("lms_badge_awards" as any)
         .select("*")
         .eq("learner_email", email!)
         .order("awarded_at", { ascending: false });
       if (error) throw error;
-      return data as LmsBadge[];
+      return (data ?? []) as unknown as LmsBadge[];
     },
   });
 }

@@ -14,6 +14,8 @@ import {
   useCourse, useCourseModules, useCourseLessons, useModuleLessons,
   useLearnerProgress, useMarkLessonComplete,
   useQuiz, useQuizQuestions, useSubmitQuizAttempt,
+  useSubmitAssignment, useLearnerSubmissions, uploadAssignmentFile,
+  useLearnerBadges,
   LmsLesson, LmsModule, LmsQuizQuestion,
 } from "@/hooks/useLms";
 import {
