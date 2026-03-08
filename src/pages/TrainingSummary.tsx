@@ -107,7 +107,7 @@ const TrainingSummary = () => {
 
       // Fetch trainer if exists via RPC
       if (trainingData.trainer_id) {
-        const { data: trainerData } = await (supabase.rpc as any)("get_trainer_public", { p_trainer_id: trainingData.trainer_id });
+        const { data: trainerData } = await rpc.getTrainerPublic(trainingData.trainer_id);
         setTrainer(trainerData);
       }
 
