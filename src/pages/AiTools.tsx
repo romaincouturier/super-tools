@@ -205,17 +205,20 @@ export default function AiTools() {
           <p className="text-muted-foreground">Générez des programmes, quiz et analysez votre activité</p>
         </div>
         <Tabs defaultValue="program" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="program" className="gap-2">
-            <BookOpen className="w-4 h-4" /> Programme
-          </TabsTrigger>
-          <TabsTrigger value="quiz" className="gap-2">
-            <ClipboardCheck className="w-4 h-4" /> Quiz
-          </TabsTrigger>
-          <TabsTrigger value="health" className="gap-2">
-            <Activity className="w-4 h-4" /> Santé Business
-          </TabsTrigger>
-        </TabsList>
+         <TabsList className="grid w-full grid-cols-4">
+           <TabsTrigger value="program" className="gap-2">
+             <BookOpen className="w-4 h-4" /> Programme
+           </TabsTrigger>
+           <TabsTrigger value="quiz" className="gap-2">
+             <ClipboardCheck className="w-4 h-4" /> Quiz
+           </TabsTrigger>
+           <TabsTrigger value="coaching" className="gap-2">
+             <MessageSquare className="w-4 h-4" /> Coaching
+           </TabsTrigger>
+           <TabsTrigger value="health" className="gap-2">
+             <Activity className="w-4 h-4" /> Santé Business
+           </TabsTrigger>
+         </TabsList>
 
         {/* ═══ TAB 1: Program Generator ═══ */}
         <TabsContent value="program" className="space-y-6">
