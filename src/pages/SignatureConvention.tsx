@@ -87,11 +87,7 @@ const SignatureConvention = () => {
       }
 
       try {
-        const { data: signature, error: sigError } = await supabase
-          .from("convention_signatures")
-          .select("*")
-          .eq("token", token)
-          .maybeSingle();
+        const { data: signatureJson, error: sigError } = await (supabase.rpc as any)("get_convention_signature_by_token", { p_token: token });
 
         if (sigError) {
           console.error("Error fetching convention signature:", sigError);
@@ -100,6 +96,7 @@ const SignatureConvention = () => {
           return;
         }
 
+        const signature = signatureJson;
         if (!signature) {
           setError("Lien de signature invalide ou expiré");
           setLoading(false);
@@ -132,10 +129,10 @@ const SignatureConvention = () => {
 
         // Record first open
         if (!signature.email_opened_at) {
-          await supabase
-            .from("convention_signatures")
-            .update({ email_opened_at: new Date().toISOString() })
-            .eq("id", signature.id);
+          await (supabase.rpc as any)("mark_convention_opened", {
+            p_token: token,
+            p_timestamp: new Date().toISOString(),
+          });
           trackEvent("first_link_opened");
         } else {
           trackEvent("link_reopened");

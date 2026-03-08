@@ -166,9 +166,9 @@ const SponsorEvaluation = () => {
     try {
       const nowIso = new Date().toISOString();
 
-      const { error: upErr } = await (supabase as any)
-        .from("sponsor_cold_evaluations")
-        .update({
+      const { error: upErr } = await (supabase.rpc as any)("update_sponsor_evaluation_by_token", {
+        p_token: token!,
+        p_data: {
           satisfaction_globale: satisfactionGlobale,
           attentes_satisfaites: attentesSatisfaites,
           objectifs_atteints: objectifsAtteints,
@@ -184,8 +184,8 @@ const SponsorEvaluation = () => {
           commentaires_libres: commentairesLibres || null,
           etat: "soumis",
           date_soumission: nowIso,
-        })
-        .eq("id", record.id);
+        },
+      });
 
       if (upErr) throw upErr;
 

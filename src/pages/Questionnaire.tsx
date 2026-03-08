@@ -383,30 +383,25 @@ const Questionnaire = () => {
       const nowIso = new Date().toISOString();
       const needsPrerequisEmail = hasUnvalidatedPrerequisites();
 
-      const { error: upErr } = await supabase
-        .from("questionnaire_besoins")
-        .update({
+      const { error: upErr } = await (supabase.rpc as any)("update_questionnaire_by_token", {
+        p_token: token!,
+        p_data: {
           etat: "complete",
           date_soumission: nowIso,
           date_consentement_rgpd: questionnaire.date_consentement_rgpd || nowIso,
           necessite_validation_formateur: needsPrerequisEmail,
-        })
-        .eq("id", questionnaire.id);
+        },
+      });
 
       if (upErr) throw upErr;
 
       // Also update participant status and sync company if changed
-      const participantUpdate: Record<string, string> = { needs_survey_status: "complete" };
-      if (questionnaire.societe) {
-        participantUpdate.company = questionnaire.societe;
-      }
-      
-      const { error: participantErr } = await supabase
-        .from("training_participants")
-        .update(participantUpdate)
-        .eq("id", questionnaire.participant_id);
-
-      if (participantErr) {
+      try {
+        await (supabase.rpc as any)("update_participant_after_questionnaire", {
+          p_token: token!,
+          p_company: questionnaire.societe || null,
+        });
+      } catch (participantErr) {
         console.warn("Failed to update participant", participantErr);
       }
 

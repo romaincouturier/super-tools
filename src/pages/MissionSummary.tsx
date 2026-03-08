@@ -365,10 +365,10 @@ const MissionSummary = () => {
         }
 
         setMission(missionRes.data);
-        setActivities(activitiesRes.data || []);
-        setDocuments(documentsRes.data || []);
-        setMediaItems(mediaRes.data || []);
-        setActions(actionsRes.data || []);
+        setActivities(Array.isArray(activitiesRes.data) ? activitiesRes.data : []);
+        setDocuments(Array.isArray(documentsRes.data) ? documentsRes.data : []);
+        setMediaItems(Array.isArray(mediaRes.data) ? mediaRes.data : []);
+        setActions(Array.isArray(actionsRes.data) ? actionsRes.data : []);
       } catch {
         setError(true);
       } finally {

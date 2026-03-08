@@ -195,12 +195,12 @@ const Evaluation = () => {
     try {
       const nowIso = new Date().toISOString();
 
-      const { error: upErr } = await supabase
-        .from("training_evaluations")
-        .update({
+      const { error: upErr } = await (supabase.rpc as any)("update_evaluation_by_token", {
+        p_token: token!,
+        p_data: {
           appreciation_generale: appreciationGenerale,
           recommandation,
-          objectifs_evaluation: objectifsEvaluation as any,
+          objectifs_evaluation: objectifsEvaluation,
           objectif_prioritaire: objectifPrioritaire,
           delai_application: delaiApplication,
           freins_application: freinsApplication || null,
@@ -216,8 +216,8 @@ const Evaluation = () => {
           remarques_libres: remarquesLibres || null,
           etat: "soumis",
           date_soumission: nowIso,
-        })
-        .eq("id", evaluation.id);
+        },
+      });
 
       if (upErr) throw upErr;
 
