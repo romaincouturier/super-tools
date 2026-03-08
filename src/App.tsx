@@ -100,7 +100,8 @@ const App = () => (
         <Suspense fallback={<PageLoader />}>
           <RouteErrorBoundary>
             <Routes>
-              <Route path="/" element={<Dashboard />} />
+              <Route path="/" element={<Landing />} />
+              <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/certificates" element={<CertificateGenerator />} />
               <Route path="/micro-devis" element={<MicroDevis />} />
               <Route path="/historique" element={<Historique />} />
