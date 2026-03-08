@@ -103,7 +103,7 @@ const TrainingSummary = () => {
       // Fetch schedules via RPC
       const { data: schedulesData } = await rpc.getTrainingSchedulesPublic(trainingId!);
 
-      setSchedules(Array.isArray(schedulesData) ? schedulesData : []);
+      setSchedules(Array.isArray(schedulesData) ? schedulesData as Schedule[] : []);
 
       // Fetch trainer if exists via RPC
       if (trainingData.trainer_id) {
