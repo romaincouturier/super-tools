@@ -92,13 +92,13 @@ export default function LearnerMessaging({ trainingId, participantId, learnerEma
     const senderRole = isInstructor ? "instructor" : "learner";
     const senderEmail = isInstructor ? "formateur" : learnerEmail;
 
-    await supabase.from("learner_messages").insert({
+    await (supabase as any).from("learner_messages").insert({
       training_id: trainingId,
       participant_id: participantId,
       sender_email: senderEmail,
       sender_role: senderRole,
       content: input.trim(),
-    } as any);
+    });
     setInput("");
   };
 
