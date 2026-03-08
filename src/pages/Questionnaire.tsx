@@ -149,13 +149,11 @@ const Questionnaire = () => {
 
   const insertEvent = async (questionnaireId: string, type_evenement: string, metadata?: Record<string, unknown>) => {
     try {
-      await supabase.from("questionnaire_events").insert([
-        {
-          questionnaire_id: questionnaireId,
-          type_evenement,
-          metadata: (metadata ?? {}) as any,
-        },
-      ]);
+      await (supabase.rpc as any)("insert_questionnaire_event", {
+        p_questionnaire_id: questionnaireId,
+        p_type_evenement: type_evenement,
+        p_metadata: (metadata ?? {}) as any,
+      });
     } catch (e) {
       console.warn("Failed to insert questionnaire event", e);
     }
