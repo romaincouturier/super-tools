@@ -1,0 +1,234 @@
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Plus,
+  X,
+  Paperclip,
+  MessageSquare,
+  History,
+  Tag,
+  Loader2,
+  Trash2,
+  ImageIcon,
+} from "lucide-react";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useDeleteComment, useAddAttachment, useDeleteAttachment } from "@/hooks/useCrmBoard";
+import EntityMediaManager from "@/components/media/EntityMediaManager";
+import type { CrmTag } from "@/types/crm";
+import type { CardDetailState, CardDetailHandlers, CardDetails } from "./types";
+
+function formatActivityType(type: string): string {
+  const labels: Record<string, string> = {
+    card_created: "Carte créée",
+    card_moved: "Carte déplacée",
+    status_operational_changed: "Statut opérationnel modifié",
+    sales_status_changed: "Statut commercial modifié",
+    estimated_value_changed: "Valeur modifiée",
+    tag_added: "Tag ajouté",
+    tag_removed: "Tag retiré",
+    comment_added: "Commentaire ajouté",
+    attachment_added: "Pièce jointe ajoutée",
+    attachment_removed: "Pièce jointe supprimée",
+    email_sent: "Email envoyé",
+    action_scheduled: "Action programmée",
+  };
+  return labels[type] || type;
+}
+
+interface Props {
+  state: CardDetailState;
+  handlers: CardDetailHandlers;
+  details: CardDetails | undefined;
+  detailsLoading: boolean;
+}
+
+const CardDetailTabs = ({ state, handlers, details, detailsLoading }: Props) => {
+  const { user } = useAuth();
+  const deleteComment = useDeleteComment();
+  const addAttachment = useAddAttachment();
+  const deleteAttachment = useDeleteAttachment();
+  const { card, allTags, newComment, setNewComment } = state;
+
+  const cardTags = card.tags || [];
+  const tagsByCategory = allTags.reduce((acc, tag) => {
+    const cat = tag.category || "Autre";
+    if (!acc[cat]) acc[cat] = [];
+    acc[cat].push(tag);
+    return acc;
+  }, {} as Record<string, CrmTag[]>);
+
+  return (
+    <Tabs defaultValue="tags" className="mt-6 border-t pt-4">
+      <h4 className="font-medium text-xs text-muted-foreground uppercase tracking-wider mb-3">
+        Compléments
+      </h4>
+      <TabsList className="grid grid-cols-5 w-full">
+        <TabsTrigger value="tags"><Tag className="h-4 w-4" /></TabsTrigger>
+        <TabsTrigger value="comments"><MessageSquare className="h-4 w-4" /></TabsTrigger>
+        <TabsTrigger value="attachments"><Paperclip className="h-4 w-4" /></TabsTrigger>
+        <TabsTrigger value="media"><ImageIcon className="h-4 w-4" /></TabsTrigger>
+        <TabsTrigger value="activity"><History className="h-4 w-4" /></TabsTrigger>
+      </TabsList>
+
+      {/* Tags */}
+      <TabsContent value="tags" className="space-y-4 mt-4">
+        <div>
+          <Label className="mb-2 block">Tags assignés</Label>
+          <div className="flex flex-wrap gap-2">
+            {cardTags.length === 0 && <p className="text-sm text-muted-foreground">Aucun tag</p>}
+            {cardTags.map((tag) => (
+              <Badge
+                key={tag.id}
+                style={{ backgroundColor: tag.color + "20", color: tag.color }}
+                className="cursor-pointer"
+                onClick={() => handlers.handleToggleTag(tag.id)}
+              >
+                {tag.name}
+                <X className="h-3 w-3 ml-1" />
+              </Badge>
+            ))}
+          </div>
+        </div>
+        <div>
+          <Label className="mb-2 block">Ajouter un tag</Label>
+          {Object.entries(tagsByCategory).map(([category, tags]) => (
+            <div key={category} className="mb-3">
+              <p className="text-xs text-muted-foreground mb-1">{category}</p>
+              <div className="flex flex-wrap gap-2">
+                {tags
+                  .filter((t) => !cardTags.some((ct) => ct.id === t.id))
+                  .map((tag) => (
+                    <Badge
+                      key={tag.id}
+                      variant="outline"
+                      style={{ borderColor: tag.color, color: tag.color }}
+                      className="cursor-pointer hover:bg-muted"
+                      onClick={() => handlers.handleToggleTag(tag.id)}
+                    >
+                      <Plus className="h-3 w-3 mr-1" />
+                      {tag.name}
+                    </Badge>
+                  ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </TabsContent>
+
+      {/* Comments */}
+      <TabsContent value="comments" className="space-y-4 mt-4">
+        <div className="flex gap-2">
+          <Textarea placeholder="Ajouter un commentaire..." value={newComment} onChange={(e) => setNewComment(e.target.value)} rows={2} />
+          <Button onClick={handlers.handleAddComment} disabled={!newComment.trim()}>
+            <Plus className="h-4 w-4" />
+          </Button>
+        </div>
+        <div className="space-y-3">
+          {detailsLoading && <Loader2 className="h-4 w-4 animate-spin" />}
+          {details?.comments.length === 0 && <p className="text-sm text-muted-foreground">Aucun commentaire</p>}
+          {details?.comments.map((comment) => (
+            <div key={comment.id} className="p-3 bg-muted rounded-lg">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="text-sm font-medium">{comment.author_email}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {format(new Date(comment.created_at), "d MMM yyyy HH:mm", { locale: fr })}
+                  </p>
+                </div>
+                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => deleteComment.mutate(comment.id)}>
+                  <X className="h-3 w-3" />
+                </Button>
+              </div>
+              <p className="mt-2 text-sm">{comment.content}</p>
+            </div>
+          ))}
+        </div>
+      </TabsContent>
+
+      {/* Attachments */}
+      <TabsContent value="attachments" className="space-y-4 mt-4">
+        <div>
+          <input type="file" id="file-upload" className="hidden" onChange={handlers.handleFileUpload} />
+          <Button variant="outline" onClick={() => document.getElementById("file-upload")?.click()} disabled={addAttachment.isPending}>
+            {addAttachment.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Plus className="h-4 w-4 mr-2" />}
+            Ajouter un fichier
+          </Button>
+        </div>
+        <div className="space-y-2">
+          {detailsLoading && <Loader2 className="h-4 w-4 animate-spin" />}
+          {details?.attachments.length === 0 && <p className="text-sm text-muted-foreground">Aucune pièce jointe</p>}
+          {details?.attachments.map((att) => (
+            <div key={att.id} className="flex items-center justify-between p-2 bg-muted rounded">
+              <button
+                className="flex items-center gap-2 hover:text-primary transition-colors text-left min-w-0"
+                onClick={async () => {
+                  try {
+                    const { data } = await supabase.storage.from("crm-attachments").createSignedUrl(att.file_path, 3600);
+                    if (data?.signedUrl) window.open(data.signedUrl, "_blank", "noopener");
+                  } catch (e) {
+                    console.error("Error opening attachment:", e);
+                  }
+                }}
+              >
+                <Paperclip className="h-4 w-4 shrink-0" />
+                <span className="text-sm truncate underline">{att.file_name}</span>
+                {att.file_size && <span className="text-xs text-muted-foreground">({Math.round(att.file_size / 1024)} KB)</span>}
+              </button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 shrink-0"
+                onClick={() =>
+                  deleteAttachment.mutate({
+                    id: att.id,
+                    cardId: card.id,
+                    fileName: att.file_name,
+                    filePath: att.file_path,
+                    actorEmail: user?.email || "",
+                  })
+                }
+              >
+                <Trash2 className="h-3 w-3" />
+              </Button>
+            </div>
+          ))}
+        </div>
+      </TabsContent>
+
+      {/* Media */}
+      <TabsContent value="media" className="mt-4">
+        <EntityMediaManager sourceType="crm" sourceId={card.id} sourceLabel={card.title} variant="bare" />
+      </TabsContent>
+
+      {/* Activity */}
+      <TabsContent value="activity" className="space-y-2 mt-4">
+        {detailsLoading && <Loader2 className="h-4 w-4 animate-spin" />}
+        {details?.activity.length === 0 && <p className="text-sm text-muted-foreground">Aucune activité</p>}
+        {details?.activity.map((log) => (
+          <div key={log.id} className="p-2 border-l-2 border-muted pl-4">
+            <p className="text-sm">
+              <span className="font-medium">{formatActivityType(log.action_type)}</span>
+              {log.old_value && log.new_value && (
+                <span className="text-muted-foreground"> : {log.old_value} → {log.new_value}</span>
+              )}
+              {!log.old_value && log.new_value && (
+                <span className="text-muted-foreground"> : {log.new_value}</span>
+              )}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {log.actor_email} • {format(new Date(log.created_at), "d MMM yyyy HH:mm", { locale: fr })}
+            </p>
+          </div>
+        ))}
+      </TabsContent>
+    </Tabs>
+  );
+};
+
+export default CardDetailTabs;
