@@ -205,7 +205,7 @@ const Questionnaire = () => {
       }
 
       // Fetch schedules
-      const { data: sched, error: schedErr } = await (supabase.rpc as any)("get_training_schedules_public", { p_training_id: qTyped.training_id });
+      const { data: sched, error: schedErr } = await rpc.getTrainingSchedulesPublic(qTyped.training_id);
 
       if (!schedErr && sched) {
         setSchedules((Array.isArray(sched) ? sched : []) as ScheduleRecord[]);
