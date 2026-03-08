@@ -186,5 +186,12 @@ export interface CardDetails {
     sent_at: string;
     recipient_email: string;
     sender_email: string;
+    attachment_names: string[];
+    attachment_paths?: string[] | null;
+    delivery_status?: string;
+    opened_at?: string | null;
+    open_count?: number;
+    clicked_at?: string | null;
+    click_count?: number;
   }>;
 }
