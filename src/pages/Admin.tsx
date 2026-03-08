@@ -67,7 +67,7 @@ export default function Admin() {
         const [members, trainings, participants, missions] = await Promise.all([
           supabase.from("org_members").select("*", { count: "exact", head: true }).eq("org_id", org.id),
           supabase.from("trainings").select("*", { count: "exact", head: true }).eq("org_id", org.id),
-          supabase.from("training_participants").select("id, training_id, trainings!inner(org_id)", { count: "exact", head: true }).eq("trainings.org_id" as any, org.id),
+          supabase.from("training_participants").select("*", { count: "exact", head: true }) as any,
           supabase.from("missions").select("*", { count: "exact", head: true }).eq("org_id", org.id),
         ]);
         stats[org.id] = {
