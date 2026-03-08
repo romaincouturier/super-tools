@@ -138,19 +138,8 @@ const Emargement = () => {
     setSubmitting(true);
 
     try {
-      const signatureData = signaturePadRef.current.toDataURL("image/png");
-
-      const deviceInfo = {
-        screenWidth: window.screen.width,
-        screenHeight: window.screen.height,
-        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-        language: navigator.language,
-        colorDepth: window.screen.colorDepth,
-        pixelRatio: window.devicePixelRatio,
-        platform: navigator.platform,
-        cookiesEnabled: navigator.cookieEnabled,
-        onLine: navigator.onLine,
-      };
+      const signatureData = getSignatureData("image/png");
+      const deviceInfo = getDeviceInfo();
 
       const response = await supabase.functions.invoke("submit-attendance-signature", {
         body: {
