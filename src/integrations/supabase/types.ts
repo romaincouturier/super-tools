@@ -2179,6 +2179,62 @@ export type Database = {
         }
         Relationships: []
       }
+      lms_assignment_submissions: {
+        Row: {
+          comment: string | null
+          feedback: string | null
+          file_name: string | null
+          file_size: number | null
+          file_url: string | null
+          graded_at: string | null
+          graded_by: string | null
+          id: string
+          learner_email: string
+          lesson_id: string
+          score: number | null
+          status: string
+          submitted_at: string
+        }
+        Insert: {
+          comment?: string | null
+          feedback?: string | null
+          file_name?: string | null
+          file_size?: number | null
+          file_url?: string | null
+          graded_at?: string | null
+          graded_by?: string | null
+          id?: string
+          learner_email: string
+          lesson_id: string
+          score?: number | null
+          status?: string
+          submitted_at?: string
+        }
+        Update: {
+          comment?: string | null
+          feedback?: string | null
+          file_name?: string | null
+          file_size?: number | null
+          file_url?: string | null
+          graded_at?: string | null
+          graded_by?: string | null
+          id?: string
+          learner_email?: string
+          lesson_id?: string
+          score?: number | null
+          status?: string
+          submitted_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lms_assignment_submissions_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "lms_lessons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lms_assignments: {
         Row: {
           allow_late_submission: boolean | null
