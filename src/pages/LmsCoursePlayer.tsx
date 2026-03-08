@@ -460,7 +460,85 @@ function AssignmentSubmitter({ lessonId, learnerEmail }: { lessonId: string; lea
   const [comment, setComment] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
-  const { useSubmitAssignment, useLearnerSubmissions, uploadAssignmentFile } = await import("@/hooks/useLms");
-  // We need to use dynamic imports differently - let's use the hooks directly
-  return <AssignmentSubmitterInner lessonId={lessonId} learnerEmail={learnerEmail} />;
+  const submitAssignment = useSubmitAssignment();
+  const { data: submissions = [] } = useLearnerSubmissions(lessonId, learnerEmail);
+  const { toast } = useToast();
+
+  const handleSubmit = async () => {
+    setUploading(true);
+    try {
+      let fileData: { url: string; name: string; size: number } | undefined;
+      if (file) {
+        fileData = await uploadAssignmentFile(file, lessonId, learnerEmail);
+      }
+      await submitAssignment.mutateAsync({
+        lesson_id: lessonId,
+        learner_email: learnerEmail,
+        comment: comment || undefined,
+        file_url: fileData?.url,
+        file_name: fileData?.name,
+        file_size: fileData?.size,
+      });
+      setComment("");
+      setFile(null);
+      toast({ title: "Devoir soumis !" });
+    } catch (err: any) {
+      toast({ title: "Erreur", description: err.message, variant: "destructive" });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      {submissions.length > 0 && (
+        <Card>
+          <CardContent className="py-4 space-y-2">
+            <p className="text-sm font-medium">Soumissions précédentes</p>
+            {submissions.map((s) => (
+              <div key={s.id} className="flex items-center gap-3 text-sm p-2 rounded-md bg-muted/50">
+                <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
+                <div className="flex-1">
+                  {s.file_name && <span className="font-medium">{s.file_name}</span>}
+                  {s.comment && <p className="text-xs text-muted-foreground">{s.comment}</p>}
+                </div>
+                <Badge variant="outline" className="text-xs">
+                  {s.status === "graded" ? `${s.score} pts` : s.status}
+                </Badge>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Remettre votre travail</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <Label>Fichier</Label>
+            <Input
+              type="file"
+              onChange={(e) => setFile(e.target.files?.[0] || null)}
+              accept=".pdf,.doc,.docx,.zip,.jpg,.png,.mp4"
+            />
+            {file && <p className="text-xs text-muted-foreground mt-1">{file.name} ({(file.size / 1024 / 1024).toFixed(1)} Mo)</p>}
+          </div>
+          <div>
+            <Label>Commentaire (optionnel)</Label>
+            <Textarea
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              placeholder="Un commentaire pour le formateur..."
+              rows={3}
+            />
+          </div>
+          <Button onClick={handleSubmit} disabled={uploading || (!file && !comment)}>
+            {uploading ? "Envoi en cours..." : "Soumettre le devoir"}
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
+  );
 }
