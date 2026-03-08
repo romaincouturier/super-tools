@@ -4,15 +4,18 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import {
   Loader2, GraduationCap, FileText, ClipboardCheck,
   Calendar, MapPin, Download, ExternalLink, BookOpen,
-  CheckCircle2, Clock, AlertCircle,
+  CheckCircle2, Clock, AlertCircle, MessageSquare, Video,
 } from "lucide-react";
 import SupertiltLogo from "@/components/SupertiltLogo";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import LearnerMessaging from "@/components/learner/LearnerMessaging";
+import CoachingBooking from "@/components/learner/CoachingBooking";
 
 interface Training {
   training_id: string;
