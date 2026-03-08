@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { rpc } from "@/lib/supabase-rpc";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -92,17 +93,13 @@ const Evaluation = () => {
     setError(null);
 
     try {
-      const { data: ev, error: evErr } = await supabase
-        .from("training_evaluations")
-        .select("*")
-        .eq("token", token)
-        .single();
+      const { data: evArr, error: evErr } = await rpc.getEvaluationByToken(token);
 
-      if (evErr || !ev) {
+      if (evErr || !evArr || evArr.length === 0) {
         throw evErr || new Error("Évaluation introuvable");
       }
 
-      const evTyped = ev as unknown as EvaluationRecord;
+      const evTyped = evArr[0] as unknown as EvaluationRecord;
       setEvaluation(evTyped);
 
       // Populate form state from existing data
@@ -124,11 +121,7 @@ const Evaluation = () => {
       if (evTyped.remarques_libres) setRemarquesLibres(evTyped.remarques_libres);
 
       // Fetch training
-      const { data: t, error: tErr } = await supabase
-        .from("trainings")
-        .select("training_name,start_date,end_date,objectives")
-        .eq("id", evTyped.training_id)
-        .single();
+      const { data: t, error: tErr } = await rpc.getTrainingPublicInfo(evTyped.training_id);
 
       if (!tErr && t) {
         setTraining(t as unknown as TrainingRecord);
@@ -147,10 +140,7 @@ const Evaluation = () => {
       // First open tracking
       if (!evTyped.date_premiere_ouverture) {
         const nowIso = new Date().toISOString();
-        await supabase
-          .from("training_evaluations")
-          .update({ date_premiere_ouverture: nowIso })
-          .eq("id", evTyped.id);
+        await rpc.updateEvaluationByToken(token, { date_premiere_ouverture: nowIso });
       }
     } catch (e: any) {
       console.error("Failed to load evaluation", e);
@@ -203,29 +193,26 @@ const Evaluation = () => {
     try {
       const nowIso = new Date().toISOString();
 
-      const { error: upErr } = await supabase
-        .from("training_evaluations")
-        .update({
-          appreciation_generale: appreciationGenerale,
-          recommandation,
-          objectifs_evaluation: objectifsEvaluation as any,
-          objectif_prioritaire: objectifPrioritaire,
-          delai_application: delaiApplication,
-          freins_application: freinsApplication || null,
-          rythme,
-          equilibre_theorie_pratique: equilibreTheoriePratique,
-          amelioration_suggeree: ameliorationSuggeree || null,
-          conditions_info_satisfaisantes: conditionsInfoSatisfaisantes,
-          formation_adaptee_public: formationAdapteePublic,
-          qualification_intervenant_adequate: qualificationIntervenantAdequate,
-          appreciations_prises_en_compte: appreciationsPrisesEnCompte,
-          message_recommandation: messageRecommandation || null,
-          consent_publication: consentPublication,
-          remarques_libres: remarquesLibres || null,
-          etat: "soumis",
-          date_soumission: nowIso,
-        })
-        .eq("id", evaluation.id);
+      const { error: upErr } = await rpc.updateEvaluationByToken(token!, {
+        appreciation_generale: appreciationGenerale,
+        recommandation,
+        objectifs_evaluation: objectifsEvaluation,
+        objectif_prioritaire: objectifPrioritaire,
+        delai_application: delaiApplication,
+        freins_application: freinsApplication || null,
+        rythme,
+        equilibre_theorie_pratique: equilibreTheoriePratique,
+        amelioration_suggeree: ameliorationSuggeree || null,
+        conditions_info_satisfaisantes: conditionsInfoSatisfaisantes,
+        formation_adaptee_public: formationAdapteePublic,
+        qualification_intervenant_adequate: qualificationIntervenantAdequate,
+        appreciations_prises_en_compte: appreciationsPrisesEnCompte,
+        message_recommandation: messageRecommandation || null,
+        consent_publication: consentPublication,
+        remarques_libres: remarquesLibres || null,
+        etat: "soumis",
+        date_soumission: nowIso,
+      });
 
       if (upErr) throw upErr;
 

@@ -4560,8 +4560,87 @@ export type Database = {
         Args: { encryption_key: string; plain_token: string }
         Returns: string
       }
+      get_app_setting_public: { Args: { p_key: string }; Returns: string }
+      get_attendance_by_token: { Args: { p_token: string }; Returns: Json }
+      get_convention_signature_by_token: {
+        Args: { p_token: string }
+        Returns: Json
+      }
       get_cron_status: { Args: never; Returns: Json }
       get_db_size: { Args: never; Returns: Json }
+      get_devis_signature_by_token: { Args: { p_token: string }; Returns: Json }
+      get_evaluation_by_token: {
+        Args: { p_token: string }
+        Returns: {
+          amelioration_suggeree: string | null
+          appreciation_generale: number | null
+          appreciations_prises_en_compte: string | null
+          certificate_url: string | null
+          company: string | null
+          conditions_info_satisfaisantes: boolean | null
+          consent_publication: boolean | null
+          created_at: string
+          date_envoi: string | null
+          date_premiere_ouverture: string | null
+          date_soumission: string | null
+          delai_application: string | null
+          email: string | null
+          equilibre_theorie_pratique: string | null
+          etat: string
+          first_name: string | null
+          formation_adaptee_public: boolean | null
+          freins_application: string | null
+          id: string
+          last_name: string | null
+          learndash_course_id: number | null
+          message_recommandation: string | null
+          objectif_prioritaire: string | null
+          objectifs_evaluation: Json | null
+          participant_id: string | null
+          qualification_intervenant_adequate: boolean | null
+          recommandation: string | null
+          remarques_libres: string | null
+          rythme: string | null
+          token: string
+          training_id: string | null
+          updated_at: string
+          woocommerce_product_id: number | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "training_evaluations"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      get_mission_actions_public: {
+        Args: { p_mission_id: string }
+        Returns: Json
+      }
+      get_mission_activities_public: {
+        Args: { p_mission_id: string }
+        Returns: Json
+      }
+      get_mission_documents_public: {
+        Args: { p_mission_id: string }
+        Returns: Json
+      }
+      get_mission_media_public: {
+        Args: { p_mission_id: string }
+        Returns: Json
+      }
+      get_mission_public_summary: {
+        Args: { p_mission_id: string }
+        Returns: Json
+      }
+      get_participant_public_info: {
+        Args: { p_participant_id: string }
+        Returns: Json
+      }
+      get_previous_trainer_evaluations: {
+        Args: { p_exclude_id: string; p_trainer_email: string }
+        Returns: Json
+      }
       get_public_contact: {
         Args: never
         Returns: {
@@ -4569,13 +4648,114 @@ export type Database = {
           name: string
         }[]
       }
+      get_questionnaire_by_token: {
+        Args: { p_token: string }
+        Returns: {
+          besoins_accessibilite: string | null
+          commentaires_libres: string | null
+          competences_actuelles: string | null
+          competences_visees: string | null
+          consentement_rgpd: boolean
+          contraintes_orga: string | null
+          created_at: string
+          date_consentement_rgpd: string | null
+          date_derniere_sauvegarde: string | null
+          date_envoi: string | null
+          date_premiere_ouverture: string | null
+          date_soumission: string | null
+          date_validation_formateur: string | null
+          email: string | null
+          etat: string
+          experience_details: string | null
+          experience_sujet: string | null
+          fonction: string | null
+          id: string
+          learndash_course_id: number | null
+          lecture_programme: string | null
+          lien_mission: string | null
+          modalites_preferences: Json | null
+          necessite_amenagement: boolean | null
+          necessite_validation_formateur: boolean | null
+          niveau_actuel: number | null
+          niveau_motivation: number | null
+          nom: string | null
+          participant_id: string | null
+          prenom: string | null
+          prerequis_details: string | null
+          prerequis_validation: string | null
+          societe: string | null
+          token: string
+          training_id: string | null
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "questionnaire_besoins"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      get_reclamation_by_token: { Args: { p_token: string }; Returns: Json }
+      get_sponsor_evaluation_by_token: {
+        Args: { p_token: string }
+        Returns: Json
+      }
+      get_stakeholder_appreciation_by_token: {
+        Args: { p_token: string }
+        Returns: Json
+      }
+      get_trainer_evaluation_by_token: {
+        Args: { p_token: string }
+        Returns: Json
+      }
+      get_trainer_public: { Args: { p_trainer_id: string }; Returns: Json }
+      get_training_participants_list: {
+        Args: { p_training_id: string }
+        Returns: Json
+      }
+      get_training_public_info: {
+        Args: { p_training_id: string }
+        Returns: Json
+      }
+      get_training_schedule_for_date: {
+        Args: { p_day_date: string; p_training_id: string }
+        Returns: Json
+      }
+      get_training_schedules_public: {
+        Args: { p_training_id: string }
+        Returns: Json
+      }
+      get_training_summary_info: {
+        Args: { p_training_id: string }
+        Returns: Json
+      }
       has_crm_access: { Args: { _user_id: string }; Returns: boolean }
       has_module_access: {
         Args: { _module: string; _user_id: string }
         Returns: boolean
       }
+      insert_questionnaire_event: {
+        Args: {
+          p_metadata?: Json
+          p_questionnaire_id: string
+          p_type_evenement: string
+        }
+        Returns: undefined
+      }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       is_signup_allowed: { Args: { p_email: string }; Returns: boolean }
+      mark_attendance_opened: {
+        Args: { p_timestamp: string; p_token: string }
+        Returns: undefined
+      }
+      mark_convention_opened: {
+        Args: { p_timestamp: string; p_token: string }
+        Returns: undefined
+      }
+      mark_devis_opened: {
+        Args: { p_timestamp: string; p_token: string }
+        Returns: undefined
+      }
       register_formulaire_orphan: {
         Args: {
           p_course_id: number
@@ -4591,6 +4771,34 @@ export type Database = {
         Returns: Json
       }
       update_api_key_last_used: { Args: { key_id: string }; Returns: undefined }
+      update_evaluation_by_token: {
+        Args: { p_data: Json; p_token: string }
+        Returns: undefined
+      }
+      update_participant_after_questionnaire: {
+        Args: { p_company?: string; p_token: string }
+        Returns: undefined
+      }
+      update_questionnaire_by_token: {
+        Args: { p_data: Json; p_token: string }
+        Returns: undefined
+      }
+      update_reclamation_by_token: {
+        Args: { p_data: Json; p_token: string }
+        Returns: undefined
+      }
+      update_sponsor_evaluation_by_token: {
+        Args: { p_data: Json; p_token: string }
+        Returns: undefined
+      }
+      update_stakeholder_appreciation_by_token: {
+        Args: { p_data: Json; p_token: string }
+        Returns: undefined
+      }
+      update_trainer_evaluation_by_token: {
+        Args: { p_data: Json; p_token: string }
+        Returns: undefined
+      }
       upsert_profile: {
         Args: { p_display_name?: string; p_email: string; p_user_id: string }
         Returns: undefined

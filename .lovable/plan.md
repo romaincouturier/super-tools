@@ -1,159 +1,212 @@
+# SuperTools — Plan Produit & Technique
 
+---
 
-# Audit Qualiopi -- Analyse et plan d'action
+## Partie 1 — Refactoring terminé (Clean Code)
 
-## Tableau synthetique des indicateurs
+### Résumé
+- **Phase 1** (Type Safety) : wrapper RPC typé, élimination `as any` ✅
+- **Phase 2** (God Objects) : CardDetailDrawer, FormationDetail, Questionnaire, AttendanceSignatureBlock, useCommercialCoachData découpés ✅
+- **Phase 3** (Couche Service) : `src/services/missions.ts`, `trainings.ts` ✅
+- **Phase 4** (Patterns partagés) : `useJourneyTracking`, `useSignaturePad` migrés ✅
+- **Phase 5** (Tests) : 550 tests, 0 échec ✅
 
-| Indicateur | Statut | Ce qui manque | Action prioritaire |
+### Dette restante (non bloquante)
+- ~1400 `as any` restants (67 fichiers) — à réduire progressivement
+- `useFormationDetail.ts` : 4 fonctions inline à migrer vers `trainingFormatters.ts`
+- Pas de tests sur les composants UI critiques (pages publiques)
+
+---
+
+## Partie 2 — Roadmap Produit V2 (Plan fusionné)
+
+### Vision
+*"Le Notion des formateurs indépendants"* — plateforme SaaS freemium, multilingue, self-serve pour gérer tout son business de formation depuis un seul outil.
+
+**Cible** : Formateurs indépendants dans le monde entier
+**Modèle** : Product-Led Growth (freemium → pro → business)
+
+---
+
+### M1 — Fondations Multi-Tenant + Billing
+
+#### 1.1 Architecture Multi-Tenant
+- Table `organizations` avec isolation par `org_id` (RLS Supabase)
+- Chaque formateur = un workspace avec ses propres données
+- Gestion des rôles par organisation : Owner / Admin / Formateur / Commercial / Viewer
+- Dashboard super-admin pour gérer les tenants
+
+#### 1.2 Billing Stripe
+- Intégration Stripe : Free (1 formation, 5 participants) → Pro (illimité) → Business (équipe)
+- Usage metering : compteurs participants, stockage, emails
+- Upgrade nudges contextuels
+- Webhook Stripe pour provisioning automatique
+
+#### 1.3 i18n — Phase 1
+- Extraction strings FR → `react-i18next`
+- Support initial : 🇫🇷 FR + 🇬🇧 EN
+- Dates, devises, fuseaux horaires localisés (étendre `dateFormatters` existant)
+
+---
+
+### M2 — Onboarding & PLG Engine
+
+#### 2.1 Self-Serve Signup
+- Landing page marketing `/` (pricing, features, témoignages, démo sandbox)
+- SEO : "training management tool", "freelance trainer software"
+- Inscription → choix de plan → setup initial en 30 secondes
+
+#### 2.2 Onboarding Wizard
+- 4 étapes : Profil → Première formation → Participants → Premier questionnaire
+- Templates pré-remplis par secteur (dev, management, langues, coaching, bien-être)
+- Checklist gamifiée avec confettis à chaque étape (lib déjà installée)
+
+#### 2.3 Viralité Early
+- Certificats partageables sur LinkedIn → lien vers le formateur
+- "Made with SuperTools" badge sur certificats et portails
+- Weekly digest email : résumé + actions à faire
+
+---
+
+### M3 — Portail Apprenant
+
+#### 3.1 Interface Dédiée Participant
+- Espace unifié : formations en cours, progression, certificats, documents
+- Authentification par magic link (pas de compte nécessaire)
+- Mobile-first, PWA installable
+
+#### 3.2 Fonctionnalités Avancées
+- Messagerie avec le formateur
+- Booking de créneaux coaching (slots déjà implémentés côté admin)
+- Questionnaires et évaluations intégrés (plus de pages publiques isolées)
+- Accès aux replays et supports
+
+#### 3.3 i18n — Phase 2
+- Ajout 🇪🇸 ES, 🇵🇹 PT, 🇩🇪 DE
+- Templates emails multilingues
+- Contenu dynamique configurable par langue du participant
+
+---
+
+### M4 — IA Augmentée
+
+#### 4.1 Génération de Contenu
+- Programme de formation complet à partir d'un titre + objectifs (prérequis, méthodes pédagogiques, planning)
+- Création automatique de quiz/évaluations à partir du programme
+- Résumé automatique des sessions de coaching
+
+#### 4.2 Chatbot Formateur IA
+- RAG sur le contenu du cours (programmes, supports, évaluations)
+- Personnalisé par formation
+- Feedback IA sur les exercices des apprenants
+
+#### 4.3 Intelligence Prédictive
+- Risque de décrochage (non-participation, non-complétion questionnaires)
+- Recommandations de parcours personnalisées
+- Score de santé business : analyse métriques + recommandations hebdomadaires
+- Synthèse post-formation : analyse croisée évaluations → rapport PDF
+
+---
+
+### M5 — White-Label + API Publique
+
+#### 5.1 White-Label
+- Domaine personnalisé par organisation
+- Logo, couleurs, thème personnalisables (design tokens dynamiques)
+- Templates emails brandés
+- Certificats avec charte graphique du client
+
+#### 5.2 API REST Publique
+- Documentation OpenAPI/Swagger
+- Webhooks configurables (nouveau participant, formation terminée, paiement reçu, etc.)
+- Connecteur Zapier/Make natif
+- Rate limiting + API keys (système déjà en place)
+
+#### 5.3 Intégrations Natives
+- Zoom / Google Meet / Teams : lien visio auto-généré
+- Google Calendar / Outlook : sync bidirectionnelle (base déjà posée)
+- Slack : notifications enrichies (connecteur existant)
+- Stripe Checkout : paiement direct par les participants
+
+---
+
+### M6 — Mobile + Viralité
+
+#### 6.1 PWA Avancée
+- Mode offline pour formateurs terrain
+- Push notifications : rappels lives, coaching, évaluations
+- Signature émargement optimisée mobile (SignaturePad déjà en place)
+
+#### 6.2 Page Formateur Publique
+- `supertools.app/romain-couturier` — portfolio + catalogue + avis + réservation
+- Widget booking embeddable sur n'importe quel site
+- SEO : profil indexable
+
+#### 6.3 Gamification & Rétention
+- Streaks : "12 semaines consécutives d'actions complétées"
+- NPS intégré : feedback automatique à 30, 90, 180 jours
+- Badges de complétion pour les apprenants
+
+---
+
+### M7+ — Scale (Post-MVP)
+
+#### 7.1 LMS Natif (remplacer LearnDash/WooCommerce)
+- Modules / chapitres / leçons dans SuperTools (TipTap déjà en place)
+- Upload vidéo avec player intégré (Mux ou Bunny.net)
+- Quiz et exercices interactifs
+- Tracking progression SCORM-like
+- Élimine dépendance WooCommerce/LearnDash
+
+#### 7.2 Marketplace de Formations
+- Formateurs publient leurs formations
+- Système notation/avis
+- Commission SuperTools (revenu partagé)
+- Catalogue public consultable
+
+#### 7.3 Conformité Internationale
+- Qualiopi (FR) : automatisation indicateurs + preuves (base existante)
+- CPF/OPCO connecteurs (FR)
+- CPD (UK), IACET (US) : templates conformité modulaires
+- GDPR/Privacy dashboard + droit à l'oubli
+- Export données pour audits
+
+---
+
+## Architecture Technique Cible
+
+| Composant | Aujourd'hui | V2 |
+|---|---|---|
+| Auth | Email/password mono-org | Magic links + multi-org + SSO |
+| Data | Mono-tenant, pas d'isolation | RLS par `org_id` sur toutes les tables |
+| i18n | Hardcodé FR | `react-i18next` + DB multilingue |
+| Billing | Aucun | Stripe subscriptions + metering |
+| Public pages | Formulaires par token | Portail apprenant + page formateur |
+| API | Pas d'API publique | API REST + webhooks documentés |
+| Mobile | Responsive basique | PWA installable + offline + push |
+| Branding | Logo SuperTilt fixe | White-label dynamique par org |
+| IA | Coach commercial + analyse évals | RAG, génération programmes, prédictif |
+
+---
+
+## Métriques de Succès
+
+| Métrique | M3 | M6 | M12 |
 |---|---|---|---|
-| 1 - Info publique | Couvert | Page catalogue + TrainingSummary exposent objectifs, prerequis, duree, modalites | Aucune |
-| 4 - Analyse besoin | Couvert | Module "Besoins participants" avec questionnaire par token | Aucune |
-| 5 - Objectifs operationnels | Couvert | Champs `objectives` sur catalogue et formations, editeur dedie | Aucune |
-| 6 - Contenus adaptes | Couvert | Programme PDF, format formation, supports, lien SuperTilt | Aucune |
-| 8 - Positionnement entree | Partiel | Prerequis definis mais pas de champ formel "validation des prerequis a l'entree" | Ajouter un champ "prerequis valides" par participant (recueil besoins existant couvre partiellement) |
-| 10 - Adaptation au profil | Couvert | Recueil besoins + adaptations notees dans les notes de formation | Aucune |
-| 11 - Evaluation atteinte objectifs | Couvert | Questionnaire evaluation avec notation par objectif | Aucune |
-| 17 - Moyens humains/techniques | Partiel | Formateurs existent mais sans competences ni diplomes traces | **PRIORITE 1** |
-| 19 - Ressources pedagogiques | Couvert | Documents formation, supports URL, programme PDF | Aucune |
-| 21 - Competences intervenants | Manquant | Pas de competences, pas de diplomes/certifs, pas d'historique formation, pas de lien adequation | **PRIORITE 1** |
-| 22 - Dev competences intervenants | Manquant | Pas d'historique des formations suivies par les formateurs | **PRIORITE 1** (inclus) |
-| 26 - Referent handicap | Partiel | Pas de champ "referent handicap" ni de reseau partenaires PSH visible | Ajouter un champ referent handicap dans les parametres |
-| 27 - Sous-traitants | Partiel | Pas de registre sous-traitants formel | Peut etre documente hors app (peu de sous-traitance) |
-| 30 - Appreciations parties prenantes | Partiel | Beneficiaires (a chaud) + Sponsors (a froid) couverts. Manquent : equipes pedagogiques, financeurs, appreciations a froid beneficiaires | **PRIORITE 2** |
-| 31 - Reclamations | Couvert | Module reclamations complet avec IA, registre, formulaire public | Aucune |
-| 32 - Mesures amelioration | Partiel | Module "Ameliorations" existe mais pas de lien source (reclamation, appreciation, alea) | **PRIORITE 3** |
+| Formateurs inscrits | 100 | 500 | 2000 |
+| Activation rate | 30% | 40% | 50% |
+| Free→Paid conversion | 3% | 5% | 8% |
+| NPS | >40 | >50 | >60 |
+| Langues live | 2 | 5 | 5+ |
+| MRR | - | 5k€ | 30k€ |
 
 ---
 
-## PRIORITE 1 -- Indicateur 21 : Competences des intervenants
+## Règles de Développement
 
-### Modifications base de donnees
-
-**Nouvelles colonnes sur la table `trainers`** :
-- `competences` (text[]) -- domaines de competence / intervention
-- `diplomes_certifications` (text) -- texte libre ou JSON pour diplomes et certifications
-- `formations_suivies` (jsonb) -- tableau d'objets `[{titre, organisme, date, duree}]`
-
-**Nouvelle table `trainer_documents`** :
-- `id` (uuid PK)
-- `trainer_id` (uuid FK trainers)
-- `file_name` (text)
-- `file_url` (text)
-- `document_type` (text) -- cv, diplome, certification, autre
-- `created_at` (timestamptz)
-
-**Nouvelle table `trainer_training_adequacy`** :
-- `id` (uuid PK)
-- `trainer_id` (uuid FK trainers)
-- `training_id` (uuid FK trainings)
-- `validated_by` (text) -- nom de la personne qui valide
-- `validated_at` (date)
-- `notes` (text)
-- `created_at` (timestamptz)
-
-RLS : acces authentifie pour toutes ces tables.
-
-### Modifications UI
-
-**`TrainerManager.tsx`** : enrichir le formulaire d'edition pour ajouter :
-- Section "Competences et domaines d'intervention" (tags/chips editables)
-- Section "Diplomes et certifications" (textarea)
-- Section "Formations suivies" (tableau simple avec ajout/suppression : titre, organisme, date)
-- Section "Documents" (upload CV, diplomes, certifications -- reutilise le pattern EntityDocumentsManager)
-
-**`FormationDetail.tsx`** ou nouveau composant : afficher l'adequation formateur/formation avec :
-- Bouton "Valider l'adequation" (nom + date)
-- Affichage du statut d'adequation
-
----
-
-## PRIORITE 2 -- Indicateur 30 : Appreciations multi-parties prenantes
-
-### Etat actuel
-- `training_evaluations` = appreciations beneficiaires a chaud (OK)
-- `sponsor_cold_evaluations` = appreciations commanditaires/sponsors a froid (OK)
-- Manquent : equipes pedagogiques, financeurs, appreciations a froid beneficiaires
-
-### Modifications base de donnees
-
-**Nouvelle table `stakeholder_appreciations`** :
-- `id` (uuid PK)
-- `training_id` (uuid FK trainings, nullable)
-- `stakeholder_type` (text) -- 'pedagogique', 'financeur', 'beneficiaire_froid'
-- `stakeholder_name` (text)
-- `stakeholder_email` (text, nullable)
-- `token` (text UNIQUE) -- pour formulaire public
-- `date_envoi` (timestamptz, nullable)
-- `date_reception` (timestamptz, nullable)
-- `status` (text) -- 'draft', 'envoye', 'recu'
-- `satisfaction_globale` (integer, nullable)
-- `points_forts` (text, nullable)
-- `axes_amelioration` (text, nullable)
-- `commentaires` (text, nullable)
-- `year` (integer) -- pour le bilan annuel financeurs
-- `created_at` (timestamptz)
-- `updated_at` (timestamptz)
-
-RLS : authentifie pour CRUD, anon pour SELECT/UPDATE par token.
-
-### Modifications UI
-
-**Nouvelle page `src/pages/Appreciations.tsx`** (ou section dans Evaluations) :
-- Vue consolidee de toutes les appreciations par type de partie prenante
-- Filtres par type, par formation, par statut
-- Bouton "Envoyer un recueil" (genere un token + lien public)
-- Statistiques : taux de retour par type
-
-**Formulaire public** : `/appreciation/:token` -- formulaire simple adapte au type de partie prenante
-
-**Dashboard FormationDetail** : section recapitulative montrant le statut des appreciations pour chaque partie prenante liee a cette formation
-
----
-
-## PRIORITE 3 -- Indicateur 32 : Plan d'amelioration avec sources
-
-### Etat actuel
-La table `improvements` existe avec `training_id`, `category`, `status` mais sans lien vers la source (reclamation, appreciation, alea).
-
-### Modifications base de donnees
-
-**Nouvelles colonnes sur `improvements`** :
-- `source_type` (text, nullable) -- 'reclamation', 'appreciation', 'evaluation', 'alea', 'audit', 'autre'
-- `source_id` (uuid, nullable) -- id de la reclamation, appreciation, ou evaluation source
-- `source_description` (text, nullable) -- description libre de la source quand pas de lien direct
-- `priority` (text, nullable) -- 'haute', 'moyenne', 'basse'
-- `deadline` (date, nullable) -- echeance prevue
-- `responsible` (text, nullable) -- personne responsable
-
-### Modifications UI
-
-**`Ameliorations.tsx`** : enrichir pour :
-- Ajouter les champs source (type + description ou lien) dans le formulaire d'ajout
-- Afficher la source dans la liste (badge + lien cliquable vers la reclamation/evaluation)
-- Filtrer par source
-- Ajouter priorite et echeance
-- Vue "Plan d'amelioration" exportable (tableau : source | action | responsable | echeance | statut)
-
----
-
-## Fichiers concernes
-
-| Fichier | Action |
-|---|---|
-| Migration SQL | Tables `trainer_documents`, `trainer_training_adequacy`, `stakeholder_appreciations` + colonnes `trainers` + colonnes `improvements` |
-| `src/components/settings/TrainerManager.tsx` | Enrichir avec competences, diplomes, formations suivies, documents |
-| `src/pages/FormationDetail.tsx` | Ajouter validation adequation formateur |
-| `src/pages/Appreciations.tsx` | Creation -- page consolidee appreciations |
-| `src/pages/AppreciationPublic.tsx` | Creation -- formulaire public par token |
-| `src/pages/Ameliorations.tsx` | Enrichir avec source, priorite, echeance |
-| `src/App.tsx` | Ajout routes `/appreciation/:token` et eventuellement `/appreciations` |
-| `src/pages/Dashboard.tsx` | Ajout tuile si nouveau module |
-| `src/hooks/useModuleAccess.ts` | Eventuellement pas de nouveau module (integre dans evaluations) |
-
-## Ordre d'implementation
-
-1. Migration SQL unique avec toutes les modifications
-2. Priorite 1 : TrainerManager enrichi + adequation formateur/formation
-3. Priorite 2 : Table stakeholder_appreciations + page Appreciations + formulaire public
-4. Priorite 3 : Colonnes improvements + enrichissement Ameliorations.tsx
-
+1. **Un feature flag par grosse feature** — déploiement progressif
+2. **Tests avant migration** — chaque changement DB accompagné de tests
+3. **Backward compatible** — les tenants existants ne doivent jamais casser
+4. **Mobile-first** — tout nouveau composant testé sur mobile d'abord
+5. **Pas de `any`** — tout nouveau code strictement typé
+6. **i18n by default** — toute nouvelle string passe par `t()`

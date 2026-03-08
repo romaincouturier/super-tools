@@ -93,6 +93,31 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
 
   useEffect(() => {
     fetchData();
+
+    // Realtime subscription for cross-device sync
+    const channel = supabase
+      .channel("content-kanban-sync")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "content_cards" },
+        () => {
+          console.log("[Kanban] Realtime: content_cards changed");
+          fetchData();
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "content_columns" },
+        () => {
+          console.log("[Kanban] Realtime: content_columns changed");
+          fetchData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   // Open card from URL parameter

@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { rpc } from "@/lib/supabase-rpc";
 import { useQuery } from "@tanstack/react-query";
 import {
   AreaChart,
@@ -68,9 +69,9 @@ const DbSizeTab = () => {
   const { data: liveSize } = useQuery({
     queryKey: ["db-live-size"],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("get_db_size");
+      const { data, error } = await rpc.getDbSize();
       if (error) throw error;
-      return data as { total_size_bytes: number; table_sizes: Record<string, number> };
+      return data!
     },
     refetchInterval: 60000,
   });

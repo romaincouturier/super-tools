@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { rpc } from "@/lib/supabase-rpc";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -87,11 +88,7 @@ const SponsorEvaluation = () => {
     setError(null);
 
     try {
-      const { data: ev, error: evErr } = await (supabase as any)
-        .from("sponsor_cold_evaluations")
-        .select("*")
-        .eq("token", token)
-        .single();
+      const { data: ev, error: evErr } = await rpc.getSponsorEvaluationByToken(token);
 
       if (evErr || !ev) {
         throw evErr || new Error("Évaluation introuvable");
@@ -123,13 +120,8 @@ const SponsorEvaluation = () => {
           end_date: evTyped.training_end_date,
         });
       } else {
-        // Fallback for older records: try fetching from trainings table
-        const { data: t } = await supabase
-          .from("trainings")
-          .select("training_name,start_date,end_date")
-          .eq("id", evTyped.training_id)
-          .single();
-
+        // Fallback for older records: fetch from trainings via RPC
+        const { data: t } = await rpc.getTrainingPublicInfo(evTyped.training_id);
         if (t) {
           setTraining(t as unknown as TrainingInfo);
         }
@@ -137,10 +129,7 @@ const SponsorEvaluation = () => {
 
       // First open tracking
       if (!evTyped.date_premiere_ouverture) {
-        await (supabase as any)
-          .from("sponsor_cold_evaluations")
-          .update({ date_premiere_ouverture: new Date().toISOString() })
-          .eq("id", evTyped.id);
+        await rpc.updateSponsorEvaluationByToken(token!, { date_premiere_ouverture: new Date().toISOString() });
       }
     } catch (e: any) {
       console.error("Failed to load sponsor evaluation", e);
@@ -175,26 +164,23 @@ const SponsorEvaluation = () => {
     try {
       const nowIso = new Date().toISOString();
 
-      const { error: upErr } = await (supabase as any)
-        .from("sponsor_cold_evaluations")
-        .update({
-          satisfaction_globale: satisfactionGlobale,
-          attentes_satisfaites: attentesSatisfaites,
-          objectifs_atteints: objectifsAtteints,
-          impact_competences: impactCompetences,
-          description_impact: descriptionImpact || null,
-          organisation_satisfaisante: organisationSatisfaisante === "oui",
-          communication_satisfaisante: communicationSatisfaisante === "oui",
-          recommandation,
-          message_recommandation: messageRecommandation || null,
-          consent_publication: consentPublication === "oui",
-          points_forts: pointsForts || null,
-          axes_amelioration: axesAmelioration || null,
-          commentaires_libres: commentairesLibres || null,
-          etat: "soumis",
-          date_soumission: nowIso,
-        })
-        .eq("id", record.id);
+      const { error: upErr } = await rpc.updateSponsorEvaluationByToken(token!, {
+        satisfaction_globale: satisfactionGlobale,
+        attentes_satisfaites: attentesSatisfaites,
+        objectifs_atteints: objectifsAtteints,
+        impact_competences: impactCompetences,
+        description_impact: descriptionImpact || null,
+        organisation_satisfaisante: organisationSatisfaisante === "oui",
+        communication_satisfaisante: communicationSatisfaisante === "oui",
+        recommandation,
+        message_recommandation: messageRecommandation || null,
+        consent_publication: consentPublication === "oui",
+        points_forts: pointsForts || null,
+        axes_amelioration: axesAmelioration || null,
+        commentaires_libres: commentairesLibres || null,
+        etat: "soumis",
+        date_soumission: nowIso,
+      });
 
       if (upErr) throw upErr;
 

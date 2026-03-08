@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { rpc } from "@/lib/supabase-rpc";
 import {
   Loader2,
   CheckCircle2,
@@ -19,7 +20,8 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import SupertiltLogo from "@/components/SupertiltLogo";
-import SignaturePad from "signature_pad";
+import { useJourneyTracking } from "@/hooks/useJourneyTracking";
+import { useSignaturePad } from "@/hooks/useSignaturePad";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
@@ -39,12 +41,6 @@ interface DevisSignatureData {
   expires_at: string | null;
 }
 
-interface JourneyEvent {
-  event: string;
-  timestamp: string;
-  details?: Record<string, unknown>;
-}
-
 const SignatureDevis = () => {
   const { token } = useParams<{ token: string }>();
   const [loading, setLoading] = useState(true);
@@ -58,21 +54,12 @@ const SignatureDevis = () => {
   const [signerFunction, setSignerFunction] = useState("");
   const [consentGiven, setConsentGiven] = useState(false);
 
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const signaturePadRef = useRef<SignaturePad | null>(null);
-  const journeyEventsRef = useRef<JourneyEvent[]>([]);
-  const hasTrackedSignatureDrawn = useRef(false);
   const hasTrackedNameEntered = useRef(false);
   const { toast } = useToast();
-
-  // Journey event tracker
-  const trackEvent = useCallback((event: string, details?: Record<string, unknown>) => {
-    journeyEventsRef.current.push({
-      event,
-      timestamp: new Date().toISOString(),
-      details,
-    });
-  }, []);
+  const { journeyEvents, trackEvent, trackPageLoaded, getDeviceInfo } = useJourneyTracking();
+  const { canvasRef, clear: clearSignature, isEmpty: isSignatureEmpty, toDataURL: getSignatureData } = useSignaturePad({
+    onFirstStroke: () => trackEvent("signature_drawing_started"),
+  });
 
   useEffect(() => {
     const fetchDevisData = async () => {
@@ -83,11 +70,7 @@ const SignatureDevis = () => {
       }
 
       try {
-        const { data: signature, error: sigError } = await supabase
-          .from("devis_signatures")
-          .select("*")
-          .eq("token", token)
-          .maybeSingle();
+        const { data: signatureJson, error: sigError } = await rpc.getDevisSignatureByToken(token);
 
         if (sigError) {
           console.error("Error fetching signature:", sigError);
@@ -96,6 +79,7 @@ const SignatureDevis = () => {
           return;
         }
 
+        const signature = signatureJson;
         if (!signature) {
           setError("Lien de signature invalide ou expiré");
           setLoading(false);
@@ -114,21 +98,10 @@ const SignatureDevis = () => {
           return;
         }
 
-        // Track page loaded
-        trackEvent("page_loaded", {
-          user_agent: navigator.userAgent,
-          screen_width: window.screen.width,
-          screen_height: window.screen.height,
-          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-          language: navigator.language,
-        });
+        trackPageLoaded();
 
-        // Record first open
         if (!signature.email_opened_at) {
-          await supabase
-            .from("devis_signatures")
-            .update({ email_opened_at: new Date().toISOString() })
-            .eq("id", signature.id);
+          await rpc.markDevisOpened(token, new Date().toISOString());
           trackEvent("first_link_opened");
         } else {
           trackEvent("link_reopened");
@@ -148,42 +121,7 @@ const SignatureDevis = () => {
     };
 
     fetchDevisData();
-  }, [token, trackEvent]);
-
-  // Initialize signature pad
-  useEffect(() => {
-    if (canvasRef.current && !alreadySigned && devisData) {
-      const canvas = canvasRef.current;
-      const ratio = Math.max(window.devicePixelRatio || 1, 1);
-      canvas.width = canvas.offsetWidth * ratio;
-      canvas.height = canvas.offsetHeight * ratio;
-      const ctx = canvas.getContext("2d");
-      if (ctx) {
-        ctx.scale(ratio, ratio);
-      }
-
-      const pad = new SignaturePad(canvas, {
-        backgroundColor: "rgb(255, 255, 255)",
-        penColor: "rgb(0, 0, 0)",
-      });
-
-      // Track first stroke
-      pad.addEventListener("beginStroke", () => {
-        if (!hasTrackedSignatureDrawn.current) {
-          trackEvent("signature_drawing_started");
-          hasTrackedSignatureDrawn.current = true;
-        }
-      });
-
-      signaturePadRef.current = pad;
-    }
-
-    return () => {
-      if (signaturePadRef.current) {
-        signaturePadRef.current.off();
-      }
-    };
-  }, [devisData, alreadySigned, trackEvent]);
+  }, [token, trackEvent, trackPageLoaded]);
 
   const handlePdfConsulted = () => {
     trackEvent("pdf_consulted", { pdf_url: devisData?.pdf_url });
@@ -203,62 +141,31 @@ const SignatureDevis = () => {
   };
 
   const handleClear = () => {
-    if (signaturePadRef.current) {
-      signaturePadRef.current.clear();
-      trackEvent("signature_cleared");
-      hasTrackedSignatureDrawn.current = false;
-    }
+    clearSignature();
+    trackEvent("signature_cleared");
   };
 
   const handleSubmit = async () => {
     if (!signerName.trim()) {
-      toast({
-        title: "Nom requis",
-        description: "Veuillez indiquer votre nom.",
-        variant: "destructive",
-      });
+      toast({ title: "Nom requis", description: "Veuillez indiquer votre nom.", variant: "destructive" });
       return;
     }
-
     if (!consentGiven) {
-      toast({
-        title: "Consentement requis",
-        description: "Veuillez accepter les conditions de signature électronique.",
-        variant: "destructive",
-      });
+      toast({ title: "Consentement requis", description: "Veuillez accepter les conditions de signature électronique.", variant: "destructive" });
       return;
     }
-
-    if (!signaturePadRef.current || signaturePadRef.current.isEmpty()) {
-      toast({
-        title: "Signature requise",
-        description: "Veuillez signer dans le cadre prévu.",
-        variant: "destructive",
-      });
+    if (isSignatureEmpty()) {
+      toast({ title: "Signature requise", description: "Veuillez signer dans le cadre prévu.", variant: "destructive" });
       return;
     }
-
     if (!devisData || !token) return;
 
-    // Track submit click
     trackEvent("submit_button_clicked");
-
     setSubmitting(true);
 
     try {
-      const signatureData = signaturePadRef.current.toDataURL("image/png");
-
-      const deviceInfo = {
-        screenWidth: window.screen.width,
-        screenHeight: window.screen.height,
-        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-        language: navigator.language,
-        colorDepth: window.screen.colorDepth,
-        pixelRatio: window.devicePixelRatio,
-        platform: navigator.platform,
-        cookiesEnabled: navigator.cookieEnabled,
-        onLine: navigator.onLine,
-      };
+      const signatureData = getSignatureData("image/png");
+      const deviceInfo = getDeviceInfo();
 
       const response = await supabase.functions.invoke("submit-devis-signature", {
         body: {
@@ -269,39 +176,25 @@ const SignatureDevis = () => {
           signerName: signerName.trim(),
           signerFunction: signerFunction.trim() || undefined,
           deviceInfo,
-          journeyEvents: journeyEventsRef.current,
+          journeyEvents: journeyEvents.current,
         },
       });
 
-      if (response.error) {
-        throw new Error(response.error.message || "Erreur lors de l'enregistrement");
-      }
-
-      if (response.data?.error) {
-        throw new Error(response.data.error);
-      }
+      if (response.error) throw new Error(response.error.message || "Erreur lors de l'enregistrement");
+      if (response.data?.error) throw new Error(response.data.error);
 
       setSignatureSubmitted(true);
-      toast({
-        title: "Devis signé",
-        description: "Votre signature a été enregistrée avec succès.",
-      });
+      toast({ title: "Devis signé", description: "Votre signature a été enregistrée avec succès." });
     } catch (err) {
       console.error("Error submitting signature:", err);
-      toast({
-        title: "Erreur",
-        description: err instanceof Error ? err.message : "Une erreur est survenue.",
-        variant: "destructive",
-      });
+      toast({ title: "Erreur", description: err instanceof Error ? err.message : "Une erreur est survenue.", variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
   };
 
   const getDevisTypeLabel = (type: string) => {
-    return type === "avec_subrogation"
-      ? "Avec subrogation de paiement"
-      : "Sans subrogation de paiement";
+    return type === "avec_subrogation" ? "Avec subrogation de paiement" : "Sans subrogation de paiement";
   };
 
   const formatCreatedDate = (dateStr: string) => {
@@ -337,9 +230,7 @@ const SignatureDevis = () => {
           <CardContent className="pt-6 text-center space-y-4">
             <CheckCircle2 className="w-16 h-16 mx-auto text-green-500" />
             <h2 className="text-xl font-semibold">Devis signé</h2>
-            <p className="text-muted-foreground">
-              Votre signature électronique a été enregistrée avec succès.
-            </p>
+            <p className="text-muted-foreground">Votre signature électronique a été enregistrée avec succès.</p>
             {devisData && (
               <div className="mt-4 text-sm text-muted-foreground space-y-1">
                 <p><strong>{devisData.formation_name}</strong></p>
@@ -347,9 +238,7 @@ const SignatureDevis = () => {
                 <p className="text-xs">{getDevisTypeLabel(devisData.devis_type)}</p>
               </div>
             )}
-            <p className="text-sm text-muted-foreground">
-              Un email de confirmation vous sera envoyé prochainement.
-            </p>
+            <p className="text-sm text-muted-foreground">Un email de confirmation vous sera envoyé prochainement.</p>
           </CardContent>
         </Card>
       </div>
@@ -359,13 +248,11 @@ const SignatureDevis = () => {
   return (
     <div className="min-h-screen bg-background py-8 px-4">
       <div className="max-w-2xl mx-auto space-y-6">
-        {/* Header */}
         <div className="text-center">
           <SupertiltLogo className="h-12 mx-auto mb-4" />
           <h1 className="text-2xl font-bold">Signature électronique du devis</h1>
         </div>
 
-        {/* Devis info */}
         <Card>
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
@@ -391,8 +278,6 @@ const SignatureDevis = () => {
                 {devisData && getDevisTypeLabel(devisData.devis_type)}
               </span>
             </div>
-
-            {/* View PDF button */}
             {devisData?.pdf_url && (
               <div className="pt-2">
                 <Button variant="outline" asChild className="w-full sm:w-auto" onClick={handlePdfConsulted}>
@@ -406,7 +291,6 @@ const SignatureDevis = () => {
           </CardContent>
         </Card>
 
-        {/* Signer info */}
         <Card>
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
@@ -417,26 +301,15 @@ const SignatureDevis = () => {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="signerName">Nom complet *</Label>
-              <Input
-                id="signerName"
-                value={signerName}
-                onChange={(e) => handleNameChange(e.target.value)}
-                placeholder="Prénom Nom"
-              />
+              <Input id="signerName" value={signerName} onChange={(e) => handleNameChange(e.target.value)} placeholder="Prénom Nom" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="signerFunction">Fonction (optionnel)</Label>
-              <Input
-                id="signerFunction"
-                value={signerFunction}
-                onChange={(e) => setSignerFunction(e.target.value)}
-                placeholder="Ex: Directeur des Ressources Humaines"
-              />
+              <Input id="signerFunction" value={signerFunction} onChange={(e) => setSignerFunction(e.target.value)} placeholder="Ex: Directeur des Ressources Humaines" />
             </div>
           </CardContent>
         </Card>
 
-        {/* Signature area */}
         <Card>
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
@@ -446,67 +319,33 @@ const SignatureDevis = () => {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="border-2 border-dashed border-muted-foreground/30 rounded-lg bg-white">
-              <canvas
-                ref={canvasRef}
-                className="w-full h-48 touch-none"
-                style={{ touchAction: "none" }}
-              />
+              <canvas ref={canvasRef} className="w-full h-48 touch-none" style={{ touchAction: "none" }} />
             </div>
-
-            {/* Consent checkbox */}
             <div className="flex items-start space-x-3 p-3 bg-muted/50 rounded-lg">
-              <Checkbox
-                id="consent"
-                checked={consentGiven}
-                onCheckedChange={(checked) => handleConsentChange(checked === true)}
-                className="mt-0.5"
-              />
+              <Checkbox id="consent" checked={consentGiven} onCheckedChange={(checked) => handleConsentChange(checked === true)} className="mt-0.5" />
               <Label htmlFor="consent" className="text-sm leading-relaxed cursor-pointer">
                 En signant ce devis, j'accepte les conditions proposées et je reconnais que cette
                 signature électronique a valeur légale conformément au règlement européen eIDAS
                 (UE n° 910/2014) et aux articles 1366 et 1367 du Code civil français.
               </Label>
             </div>
-
             <div className="flex gap-2">
-              <Button variant="outline" onClick={handleClear} className="flex-1">
-                Effacer
-              </Button>
-              <Button
-                onClick={handleSubmit}
-                disabled={submitting || !consentGiven || !signerName.trim()}
-                className="flex-1"
-              >
-                {submitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Envoi...
-                  </>
-                ) : (
-                  "Signer le devis"
-                )}
+              <Button variant="outline" onClick={handleClear} className="flex-1">Effacer</Button>
+              <Button onClick={handleSubmit} disabled={submitting || !consentGiven || !signerName.trim()} className="flex-1">
+                {submitting ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />Envoi...</>) : "Signer le devis"}
               </Button>
             </div>
           </CardContent>
         </Card>
 
-        {/* Legal notice */}
         <Card className="bg-muted/30 border-dashed">
           <CardContent className="pt-4">
             <div className="flex items-start gap-3">
               <Shield className="h-5 w-5 text-primary shrink-0 mt-0.5" />
               <div className="text-xs text-muted-foreground space-y-2">
                 <p className="font-medium text-foreground">Signature électronique sécurisée</p>
-                <p>
-                  Cette signature électronique est juridiquement recevable en France conformément au
-                  règlement européen eIDAS (UE n° 910/2014) et aux articles 1366 et 1367 du Code civil.
-                </p>
-                <p>
-                  Données enregistrées : votre signature, votre nom, la date et l'heure, votre adresse IP,
-                  les informations de votre appareil, et l'intégralité de votre parcours de signature.
-                  Ces données constituent le dossier de preuve de votre engagement
-                  et sont conservées dans un espace sécurisé séparé pour les besoins de traçabilité.
-                </p>
+                <p>Cette signature électronique est juridiquement recevable en France conformément au règlement européen eIDAS (UE n° 910/2014) et aux articles 1366 et 1367 du Code civil.</p>
+                <p>Données enregistrées : votre signature, votre nom, la date et l'heure, votre adresse IP, les informations de votre appareil, et l'intégralité de votre parcours de signature. Ces données constituent le dossier de preuve de votre engagement et sont conservées dans un espace sécurisé séparé pour les besoins de traçabilité.</p>
               </div>
             </div>
           </CardContent>

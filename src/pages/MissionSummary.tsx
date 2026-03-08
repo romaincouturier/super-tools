@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { rpc } from "@/lib/supabase-rpc";
 import { format, parseISO, isAfter, startOfDay } from "date-fns";
 import { fr, enUS } from "date-fns/locale";
 import {
@@ -351,32 +351,11 @@ const MissionSummary = () => {
     const fetchData = async () => {
       try {
         const [missionRes, activitiesRes, documentsRes, actionsRes, mediaRes] = await Promise.all([
-          (supabase as any)
-            .from("missions")
-            .select("id, title, description, client_name, status, start_date, end_date, initial_amount, daily_rate, total_days, emoji")
-            .eq("id", missionId)
-            .single(),
-          (supabase as any)
-            .from("mission_activities")
-            .select("*")
-            .eq("mission_id", missionId)
-            .order("activity_date", { ascending: true }),
-          (supabase as any)
-            .from("mission_documents")
-            .select("id, file_name, file_url, file_size, is_deliverable")
-            .eq("mission_id", missionId)
-            .order("created_at", { ascending: true }),
-          (supabase as any)
-            .from("mission_actions")
-            .select("id, title, status, position")
-            .eq("mission_id", missionId)
-            .order("position", { ascending: true }),
-          (supabase as any)
-            .from("media")
-            .select("id, file_name, file_url, file_size, file_type, is_deliverable")
-            .eq("source_type", "mission")
-            .eq("source_id", missionId)
-            .order("created_at", { ascending: true }),
+          rpc.getMissionPublicSummary(missionId!),
+          rpc.getMissionActivitiesPublic(missionId!),
+          rpc.getMissionDocumentsPublic(missionId!),
+          rpc.getMissionActionsPublic(missionId!),
+          rpc.getMissionMediaPublic(missionId!),
         ]);
 
         if (missionRes.error || !missionRes.data) {
@@ -386,10 +365,10 @@ const MissionSummary = () => {
         }
 
         setMission(missionRes.data);
-        setActivities(activitiesRes.data || []);
-        setDocuments(documentsRes.data || []);
-        setMediaItems(mediaRes.data || []);
-        setActions(actionsRes.data || []);
+        setActivities(Array.isArray(activitiesRes.data) ? activitiesRes.data as Activity[] : []);
+        setDocuments(Array.isArray(documentsRes.data) ? documentsRes.data : []);
+        setMediaItems(Array.isArray(mediaRes.data) ? mediaRes.data : []);
+        setActions(Array.isArray(actionsRes.data) ? actionsRes.data : []);
       } catch {
         setError(true);
       } finally {

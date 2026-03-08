@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { useAppSetting } from "@/hooks/useAppSetting";
+import { rpc } from "@/lib/supabase-rpc";
+
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import { formatDateWithDayOfWeek, formatDateLong } from "@/lib/dateFormatters";
@@ -72,7 +72,7 @@ interface Trainer {
 
 const TrainingSummary = () => {
   const { trainingId } = useParams<{ trainingId: string }>();
-  const googleMapsApiKey = useAppSetting("google_maps_api_key", "AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8");
+  const [googleMapsApiKey, setGoogleMapsApiKey] = useState("AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8");
   const [training, setTraining] = useState<Training | null>(null);
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [trainer, setTrainer] = useState<Trainer | null>(null);
@@ -89,12 +89,8 @@ const TrainingSummary = () => {
 
   const fetchTrainingData = async () => {
     try {
-      // Fetch training
-      const { data: trainingData, error: trainingError } = await supabase
-        .from("trainings")
-        .select("id, training_name, client_name, start_date, end_date, location, program_file_url, supports_url, trainer_id, objectives, prerequisites, format_formation")
-        .eq("id", trainingId)
-        .single();
+      // Fetch training via RPC
+      const { data: trainingData, error: trainingError } = await rpc.getTrainingSummaryInfo(trainingId!);
 
       if (trainingError) throw trainingError;
       if (!trainingData) {
@@ -104,35 +100,28 @@ const TrainingSummary = () => {
 
       setTraining(trainingData);
 
-      // Fetch schedules
-      const { data: schedulesData } = await supabase
-        .from("training_schedules")
-        .select("*")
-        .eq("training_id", trainingId)
-        .order("day_date");
+      // Fetch schedules via RPC
+      const { data: schedulesData } = await rpc.getTrainingSchedulesPublic(trainingId!);
 
-      setSchedules(schedulesData || []);
+      setSchedules(Array.isArray(schedulesData) ? schedulesData as Schedule[] : []);
 
-      // Fetch trainer if exists
+      // Fetch trainer if exists via RPC
       if (trainingData.trainer_id) {
-        const { data: trainerData } = await supabase
-          .from("trainers")
-          .select("*")
-          .eq("id", trainingData.trainer_id)
-          .single();
-
+        const { data: trainerData } = await rpc.getTrainerPublic(trainingData.trainer_id);
         setTrainer(trainerData);
       }
 
-      // Fetch règlement intérieur URL from app_settings
-      const { data: settingData } = await supabase
-        .from("app_settings")
-        .select("setting_value")
-        .eq("setting_key", "reglement_interieur_url")
-        .maybeSingle();
+      // Fetch règlement intérieur URL via RPC
+      const [{ data: settingValue }, { data: mapsKey }] = await Promise.all([
+        rpc.getAppSettingPublic("reglement_interieur_url"),
+        rpc.getAppSettingPublic("google_maps_api_key"),
+      ]);
 
-      if (settingData?.setting_value) {
-        setReglementInterieurUrl(settingData.setting_value);
+      if (settingValue) {
+        setReglementInterieurUrl(settingValue);
+      }
+      if (mapsKey) {
+        setGoogleMapsApiKey(mapsKey);
       }
 
     } catch (err) {

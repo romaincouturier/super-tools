@@ -80,6 +80,7 @@ const CommentThread = ({
   const [pendingMentions, setPendingMentions] = useState<MentionUser[]>([]);
   const [analyzingVoice, setAnalyzingVoice] = useState(false);
   const [voiceTranscript, setVoiceTranscript] = useState("");
+  const voiceTranscriptRef = useRef("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { isListening, isSupported: speechSupported, startListening, stopListening } = useSpeechRecognition("fr-FR", true);
 
@@ -415,14 +416,22 @@ const CommentThread = ({
   const handleVoiceToggle = () => {
     if (isListening) {
       stopListening();
-      // Analyze accumulated transcript
-      if (voiceTranscript.trim()) {
-        analyzeVoiceTranscript(voiceTranscript.trim());
+      // Use ref to get the latest transcript (avoids stale closure)
+      const transcript = voiceTranscriptRef.current.trim();
+      console.log("[Voice] Stopped. Transcript:", transcript);
+      if (transcript) {
+        analyzeVoiceTranscript(transcript);
+      } else {
+        toast.info("Aucun texte détecté — réessayez en parlant plus fort");
       }
     } else {
       setVoiceTranscript("");
-      startListening((text: string) => {
-        setVoiceTranscript((prev) => (prev ? prev + " " + text : text));
+      voiceTranscriptRef.current = "";
+      startListening((fullTranscript: string) => {
+        // The hook now sends the full accumulated transcript each time
+        voiceTranscriptRef.current = fullTranscript;
+        setVoiceTranscript(fullTranscript);
+        console.log("[Voice] Transcript updated:", fullTranscript);
       });
     }
   };
