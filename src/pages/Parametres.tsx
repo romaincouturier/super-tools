@@ -2056,6 +2056,41 @@ const Parametres = () => {
                 </div>
 
                 <Separator />
+
+                {/* Stripe Billing */}
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium">Facturation Stripe</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Clés Stripe pour le système de facturation et d'abonnements. Obtenez vos clés depuis le{" "}
+                    <a href="https://dashboard.stripe.com/apikeys" target="_blank" rel="noopener noreferrer" className="underline text-primary">
+                      Dashboard Stripe
+                    </a>.
+                  </p>
+                  <div className="space-y-3 max-w-lg">
+                    <div className="space-y-2">
+                      <Label htmlFor="stripe-secret-key">Clé secrète (sk_...)</Label>
+                      <Input
+                        id="stripe-secret-key"
+                        type="password"
+                        value={settings.stripe_secret_key}
+                        onChange={(e) => updateSetting("stripe_secret_key", e.target.value)}
+                        placeholder="sk_live_..."
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="stripe-webhook-secret">Secret webhook (whsec_...)</Label>
+                      <Input
+                        id="stripe-webhook-secret"
+                        type="password"
+                        value={settings.stripe_webhook_secret}
+                        onChange={(e) => updateSetting("stripe_webhook_secret", e.target.value)}
+                        placeholder="whsec_..."
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
                 <div className="space-y-4">
                   <h3 className="text-sm font-medium">Jours ouvrables</h3>
                   <p className="text-sm text-muted-foreground">
