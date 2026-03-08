@@ -97,21 +97,18 @@ const ReclamationPublic = () => {
 
     setSubmitting(true);
     try {
-      const { error: updateErr } = await (supabase.rpc as any)("update_reclamation_by_token", {
-        p_token: token!,
-        p_data: {
-          client_name: clientName.trim(),
-          client_email: clientEmail.trim(),
-          canal,
-          nature,
-          problem_type: problemType,
-          attendu_initial: attenduInitial.trim() || null,
-          resultat_constate: resultatConstate.trim() || null,
-          description: description.trim(),
-          severity,
-          status: "open",
-          date_reclamation: new Date().toISOString().split("T")[0],
-        },
+      const { error: updateErr } = await rpc.updateReclamationByToken(token!, {
+        client_name: clientName.trim(),
+        client_email: clientEmail.trim(),
+        canal,
+        nature,
+        problem_type: problemType,
+        attendu_initial: attenduInitial.trim() || null,
+        resultat_constate: resultatConstate.trim() || null,
+        description: description.trim(),
+        severity,
+        status: "open",
+        date_reclamation: new Date().toISOString().split("T")[0],
       });
 
       if (updateErr) throw updateErr;

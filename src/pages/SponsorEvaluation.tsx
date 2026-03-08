@@ -164,25 +164,22 @@ const SponsorEvaluation = () => {
     try {
       const nowIso = new Date().toISOString();
 
-      const { error: upErr } = await (supabase.rpc as any)("update_sponsor_evaluation_by_token", {
-        p_token: token!,
-        p_data: {
-          satisfaction_globale: satisfactionGlobale,
-          attentes_satisfaites: attentesSatisfaites,
-          objectifs_atteints: objectifsAtteints,
-          impact_competences: impactCompetences,
-          description_impact: descriptionImpact || null,
-          organisation_satisfaisante: organisationSatisfaisante === "oui",
-          communication_satisfaisante: communicationSatisfaisante === "oui",
-          recommandation,
-          message_recommandation: messageRecommandation || null,
-          consent_publication: consentPublication === "oui",
-          points_forts: pointsForts || null,
-          axes_amelioration: axesAmelioration || null,
-          commentaires_libres: commentairesLibres || null,
-          etat: "soumis",
-          date_soumission: nowIso,
-        },
+      const { error: upErr } = await rpc.updateSponsorEvaluationByToken(token!, {
+        satisfaction_globale: satisfactionGlobale,
+        attentes_satisfaites: attentesSatisfaites,
+        objectifs_atteints: objectifsAtteints,
+        impact_competences: impactCompetences,
+        description_impact: descriptionImpact || null,
+        organisation_satisfaisante: organisationSatisfaisante === "oui",
+        communication_satisfaisante: communicationSatisfaisante === "oui",
+        recommandation,
+        message_recommandation: messageRecommandation || null,
+        consent_publication: consentPublication === "oui",
+        points_forts: pointsForts || null,
+        axes_amelioration: axesAmelioration || null,
+        commentaires_libres: commentairesLibres || null,
+        etat: "soumis",
+        date_soumission: nowIso,
       });
 
       if (upErr) throw upErr;
