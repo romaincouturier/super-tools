@@ -64,7 +64,7 @@ const ForcePasswordChange = () => {
         description: "Votre mot de passe a été modifié avec succès.",
       });
 
-      navigate("/");
+      navigate("/dashboard");
     } catch (error: any) {
       toast({
         title: "Erreur",

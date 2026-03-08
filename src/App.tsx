@@ -64,6 +64,9 @@ const TrainerEvaluation = lazyWithRetry(() => import("./pages/TrainerEvaluation"
 const Reclamations = lazyWithRetry(() => import("./pages/Reclamations"));
 const NotFound = lazyWithRetry(() => import("./pages/NotFound"));
 const Admin = lazyWithRetry(() => import("./pages/Admin"));
+const Landing = lazyWithRetry(() => import("./pages/Landing"));
+const Signup = lazyWithRetry(() => import("./pages/Signup"));
+const Onboarding = lazyWithRetry(() => import("./pages/Onboarding"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -98,7 +101,8 @@ const App = () => (
         <Suspense fallback={<PageLoader />}>
           <RouteErrorBoundary>
             <Routes>
-              <Route path="/" element={<Dashboard />} />
+              <Route path="/" element={<Landing />} />
+              <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/certificates" element={<CertificateGenerator />} />
               <Route path="/micro-devis" element={<MicroDevis />} />
               <Route path="/historique" element={<Historique />} />
@@ -164,6 +168,8 @@ const App = () => (
               {/* Privacy policy */}
               <Route path="/politique-confidentialite" element={<PolitiqueConfidentialite />} />
               <Route path="/auth" element={<Auth />} />
+              <Route path="/signup" element={<Signup />} />
+              <Route path="/onboarding" element={<Onboarding />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/force-password-change" element={<ForcePasswordChange />} />
               {/* AI Arena */}

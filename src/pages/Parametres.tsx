@@ -1699,7 +1699,7 @@ const Parametres = () => {
               <p className="text-muted-foreground">
                 Vous n'avez pas les droits pour accéder aux paramètres généraux.
               </p>
-              <Button className="mt-6" onClick={() => navigate("/")}>
+              <Button className="mt-6" onClick={() => navigate("/dashboard")}>
                 Retour au tableau de bord
               </Button>
             </CardContent>
