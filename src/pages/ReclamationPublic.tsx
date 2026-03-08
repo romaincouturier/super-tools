@@ -43,11 +43,7 @@ const ReclamationPublic = () => {
 
     const fetchReclamation = async () => {
       try {
-        const { data, error: fetchErr } = await supabase
-          .from("reclamations")
-          .select("*")
-          .eq("token", token)
-          .single();
+        const { data, error: fetchErr } = await (supabase.rpc as any)("get_reclamation_by_token", { p_token: token });
 
         if (fetchErr || !data) {
           setError("Ce lien de réclamation est invalide ou a expiré.");
