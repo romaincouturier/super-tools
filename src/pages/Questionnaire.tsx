@@ -167,7 +167,7 @@ const Questionnaire = () => {
     setError(null);
 
     try {
-      const { data: qArr, error: qErr } = await (supabase.rpc as any)("get_questionnaire_by_token", { p_token: token });
+      const { data: qArr, error: qErr } = await rpc.getQuestionnaireByToken(token);
 
       if (qErr || !qArr || qArr.length === 0) {
         throw qErr || new Error("Questionnaire introuvable");
