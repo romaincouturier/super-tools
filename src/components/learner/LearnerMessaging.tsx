@@ -79,9 +79,9 @@ export default function LearnerMessaging({ trainingId, participantId, learnerEma
       (m) => !m.is_read && m.sender_role !== (isInstructor ? "instructor" : "learner")
     );
     if (unread.length > 0) {
-      supabase
+      (supabase as any)
         .from("learner_messages")
-        .update({ is_read: true } as any)
+        .update({ is_read: true })
         .in("id", unread.map((m) => m.id))
         .then();
     }
