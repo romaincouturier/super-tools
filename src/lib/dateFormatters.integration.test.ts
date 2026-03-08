@@ -205,30 +205,29 @@ describe("No inline date formatting in migrated files", () => {
 });
 
 // ── 4. trainingFormatters migration status ──────────────────────────────────
-// FormationDetail.tsx still defines inline versions of trainingFormatters functions.
-// These tests document the gap and will fail once the migration is done
-// (at which point: flip the assertions).
+// These inline functions live in useFormationDetail.ts (the hook),
+// NOT in FormationDetail.tsx (the page component — already split).
 
 describe("trainingFormatters migration status", () => {
-  const formationDetail = "src/pages/FormationDetail.tsx";
+  const hookFile = "src/hooks/useFormationDetail.ts";
 
-  it("FormationDetail.tsx still has inline calculateTotalDuration (not yet migrated)", () => {
-    const source = readSource(formationDetail);
+  it("useFormationDetail.ts still has inline calculateTotalDuration (not yet migrated)", () => {
+    const source = readSource(hookFile);
     expect(source).toMatch(/const calculateTotalDuration\s*=/);
   });
 
-  it("FormationDetail.tsx still has inline getFormatLabel (not yet migrated)", () => {
-    const source = readSource(formationDetail);
+  it("useFormationDetail.ts still has inline getFormatLabel (not yet migrated)", () => {
+    const source = readSource(hookFile);
     expect(source).toMatch(/const getFormatLabel\s*=/);
   });
 
-  it("FormationDetail.tsx still has inline getSponsorName (not yet migrated)", () => {
-    const source = readSource(formationDetail);
+  it("useFormationDetail.ts still has inline getSponsorName (not yet migrated)", () => {
+    const source = readSource(hookFile);
     expect(source).toMatch(/const getSponsorName\s*=/);
   });
 
-  it("FormationDetail.tsx still has inline formatDateWithSchedule (not yet migrated)", () => {
-    const source = readSource(formationDetail);
+  it("useFormationDetail.ts still has inline formatDateWithSchedule (not yet migrated)", () => {
+    const source = readSource(hookFile);
     expect(source).toMatch(/const formatDateWithSchedule\s*=/);
   });
 });
