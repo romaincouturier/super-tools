@@ -101,7 +101,7 @@ const TrainingSummary = () => {
       setTraining(trainingData);
 
       // Fetch schedules via RPC
-      const { data: schedulesData } = await (supabase.rpc as any)("get_training_schedules_public", { p_training_id: trainingId });
+      const { data: schedulesData } = await rpc.getTrainingSchedulesPublic(trainingId!);
 
       setSchedules(Array.isArray(schedulesData) ? schedulesData : []);
 
