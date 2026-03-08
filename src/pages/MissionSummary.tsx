@@ -365,7 +365,7 @@ const MissionSummary = () => {
         }
 
         setMission(missionRes.data);
-        setActivities(Array.isArray(activitiesRes.data) ? activitiesRes.data : []);
+        setActivities(Array.isArray(activitiesRes.data) ? activitiesRes.data as Activity[] : []);
         setDocuments(Array.isArray(documentsRes.data) ? documentsRes.data : []);
         setMediaItems(Array.isArray(mediaRes.data) ? mediaRes.data : []);
         setActions(Array.isArray(actionsRes.data) ? actionsRes.data : []);

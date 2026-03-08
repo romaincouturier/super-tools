@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { rpc } from "@/lib/supabase-rpc";
 import { useQuery } from "@tanstack/react-query";
 import {
   AreaChart,
