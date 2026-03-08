@@ -4560,6 +4560,7 @@ export type Database = {
         Args: { encryption_key: string; plain_token: string }
         Returns: string
       }
+      get_app_setting_public: { Args: { p_key: string }; Returns: string }
       get_attendance_by_token: { Args: { p_token: string }; Returns: Json }
       get_convention_signature_by_token: {
         Args: { p_token: string }
@@ -4707,6 +4708,7 @@ export type Database = {
         Args: { p_token: string }
         Returns: Json
       }
+      get_trainer_public: { Args: { p_trainer_id: string }; Returns: Json }
       get_training_participants_list: {
         Args: { p_training_id: string }
         Returns: Json
@@ -4715,7 +4717,15 @@ export type Database = {
         Args: { p_training_id: string }
         Returns: Json
       }
+      get_training_schedule_for_date: {
+        Args: { p_day_date: string; p_training_id: string }
+        Returns: Json
+      }
       get_training_schedules_public: {
+        Args: { p_training_id: string }
+        Returns: Json
+      }
+      get_training_summary_info: {
         Args: { p_training_id: string }
         Returns: Json
       }
@@ -4734,6 +4744,18 @@ export type Database = {
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       is_signup_allowed: { Args: { p_email: string }; Returns: boolean }
+      mark_attendance_opened: {
+        Args: { p_timestamp: string; p_token: string }
+        Returns: undefined
+      }
+      mark_convention_opened: {
+        Args: { p_timestamp: string; p_token: string }
+        Returns: undefined
+      }
+      mark_devis_opened: {
+        Args: { p_timestamp: string; p_token: string }
+        Returns: undefined
+      }
       register_formulaire_orphan: {
         Args: {
           p_course_id: number
