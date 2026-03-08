@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from "react-router-dom";
-import { Settings, AlertTriangle, Sparkles, ArrowLeft } from "lucide-react";
+import { Settings, AlertTriangle, Sparkles, ArrowLeft, Shield } from "lucide-react";
 import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import UserMenu from "@/components/UserMenu";
@@ -19,7 +19,7 @@ const AppHeader = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout } = useAuth();
-  const { hasAccess } = useModuleAccess();
+  const { hasAccess, isAdmin } = useModuleAccess();
   const [failedEmailCount, setFailedEmailCount] = useState(0);
 
   const isDashboard = location.pathname === "/";
@@ -142,6 +142,23 @@ const AppHeader = () => {
                 </TooltipTrigger>
                 <TooltipContent>
                   <p>AI Arena</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+          {isAdmin && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => navigate("/admin")}
+                    className="p-2 rounded-lg hover:bg-background/10 transition-colors"
+                  >
+                    <Shield className="w-5 h-5" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Administration</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
