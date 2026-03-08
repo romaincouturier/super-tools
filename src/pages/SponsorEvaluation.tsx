@@ -129,10 +129,7 @@ const SponsorEvaluation = () => {
 
       // First open tracking
       if (!evTyped.date_premiere_ouverture) {
-        await (supabase.rpc as any)("update_sponsor_evaluation_by_token", {
-          p_token: token!,
-          p_data: { date_premiere_ouverture: new Date().toISOString() },
-        });
+        await rpc.updateSponsorEvaluationByToken(token!, { date_premiere_ouverture: new Date().toISOString() });
       }
     } catch (e: any) {
       console.error("Failed to load sponsor evaluation", e);
