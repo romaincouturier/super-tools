@@ -121,7 +121,7 @@ const SponsorEvaluation = () => {
         });
       } else {
         // Fallback for older records: fetch from trainings via RPC
-        const { data: t } = await (supabase.rpc as any)("get_training_public_info", { p_training_id: evTyped.training_id });
+        const { data: t } = await rpc.getTrainingPublicInfo(evTyped.training_id);
         if (t) {
           setTraining(t as unknown as TrainingInfo);
         }
