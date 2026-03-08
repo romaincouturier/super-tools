@@ -13,7 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   Loader2, Sparkles, BookOpen, ClipboardCheck, Activity,
   CheckCircle2, AlertTriangle, TrendingUp, Target,
-  ArrowRight, Download, Copy, Brain, Zap,
+  ArrowRight, Download, Copy, Brain, Zap, MessageSquare,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -79,6 +79,13 @@ export default function AiTools() {
   const [loadingHealth, setLoadingHealth] = useState(false);
   const [healthReport, setHealthReport] = useState<HealthReport | null>(null);
 
+  // Coaching summary
+  const [coachingNotes, setCoachingNotes] = useState("");
+  const [coachingParticipant, setCoachingParticipant] = useState("");
+  const [coachingTraining, setCoachingTraining] = useState("");
+  const [generatingCoachingSummary, setGeneratingCoachingSummary] = useState(false);
+  const [coachingSummary, setCoachingSummary] = useState<any>(null);
+
   const handleGenerateProgram = async () => {
     if (!programTitle.trim()) {
       toast({ title: "Veuillez saisir un titre", variant: "destructive" });
@@ -143,6 +150,28 @@ export default function AiTools() {
     }
   };
 
+  const handleGenerateCoachingSummary = async () => {
+    if (!coachingNotes.trim()) {
+      toast({ title: "Veuillez saisir les notes de session", variant: "destructive" });
+      return;
+    }
+    setGeneratingCoachingSummary(true);
+    setCoachingSummary(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("summarize-coaching", {
+        body: { notes: coachingNotes, participant_name: coachingParticipant, training_name: coachingTraining },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      setCoachingSummary(data);
+      toast({ title: "Résumé généré ✨" });
+    } catch (e: any) {
+      toast({ title: "Erreur", description: e.message, variant: "destructive" });
+    } finally {
+      setGeneratingCoachingSummary(false);
+    }
+  };
+
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
     toast({ title: "Copié !" });
@@ -176,17 +205,20 @@ export default function AiTools() {
           <p className="text-muted-foreground">Générez des programmes, quiz et analysez votre activité</p>
         </div>
         <Tabs defaultValue="program" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="program" className="gap-2">
-            <BookOpen className="w-4 h-4" /> Programme
-          </TabsTrigger>
-          <TabsTrigger value="quiz" className="gap-2">
-            <ClipboardCheck className="w-4 h-4" /> Quiz
-          </TabsTrigger>
-          <TabsTrigger value="health" className="gap-2">
-            <Activity className="w-4 h-4" /> Santé Business
-          </TabsTrigger>
-        </TabsList>
+         <TabsList className="grid w-full grid-cols-4">
+           <TabsTrigger value="program" className="gap-2">
+             <BookOpen className="w-4 h-4" /> Programme
+           </TabsTrigger>
+           <TabsTrigger value="quiz" className="gap-2">
+             <ClipboardCheck className="w-4 h-4" /> Quiz
+           </TabsTrigger>
+           <TabsTrigger value="coaching" className="gap-2">
+             <MessageSquare className="w-4 h-4" /> Coaching
+           </TabsTrigger>
+           <TabsTrigger value="health" className="gap-2">
+             <Activity className="w-4 h-4" /> Santé Business
+           </TabsTrigger>
+         </TabsList>
 
         {/* ═══ TAB 1: Program Generator ═══ */}
         <TabsContent value="program" className="space-y-6">
@@ -360,7 +392,114 @@ export default function AiTools() {
           )}
         </TabsContent>
 
-        {/* ═══ TAB 3: Business Health ═══ */}
+        {/* ═══ TAB 3: Coaching Summary ═══ */}
+        <TabsContent value="coaching" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MessageSquare className="w-5 h-5 text-primary" /> Résumé de session coaching
+              </CardTitle>
+              <CardDescription>
+                Collez vos notes de session et l'IA génère un résumé structuré avec actions à mener
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Nom du participant</Label>
+                  <Input
+                    value={coachingParticipant}
+                    onChange={(e) => setCoachingParticipant(e.target.value)}
+                    placeholder="Jean Dupont"
+                  />
+                </div>
+                <div>
+                  <Label>Formation</Label>
+                  <Input
+                    value={coachingTraining}
+                    onChange={(e) => setCoachingTraining(e.target.value)}
+                    placeholder="Prise de parole en public"
+                  />
+                </div>
+              </div>
+              <div>
+                <Label>Notes de session</Label>
+                <Textarea
+                  value={coachingNotes}
+                  onChange={(e) => setCoachingNotes(e.target.value)}
+                  placeholder="Collez vos notes brutes de la session de coaching..."
+                  rows={8}
+                />
+              </div>
+              <Button onClick={handleGenerateCoachingSummary} disabled={generatingCoachingSummary || !coachingNotes.trim()}>
+                {generatingCoachingSummary ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Sparkles className="w-4 h-4 mr-2" />}
+                Générer le résumé
+              </Button>
+            </CardContent>
+          </Card>
+
+          {coachingSummary && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-primary" /> Résumé généré
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <h4 className="text-sm font-medium mb-1">Synthèse</h4>
+                  <p className="text-sm text-muted-foreground">{coachingSummary.summary}</p>
+                </div>
+
+                {coachingSummary.mood && (
+                  <div>
+                    <h4 className="text-sm font-medium mb-1">Dynamique perçue</h4>
+                    <p className="text-sm text-muted-foreground">{coachingSummary.mood}</p>
+                  </div>
+                )}
+
+                {coachingSummary.key_topics?.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-medium mb-2">Sujets clés</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {coachingSummary.key_topics.map((t: string, i: number) => (
+                        <Badge key={i} variant="secondary">{t}</Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {coachingSummary.action_items?.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-medium mb-2">Actions à mener</h4>
+                    <div className="space-y-2">
+                      {coachingSummary.action_items.map((item: any, i: number) => (
+                        <div key={i} className="flex items-start gap-2 p-2 rounded border">
+                          <ArrowRight className="w-4 h-4 mt-0.5 text-primary shrink-0" />
+                          <div>
+                            <p className="text-sm font-medium">{item.action}</p>
+                            {item.deadline_suggestion && (
+                              <p className="text-xs text-muted-foreground">📅 {item.deadline_suggestion}</p>
+                            )}
+                            {item.priority && (
+                              <Badge variant="outline" className="text-xs mt-1">{item.priority}</Badge>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <Button variant="outline" size="sm" onClick={() => copyToClipboard(JSON.stringify(coachingSummary, null, 2))}>
+                  <Copy className="w-4 h-4 mr-1" /> Copier
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        {/* ═══ TAB 4: Business Health ═══ */}
         <TabsContent value="health" className="space-y-6">
           <Card>
             <CardHeader>

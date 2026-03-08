@@ -19,6 +19,7 @@ export default defineConfig(({ mode }) => ({
       includeAssets: ["favicon.ico"],
       manifest: false, // We use the static public/manifest.json
       workbox: {
+        navigateFallbackDenylist: [/^\/~oauth/],
         cleanupOutdatedCaches: true,
         skipWaiting: true,
         clientsClaim: true,

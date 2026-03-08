@@ -376,6 +376,127 @@ export type Database = {
         }
         Relationships: []
       }
+      coaching_bookings: {
+        Row: {
+          confirmed_at: string | null
+          created_at: string
+          duration_minutes: number | null
+          id: string
+          instructor_notes: string | null
+          learner_notes: string | null
+          meeting_url: string | null
+          participant_id: string
+          requested_date: string
+          status: string
+          training_id: string
+          updated_at: string
+        }
+        Insert: {
+          confirmed_at?: string | null
+          created_at?: string
+          duration_minutes?: number | null
+          id?: string
+          instructor_notes?: string | null
+          learner_notes?: string | null
+          meeting_url?: string | null
+          participant_id: string
+          requested_date: string
+          status?: string
+          training_id: string
+          updated_at?: string
+        }
+        Update: {
+          confirmed_at?: string | null
+          created_at?: string
+          duration_minutes?: number | null
+          id?: string
+          instructor_notes?: string | null
+          learner_notes?: string | null
+          meeting_url?: string | null
+          participant_id?: string
+          requested_date?: string
+          status?: string
+          training_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coaching_bookings_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "training_participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coaching_bookings_training_id_fkey"
+            columns: ["training_id"]
+            isOneToOne: false
+            referencedRelation: "trainings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coaching_summaries: {
+        Row: {
+          action_items: Json | null
+          booking_id: string | null
+          created_at: string
+          created_by: string | null
+          generated_by: string | null
+          id: string
+          key_topics: Json | null
+          participant_id: string | null
+          summary_text: string
+          training_id: string
+        }
+        Insert: {
+          action_items?: Json | null
+          booking_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          generated_by?: string | null
+          id?: string
+          key_topics?: Json | null
+          participant_id?: string | null
+          summary_text: string
+          training_id: string
+        }
+        Update: {
+          action_items?: Json | null
+          booking_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          generated_by?: string | null
+          id?: string
+          key_topics?: Json | null
+          participant_id?: string | null
+          summary_text?: string
+          training_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coaching_summaries_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "coaching_bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coaching_summaries_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "training_participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coaching_summaries_training_id_fkey"
+            columns: ["training_id"]
+            isOneToOne: false
+            referencedRelation: "trainings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       commercial_coach_contexts: {
         Row: {
           content: string

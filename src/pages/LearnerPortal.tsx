@@ -4,15 +4,18 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import {
   Loader2, GraduationCap, FileText, ClipboardCheck,
   Calendar, MapPin, Download, ExternalLink, BookOpen,
-  CheckCircle2, Clock, AlertCircle,
+  CheckCircle2, Clock, AlertCircle, MessageSquare, Video,
 } from "lucide-react";
 import SupertiltLogo from "@/components/SupertiltLogo";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import LearnerMessaging from "@/components/learner/LearnerMessaging";
+import CoachingBooking from "@/components/learner/CoachingBooking";
 
 interface Training {
   training_id: string;
@@ -220,57 +223,83 @@ export default function LearnerPortal() {
                     </div>
                   </CardHeader>
                   <CardContent className="pt-0">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {/* Documents */}
-                      {training.program_file_url && (
-                        <a
-                          href={training.program_file_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-2 p-3 rounded-lg border hover:bg-muted/50 transition-colors text-sm"
-                        >
-                          <Download className="w-4 h-4 text-primary" />
-                          <span>Programme de formation</span>
-                          <ExternalLink className="w-3 h-3 ml-auto text-muted-foreground" />
-                        </a>
-                      )}
-                      {training.supports_url && (
-                        <a
-                          href={training.supports_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-2 p-3 rounded-lg border hover:bg-muted/50 transition-colors text-sm"
-                        >
-                          <FileText className="w-4 h-4 text-primary" />
-                          <span>Supports de formation</span>
-                          <ExternalLink className="w-3 h-3 ml-auto text-muted-foreground" />
-                        </a>
-                      )}
+                    <Tabs defaultValue="documents">
+                      <TabsList className="mb-3">
+                        <TabsTrigger value="documents">
+                          <FileText className="w-3.5 h-3.5 mr-1" /> Documents
+                        </TabsTrigger>
+                        <TabsTrigger value="messages">
+                          <MessageSquare className="w-3.5 h-3.5 mr-1" /> Messages
+                        </TabsTrigger>
+                        <TabsTrigger value="coaching">
+                          <Video className="w-3.5 h-3.5 mr-1" /> Coaching
+                        </TabsTrigger>
+                      </TabsList>
 
-                      {/* Questionnaire besoins */}
-                      {questionnaire && (
-                        <Link
-                          to={`/questionnaire/${questionnaire.token}`}
-                          className="flex items-center gap-2 p-3 rounded-lg border hover:bg-muted/50 transition-colors text-sm"
-                        >
-                          <ClipboardCheck className="w-4 h-4 text-primary" />
-                          <span>Questionnaire des besoins</span>
-                          <span className="ml-auto">{statusBadge(questionnaire.etat)}</span>
-                        </Link>
-                      )}
+                      <TabsContent value="documents">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {training.program_file_url && (
+                            <a
+                              href={training.program_file_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-2 p-3 rounded-lg border hover:bg-muted/50 transition-colors text-sm"
+                            >
+                              <Download className="w-4 h-4 text-primary" />
+                              <span>Programme de formation</span>
+                              <ExternalLink className="w-3 h-3 ml-auto text-muted-foreground" />
+                            </a>
+                          )}
+                          {training.supports_url && (
+                            <a
+                              href={training.supports_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-2 p-3 rounded-lg border hover:bg-muted/50 transition-colors text-sm"
+                            >
+                              <FileText className="w-4 h-4 text-primary" />
+                              <span>Supports de formation</span>
+                              <ExternalLink className="w-3 h-3 ml-auto text-muted-foreground" />
+                            </a>
+                          )}
+                          {questionnaire && (
+                            <Link
+                              to={`/questionnaire/${questionnaire.token}`}
+                              className="flex items-center gap-2 p-3 rounded-lg border hover:bg-muted/50 transition-colors text-sm"
+                            >
+                              <ClipboardCheck className="w-4 h-4 text-primary" />
+                              <span>Questionnaire des besoins</span>
+                              <span className="ml-auto">{statusBadge(questionnaire.etat)}</span>
+                            </Link>
+                          )}
+                          {evaluation && (
+                            <Link
+                              to={`/evaluation/${evaluation.token}`}
+                              className="flex items-center gap-2 p-3 rounded-lg border hover:bg-muted/50 transition-colors text-sm"
+                            >
+                              <ClipboardCheck className="w-4 h-4 text-primary" />
+                              <span>Évaluation à chaud</span>
+                              <span className="ml-auto">{statusBadge(evaluation.etat)}</span>
+                            </Link>
+                          )}
+                        </div>
+                      </TabsContent>
 
-                      {/* Evaluation */}
-                      {evaluation && (
-                        <Link
-                          to={`/evaluation/${evaluation.token}`}
-                          className="flex items-center gap-2 p-3 rounded-lg border hover:bg-muted/50 transition-colors text-sm"
-                        >
-                          <ClipboardCheck className="w-4 h-4 text-primary" />
-                          <span>Évaluation à chaud</span>
-                          <span className="ml-auto">{statusBadge(evaluation.etat)}</span>
-                        </Link>
-                      )}
-                    </div>
+                      <TabsContent value="messages">
+                        <LearnerMessaging
+                          trainingId={training.training_id}
+                          participantId={training.participant_id}
+                          learnerEmail={data.email}
+                        />
+                      </TabsContent>
+
+                      <TabsContent value="coaching">
+                        <CoachingBooking
+                          trainingId={training.training_id}
+                          participantId={training.participant_id}
+                        />
+                      </TabsContent>
+                    </Tabs>
                   </CardContent>
                 </Card>
               );
