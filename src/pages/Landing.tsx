@@ -234,7 +234,7 @@ export default function Landing() {
       {/* ─── FOOTER ─── */}
       <footer className="border-t border-border/20 py-12 px-6">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
-          <SupertiltLogo className="h-6" variant="white" />
+          <SupertiltLogo className="h-6" invert />
           <div className="flex items-center gap-6 text-sm text-muted-foreground">
             <Link to="/politique-confidentialite" className="hover:text-primary transition-colors">Politique de confidentialité</Link>
             <a href="mailto:contact@supertilt.fr" className="hover:text-primary transition-colors">Contact</a>
