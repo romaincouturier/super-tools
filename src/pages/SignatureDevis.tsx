@@ -84,7 +84,7 @@ const SignatureDevis = () => {
       }
 
       try {
-        const { data: signatureJson, error: sigError } = await (supabase.rpc as any)("get_devis_signature_by_token", { p_token: token });
+        const { data: signatureJson, error: sigError } = await rpc.getDevisSignatureByToken(token);
 
         if (sigError) {
           console.error("Error fetching signature:", sigError);
