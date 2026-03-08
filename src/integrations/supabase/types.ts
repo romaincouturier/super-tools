@@ -360,6 +360,7 @@ export type Database = {
           emoji: string | null
           id: string
           image_url: string | null
+          org_id: string | null
           tags: Json | null
           title: string
           updated_at: string
@@ -374,6 +375,7 @@ export type Database = {
           emoji?: string | null
           id?: string
           image_url?: string | null
+          org_id?: string | null
           tags?: Json | null
           title: string
           updated_at?: string
@@ -388,6 +390,7 @@ export type Database = {
           emoji?: string | null
           id?: string
           image_url?: string | null
+          org_id?: string | null
           tags?: Json | null
           title?: string
           updated_at?: string
@@ -398,6 +401,13 @@ export type Database = {
             columns: ["column_id"]
             isOneToOne: false
             referencedRelation: "content_columns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_cards_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
@@ -785,6 +795,7 @@ export type Database = {
           next_action_done: boolean | null
           next_action_text: string | null
           next_action_type: string | null
+          org_id: string | null
           phone: string | null
           position: number
           quote_url: string | null
@@ -823,6 +834,7 @@ export type Database = {
           next_action_done?: boolean | null
           next_action_text?: string | null
           next_action_type?: string | null
+          org_id?: string | null
           phone?: string | null
           position?: number
           quote_url?: string | null
@@ -861,6 +873,7 @@ export type Database = {
           next_action_done?: boolean | null
           next_action_text?: string | null
           next_action_type?: string | null
+          org_id?: string | null
           phone?: string | null
           position?: number
           quote_url?: string | null
@@ -881,6 +894,13 @@ export type Database = {
             columns: ["column_id"]
             isOneToOne: false
             referencedRelation: "crm_columns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_cards_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
@@ -1425,6 +1445,7 @@ export type Database = {
           location: string | null
           location_type: string
           notes: string | null
+          org_id: string | null
           status: string
           title: string
           updated_at: string
@@ -1445,6 +1466,7 @@ export type Database = {
           location?: string | null
           location_type?: string
           notes?: string | null
+          org_id?: string | null
           status?: string
           title: string
           updated_at?: string
@@ -1465,11 +1487,20 @@ export type Database = {
           location?: string | null
           location_type?: string
           notes?: string | null
+          org_id?: string | null
           status?: string
           title?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "events_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       failed_emails: {
         Row: {
@@ -1550,6 +1581,7 @@ export type Database = {
           is_default: boolean
           learndash_course_id: number | null
           objectives: string[] | null
+          org_id: string | null
           prerequisites: string[] | null
           prix: number
           programme_url: string | null
@@ -1573,6 +1605,7 @@ export type Database = {
           is_default?: boolean
           learndash_course_id?: number | null
           objectives?: string[] | null
+          org_id?: string | null
           prerequisites?: string[] | null
           prix?: number
           programme_url?: string | null
@@ -1596,6 +1629,7 @@ export type Database = {
           is_default?: boolean
           learndash_course_id?: number | null
           objectives?: string[] | null
+          org_id?: string | null
           prerequisites?: string[] | null
           prix?: number
           programme_url?: string | null
@@ -1604,7 +1638,15 @@ export type Database = {
           updated_at?: string
           woocommerce_product_id?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "formation_configs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       formation_dates: {
         Row: {
@@ -1779,6 +1821,7 @@ export type Database = {
           deadline: string | null
           description: string
           id: string
+          org_id: string | null
           priority: string | null
           responsible: string | null
           source_analysis_id: string | null
@@ -1798,6 +1841,7 @@ export type Database = {
           deadline?: string | null
           description: string
           id?: string
+          org_id?: string | null
           priority?: string | null
           responsible?: string | null
           source_analysis_id?: string | null
@@ -1817,6 +1861,7 @@ export type Database = {
           deadline?: string | null
           description?: string
           id?: string
+          org_id?: string | null
           priority?: string | null
           responsible?: string | null
           source_analysis_id?: string | null
@@ -1829,6 +1874,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "improvements_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "improvements_training_id_fkey"
             columns: ["training_id"]
@@ -1960,6 +2012,7 @@ export type Database = {
           id: string
           is_deliverable: boolean
           mime_type: string | null
+          org_id: string | null
           position: number
           source_id: string
           source_type: string
@@ -1975,6 +2028,7 @@ export type Database = {
           id?: string
           is_deliverable?: boolean
           mime_type?: string | null
+          org_id?: string | null
           position?: number
           source_id: string
           source_type: string
@@ -1990,12 +2044,21 @@ export type Database = {
           id?: string
           is_deliverable?: boolean
           mime_type?: string | null
+          org_id?: string | null
           position?: number
           source_id?: string
           source_type?: string
           tags?: string[] | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "media_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       mission_actions: {
         Row: {
@@ -2351,6 +2414,7 @@ export type Database = {
           initial_amount: number | null
           language: string | null
           location: string | null
+          org_id: string | null
           position: number
           start_date: string | null
           status: string
@@ -2381,6 +2445,7 @@ export type Database = {
           initial_amount?: number | null
           language?: string | null
           location?: string | null
+          org_id?: string | null
           position?: number
           start_date?: string | null
           status?: string
@@ -2411,6 +2476,7 @@ export type Database = {
           initial_amount?: number | null
           language?: string | null
           location?: string | null
+          org_id?: string | null
           position?: number
           start_date?: string | null
           status?: string
@@ -2423,7 +2489,15 @@ export type Database = {
           train_booked?: boolean | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "missions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       newsletter_cards: {
         Row: {
@@ -4354,6 +4428,7 @@ export type Database = {
           max_participants: number | null
           notes: string | null
           objectives: string[] | null
+          org_id: string | null
           participants_formal_address: boolean
           prerequisites: string[] | null
           program_file_url: string | null
@@ -4402,6 +4477,7 @@ export type Database = {
           max_participants?: number | null
           notes?: string | null
           objectives?: string[] | null
+          org_id?: string | null
           participants_formal_address?: boolean
           prerequisites?: string[] | null
           program_file_url?: string | null
@@ -4450,6 +4526,7 @@ export type Database = {
           max_participants?: number | null
           notes?: string | null
           objectives?: string[] | null
+          org_id?: string | null
           participants_formal_address?: boolean
           prerequisites?: string[] | null
           program_file_url?: string | null
@@ -4478,6 +4555,13 @@ export type Database = {
             columns: ["catalog_id"]
             isOneToOne: false
             referencedRelation: "formation_configs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trainings_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
           {
