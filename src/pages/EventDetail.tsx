@@ -397,15 +397,13 @@ const EventDetail = () => {
                 const daysLeft = getCfpDaysLeft(event.cfp_deadline);
                 const isPastDeadline = daysLeft < 0;
                 const isUrgent = daysLeft >= 0 && daysLeft <= 7;
-                const [y, m, d] = event.cfp_deadline.split("-").map(Number);
-                const deadline = new Date(y, m - 1, d);
                 return (
                   <div className="flex items-center gap-2">
                     <AlertTriangle className={`h-4 w-4 flex-shrink-0 ${isUrgent && !isPastDeadline ? "text-orange-500" : "text-muted-foreground"}`} />
                     <div>
                       <p className="text-sm font-medium">Date limite CFP</p>
                       <p className={`text-sm ${isPastDeadline ? "text-muted-foreground line-through" : isUrgent ? "text-orange-600 font-medium" : "text-muted-foreground"}`}>
-                        {deadline.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
+                        {formatDateWithDayOfWeek(event.cfp_deadline)}
                         {isPastDeadline ? " (passée)" : daysLeft === 0 ? " (aujourd'hui !)" : daysLeft === 1 ? " (demain !)" : ` (dans ${daysLeft}j)`}
                       </p>
                     </div>

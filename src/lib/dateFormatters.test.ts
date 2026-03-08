@@ -209,12 +209,12 @@ describe("Defensive behaviour — invalid inputs", () => {
     });
   }
 
-  it("formatDateRange throws on null start", () => {
-    expect(() => formatDateRange(null as unknown as string, null)).toThrow();
+  it("formatDateRange returns fallback on null start", () => {
+    expect(formatDateRange(null as unknown as string, null)).toBe("Formation permanente");
   });
 
-  it("formatTrainingDates throws on null start", () => {
-    expect(() => formatTrainingDates(null as unknown as string, null)).toThrow();
+  it("formatTrainingDates returns fallback on null start", () => {
+    expect(formatTrainingDates(null as unknown as string, null)).toBe("Formation permanente");
   });
 
   it("formatTrainingDates handles undefined end date", () => {
