@@ -67,6 +67,8 @@ const Admin = lazyWithRetry(() => import("./pages/Admin"));
 const Landing = lazyWithRetry(() => import("./pages/Landing"));
 const Signup = lazyWithRetry(() => import("./pages/Signup"));
 const Onboarding = lazyWithRetry(() => import("./pages/Onboarding"));
+const LearnerAccess = lazyWithRetry(() => import("./pages/LearnerAccess"));
+const LearnerPortal = lazyWithRetry(() => import("./pages/LearnerPortal"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
