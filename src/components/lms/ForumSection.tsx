@@ -126,7 +126,7 @@ function ForumThread({ forumId, onBack }: { forumId: string; onBack: () => void 
                 <span className="text-xs text-muted-foreground">
                   {format(new Date(post.created_at), "dd MMM yyyy HH:mm", { locale: fr })}
                 </span>
-                {post.is_pinned && <Pin className="w-3 h-3 text-amber-500" />}
+                {post.is_pinned && <Pin className="w-3 h-3 text-primary" />}
               </div>
               <div className="text-sm" dangerouslySetInnerHTML={{ __html: post.content_html }} />
             </CardContent>
