@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useAppSetting } from "@/hooks/useAppSetting";
+
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import { formatDateWithDayOfWeek, formatDateLong } from "@/lib/dateFormatters";
@@ -72,7 +72,7 @@ interface Trainer {
 
 const TrainingSummary = () => {
   const { trainingId } = useParams<{ trainingId: string }>();
-  const googleMapsApiKey = useAppSetting("google_maps_api_key", "AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8");
+  const [googleMapsApiKey, setGoogleMapsApiKey] = useState("AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8");
   const [training, setTraining] = useState<Training | null>(null);
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [trainer, setTrainer] = useState<Trainer | null>(null);
@@ -112,10 +112,16 @@ const TrainingSummary = () => {
       }
 
       // Fetch règlement intérieur URL via RPC
-      const { data: settingValue } = await (supabase.rpc as any)("get_app_setting_public", { p_key: "reglement_interieur_url" });
+      const [{ data: settingValue }, { data: mapsKey }] = await Promise.all([
+        (supabase.rpc as any)("get_app_setting_public", { p_key: "reglement_interieur_url" }),
+        (supabase.rpc as any)("get_app_setting_public", { p_key: "google_maps_api_key" }),
+      ]);
 
       if (settingValue) {
         setReglementInterieurUrl(settingValue);
+      }
+      if (mapsKey) {
+        setGoogleMapsApiKey(mapsKey);
       }
 
     } catch (err) {
