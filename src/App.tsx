@@ -72,6 +72,7 @@ const LearnerPortal = lazyWithRetry(() => import("./pages/LearnerPortal"));
 const AiTools = lazyWithRetry(() => import("./pages/AiTools"));
 const LmsCourses = lazyWithRetry(() => import("./pages/LmsCourses"));
 const LmsCourseBuilder = lazyWithRetry(() => import("./pages/LmsCourseBuilder"));
+const LmsCoursePlayer = lazyWithRetry(() => import("./pages/LmsCoursePlayer"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
