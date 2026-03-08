@@ -64,7 +64,7 @@ export default function Landing() {
       {/* ─── NAVBAR ─── */}
       <nav className="fixed top-0 inset-x-0 z-50 bg-foreground/95 backdrop-blur border-b border-border/20">
         <div className="max-w-7xl mx-auto flex items-center justify-between px-6 py-4">
-          <SupertiltLogo className="h-8" variant="white" />
+          <SupertiltLogo className="h-8" invert />
           <div className="hidden md:flex items-center gap-8 text-sm text-muted-foreground">
             <a href="#features" className="hover:text-primary transition-colors">Fonctionnalités</a>
             <a href="#pricing" className="hover:text-primary transition-colors">Tarifs</a>
