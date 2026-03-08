@@ -146,6 +146,23 @@ const AppHeader = () => {
               </Tooltip>
             </TooltipProvider>
           )}
+          {isAdmin && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => navigate("/admin")}
+                    className="p-2 rounded-lg hover:bg-background/10 transition-colors"
+                  >
+                    <Shield className="w-5 h-5" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Administration</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
