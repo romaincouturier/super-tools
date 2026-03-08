@@ -175,6 +175,7 @@ export default function AiTools() {
           <h1 className="text-2xl font-bold flex items-center gap-2"><Brain className="w-6 h-6 text-primary" /> IA Augmentée</h1>
           <p className="text-muted-foreground">Générez des programmes, quiz et analysez votre activité</p>
         </div>
+        <Tabs defaultValue="program" className="space-y-6">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="program" className="gap-2">
             <BookOpen className="w-4 h-4" /> Programme
