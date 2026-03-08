@@ -148,7 +148,7 @@ const Emargement = () => {
           userAgent: navigator.userAgent,
           consent: consentGiven,
           deviceInfo,
-          journeyEvents: journeyEventsRef.current,
+          journeyEvents: journeyEvents.current,
         },
       });
 
