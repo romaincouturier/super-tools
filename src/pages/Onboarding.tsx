@@ -22,12 +22,12 @@ const steps = [
 ];
 
 const sectorTemplates = [
-  { value: "dev", label: "Développement / Tech" },
-  { value: "management", label: "Management" },
-  { value: "langues", label: "Langues" },
-  { value: "coaching", label: "Coaching" },
-  { value: "bien-etre", label: "Bien-être" },
-  { value: "other", label: "Autre" },
+  { value: "dev", label: "Développement / Tech", suggestions: ["Introduction à Python", "React pour les pros", "DevOps & CI/CD"] },
+  { value: "management", label: "Management", suggestions: ["Manager une équipe hybride", "Leadership situationnel", "Conduite du changement"] },
+  { value: "langues", label: "Langues", suggestions: ["Anglais professionnel B2", "Français Langue Étrangère", "Espagnol débutant"] },
+  { value: "coaching", label: "Coaching", suggestions: ["Coaching individuel", "Prise de parole en public", "Gestion du stress"] },
+  { value: "bien-etre", label: "Bien-être", suggestions: ["Qualité de vie au travail", "Prévention des RPS", "Gestion du stress"] },
+  { value: "other", label: "Autre", suggestions: ["Ma première formation"] },
 ];
 
 export default function Onboarding() {
