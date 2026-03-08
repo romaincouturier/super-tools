@@ -140,10 +140,7 @@ const Evaluation = () => {
       // First open tracking
       if (!evTyped.date_premiere_ouverture) {
         const nowIso = new Date().toISOString();
-        await (supabase.rpc as any)("update_evaluation_by_token", {
-          p_token: token,
-          p_data: { date_premiere_ouverture: nowIso },
-        });
+        await rpc.updateEvaluationByToken(token, { date_premiere_ouverture: nowIso });
       }
     } catch (e: any) {
       console.error("Failed to load evaluation", e);
