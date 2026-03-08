@@ -351,11 +351,11 @@ const MissionSummary = () => {
     const fetchData = async () => {
       try {
         const [missionRes, activitiesRes, documentsRes, actionsRes, mediaRes] = await Promise.all([
-          (supabase.rpc as any)("get_mission_public_summary", { p_mission_id: missionId }),
-          (supabase.rpc as any)("get_mission_activities_public", { p_mission_id: missionId }),
-          (supabase.rpc as any)("get_mission_documents_public", { p_mission_id: missionId }),
-          (supabase.rpc as any)("get_mission_actions_public", { p_mission_id: missionId }),
-          (supabase.rpc as any)("get_mission_media_public", { p_mission_id: missionId }),
+          rpc.getMissionPublicSummary(missionId!),
+          rpc.getMissionActivitiesPublic(missionId!),
+          rpc.getMissionDocumentsPublic(missionId!),
+          rpc.getMissionActionsPublic(missionId!),
+          rpc.getMissionMediaPublic(missionId!),
         ]);
 
         if (missionRes.error || !missionRes.data) {
