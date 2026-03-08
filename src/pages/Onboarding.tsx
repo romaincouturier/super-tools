@@ -204,9 +204,33 @@ export default function Onboarding() {
           </div>
         );
 
-      case 1:
+      case 1: {
+        const currentSector = sectorTemplates.find(s => s.value === sector);
+        const suggestions = currentSector?.suggestions || [];
         return (
           <div className="space-y-4">
+            {suggestions.length > 0 && (
+              <div className="space-y-2">
+                <Label className="text-muted-foreground text-xs">Suggestions pour votre secteur</Label>
+                <div className="flex flex-wrap gap-2">
+                  {suggestions.map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => setTrainingName(s)}
+                      className={cn(
+                        "px-3 py-1.5 rounded-full text-xs border transition-all",
+                        trainingName === s
+                          ? "border-primary bg-primary/10 font-medium"
+                          : "border-border hover:border-primary/40"
+                      )}
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             <div className="space-y-2">
               <Label>Nom de la formation</Label>
               <Input value={trainingName} onChange={(e) => setTrainingName(e.target.value)} placeholder="Ex: Introduction au management" />
@@ -220,6 +244,7 @@ export default function Onboarding() {
             </Button>
           </div>
         );
+      }
 
       case 2:
         return (
