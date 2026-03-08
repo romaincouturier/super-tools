@@ -93,7 +93,7 @@ const Evaluation = () => {
     setError(null);
 
     try {
-      const { data: evArr, error: evErr } = await (supabase.rpc as any)("get_evaluation_by_token", { p_token: token });
+      const { data: evArr, error: evErr } = await rpc.getEvaluationByToken(token);
 
       if (evErr || !evArr || evArr.length === 0) {
         throw evErr || new Error("Évaluation introuvable");
