@@ -172,6 +172,9 @@ const App = () => (
               <Route path="/auth" element={<Auth />} />
               <Route path="/signup" element={<Signup />} />
               <Route path="/onboarding" element={<Onboarding />} />
+              {/* Learner portal (M3) */}
+              <Route path="/apprenant" element={<LearnerAccess />} />
+              <Route path="/espace-apprenant" element={<LearnerPortal />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/force-password-change" element={<ForcePasswordChange />} />
               {/* AI Arena */}
