@@ -1,0 +1,64 @@
+{
+  "common": {
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "create": "Créer",
+    "search": "Rechercher",
+    "loading": "Chargement...",
+    "error": "Erreur",
+    "success": "Succès",
+    "confirm": "Confirmer",
+    "back": "Retour",
+    "next": "Suivant",
+    "close": "Fermer",
+    "yes": "Oui",
+    "no": "Non",
+    "actions": "Actions",
+    "noResults": "Aucun résultat",
+    "required": "Requis"
+  },
+  "auth": {
+    "login": "Se connecter",
+    "logout": "Se déconnecter",
+    "email": "Email",
+    "password": "Mot de passe",
+    "forgotPassword": "Mot de passe oublié ?",
+    "resetPassword": "Réinitialiser le mot de passe",
+    "signUp": "Créer un compte"
+  },
+  "nav": {
+    "dashboard": "Tableau de bord",
+    "formations": "Formations",
+    "crm": "CRM",
+    "missions": "Missions",
+    "events": "Événements",
+    "content": "Contenu",
+    "evaluations": "Évaluations",
+    "improvements": "Améliorations",
+    "statistics": "Statistiques",
+    "settings": "Paramètres",
+    "admin": "Administration"
+  },
+  "admin": {
+    "title": "Super Admin",
+    "organizations": "Organisations",
+    "orgName": "Nom de l'organisation",
+    "orgSlug": "Identifiant unique",
+    "orgPlan": "Plan",
+    "members": "Membres",
+    "createdAt": "Créé le",
+    "noOrgs": "Aucune organisation",
+    "createOrg": "Créer une organisation",
+    "featureFlags": "Feature Flags",
+    "flagEnabled": "Activé",
+    "flagDisabled": "Désactivé"
+  },
+  "dashboard": {
+    "welcome": "Bienvenue",
+    "todayActions": "Actions du jour",
+    "upcomingTrainings": "Formations à venir",
+    "recentActivity": "Activité récente"
+  }
+}
