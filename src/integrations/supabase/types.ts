@@ -2285,6 +2285,57 @@ export type Database = {
           },
         ]
       }
+      lms_badge_awards: {
+        Row: {
+          awarded_at: string
+          badge_icon: string | null
+          badge_id: string | null
+          badge_name: string
+          badge_type: string
+          course_id: string
+          id: string
+          learner_email: string
+          metadata: Json | null
+        }
+        Insert: {
+          awarded_at?: string
+          badge_icon?: string | null
+          badge_id?: string | null
+          badge_name: string
+          badge_type?: string
+          course_id: string
+          id?: string
+          learner_email: string
+          metadata?: Json | null
+        }
+        Update: {
+          awarded_at?: string
+          badge_icon?: string | null
+          badge_id?: string | null
+          badge_name?: string
+          badge_type?: string
+          course_id?: string
+          id?: string
+          learner_email?: string
+          metadata?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lms_badge_awards_badge_id_fkey"
+            columns: ["badge_id"]
+            isOneToOne: false
+            referencedRelation: "lms_badges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lms_badge_awards_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "lms_courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lms_badges: {
         Row: {
           badge_type: string
