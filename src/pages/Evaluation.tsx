@@ -92,17 +92,13 @@ const Evaluation = () => {
     setError(null);
 
     try {
-      const { data: ev, error: evErr } = await supabase
-        .from("training_evaluations")
-        .select("*")
-        .eq("token", token)
-        .single();
+      const { data: evArr, error: evErr } = await (supabase.rpc as any)("get_evaluation_by_token", { p_token: token });
 
-      if (evErr || !ev) {
+      if (evErr || !evArr || evArr.length === 0) {
         throw evErr || new Error("Évaluation introuvable");
       }
 
-      const evTyped = ev as unknown as EvaluationRecord;
+      const evTyped = evArr[0] as unknown as EvaluationRecord;
       setEvaluation(evTyped);
 
       // Populate form state from existing data
@@ -124,11 +120,7 @@ const Evaluation = () => {
       if (evTyped.remarques_libres) setRemarquesLibres(evTyped.remarques_libres);
 
       // Fetch training
-      const { data: t, error: tErr } = await supabase
-        .from("trainings")
-        .select("training_name,start_date,end_date,objectives")
-        .eq("id", evTyped.training_id)
-        .single();
+      const { data: t, error: tErr } = await (supabase.rpc as any)("get_training_public_info", { p_training_id: evTyped.training_id });
 
       if (!tErr && t) {
         setTraining(t as unknown as TrainingRecord);
@@ -147,10 +139,10 @@ const Evaluation = () => {
       // First open tracking
       if (!evTyped.date_premiere_ouverture) {
         const nowIso = new Date().toISOString();
-        await supabase
-          .from("training_evaluations")
-          .update({ date_premiere_ouverture: nowIso })
-          .eq("id", evTyped.id);
+        await (supabase.rpc as any)("update_evaluation_by_token", {
+          p_token: token,
+          p_data: { date_premiere_ouverture: nowIso },
+        });
       }
     } catch (e: any) {
       console.error("Failed to load evaluation", e);
