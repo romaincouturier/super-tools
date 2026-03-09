@@ -414,6 +414,16 @@ export function useFormationDetail() {
     toast({ title: "🎉 Session complète !", description: "Le nombre maximum de participants est atteint." });
   };
 
+  const notifySessionFull = async (trainingId: string) => {
+    try {
+      await supabase.functions.invoke("notify-session-full", {
+        body: { trainingId },
+      });
+    } catch (error) {
+      console.error("Error notifying session full:", error);
+    }
+  };
+
   const fetchParticipants = async () => {
     if (!id) return;
     const { data: participantsData } = await supabase
@@ -436,6 +446,10 @@ export function useFormationDetail() {
       prevCount > 0
     ) {
       celebrateFullSession();
+      // Notify communication manager for inter-enterprise sessions
+      if (isInterSession) {
+        notifySessionFull(id);
+      }
     }
 
     setParticipants(newList);
