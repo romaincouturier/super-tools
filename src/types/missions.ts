@@ -27,6 +27,8 @@ export interface Mission {
   location: string | null;
   train_booked: boolean;
   hotel_booked: boolean;
+  waiting_next_action_date: string | null;
+  waiting_next_action_text: string | null;
   created_at: string;
   updated_at: string;
   created_by: string | null;
