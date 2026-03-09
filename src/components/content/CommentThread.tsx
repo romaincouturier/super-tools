@@ -236,6 +236,7 @@ const CommentThread = ({ cardId, cardTitle, reviewIds, onCommentAdded }: Comment
         if (!imageUrl) return;
       }
 
+      const mentionedIds = pendingMentions.map((m) => m.userId).filter((id) => id !== userId);
       const insertData: Record<string, any> = {
         card_id: cardId,
         author_id: userId,
@@ -245,6 +246,7 @@ const CommentThread = ({ cardId, cardTitle, reviewIds, onCommentAdded }: Comment
         image_url: imageUrl,
         status: "pending",
         assigned_to: (assignedTo && assignedTo !== "none") ? assignedTo : null,
+        mentioned_user_ids: mentionedIds.length > 0 ? mentionedIds : [],
       };
 
       const { error } = await (supabase as any).from("review_comments").insert(insertData);
