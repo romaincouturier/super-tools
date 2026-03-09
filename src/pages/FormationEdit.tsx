@@ -160,6 +160,7 @@ const FormationEdit = () => {
       setObjectives(training.objectives || []);
       setProgramFileUrl(training.program_file_url || "");
       setSupertiltLink(training.supertilt_link || "");
+      setPrivateGroupUrl((training as any).private_group_url || "");
       setSponsorFirstName(training.sponsor_first_name || "");
       setSponsorLastName(training.sponsor_last_name || "");
       setSponsorEmail(training.sponsor_email || "");
