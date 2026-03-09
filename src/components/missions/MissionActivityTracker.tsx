@@ -10,6 +10,7 @@ import {
   Receipt,
   Loader2,
   ExternalLink,
+  Download,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -49,6 +50,7 @@ import {
 } from "@/hooks/useMissions";
 import { Mission } from "@/types/missions";
 import GenerateInvoiceDialog from "./GenerateInvoiceDialog";
+import ImportGoogleEventsDialog from "./ImportGoogleEventsDialog";
 
 interface MissionActivityTrackerProps {
   mission: Mission;
@@ -64,6 +66,7 @@ const MissionActivityTracker = ({ mission, onCreatePageForActivity }: MissionAct
 
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showInvoiceDialog, setShowInvoiceDialog] = useState(false);
+  const [showImportDialog, setShowImportDialog] = useState(false);
   const [editingActivity, setEditingActivity] = useState<MissionActivity | null>(null);
   
 
@@ -233,6 +236,10 @@ const MissionActivityTracker = ({ mission, onCreatePageForActivity }: MissionAct
               <Badge variant="secondary" className="ml-1 text-xs">{unbilledCount}</Badge>
             </Button>
           )}
+          <Button size="sm" variant="outline" onClick={() => setShowImportDialog(true)}>
+            <Download className="h-4 w-4 mr-1" />
+            Google Agenda
+          </Button>
           <Button size="sm" onClick={openAddDialog}>
             <Plus className="h-4 w-4 mr-1" />
             Ajouter
@@ -264,7 +271,20 @@ const MissionActivityTracker = ({ mission, onCreatePageForActivity }: MissionAct
                     {format(parseISO(activity.activity_date), "dd/MM/yyyy")}
                   </TableCell>
                   <TableCell>
-                    <div className="max-w-[200px] truncate" title={activity.description}>
+                    <div className="max-w-[200px] truncate flex items-center gap-1" title={activity.description}>
+                      {activity.google_event_link ? (
+                        <a
+                          href={activity.google_event_link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-500 hover:text-blue-600 shrink-0"
+                          title="Voir dans Google Agenda"
+                        >
+                          <Calendar className="h-3.5 w-3.5" />
+                        </a>
+                      ) : activity.google_event_id ? (
+                        <Calendar className="h-3.5 w-3.5 text-blue-400 shrink-0" />
+                      ) : null}
                       {activity.description}
                     </div>
                     {activity.invoice_number && (
@@ -339,6 +359,13 @@ const MissionActivityTracker = ({ mission, onCreatePageForActivity }: MissionAct
           Aucune activité enregistrée
         </div>
       )}
+
+      {/* Import Google Events Dialog */}
+      <ImportGoogleEventsDialog
+        open={showImportDialog}
+        onOpenChange={setShowImportDialog}
+        mission={mission}
+      />
 
       {/* Generate Invoice Dialog */}
       <GenerateInvoiceDialog

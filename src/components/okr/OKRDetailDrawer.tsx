@@ -44,7 +44,9 @@ import {
   Settings,
   X,
   Link,
+  Sparkles,
 } from "lucide-react";
+import OKRAICheckInDraft from "./OKRAICheckInDraft";
 import { useToast } from "@/hooks/use-toast";
 import {
   useUpdateOKRObjective,
@@ -913,7 +915,18 @@ const CheckInDialog = ({ open, onOpenChange, objective }: CheckInDialogProps) =>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Nouveau suivi</DialogTitle>
+          <div className="flex items-center justify-between">
+            <DialogTitle>Nouveau suivi</DialogTitle>
+            <OKRAICheckInDraft
+              objectiveId={objective.id}
+              year={objective.target_year}
+              onDraftReady={(draft) => {
+                setProgress(draft.suggested_progress);
+                setConfidence(draft.suggested_confidence);
+                setNotes(draft.suggested_notes);
+              }}
+            />
+          </div>
         </DialogHeader>
         <div className="space-y-4">
           <div>

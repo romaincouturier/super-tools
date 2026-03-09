@@ -167,6 +167,7 @@ const CreateCardDialog = ({ open, onOpenChange, columnId, columns }: CreateCardD
               value={estimatedValue}
               onChange={(e) => setEstimatedValue(e.target.value)}
               placeholder="0"
+              className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
             />
           </div>
 

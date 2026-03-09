@@ -55,6 +55,8 @@ const EmailEditor = ({
   const [snippetPopoverOpen, setSnippetPopoverOpen] = useState(false);
   const [bonjourPopoverOpen, setBonjourPopoverOpen] = useState(false);
   const [slashMenuOpen, setSlashMenuOpen] = useState(false);
+  const slashMenuOpenRef = useRef(false);
+  slashMenuOpenRef.current = slashMenuOpen;
   const [slashMenuPos, setSlashMenuPos] = useState<{ top: number; left: number } | null>(null);
   const [slashQuery, setSlashQuery] = useState("");
   const [selectedSlashIndex, setSelectedSlashIndex] = useState(0);
@@ -100,7 +102,7 @@ const EmailEditor = ({
           key: new PluginKey("slashCommand"),
           props: {
             handleKeyDown(view, event) {
-              if (event.key === "/" && !slashMenuOpen) {
+              if (event.key === "/" && !slashMenuOpenRef.current) {
                 const { from } = view.state.selection;
                 const coords = view.coordsAtPos(from);
                 const editorRect = view.dom.getBoundingClientRect();
@@ -246,12 +248,12 @@ const EmailEditor = ({
     setSnippetPopoverOpen(false);
   };
 
-  const snippetsByCategory = snippets?.reduce((acc, snippet) => {
+  const snippetsByCategory = useMemo(() => snippets?.reduce((acc, snippet) => {
     const category = snippet.category || "Général";
     if (!acc[category]) acc[category] = [];
     acc[category].push(snippet);
     return acc;
-  }, {} as Record<string, EmailSnippet[]>) || {};
+  }, {} as Record<string, EmailSnippet[]>) || {}, [snippets]);
 
   if (!editor) return null;
 

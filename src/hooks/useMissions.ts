@@ -27,6 +27,8 @@ export interface MissionActivity {
   invoice_number: string | null;
   is_billed: boolean;
   notes: string | null;
+  google_event_id: string | null;
+  google_event_link: string | null;
   created_at: string;
   updated_at: string;
 }

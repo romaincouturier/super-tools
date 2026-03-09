@@ -41,7 +41,7 @@ const NotificationBell = () => {
           table: "content_notifications",
         },
         (payload) => {
-          setNotifications((prev) => [payload.new as Notification, ...prev]);
+          setNotifications((prev) => [payload.new as Notification, ...prev].slice(0, 50));
           setUnreadCount((prev) => prev + 1);
         }
       )
