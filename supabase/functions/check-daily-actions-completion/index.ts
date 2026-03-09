@@ -222,6 +222,16 @@ serve(async (req) => {
           break;
         }
 
+        case "reservations_formation": {
+          const t = trainingsMap.get(action.entity_id);
+          if (t) {
+            // Check all booking fields — if all relevant ones are done, resolve
+            const allBooked = t.train_booked && t.hotel_booked && t.restaurant_booked !== false && t.room_rental_booked !== false && t.equipment_ready;
+            if (allBooked) resolved = true;
+          }
+          break;
+        }
+
         // Events and CFP: these are informational, don't auto-complete
         case "evenements":
         case "cfp_soumettre":
