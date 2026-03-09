@@ -313,7 +313,7 @@ serve(async (req: Request): Promise<Response> => {
       ADRESSE: clientAddress,
       TITRE_FORMATION: training.training_name,
       FORMAT: getFormatLabel(training.format_formation, training.location),
-      PARTICIPANTS: isIndividualConvention ? "1" : maxParticipants.toString(),
+      PARTICIPANTS: maxParticipants > 0 ? maxParticipants.toString() : "1",
       URL_PROGRAMME_FORMATION: training.program_file_url || "",
       DATES: training.format_formation === "e_learning"
         ? `Du ${formatDateFrench(training.start_date)} au ${formatDateFrench(training.end_date || training.start_date)}`
