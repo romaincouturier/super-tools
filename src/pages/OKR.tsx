@@ -258,6 +258,12 @@ const OKR = () => {
                   </Badge>
                 </div>
                 <CardTitle className="text-lg mt-2">{objective.title}</CardTitle>
+                {objective.next_review_date && (
+                  <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                    <Calendar className="h-3 w-3" />
+                    Prochain suivi : {format(new Date(objective.next_review_date), "d MMM yyyy", { locale: fr })}
+                  </p>
+                )}
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
