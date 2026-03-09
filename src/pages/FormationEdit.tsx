@@ -370,6 +370,7 @@ const FormationEdit = () => {
           objectives,
           program_file_url: programFileUrl || null,
           supertilt_link: supertiltLink || null,
+          private_group_url: privateGroupUrl || null,
           sponsor_first_name: sponsorFirstName || null,
           sponsor_last_name: sponsorLastName || null,
           sponsor_email: sponsorEmail || null,
