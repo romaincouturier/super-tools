@@ -190,10 +190,30 @@ export default function UserAccessManager() {
           <OnboardCollaboratorDialog isAdmin />
         </div>
         <CardDescription>
-          Gérez les accès aux différents modules et la fonction de chaque utilisateur.
+          Gérez les accès aux différents modules et définissez les rôles clés.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        {users.length > 0 && (
+          <div className="flex items-center gap-3 p-3 rounded-lg border border-primary/20 bg-primary/5">
+            <Megaphone className="h-5 w-5 text-primary shrink-0" />
+            <div className="flex items-center gap-2 flex-wrap">
+              <Label className="text-sm font-medium whitespace-nowrap">Responsable communication :</Label>
+              <Select value={commManagerId || ""} onValueChange={saveCommManager}>
+                <SelectTrigger className="h-8 w-[220px] text-sm">
+                  <SelectValue placeholder="Sélectionner..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {users.map((u) => (
+                    <SelectItem key={u.id} value={u.id}>{u.displayName}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <span className="text-xs text-muted-foreground">Reçoit les notifications de sessions complètes</span>
+            </div>
+          </div>
+        )}
+
         {users.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
             <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
@@ -206,16 +226,11 @@ export default function UserAccessManager() {
           <div className="space-y-4">
             {users.map((user) => (
               <div key={user.id} className="border rounded-lg p-4">
-                <div className="flex items-center gap-3 mb-3 flex-wrap">
+                <div className="flex items-center gap-3 mb-3">
                   <div className="font-medium">{user.displayName}</div>
-                  <div className="text-muted-foreground text-sm hidden sm:block">·</div>
-                  <Input
-                    value={user.jobTitle}
-                    onChange={(e) => setUsers((prev) => prev.map((u) => u.id === user.id ? { ...u, jobTitle: e.target.value } : u))}
-                    onBlur={(e) => updateJobTitle(user.id, e.target.value)}
-                    placeholder="Fonction (ex: Chargée de communication)"
-                    className="h-7 text-sm max-w-xs"
-                  />
+                  {commManagerId === user.id && (
+                    <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">📢 Resp. communication</span>
+                  )}
                 </div>
                 <div className="flex flex-wrap gap-x-6 gap-y-2">
                   {ALL_MODULES.map((module) => {
