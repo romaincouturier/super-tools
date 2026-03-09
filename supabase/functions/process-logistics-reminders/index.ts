@@ -583,6 +583,13 @@ serve(async (req) => {
       const sections: string[] = [];
       let alertCount = 0;
 
+      // 0. E-learning groupes privés (en tête)
+      const userElearningAlerts = elearningGroupAlerts.filter((a) => userCanSee(recipient, a.assignedTo));
+      if (userElearningAlerts.length > 0) {
+        sections.push(sectionHtml("💬", "Groupes privés e-learning", COLORS.purple, userElearningAlerts.map((a) => a.html), userElearningAlerts.length));
+        alertCount += userElearningAlerts.length;
+      }
+
       // 1. Factures à émettre (formations terminées sans facture)
       const userInvoiceAlerts = invoiceAlerts.filter(
         (a) => userCanSee(recipient, a.assignedTo)
