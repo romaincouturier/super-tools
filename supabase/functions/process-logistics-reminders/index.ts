@@ -638,6 +638,12 @@ serve(async (req) => {
         alertCount += userElearningAlerts.length;
       }
 
+      // 0b. OKR Initiatives actives
+      if (okrInitiativeAlerts.length > 0) {
+        sections.push(sectionHtml("🎯", "Initiatives OKR", COLORS.green, okrInitiativeAlerts.map((a) => a.html), okrInitiativeAlerts.length));
+        alertCount += okrInitiativeAlerts.length;
+      }
+
       // 1. Factures à émettre (formations terminées sans facture)
       const userInvoiceAlerts = invoiceAlerts.filter(
         (a) => userCanSee(recipient, a.assignedTo)
