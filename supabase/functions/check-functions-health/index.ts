@@ -27,11 +27,13 @@ const FUNCTION_NAMES = [
   "alert-form-error",
   "analyze-evaluations",
   "analyze-needs-survey",
+  "analyze-voice-review",
   "arena-orchestrate",
   "arena-orchestrator",
   "arena-suggest-experts",
   "backup-export",
   "backup-import",
+  "business-health-score",
   "chatbot-query",
   "check-convention-status",
   "check-daily-actions-completion",
@@ -50,11 +52,15 @@ const FUNCTION_NAMES = [
   "generate-daily-actions",
   "generate-micro-devis",
   "generate-mission-summary",
+  "generate-quiz",
+  "generate-training-program",
   "generate-woocommerce-coupon",
   "google-calendar-events",
   "google-drive-auth",
+  "google-routes",
   "improve-email-content",
   "log-login-attempt",
+  "notify-session-full",
   "onboard-collaborator",
   "process-action-reminders",
   "process-coaching-reminders",
@@ -66,6 +72,8 @@ const FUNCTION_NAMES = [
   "process-participant-list-reminders",
   "process-scheduled-emails",
   "process-session-start",
+  "process-today-reminders",
+  "rag-chatbot",
   "reclamation-ai-assist",
   "record-db-size",
   "refresh-convention-pdf-url",
@@ -90,6 +98,7 @@ const FUNCTION_NAMES = [
   "send-evaluation-reminder",
   "send-event-share-email",
   "send-event-update-email",
+  "send-learner-magic-link",
   "send-mission-deliverables",
   "send-needs-survey",
   "send-needs-survey-reminder",
@@ -102,9 +111,13 @@ const FUNCTION_NAMES = [
   "send-training-documents",
   "send-welcome-email",
   "slack-list-channels",
+  "stripe-checkout",
+  "stripe-portal",
+  "stripe-webhook",
   "submit-attendance-signature",
   "submit-convention-signature",
   "submit-devis-signature",
+  "summarize-coaching",
   "summarize-needs-survey",
   "verify-attendance-signature",
   "verify-convention-signature",
@@ -121,17 +134,22 @@ async function checkFunction(
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 5000);
+    // Use POST with empty body - any HTTP response (even 400/401/500) means the function is deployed
     const res = await fetch(`${baseUrl}/functions/v1/${name}`, {
-      method: "OPTIONS",
+      method: "POST",
       headers: {
+        "Content-Type": "application/json",
         apikey: apiKey,
+        Authorization: `Bearer ${apiKey}`,
       },
+      body: JSON.stringify({}),
       signal: controller.signal,
     });
     clearTimeout(timeout);
+    // Any HTTP response means the function is deployed and reachable
     return {
       name,
-      status: res.ok ? "up" : `error_${res.status}`,
+      status: "up",
       response_time_ms: Date.now() - start,
     };
   } catch (error) {

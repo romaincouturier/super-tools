@@ -97,8 +97,8 @@ function calculateTotalDays(schedules: Schedule[]): number {
 }
 
 // Get time range string
-function getTimeRange(schedules: Schedule[]): string {
-  if (schedules.length === 0) return "9h00-17h00";
+function getTimeRange(schedules: Schedule[], defaultHoraires = "9h00-17h00"): string {
+  if (schedules.length === 0) return defaultHoraires;
 
   // Check if all schedules have same times
   const firstSchedule = schedules[0];
@@ -269,20 +269,42 @@ serve(async (req: Request): Promise<Response> => {
 
     const scheduleList = schedules || [];
 
-    // Fetch TVA rate from app_settings
-    const { data: tvaSetting } = await supabase
+    // Fetch all convention settings from app_settings in one query
+    const { data: allSettings } = await supabase
       .from("app_settings")
-      .select("setting_value")
-      .eq("setting_key", "tva_rate")
-      .maybeSingle();
+      .select("setting_key, setting_value")
+      .in("setting_key", [
+        "tva_rate",
+        "convention_default_price_ht",
+        "elearning_default_duration",
+        "elearning_horaires_text",
+        "elearning_lieu_text",
+        "convention_default_horaires",
+        "convention_moyen_pedagogique",
+        "convention_frais_default",
+        "convention_affiche_frais",
+      ]);
 
-    const tvaRate = tvaSetting?.setting_value ? parseFloat(tvaSetting.setting_value) : 20;
+    const settings: Record<string, string> = {};
+    for (const s of allSettings || []) {
+      settings[s.setting_key] = s.setting_value || "";
+    }
+
+    const tvaRate = settings["tva_rate"] ? parseFloat(settings["tva_rate"]) : 20;
+    const defaultPriceHt = settings["convention_default_price_ht"] ? parseFloat(settings["convention_default_price_ht"]) : 1250;
+    const elearningDefaultDuration = settings["elearning_default_duration"] || "7";
+    const elearningHorairesText = settings["elearning_horaires_text"] || "Formation accessible en ligne à votre rythme";
+    const elearningLieuText = settings["elearning_lieu_text"] || "En ligne (plateforme e-learning)";
+    const defaultHoraires = settings["convention_default_horaires"] || "9h00-17h00";
+    const moyenPedagogique = settings["convention_moyen_pedagogique"] || "SuperTilt";
+    const fraisDefault = settings["convention_frais_default"] || "0";
+    const afficheFrais = settings["convention_affiche_frais"] || "Non";
 
     // Calculate price - for inter/e-learning use participant's sold_price_ht first, then training's, then input, then default
     const participantPrice = isIndividualConvention && singleParticipant
       ? (singleParticipant as any).sold_price_ht
       : null;
-    const priceHt = participantPrice || inputPrice || training.sold_price_ht || 1250;
+    const priceHt = participantPrice || inputPrice || training.sold_price_ht || defaultPriceHt;
 
     // Build client name and address
     let clientName = training.client_name;
@@ -319,16 +341,16 @@ serve(async (req: Request): Promise<Response> => {
         ? `Du ${formatDateFrench(training.start_date)} au ${formatDateFrench(training.end_date || training.start_date)}`
         : formatDateRange(scheduleList),
       JOURS: training.format_formation === "e_learning"
-        ? ((singleParticipant as any)?.elearning_duration || training.elearning_duration || 7).toString()
+        ? ((singleParticipant as any)?.elearning_duration || training.elearning_duration || elearningDefaultDuration).toString()
         : calculateTotalHours(scheduleList).toString(),
       NOMBRE_JOURS: training.format_formation === "e_learning"
-        ? ((singleParticipant as any)?.elearning_duration || training.elearning_duration || 7).toString()
+        ? ((singleParticipant as any)?.elearning_duration || training.elearning_duration || elearningDefaultDuration).toString()
         : calculateTotalDays(scheduleList).toString(),
       HORAIRES: training.format_formation === "e_learning"
-        ? "Formation accessible en ligne a votre rythme"
-        : getTimeRange(scheduleList),
+        ? elearningHorairesText
+        : getTimeRange(scheduleList, defaultHoraires),
       LIEU: training.format_formation === "e_learning"
-        ? "En ligne (plateforme e-learning)"
+        ? elearningLieuText
         : training.location,
       STAGIAIRES: isIndividualConvention
         ? formatParticipants(participantList, participantList.length)
@@ -336,10 +358,10 @@ serve(async (req: Request): Promise<Response> => {
       PRIX: priceHt.toString(),
       TVA: tvaRate.toString(),
       PRIX_TTC: prixTtc.toFixed(2),
-      FRAIS: "0",
-      AFFICHE_FRAIS: "Non",
+      FRAIS: fraisDefault,
+      AFFICHE_FRAIS: afficheFrais,
       SUBROGATION: subrogation ? "Oui" : "Non",
-      MOYEN_PEDAGOGIQUE: "SuperTilt",
+      MOYEN_PEDAGOGIQUE: moyenPedagogique,
       _date: new Date().toISOString().split("T")[0],
     };
 

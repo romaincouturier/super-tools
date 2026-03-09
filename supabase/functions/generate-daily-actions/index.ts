@@ -611,23 +611,20 @@ serve(async (req) => {
       console.log(`[${VERSION}] OKR initiatives actives: ${activeInitiatives.length}`);
     }
 
-    // 12. RAPPELS RÉSERVATION HÔTEL/TRAIN (2 mois avant start_date)
-    const twoMonthsLater = new Date(todayDate);
-    twoMonthsLater.setMonth(twoMonthsLater.getMonth() + 2);
-    const twoMonthsStr = twoMonthsLater.toISOString().split("T")[0];
-    // Window: missions starting in ~2 months (± 3 days to catch it in the daily run)
-    const twoMonthsMinus3 = new Date(twoMonthsLater);
-    twoMonthsMinus3.setDate(twoMonthsMinus3.getDate() - 3);
-    const twoMonthsMinus3Str = twoMonthsMinus3.toISOString().split("T")[0];
+    // 12. RAPPELS RÉSERVATION (J-60, rappel quotidien tant que non coché)
+    const sixtyDaysLater = new Date(todayDate);
+    sixtyDaysLater.setDate(sixtyDaysLater.getDate() + 60);
+    const sixtyDaysStr = sixtyDaysLater.toISOString().split("T")[0];
 
+    // 12a. Missions
     const { data: missionsNeedingBooking } = await supabase
       .from("missions")
       .select("id, title, client_name, location, start_date, train_booked, hotel_booked, assigned_to, emoji")
       .not("location", "is", null)
       .not("start_date", "is", null)
-      .gte("start_date", twoMonthsMinus3Str)
-      .lte("start_date", twoMonthsStr)
-      .in("status", ["pending", "in_progress"]);
+      .gte("start_date", today)
+      .lte("start_date", sixtyDaysStr)
+      .in("status", ["pending", "in_progress", "not_started"]);
 
     if (missionsNeedingBooking) {
       for (const m of missionsNeedingBooking) {
@@ -652,6 +649,46 @@ serve(async (req) => {
         });
       }
       console.log(`[${VERSION}] Missions nécessitant réservation: ${missionsNeedingBooking.filter((m: any) => (!m.train_booked || !m.hotel_booked) && m.location).length}`);
+    }
+
+    // 12b. Formations (train, hôtel, restaurant, salle, matériel)
+    const { data: trainingsNeedingBooking } = await supabase
+      .from("trainings")
+      .select("id, training_name, location, start_date, train_booked, hotel_booked, restaurant_booked, room_rental_booked, equipment_ready, format_formation, session_type, assigned_to")
+      .not("start_date", "is", null)
+      .gte("start_date", today)
+      .lte("start_date", sixtyDaysStr);
+
+    if (trainingsNeedingBooking) {
+      for (const t of trainingsNeedingBooking) {
+        const hasLocation = t.location?.trim();
+        const isPresentiel = t.format_formation !== "e_learning" && t.format_formation !== "classe_virtuelle";
+        const isInter = t.format_formation === "inter-entreprises" || t.session_type === "inter";
+
+        const items: string[] = [];
+        if (isPresentiel && hasLocation) {
+          if (!t.train_booked) items.push("🚄 Train");
+          if (!t.hotel_booked) items.push("🏨 Hôtel");
+          if (isInter && !t.restaurant_booked) items.push("🍽️ Restaurant");
+          if (!t.room_rental_booked) items.push("🚪 Salle");
+        }
+        if (!t.equipment_ready) items.push("📦 Matériel");
+
+        if (items.length === 0) continue;
+
+        const startFormatted = new Date(t.start_date).toLocaleDateString("fr-FR", { day: "numeric", month: "long" });
+
+        perUserActions.push({
+          category: "reservations_formation",
+          title: `🎓 ${t.training_name}`,
+          description: `${items.join(" + ")} à réserver — ${hasLocation ? t.location + " " : ""}(${startFormatted})`,
+          link: `${appUrl}/formations/${t.id}`,
+          entity_type: "training",
+          entity_id: t.id,
+          assignedTo: t.assigned_to,
+        });
+      }
+      console.log(`[${VERSION}] Formations nécessitant réservation: ${trainingsNeedingBooking.filter((t: any) => !t.train_booked || !t.hotel_booked || !t.restaurant_booked || !t.room_rental_booked || !t.equipment_ready).length}`);
     }
 
     // ══════════════════════════════════
