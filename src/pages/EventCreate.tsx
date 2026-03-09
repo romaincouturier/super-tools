@@ -19,6 +19,7 @@ const INITIAL_VALUES: EventFormValues = {
   cfpDeadline: "",
   eventUrl: "",
   cfpUrl: "",
+  privateGroupUrl: "",
 };
 
 const EventCreate = () => {
