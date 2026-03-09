@@ -32,7 +32,23 @@ serve(async (req) => {
       throw new Error(`Failed to fetch PDF: ${pdfResponse.status}`);
     }
 
+    // Verify it's actually a PDF
+    const contentType = pdfResponse.headers.get("content-type") || "";
+    if (!contentType.includes("pdf") && !pdfUrl.toLowerCase().endsWith(".pdf")) {
+      return new Response(
+        JSON.stringify({ error: "L'URL fournie ne pointe pas vers un fichier PDF. Veuillez sélectionner un fichier PDF valide." }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const pdfBuffer = await pdfResponse.arrayBuffer();
+
+    if (pdfBuffer.byteLength < 100) {
+      return new Response(
+        JSON.stringify({ error: "Le fichier PDF est vide ou invalide." }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
     
     // Convert to base64 in chunks to avoid stack overflow
     const uint8Array = new Uint8Array(pdfBuffer);
