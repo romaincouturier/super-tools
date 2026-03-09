@@ -197,7 +197,7 @@ serve(async (req) => {
 
     console.log("Extracting opportunity from:", raw_input.substring(0, 100));
 
-    const extraction = await extractWithAI(raw_input);
+    const extraction = await extractWithAI(truncatedInput);
 
     console.log("Extraction result:", JSON.stringify(extraction, null, 2));
 
