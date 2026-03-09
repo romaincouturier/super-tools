@@ -184,6 +184,8 @@ const MissionDetailDrawer = ({
         emoji: missionEmoji,
         location: location.trim() || null,
         assigned_to: assignedTo,
+        waiting_next_action_date: scheduledDate || null,
+        waiting_next_action_text: scheduledText.trim() || null,
       },
     };
 
@@ -197,7 +199,7 @@ const MissionDetailDrawer = ({
     }, 800);
 
     return () => { if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current); };
-  }, [title, description, clientName, status, startDate, endDate, dailyRate, totalDays, initialAmount, tags, color, missionEmoji, location, assignedTo]);
+  }, [title, description, clientName, status, startDate, endDate, dailyRate, totalDays, initialAmount, tags, color, missionEmoji, location, assignedTo, scheduledDate, scheduledText]);
 
   const handleDelete = async () => {
     if (!mission) return;
