@@ -3421,6 +3421,8 @@ export type Database = {
           total_days: number | null
           train_booked: boolean | null
           updated_at: string | null
+          waiting_next_action_date: string | null
+          waiting_next_action_text: string | null
         }
         Insert: {
           assigned_to?: string | null
@@ -3452,6 +3454,8 @@ export type Database = {
           total_days?: number | null
           train_booked?: boolean | null
           updated_at?: string | null
+          waiting_next_action_date?: string | null
+          waiting_next_action_text?: string | null
         }
         Update: {
           assigned_to?: string | null
@@ -3483,6 +3487,8 @@ export type Database = {
           total_days?: number | null
           train_booked?: boolean | null
           updated_at?: string | null
+          waiting_next_action_date?: string | null
+          waiting_next_action_text?: string | null
         }
         Relationships: [
           {
