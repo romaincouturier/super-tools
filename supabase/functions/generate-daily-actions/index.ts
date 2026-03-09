@@ -106,6 +106,8 @@ serve(async (req) => {
         const consumed = Number(m.consumed_amount) || 0;
         const billed = Number(m.billed_amount) || 0;
         if (consumed <= 0 || billed >= consumed) continue;
+        // Skip missions with a future scheduled action
+        if (m.waiting_next_action_date && m.waiting_next_action_date > today) continue;
         const remaining = consumed - billed;
         const label = m.client_name ? `${m.client_name} — ${m.title}` : m.title;
         const emoji = m.emoji ? `${m.emoji} ` : "";
