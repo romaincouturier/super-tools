@@ -466,16 +466,56 @@ serve(async (req) => {
     }
 
     // 10. FORMATIONS TERMINÉES SANS FACTURE
+    // Exclude trainings where ALL participants paid online (no invoice needed)
     const { data: pastTrainings } = await supabase
       .from("trainings")
-      .select("id, training_name, start_date, end_date, invoice_file_url, assigned_to")
+      .select("id, training_name, start_date, end_date, invoice_file_url, assigned_to, format_formation")
       .lt("start_date", today)
       .is("invoice_file_url", null);
 
     if (pastTrainings) {
+      // Fetch participants for these trainings to check payment modes
+      const pastTrainingIds = pastTrainings
+        .filter((t: any) => {
+          const endDate = t.end_date || t.start_date;
+          return new Date(endDate) < new Date(today);
+        })
+        .map((t: any) => t.id);
+
+      let participantsByTrainingInvoice = new Map<string, any[]>();
+      if (pastTrainingIds.length > 0) {
+        const { data: pts } = await supabase
+          .from("training_participants")
+          .select("training_id, payment_mode, invoice_file_url")
+          .in("training_id", pastTrainingIds);
+        if (pts) {
+          for (const p of pts) {
+            const list = participantsByTrainingInvoice.get(p.training_id) || [];
+            list.push(p);
+            participantsByTrainingInvoice.set(p.training_id, list);
+          }
+        }
+      }
+
       for (const t of pastTrainings) {
         const endDate = t.end_date || t.start_date;
         if (new Date(endDate) >= new Date(today)) continue;
+
+        // Check if all participants paid online — no invoice needed
+        const participants = participantsByTrainingInvoice.get(t.id) || [];
+        if (participants.length > 0) {
+          const allPaidOnline = participants.every((p: any) => p.payment_mode === "online");
+          if (allPaidOnline) continue;
+
+          // For inter/e-learning: check if all invoice-mode participants already have their invoice
+          const isInterOrElearning = ["inter-entreprises", "e_learning"].includes(t.format_formation);
+          if (isInterOrElearning) {
+            const invoiceParticipants = participants.filter((p: any) => p.payment_mode !== "online");
+            const allInvoiced = invoiceParticipants.length > 0 && invoiceParticipants.every((p: any) => p.invoice_file_url);
+            if (allInvoiced) continue;
+          }
+        }
+
         const daysAgo = Math.ceil((Date.now() - new Date(endDate).getTime()) / (1000 * 60 * 60 * 24));
         const formattedDate = new Date(endDate).toLocaleDateString("fr-FR", { day: "numeric", month: "long" });
         perUserActions.push({
