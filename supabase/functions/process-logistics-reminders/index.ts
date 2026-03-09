@@ -243,7 +243,7 @@ serve(async (req) => {
       .from("trainings")
       .select("id, training_name, location, start_date, train_booked, hotel_booked, restaurant_booked, room_rental_booked, equipment_ready, format_formation, session_type, assigned_to")
       .not("start_date", "is", null)
-      .gte("start_date", todayStr)
+      .gte("start_date", today)
       .lte("start_date", sixtyDaysStr);
 
     if (trainingsNeedingBooking) {
