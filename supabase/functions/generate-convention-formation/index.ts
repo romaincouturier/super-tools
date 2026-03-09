@@ -97,8 +97,8 @@ function calculateTotalDays(schedules: Schedule[]): number {
 }
 
 // Get time range string
-function getTimeRange(schedules: Schedule[]): string {
-  if (schedules.length === 0) return "9h00-17h00";
+function getTimeRange(schedules: Schedule[], defaultHoraires = "9h00-17h00"): string {
+  if (schedules.length === 0) return defaultHoraires;
 
   // Check if all schedules have same times
   const firstSchedule = schedules[0];
