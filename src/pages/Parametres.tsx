@@ -1148,6 +1148,14 @@ const SETTINGS_REGISTRY: Record<string, { default: string; description: string }
   backup_gdrive_folder_id: { default: "", description: "ID du dossier Google Drive pour les sauvegardes" },
   stripe_secret_key: { default: "", description: "Clé secrète Stripe (sk_live_... ou sk_test_...) pour la facturation" },
   stripe_webhook_secret: { default: "", description: "Secret du webhook Stripe (whsec_...) pour valider les événements" },
+  convention_default_price_ht: { default: "1250", description: "Prix HT par défaut pour les conventions si aucun prix n'est défini" },
+  elearning_default_duration: { default: "7", description: "Durée par défaut en jours pour les formations e-learning" },
+  elearning_horaires_text: { default: "Formation accessible en ligne à votre rythme", description: "Texte horaires affiché sur les conventions e-learning" },
+  elearning_lieu_text: { default: "En ligne (plateforme e-learning)", description: "Texte lieu affiché sur les conventions e-learning" },
+  convention_default_horaires: { default: "9h00-17h00", description: "Horaires par défaut si aucun planning n'est défini" },
+  convention_moyen_pedagogique: { default: "SuperTilt", description: "Moyen pédagogique affiché sur la convention" },
+  convention_frais_default: { default: "0", description: "Montant des frais par défaut sur la convention" },
+  convention_affiche_frais: { default: "Non", description: "Afficher les frais sur la convention (Oui/Non)" },
 };
 
 const SETTINGS_DEFAULTS = Object.fromEntries(
@@ -2058,6 +2066,103 @@ const Parametres = () => {
                       placeholder="20"
                       className="max-w-[120px]"
                     />
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Convention de formation defaults */}
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium">Convention de formation — Valeurs par défaut</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Ces valeurs sont utilisées lors de la génération des conventions de formation via PDFMonkey.
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl">
+                    <div className="space-y-2">
+                      <Label htmlFor="convention-default-price">Prix HT par défaut (€)</Label>
+                      <Input
+                        id="convention-default-price"
+                        type="number"
+                        min="0"
+                        value={settings.convention_default_price_ht}
+                        onChange={(e) => updateSetting("convention_default_price_ht", e.target.value)}
+                        placeholder="1250"
+                      />
+                      <p className="text-xs text-muted-foreground">Utilisé si aucun prix n'est défini sur la formation ou le participant.</p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="convention-default-horaires">Horaires par défaut</Label>
+                      <Input
+                        id="convention-default-horaires"
+                        value={settings.convention_default_horaires}
+                        onChange={(e) => updateSetting("convention_default_horaires", e.target.value)}
+                        placeholder="9h00-17h00"
+                      />
+                      <p className="text-xs text-muted-foreground">Affiché si aucun planning n'est défini.</p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="convention-moyen-pedagogique">Moyen pédagogique</Label>
+                      <Input
+                        id="convention-moyen-pedagogique"
+                        value={settings.convention_moyen_pedagogique}
+                        onChange={(e) => updateSetting("convention_moyen_pedagogique", e.target.value)}
+                        placeholder="SuperTilt"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="convention-frais">Frais par défaut (€)</Label>
+                      <Input
+                        id="convention-frais"
+                        type="number"
+                        min="0"
+                        value={settings.convention_frais_default}
+                        onChange={(e) => updateSetting("convention_frais_default", e.target.value)}
+                        placeholder="0"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="convention-affiche-frais">Afficher les frais</Label>
+                      <select
+                        id="convention-affiche-frais"
+                        value={settings.convention_affiche_frais}
+                        onChange={(e) => updateSetting("convention_affiche_frais", e.target.value)}
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                      >
+                        <option value="Non">Non</option>
+                        <option value="Oui">Oui</option>
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="elearning-default-duration">Durée e-learning par défaut (jours)</Label>
+                      <Input
+                        id="elearning-default-duration"
+                        type="number"
+                        min="1"
+                        value={settings.elearning_default_duration}
+                        onChange={(e) => updateSetting("elearning_default_duration", e.target.value)}
+                        placeholder="7"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-3 max-w-2xl">
+                    <div className="space-y-2">
+                      <Label htmlFor="elearning-horaires-text">Texte horaires e-learning</Label>
+                      <Input
+                        id="elearning-horaires-text"
+                        value={settings.elearning_horaires_text}
+                        onChange={(e) => updateSetting("elearning_horaires_text", e.target.value)}
+                        placeholder="Formation accessible en ligne à votre rythme"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="elearning-lieu-text">Texte lieu e-learning</Label>
+                      <Input
+                        id="elearning-lieu-text"
+                        value={settings.elearning_lieu_text}
+                        onChange={(e) => updateSetting("elearning_lieu_text", e.target.value)}
+                        placeholder="En ligne (plateforme e-learning)"
+                      />
+                    </div>
                   </div>
                 </div>
 
