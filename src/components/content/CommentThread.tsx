@@ -497,7 +497,7 @@ const CommentThread = ({ cardId, cardTitle, reviewIds, onCommentAdded }: Comment
         key={comment.id}
         className={cn(
           "rounded-lg border transition-all",
-          isResolved ? "bg-muted/20 border-border/50" : "bg-background border-primary/20 shadow-sm"
+          isResolved ? "bg-muted/10 border-border/30 opacity-60" : "bg-background border-primary/20 shadow-sm"
         )}
       >
         {/* Collapse button for expanded resolved */}
