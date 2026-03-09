@@ -57,12 +57,12 @@ const EventCreate = () => {
         cfp_deadline: isExternal && values.cfpDeadline ? values.cfpDeadline : null,
         event_url: isExternal && values.eventUrl.trim() ? values.eventUrl.trim() : null,
         cfp_url: isExternal && values.cfpUrl.trim() ? values.cfpUrl.trim() : null,
-        private_group_url: isInternalVisio && values.privateGroupUrl.trim() ? values.privateGroupUrl.trim() : null,
         notes: null,
         status: "active",
         assigned_to: null,
         cancellation_reason: null,
-      });
+        ...(isInternalVisio && values.privateGroupUrl.trim() ? { private_group_url: values.privateGroupUrl.trim() } : {}),
+      } as any);
       toast({ title: "Événement créé" });
       navigate(`/events/${event.id}`);
     } catch (error) {
