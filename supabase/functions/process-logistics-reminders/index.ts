@@ -200,6 +200,46 @@ serve(async (req) => {
     console.log(`[${VERSION}] OKR initiatives actives: ${okrInitiativeAlerts.length}`);
 
     // ════════════════════════════════════════════
+    // 0c. RÉSERVATIONS HÔTEL/TRAIN (2 mois avant)
+    // ════════════════════════════════════════════
+    const twoMonthsLater = new Date(todayDate);
+    twoMonthsLater.setMonth(twoMonthsLater.getMonth() + 2);
+    const twoMonthsStr = twoMonthsLater.toISOString().split("T")[0];
+    const twoMonthsMinus3 = new Date(twoMonthsLater);
+    twoMonthsMinus3.setDate(twoMonthsMinus3.getDate() - 3);
+    const twoMonthsMinus3Str = twoMonthsMinus3.toISOString().split("T")[0];
+
+    const reservationAlerts: GenericAlert[] = [];
+    const { data: missionsNeedingBooking } = await supabase
+      .from("missions")
+      .select("id, title, client_name, location, start_date, train_booked, hotel_booked, assigned_to, emoji")
+      .not("location", "is", null)
+      .not("start_date", "is", null)
+      .gte("start_date", twoMonthsMinus3Str)
+      .lte("start_date", twoMonthsStr)
+      .in("status", ["pending", "in_progress"]);
+
+    if (missionsNeedingBooking) {
+      for (const m of missionsNeedingBooking) {
+        if (!m.location?.trim()) continue;
+        const needsTrain = !m.train_booked;
+        const needsHotel = !m.hotel_booked;
+        if (!needsTrain && !needsHotel) continue;
+
+        const items: string[] = [];
+        if (needsTrain) items.push("🚄 Train");
+        if (needsHotel) items.push("🏨 Hôtel");
+        const startFormatted = new Date(m.start_date).toLocaleDateString("fr-FR", { day: "numeric", month: "long" });
+
+        reservationAlerts.push({
+          assignedTo: m.assigned_to,
+          html: `<li><a href="${appUrl}/missions/${m.id}" style="color: ${COLORS.primary}; text-decoration: underline;">${m.emoji || "📋"} ${m.title}</a> — ${items.join(" + ")} à réserver — ${m.location} (${startFormatted})</li>`,
+        });
+      }
+    }
+    console.log(`[${VERSION}] Réservations missions: ${reservationAlerts.length}`);
+
+    // ════════════════════════════════════════════
     // 1. MISSIONS À FACTURER
     // ════════════════════════════════════════════
     const { data: missionsToInvoice } = await supabase
