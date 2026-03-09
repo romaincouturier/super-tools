@@ -101,8 +101,15 @@ const FormationDetailHeader = ({
                 </DropdownMenuItem>
               )}
               {requiredEquipment && (
-                <DropdownMenuItem className="text-amber-600" onClick={() => {}}>
-                  <Package className="h-4 w-4 mr-2" />Matériel requis
+                <DropdownMenuItem onClick={async () => {
+                  const newValue = !training.equipment_ready;
+                  const { error } = await supabase.from("trainings").update({ equipment_ready: newValue } as any).eq("id", training.id);
+                  if (!error) {
+                    setTraining({ ...training, equipment_ready: newValue });
+                    toast({ title: newValue ? "Matériel prêt ✓" : "Matériel non prêt" });
+                  }
+                }}>
+                  <Package className="h-4 w-4 mr-2" />Matériel {training.equipment_ready && "✓"}
                 </DropdownMenuItem>
               )}
               <DropdownMenuItem onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/formation-info/${id}`); toast({ title: "Lien copié", description: "Le lien vers la page participant a été copié." }); }}>
