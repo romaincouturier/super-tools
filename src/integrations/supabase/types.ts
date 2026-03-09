@@ -4317,6 +4317,7 @@ export type Database = {
           created_at: string
           id: string
           image_url: string | null
+          mentioned_user_ids: string[] | null
           parent_comment_id: string | null
           proposed_correction: string | null
           resolved_at: string | null
@@ -4332,6 +4333,7 @@ export type Database = {
           created_at?: string
           id?: string
           image_url?: string | null
+          mentioned_user_ids?: string[] | null
           parent_comment_id?: string | null
           proposed_correction?: string | null
           resolved_at?: string | null
@@ -4347,6 +4349,7 @@ export type Database = {
           created_at?: string
           id?: string
           image_url?: string | null
+          mentioned_user_ids?: string[] | null
           parent_comment_id?: string | null
           proposed_correction?: string | null
           resolved_at?: string | null
