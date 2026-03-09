@@ -361,14 +361,10 @@ const ReviewPanel = ({ cardId, cardTitle }: ReviewPanelProps) => {
 
                 {/* Commentaires avec gestion des statuts */}
                 <CommentThread
-                  reviewId={review.id}
+                  reviewIds={[review.id]}
                   cardId={cardId}
                   cardTitle={cardTitle}
-                  isAuthor={isAuthor(review)}
-                  isReviewer={isReviewer(review)}
-                  reviewStatus={review.status}
                   onCommentAdded={() => {
-                    // Update status to in_review when reviewer adds first comment
                     if (review.status === "pending" && isReviewer(review)) {
                       supabase
                         .from("content_reviews")
