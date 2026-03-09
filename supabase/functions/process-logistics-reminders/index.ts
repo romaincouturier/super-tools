@@ -684,6 +684,13 @@ serve(async (req) => {
         alertCount += okrInitiativeAlerts.length;
       }
 
+      // 0c. Réservations hôtel/train
+      const userReservations = reservationAlerts.filter((a) => userCanSee(recipient, a.assignedTo));
+      if (userReservations.length > 0) {
+        sections.push(sectionHtml("🚄", "Réservations à faire", COLORS.blue, userReservations.map((a) => a.html), userReservations.length));
+        alertCount += userReservations.length;
+      }
+
       // 1. Factures à émettre (formations terminées sans facture)
       const userInvoiceAlerts = invoiceAlerts.filter(
         (a) => userCanSee(recipient, a.assignedTo)
