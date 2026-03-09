@@ -135,6 +135,8 @@ serve(async (req) => {
       for (const m of missionsNoStartDate) {
         const label = m.client_name ? `${m.client_name} — ${m.title}` : m.title;
         const emoji = m.emoji ? `${m.emoji} ` : "";
+        // Skip missions with a future scheduled action
+        if (m.waiting_next_action_date && m.waiting_next_action_date > today) continue;
         perUserActions.push({
           category: "missions_sans_date",
           title: `${emoji}${label}`,
