@@ -64,7 +64,7 @@ Deno.serve(async (req) => {
       ? new Date(training.start_date).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })
       : "Non définie";
 
-    const managerFirstName = commManagers[0].first_name || ""; 
+    const managerFirstName = commManager.first_name || ""; 
 
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
