@@ -134,15 +134,19 @@ async function checkFunction(
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 5000);
+    // Use POST with empty body - any HTTP response (even 400/401/500) means the function is deployed
     const res = await fetch(`${baseUrl}/functions/v1/${name}`, {
-      method: "OPTIONS",
+      method: "POST",
       headers: {
+        "Content-Type": "application/json",
         apikey: apiKey,
+        Authorization: `Bearer ${apiKey}`,
       },
+      body: JSON.stringify({}),
       signal: controller.signal,
     });
     clearTimeout(timeout);
-    // Any HTTP response (even 401/405) means the function is deployed and reachable
+    // Any HTTP response means the function is deployed and reachable
     return {
       name,
       status: "up",
