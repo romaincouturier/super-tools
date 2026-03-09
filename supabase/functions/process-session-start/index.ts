@@ -329,8 +329,7 @@ serve(async (req) => {
               console.log(`[process-session-start] Trainer notified: ${trainerEmail}`);
               totalTrainerNotifications++;
             } else {
-              const errorText = await trainerResponse.text();
-              console.error(`[process-session-start] Error notifying trainer ${trainerEmail}:`, errorText);
+              console.error(`[process-session-start] Error notifying trainer ${trainerEmail}:`, trainerResult.error);
             }
           } catch (err) {
             console.error(`[process-session-start] Error sending trainer notification:`, err);

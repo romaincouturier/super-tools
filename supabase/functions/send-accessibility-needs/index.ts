@@ -127,8 +127,7 @@ serve(async (req) => {
       html: htmlContent,
       replyTo: senderEmail,
       _emailType: "accessibility_needs",
-      _trainingId: trainingId,
-      _participantId: participantId || undefined,
+      _trainingId: trainingId || undefined,
     });
 
     if (!result.success) {

@@ -92,8 +92,8 @@ Deno.serve(async (req) => {
     });
 
     return createJsonResponse({ success: result.success, recipientEmails: managerEmails });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Error in notify-session-full:", error);
-    return createErrorResponse(error.message || "Internal error");
+    return createErrorResponse(error instanceof Error ? error.message : "Internal error");
   }
 });

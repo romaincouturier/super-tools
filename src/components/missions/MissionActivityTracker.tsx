@@ -130,6 +130,8 @@ const MissionActivityTracker = ({ mission, onCreatePageForActivity }: MissionAct
       invoice_number: invoiceNumber.trim() || null,
       is_billed: isBilled,
       notes: notes.trim() || null,
+      google_event_id: editingActivity?.google_event_id || null,
+      google_event_link: editingActivity?.google_event_link || null,
     };
 
     try {

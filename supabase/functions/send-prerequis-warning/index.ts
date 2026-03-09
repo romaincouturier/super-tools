@@ -116,8 +116,6 @@ serve(async (req) => {
       html: htmlContent,
       replyTo: senderEmail,
       _emailType: "prerequis_warning",
-      _trainingId: trainingId,
-      _participantId: participantId || undefined,
     });
 
     if (!result.success) {
