@@ -68,6 +68,7 @@ const EventEdit = () => {
         cfpDeadline: event.cfp_deadline || "",
         eventUrl: event.event_url || "",
         cfpUrl: event.cfp_url || "",
+        privateGroupUrl: (event as any).private_group_url || "",
       };
       setValues(mapped);
       setAssignedTo(event.assigned_to || null);
