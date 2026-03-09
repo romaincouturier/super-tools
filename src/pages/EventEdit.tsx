@@ -43,6 +43,7 @@ const EventEdit = () => {
     cfpDeadline: "",
     eventUrl: "",
     cfpUrl: "",
+    privateGroupUrl: "",
   });
 
   // For change detection
