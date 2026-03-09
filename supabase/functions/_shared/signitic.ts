@@ -49,10 +49,22 @@ export async function getSigniticSignature(): Promise<string> {
 
     if (response.ok) {
       const htmlContent = await response.text();
-      if (htmlContent && htmlContent.trim() && !htmlContent.includes("error")) {
+      const lower = htmlContent.toLowerCase();
+      const isValid = htmlContent && htmlContent.trim().length > 50
+        && !lower.includes("error")
+        && !lower.includes("time-out")
+        && !lower.includes("timeout")
+        && !lower.includes("gateway")
+        && !lower.includes("not found")
+        && !lower.includes("502")
+        && !lower.includes("503")
+        && !lower.includes("504")
+        && lower.includes("<") && lower.includes(">");
+      if (isValid) {
         console.log("Signitic signature fetched successfully");
         return htmlContent;
       }
+      console.warn("Signitic response looks invalid, using default signature");
     }
 
     console.warn("Could not fetch Signitic signature:", response.status);
