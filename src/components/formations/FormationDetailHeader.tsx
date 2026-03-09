@@ -40,6 +40,7 @@ const FormationDetailHeader = ({
   toast,
   setMapDialogOpen,
   setDuplicateDialogOpen,
+  requiredEquipment,
 }: Props) => {
   const isOnline = training.location?.toLowerCase().includes("visio") ||
     training.location?.toLowerCase().includes("en ligne") ||
