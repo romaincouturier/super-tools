@@ -108,6 +108,7 @@ export function useFormationDetail() {
   const [thankYouSentAt, setThankYouSentAt] = useState<string | null>(null);
   const [assignedUserName, setAssignedUserName] = useState<string | null>(null);
   const [availableFormulas, setAvailableFormulas] = useState<FormationFormula[]>([]);
+  const [catalogRequiredEquipment, setCatalogRequiredEquipment] = useState<string | null>(null);
   const [duplicateDialogOpen, setDuplicateDialogOpen] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
