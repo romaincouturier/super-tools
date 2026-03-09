@@ -297,6 +297,7 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
         setProgrammeUrl("");
         setSupportsUrl("");
         setSupertiltLink("");
+        setRequiredEquipment("");
         setObjectives([]);
         setPrerequisites([]);
         setElearningDuration("");
