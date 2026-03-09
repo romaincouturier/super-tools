@@ -25,6 +25,7 @@ export default function UserAccessManager() {
 
   useEffect(() => {
     fetchUsers();
+    fetchCommManager();
   }, []);
 
   const fetchUsers = async () => {
