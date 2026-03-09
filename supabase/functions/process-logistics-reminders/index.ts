@@ -149,7 +149,7 @@ serve(async (req) => {
         });
       }
     }
-    console.log(\`[\${VERSION}] E-learning groupes privés actifs: \${elearningGroupAlerts.length}\`);
+    console.log(`[${VERSION}] E-learning groupes privés actifs: ${elearningGroupAlerts.length}`);
 
     // ════════════════════════════════════════════
     // 1. MISSIONS À FACTURER
