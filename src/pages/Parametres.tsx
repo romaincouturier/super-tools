@@ -1148,6 +1148,14 @@ const SETTINGS_REGISTRY: Record<string, { default: string; description: string }
   backup_gdrive_folder_id: { default: "", description: "ID du dossier Google Drive pour les sauvegardes" },
   stripe_secret_key: { default: "", description: "Clé secrète Stripe (sk_live_... ou sk_test_...) pour la facturation" },
   stripe_webhook_secret: { default: "", description: "Secret du webhook Stripe (whsec_...) pour valider les événements" },
+  convention_default_price_ht: { default: "1250", description: "Prix HT par défaut pour les conventions si aucun prix n'est défini" },
+  elearning_default_duration: { default: "7", description: "Durée par défaut en jours pour les formations e-learning" },
+  elearning_horaires_text: { default: "Formation accessible en ligne à votre rythme", description: "Texte horaires affiché sur les conventions e-learning" },
+  elearning_lieu_text: { default: "En ligne (plateforme e-learning)", description: "Texte lieu affiché sur les conventions e-learning" },
+  convention_default_horaires: { default: "9h00-17h00", description: "Horaires par défaut si aucun planning n'est défini" },
+  convention_moyen_pedagogique: { default: "SuperTilt", description: "Moyen pédagogique affiché sur la convention" },
+  convention_frais_default: { default: "0", description: "Montant des frais par défaut sur la convention" },
+  convention_affiche_frais: { default: "Non", description: "Afficher les frais sur la convention (Oui/Non)" },
 };
 
 const SETTINGS_DEFAULTS = Object.fromEntries(
