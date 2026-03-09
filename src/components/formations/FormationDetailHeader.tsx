@@ -101,8 +101,15 @@ const FormationDetailHeader = ({
                 </DropdownMenuItem>
               )}
               {requiredEquipment && (
-                <DropdownMenuItem className="text-amber-600" onClick={() => {}}>
-                  <Package className="h-4 w-4 mr-2" />Matériel requis
+                <DropdownMenuItem onClick={async () => {
+                  const newValue = !training.equipment_ready;
+                  const { error } = await supabase.from("trainings").update({ equipment_ready: newValue } as any).eq("id", training.id);
+                  if (!error) {
+                    setTraining({ ...training, equipment_ready: newValue });
+                    toast({ title: newValue ? "Matériel prêt ✓" : "Matériel non prêt" });
+                  }
+                }}>
+                  <Package className="h-4 w-4 mr-2" />Matériel {training.equipment_ready && "✓"}
                 </DropdownMenuItem>
               )}
               <DropdownMenuItem onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/formation-info/${id}`); toast({ title: "Lien copié", description: "Le lien vers la page participant a été copié." }); }}>
@@ -184,9 +191,31 @@ const FormationDetailHeader = ({
             </div>
           )}
           {requiredEquipment && (
-            <div className="flex items-center gap-1.5 px-2 py-1 rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-700 text-amber-700 dark:text-amber-400 text-xs" title={requiredEquipment}>
-              <Package className="h-3.5 w-3.5 shrink-0" />
-              <span className="truncate max-w-[200px]">Matériel : {requiredEquipment}</span>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={training.equipment_ready}
+                title={training.equipment_ready ? "Matériel prêt" : `Matériel requis : ${requiredEquipment}`}
+              >
+                <Package className="h-4 w-4 mr-2" />Matériel
+              </Button>
+              <Checkbox
+                checked={training.equipment_ready}
+                onCheckedChange={async (checked) => {
+                  const newValue = checked === true;
+                  const { error } = await supabase.from("trainings").update({ equipment_ready: newValue } as any).eq("id", training.id);
+                  if (!error) {
+                    setTraining({ ...training, equipment_ready: newValue });
+                    toast({
+                      title: newValue ? "Matériel prêt" : "Matériel non prêt",
+                      description: newValue ? `Le matériel requis a été marqué comme prêt.` : "Le statut du matériel a été réinitialisé.",
+                    });
+                  }
+                }}
+                className="ml-1"
+                title={`Matériel requis : ${requiredEquipment}`}
+              />
             </div>
           )}
           <Button variant="outline" size="sm" onClick={() => window.open(`${window.location.origin}/formation-info/${id}`, "_blank")}>

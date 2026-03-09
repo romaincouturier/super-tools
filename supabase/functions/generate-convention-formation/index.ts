@@ -203,9 +203,13 @@ serve(async (req: Request): Promise<Response> => {
       );
     }
 
-    // Check max_participants is set
+    // Determine if this is intra (global convention) or inter/e-learning (per participant)
+    const isIntra = training.format_formation === "intra";
+    const isIndividualConvention = !isIntra; // inter-entreprises or e_learning
+
+    // Check max_participants is set (only required for intra conventions)
     const maxParticipants: number = training.max_participants || 0;
-    if (maxParticipants < 1) {
+    if (!isIndividualConvention && maxParticipants < 1) {
       return new Response(
         JSON.stringify({
           error: "Le nombre maximum de participants doit être configuré (minimum 1) avant de générer la convention. Modifiez la formation pour définir ce champ.",
@@ -213,10 +217,6 @@ serve(async (req: Request): Promise<Response> => {
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-
-    // Determine if this is intra (global convention) or inter/e-learning (per participant)
-    const isIntra = training.format_formation === "intra";
-    const isIndividualConvention = !isIntra; // inter-entreprises or e_learning
 
     // For inter/e-learning, participantId is required
     if (isIndividualConvention && !participantId) {
@@ -313,7 +313,7 @@ serve(async (req: Request): Promise<Response> => {
       ADRESSE: clientAddress,
       TITRE_FORMATION: training.training_name,
       FORMAT: getFormatLabel(training.format_formation, training.location),
-      PARTICIPANTS: isIndividualConvention ? "1" : maxParticipants.toString(),
+      PARTICIPANTS: maxParticipants > 0 ? maxParticipants.toString() : "1",
       URL_PROGRAMME_FORMATION: training.program_file_url || "",
       DATES: training.format_formation === "e_learning"
         ? `Du ${formatDateFrench(training.start_date)} au ${formatDateFrench(training.end_date || training.start_date)}`

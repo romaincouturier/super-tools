@@ -17,18 +17,29 @@ Deno.serve(async (req) => {
     const { trainingId } = await req.json();
     if (!trainingId) return createErrorResponse("trainingId is required", 400);
 
-    // Fetch communication manager email from settings
-    const { data: settingData } = await supabase
+    // Find communication manager by app_settings
+    const { data: setting } = await supabase
       .from("app_settings")
       .select("setting_value")
-      .eq("setting_key", "communication_manager_email")
+      .eq("setting_key", "communication_manager_user_id")
       .maybeSingle();
 
-    const managerEmail = settingData?.setting_value?.trim();
-    if (!managerEmail) {
-      console.log("No communication_manager_email configured, skipping notification");
-      return createJsonResponse({ skipped: true, reason: "no_email_configured" });
+    if (!setting?.setting_value) {
+      console.log("No communication manager configured in settings, skipping notification");
+      return createJsonResponse({ skipped: true, reason: "no_communication_manager_configured" });
     }
+
+    const { data: commManager } = await supabase
+      .from("profiles")
+      .select("email, first_name, last_name")
+      .eq("user_id", setting.setting_value)
+      .maybeSingle();
+
+    if (!commManager?.email) {
+      return createJsonResponse({ skipped: true, reason: "no_email_for_manager" });
+    }
+
+    const managerEmails = [commManager.email];
 
     // Fetch training details
     const { data: training, error: tErr } = await supabase
@@ -53,9 +64,12 @@ Deno.serve(async (req) => {
       ? new Date(training.start_date).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })
       : "Non définie";
 
+    const managerFirstName = commManager.first_name || ""; 
+
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #10b981;">🎉 Session complète !</h2>
+        <p>${managerFirstName ? `Bonjour ${managerFirstName},` : "Bonjour,"}</p>
         <p>La formation <strong>${training.training_name}</strong> a atteint son nombre maximum de participants.</p>
         <table style="border-collapse: collapse; margin: 16px 0; width: 100%;">
           <tr><td style="padding: 8px; border: 1px solid #e5e7eb; font-weight: bold;">Formation</td><td style="padding: 8px; border: 1px solid #e5e7eb;">${training.training_name}</td></tr>
@@ -69,7 +83,7 @@ Deno.serve(async (req) => {
     `;
 
     const result = await sendEmail({
-      to: managerEmail,
+      to: managerEmails,
       subject: `🎉 Session complète — ${training.training_name} (${startDate})`,
       html,
       bcc: bccList,
@@ -77,7 +91,7 @@ Deno.serve(async (req) => {
       _emailType: "session_full_notification",
     });
 
-    return createJsonResponse({ success: result.success, recipientEmail: managerEmail });
+    return createJsonResponse({ success: result.success, recipientEmails: managerEmails });
   } catch (error) {
     console.error("Error in notify-session-full:", error);
     return createErrorResponse(error.message || "Internal error");
