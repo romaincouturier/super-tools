@@ -17,21 +17,29 @@ Deno.serve(async (req) => {
     const { trainingId } = await req.json();
     if (!trainingId) return createErrorResponse("trainingId is required", 400);
 
-    // Find communication manager(s) by job_title
-    const { data: commManagers } = await supabase
+    // Find communication manager by app_settings
+    const { data: setting } = await supabase
+      .from("app_settings")
+      .select("setting_value")
+      .eq("setting_key", "communication_manager_user_id")
+      .maybeSingle();
+
+    if (!setting?.setting_value) {
+      console.log("No communication manager configured in settings, skipping notification");
+      return createJsonResponse({ skipped: true, reason: "no_communication_manager_configured" });
+    }
+
+    const { data: commManager } = await supabase
       .from("profiles")
-      .select("email, first_name, last_name, job_title")
-      .ilike("job_title", "%communication%");
+      .select("email, first_name, last_name")
+      .eq("user_id", setting.setting_value)
+      .maybeSingle();
 
-    if (!commManagers || commManagers.length === 0) {
-      console.log("No communication manager found in profiles, skipping notification");
-      return createJsonResponse({ skipped: true, reason: "no_communication_manager" });
+    if (!commManager?.email) {
+      return createJsonResponse({ skipped: true, reason: "no_email_for_manager" });
     }
 
-    const managerEmails = commManagers.map((m: any) => m.email).filter(Boolean);
-    if (managerEmails.length === 0) {
-      return createJsonResponse({ skipped: true, reason: "no_email" });
-    }
+    const managerEmails = [commManager.email];
 
     // Fetch training details
     const { data: training, error: tErr } = await supabase
@@ -56,7 +64,7 @@ Deno.serve(async (req) => {
       ? new Date(training.start_date).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })
       : "Non définie";
 
-    const managerFirstName = commManagers[0].first_name || ""; 
+    const managerFirstName = commManager.first_name || ""; 
 
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">

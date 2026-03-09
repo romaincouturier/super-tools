@@ -3,8 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Loader2, Users, Shield } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Loader2, Users, Shield, Megaphone } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { AppModule, MODULE_LABELS, ALL_MODULES } from "@/hooks/useModuleAccess";
 import OnboardCollaboratorDialog from "@/components/OnboardCollaboratorDialog";
@@ -13,7 +13,6 @@ interface UserWithAccess {
   id: string;
   email: string;
   displayName: string;
-  jobTitle: string;
   modules: AppModule[];
 }
 
@@ -21,11 +20,22 @@ export default function UserAccessManager() {
   const [users, setUsers] = useState<UserWithAccess[]>([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState<string | null>(null);
+  const [commManagerId, setCommManagerId] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
     fetchUsers();
+    fetchCommManager();
   }, []);
+
+  const fetchCommManager = async () => {
+    const { data } = await supabase
+      .from("app_settings")
+      .select("setting_value")
+      .eq("setting_key", "communication_manager_user_id")
+      .maybeSingle();
+    if (data?.setting_value) setCommManagerId(data.setting_value);
+  };
 
   const fetchUsers = async () => {
     try {
@@ -39,15 +49,14 @@ export default function UserAccessManager() {
 
       const { data: profilesData } = await supabase
         .from("profiles")
-        .select("user_id, email, display_name, first_name, last_name, job_title");
+        .select("user_id, email, display_name, first_name, last_name");
 
-      const profileMap = new Map<string, { email: string; first_name: string | null; last_name: string | null; job_title: string | null }>();
+      const profileMap = new Map<string, { email: string; first_name: string | null; last_name: string | null }>();
       (profilesData as any[] || []).forEach((p: any) => {
         profileMap.set(p.user_id, { 
           email: p.email, 
           first_name: p.first_name,
           last_name: p.last_name,
-          job_title: p.job_title || null,
         });
       });
 
@@ -70,7 +79,6 @@ export default function UserAccessManager() {
             id: userId,
             email: profile?.email || "",
             displayName,
-            jobTitle: profile?.job_title || "",
             modules,
           });
         }
@@ -145,25 +153,21 @@ export default function UserAccessManager() {
     }
   };
 
-  const updateJobTitle = async (userId: string, jobTitle: string) => {
+  const saveCommManager = async (userId: string) => {
     try {
       const { error } = await (supabase as any)
-        .from("profiles")
-        .update({ job_title: jobTitle.trim() || null })
-        .eq("user_id", userId);
-
+        .from("app_settings")
+        .upsert({ setting_key: "communication_manager_user_id", setting_value: userId, updated_at: new Date().toISOString() }, { onConflict: "setting_key" });
       if (error) throw error;
-
-      setUsers((prev) =>
-        prev.map((u) => u.id === userId ? { ...u, jobTitle } : u)
-      );
-    } catch (error) {
-      console.error("Error updating job title:", error);
+      setCommManagerId(userId);
+      const user = users.find(u => u.id === userId);
       toast({
-        title: "Erreur",
-        description: "Impossible de mettre à jour la fonction.",
-        variant: "destructive",
+        title: "Responsable communication défini",
+        description: `${user?.displayName || "Utilisateur"} recevra les notifications de sessions complètes.`,
       });
+    } catch (error) {
+      console.error("Error saving comm manager:", error);
+      toast({ title: "Erreur", description: "Impossible de sauvegarder.", variant: "destructive" });
     }
   };
 
@@ -186,10 +190,30 @@ export default function UserAccessManager() {
           <OnboardCollaboratorDialog isAdmin />
         </div>
         <CardDescription>
-          Gérez les accès aux différents modules et la fonction de chaque utilisateur.
+          Gérez les accès aux différents modules et définissez les rôles clés.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        {users.length > 0 && (
+          <div className="flex items-center gap-3 p-3 rounded-lg border border-primary/20 bg-primary/5">
+            <Megaphone className="h-5 w-5 text-primary shrink-0" />
+            <div className="flex items-center gap-2 flex-wrap">
+              <Label className="text-sm font-medium whitespace-nowrap">Responsable communication :</Label>
+              <Select value={commManagerId || ""} onValueChange={saveCommManager}>
+                <SelectTrigger className="h-8 w-[220px] text-sm">
+                  <SelectValue placeholder="Sélectionner..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {users.map((u) => (
+                    <SelectItem key={u.id} value={u.id}>{u.displayName}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <span className="text-xs text-muted-foreground">Reçoit les notifications de sessions complètes</span>
+            </div>
+          </div>
+        )}
+
         {users.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
             <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
@@ -202,16 +226,11 @@ export default function UserAccessManager() {
           <div className="space-y-4">
             {users.map((user) => (
               <div key={user.id} className="border rounded-lg p-4">
-                <div className="flex items-center gap-3 mb-3 flex-wrap">
+                <div className="flex items-center gap-3 mb-3">
                   <div className="font-medium">{user.displayName}</div>
-                  <div className="text-muted-foreground text-sm hidden sm:block">·</div>
-                  <Input
-                    value={user.jobTitle}
-                    onChange={(e) => setUsers((prev) => prev.map((u) => u.id === user.id ? { ...u, jobTitle: e.target.value } : u))}
-                    onBlur={(e) => updateJobTitle(user.id, e.target.value)}
-                    placeholder="Fonction (ex: Chargée de communication)"
-                    className="h-7 text-sm max-w-xs"
-                  />
+                  {commManagerId === user.id && (
+                    <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">📢 Resp. communication</span>
+                  )}
                 </div>
                 <div className="flex flex-wrap gap-x-6 gap-y-2">
                   {ALL_MODULES.map((module) => {
