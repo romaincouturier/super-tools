@@ -50,6 +50,7 @@ const CATEGORY_ORDER = [
 ];
 
 const CATEGORIES: Record<string, CategoryConfig> = {
+  elearning_groupe: { label: "Groupes privés e-learning", emoji: "💬", color: "text-indigo-600" },
   formations_facture: { label: "Factures à émettre", emoji: "🧾", color: "text-red-600" },
   missions_a_facturer: { label: "Factures missions", emoji: "💰", color: "text-green-600" },
   missions_sans_date: { label: "Missions sans date", emoji: "📅", color: "text-orange-600" },
