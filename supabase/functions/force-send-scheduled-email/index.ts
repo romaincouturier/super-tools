@@ -64,6 +64,17 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("Training not found");
     }
 
+    // Fetch required equipment from catalog if linked
+    let requiredEquipment = "";
+    if (training.catalog_id) {
+      const { data: catalogData } = await supabase
+        .from("formation_configs")
+        .select("required_equipment")
+        .eq("id", training.catalog_id)
+        .maybeSingle();
+      requiredEquipment = catalogData?.required_equipment || "";
+    }
+
     // Get participant if applicable
     let participant = null;
     if (scheduledEmail.participant_id) {
