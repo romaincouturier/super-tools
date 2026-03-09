@@ -19,6 +19,7 @@ import {
 } from "../_shared/cors.ts";
 import { sendEmail } from "../_shared/resend.ts";
 import { getSenderEmail } from "../_shared/email-settings.ts";
+import { getBccList } from "../_shared/email-settings.ts";
 
 // ─── Tables to backup ───────────────────────────────────────────────────────
 
@@ -997,6 +998,7 @@ serve(async (req) => {
 
     // ── Send email notification ──
     const adminEmail = await getSenderEmail();
+    const bccList = await getBccList();
     const statusEmoji = success ? "✅" : "⚠️";
     const statusText = success ? "réussie" : "avec des erreurs";
 
@@ -1009,6 +1011,7 @@ serve(async (req) => {
 
     await sendEmail({
       to: adminEmail,
+      bcc: bccList.filter(e => e !== adminEmail),
       subject: `${statusEmoji} Sauvegarde SuperTools ${today} ${statusText}`,
       html: `
         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
@@ -1121,8 +1124,10 @@ serve(async (req) => {
     // Try to send failure notification
     try {
       const adminEmail = await getSenderEmail();
+      const bccList = await getBccList();
       await sendEmail({
         to: adminEmail,
+        bcc: bccList.filter(e => e !== adminEmail),
         subject: `❌ ÉCHEC sauvegarde SuperTools ${new Date().toISOString().split("T")[0]}`,
         html: `
           <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
