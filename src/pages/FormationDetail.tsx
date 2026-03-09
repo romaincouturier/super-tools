@@ -46,6 +46,7 @@ const FormationDetail = () => {
           toast={fd.toast}
           setMapDialogOpen={fd.setMapDialogOpen}
           setDuplicateDialogOpen={fd.setDuplicateDialogOpen}
+          requiredEquipment={fd.catalogRequiredEquipment}
         />
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">

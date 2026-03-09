@@ -88,6 +88,7 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
   const [programmeUrl, setProgrammeUrl] = useState("");
   const [supportsUrl, setSupportsUrl] = useState("");
   const [supertiltLink, setSupertiltLink] = useState("");
+  const [requiredEquipment, setRequiredEquipment] = useState("");
   const [objectives, setObjectives] = useState<string[]>([]);
   const [prerequisites, setPrerequisites] = useState<string[]>([]);
   const [elearningDuration, setElearningDuration] = useState("");
@@ -118,7 +119,7 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
   // Always keep latest values in ref
   formValuesRef.current = {
     formationName, description, prix, dureeHeures, programmeUrl, supportsUrl,
-    supertiltLink, objectives, prerequisites, elearningDuration,
+    supertiltLink, requiredEquipment, objectives, prerequisites, elearningDuration,
     elearningAccessEmailContent, woocommerceProductId, isActive,
     formulas,
   };
@@ -127,7 +128,7 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
   const activeFormulas = formulas.filter((f) => !f._deleted);
   const formHash = JSON.stringify({
     formationName, description, prix, dureeHeures, programmeUrl, supportsUrl,
-    supertiltLink, objectives, prerequisites, elearningDuration,
+    supertiltLink, requiredEquipment, objectives, prerequisites, elearningDuration,
     elearningAccessEmailContent, woocommerceProductId, isActive,
     fml: activeFormulas.map(f => `${f.id || ""}|${f.name}|${f.duree_heures}|${f.prix}|${f.woocommerce_product_id}|${f.learndash_course_id}|${f.supports_url}|${f.elearning_access_email_content}`),
   });
@@ -137,6 +138,7 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
     const v = formValuesRef.current as {
       formationName: string; description: string; prix: string; dureeHeures: string;
       programmeUrl: string; supportsUrl: string; supertiltLink: string;
+      requiredEquipment: string;
       objectives: string[]; prerequisites: string[]; elearningDuration: string;
       elearningAccessEmailContent: string; woocommerceProductId: string;
       isActive: boolean; formulas: FormulaEdit[];
@@ -152,6 +154,7 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
       programme_url: v.programmeUrl.trim() || null,
       supports_url: v.supportsUrl.trim() || null,
       supertilt_link: v.supertiltLink.trim() || null,
+      required_equipment: v.requiredEquipment.trim() || null,
       objectives: v.objectives,
       prerequisites: v.prerequisites,
       elearning_duration: v.elearningDuration ? parseFloat(v.elearningDuration) : null,
@@ -267,7 +270,8 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
         setDureeHeures(String(entry.duree_heures || ""));
         setProgrammeUrl(entry.programme_url || "");
         setSupportsUrl(entry.supports_url || "");
-        setSupertiltLink(entry.supertilt_link || "");
+        setSupertiltLink((entry as any).supertilt_link || "");
+        setRequiredEquipment((entry as any).required_equipment || "");
         setObjectives(entry.objectives || []);
         setPrerequisites(entry.prerequisites || []);
         setElearningDuration(entry.elearning_duration ? String(entry.elearning_duration) : "");
@@ -293,6 +297,7 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
         setProgrammeUrl("");
         setSupportsUrl("");
         setSupertiltLink("");
+        setRequiredEquipment("");
         setObjectives([]);
         setPrerequisites([]);
         setElearningDuration("");
@@ -340,6 +345,7 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
         programme_url: programmeUrl.trim() || null,
         supports_url: supportsUrl.trim() || null,
         supertilt_link: supertiltLink.trim() || null,
+        required_equipment: requiredEquipment.trim() || null,
         objectives,
         prerequisites,
         elearning_duration: elearningDuration ? parseFloat(elearningDuration) : null,
@@ -741,6 +747,20 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
                     onChange={(e) => setSupertiltLink(e.target.value)}
                     placeholder="https://supertilt.fr/..."
                   />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="requiredEquipment">Matériel obligatoire</Label>
+                  <Textarea
+                    id="requiredEquipment"
+                    value={requiredEquipment}
+                    onChange={(e) => setRequiredEquipment(e.target.value)}
+                    placeholder="Ex: Ordinateur portable avec webcam, casque audio, feutres de couleur..."
+                    rows={2}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Si renseigné, le matériel sera affiché dans la checklist logistique de chaque session.
+                  </p>
                 </div>
               </AccordionContent>
             </AccordionItem>

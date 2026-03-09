@@ -108,6 +108,7 @@ export function useFormationDetail() {
   const [thankYouSentAt, setThankYouSentAt] = useState<string | null>(null);
   const [assignedUserName, setAssignedUserName] = useState<string | null>(null);
   const [availableFormulas, setAvailableFormulas] = useState<FormationFormula[]>([]);
+  const [catalogRequiredEquipment, setCatalogRequiredEquipment] = useState<string | null>(null);
   const [duplicateDialogOpen, setDuplicateDialogOpen] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -188,14 +189,23 @@ export function useFormationDetail() {
     setNotesChanged(false);
 
     if ((trainingData as any).catalog_id) {
-      const { data: formulasData } = await supabase
-        .from("formation_formulas")
-        .select("*")
-        .eq("formation_config_id", (trainingData as any).catalog_id)
-        .order("display_order");
+      const [{ data: formulasData }, { data: catalogData }] = await Promise.all([
+        supabase
+          .from("formation_formulas")
+          .select("*")
+          .eq("formation_config_id", (trainingData as any).catalog_id)
+          .order("display_order"),
+        supabase
+          .from("formation_configs")
+          .select("required_equipment")
+          .eq("id", (trainingData as any).catalog_id)
+          .maybeSingle(),
+      ]);
       setAvailableFormulas((formulasData as FormationFormula[]) || []);
+      setCatalogRequiredEquipment((catalogData as any)?.required_equipment || null);
     } else {
       setAvailableFormulas([]);
+      setCatalogRequiredEquipment(null);
     }
 
     if ((trainingData as any).assigned_to) {
@@ -549,6 +559,7 @@ export function useFormationDetail() {
     thankYouSentAt,
     assignedUserName,
     availableFormulas,
+    catalogRequiredEquipment,
     duplicateDialogOpen,
     setDuplicateDialogOpen,
     navigate,
