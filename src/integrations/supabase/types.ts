@@ -3990,6 +3990,7 @@ export type Database = {
           first_name: string | null
           id: string
           is_admin: boolean
+          job_title: string | null
           last_name: string | null
           org_id: string | null
           updated_at: string
@@ -4002,6 +4003,7 @@ export type Database = {
           first_name?: string | null
           id?: string
           is_admin?: boolean
+          job_title?: string | null
           last_name?: string | null
           org_id?: string | null
           updated_at?: string
@@ -4014,6 +4016,7 @@ export type Database = {
           first_name?: string | null
           id?: string
           is_admin?: boolean
+          job_title?: string | null
           last_name?: string | null
           org_id?: string | null
           updated_at?: string
