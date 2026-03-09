@@ -154,6 +154,7 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
       programme_url: v.programmeUrl.trim() || null,
       supports_url: v.supportsUrl.trim() || null,
       supertilt_link: v.supertiltLink.trim() || null,
+      required_equipment: v.requiredEquipment.trim() || null,
       objectives: v.objectives,
       prerequisites: v.prerequisites,
       elearning_duration: v.elearningDuration ? parseFloat(v.elearningDuration) : null,
