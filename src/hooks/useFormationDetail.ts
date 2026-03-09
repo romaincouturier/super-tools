@@ -189,14 +189,23 @@ export function useFormationDetail() {
     setNotesChanged(false);
 
     if ((trainingData as any).catalog_id) {
-      const { data: formulasData } = await supabase
-        .from("formation_formulas")
-        .select("*")
-        .eq("formation_config_id", (trainingData as any).catalog_id)
-        .order("display_order");
+      const [{ data: formulasData }, { data: catalogData }] = await Promise.all([
+        supabase
+          .from("formation_formulas")
+          .select("*")
+          .eq("formation_config_id", (trainingData as any).catalog_id)
+          .order("display_order"),
+        supabase
+          .from("formation_configs")
+          .select("required_equipment")
+          .eq("id", (trainingData as any).catalog_id)
+          .maybeSingle(),
+      ]);
       setAvailableFormulas((formulasData as FormationFormula[]) || []);
+      setCatalogRequiredEquipment((catalogData as any)?.required_equipment || null);
     } else {
       setAvailableFormulas([]);
+      setCatalogRequiredEquipment(null);
     }
 
     if ((trainingData as any).assigned_to) {
