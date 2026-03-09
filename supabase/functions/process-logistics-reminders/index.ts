@@ -200,24 +200,23 @@ serve(async (req) => {
     console.log(`[${VERSION}] OKR initiatives actives: ${okrInitiativeAlerts.length}`);
 
     // ════════════════════════════════════════════
-    // 0c. RÉSERVATIONS HÔTEL/TRAIN (2 mois avant)
+    // 0c. RÉSERVATIONS (J-60, rappel quotidien)
     // ════════════════════════════════════════════
-    const twoMonthsLater = new Date(todayDate);
-    twoMonthsLater.setMonth(twoMonthsLater.getMonth() + 2);
-    const twoMonthsStr = twoMonthsLater.toISOString().split("T")[0];
-    const twoMonthsMinus3 = new Date(twoMonthsLater);
-    twoMonthsMinus3.setDate(twoMonthsMinus3.getDate() - 3);
-    const twoMonthsMinus3Str = twoMonthsMinus3.toISOString().split("T")[0];
+    const sixtyDaysLater = new Date(todayDate);
+    sixtyDaysLater.setDate(sixtyDaysLater.getDate() + 60);
+    const sixtyDaysStr = sixtyDaysLater.toISOString().split("T")[0];
 
     const reservationAlerts: GenericAlert[] = [];
+
+    // Missions
     const { data: missionsNeedingBooking } = await supabase
       .from("missions")
       .select("id, title, client_name, location, start_date, train_booked, hotel_booked, assigned_to, emoji")
       .not("location", "is", null)
       .not("start_date", "is", null)
-      .gte("start_date", twoMonthsMinus3Str)
-      .lte("start_date", twoMonthsStr)
-      .in("status", ["pending", "in_progress"]);
+      .gte("start_date", today)
+      .lte("start_date", sixtyDaysStr)
+      .in("status", ["pending", "in_progress", "not_started"]);
 
     if (missionsNeedingBooking) {
       for (const m of missionsNeedingBooking) {
@@ -238,6 +237,41 @@ serve(async (req) => {
       }
     }
     console.log(`[${VERSION}] Réservations missions: ${reservationAlerts.length}`);
+
+    // Formations
+    const { data: trainingsNeedingBooking } = await supabase
+      .from("trainings")
+      .select("id, training_name, location, start_date, train_booked, hotel_booked, restaurant_booked, room_rental_booked, equipment_ready, format_formation, session_type, assigned_to")
+      .not("start_date", "is", null)
+      .gte("start_date", today)
+      .lte("start_date", sixtyDaysStr);
+
+    if (trainingsNeedingBooking) {
+      for (const t of trainingsNeedingBooking) {
+        const hasLocation = t.location?.trim();
+        const isPresentiel = t.format_formation !== "e_learning" && t.format_formation !== "classe_virtuelle";
+        const isInter = t.format_formation === "inter-entreprises" || t.session_type === "inter";
+
+        const items: string[] = [];
+        if (isPresentiel && hasLocation) {
+          if (!t.train_booked) items.push("🚄 Train");
+          if (!t.hotel_booked) items.push("🏨 Hôtel");
+          if (isInter && !t.restaurant_booked) items.push("🍽️ Restaurant");
+          if (!t.room_rental_booked) items.push("🚪 Salle");
+        }
+        if (!t.equipment_ready) items.push("📦 Matériel");
+
+        if (items.length === 0) continue;
+
+        const startFormatted = new Date(t.start_date).toLocaleDateString("fr-FR", { day: "numeric", month: "long" });
+
+        reservationAlerts.push({
+          assignedTo: t.assigned_to,
+          html: `<li><a href="${appUrl}/formations/${t.id}" style="color: ${COLORS.primary}; text-decoration: underline;">🎓 ${t.training_name}</a> — ${items.join(" + ")} à réserver — ${hasLocation ? t.location + " " : ""}(${startFormatted})</li>`,
+        });
+      }
+    }
+    console.log(`[${VERSION}] Réservations formations: ${trainingsNeedingBooking?.length || 0}`);
 
     // ════════════════════════════════════════════
     // 1. MISSIONS À FACTURER
