@@ -98,7 +98,7 @@ serve(async (req) => {
     // 1. MISSIONS À FACTURER (filtered by assigned_to)
     const { data: missionsToInvoice } = await supabase
       .from("missions")
-      .select("id, title, client_name, consumed_amount, billed_amount, emoji, assigned_to")
+      .select("id, title, client_name, consumed_amount, billed_amount, emoji, assigned_to, waiting_next_action_date")
       .in("status", ["in_progress", "completed"]);
 
     if (missionsToInvoice) {
@@ -106,6 +106,8 @@ serve(async (req) => {
         const consumed = Number(m.consumed_amount) || 0;
         const billed = Number(m.billed_amount) || 0;
         if (consumed <= 0 || billed >= consumed) continue;
+        // Skip missions with a future scheduled action
+        if (m.waiting_next_action_date && m.waiting_next_action_date > today) continue;
         const remaining = consumed - billed;
         const label = m.client_name ? `${m.client_name} — ${m.title}` : m.title;
         const emoji = m.emoji ? `${m.emoji} ` : "";
@@ -125,7 +127,7 @@ serve(async (req) => {
     // 1b. MISSIONS SANS DATE DE DÉBUT (filtered by assigned_to)
     const { data: missionsNoStartDate } = await supabase
       .from("missions")
-      .select("id, title, client_name, emoji, assigned_to")
+      .select("id, title, client_name, emoji, assigned_to, waiting_next_action_date")
       .in("status", ["not_started", "in_progress"])
       .is("start_date", null);
 
@@ -133,6 +135,8 @@ serve(async (req) => {
       for (const m of missionsNoStartDate) {
         const label = m.client_name ? `${m.client_name} — ${m.title}` : m.title;
         const emoji = m.emoji ? `${m.emoji} ` : "";
+        // Skip missions with a future scheduled action
+        if (m.waiting_next_action_date && m.waiting_next_action_date > today) continue;
         perUserActions.push({
           category: "missions_sans_date",
           title: `${emoji}${label}`,

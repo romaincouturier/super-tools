@@ -171,6 +171,8 @@ function makeMission(overrides: Partial<Mission> = {}): Mission {
     location: null,
     train_booked: false,
     hotel_booked: false,
+    waiting_next_action_date: null,
+    waiting_next_action_text: null,
     created_at: "2025-01-01T00:00:00Z",
     updated_at: "2025-02-01T00:00:00Z",
     created_by: "user-1",

@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Trash2, Loader2, X, Plus, Clock, FileText, Settings, ImageIcon, Share2, Check, Sparkles, MapPin, FolderOpen, CheckCircle2, Package } from "lucide-react";
+import { Trash2, Loader2, X, Plus, Clock, FileText, Settings, ImageIcon, Share2, Check, Sparkles, MapPin, FolderOpen, CheckCircle2, Package, Calendar } from "lucide-react";
 import { Mission, MissionStatus, missionStatusConfig } from "@/types/missions";
 import { useUpdateMission, useDeleteMission } from "@/hooks/useMissions";
 import { useToast } from "@/hooks/use-toast";
@@ -27,6 +27,8 @@ import EntityDocumentsManager from "@/components/shared/EntityDocumentsManager";
 import MissionActionsManager from "./MissionActionsManager";
 import SendDeliverablesDialog from "./SendDeliverablesDialog";
 import AssignedUserSelector from "@/components/formations/AssignedUserSelector";
+import NextActionScheduler from "@/components/shared/NextActionScheduler";
+import { startOfDay, isAfter } from "date-fns";
 
 interface MissionDetailDrawerProps {
   mission: Mission | null;
@@ -109,6 +111,9 @@ const MissionDetailDrawer = ({
   const [activeTab, setActiveTab] = useState("activities");
   const [activityPageRequest, setActivityPageRequest] = useState<{ activityId: string; description: string } | null>(null);
   const [assignedTo, setAssignedTo] = useState<string | null>(null);
+  const [scheduledDate, setScheduledDate] = useState("");
+  const [scheduledText, setScheduledText] = useState("");
+  const [showScheduleForm, setShowScheduleForm] = useState(false);
 
   // Initialize form when mission changes
   useEffect(() => {
@@ -131,6 +136,9 @@ const MissionDetailDrawer = ({
       setTrainBooked(mission.train_booked ?? false);
       setHotelBooked(mission.hotel_booked ?? false);
       setAssignedTo(mission.assigned_to || null);
+      setScheduledDate(mission.waiting_next_action_date || "");
+      setScheduledText(mission.waiting_next_action_text || "");
+      setShowScheduleForm(false);
     }
   }, [mission]);
 
@@ -176,6 +184,8 @@ const MissionDetailDrawer = ({
         emoji: missionEmoji,
         location: location.trim() || null,
         assigned_to: assignedTo,
+        waiting_next_action_date: scheduledDate || null,
+        waiting_next_action_text: scheduledText.trim() || null,
       },
     };
 
@@ -189,7 +199,7 @@ const MissionDetailDrawer = ({
     }, 800);
 
     return () => { if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current); };
-  }, [title, description, clientName, status, startDate, endDate, dailyRate, totalDays, initialAmount, tags, color, missionEmoji, location, assignedTo]);
+  }, [title, description, clientName, status, startDate, endDate, dailyRate, totalDays, initialAmount, tags, color, missionEmoji, location, assignedTo, scheduledDate, scheduledText]);
 
   const handleDelete = async () => {
     if (!mission) return;
@@ -233,6 +243,9 @@ const MissionDetailDrawer = ({
       >
         {aiSummaryLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
       </Button>
+      <Button size="sm" variant="outline" onClick={() => setShowScheduleForm(true)} title="Programmer une action">
+        <Calendar className="h-4 w-4" />
+      </Button>
       <Button size="sm" variant="outline" onClick={() => setShowDeliverables(true)} title="Envoyer les livrables">
         <Package className="h-4 w-4" />
       </Button>
@@ -250,6 +263,34 @@ const MissionDetailDrawer = ({
       actions={headerActions}
       contentClassName="overflow-y-auto sm:max-w-5xl"
     >
+        {/* Next Action Scheduler */}
+        <div className="mt-3">
+          <NextActionScheduler
+            currentAction={{
+              date: mission.waiting_next_action_date,
+              text: mission.waiting_next_action_text,
+            }}
+            scheduledDate={scheduledDate}
+            setScheduledDate={setScheduledDate}
+            scheduledText={scheduledText}
+            setScheduledText={setScheduledText}
+            showForm={showScheduleForm}
+            setShowForm={setShowScheduleForm}
+            onSchedule={async () => {
+              if (!scheduledDate || !scheduledText.trim()) return;
+              const selectedDate = startOfDay(new Date(scheduledDate));
+              const today = startOfDay(new Date());
+              if (!isAfter(selectedDate, today)) return;
+              // Autosave will pick it up via scheduledDate/scheduledText state
+            }}
+            onClear={() => {
+              setScheduledDate("");
+              setScheduledText("");
+            }}
+            saving={updateMission.isPending}
+            actionPresets={["Relancer le client", "Appeler", "Préparer les livrables", "RDV physique", "RDV visio", "Envoyer un document"]}
+          />
+        </div>
 
         {/* AI Mission Summary Panel */}
         {aiSummary && (
