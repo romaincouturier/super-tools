@@ -40,7 +40,7 @@ const Auth = () => {
           if (metadata?.must_change_password) {
             navigate("/force-password-change");
           } else {
-            navigate("/");
+            navigate("/dashboard");
           }
         }
       }
@@ -58,7 +58,7 @@ const Auth = () => {
         if (metadata?.must_change_password) {
           navigate("/force-password-change");
         } else {
-          navigate("/");
+          navigate("/dashboard");
         }
       }
     });

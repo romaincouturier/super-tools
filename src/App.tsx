@@ -10,6 +10,7 @@ import { ChatbotProvider } from "@/components/chatbot/ChatbotProvider";
 import { GlobalChunkErrorHandler } from "@/components/GlobalChunkErrorHandler";
 import { RouteErrorBoundary } from "@/components/RouteErrorBoundary";
 import { lazyWithRetry } from "@/lib/lazyWithRetry";
+import "@/i18n";
 import { createIDBPersister } from "@/lib/queryPersister";
 import OfflineBanner from "@/components/OfflineBanner";
 
@@ -62,6 +63,16 @@ const ReclamationPublic = lazyWithRetry(() => import("./pages/ReclamationPublic"
 const TrainerEvaluation = lazyWithRetry(() => import("./pages/TrainerEvaluation"));
 const Reclamations = lazyWithRetry(() => import("./pages/Reclamations"));
 const NotFound = lazyWithRetry(() => import("./pages/NotFound"));
+const Admin = lazyWithRetry(() => import("./pages/Admin"));
+const Landing = lazyWithRetry(() => import("./pages/Landing"));
+const Signup = lazyWithRetry(() => import("./pages/Signup"));
+const Onboarding = lazyWithRetry(() => import("./pages/Onboarding"));
+const LearnerAccess = lazyWithRetry(() => import("./pages/LearnerAccess"));
+const LearnerPortal = lazyWithRetry(() => import("./pages/LearnerPortal"));
+const AiTools = lazyWithRetry(() => import("./pages/AiTools"));
+const LmsCourses = lazyWithRetry(() => import("./pages/LmsCourses"));
+const LmsCourseBuilder = lazyWithRetry(() => import("./pages/LmsCourseBuilder"));
+const LmsCoursePlayer = lazyWithRetry(() => import("./pages/LmsCoursePlayer"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -96,7 +107,8 @@ const App = () => (
         <Suspense fallback={<PageLoader />}>
           <RouteErrorBoundary>
             <Routes>
-              <Route path="/" element={<Dashboard />} />
+              <Route path="/" element={<Landing />} />
+              <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/certificates" element={<CertificateGenerator />} />
               <Route path="/micro-devis" element={<MicroDevis />} />
               <Route path="/historique" element={<Historique />} />
@@ -139,6 +151,12 @@ const App = () => (
               <Route path="/monitoring" element={<Monitoring />} />
               {/* Training catalog */}
               <Route path="/catalogue" element={<Catalogue />} />
+              {/* AI Tools (M4) */}
+              <Route path="/ia" element={<AiTools />} />
+              {/* LMS (M7) */}
+              <Route path="/lms" element={<LmsCourses />} />
+              <Route path="/lms/:courseId" element={<LmsCourseBuilder />} />
+              <Route path="/lms/:courseId/player" element={<LmsCoursePlayer />} />
               {/* Failed emails */}
               <Route path="/emails-erreur" element={<FailedEmails />} />
               {/* Public needs survey */}
@@ -162,12 +180,19 @@ const App = () => (
               {/* Privacy policy */}
               <Route path="/politique-confidentialite" element={<PolitiqueConfidentialite />} />
               <Route path="/auth" element={<Auth />} />
+              <Route path="/signup" element={<Signup />} />
+              <Route path="/onboarding" element={<Onboarding />} />
+              {/* Learner portal (M3) */}
+              <Route path="/apprenant" element={<LearnerAccess />} />
+              <Route path="/espace-apprenant" element={<LearnerPortal />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/force-password-change" element={<ForcePasswordChange />} />
               {/* AI Arena */}
               <Route path="/arena" element={<ArenaSetup />} />
               <Route path="/arena/discussion" element={<ArenaDiscussion />} />
               <Route path="/arena/results" element={<ArenaResults />} />
+              {/* Super Admin */}
+              <Route path="/admin" element={<Admin />} />
               {/* Reclamations */}
               <Route path="/reclamation/:token" element={<ReclamationPublic />} />
               <Route path="/reclamations" element={<Reclamations />} />

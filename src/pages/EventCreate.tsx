@@ -19,6 +19,7 @@ const INITIAL_VALUES: EventFormValues = {
   cfpDeadline: "",
   eventUrl: "",
   cfpUrl: "",
+  privateGroupUrl: "",
 };
 
 const EventCreate = () => {
@@ -43,6 +44,7 @@ const EventCreate = () => {
     }
 
     const isExternal = values.eventType === "external";
+    const isInternalVisio = values.eventType === "internal" && values.locationType === "visio";
     try {
       const event = await createEvent.mutateAsync({
         title: values.title.trim(),
@@ -59,7 +61,8 @@ const EventCreate = () => {
         status: "active",
         assigned_to: null,
         cancellation_reason: null,
-      });
+        ...(isInternalVisio && values.privateGroupUrl.trim() ? { private_group_url: values.privateGroupUrl.trim() } : {}),
+      } as any);
       toast({ title: "Événement créé" });
       navigate(`/events/${event.id}`);
     } catch (error) {

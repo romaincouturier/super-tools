@@ -43,6 +43,7 @@ const EventEdit = () => {
     cfpDeadline: "",
     eventUrl: "",
     cfpUrl: "",
+    privateGroupUrl: "",
   });
 
   // For change detection
@@ -68,6 +69,7 @@ const EventEdit = () => {
         cfpDeadline: event.cfp_deadline || "",
         eventUrl: event.event_url || "",
         cfpUrl: event.cfp_url || "",
+        privateGroupUrl: (event as any).private_group_url || "",
       };
       setValues(mapped);
       setAssignedTo(event.assigned_to || null);
@@ -105,6 +107,7 @@ const EventEdit = () => {
 
   const buildNewValues = () => {
     const isExternal = values.eventType === "external";
+    const isInternalVisio = values.eventType === "internal" && values.locationType === "visio";
     return {
       title: values.title.trim(),
       description: values.description.trim() || null,
@@ -116,6 +119,7 @@ const EventEdit = () => {
       cfp_deadline: isExternal && values.cfpDeadline ? values.cfpDeadline : null,
       event_url: isExternal && values.eventUrl.trim() ? values.eventUrl.trim() : null,
       cfp_url: isExternal && values.cfpUrl.trim() ? values.cfpUrl.trim() : null,
+      private_group_url: isInternalVisio && values.privateGroupUrl.trim() ? values.privateGroupUrl.trim() : null,
       assigned_to: assignedTo,
     };
   };

@@ -34,6 +34,9 @@ interface CategoryConfig {
 
 // Display order for categories (matches daily digest email order)
 const CATEGORY_ORDER = [
+  "elearning_groupe",
+  "okr_initiatives",
+  "reservations_mission",
   "formations_facture",
   "cfp_soumettre",
   "missions_a_facturer",
@@ -49,6 +52,9 @@ const CATEGORY_ORDER = [
 ];
 
 const CATEGORIES: Record<string, CategoryConfig> = {
+  elearning_groupe: { label: "Groupes privés e-learning", emoji: "💬", color: "text-indigo-600" },
+  okr_initiatives: { label: "Initiatives OKR", emoji: "🎯", color: "text-emerald-600" },
+  reservations_mission: { label: "Réservations à faire", emoji: "🚄", color: "text-sky-600" },
   formations_facture: { label: "Factures à émettre", emoji: "🧾", color: "text-red-600" },
   missions_a_facturer: { label: "Factures missions", emoji: "💰", color: "text-green-600" },
   missions_sans_date: { label: "Missions sans date", emoji: "📅", color: "text-orange-600" },
@@ -367,11 +373,16 @@ const DailyTodoPanel = () => {
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              try {
-                                const url = new URL(action.link!, window.location.origin);
-                                navigate(url.pathname);
-                              } catch {
-                                navigate(action.link!);
+                              // External URLs (http/https) open in new tab
+                              if (action.link!.startsWith("http")) {
+                                window.open(action.link!, "_blank", "noopener,noreferrer");
+                              } else {
+                                try {
+                                  const url = new URL(action.link!, window.location.origin);
+                                  navigate(url.pathname);
+                                } catch {
+                                  navigate(action.link!);
+                                }
                               }
                             }}
                             className="shrink-0 p-1 rounded hover:bg-muted transition-colors"

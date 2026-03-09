@@ -1,4 +1,4 @@
-import { ArrowLeft, ExternalLink, Edit2, Map, Train, Hotel, UtensilsCrossed, DoorOpen, Copy, MoreHorizontal } from "lucide-react";
+import { ArrowLeft, ExternalLink, Edit2, Map, Train, Hotel, UtensilsCrossed, DoorOpen, Copy, MoreHorizontal, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -24,6 +24,7 @@ interface Props {
   toast: (opts: any) => void;
   setMapDialogOpen: (v: boolean) => void;
   setDuplicateDialogOpen: (v: boolean) => void;
+  requiredEquipment?: string | null;
 }
 
 const FormationDetailHeader = ({
@@ -39,6 +40,7 @@ const FormationDetailHeader = ({
   toast,
   setMapDialogOpen,
   setDuplicateDialogOpen,
+  requiredEquipment,
 }: Props) => {
   const isOnline = training.location?.toLowerCase().includes("visio") ||
     training.location?.toLowerCase().includes("en ligne") ||
@@ -96,6 +98,11 @@ const FormationDetailHeader = ({
               {isPresentiel && (isInterSession || training.session_type === "intra" || training.format_formation === "intra") && (
                 <DropdownMenuItem onClick={() => { if (!training.room_rental_booked) window.open(`https://www.google.com/maps/search/location+salle+reunion+near+${encodeURIComponent(training.location)}`, "_blank"); }} disabled={training.room_rental_booked}>
                   <DoorOpen className="h-4 w-4 mr-2" />Salle {training.room_rental_booked && "✓"}
+                </DropdownMenuItem>
+              )}
+              {requiredEquipment && (
+                <DropdownMenuItem className="text-amber-600" onClick={() => {}}>
+                  <Package className="h-4 w-4 mr-2" />Matériel requis
                 </DropdownMenuItem>
               )}
               <DropdownMenuItem onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/formation-info/${id}`); toast({ title: "Lien copié", description: "Le lien vers la page participant a été copié." }); }}>
@@ -174,6 +181,12 @@ const FormationDetailHeader = ({
                 className="ml-1"
                 title="Marquer la location comme effectuée"
               />
+            </div>
+          )}
+          {requiredEquipment && (
+            <div className="flex items-center gap-1.5 px-2 py-1 rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-700 text-amber-700 dark:text-amber-400 text-xs" title={requiredEquipment}>
+              <Package className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate max-w-[200px]">Matériel : {requiredEquipment}</span>
             </div>
           )}
           <Button variant="outline" size="sm" onClick={() => window.open(`${window.location.origin}/formation-info/${id}`, "_blank")}>

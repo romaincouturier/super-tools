@@ -62,17 +62,28 @@ export function ChatbotWidget() {
     setIsLoading(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke("chatbot-query", {
+      // Try RAG chatbot first, fallback to basic chatbot-query
+      let responseData;
+      const { data: ragData, error: ragError } = await supabase.functions.invoke("rag-chatbot", {
         body: { question: userMessage.content },
       });
-
-      if (error) throw error;
+      
+      if (ragError) {
+        // Fallback to basic chatbot
+        const { data, error } = await supabase.functions.invoke("chatbot-query", {
+          body: { question: userMessage.content },
+        });
+        if (error) throw error;
+        responseData = data;
+      } else {
+        responseData = ragData;
+      }
 
       const assistantMessage: Message = {
         id: crypto.randomUUID(),
         role: "assistant",
-        content: data.answer,
-        sources: data.sources,
+        content: responseData.answer,
+        sources: responseData.sources,
         timestamp: new Date(),
       };
 

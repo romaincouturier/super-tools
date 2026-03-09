@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { closestCenter } from "@dnd-kit/core";
 import { Plus, Search, X } from "lucide-react";
+import { startOfDay, isAfter } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Mission, MissionStatus, missionStatusConfig } from "@/types/missions";
@@ -75,6 +76,13 @@ const MissionsKanbanBoard = ({ prefillFromCrm, onPrefillConsumed, openMissionId 
   const missions = data || [];
   const normalizedSearch = searchTerm.toLowerCase().trim();
 
+  const isScheduledInFuture = (m: Mission): boolean => {
+    if (!m.waiting_next_action_date) return false;
+    const scheduledDate = startOfDay(new Date(m.waiting_next_action_date));
+    const today = startOfDay(new Date());
+    return isAfter(scheduledDate, today);
+  };
+
   const cards: MissionKanbanCard[] = useMemo(() => {
     let filtered = missions;
     if (normalizedSearch) {
@@ -85,6 +93,11 @@ const MissionsKanbanBoard = ({ prefillFromCrm, onPrefillConsumed, openMissionId 
         return title.includes(normalizedSearch) || client.includes(normalizedSearch) || tags.includes(normalizedSearch);
       });
     }
+    // Hide missions with a future scheduled action only when not searching
+    if (!normalizedSearch) {
+      filtered = filtered.filter((m) => !isScheduledInFuture(m));
+    }
+
     return filtered.map((m) => ({
       ...m,
       columnId: m.status,

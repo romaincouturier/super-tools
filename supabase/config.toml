@@ -221,3 +221,72 @@ verify_jwt = false
 
 [functions.analyze-voice-review]
 verify_jwt = false
+
+[functions.send-learner-magic-link]
+verify_jwt = false
+
+[functions.rag-chatbot]
+verify_jwt = false
+
+[functions.summarize-coaching]
+verify_jwt = false
+
+[functions.send-mission-deliverables]
+verify_jwt = false
+
+[functions.send-trainer-evaluation-email]
+verify_jwt = false
+
+[functions.send-event-update-email]
+verify_jwt = false
+
+[functions.stripe-checkout]
+verify_jwt = false
+
+[functions.stripe-portal]
+verify_jwt = false
+
+[functions.stripe-webhook]
+verify_jwt = false
+
+[functions.process-today-reminders]
+verify_jwt = false
+
+[functions.generate-training-program]
+verify_jwt = false
+
+[functions.generate-quiz]
+verify_jwt = false
+
+[functions.generate-mission-summary]
+verify_jwt = false
+
+[functions.business-health-score]
+verify_jwt = false
+
+[functions.check-functions-health]
+verify_jwt = false
+
+[functions.google-routes]
+verify_jwt = false
+
+[functions.reclamation-ai-assist]
+verify_jwt = false
+
+[functions.process-session-start]
+verify_jwt = false
+
+[functions.process-coaching-reminders]
+verify_jwt = false
+
+[functions.search-siren-by-name]
+verify_jwt = false
+
+[functions.resend-email-tracking]
+verify_jwt = false
+
+[functions.resolve-formulaire]
+verify_jwt = false
+
+[functions.google-calendar-events]
+verify_jwt = false

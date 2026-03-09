@@ -1,0 +1,167 @@
+import { useState, useRef } from "react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { useUpdateLesson, LmsLesson, uploadLmsVideo } from "@/hooks/useLms";
+import { useToast } from "@/hooks/use-toast";
+import { Save, Clock, Upload, Loader2 } from "lucide-react";
+import RichTextEditor from "@/components/content/RichTextEditor";
+import { formatFileSize } from "@/lib/file-utils";
+
+interface Props {
+  lesson: LmsLesson;
+}
+
+export default function LmsLessonEditor({ lesson }: Props) {
+  const updateLesson = useUpdateLesson();
+  const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [form, setForm] = useState({
+    title: lesson.title,
+    content_html: lesson.content_html || "",
+    video_url: lesson.video_url || "",
+    estimated_minutes: lesson.estimated_minutes || 5,
+    is_mandatory: lesson.is_mandatory,
+  });
+
+  const handleSave = async () => {
+    await updateLesson.mutateAsync({ id: lesson.id, ...form });
+    toast({ title: "Leçon sauvegardée" });
+  };
+
+  const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 500 * 1024 * 1024) {
+      toast({ title: "Fichier trop volumineux", description: "Maximum 500 Mo", variant: "destructive" });
+      return;
+    }
+    setUploading(true);
+    try {
+      const url = await uploadLmsVideo(file, lesson.id);
+      setForm((f) => ({ ...f, video_url: url }));
+      toast({ title: `Vidéo uploadée (${formatFileSize(file.size)})` });
+    } catch (err: any) {
+      toast({ title: "Erreur d'upload", description: err.message, variant: "destructive" });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const renderVideoPlayer = (url: string) => {
+    if (url.includes("youtube") || url.includes("youtu.be")) {
+      return (
+        <iframe
+          src={url.replace("watch?v=", "embed/").replace("youtu.be/", "youtube.com/embed/")}
+          className="w-full h-full"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+        />
+      );
+    }
+    if (url.includes("vimeo")) {
+      return (
+        <iframe
+          src={url.replace("vimeo.com/", "player.vimeo.com/video/")}
+          className="w-full h-full"
+          allow="autoplay; fullscreen"
+          allowFullScreen
+        />
+      );
+    }
+    return <video src={url} controls className="w-full h-full" />;
+  };
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <Label>Titre de la leçon</Label>
+        <Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+      </div>
+
+      {lesson.lesson_type === "text" && (
+        <div>
+          <Label>Contenu</Label>
+          <RichTextEditor
+            content={form.content_html}
+            onChange={(html) => setForm({ ...form, content_html: html })}
+          />
+        </div>
+      )}
+
+      {lesson.lesson_type === "video" && (
+        <div className="space-y-3">
+          <div className="flex gap-2 items-end">
+            <div className="flex-1">
+              <Label>URL de la vidéo</Label>
+              <Input
+                value={form.video_url}
+                onChange={(e) => setForm({ ...form, video_url: e.target.value })}
+                placeholder="https://youtube.com/... ou uploadez un fichier"
+              />
+            </div>
+            <div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="video/*"
+                className="hidden"
+                onChange={handleVideoUpload}
+              />
+              <Button
+                variant="outline"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+              >
+                {uploading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
+                {uploading ? "Upload..." : "Uploader"}
+              </Button>
+            </div>
+          </div>
+          {form.video_url && (
+            <div className="aspect-video rounded-lg overflow-hidden bg-muted">
+              {renderVideoPlayer(form.video_url)}
+            </div>
+          )}
+        </div>
+      )}
+
+      {lesson.lesson_type === "assignment" && (
+        <div>
+          <Label>Instructions du devoir</Label>
+          <RichTextEditor
+            content={form.content_html}
+            onChange={(html) => setForm({ ...form, content_html: html })}
+          />
+        </div>
+      )}
+
+      <div className="flex items-center gap-6">
+        <div className="flex items-center gap-2">
+          <Clock className="w-4 h-4 text-muted-foreground" />
+          <Label>Durée estimée (min)</Label>
+          <Input
+            type="number"
+            value={form.estimated_minutes}
+            onChange={(e) => setForm({ ...form, estimated_minutes: +e.target.value })}
+            className="w-20"
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <Switch
+            checked={form.is_mandatory}
+            onCheckedChange={(v) => setForm({ ...form, is_mandatory: v })}
+          />
+          <Label>Obligatoire</Label>
+        </div>
+      </div>
+
+      <Button onClick={handleSave} disabled={updateLesson.isPending}>
+        <Save className="w-4 h-4 mr-2" /> Sauvegarder
+      </Button>
+    </div>
+  );
+}

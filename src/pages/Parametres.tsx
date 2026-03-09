@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
-import { Loader2, Settings, Mail, RotateCcw, Sparkles, Cog, ExternalLink, Shield, Users, Key, Tag, Upload, FileText, Trash2, Check, Copy, Database } from "lucide-react";
+import { Loader2, Settings, Mail, RotateCcw, Sparkles, Cog, ExternalLink, Shield, Users, Key, Tag, Upload, FileText, Trash2, Check, Copy, Database, CreditCard } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import ModuleLayout from "@/components/ModuleLayout";
 import { Button } from "@/components/ui/button";
@@ -35,6 +35,7 @@ import { useModuleAccess } from "@/hooks/useModuleAccess";
 import ArenaKeySettings from "@/components/settings/ArenaKeySettings";
 import PostEvaluationEmailManager from "@/components/settings/PostEvaluationEmailManager";
 import SlackChannelCard from "@/components/settings/SlackChannelCard";
+import BillingSection from "@/components/settings/BillingSection";
 
 interface EmailTemplate {
   id: string;
@@ -1106,6 +1107,7 @@ const SETTINGS_REGISTRY: Record<string, { default: string; description: string }
   sender_email: { default: "", description: "Adresse email de l'expéditeur pour tous les envois" },
   sender_name: { default: "", description: "Nom de l'expéditeur pour tous les envois" },
   evaluation_notification_email: { default: "", description: "Email qui reçoit les notifications de nouvelles évaluations" },
+  communication_manager_email: { default: "", description: "Email de la chargée de communication — notifiée quand une session inter est complète" },
   bcc_email: { default: "", description: "Adresse email en copie cachée (BCC) pour tous les envois" },
   bcc_enabled: { default: "true", description: "Activer ou désactiver l'envoi en copie cachée (BCC)" },
   google_my_business_url: { default: "https://g.page/r/CWJ0W_P6C-BJEAE/review", description: "URL de la fiche Google My Business pour les demandes d'avis" },
@@ -1144,6 +1146,8 @@ const SETTINGS_REGISTRY: Record<string, { default: string; description: string }
   qualiopi_certificate_path: { default: "certificat-qualiopi/Certificat QUALIOPI v3.pdf", description: "Chemin du certificat Qualiopi dans le storage (bucket/fichier)" },
   backup_enabled: { default: "false", description: "Activer les sauvegardes automatiques quotidiennes vers Google Drive" },
   backup_gdrive_folder_id: { default: "", description: "ID du dossier Google Drive pour les sauvegardes" },
+  stripe_secret_key: { default: "", description: "Clé secrète Stripe (sk_live_... ou sk_test_...) pour la facturation" },
+  stripe_webhook_secret: { default: "", description: "Secret du webhook Stripe (whsec_...) pour valider les événements" },
 };
 
 const SETTINGS_DEFAULTS = Object.fromEntries(
@@ -1696,7 +1700,7 @@ const Parametres = () => {
               <p className="text-muted-foreground">
                 Vous n'avez pas les droits pour accéder aux paramètres généraux.
               </p>
-              <Button className="mt-6" onClick={() => navigate("/")}>
+              <Button className="mt-6" onClick={() => navigate("/dashboard")}>
                 Retour au tableau de bord
               </Button>
             </CardContent>
@@ -1757,6 +1761,10 @@ const Parametres = () => {
                 Sauvegarde
               </TabsTrigger>
             )}
+            <TabsTrigger value="billing" className="flex items-center gap-2">
+              <CreditCard className="h-4 w-4" />
+              Abonnement
+            </TabsTrigger>
             <TabsTrigger value="arena" className="flex items-center gap-2">
               <Sparkles className="h-4 w-4" />
               AI Arena
@@ -1810,6 +1818,19 @@ const Parametres = () => {
                     />
                     <p className="text-xs text-muted-foreground">
                       Reçoit un email à chaque soumission d'évaluation par un participant (avis, consentement publication).
+                    </p>
+                  </div>
+                  <div className="space-y-2 max-w-lg">
+                    <Label htmlFor="communication-manager-email">Email de la chargée de communication</Label>
+                    <Input
+                      id="communication-manager-email"
+                      type="email"
+                      value={settings.communication_manager_email}
+                      onChange={(e) => updateSetting("communication_manager_email", e.target.value)}
+                      placeholder="email@exemple.com"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Reçoit un email automatique quand une session inter-entreprises atteint son nombre maximum de participants.
                     </p>
                   </div>
                 </div>
@@ -2050,6 +2071,41 @@ const Parametres = () => {
                       placeholder="20"
                       className="max-w-[120px]"
                     />
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Stripe Billing */}
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium">Facturation Stripe</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Clés Stripe pour le système de facturation et d'abonnements. Obtenez vos clés depuis le{" "}
+                    <a href="https://dashboard.stripe.com/apikeys" target="_blank" rel="noopener noreferrer" className="underline text-primary">
+                      Dashboard Stripe
+                    </a>.
+                  </p>
+                  <div className="space-y-3 max-w-lg">
+                    <div className="space-y-2">
+                      <Label htmlFor="stripe-secret-key">Clé secrète (sk_...)</Label>
+                      <Input
+                        id="stripe-secret-key"
+                        type="password"
+                        value={settings.stripe_secret_key}
+                        onChange={(e) => updateSetting("stripe_secret_key", e.target.value)}
+                        placeholder="sk_live_..."
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="stripe-webhook-secret">Secret webhook (whsec_...)</Label>
+                      <Input
+                        id="stripe-webhook-secret"
+                        type="password"
+                        value={settings.stripe_webhook_secret}
+                        onChange={(e) => updateSetting("stripe_webhook_secret", e.target.value)}
+                        placeholder="whsec_..."
+                      />
+                    </div>
                   </div>
                 </div>
 
@@ -2888,6 +2944,20 @@ const Parametres = () => {
               />
             </TabsContent>
           )}
+
+          <TabsContent value="billing">
+            <Card>
+              <CardHeader>
+                <CardTitle>Abonnement & Facturation</CardTitle>
+                <CardDescription>
+                  Gérez votre plan et votre facturation.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <BillingSection />
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           <TabsContent value="arena">
             <ArenaKeySettings />

@@ -95,10 +95,37 @@ serve(async (req) => {
     const globalActions: ActionItem[] = [];
     const perUserActions: ActionItem[] = []; // actions with assignedTo
 
+    // 0. E-LEARNING EN COURS AVEC GROUPE PRIVÉ (priorité haute, en tête)
+    const { data: activeElearnings } = await supabase
+      .from("trainings")
+      .select("id, training_name, start_date, end_date, private_group_url, assigned_to")
+      .in("format_formation", ["e_learning"])
+      .not("private_group_url", "is", null)
+      .lte("start_date", today);
+
+    if (activeElearnings) {
+      for (const t of activeElearnings) {
+        // Only include if the training is still active (end_date is null or >= today)
+        if (t.end_date && t.end_date < today) continue;
+        if (!t.private_group_url?.trim()) continue;
+
+        perUserActions.push({
+          category: "elearning_groupe",
+          title: `💬 ${t.training_name}`,
+          description: "Répondre aux messages du groupe privé",
+          link: t.private_group_url.trim(),
+          entity_type: "training",
+          entity_id: t.id,
+          assignedTo: t.assigned_to,
+        });
+      }
+      console.log(`[${VERSION}] E-learning groupes privés actifs: ${perUserActions.filter(a => a.category === "elearning_groupe").length}`);
+    }
+
     // 1. MISSIONS À FACTURER (filtered by assigned_to)
     const { data: missionsToInvoice } = await supabase
       .from("missions")
-      .select("id, title, client_name, consumed_amount, billed_amount, emoji, assigned_to")
+      .select("id, title, client_name, consumed_amount, billed_amount, emoji, assigned_to, waiting_next_action_date")
       .in("status", ["in_progress", "completed"]);
 
     if (missionsToInvoice) {
@@ -106,6 +133,8 @@ serve(async (req) => {
         const consumed = Number(m.consumed_amount) || 0;
         const billed = Number(m.billed_amount) || 0;
         if (consumed <= 0 || billed >= consumed) continue;
+        // Skip missions with a future scheduled action
+        if (m.waiting_next_action_date && m.waiting_next_action_date > today) continue;
         const remaining = consumed - billed;
         const label = m.client_name ? `${m.client_name} — ${m.title}` : m.title;
         const emoji = m.emoji ? `${m.emoji} ` : "";
@@ -125,7 +154,7 @@ serve(async (req) => {
     // 1b. MISSIONS SANS DATE DE DÉBUT (filtered by assigned_to)
     const { data: missionsNoStartDate } = await supabase
       .from("missions")
-      .select("id, title, client_name, emoji, assigned_to")
+      .select("id, title, client_name, emoji, assigned_to, waiting_next_action_date")
       .in("status", ["not_started", "in_progress"])
       .is("start_date", null);
 
@@ -133,6 +162,8 @@ serve(async (req) => {
       for (const m of missionsNoStartDate) {
         const label = m.client_name ? `${m.client_name} — ${m.title}` : m.title;
         const emoji = m.emoji ? `${m.emoji} ` : "";
+        // Skip missions with a future scheduled action
+        if (m.waiting_next_action_date && m.waiting_next_action_date > today) continue;
         perUserActions.push({
           category: "missions_sans_date",
           title: `${emoji}${label}`,
@@ -466,16 +497,56 @@ serve(async (req) => {
     }
 
     // 10. FORMATIONS TERMINÉES SANS FACTURE
+    // Exclude trainings where ALL participants paid online (no invoice needed)
     const { data: pastTrainings } = await supabase
       .from("trainings")
-      .select("id, training_name, start_date, end_date, invoice_file_url, assigned_to")
+      .select("id, training_name, start_date, end_date, invoice_file_url, assigned_to, format_formation")
       .lt("start_date", today)
       .is("invoice_file_url", null);
 
     if (pastTrainings) {
+      // Fetch participants for these trainings to check payment modes
+      const pastTrainingIds = pastTrainings
+        .filter((t: any) => {
+          const endDate = t.end_date || t.start_date;
+          return new Date(endDate) < new Date(today);
+        })
+        .map((t: any) => t.id);
+
+      let participantsByTrainingInvoice = new Map<string, any[]>();
+      if (pastTrainingIds.length > 0) {
+        const { data: pts } = await supabase
+          .from("training_participants")
+          .select("training_id, payment_mode, invoice_file_url")
+          .in("training_id", pastTrainingIds);
+        if (pts) {
+          for (const p of pts) {
+            const list = participantsByTrainingInvoice.get(p.training_id) || [];
+            list.push(p);
+            participantsByTrainingInvoice.set(p.training_id, list);
+          }
+        }
+      }
+
       for (const t of pastTrainings) {
         const endDate = t.end_date || t.start_date;
         if (new Date(endDate) >= new Date(today)) continue;
+
+        // Check if all participants paid online — no invoice needed
+        const participants = participantsByTrainingInvoice.get(t.id) || [];
+        if (participants.length > 0) {
+          const allPaidOnline = participants.every((p: any) => p.payment_mode === "online");
+          if (allPaidOnline) continue;
+
+          // For inter/e-learning: check if all invoice-mode participants already have their invoice
+          const isInterOrElearning = ["inter-entreprises", "e_learning"].includes(t.format_formation);
+          if (isInterOrElearning) {
+            const invoiceParticipants = participants.filter((p: any) => p.payment_mode !== "online");
+            const allInvoiced = invoiceParticipants.length > 0 && invoiceParticipants.every((p: any) => p.invoice_file_url);
+            if (allInvoiced) continue;
+          }
+        }
+
         const daysAgo = Math.ceil((Date.now() - new Date(endDate).getTime()) / (1000 * 60 * 60 * 24));
         const formattedDate = new Date(endDate).toLocaleDateString("fr-FR", { day: "numeric", month: "long" });
         perUserActions.push({
@@ -488,6 +559,99 @@ serve(async (req) => {
           assignedTo: t.assigned_to,
         });
       }
+    }
+
+    // 11. OKR INITIATIVES ACTIVES
+    const { data: activeInitiatives } = await supabase
+      .from("okr_initiatives")
+      .select("id, title, progress_percentage, key_result_id, status")
+      .in("status", ["active", "draft"]);
+
+    if (activeInitiatives && activeInitiatives.length > 0) {
+      // Get parent key results + objectives for context
+      const krIds = [...new Set(activeInitiatives.map((i: any) => i.key_result_id))];
+      const { data: keyResults } = await supabase
+        .from("okr_key_results")
+        .select("id, title, objective_id")
+        .in("id", krIds);
+
+      let objectiveMap: Record<string, any> = {};
+      if (keyResults && keyResults.length > 0) {
+        const objIds = [...new Set(keyResults.map((kr: any) => kr.objective_id))];
+        const { data: objectives } = await supabase
+          .from("okr_objectives")
+          .select("id, title, status, owner_email")
+          .in("id", objIds)
+          .in("status", ["active"]);
+        if (objectives) {
+          for (const o of objectives) objectiveMap[o.id] = o;
+        }
+      }
+
+      const krMap: Record<string, any> = {};
+      if (keyResults) {
+        for (const kr of keyResults) krMap[kr.id] = kr;
+      }
+
+      for (const init of activeInitiatives) {
+        const kr = krMap[init.key_result_id];
+        if (!kr) continue;
+        const obj = objectiveMap[kr.objective_id];
+        if (!obj) continue; // Only include initiatives from active objectives
+
+        globalActions.push({
+          category: "okr_initiatives",
+          title: init.title,
+          description: `${obj.title} → ${kr.title} (${init.progress_percentage}%)`,
+          link: `${appUrl}/okr`,
+          entity_type: "okr_initiative",
+          entity_id: init.id,
+        });
+      }
+      console.log(`[${VERSION}] OKR initiatives actives: ${activeInitiatives.length}`);
+    }
+
+    // 12. RAPPELS RÉSERVATION HÔTEL/TRAIN (2 mois avant start_date)
+    const twoMonthsLater = new Date(todayDate);
+    twoMonthsLater.setMonth(twoMonthsLater.getMonth() + 2);
+    const twoMonthsStr = twoMonthsLater.toISOString().split("T")[0];
+    // Window: missions starting in ~2 months (± 3 days to catch it in the daily run)
+    const twoMonthsMinus3 = new Date(twoMonthsLater);
+    twoMonthsMinus3.setDate(twoMonthsMinus3.getDate() - 3);
+    const twoMonthsMinus3Str = twoMonthsMinus3.toISOString().split("T")[0];
+
+    const { data: missionsNeedingBooking } = await supabase
+      .from("missions")
+      .select("id, title, client_name, location, start_date, train_booked, hotel_booked, assigned_to, emoji")
+      .not("location", "is", null)
+      .not("start_date", "is", null)
+      .gte("start_date", twoMonthsMinus3Str)
+      .lte("start_date", twoMonthsStr)
+      .in("status", ["pending", "in_progress"]);
+
+    if (missionsNeedingBooking) {
+      for (const m of missionsNeedingBooking) {
+        if (!m.location?.trim()) continue;
+        const needsTrain = !m.train_booked;
+        const needsHotel = !m.hotel_booked;
+        if (!needsTrain && !needsHotel) continue;
+
+        const items: string[] = [];
+        if (needsTrain) items.push("🚄 Train");
+        if (needsHotel) items.push("🏨 Hôtel");
+        const startFormatted = new Date(m.start_date).toLocaleDateString("fr-FR", { day: "numeric", month: "long" });
+
+        perUserActions.push({
+          category: "reservations_mission",
+          title: `${m.emoji || "📋"} ${m.title}`,
+          description: `${items.join(" + ")} à réserver — ${m.location} (${startFormatted})`,
+          link: `${appUrl}/missions/${m.id}`,
+          entity_type: "mission",
+          entity_id: m.id,
+          assignedTo: m.assigned_to,
+        });
+      }
+      console.log(`[${VERSION}] Missions nécessitant réservation: ${missionsNeedingBooking.filter((m: any) => (!m.train_booked || !m.hotel_booked) && m.location).length}`);
     }
 
     // ══════════════════════════════════
