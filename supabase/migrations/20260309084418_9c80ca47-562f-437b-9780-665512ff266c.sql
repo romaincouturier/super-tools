@@ -1,0 +1,1 @@
+ALTER TABLE public.formation_configs ADD COLUMN required_equipment text DEFAULT NULL;

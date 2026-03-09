@@ -1766,6 +1766,7 @@ export type Database = {
           prerequisites: string[] | null
           prix: number
           programme_url: string | null
+          required_equipment: string | null
           supertilt_link: string | null
           supports_url: string | null
           updated_at: string
@@ -1790,6 +1791,7 @@ export type Database = {
           prerequisites?: string[] | null
           prix?: number
           programme_url?: string | null
+          required_equipment?: string | null
           supertilt_link?: string | null
           supports_url?: string | null
           updated_at?: string
@@ -1814,6 +1816,7 @@ export type Database = {
           prerequisites?: string[] | null
           prix?: number
           programme_url?: string | null
+          required_equipment?: string | null
           supertilt_link?: string | null
           supports_url?: string | null
           updated_at?: string
