@@ -65,6 +65,7 @@ const FormationCreate = () => {
   const [objectives, setObjectives] = useState<string[]>([]);
   const [programFileUrl, setProgramFileUrl] = useState<string>("");
   const [supertiltLink, setSupertiltLink] = useState<string>("");
+  const [privateGroupUrl, setPrivateGroupUrl] = useState<string>("");
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   
   // Sponsor/Commanditaire
@@ -303,6 +304,7 @@ const FormationCreate = () => {
           objectives,
           program_file_url: programFileUrl || null,
           supertilt_link: supertiltLink || null,
+          private_group_url: privateGroupUrl || null,
           sponsor_first_name: isInter ? null : (sponsorFirstName || null),
           sponsor_last_name: isInter ? null : (sponsorLastName || null),
           sponsor_email: isInter ? null : (sponsorEmail || null),
@@ -643,6 +645,19 @@ const FormationCreate = () => {
                     />
                     <p className="text-xs text-muted-foreground">
                       Durée estimée du parcours e-learning
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="privateGroupUrl">URL du groupe privé</Label>
+                    <Input
+                      id="privateGroupUrl"
+                      type="url"
+                      placeholder="https://facebook.com/groups/... ou https://circle.so/..."
+                      value={privateGroupUrl}
+                      onChange={(e) => setPrivateGroupUrl(e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Lien vers le groupe privé de la communauté d'apprenants (Facebook, Circle, etc.)
                     </p>
                   </div>
                   <p className="text-xs text-muted-foreground">

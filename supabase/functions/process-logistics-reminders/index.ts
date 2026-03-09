@@ -124,6 +124,34 @@ serve(async (req) => {
     console.log(`[${VERSION}] Found ${recipients.length} recipient(s)`);
 
     // ════════════════════════════════════════════
+    // 0. E-LEARNING EN COURS AVEC GROUPE PRIVÉ
+    // ════════════════════════════════════════════
+    const { data: activeElearnings } = await supabase
+      .from("trainings")
+      .select("id, training_name, private_group_url, assigned_to, start_date, end_date")
+      .in("format_formation", ["e_learning"])
+      .not("private_group_url", "is", null)
+      .lte("start_date", today);
+
+    interface GenericAlert {
+      assignedTo: string | null;
+      html: string;
+    }
+
+    const elearningGroupAlerts: GenericAlert[] = [];
+    if (activeElearnings) {
+      for (const t of activeElearnings) {
+        if (t.end_date && t.end_date < today) continue;
+        if (!t.private_group_url?.trim()) continue;
+        elearningGroupAlerts.push({
+          assignedTo: t.assigned_to,
+          html: `<li>💬 <a href="${t.private_group_url.trim()}" style="color: ${COLORS.primary}; text-decoration: underline; font-weight: 600;">${t.training_name}</a> — <strong>Répondre aux messages du groupe privé</strong></li>`,
+        });
+      }
+    }
+    console.log(`[${VERSION}] E-learning groupes privés actifs: ${elearningGroupAlerts.length}`);
+
+    // ════════════════════════════════════════════
     // 1. MISSIONS À FACTURER
     // ════════════════════════════════════════════
     const { data: missionsToInvoice } = await supabase
@@ -554,6 +582,13 @@ serve(async (req) => {
     for (const recipient of recipients) {
       const sections: string[] = [];
       let alertCount = 0;
+
+      // 0. E-learning groupes privés (en tête)
+      const userElearningAlerts = elearningGroupAlerts.filter((a) => userCanSee(recipient, a.assignedTo));
+      if (userElearningAlerts.length > 0) {
+        sections.push(sectionHtml("💬", "Groupes privés e-learning", COLORS.purple, userElearningAlerts.map((a) => a.html), userElearningAlerts.length));
+        alertCount += userElearningAlerts.length;
+      }
 
       // 1. Factures à émettre (formations terminées sans facture)
       const userInvoiceAlerts = invoiceAlerts.filter(

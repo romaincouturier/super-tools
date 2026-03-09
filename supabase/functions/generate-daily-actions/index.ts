@@ -95,6 +95,33 @@ serve(async (req) => {
     const globalActions: ActionItem[] = [];
     const perUserActions: ActionItem[] = []; // actions with assignedTo
 
+    // 0. E-LEARNING EN COURS AVEC GROUPE PRIVÉ (priorité haute, en tête)
+    const { data: activeElearnings } = await supabase
+      .from("trainings")
+      .select("id, training_name, start_date, end_date, private_group_url, assigned_to")
+      .in("format_formation", ["e_learning"])
+      .not("private_group_url", "is", null)
+      .lte("start_date", today);
+
+    if (activeElearnings) {
+      for (const t of activeElearnings) {
+        // Only include if the training is still active (end_date is null or >= today)
+        if (t.end_date && t.end_date < today) continue;
+        if (!t.private_group_url?.trim()) continue;
+
+        perUserActions.push({
+          category: "elearning_groupe",
+          title: `💬 ${t.training_name}`,
+          description: "Répondre aux messages du groupe privé",
+          link: t.private_group_url.trim(),
+          entity_type: "training",
+          entity_id: t.id,
+          assignedTo: t.assigned_to,
+        });
+      }
+      console.log(`[${VERSION}] E-learning groupes privés actifs: ${perUserActions.filter(a => a.category === "elearning_groupe").length}`);
+    }
+
     // 1. MISSIONS À FACTURER (filtered by assigned_to)
     const { data: missionsToInvoice } = await supabase
       .from("missions")

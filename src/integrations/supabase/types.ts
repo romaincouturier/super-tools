@@ -5492,6 +5492,7 @@ export type Database = {
           org_id: string | null
           participants_formal_address: boolean
           prerequisites: string[] | null
+          private_group_url: string | null
           program_file_url: string | null
           restaurant_booked: boolean | null
           room_rental_booked: boolean | null
@@ -5541,6 +5542,7 @@ export type Database = {
           org_id?: string | null
           participants_formal_address?: boolean
           prerequisites?: string[] | null
+          private_group_url?: string | null
           program_file_url?: string | null
           restaurant_booked?: boolean | null
           room_rental_booked?: boolean | null
@@ -5590,6 +5592,7 @@ export type Database = {
           org_id?: string | null
           participants_formal_address?: boolean
           prerequisites?: string[] | null
+          private_group_url?: string | null
           program_file_url?: string | null
           restaurant_booked?: boolean | null
           room_rental_booked?: boolean | null
