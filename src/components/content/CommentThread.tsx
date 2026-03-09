@@ -3,7 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
   Send, Loader2, MessageSquare, Check, X, Pencil, Image,
-  FileText, Palette, Trash2, Copy, Mic, MicOff, Reply, CheckCheck
+  FileText, Palette, Trash2, Copy, Mic, MicOff, Reply, CheckCheck,
+  ChevronDown, ChevronRight, UserPlus
 } from "lucide-react";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { Button } from "@/components/ui/button";
@@ -12,12 +13,22 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import MentionTextarea, { MentionUser } from "./MentionTextarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface Comment {
   id: string;
-  review_id: string;
+  review_id: string | null;
+  card_id: string | null;
   author_id: string;
   author_email?: string;
+  assigned_to?: string | null;
+  assigned_name?: string;
   content: string;
   proposed_correction?: string | null;
   comment_type?: "fond" | "forme" | null;
@@ -28,10 +39,17 @@ interface Comment {
   resolved_at: string | null;
 }
 
+interface Profile {
+  user_id: string;
+  first_name: string | null;
+  last_name: string | null;
+  email: string | null;
+}
+
 interface CommentThreadProps {
-  reviewIds: string[];
-  cardId?: string;
+  cardId: string;
   cardTitle?: string;
+  reviewIds?: string[];
   onCommentAdded?: () => void;
 }
 
@@ -40,15 +58,18 @@ const commentTypeConfig = {
   forme: { label: "Forme", icon: Palette, className: "bg-cyan-100 text-cyan-800" },
 };
 
-const CommentThread = ({ reviewIds, cardId, cardTitle, onCommentAdded }: CommentThreadProps) => {
+const CommentThread = ({ cardId, cardTitle, reviewIds, onCommentAdded }: CommentThreadProps) => {
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [expandedResolved, setExpandedResolved] = useState<Set<string>>(new Set());
 
   // New comment state
   const [newComment, setNewComment] = useState("");
   const [proposedCorrection, setProposedCorrection] = useState("");
   const [commentType, setCommentType] = useState<"fond" | "forme" | "">("");
+  const [assignedTo, setAssignedTo] = useState<string>("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -66,46 +87,49 @@ const CommentThread = ({ reviewIds, cardId, cardTitle, onCommentAdded }: Comment
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { isListening, isSupported: speechSupported, startListening, stopListening } = useSpeechRecognition("fr-FR", true);
 
-  // Show correction field
   const [showCorrection, setShowCorrection] = useState(false);
 
   useEffect(() => {
     fetchComments();
     getCurrentUser();
-  }, [reviewIds.join(",")]);
+    fetchProfiles();
+  }, [cardId]);
 
   const getCurrentUser = async () => {
     const { data } = await supabase.auth.getSession();
     setCurrentUserId(data.session?.user?.id || null);
   };
 
+  const fetchProfiles = async () => {
+    const { data } = await supabase
+      .from("profiles")
+      .select("user_id, first_name, last_name, email");
+    if (data) setProfiles(data);
+  };
+
   const fetchComments = async () => {
-    if (reviewIds.length === 0) {
-      setComments([]);
-      setLoading(false);
-      return;
-    }
     try {
+      // Fetch comments by card_id directly
       const { data, error } = await supabase
         .from("review_comments")
         .select("*")
-        .in("review_id", reviewIds)
+        .eq("card_id", cardId)
         .order("created_at", { ascending: true });
 
       if (error) throw error;
 
-      const rawComments = data || [];
-      const authorIds = [...new Set(rawComments.map((c: any) => c.author_id))];
+      const rawComments = (data || []) as any[];
+      const authorIds = [...new Set(rawComments.map((c) => c.author_id).concat(rawComments.map((c) => c.assigned_to).filter(Boolean)))];
 
       let profileMap: Record<string, string> = {};
       if (authorIds.length > 0) {
-        const { data: profiles } = await supabase
+        const { data: profs } = await supabase
           .from("profiles")
           .select("user_id, first_name, last_name, email")
           .in("user_id", authorIds);
 
-        if (profiles) {
-          for (const p of profiles) {
+        if (profs) {
+          for (const p of profs) {
             const fullName = p.first_name && p.last_name
               ? `${p.first_name} ${p.last_name}`
               : p.email || undefined;
@@ -115,9 +139,10 @@ const CommentThread = ({ reviewIds, cardId, cardTitle, onCommentAdded }: Comment
       }
 
       setComments(
-        rawComments.map((c: any) => ({
+        rawComments.map((c) => ({
           ...c,
           author_email: profileMap[c.author_id] || c.author_email,
+          assigned_name: c.assigned_to ? profileMap[c.assigned_to] || undefined : undefined,
         })) as Comment[]
       );
     } catch (error) {
@@ -127,7 +152,6 @@ const CommentThread = ({ reviewIds, cardId, cardTitle, onCommentAdded }: Comment
     }
   };
 
-  // Group: top-level comments with their replies
   const topLevelComments = comments.filter((c) => !c.parent_comment_id);
   const repliesMap: Record<string, Comment[]> = {};
   comments.forEach((c) => {
@@ -136,6 +160,9 @@ const CommentThread = ({ reviewIds, cardId, cardTitle, onCommentAdded }: Comment
       repliesMap[c.parent_comment_id].push(c);
     }
   });
+
+  const pendingComments = topLevelComments.filter((c) => c.status === "pending");
+  const resolvedComments = topLevelComments.filter((c) => c.status !== "pending");
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -184,7 +211,7 @@ const CommentThread = ({ reviewIds, cardId, cardTitle, onCommentAdded }: Comment
 
       const { data: uploadData, error } = await supabase.functions.invoke(
         "create-review-image-upload-url",
-        { body: { originalFileName: file.name, mimeType: file.type, reviewId: reviewIds[0], fileBase64 } }
+        { body: { originalFileName: file.name, mimeType: file.type, reviewId: cardId, fileBase64 } }
       );
       if (error) throw error;
       return (uploadData as any)?.publicUrl || null;
@@ -192,63 +219,6 @@ const CommentThread = ({ reviewIds, cardId, cardTitle, onCommentAdded }: Comment
       console.error("Upload error:", error);
       toast.error("Erreur lors de l'upload");
       return null;
-    }
-  };
-
-  const sendNotifications = async (userId: string, content: string, reviewId: string) => {
-    const { data: reviewData } = await supabase
-      .from("content_reviews")
-      .select("reviewer_id, created_by")
-      .eq("id", reviewId)
-      .single();
-
-    if (reviewData) {
-      const notifyUserId = reviewData.reviewer_id === userId ? reviewData.created_by : reviewData.reviewer_id;
-      if (notifyUserId) {
-        const preview = content.trim().split(/\s+/).slice(0, 10).join(" ");
-        const previewText = content.trim().split(/\s+/).length > 10 ? `${preview}…` : preview;
-        await (supabase as any).from("content_notifications").insert({
-          user_id: notifyUserId,
-          type: "comment_added",
-          reference_id: reviewId,
-          card_id: cardId || null,
-          message: previewText,
-        });
-      }
-    }
-
-    // Mention notifications
-    if (pendingMentions.length > 0) {
-      const { data: authorProfile } = await supabase
-        .from("profiles")
-        .select("first_name, last_name, email")
-        .eq("user_id", userId)
-        .maybeSingle();
-
-      const authorName = authorProfile?.first_name && authorProfile?.last_name
-        ? `${authorProfile.first_name} ${authorProfile.last_name}`
-        : authorProfile?.email || "Quelqu'un";
-
-      for (const mention of pendingMentions) {
-        if (mention.userId === userId) continue;
-        await (supabase as any).from("content_notifications").insert({
-          user_id: mention.userId,
-          type: "comment_added",
-          reference_id: reviewId,
-          card_id: cardId || null,
-          message: `${authorName} : ${content.trim().split(/\s+/).slice(0, 10).join(" ")}`,
-        });
-        await supabase.functions.invoke("send-content-notification", {
-          body: {
-            type: "mention",
-            recipientEmail: mention.email,
-            cardTitle: cardTitle || "un contenu",
-            cardId: cardId || undefined,
-            authorName,
-            commentText: content.trim(),
-          },
-        });
-      }
     }
   };
 
@@ -266,32 +236,76 @@ const CommentThread = ({ reviewIds, cardId, cardTitle, onCommentAdded }: Comment
         if (!imageUrl) return;
       }
 
-      const targetReviewId = reviewIds[0];
-
-      const { error } = await (supabase as any).from("review_comments").insert({
-        review_id: targetReviewId,
+      const insertData: Record<string, any> = {
+        card_id: cardId,
         author_id: userId,
         content: newComment.trim(),
         proposed_correction: proposedCorrection.trim() || null,
         comment_type: commentType || null,
         image_url: imageUrl,
         status: "pending",
-      });
+        assigned_to: assignedTo || null,
+      };
 
+      const { error } = await (supabase as any).from("review_comments").insert(insertData);
       if (error) throw error;
 
-      await sendNotifications(userId, newComment, targetReviewId);
+      // Send notification to assigned person
+      if (assignedTo && assignedTo !== userId) {
+        const { data: authorProfile } = await supabase
+          .from("profiles")
+          .select("first_name, last_name")
+          .eq("user_id", userId)
+          .maybeSingle();
+        const authorName = authorProfile?.first_name ? `${authorProfile.first_name} ${authorProfile.last_name || ""}`.trim() : "Quelqu'un";
+        const preview = newComment.trim().split(/\s+/).slice(0, 10).join(" ");
 
-      // Update review status
-      await supabase
-        .from("content_reviews")
-        .update({ status: "in_review" })
-        .eq("id", targetReviewId)
-        .eq("status", "pending");
+        await (supabase as any).from("content_notifications").insert({
+          user_id: assignedTo,
+          type: "comment_added",
+          reference_id: cardId,
+          card_id: cardId,
+          message: `${authorName} : ${preview}`,
+        });
+      }
+
+      // Mention notifications
+      if (pendingMentions.length > 0) {
+        const { data: authorProfile } = await supabase
+          .from("profiles")
+          .select("first_name, last_name, email")
+          .eq("user_id", userId)
+          .maybeSingle();
+        const authorName = authorProfile?.first_name && authorProfile?.last_name
+          ? `${authorProfile.first_name} ${authorProfile.last_name}`
+          : authorProfile?.email || "Quelqu'un";
+
+        for (const mention of pendingMentions) {
+          if (mention.userId === userId) continue;
+          await (supabase as any).from("content_notifications").insert({
+            user_id: mention.userId,
+            type: "comment_added",
+            reference_id: cardId,
+            card_id: cardId,
+            message: `${authorName} : ${newComment.trim().split(/\s+/).slice(0, 10).join(" ")}`,
+          });
+          await supabase.functions.invoke("send-content-notification", {
+            body: {
+              type: "mention",
+              recipientEmail: mention.email,
+              cardTitle: cardTitle || "un contenu",
+              cardId,
+              authorName,
+              commentText: newComment.trim(),
+            },
+          });
+        }
+      }
 
       setNewComment("");
       setProposedCorrection("");
       setCommentType("");
+      setAssignedTo("");
       setShowCorrection(false);
       setPendingMentions([]);
       clearImage();
@@ -313,11 +327,8 @@ const CommentThread = ({ reviewIds, cardId, cardTitle, onCommentAdded }: Comment
       const userId = sessionData.session?.user?.id;
       if (!userId) { toast.error("Connectez-vous"); return; }
 
-      const parentComment = comments.find((c) => c.id === parentId);
-      const targetReviewId = parentComment?.review_id || reviewIds[0];
-
       const { error } = await (supabase as any).from("review_comments").insert({
-        review_id: targetReviewId,
+        card_id: cardId,
         author_id: userId,
         content: replyText.trim(),
         parent_comment_id: parentId,
@@ -428,6 +439,20 @@ const CommentThread = ({ reviewIds, cardId, cardTitle, onCommentAdded }: Comment
   const formatDate = (dateStr: string) =>
     new Date(dateStr).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 
+  const toggleResolvedExpanded = (id: string) => {
+    setExpandedResolved((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const getProfileName = (userId: string) => {
+    const p = profiles.find((p) => p.user_id === userId);
+    if (!p) return null;
+    return p.first_name && p.last_name ? `${p.first_name} ${p.last_name}` : p.email;
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center py-4">
@@ -436,7 +461,228 @@ const CommentThread = ({ reviewIds, cardId, cardTitle, onCommentAdded }: Comment
     );
   }
 
-  const pendingCount = comments.filter((c) => c.status === "pending" && !c.parent_comment_id).length;
+  const renderComment = (comment: Comment, isCollapsed: boolean) => {
+    const replies = repliesMap[comment.id] || [];
+    const isResolved = comment.status !== "pending";
+    const canResolve = currentUserId && comment.status === "pending";
+    const isExpanded = expandedResolved.has(comment.id);
+
+    // Collapsed resolved comment — single line
+    if (isCollapsed && !isExpanded) {
+      return (
+        <div
+          key={comment.id}
+          className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/30 border border-border/30 cursor-pointer hover:bg-muted/50 transition-colors"
+          onClick={() => toggleResolvedExpanded(comment.id)}
+        >
+          <ChevronRight className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+          <CheckCheck className="h-3.5 w-3.5 text-green-600 flex-shrink-0" />
+          <span className="text-xs text-muted-foreground truncate flex-1">
+            <span className="font-medium">{getDisplayName(comment)}</span>
+            {" — "}
+            {comment.content.length > 80 ? comment.content.slice(0, 80) + "…" : comment.content}
+          </span>
+          <Badge variant="secondary" className="text-[10px] h-4 bg-green-100 text-green-700 flex-shrink-0">
+            {comment.status === "corrected" ? "Corrigé" : "Non pertinent"}
+          </Badge>
+          {replies.length > 0 && (
+            <span className="text-[10px] text-muted-foreground flex-shrink-0">{replies.length} rép.</span>
+          )}
+        </div>
+      );
+    }
+
+    return (
+      <div
+        key={comment.id}
+        className={cn(
+          "rounded-lg border transition-all",
+          isResolved ? "bg-muted/20 border-border/50" : "bg-background border-primary/20 shadow-sm"
+        )}
+      >
+        {/* Collapse button for expanded resolved */}
+        {isCollapsed && isExpanded && (
+          <button
+            className="w-full flex items-center gap-1.5 px-3 py-1.5 text-xs text-muted-foreground hover:bg-muted/30"
+            onClick={() => toggleResolvedExpanded(comment.id)}
+          >
+            <ChevronDown className="h-3 w-3" />
+            Réduire
+          </button>
+        )}
+
+        {/* Main comment */}
+        <div className="p-3">
+          <div className="flex items-start gap-2.5">
+            <Avatar className="h-7 w-7 flex-shrink-0 mt-0.5">
+              <AvatarFallback className="text-[10px] bg-primary/10">{getInitials(comment)}</AvatarFallback>
+            </Avatar>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs font-semibold">{getDisplayName(comment)}</span>
+                <span className="text-[10px] text-muted-foreground">{formatDate(comment.created_at)}</span>
+                {comment.comment_type && commentTypeConfig[comment.comment_type] && (() => {
+                  const cfg = commentTypeConfig[comment.comment_type!];
+                  const TypeIcon = cfg.icon;
+                  return (
+                    <Badge variant="secondary" className={cn("text-[10px] h-4 gap-0.5", cfg.className)}>
+                      <TypeIcon className="h-2.5 w-2.5" />
+                      {cfg.label}
+                    </Badge>
+                  );
+                })()}
+                {comment.assigned_to && (
+                  <Badge variant="outline" className="text-[10px] h-4 gap-0.5">
+                    <UserPlus className="h-2.5 w-2.5" />
+                    {comment.assigned_name || getProfileName(comment.assigned_to) || "Assigné"}
+                  </Badge>
+                )}
+                {isResolved && (
+                  <Badge variant="secondary" className="text-[10px] h-4 bg-green-100 text-green-700">
+                    <CheckCheck className="h-2.5 w-2.5 mr-0.5" />
+                    {comment.status === "corrected" ? "Corrigé" : comment.status === "refused" ? "Non pertinent" : "Traité"}
+                  </Badge>
+                )}
+              </div>
+              <p className="text-sm mt-1 whitespace-pre-wrap leading-relaxed">{renderMentions(comment.content)}</p>
+
+              {comment.image_url && (
+                <a href={comment.image_url} target="_blank" rel="noopener noreferrer" className="mt-2 block">
+                  <img src={comment.image_url} alt="Capture" className="max-w-full max-h-40 rounded border hover:opacity-90" />
+                </a>
+              )}
+
+              {comment.proposed_correction && (
+                <div className="mt-2 p-2 bg-blue-50 border border-blue-100 rounded text-sm relative group/correction">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-medium text-blue-600 uppercase tracking-wider">Correction proposée</span>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-5 w-5 opacity-0 group-hover/correction:opacity-100 text-blue-600"
+                      onClick={() => {
+                        navigator.clipboard.writeText(comment.proposed_correction!);
+                        toast.success("Copié");
+                      }}
+                    >
+                      <Copy className="h-3 w-3" />
+                    </Button>
+                  </div>
+                  <p className="text-blue-900 mt-1 whitespace-pre-wrap">{comment.proposed_correction}</p>
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="flex items-center gap-1 mt-2">
+                {canResolve && (
+                  <>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-6 text-[11px] text-blue-600 hover:bg-blue-50"
+                      onClick={() => handleResolve(comment.id, "corrected")}
+                    >
+                      <Pencil className="h-3 w-3 mr-1" />
+                      Corrigé
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-6 text-[11px] text-muted-foreground hover:text-destructive"
+                      onClick={() => handleResolve(comment.id, "refused")}
+                    >
+                      <X className="h-3 w-3 mr-1" />
+                      Non pertinent
+                    </Button>
+                  </>
+                )}
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-6 text-[11px] text-muted-foreground"
+                  onClick={() => setReplyingTo(replyingTo === comment.id ? null : comment.id)}
+                >
+                  <Reply className="h-3 w-3 mr-1" />
+                  Répondre
+                </Button>
+                {comment.author_id === currentUserId && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-6 text-[11px] text-muted-foreground hover:text-destructive ml-auto"
+                    onClick={() => handleDelete(comment.id)}
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Replies */}
+        {replies.length > 0 && (
+          <div className="border-t bg-muted/10 px-3 py-2 space-y-2">
+            {replies.map((reply) => (
+              <div key={reply.id} className="flex items-start gap-2 pl-4">
+                <Avatar className="h-6 w-6 flex-shrink-0 mt-0.5">
+                  <AvatarFallback className="text-[9px] bg-muted">{getInitials(reply)}</AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[11px] font-medium">{getDisplayName(reply)}</span>
+                    <span className="text-[10px] text-muted-foreground">{formatDate(reply.created_at)}</span>
+                  </div>
+                  <p className="text-sm mt-0.5 whitespace-pre-wrap">{renderMentions(reply.content)}</p>
+                  {reply.author_id === currentUserId && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-5 text-[10px] text-muted-foreground hover:text-destructive mt-0.5 -ml-2"
+                      onClick={() => handleDelete(reply.id)}
+                    >
+                      <Trash2 className="h-2.5 w-2.5" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Reply input */}
+        {replyingTo === comment.id && (
+          <div className="border-t px-3 py-2">
+            <div className="flex gap-2 pl-4">
+              <Textarea
+                value={replyText}
+                onChange={(e) => setReplyText(e.target.value)}
+                placeholder="Répondre…"
+                rows={1}
+                className="resize-none text-sm flex-1 min-h-[36px]"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) handleReply(comment.id);
+                  if (e.key === "Escape") { setReplyingTo(null); setReplyText(""); }
+                }}
+              />
+              <Button
+                size="icon"
+                className="h-9 w-9 flex-shrink-0"
+                onClick={() => handleReply(comment.id)}
+                disabled={submittingReply || !replyText.trim()}
+              >
+                {submittingReply ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              </Button>
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-1 pl-4">⌘+Entrée pour envoyer · Échap pour annuler</p>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const pendingCount = pendingComments.length;
 
   return (
     <div className="space-y-3">
@@ -450,189 +696,25 @@ const CommentThread = ({ reviewIds, cardId, cardTitle, onCommentAdded }: Comment
               {pendingCount} en attente
             </Badge>
           )}
+          {resolvedComments.length > 0 && (
+            <Badge variant="secondary" className="text-[10px] h-5 bg-green-100 text-green-700">
+              {resolvedComments.length} traité{resolvedComments.length > 1 ? "s" : ""}
+            </Badge>
+          )}
         </div>
       )}
 
-      {/* Thread list */}
+      {/* Pending comments (expanded) */}
       <div className="space-y-2">
-        {topLevelComments.map((comment) => {
-          const replies = repliesMap[comment.id] || [];
-          const isResolved = comment.status !== "pending";
-          const canResolve = currentUserId && comment.status === "pending";
-
-          return (
-            <div
-              key={comment.id}
-              className={cn(
-                "rounded-lg border transition-all",
-                isResolved ? "bg-muted/20 border-border/50" : "bg-background border-primary/20 shadow-sm"
-              )}
-            >
-              {/* Main comment */}
-              <div className="p-3">
-                <div className="flex items-start gap-2.5">
-                  <Avatar className="h-7 w-7 flex-shrink-0 mt-0.5">
-                    <AvatarFallback className="text-[10px] bg-primary/10">{getInitials(comment)}</AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-xs font-semibold">{getDisplayName(comment)}</span>
-                      <span className="text-[10px] text-muted-foreground">{formatDate(comment.created_at)}</span>
-                      {comment.comment_type && commentTypeConfig[comment.comment_type] && (() => {
-                        const cfg = commentTypeConfig[comment.comment_type!];
-                        const TypeIcon = cfg.icon;
-                        return (
-                          <Badge variant="secondary" className={cn("text-[10px] h-4 gap-0.5", cfg.className)}>
-                            <TypeIcon className="h-2.5 w-2.5" />
-                            {cfg.label}
-                          </Badge>
-                        );
-                      })()}
-                      {isResolved && (
-                        <Badge variant="secondary" className="text-[10px] h-4 bg-green-100 text-green-700">
-                          <CheckCheck className="h-2.5 w-2.5 mr-0.5" />
-                          {comment.status === "corrected" ? "Corrigé" : comment.status === "refused" ? "Non pertinent" : "Traité"}
-                        </Badge>
-                      )}
-                    </div>
-                    <p className="text-sm mt-1 whitespace-pre-wrap leading-relaxed">{renderMentions(comment.content)}</p>
-
-                    {comment.image_url && (
-                      <a href={comment.image_url} target="_blank" rel="noopener noreferrer" className="mt-2 block">
-                        <img src={comment.image_url} alt="Capture" className="max-w-full max-h-40 rounded border hover:opacity-90" />
-                      </a>
-                    )}
-
-                    {comment.proposed_correction && (
-                      <div className="mt-2 p-2 bg-blue-50 border border-blue-100 rounded text-sm relative group/correction">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-medium text-blue-600 uppercase tracking-wider">Correction proposée</span>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-5 w-5 opacity-0 group-hover/correction:opacity-100 text-blue-600"
-                            onClick={() => {
-                              navigator.clipboard.writeText(comment.proposed_correction!);
-                              toast.success("Copié");
-                            }}
-                          >
-                            <Copy className="h-3 w-3" />
-                          </Button>
-                        </div>
-                        <p className="text-blue-900 mt-1 whitespace-pre-wrap">{comment.proposed_correction}</p>
-                      </div>
-                    )}
-
-                    {/* Actions */}
-                    <div className="flex items-center gap-1 mt-2">
-                      {canResolve && (
-                        <>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-6 text-[11px] text-blue-600 hover:bg-blue-50"
-                            onClick={() => handleResolve(comment.id, "corrected")}
-                          >
-                            <Pencil className="h-3 w-3 mr-1" />
-                            Corrigé
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-6 text-[11px] text-muted-foreground hover:text-destructive"
-                            onClick={() => handleResolve(comment.id, "refused")}
-                          >
-                            <X className="h-3 w-3 mr-1" />
-                            Non pertinent
-                          </Button>
-                        </>
-                      )}
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-6 text-[11px] text-muted-foreground"
-                        onClick={() => setReplyingTo(replyingTo === comment.id ? null : comment.id)}
-                      >
-                        <Reply className="h-3 w-3 mr-1" />
-                        Répondre
-                      </Button>
-                      {comment.author_id === currentUserId && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-6 text-[11px] text-muted-foreground hover:text-destructive ml-auto"
-                          onClick={() => handleDelete(comment.id)}
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Replies */}
-              {replies.length > 0 && (
-                <div className="border-t bg-muted/10 px-3 py-2 space-y-2">
-                  {replies.map((reply) => (
-                    <div key={reply.id} className="flex items-start gap-2 pl-4">
-                      <Avatar className="h-6 w-6 flex-shrink-0 mt-0.5">
-                        <AvatarFallback className="text-[9px] bg-muted">{getInitials(reply)}</AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-[11px] font-medium">{getDisplayName(reply)}</span>
-                          <span className="text-[10px] text-muted-foreground">{formatDate(reply.created_at)}</span>
-                        </div>
-                        <p className="text-sm mt-0.5 whitespace-pre-wrap">{renderMentions(reply.content)}</p>
-                        {reply.author_id === currentUserId && (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-5 text-[10px] text-muted-foreground hover:text-destructive mt-0.5 -ml-2"
-                            onClick={() => handleDelete(reply.id)}
-                          >
-                            <Trash2 className="h-2.5 w-2.5" />
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Reply input */}
-              {replyingTo === comment.id && (
-                <div className="border-t px-3 py-2">
-                  <div className="flex gap-2 pl-4">
-                    <Textarea
-                      value={replyText}
-                      onChange={(e) => setReplyText(e.target.value)}
-                      placeholder="Répondre…"
-                      rows={1}
-                      className="resize-none text-sm flex-1 min-h-[36px]"
-                      autoFocus
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) handleReply(comment.id);
-                        if (e.key === "Escape") { setReplyingTo(null); setReplyText(""); }
-                      }}
-                    />
-                    <Button
-                      size="icon"
-                      className="h-9 w-9 flex-shrink-0"
-                      onClick={() => handleReply(comment.id)}
-                      disabled={submittingReply || !replyText.trim()}
-                    >
-                      {submittingReply ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                    </Button>
-                  </div>
-                  <p className="text-[10px] text-muted-foreground mt-1 pl-4">⌘+Entrée pour envoyer · Échap pour annuler</p>
-                </div>
-              )}
-            </div>
-          );
-        })}
+        {pendingComments.map((comment) => renderComment(comment, false))}
       </div>
+
+      {/* Resolved comments (collapsed by default) */}
+      {resolvedComments.length > 0 && (
+        <div className="space-y-1">
+          {resolvedComments.map((comment) => renderComment(comment, true))}
+        </div>
+      )}
 
       {/* New comment input */}
       <div className="border rounded-lg p-3 space-y-2 bg-muted/10">
@@ -659,7 +741,7 @@ const CommentThread = ({ reviewIds, cardId, cardTitle, onCommentAdded }: Comment
           </div>
         )}
 
-        {/* Correction field (toggle) */}
+        {/* Correction field */}
         {showCorrection && (
           <Textarea
             value={proposedCorrection}
@@ -679,8 +761,8 @@ const CommentThread = ({ reviewIds, cardId, cardTitle, onCommentAdded }: Comment
         )}
 
         {/* Action bar */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1 flex-wrap">
             {/* Type badges */}
             <Button
               type="button"
@@ -702,6 +784,26 @@ const CommentThread = ({ reviewIds, cardId, cardTitle, onCommentAdded }: Comment
               <Palette className="h-3 w-3 mr-1" />
               Forme
             </Button>
+
+            <div className="w-px h-4 bg-border mx-1" />
+
+            {/* Assign to */}
+            <Select value={assignedTo} onValueChange={setAssignedTo}>
+              <SelectTrigger className="h-7 w-auto min-w-[120px] text-[11px] border-dashed">
+                <div className="flex items-center gap-1">
+                  <UserPlus className="h-3 w-3" />
+                  <SelectValue placeholder="Assigner à…" />
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none" className="text-xs">Personne</SelectItem>
+                {profiles.filter((p) => p.user_id !== currentUserId).map((p) => (
+                  <SelectItem key={p.user_id} value={p.user_id} className="text-xs">
+                    {p.first_name && p.last_name ? `${p.first_name} ${p.last_name}` : p.email}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
             <div className="w-px h-4 bg-border mx-1" />
 
