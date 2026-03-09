@@ -28,6 +28,15 @@ export default function UserAccessManager() {
     fetchCommManager();
   }, []);
 
+  const fetchCommManager = async () => {
+    const { data } = await supabase
+      .from("app_settings")
+      .select("setting_value")
+      .eq("setting_key", "communication_manager_user_id")
+      .maybeSingle();
+    if (data?.setting_value) setCommManagerId(data.setting_value);
+  };
+
   const fetchUsers = async () => {
     try {
       const { data: { user: currentUser } } = await supabase.auth.getUser();
@@ -40,15 +49,14 @@ export default function UserAccessManager() {
 
       const { data: profilesData } = await supabase
         .from("profiles")
-        .select("user_id, email, display_name, first_name, last_name, job_title");
+        .select("user_id, email, display_name, first_name, last_name");
 
-      const profileMap = new Map<string, { email: string; first_name: string | null; last_name: string | null; job_title: string | null }>();
+      const profileMap = new Map<string, { email: string; first_name: string | null; last_name: string | null }>();
       (profilesData as any[] || []).forEach((p: any) => {
         profileMap.set(p.user_id, { 
           email: p.email, 
           first_name: p.first_name,
           last_name: p.last_name,
-          job_title: p.job_title || null,
         });
       });
 
@@ -71,7 +79,6 @@ export default function UserAccessManager() {
             id: userId,
             email: profile?.email || "",
             displayName,
-            jobTitle: profile?.job_title || "",
             modules,
           });
         }
