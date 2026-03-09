@@ -1,4 +1,4 @@
-import { Calendar, FileText, MapPin, Building, UserIcon, Clock, Copy, Check, Euro, Mail } from "lucide-react";
+import { Calendar, FileText, MapPin, Building, UserIcon, Clock, Copy, Check, Euro, Mail, ExternalLink } from "lucide-react";
 import { User as UserIconLucide } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -150,6 +150,24 @@ const FormationDetailInfo = ({
           <div className="flex flex-wrap gap-3">
             <a href={training.program_file_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-sm text-primary hover:underline">
               <FileText className="h-4 w-4" />Programme
+            </a>
+          </div>
+        </>
+      )}
+
+      {/* Private group URL */}
+      {(training as any).private_group_url && (
+        <>
+          <Separator />
+          <div className="flex items-center gap-2">
+            <a
+              href={(training as any).private_group_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 text-sm text-primary hover:underline"
+            >
+              <ExternalLink className="h-4 w-4" />
+              Groupe privé
             </a>
           </div>
         </>
