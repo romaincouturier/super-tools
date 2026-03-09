@@ -124,6 +124,23 @@ const EventFormFields = ({ values, onChange }: EventFormFieldsProps) => {
         />
       </div>
 
+      {/* Private group URL — for internal visio events */}
+      {values.eventType === "internal" && values.locationType === "visio" && (
+        <div className="space-y-2">
+          <Label htmlFor="privateGroupUrl">URL du groupe privé</Label>
+          <Input
+            id="privateGroupUrl"
+            type="url"
+            value={values.privateGroupUrl}
+            onChange={(e) => onChange("privateGroupUrl", e.target.value)}
+            placeholder="https://facebook.com/groups/... ou https://circle.so/..."
+          />
+          <p className="text-xs text-muted-foreground">
+            Lien vers le groupe privé associé à cet événement (Facebook, Circle, Slack, etc.)
+          </p>
+        </div>
+      )}
+
       {values.eventType === "external" && (
         <div className="space-y-4 p-4 rounded-lg border border-blue-200 bg-blue-50/50">
           <p className="text-sm font-medium text-blue-700 flex items-center gap-1">

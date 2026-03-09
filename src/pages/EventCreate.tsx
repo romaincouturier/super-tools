@@ -43,6 +43,7 @@ const EventCreate = () => {
     }
 
     const isExternal = values.eventType === "external";
+    const isInternalVisio = values.eventType === "internal" && values.locationType === "visio";
     try {
       const event = await createEvent.mutateAsync({
         title: values.title.trim(),
@@ -55,6 +56,7 @@ const EventCreate = () => {
         cfp_deadline: isExternal && values.cfpDeadline ? values.cfpDeadline : null,
         event_url: isExternal && values.eventUrl.trim() ? values.eventUrl.trim() : null,
         cfp_url: isExternal && values.cfpUrl.trim() ? values.cfpUrl.trim() : null,
+        private_group_url: isInternalVisio && values.privateGroupUrl.trim() ? values.privateGroupUrl.trim() : null,
         notes: null,
         status: "active",
         assigned_to: null,
