@@ -269,20 +269,42 @@ serve(async (req: Request): Promise<Response> => {
 
     const scheduleList = schedules || [];
 
-    // Fetch TVA rate from app_settings
-    const { data: tvaSetting } = await supabase
+    // Fetch all convention settings from app_settings in one query
+    const { data: allSettings } = await supabase
       .from("app_settings")
-      .select("setting_value")
-      .eq("setting_key", "tva_rate")
-      .maybeSingle();
+      .select("setting_key, setting_value")
+      .in("setting_key", [
+        "tva_rate",
+        "convention_default_price_ht",
+        "elearning_default_duration",
+        "elearning_horaires_text",
+        "elearning_lieu_text",
+        "convention_default_horaires",
+        "convention_moyen_pedagogique",
+        "convention_frais_default",
+        "convention_affiche_frais",
+      ]);
 
-    const tvaRate = tvaSetting?.setting_value ? parseFloat(tvaSetting.setting_value) : 20;
+    const settings: Record<string, string> = {};
+    for (const s of allSettings || []) {
+      settings[s.setting_key] = s.setting_value || "";
+    }
+
+    const tvaRate = settings["tva_rate"] ? parseFloat(settings["tva_rate"]) : 20;
+    const defaultPriceHt = settings["convention_default_price_ht"] ? parseFloat(settings["convention_default_price_ht"]) : 1250;
+    const elearningDefaultDuration = settings["elearning_default_duration"] || "7";
+    const elearningHorairesText = settings["elearning_horaires_text"] || "Formation accessible en ligne à votre rythme";
+    const elearningLieuText = settings["elearning_lieu_text"] || "En ligne (plateforme e-learning)";
+    const defaultHoraires = settings["convention_default_horaires"] || "9h00-17h00";
+    const moyenPedagogique = settings["convention_moyen_pedagogique"] || "SuperTilt";
+    const fraisDefault = settings["convention_frais_default"] || "0";
+    const afficheFrais = settings["convention_affiche_frais"] || "Non";
 
     // Calculate price - for inter/e-learning use participant's sold_price_ht first, then training's, then input, then default
     const participantPrice = isIndividualConvention && singleParticipant
       ? (singleParticipant as any).sold_price_ht
       : null;
-    const priceHt = participantPrice || inputPrice || training.sold_price_ht || 1250;
+    const priceHt = participantPrice || inputPrice || training.sold_price_ht || defaultPriceHt;
 
     // Build client name and address
     let clientName = training.client_name;
