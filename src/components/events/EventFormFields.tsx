@@ -15,6 +15,7 @@ export interface EventFormValues {
   cfpDeadline: string;
   eventUrl: string;
   cfpUrl: string;
+  privateGroupUrl: string;
 }
 
 interface EventFormFieldsProps {
