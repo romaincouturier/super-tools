@@ -369,11 +369,16 @@ const DailyTodoPanel = () => {
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              try {
-                                const url = new URL(action.link!, window.location.origin);
-                                navigate(url.pathname);
-                              } catch {
-                                navigate(action.link!);
+                              // External URLs (http/https) open in new tab
+                              if (action.link!.startsWith("http")) {
+                                window.open(action.link!, "_blank", "noopener,noreferrer");
+                              } else {
+                                try {
+                                  const url = new URL(action.link!, window.location.origin);
+                                  navigate(url.pathname);
+                                } catch {
+                                  navigate(action.link!);
+                                }
                               }
                             }}
                             className="shrink-0 p-1 rounded hover:bg-muted transition-colors"
