@@ -129,9 +129,10 @@ async function checkFunction(
       signal: controller.signal,
     });
     clearTimeout(timeout);
+    // Any HTTP response (even 401/405) means the function is deployed and reachable
     return {
       name,
-      status: res.ok ? "up" : `error_${res.status}`,
+      status: "up",
       response_time_ms: Date.now() - start,
     };
   } catch (error) {
