@@ -90,6 +90,7 @@ serve(async (req) => {
     const missions = new Map((missionsResult.data || []).map((m: any) => [m.id, m]));
     const cards = new Map((cardsResult.data || []).map((c: any) => [c.id, c]));
     const trainingsMap = new Map((trainingsResult.data || []).map((t: any) => [t.id, t]));
+    const reviewComments = new Map((commentsResult.data || []).map((c: any) => [c.id, c]));
     const reviews = new Map((reviewsResult.data || []).map((r: any) => [r.id, r]));
 
     // Also fetch CRM columns to check if cards moved
