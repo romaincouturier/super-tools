@@ -3,8 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Loader2, Users, Shield } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Loader2, Users, Shield, Megaphone } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { AppModule, MODULE_LABELS, ALL_MODULES } from "@/hooks/useModuleAccess";
 import OnboardCollaboratorDialog from "@/components/OnboardCollaboratorDialog";
@@ -13,7 +13,6 @@ interface UserWithAccess {
   id: string;
   email: string;
   displayName: string;
-  jobTitle: string;
   modules: AppModule[];
 }
 
