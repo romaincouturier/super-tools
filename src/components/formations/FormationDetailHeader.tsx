@@ -100,6 +100,11 @@ const FormationDetailHeader = ({
                   <DoorOpen className="h-4 w-4 mr-2" />Salle {training.room_rental_booked && "✓"}
                 </DropdownMenuItem>
               )}
+              {requiredEquipment && (
+                <DropdownMenuItem className="text-amber-600" onClick={() => {}}>
+                  <Package className="h-4 w-4 mr-2" />Matériel requis
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/formation-info/${id}`); toast({ title: "Lien copié", description: "Le lien vers la page participant a été copié." }); }}>
                 <Copy className="h-4 w-4 mr-2" />Copier lien participant
               </DropdownMenuItem>
