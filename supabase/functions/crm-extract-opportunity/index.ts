@@ -188,13 +188,16 @@ serve(async (req) => {
       return createErrorResponse("raw_input est requis", 400);
     }
 
-    if (raw_input.length > 5000) {
-      return createErrorResponse("Texte trop long (max 5000 caractères)", 400);
+    if (raw_input.length > 15000) {
+      return createErrorResponse("Texte trop long (max 15000 caractères)", 400);
     }
+
+    // Truncate to 5000 chars for AI extraction (keeping the most relevant beginning)
+    const truncatedInput = raw_input.length > 5000 ? raw_input.substring(0, 5000) : raw_input;
 
     console.log("Extracting opportunity from:", raw_input.substring(0, 100));
 
-    const extraction = await extractWithAI(raw_input);
+    const extraction = await extractWithAI(truncatedInput);
 
     console.log("Extraction result:", JSON.stringify(extraction, null, 2));
 
