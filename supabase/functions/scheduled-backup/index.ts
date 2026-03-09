@@ -19,6 +19,7 @@ import {
 } from "../_shared/cors.ts";
 import { sendEmail } from "../_shared/resend.ts";
 import { getSenderEmail } from "../_shared/email-settings.ts";
+import { getBccList } from "../_shared/email-settings.ts";
 
 // ─── Tables to backup ───────────────────────────────────────────────────────
 
