@@ -1107,6 +1107,7 @@ const SETTINGS_REGISTRY: Record<string, { default: string; description: string }
   sender_email: { default: "", description: "Adresse email de l'expéditeur pour tous les envois" },
   sender_name: { default: "", description: "Nom de l'expéditeur pour tous les envois" },
   evaluation_notification_email: { default: "", description: "Email qui reçoit les notifications de nouvelles évaluations" },
+  communication_manager_email: { default: "", description: "Email de la chargée de communication — notifiée quand une session inter est complète" },
   bcc_email: { default: "", description: "Adresse email en copie cachée (BCC) pour tous les envois" },
   bcc_enabled: { default: "true", description: "Activer ou désactiver l'envoi en copie cachée (BCC)" },
   google_my_business_url: { default: "https://g.page/r/CWJ0W_P6C-BJEAE/review", description: "URL de la fiche Google My Business pour les demandes d'avis" },
