@@ -76,6 +76,13 @@ const MissionsKanbanBoard = ({ prefillFromCrm, onPrefillConsumed, openMissionId 
   const missions = data || [];
   const normalizedSearch = searchTerm.toLowerCase().trim();
 
+  const isScheduledInFuture = (m: Mission): boolean => {
+    if (!m.waiting_next_action_date) return false;
+    const scheduledDate = startOfDay(new Date(m.waiting_next_action_date));
+    const today = startOfDay(new Date());
+    return isAfter(scheduledDate, today);
+  };
+
   const cards: MissionKanbanCard[] = useMemo(() => {
     let filtered = missions;
     if (normalizedSearch) {
@@ -86,6 +93,9 @@ const MissionsKanbanBoard = ({ prefillFromCrm, onPrefillConsumed, openMissionId 
         return title.includes(normalizedSearch) || client.includes(normalizedSearch) || tags.includes(normalizedSearch);
       });
     }
+    // Hide missions with a future scheduled action
+    filtered = filtered.filter((m) => !isScheduledInFuture(m));
+
     return filtered.map((m) => ({
       ...m,
       columnId: m.status,
