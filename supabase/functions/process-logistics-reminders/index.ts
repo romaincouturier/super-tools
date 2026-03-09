@@ -152,6 +152,54 @@ serve(async (req) => {
     console.log(`[${VERSION}] E-learning groupes privés actifs: ${elearningGroupAlerts.length}`);
 
     // ════════════════════════════════════════════
+    // 0b. OKR INITIATIVES ACTIVES
+    // ════════════════════════════════════════════
+    const okrInitiativeAlerts: GenericAlert[] = [];
+    const { data: activeInitiatives } = await supabase
+      .from("okr_initiatives")
+      .select("id, title, progress_percentage, key_result_id, status")
+      .in("status", ["active", "draft"]);
+
+    if (activeInitiatives && activeInitiatives.length > 0) {
+      const krIds = [...new Set(activeInitiatives.map((i: any) => i.key_result_id))];
+      const { data: keyResults } = await supabase
+        .from("okr_key_results")
+        .select("id, title, objective_id")
+        .in("id", krIds);
+
+      let objectiveMap: Record<string, any> = {};
+      if (keyResults && keyResults.length > 0) {
+        const objIds = [...new Set(keyResults.map((kr: any) => kr.objective_id))];
+        const { data: objectives } = await supabase
+          .from("okr_objectives")
+          .select("id, title, status, owner_email")
+          .in("id", objIds)
+          .in("status", ["active"]);
+        if (objectives) {
+          for (const o of objectives) objectiveMap[o.id] = o;
+        }
+      }
+
+      const krMap: Record<string, any> = {};
+      if (keyResults) {
+        for (const kr of keyResults) krMap[kr.id] = kr;
+      }
+
+      for (const init of activeInitiatives) {
+        const kr = krMap[init.key_result_id];
+        if (!kr) continue;
+        const obj = objectiveMap[kr.objective_id];
+        if (!obj) continue;
+
+        okrInitiativeAlerts.push({
+          assignedTo: null,
+          html: `<li><a href="${appUrl}/okr" style="color: ${COLORS.primary}; text-decoration: underline; font-weight: 600;">${init.title}</a> — ${obj.title} → ${kr.title} <span style="color: #6b7280;">(${init.progress_percentage}%)</span></li>`,
+        });
+      }
+    }
+    console.log(`[${VERSION}] OKR initiatives actives: ${okrInitiativeAlerts.length}`);
+
+    // ════════════════════════════════════════════
     // 1. MISSIONS À FACTURER
     // ════════════════════════════════════════════
     const { data: missionsToInvoice } = await supabase
@@ -588,6 +636,12 @@ serve(async (req) => {
       if (userElearningAlerts.length > 0) {
         sections.push(sectionHtml("💬", "Groupes privés e-learning", COLORS.purple, userElearningAlerts.map((a) => a.html), userElearningAlerts.length));
         alertCount += userElearningAlerts.length;
+      }
+
+      // 0b. OKR Initiatives actives
+      if (okrInitiativeAlerts.length > 0) {
+        sections.push(sectionHtml("🎯", "Initiatives OKR", COLORS.green, okrInitiativeAlerts.map((a) => a.html), okrInitiativeAlerts.length));
+        alertCount += okrInitiativeAlerts.length;
       }
 
       // 1. Factures à émettre (formations terminées sans facture)

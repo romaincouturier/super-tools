@@ -561,6 +561,56 @@ serve(async (req) => {
       }
     }
 
+    // 11. OKR INITIATIVES ACTIVES
+    const { data: activeInitiatives } = await supabase
+      .from("okr_initiatives")
+      .select("id, title, progress_percentage, key_result_id, status")
+      .in("status", ["active", "draft"]);
+
+    if (activeInitiatives && activeInitiatives.length > 0) {
+      // Get parent key results + objectives for context
+      const krIds = [...new Set(activeInitiatives.map((i: any) => i.key_result_id))];
+      const { data: keyResults } = await supabase
+        .from("okr_key_results")
+        .select("id, title, objective_id")
+        .in("id", krIds);
+
+      let objectiveMap: Record<string, any> = {};
+      if (keyResults && keyResults.length > 0) {
+        const objIds = [...new Set(keyResults.map((kr: any) => kr.objective_id))];
+        const { data: objectives } = await supabase
+          .from("okr_objectives")
+          .select("id, title, status, owner_email")
+          .in("id", objIds)
+          .in("status", ["active"]);
+        if (objectives) {
+          for (const o of objectives) objectiveMap[o.id] = o;
+        }
+      }
+
+      const krMap: Record<string, any> = {};
+      if (keyResults) {
+        for (const kr of keyResults) krMap[kr.id] = kr;
+      }
+
+      for (const init of activeInitiatives) {
+        const kr = krMap[init.key_result_id];
+        if (!kr) continue;
+        const obj = objectiveMap[kr.objective_id];
+        if (!obj) continue; // Only include initiatives from active objectives
+
+        globalActions.push({
+          category: "okr_initiatives",
+          title: init.title,
+          description: `${obj.title} → ${kr.title} (${init.progress_percentage}%)`,
+          link: `${appUrl}/okr`,
+          entity_type: "okr_initiative",
+          entity_id: init.id,
+        });
+      }
+      console.log(`[${VERSION}] OKR initiatives actives: ${activeInitiatives.length}`);
+    }
+
     // ══════════════════════════════════
     // Insert actions per user
     // ══════════════════════════════════

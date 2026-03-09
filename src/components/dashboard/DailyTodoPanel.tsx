@@ -35,6 +35,7 @@ interface CategoryConfig {
 // Display order for categories (matches daily digest email order)
 const CATEGORY_ORDER = [
   "elearning_groupe",
+  "okr_initiatives",
   "formations_facture",
   "cfp_soumettre",
   "missions_a_facturer",
@@ -51,6 +52,7 @@ const CATEGORY_ORDER = [
 
 const CATEGORIES: Record<string, CategoryConfig> = {
   elearning_groupe: { label: "Groupes privés e-learning", emoji: "💬", color: "text-indigo-600" },
+  okr_initiatives: { label: "Initiatives OKR", emoji: "🎯", color: "text-emerald-600" },
   formations_facture: { label: "Factures à émettre", emoji: "🧾", color: "text-red-600" },
   missions_a_facturer: { label: "Factures missions", emoji: "💰", color: "text-green-600" },
   missions_sans_date: { label: "Missions sans date", emoji: "📅", color: "text-orange-600" },

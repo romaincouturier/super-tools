@@ -21,6 +21,7 @@ const VERSION = "process-daily-summary@1.0.0";
 
 const CATEGORY_LABELS: Record<string, string> = {
   elearning_groupe: "💬 Groupes privés e-learning",
+  okr_initiatives: "🎯 Initiatives OKR",
   missions_a_facturer: "Missions à facturer",
   devis_a_faire: "Devis à faire",
   opportunites: "Opportunités",
