@@ -24,6 +24,7 @@ interface Props {
   toast: (opts: any) => void;
   setMapDialogOpen: (v: boolean) => void;
   setDuplicateDialogOpen: (v: boolean) => void;
+  requiredEquipment?: string | null;
 }
 
 const FormationDetailHeader = ({
