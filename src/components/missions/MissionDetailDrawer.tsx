@@ -260,6 +260,34 @@ const MissionDetailDrawer = ({
       actions={headerActions}
       contentClassName="overflow-y-auto sm:max-w-5xl"
     >
+        {/* Next Action Scheduler */}
+        <div className="mt-3">
+          <NextActionScheduler
+            currentAction={{
+              date: mission.waiting_next_action_date,
+              text: mission.waiting_next_action_text,
+            }}
+            scheduledDate={scheduledDate}
+            setScheduledDate={setScheduledDate}
+            scheduledText={scheduledText}
+            setScheduledText={setScheduledText}
+            showForm={showScheduleForm}
+            setShowForm={setShowScheduleForm}
+            onSchedule={async () => {
+              if (!scheduledDate || !scheduledText.trim()) return;
+              const selectedDate = startOfDay(new Date(scheduledDate));
+              const today = startOfDay(new Date());
+              if (!isAfter(selectedDate, today)) return;
+              // Autosave will pick it up via scheduledDate/scheduledText state
+            }}
+            onClear={() => {
+              setScheduledDate("");
+              setScheduledText("");
+            }}
+            saving={updateMission.isPending}
+            actionPresets={["Relancer le client", "Appeler", "Préparer les livrables", "RDV physique", "RDV visio", "Envoyer un document"]}
+          />
+        </div>
 
         {/* AI Mission Summary Panel */}
         {aiSummary && (
