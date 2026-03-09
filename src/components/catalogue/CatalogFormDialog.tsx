@@ -138,6 +138,7 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
     const v = formValuesRef.current as {
       formationName: string; description: string; prix: string; dureeHeures: string;
       programmeUrl: string; supportsUrl: string; supertiltLink: string;
+      requiredEquipment: string;
       objectives: string[]; prerequisites: string[]; elearningDuration: string;
       elearningAccessEmailContent: string; woocommerceProductId: string;
       isActive: boolean; formulas: FormulaEdit[];
