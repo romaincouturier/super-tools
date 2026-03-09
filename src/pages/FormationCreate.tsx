@@ -304,6 +304,7 @@ const FormationCreate = () => {
           objectives,
           program_file_url: programFileUrl || null,
           supertilt_link: supertiltLink || null,
+          private_group_url: privateGroupUrl || null,
           sponsor_first_name: isInter ? null : (sponsorFirstName || null),
           sponsor_last_name: isInter ? null : (sponsorLastName || null),
           sponsor_email: isInter ? null : (sponsorEmail || null),
