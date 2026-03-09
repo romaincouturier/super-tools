@@ -93,8 +93,10 @@ const MissionsKanbanBoard = ({ prefillFromCrm, onPrefillConsumed, openMissionId 
         return title.includes(normalizedSearch) || client.includes(normalizedSearch) || tags.includes(normalizedSearch);
       });
     }
-    // Hide missions with a future scheduled action
-    filtered = filtered.filter((m) => !isScheduledInFuture(m));
+    // Hide missions with a future scheduled action only when not searching
+    if (!normalizedSearch) {
+      filtered = filtered.filter((m) => !isScheduledInFuture(m));
+    }
 
     return filtered.map((m) => ({
       ...m,
