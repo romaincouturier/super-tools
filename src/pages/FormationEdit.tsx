@@ -620,6 +620,19 @@ const FormationEdit = () => {
                           </p>
                         </div>
                       )}
+                      <div className="space-y-2">
+                        <Label htmlFor="privateGroupUrl">URL du groupe privé</Label>
+                        <Input
+                          id="privateGroupUrl"
+                          type="url"
+                          placeholder="https://facebook.com/groups/... ou https://circle.so/..."
+                          value={privateGroupUrl}
+                          onChange={(e) => setPrivateGroupUrl(e.target.value)}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Lien vers le groupe privé de la communauté d'apprenants (Facebook, Circle, etc.)
+                        </p>
+                      </div>
                       <p className="text-xs text-muted-foreground">
                         Le contenu de l'email d'accès e-learning est géré dans <strong>Paramètres → Templates Email</strong>.
                       </p>
