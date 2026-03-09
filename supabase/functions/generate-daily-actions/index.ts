@@ -383,6 +383,45 @@ serve(async (req) => {
       }
     }
 
+    // 6bis. COMMENTAIRES CONTENUS NON RÉSOLUS (pour auteurs et utilisateurs mentionnés)
+    const { data: unresolvedComments } = await supabase
+      .from("review_comments")
+      .select("id, card_id, author_id, content, mentioned_user_ids, assigned_to, content_cards:card_id(title, column_id, content_columns:column_id(name))")
+      .eq("status", "pending")
+      .is("parent_comment_id", null);
+
+    if (unresolvedComments) {
+      for (const c of unresolvedComments as any[]) {
+        const card = c.content_cards;
+        const columnName = card?.content_columns?.name?.toLowerCase() || "";
+        if (columnName.includes("termin") || columnName.includes("publi")) continue;
+
+        const cardTitle = card?.title || "Sans titre";
+        const preview = c.content?.length > 60 ? c.content.slice(0, 60) + "…" : c.content;
+
+        // Collect target users: author + mentioned + assigned
+        const targetUserIds = new Set<string>();
+        if (c.author_id) targetUserIds.add(c.author_id);
+        if (c.assigned_to) targetUserIds.add(c.assigned_to);
+        if (c.mentioned_user_ids && Array.isArray(c.mentioned_user_ids)) {
+          for (const uid of c.mentioned_user_ids) targetUserIds.add(uid);
+        }
+
+        for (const uid of targetUserIds) {
+          perUserActions.push({
+            category: "commentaires_contenu",
+            title: `💬 ${cardTitle}`,
+            description: `Commentaire non résolu : ${preview}`,
+            link: `${appUrl}/contenu?card=${c.card_id}`,
+            entity_type: "review_comment",
+            entity_id: c.id,
+            assignedTo: uid,
+          });
+        }
+      }
+      console.log(`[${VERSION}] Commentaires contenus non résolus: ${unresolvedComments.length}`);
+    }
+
     // 6b. ARTICLES BLOQUÉS (cards in waiting/blocked columns, no review filter)
     const { data: blockedCards } = await supabase
       .from("content_cards")

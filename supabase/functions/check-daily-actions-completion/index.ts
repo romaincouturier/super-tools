@@ -64,8 +64,12 @@ serve(async (req) => {
       .filter((a) => a.entity_type === "content_review")
       .map((a) => a.entity_id);
 
+    const commentIds = pendingActions
+      .filter((a) => a.entity_type === "review_comment")
+      .map((a) => a.entity_id);
+
     // Fetch current states
-    const [missionsResult, cardsResult, trainingsResult, reviewsResult] = await Promise.all([
+    const [missionsResult, cardsResult, trainingsResult, reviewsResult, commentsResult] = await Promise.all([
       missionIds.length > 0
         ? supabase.from("missions").select("id, consumed_amount, billed_amount, status, start_date").in("id", missionIds)
         : { data: [] },
@@ -78,11 +82,15 @@ serve(async (req) => {
       reviewIds.length > 0
         ? supabase.from("content_reviews").select("id, status").in("id", reviewIds)
         : { data: [] },
+      commentIds.length > 0
+        ? supabase.from("review_comments").select("id, status").in("id", commentIds)
+        : { data: [] },
     ]);
 
     const missions = new Map((missionsResult.data || []).map((m: any) => [m.id, m]));
     const cards = new Map((cardsResult.data || []).map((c: any) => [c.id, c]));
     const trainingsMap = new Map((trainingsResult.data || []).map((t: any) => [t.id, t]));
+    const reviewComments = new Map((commentsResult.data || []).map((c: any) => [c.id, c]));
     const reviews = new Map((reviewsResult.data || []).map((r: any) => [r.id, r]));
 
     // Also fetch CRM columns to check if cards moved
@@ -229,6 +237,13 @@ serve(async (req) => {
             const allBooked = t.train_booked && t.hotel_booked && t.restaurant_booked !== false && t.room_rental_booked !== false && t.equipment_ready;
             if (allBooked) resolved = true;
           }
+          break;
+        }
+
+        case "commentaires_contenu": {
+          const c = reviewComments.get(action.entity_id);
+          if (c && c.status !== "pending") resolved = true;
+          if (!c) resolved = true; // comment deleted
           break;
         }
 
