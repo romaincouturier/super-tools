@@ -75,6 +75,8 @@ export interface UpdateMissionInput {
   location?: string | null;
   train_booked?: boolean;
   hotel_booked?: boolean;
+  waiting_next_action_date?: string | null;
+  waiting_next_action_text?: string | null;
   assigned_to?: string | null;
 }
 
