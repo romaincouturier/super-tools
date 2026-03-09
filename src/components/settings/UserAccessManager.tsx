@@ -153,25 +153,21 @@ export default function UserAccessManager() {
     }
   };
 
-  const updateJobTitle = async (userId: string, jobTitle: string) => {
+  const saveCommManager = async (userId: string) => {
     try {
       const { error } = await (supabase as any)
-        .from("profiles")
-        .update({ job_title: jobTitle.trim() || null })
-        .eq("user_id", userId);
-
+        .from("app_settings")
+        .upsert({ setting_key: "communication_manager_user_id", setting_value: userId, updated_at: new Date().toISOString() }, { onConflict: "setting_key" });
       if (error) throw error;
-
-      setUsers((prev) =>
-        prev.map((u) => u.id === userId ? { ...u, jobTitle } : u)
-      );
-    } catch (error) {
-      console.error("Error updating job title:", error);
+      setCommManagerId(userId);
+      const user = users.find(u => u.id === userId);
       toast({
-        title: "Erreur",
-        description: "Impossible de mettre à jour la fonction.",
-        variant: "destructive",
+        title: "Responsable communication défini",
+        description: `${user?.displayName || "Utilisateur"} recevra les notifications de sessions complètes.`,
       });
+    } catch (error) {
+      console.error("Error saving comm manager:", error);
+      toast({ title: "Erreur", description: "Impossible de sauvegarder.", variant: "destructive" });
     }
   };
 
