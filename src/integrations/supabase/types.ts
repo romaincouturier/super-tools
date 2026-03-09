@@ -1624,6 +1624,7 @@ export type Database = {
           location_type: string
           notes: string | null
           org_id: string | null
+          private_group_url: string | null
           status: string
           title: string
           updated_at: string
@@ -1645,6 +1646,7 @@ export type Database = {
           location_type?: string
           notes?: string | null
           org_id?: string | null
+          private_group_url?: string | null
           status?: string
           title: string
           updated_at?: string
@@ -1666,6 +1668,7 @@ export type Database = {
           location_type?: string
           notes?: string | null
           org_id?: string | null
+          private_group_url?: string | null
           status?: string
           title?: string
           updated_at?: string

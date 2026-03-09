@@ -340,6 +340,23 @@ const EventDetail = () => {
                 </div>
               </div>
             )}
+            {(event as any).private_group_url && (
+              <div className="flex items-start gap-2">
+                <ExternalLink className="h-4 w-4 mt-0.5 text-muted-foreground" />
+                <div>
+                  <p className="text-sm font-medium">Groupe privé</p>
+                  <a
+                    href={(event as any).private_group_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-primary hover:underline flex items-center gap-1"
+                  >
+                    {(event as any).private_group_url}
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                </div>
+              </div>
+            )}
             {event.description && (
               <div>
                 <p className="text-sm font-medium mb-1">Description</p>
