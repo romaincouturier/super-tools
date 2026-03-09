@@ -56,8 +56,10 @@ export async function getSigniticSignature(): Promise<string> {
         && !lower.includes("timeout")
         && !lower.includes("gateway")
         && !lower.includes("not found")
-        && !lower.includes("<!doctype") === false // must contain HTML
-        && (lower.includes("<") && lower.includes(">"));  // basic HTML check
+        && !lower.includes("502")
+        && !lower.includes("503")
+        && !lower.includes("504")
+        && lower.includes("<") && lower.includes(">");
       if (isValid) {
         console.log("Signitic signature fetched successfully");
         return htmlContent;
