@@ -565,24 +565,31 @@ const CardDetailDrawer = ({
 
   const parseEmails = (str: string): string[] => str.split(/[,;\s]+/).map(s => s.trim()).filter(s => s.includes("@"));
 
+  const sendingRef = useRef(false);
   const handleSendEmail = async () => {
     if (!card || !user?.email || !emailTo.trim() || !emailSubject.trim()) return;
-    const sentSubject = emailSubject.trim();
-    const sentBody = DOMPurify.sanitize(emailBody);
-    const templateSnapshot = selectedTemplateRef.current;
-    const ccList = parseEmails(emailCc);
-    const bccList = parseEmails(emailBcc);
-    await sendEmail.mutateAsync({
-      input: { card_id: card.id, recipient_email: emailTo.trim(), subject: sentSubject, body_html: sentBody, attachments: emailAttachments.length > 0 ? emailAttachments : undefined, cc: ccList.length > 0 ? ccList : undefined, bcc: bccList.length > 0 ? bccList : undefined },
-      senderEmail: user.email,
-    });
-    setEmailTo(""); setEmailCc(""); setEmailBcc(""); setShowCcBcc(false); setEmailSubject(""); setEmailBody(""); setEmailAttachments([]); selectedTemplateRef.current = null;
-    await queryClient.invalidateQueries({ queryKey: ["crm-board", "card-details", card.id] });
-    if (templateSnapshot) {
-      try {
-        const { data, error } = await supabase.functions.invoke("crm-ai-assist", { body: { action: "improve_template", card_data: { subject: templateSnapshot.subject, body: templateSnapshot.html_content, context: `Objet envoyé : ${sentSubject}\n\nContenu envoyé :\n${sentBody}` } } });
-        if (!error && data?.result) { try { const improved = JSON.parse(data.result); if (improved.subject && improved.html_content) { await updateTemplate.mutateAsync({ id: templateSnapshot.id, updates: { subject: improved.subject, html_content: improved.html_content } }); } } catch { /* skip */ } }
-      } catch { /* best-effort */ }
+    if (sendingRef.current) return; // prevent duplicate sends
+    sendingRef.current = true;
+    try {
+      const sentSubject = emailSubject.trim();
+      const sentBody = DOMPurify.sanitize(emailBody);
+      const templateSnapshot = selectedTemplateRef.current;
+      const ccList = parseEmails(emailCc);
+      const bccList = parseEmails(emailBcc);
+      await sendEmail.mutateAsync({
+        input: { card_id: card.id, recipient_email: emailTo.trim(), subject: sentSubject, body_html: sentBody, attachments: emailAttachments.length > 0 ? emailAttachments : undefined, cc: ccList.length > 0 ? ccList : undefined, bcc: bccList.length > 0 ? bccList : undefined },
+        senderEmail: user.email,
+      });
+      setEmailTo(""); setEmailCc(""); setEmailBcc(""); setShowCcBcc(false); setEmailSubject(""); setEmailBody(""); setEmailAttachments([]); selectedTemplateRef.current = null;
+      await queryClient.invalidateQueries({ queryKey: ["crm-board", "card-details", card.id] });
+      if (templateSnapshot) {
+        try {
+          const { data, error } = await supabase.functions.invoke("crm-ai-assist", { body: { action: "improve_template", card_data: { subject: templateSnapshot.subject, body: templateSnapshot.html_content, context: `Objet envoyé : ${sentSubject}\n\nContenu envoyé :\n${sentBody}` } } });
+          if (!error && data?.result) { try { const improved = JSON.parse(data.result); if (improved.subject && improved.html_content) { await updateTemplate.mutateAsync({ id: templateSnapshot.id, updates: { subject: improved.subject, html_content: improved.html_content } }); } } catch { /* skip */ } }
+        } catch { /* best-effort */ }
+      }
+    } finally {
+      sendingRef.current = false;
     }
   };
 
