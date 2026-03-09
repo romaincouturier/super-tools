@@ -4,7 +4,7 @@
  * Re-exports from email-settings for backwards compatibility.
  */
 
-import { getBccList } from "./email-settings.ts";
+export { getBccList } from "./email-settings.ts";
 
 /**
  * Get BCC email list from app settings
@@ -14,5 +14,6 @@ import { getBccList } from "./email-settings.ts";
  */
 // deno-lint-ignore no-explicit-any
 export async function getBccSettings(_supabase?: any): Promise<string[]> {
-  return getBccList();
+  const { getBccList: _getBccList } = await import("./email-settings.ts");
+  return _getBccList();
 }

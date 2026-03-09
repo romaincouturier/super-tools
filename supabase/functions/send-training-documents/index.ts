@@ -236,7 +236,7 @@ Bonne réception.`;
       bcc: bccList,
       subject,
       html: htmlContent,
-      attachments,
+      attachments: attachments as any,
       _emailType: "training_documents",
       _trainingId: trainingId,
       _participantId: participantId || undefined,

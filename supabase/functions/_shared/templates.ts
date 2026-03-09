@@ -6,7 +6,7 @@
 
 import { escapeHtml } from "./resend.ts";
 
-export type TemplateVariables = Record<string, string | null | undefined>;
+export type TemplateVariables = Record<string, string | boolean | null | undefined>;
 
 /**
  * Process a template with variables
