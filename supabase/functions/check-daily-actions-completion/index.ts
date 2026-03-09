@@ -99,7 +99,7 @@ serve(async (req) => {
 
     // Also fetch training participants for convention checks
     const trainIdsToCheck = pendingActions
-      .filter((a) => a.entity_type === "training" && a.category === "formations_conventions")
+      .filter((a) => a.entity_type === "training" && (a.category === "formations_conventions" || a.category === "formations_facture"))
       .map((a) => a.entity_id);
 
     let participantsByTraining = new Map<string, any[]>();
