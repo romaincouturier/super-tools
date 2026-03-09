@@ -312,10 +312,15 @@ const MissionDetailDrawer = ({
         {/* Logistics booking buttons — visible on all tabs */}
         {location && (
           <div className="mt-3 flex items-center gap-3">
-            <span className="text-xs text-muted-foreground flex items-center gap-1">
+            <a
+              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-muted-foreground flex items-center gap-1 hover:text-primary transition-colors underline-offset-2 hover:underline"
+            >
               <MapPin className="h-3 w-3" />
               {location}
-            </span>
+            </a>
             <LogisticsBookingButtons
               table="missions"
               entityId={mission.id}

@@ -611,6 +611,49 @@ serve(async (req) => {
       console.log(`[${VERSION}] OKR initiatives actives: ${activeInitiatives.length}`);
     }
 
+    // 12. RAPPELS RÉSERVATION HÔTEL/TRAIN (2 mois avant start_date)
+    const twoMonthsLater = new Date(todayDate);
+    twoMonthsLater.setMonth(twoMonthsLater.getMonth() + 2);
+    const twoMonthsStr = twoMonthsLater.toISOString().split("T")[0];
+    // Window: missions starting in ~2 months (± 3 days to catch it in the daily run)
+    const twoMonthsMinus3 = new Date(twoMonthsLater);
+    twoMonthsMinus3.setDate(twoMonthsMinus3.getDate() - 3);
+    const twoMonthsMinus3Str = twoMonthsMinus3.toISOString().split("T")[0];
+
+    const { data: missionsNeedingBooking } = await supabase
+      .from("missions")
+      .select("id, title, client_name, location, start_date, train_booked, hotel_booked, assigned_to, emoji")
+      .not("location", "is", null)
+      .not("start_date", "is", null)
+      .gte("start_date", twoMonthsMinus3Str)
+      .lte("start_date", twoMonthsStr)
+      .in("status", ["pending", "in_progress"]);
+
+    if (missionsNeedingBooking) {
+      for (const m of missionsNeedingBooking) {
+        if (!m.location?.trim()) continue;
+        const needsTrain = !m.train_booked;
+        const needsHotel = !m.hotel_booked;
+        if (!needsTrain && !needsHotel) continue;
+
+        const items: string[] = [];
+        if (needsTrain) items.push("🚄 Train");
+        if (needsHotel) items.push("🏨 Hôtel");
+        const startFormatted = new Date(m.start_date).toLocaleDateString("fr-FR", { day: "numeric", month: "long" });
+
+        perUserActions.push({
+          category: "reservations_mission",
+          title: `${m.emoji || "📋"} ${m.title}`,
+          description: `${items.join(" + ")} à réserver — ${m.location} (${startFormatted})`,
+          link: `${appUrl}/missions/${m.id}`,
+          entity_type: "mission",
+          entity_id: m.id,
+          assignedTo: m.assigned_to,
+        });
+      }
+      console.log(`[${VERSION}] Missions nécessitant réservation: ${missionsNeedingBooking.filter((m: any) => (!m.train_booked || !m.hotel_booked) && m.location).length}`);
+    }
+
     // ══════════════════════════════════
     // Insert actions per user
     // ══════════════════════════════════
