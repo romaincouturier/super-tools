@@ -64,6 +64,10 @@ serve(async (req) => {
       .filter((a) => a.entity_type === "content_review")
       .map((a) => a.entity_id);
 
+    const commentIds = pendingActions
+      .filter((a) => a.entity_type === "review_comment")
+      .map((a) => a.entity_id);
+
     // Fetch current states
     const [missionsResult, cardsResult, trainingsResult, reviewsResult] = await Promise.all([
       missionIds.length > 0
