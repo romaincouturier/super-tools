@@ -559,6 +559,7 @@ export function useFormationDetail() {
     thankYouSentAt,
     assignedUserName,
     availableFormulas,
+    catalogRequiredEquipment,
     duplicateDialogOpen,
     setDuplicateDialogOpen,
     navigate,
