@@ -214,7 +214,7 @@ serve(async (req) => {
       .select("id, title, client_name, location, start_date, train_booked, hotel_booked, assigned_to, emoji")
       .not("location", "is", null)
       .not("start_date", "is", null)
-      .gte("start_date", todayStr)
+      .gte("start_date", today)
       .lte("start_date", sixtyDaysStr)
       .in("status", ["pending", "in_progress", "not_started"]);
 
