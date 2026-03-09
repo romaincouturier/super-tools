@@ -65,6 +65,7 @@ const FormationCreate = () => {
   const [objectives, setObjectives] = useState<string[]>([]);
   const [programFileUrl, setProgramFileUrl] = useState<string>("");
   const [supertiltLink, setSupertiltLink] = useState<string>("");
+  const [privateGroupUrl, setPrivateGroupUrl] = useState<string>("");
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   
   // Sponsor/Commanditaire
