@@ -472,7 +472,7 @@ const CommentThread = ({ cardId, cardTitle, reviewIds, onCommentAdded }: Comment
       return (
         <div
           key={comment.id}
-          className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/30 border border-border/30 cursor-pointer hover:bg-muted/50 transition-colors"
+          className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/20 border border-border/20 cursor-pointer hover:bg-muted/40 transition-colors opacity-50 hover:opacity-75"
           onClick={() => toggleResolvedExpanded(comment.id)}
         >
           <ChevronRight className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
@@ -497,7 +497,7 @@ const CommentThread = ({ cardId, cardTitle, reviewIds, onCommentAdded }: Comment
         key={comment.id}
         className={cn(
           "rounded-lg border transition-all",
-          isResolved ? "bg-muted/20 border-border/50" : "bg-background border-primary/20 shadow-sm"
+          isResolved ? "bg-muted/10 border-border/30 opacity-60" : "bg-background border-primary/20 shadow-sm"
         )}
       >
         {/* Collapse button for expanded resolved */}
