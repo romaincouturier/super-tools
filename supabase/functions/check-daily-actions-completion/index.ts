@@ -73,7 +73,7 @@ serve(async (req) => {
         ? supabase.from("crm_cards").select("id, sales_status, column_id").in("id", crmCardIds)
         : { data: [] },
       trainingIds.length > 0
-        ? supabase.from("trainings").select("id, convention_file_url, signed_convention_urls, invoice_file_url").in("id", trainingIds)
+        ? supabase.from("trainings").select("id, convention_file_url, signed_convention_urls, invoice_file_url, train_booked, hotel_booked, restaurant_booked, room_rental_booked, equipment_ready").in("id", trainingIds)
         : { data: [] },
       reviewIds.length > 0
         ? supabase.from("content_reviews").select("id, status").in("id", reviewIds)
