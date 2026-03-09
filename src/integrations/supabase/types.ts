@@ -5481,6 +5481,7 @@ export type Database = {
           elearning_access_email_content: string | null
           elearning_duration: number | null
           end_date: string | null
+          equipment_ready: boolean
           evaluation_link: string
           financeur_name: string | null
           financeur_same_as_sponsor: boolean
@@ -5531,6 +5532,7 @@ export type Database = {
           elearning_access_email_content?: string | null
           elearning_duration?: number | null
           end_date?: string | null
+          equipment_ready?: boolean
           evaluation_link: string
           financeur_name?: string | null
           financeur_same_as_sponsor?: boolean
@@ -5581,6 +5583,7 @@ export type Database = {
           elearning_access_email_content?: string | null
           elearning_duration?: number | null
           end_date?: string | null
+          equipment_ready?: boolean
           evaluation_link?: string
           financeur_name?: string | null
           financeur_same_as_sponsor?: boolean
