@@ -244,7 +244,7 @@ const CommentThread = ({ cardId, cardTitle, reviewIds, onCommentAdded }: Comment
         comment_type: commentType || null,
         image_url: imageUrl,
         status: "pending",
-        assigned_to: assignedTo || null,
+        assigned_to: (assignedTo && assignedTo !== "none") ? assignedTo : null,
       };
 
       const { error } = await (supabase as any).from("review_comments").insert(insertData);
