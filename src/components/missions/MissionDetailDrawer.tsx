@@ -111,6 +111,9 @@ const MissionDetailDrawer = ({
   const [activeTab, setActiveTab] = useState("activities");
   const [activityPageRequest, setActivityPageRequest] = useState<{ activityId: string; description: string } | null>(null);
   const [assignedTo, setAssignedTo] = useState<string | null>(null);
+  const [scheduledDate, setScheduledDate] = useState("");
+  const [scheduledText, setScheduledText] = useState("");
+  const [showScheduleForm, setShowScheduleForm] = useState(false);
 
   // Initialize form when mission changes
   useEffect(() => {
