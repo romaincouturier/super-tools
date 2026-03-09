@@ -69,7 +69,7 @@ serve(async (req) => {
       .map((a) => a.entity_id);
 
     // Fetch current states
-    const [missionsResult, cardsResult, trainingsResult, reviewsResult] = await Promise.all([
+    const [missionsResult, cardsResult, trainingsResult, reviewsResult, commentsResult] = await Promise.all([
       missionIds.length > 0
         ? supabase.from("missions").select("id, consumed_amount, billed_amount, status, start_date").in("id", missionIds)
         : { data: [] },
@@ -81,6 +81,9 @@ serve(async (req) => {
         : { data: [] },
       reviewIds.length > 0
         ? supabase.from("content_reviews").select("id, status").in("id", reviewIds)
+        : { data: [] },
+      commentIds.length > 0
+        ? supabase.from("review_comments").select("id, status").in("id", commentIds)
         : { data: [] },
     ]);
 
