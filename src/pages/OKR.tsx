@@ -76,6 +76,12 @@ import {
   getProgressColor,
 } from "@/types/okr";
 import OKRDetailDrawer from "@/components/okr/OKRDetailDrawer";
+import OKRRiskAlerts from "@/components/okr/OKRRiskAlerts";
+import OKRExecutiveSnapshot from "@/components/okr/OKRExecutiveSnapshot";
+import OKRAIChat from "@/components/okr/OKRAIChat";
+import { useOKRInsights } from "@/hooks/useOKRInsights";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { BarChart3, ShieldAlert } from "lucide-react";
 import ModuleLayout from "@/components/ModuleLayout";
 
 const OKR = () => {
@@ -87,8 +93,10 @@ const OKR = () => {
   const [expandedObjectives, setExpandedObjectives] = useState<Set<string>>(new Set());
   const [selectedObjective, setSelectedObjective] = useState<OKRObjective | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [activeView, setActiveView] = useState("objectives");
 
   const { data: objectives, isLoading, isError } = useOKRObjectives({ year: selectedYear });
+  const { data: insights } = useOKRInsights(selectedYear);
   const createObjective = useCreateOKRObjective();
   const updateObjective = useUpdateOKRObjective();
   const deleteObjective = useDeleteOKRObjective();
@@ -230,6 +238,64 @@ const OKR = () => {
           </div>
         </div>
 
+      {/* View Tabs */}
+      <Tabs value={activeView} onValueChange={setActiveView}>
+        <TabsList>
+          <TabsTrigger value="objectives" className="flex items-center gap-1.5">
+            <Target className="h-4 w-4" />
+            Objectifs
+          </TabsTrigger>
+          <TabsTrigger value="insights" className="flex items-center gap-1.5">
+            <BarChart3 className="h-4 w-4" />
+            Insights
+          </TabsTrigger>
+          <TabsTrigger value="ai" className="flex items-center gap-1.5">
+            <Sparkles className="h-4 w-4" />
+            AI Mode
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Insights Tab */}
+        <TabsContent value="insights" className="space-y-4 mt-4">
+          {insights ? (
+            <>
+              <OKRExecutiveSnapshot snapshot={insights.snapshot} momentum={insights.momentum} />
+              <OKRRiskAlerts
+                alerts={insights.alerts}
+                onClickObjective={(id) => {
+                  const obj = objectives?.find((o) => o.id === id);
+                  if (obj) openDrawer(obj);
+                }}
+              />
+            </>
+          ) : (
+            <div className="flex justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
+          )}
+        </TabsContent>
+
+        {/* AI Mode Tab */}
+        <TabsContent value="ai" className="mt-4">
+          <OKRAIChat year={selectedYear} />
+        </TabsContent>
+
+        {/* Objectives Tab */}
+        <TabsContent value="objectives" className="space-y-6 mt-4">
+
+      {/* Risk alerts banner on objectives view */}
+      {insights && insights.alerts.filter((a) => a.severity === "critical").length > 0 && (
+        <div className="flex items-center gap-2 p-3 rounded-lg border border-red-200 bg-red-50 text-sm">
+          <ShieldAlert className="h-4 w-4 text-red-600 shrink-0" />
+          <span className="text-red-800">
+            {insights.alerts.filter((a) => a.severity === "critical").length} alerte(s) critique(s) détectée(s).
+          </span>
+          <Button variant="link" size="sm" className="text-red-700 p-0 h-auto" onClick={() => setActiveView("insights")}>
+            Voir les détails
+          </Button>
+        </div>
+      )}
+
       {/* Favorite OKRs */}
       {favoriteObjectives.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -363,6 +429,9 @@ const OKR = () => {
           </CardContent>
         </Card>
       )}
+
+        </TabsContent>
+      </Tabs>
 
       {/* Create Dialog */}
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
