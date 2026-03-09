@@ -41,6 +41,7 @@ export interface Training {
   hotel_booked: boolean;
   restaurant_booked: boolean;
   room_rental_booked: boolean;
+  equipment_ready: boolean;
   convention_file_url?: string | null;
   signed_convention_urls?: string[];
   elearning_duration?: number | null;

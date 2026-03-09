@@ -1,0 +1,1 @@
+ALTER TABLE public.trainings ADD COLUMN IF NOT EXISTS equipment_ready boolean NOT NULL DEFAULT false;
