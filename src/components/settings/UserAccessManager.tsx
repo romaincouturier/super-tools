@@ -20,6 +20,7 @@ export default function UserAccessManager() {
   const [users, setUsers] = useState<UserWithAccess[]>([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState<string | null>(null);
+  const [commManagerId, setCommManagerId] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
