@@ -341,16 +341,16 @@ serve(async (req: Request): Promise<Response> => {
         ? `Du ${formatDateFrench(training.start_date)} au ${formatDateFrench(training.end_date || training.start_date)}`
         : formatDateRange(scheduleList),
       JOURS: training.format_formation === "e_learning"
-        ? ((singleParticipant as any)?.elearning_duration || training.elearning_duration || 7).toString()
+        ? ((singleParticipant as any)?.elearning_duration || training.elearning_duration || elearningDefaultDuration).toString()
         : calculateTotalHours(scheduleList).toString(),
       NOMBRE_JOURS: training.format_formation === "e_learning"
-        ? ((singleParticipant as any)?.elearning_duration || training.elearning_duration || 7).toString()
+        ? ((singleParticipant as any)?.elearning_duration || training.elearning_duration || elearningDefaultDuration).toString()
         : calculateTotalDays(scheduleList).toString(),
       HORAIRES: training.format_formation === "e_learning"
-        ? "Formation accessible en ligne a votre rythme"
-        : getTimeRange(scheduleList),
+        ? elearningHorairesText
+        : getTimeRange(scheduleList, defaultHoraires),
       LIEU: training.format_formation === "e_learning"
-        ? "En ligne (plateforme e-learning)"
+        ? elearningLieuText
         : training.location,
       STAGIAIRES: isIndividualConvention
         ? formatParticipants(participantList, participantList.length)
@@ -358,10 +358,10 @@ serve(async (req: Request): Promise<Response> => {
       PRIX: priceHt.toString(),
       TVA: tvaRate.toString(),
       PRIX_TTC: prixTtc.toFixed(2),
-      FRAIS: "0",
-      AFFICHE_FRAIS: "Non",
+      FRAIS: fraisDefault,
+      AFFICHE_FRAIS: afficheFrais,
       SUBROGATION: subrogation ? "Oui" : "Non",
-      MOYEN_PEDAGOGIQUE: "SuperTilt",
+      MOYEN_PEDAGOGIQUE: moyenPedagogique,
       _date: new Date().toISOString().split("T")[0],
     };
 
