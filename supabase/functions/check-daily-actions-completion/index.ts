@@ -240,6 +240,13 @@ serve(async (req) => {
           break;
         }
 
+        case "commentaires_contenu": {
+          const c = reviewComments.get(action.entity_id);
+          if (c && c.status !== "pending") resolved = true;
+          if (!c) resolved = true; // comment deleted
+          break;
+        }
+
         // Events and CFP: these are informational, don't auto-complete
         case "evenements":
         case "cfp_soumettre":
