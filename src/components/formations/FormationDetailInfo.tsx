@@ -1,4 +1,4 @@
-import { Calendar, FileText, MapPin, Building, UserIcon, Clock, Copy, Check, Euro, Mail } from "lucide-react";
+import { Calendar, FileText, MapPin, Building, UserIcon, Clock, Copy, Check, Euro, Mail, ExternalLink } from "lucide-react";
 import { User as UserIconLucide } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
