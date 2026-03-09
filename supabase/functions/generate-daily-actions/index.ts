@@ -98,7 +98,7 @@ serve(async (req) => {
     // 1. MISSIONS À FACTURER (filtered by assigned_to)
     const { data: missionsToInvoice } = await supabase
       .from("missions")
-      .select("id, title, client_name, consumed_amount, billed_amount, emoji, assigned_to")
+      .select("id, title, client_name, consumed_amount, billed_amount, emoji, assigned_to, waiting_next_action_date")
       .in("status", ["in_progress", "completed"]);
 
     if (missionsToInvoice) {
