@@ -748,6 +748,20 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
                     placeholder="https://supertilt.fr/..."
                   />
                 </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="requiredEquipment">Matériel obligatoire</Label>
+                  <Textarea
+                    id="requiredEquipment"
+                    value={requiredEquipment}
+                    onChange={(e) => setRequiredEquipment(e.target.value)}
+                    placeholder="Ex: Ordinateur portable avec webcam, casque audio, feutres de couleur..."
+                    rows={2}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Si renseigné, le matériel sera affiché dans la checklist logistique de chaque session.
+                  </p>
+                </div>
               </AccordionContent>
             </AccordionItem>
 
