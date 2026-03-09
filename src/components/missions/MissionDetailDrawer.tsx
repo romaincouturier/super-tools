@@ -27,6 +27,8 @@ import EntityDocumentsManager from "@/components/shared/EntityDocumentsManager";
 import MissionActionsManager from "./MissionActionsManager";
 import SendDeliverablesDialog from "./SendDeliverablesDialog";
 import AssignedUserSelector from "@/components/formations/AssignedUserSelector";
+import NextActionScheduler from "@/components/shared/NextActionScheduler";
+import { startOfDay, isAfter } from "date-fns";
 
 interface MissionDetailDrawerProps {
   mission: Mission | null;
