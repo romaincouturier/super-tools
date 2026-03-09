@@ -246,12 +246,16 @@ const handler = async (req: Request): Promise<Response> => {
 
       case "reminder": {
         recipientEmail = participant?.email || "";
+        const equipmentLine = requiredEquipment
+          ? `<li>Matériel requis : ${requiredEquipment}</li>`
+          : "";
         const vars = {
           first_name: firstName,
           training_name: training.training_name,
           training_date: formatDate(training.start_date),
           training_schedule: formatSchedules(schedules || []),
           training_location: training.location,
+          required_equipment: requiredEquipment,
         };
         const resolved = resolveEmailTemplate("reminder", formalAddress, vars);
         if (resolved) {
@@ -267,6 +271,7 @@ const handler = async (req: Request): Promise<Response> => {
               <li>Date : ${formatDate(training.start_date)}</li>
               <li>Horaires :<br>${formatSchedules(schedules || [])}</li>
               <li>Lieu : ${training.location}</li>
+              ${equipmentLine}
             </ul>
             <p>N'${formalAddress ? "hésitez" : "hésite"} pas à me contacter si ${formalAddress ? "vous avez" : "tu as"} des questions.</p>
             <p>À très bientôt !</p>
