@@ -998,6 +998,7 @@ serve(async (req) => {
 
     // ── Send email notification ──
     const adminEmail = await getSenderEmail();
+    const bccList = await getBccList();
     const statusEmoji = success ? "✅" : "⚠️";
     const statusText = success ? "réussie" : "avec des erreurs";
 
@@ -1010,6 +1011,7 @@ serve(async (req) => {
 
     await sendEmail({
       to: adminEmail,
+      bcc: bccList.filter(e => e !== adminEmail),
       subject: `${statusEmoji} Sauvegarde SuperTools ${today} ${statusText}`,
       html: `
         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
