@@ -88,6 +88,7 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
   const [programmeUrl, setProgrammeUrl] = useState("");
   const [supportsUrl, setSupportsUrl] = useState("");
   const [supertiltLink, setSupertiltLink] = useState("");
+  const [requiredEquipment, setRequiredEquipment] = useState("");
   const [objectives, setObjectives] = useState<string[]>([]);
   const [prerequisites, setPrerequisites] = useState<string[]>([]);
   const [elearningDuration, setElearningDuration] = useState("");
