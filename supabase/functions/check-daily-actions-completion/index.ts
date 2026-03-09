@@ -205,6 +205,13 @@ serve(async (req) => {
         case "formations_facture": {
           const t = trainingsMap.get(action.entity_id);
           if (t && t.invoice_file_url) resolved = true;
+          // Also check if all participants paid online
+          if (t && !t.invoice_file_url) {
+            const parts = participantsByTraining.get(action.entity_id) || [];
+            if (parts.length > 0 && parts.every((p: any) => p.payment_mode === "online")) {
+              resolved = true;
+            }
+          }
           break;
         }
 
