@@ -1820,19 +1820,6 @@ const Parametres = () => {
                       Reçoit un email à chaque soumission d'évaluation par un participant (avis, consentement publication).
                     </p>
                   </div>
-                  <div className="space-y-2 max-w-lg">
-                    <Label htmlFor="communication-manager-email">Email de la chargée de communication</Label>
-                    <Input
-                      id="communication-manager-email"
-                      type="email"
-                      value={settings.communication_manager_email}
-                      onChange={(e) => updateSetting("communication_manager_email", e.target.value)}
-                      placeholder="email@exemple.com"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Reçoit un email automatique quand une session inter-entreprises atteint son nombre maximum de participants.
-                    </p>
-                  </div>
                 </div>
 
                 <Separator />
