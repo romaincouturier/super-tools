@@ -34,6 +34,7 @@ interface CategoryConfig {
 
 // Display order for categories (matches daily digest email order)
 const CATEGORY_ORDER = [
+  "elearning_groupe",
   "formations_facture",
   "cfp_soumettre",
   "missions_a_facturer",
