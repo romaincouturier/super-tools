@@ -4309,7 +4309,9 @@ export type Database = {
       }
       review_comments: {
         Row: {
+          assigned_to: string | null
           author_id: string
+          card_id: string | null
           comment_type: string | null
           content: string
           created_at: string
@@ -4318,11 +4320,13 @@ export type Database = {
           parent_comment_id: string | null
           proposed_correction: string | null
           resolved_at: string | null
-          review_id: string
+          review_id: string | null
           status: string | null
         }
         Insert: {
+          assigned_to?: string | null
           author_id: string
+          card_id?: string | null
           comment_type?: string | null
           content: string
           created_at?: string
@@ -4331,11 +4335,13 @@ export type Database = {
           parent_comment_id?: string | null
           proposed_correction?: string | null
           resolved_at?: string | null
-          review_id: string
+          review_id?: string | null
           status?: string | null
         }
         Update: {
+          assigned_to?: string | null
           author_id?: string
+          card_id?: string | null
           comment_type?: string | null
           content?: string
           created_at?: string
@@ -4344,10 +4350,17 @@ export type Database = {
           parent_comment_id?: string | null
           proposed_correction?: string | null
           resolved_at?: string | null
-          review_id?: string
+          review_id?: string | null
           status?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "review_comments_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: false
+            referencedRelation: "content_cards"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "review_comments_parent_comment_id_fkey"
             columns: ["parent_comment_id"]
