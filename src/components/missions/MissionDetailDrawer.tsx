@@ -243,6 +243,9 @@ const MissionDetailDrawer = ({
       >
         {aiSummaryLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
       </Button>
+      <Button size="sm" variant="outline" onClick={() => setShowScheduleForm(true)} title="Programmer une action">
+        <Calendar className="h-4 w-4" />
+      </Button>
       <Button size="sm" variant="outline" onClick={() => setShowDeliverables(true)} title="Envoyer les livrables">
         <Package className="h-4 w-4" />
       </Button>
