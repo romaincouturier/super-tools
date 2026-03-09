@@ -127,7 +127,7 @@ serve(async (req) => {
     // 1b. MISSIONS SANS DATE DE DÉBUT (filtered by assigned_to)
     const { data: missionsNoStartDate } = await supabase
       .from("missions")
-      .select("id, title, client_name, emoji, assigned_to")
+      .select("id, title, client_name, emoji, assigned_to, waiting_next_action_date")
       .in("status", ["not_started", "in_progress"])
       .is("start_date", null);
 
