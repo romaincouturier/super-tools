@@ -11,7 +11,7 @@
  * Designed to be called by a cron job (daily at 7AM like process-logistics-reminders)
  */
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import {
   getSupabaseClient,
   sendEmail,
