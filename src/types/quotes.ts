@@ -151,6 +151,9 @@ export interface UpdateQuoteInput {
   client_vat_number?: string | null;
   client_siren?: string | null;
   client_email?: string | null;
+  // Travel & workflow
+  travel_data?: any;
+  workflow_step?: number;
 }
 
 // SIREN API types
