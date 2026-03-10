@@ -185,18 +185,133 @@ export default function Step3QuoteGeneration({
 
   const handleDownloadPdf = async () => {
     const updated = await handleSave();
-    // Invoke PDF generation edge function
     try {
-      const { data, error } = await supabase.functions.invoke(
-        "generate-quote-pdf",
-        { body: { quoteId: updated.id } }
-      );
-      if (error) throw error;
-      if (data?.pdfUrl) {
-        window.open(data.pdfUrl, "_blank");
+      // Use client-side jsPDF for reliable PDF generation
+      const { default: jsPDF } = await import("jspdf");
+      const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+
+      const pageW = doc.internal.pageSize.getWidth();
+      const margin = 20;
+      let y = 20;
+
+      // Header
+      doc.setFontSize(10);
+      doc.setTextColor(100);
+      if (settings) {
+        doc.text(settings.company_name || "", margin, y);
+        y += 5;
+        doc.text(`${settings.company_address || ""}, ${settings.company_zip || ""} ${settings.company_city || ""}`, margin, y);
+        y += 5;
+        if (settings.siren) doc.text(`SIREN : ${settings.siren}`, margin, y);
+        y += 5;
+        if (settings.vat_number) doc.text(`TVA : ${settings.vat_number}`, margin, y);
+        y += 10;
       }
+
+      // Quote number
+      doc.setFontSize(18);
+      doc.setTextColor(0);
+      doc.text(`Devis ${updated.quote_number}`, margin, y);
+      y += 10;
+
+      doc.setFontSize(9);
+      doc.setTextColor(80);
+      doc.text(`Date d'émission : ${updated.issue_date}`, margin, y);
+      doc.text(`Validité : ${updated.expiry_date}`, pageW - margin - 60, y);
+      y += 8;
+
+      // Client
+      doc.setFontSize(10);
+      doc.setTextColor(0);
+      doc.text("Client :", margin, y);
+      y += 5;
+      doc.setTextColor(60);
+      doc.text(updated.client_company, margin, y); y += 4;
+      doc.text(`${updated.client_address}`, margin, y); y += 4;
+      doc.text(`${updated.client_zip} ${updated.client_city}`, margin, y); y += 4;
+      if (updated.client_siren) { doc.text(`SIREN : ${updated.client_siren}`, margin, y); y += 4; }
+      y += 6;
+
+      // Table header
+      const colX = [margin, margin + 55, margin + 95, margin + 115, margin + 135, margin + 155];
+      doc.setFillColor(240, 240, 240);
+      doc.rect(margin, y - 1, pageW - 2 * margin, 7, "F");
+      doc.setFontSize(8);
+      doc.setTextColor(0);
+      doc.text("Produit / Description", colX[0], y + 4);
+      doc.text("Qté", colX[1], y + 4);
+      doc.text("Unité", colX[2], y + 4);
+      doc.text("PU HT", colX[3], y + 4);
+      doc.text("TVA", colX[4], y + 4);
+      doc.text("Total HT", colX[5], y + 4);
+      y += 10;
+
+      // Lines
+      const lines = updated.line_items || [];
+      for (const line of lines) {
+        const lineHt = line.quantity * line.unit_price_ht;
+        doc.setFontSize(9);
+        doc.setTextColor(0);
+        doc.text(line.product || "", colX[0], y);
+        doc.text(String(line.quantity), colX[1], y);
+        doc.text(line.unit || "", colX[2], y);
+        doc.text(fmt(line.unit_price_ht), colX[3], y);
+        doc.text(`${line.vat_rate}%`, colX[4], y);
+        doc.text(fmt(lineHt), colX[5], y);
+        y += 5;
+        if (line.description) {
+          doc.setFontSize(7);
+          doc.setTextColor(120);
+          const descLines = doc.splitTextToSize(line.description, 50);
+          doc.text(descLines, colX[0], y);
+          y += descLines.length * 3.5;
+        }
+        y += 2;
+        if (y > 260) { doc.addPage(); y = 20; }
+      }
+
+      // Totals
+      y += 5;
+      doc.setDrawColor(200);
+      doc.line(margin, y, pageW - margin, y);
+      y += 6;
+      doc.setFontSize(10);
+      doc.setTextColor(0);
+      doc.text("Total HT :", pageW - margin - 60, y);
+      doc.text(fmt(updated.total_ht || 0), pageW - margin, y, { align: "right" });
+      y += 6;
+      if (!settings?.vat_exempt) {
+        doc.text("Total TVA :", pageW - margin - 60, y);
+        doc.text(fmt(updated.total_vat || 0), pageW - margin, y, { align: "right" });
+        y += 6;
+      }
+      doc.setFontSize(12);
+      doc.text("Total TTC :", pageW - margin - 60, y);
+      doc.text(fmt(settings?.vat_exempt ? (updated.total_ht || 0) : (updated.total_ttc || 0)), pageW - margin, y, { align: "right" });
+
+      // Footer mentions
+      if (settings) {
+        y += 15;
+        doc.setFontSize(7);
+        doc.setTextColor(120);
+        const mentions = [];
+        if (settings.payment_terms_text) mentions.push(`Conditions de règlement : ${settings.payment_terms_text}`);
+        if (settings.late_penalty_text) mentions.push(`Pénalités de retard : ${settings.late_penalty_text}`);
+        mentions.push(`Indemnité forfaitaire de recouvrement : ${fmt(settings.recovery_indemnity_amount)} €`);
+        if (settings.training_declaration_number) mentions.push(`N° déclaration d'activité : ${settings.training_declaration_number}`);
+        if (settings.vat_exempt && settings.vat_exempt_text) mentions.push(settings.vat_exempt_text);
+        for (const m of mentions) {
+          if (y > 280) { doc.addPage(); y = 20; }
+          doc.text(m, margin, y);
+          y += 3.5;
+        }
+      }
+
+      doc.save(`${updated.quote_number}.pdf`);
+      toast.success("PDF téléchargé");
     } catch (e: any) {
       console.error("PDF generation error:", e);
+      toast.error("Erreur lors de la génération du PDF : " + (e.message || "inconnue"));
     }
     onContinue(updated);
   };
