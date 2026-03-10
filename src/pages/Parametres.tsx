@@ -36,6 +36,7 @@ import ArenaKeySettings from "@/components/settings/ArenaKeySettings";
 import PostEvaluationEmailManager from "@/components/settings/PostEvaluationEmailManager";
 import SlackChannelCard from "@/components/settings/SlackChannelCard";
 import BillingSection from "@/components/settings/BillingSection";
+import QuoteSettingsForm from "@/components/quotes/QuoteSettingsForm";
 
 interface EmailTemplate {
   id: string;
@@ -1777,6 +1778,10 @@ const Parametres = () => {
               <Sparkles className="h-4 w-4" />
               AI Arena
             </TabsTrigger>
+            <TabsTrigger value="devis" className="flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              Devis
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="general">
@@ -3053,6 +3058,20 @@ const Parametres = () => {
 
           <TabsContent value="arena">
             <ArenaKeySettings />
+          </TabsContent>
+
+          <TabsContent value="devis">
+            <Card>
+              <CardHeader>
+                <CardTitle>Paramètres du module Devis</CardTitle>
+                <CardDescription>
+                  Données émetteur, numérotation, conditions de paiement et mentions légales injectées dans les devis.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <QuoteSettingsForm />
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </main>
