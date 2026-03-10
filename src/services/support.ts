@@ -11,13 +11,14 @@ export async function fetchSupportTickets(): Promise<SupportTicket[]> {
 }
 
 export async function createSupportTicket(
-  input: Pick<SupportTicket, "type" | "title" | "description" | "priority" | "page_url">
+  input: Pick<SupportTicket, "type" | "title" | "description" | "priority" | "page_url"> & { files?: File[] }
 ): Promise<SupportTicket> {
   const { data: { user } } = await supabase.auth.getUser();
+  const { files, ...ticketInput } = input;
   const { data, error } = await (supabase as any)
     .from("support_tickets")
     .insert({
-      ...input,
+      ...ticketInput,
       ticket_number: "",
       submitted_by: user?.id || null,
       submitted_by_email: user?.email || null,
@@ -25,6 +26,22 @@ export async function createSupportTicket(
     .select()
     .single();
   if (error) throw error;
+
+  // Upload attachments if any
+  if (files && files.length > 0) {
+    for (const file of files) {
+      const filePath = `${data.id}/${Date.now()}_${file.name}`;
+      await supabase.storage.from("support-attachments").upload(filePath, file);
+      await (supabase as any).from("support_ticket_attachments").insert({
+        ticket_id: data.id,
+        file_name: file.name,
+        file_path: filePath,
+        file_size: file.size,
+        mime_type: file.type,
+      });
+    }
+  }
+
   return data;
 }
 

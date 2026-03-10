@@ -1,7 +1,9 @@
 import { useState, useEffect, useMemo } from "react";
 import { Users, Loader2, AlertCircle, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { differenceInDays, parseISO, format } from "date-fns";
+import { capitalizeName } from "@/lib/stringUtils";
+import { getEmailMode, isManualEmailMode } from "@/lib/emailScheduling";
+import { format } from "date-fns";
 import {
   Dialog,
   DialogContent,
@@ -26,17 +28,7 @@ interface BulkAddParticipantsDialogProps {
   formatFormation?: string | null;
 }
 
-const capitalizeName = (name: string): string => {
-  const trimmed = name.trim();
-  if (!trimmed) return "";
-  return trimmed
-    .split(/(\s+|-)/g)
-    .map((part) => {
-      if (part === "-" || /^\s+$/.test(part)) return part;
-      return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase();
-    })
-    .join("");
-};
+
 
 interface ParsedParticipant {
   email: string;
@@ -63,39 +55,9 @@ const BulkAddParticipantsDialog = ({
   const [isManualMode, setIsManualMode] = useState(false);
   const { toast } = useToast();
 
-  // Determine email scheduling mode based on training date
-  const getEmailMode = (): { status: string; sendWelcomeNow: boolean } => {
-    if (!trainingStartDate) {
-      return { status: "programme", sendWelcomeNow: false };
-    }
-    
-    const startDate = parseISO(trainingStartDate);
-    const today = new Date();
-    const daysUntilStart = differenceInDays(startDate, today);
-    
-    // Training already started or is today
-    if (daysUntilStart <= 0) {
-      return { status: "non_envoye", sendWelcomeNow: false };
-    }
-    
-    // Training starts in less than 2 days
-    if (daysUntilStart < 2) {
-      return { status: "manuel", sendWelcomeNow: false };
-    }
-    
-    // Training starts between 2-7 days -> send welcome email immediately
-    if (daysUntilStart <= 7) {
-      return { status: "accueil_envoye", sendWelcomeNow: true };
-    }
-    
-    // Training is more than 7 days away -> schedule normally
-    return { status: "programme", sendWelcomeNow: false };
-  };
-
   useEffect(() => {
     if (trainingStartDate) {
-      const { status } = getEmailMode();
-      setIsManualMode(status === "manuel" || status === "non_envoye");
+      setIsManualMode(isManualEmailMode(trainingStartDate));
     }
   }, [trainingStartDate]);
 
@@ -248,7 +210,7 @@ const BulkAddParticipantsDialog = ({
 
     try {
       // Determine initial status based on training proximity
-      const { status, sendWelcomeNow } = getEmailMode();
+      const { status, sendWelcomeNow } = getEmailMode(trainingStartDate);
 
       const toInsert = parsedParticipants.map((p) => ({
         training_id: trainingId,

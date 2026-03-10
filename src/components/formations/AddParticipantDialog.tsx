@@ -1,7 +1,5 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { Plus, Loader2, AlertTriangle, ShoppingCart } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { differenceInDays, parseISO, format } from "date-fns";
 import type { FormationFormula } from "@/types/training";
 import {
   Dialog,
@@ -41,7 +39,9 @@ import {
 import { Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-import { subtractWorkingDays, fetchWorkingDays, fetchNeedsSurveyDelay, scheduleTrainerSummaryIfNeeded } from "@/lib/workingDays";
+import { useAddParticipant } from "@/hooks/useAddParticipant";
+import { getEmailMode } from "@/lib/emailScheduling";
+import { fetchExistingFinanceurs } from "@/services/participants";
 
 interface AddParticipantDialogProps {
   trainingId: string;
@@ -62,22 +62,6 @@ interface AddParticipantDialogProps {
   onExternalOpenChange?: (open: boolean) => void;
 }
 
-/**
- * Capitalize the first letter of each word in a name, handling compound names (hyphen, space).
- * "jean-pierre" → "Jean-Pierre", "DUPONT" → "Dupont", "marie claire" → "Marie Claire"
- */
-const capitalizeName = (name: string): string => {
-  const trimmed = name.trim();
-  if (!trimmed) return "";
-  return trimmed
-    .split(/(\s+|-)/g) // split keeping delimiters (spaces & hyphens)
-    .map((part) => {
-      if (part === "-" || /^\s+$/.test(part)) return part;
-      return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase();
-    })
-    .join("");
-};
-
 const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, formatFormation, isInterEntreprise: isInterEntrepriseProp, availableFormulas = [], trainingFormulaId, onParticipantAdded, onScheduledEmailsRefresh, initialFirstName, initialLastName, initialEmail, initialCompany, initialSoldPriceHt, externalOpen, onExternalOpenChange }: AddParticipantDialogProps) => {
   const [internalOpen, setInternalOpen] = useState(false);
   const open = externalOpen !== undefined ? externalOpen : internalOpen;
@@ -85,7 +69,6 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
     if (onExternalOpenChange) onExternalOpenChange(v);
     setInternalOpen(v);
   };
-  const [saving, setSaving] = useState(false);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [soldPriceHt, setSoldPriceHt] = useState("");
@@ -107,89 +90,8 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
   const [existingFinanceurs, setExistingFinanceurs] = useState<string[]>([]);
   const [isManualMode, setIsManualMode] = useState(false);
   const { toast } = useToast();
-  
+
   const isInterEntreprise = isInterEntrepriseProp ?? (formatFormation === "inter-entreprises" || formatFormation === "e_learning");
-
-  // Populate initial values when dialog opens with prefill data
-  useEffect(() => {
-    if (open) {
-      if (initialFirstName) setFirstName(initialFirstName);
-      if (initialLastName) setLastName(initialLastName);
-      if (initialEmail) setEmail(initialEmail);
-      if (initialCompany) {
-        setCompany(initialCompany);
-      } else if (!isInterEntreprise && clientName) {
-        // For intra trainings, prefill company with the training's client name
-        setCompany(clientName);
-      }
-      if (initialSoldPriceHt) setSoldPriceHt(initialSoldPriceHt);
-    }
-  }, [open, initialFirstName, initialLastName, initialEmail, initialCompany, initialSoldPriceHt, clientName, isInterEntreprise]);
-
-  // Fetch existing funders when dialog opens
-  useEffect(() => {
-    const fetchFinanceurs = async () => {
-      const [fromTrainings, fromParticipants] = await Promise.all([
-        supabase.from("trainings").select("financeur_name").not("financeur_name", "is", null).not("financeur_name", "eq", ""),
-        supabase.from("training_participants").select("financeur_name").not("financeur_name", "is", null).not("financeur_name", "eq", ""),
-      ]);
-      
-      const allNames = new Set<string>();
-      (fromTrainings.data || []).forEach(r => r.financeur_name && allNames.add(r.financeur_name));
-      (fromParticipants.data || []).forEach(r => r.financeur_name && allNames.add(r.financeur_name));
-      setExistingFinanceurs(Array.from(allNames).sort());
-    };
-    
-    if (open && isInterEntreprise) {
-      fetchFinanceurs();
-    }
-  }, [open, isInterEntreprise]);
-
-  // Determine email scheduling mode based on training date
-  // - If training already started (past date) -> no email
-  // - If training is upcoming -> send welcome email immediately
-  // NOTE: This function is called at submit time, so trainingStartDate should always be defined
-  // We use the prop directly to ensure we have the latest value
-  const getEmailMode = (startDateStr: string | undefined): { status: string; sendWelcomeNow: boolean } => {
-    console.log("[AddParticipantDialog] getEmailMode called with startDate:", startDateStr);
-    
-    if (!startDateStr) {
-      console.warn("[AddParticipantDialog] No trainingStartDate provided, defaulting to non_envoye");
-      return { status: "non_envoye", sendWelcomeNow: false };
-    }
-    
-    const startDate = parseISO(startDateStr);
-    const today = new Date();
-    const daysUntilStart = differenceInDays(startDate, today);
-    
-    console.log("[AddParticipantDialog] Days until start:", daysUntilStart);
-    
-    // Training already started or is today
-    if (daysUntilStart <= 0) {
-      return { status: "non_envoye", sendWelcomeNow: false };
-    }
-    
-    // Training is in the future -> send welcome email immediately
-    // Initial status is "programme" which means "welcome sent, needs survey scheduled"
-    // The send-welcome-email function will keep the status or update appropriately
-    return { status: "programme", sendWelcomeNow: true };
-  };
-
-  useEffect(() => {
-    if (trainingStartDate) {
-      const { status } = getEmailMode(trainingStartDate);
-      setIsManualMode(status === "non_envoye");
-    }
-  }, [trainingStartDate]);
-
-  // Sync sponsor fields when "same as participant" is checked
-  useEffect(() => {
-    if (sponsorSameAsParticipant) {
-      setSponsorFirstName(firstName);
-      setSponsorLastName(lastName);
-      setSponsorEmail(email);
-    }
-  }, [sponsorSameAsParticipant, firstName, lastName, email]);
 
   const resetForm = () => {
     setFirstName("");
@@ -209,6 +111,58 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
     setFormulaId(trainingFormulaId || (availableFormulas.length === 1 ? availableFormulas[0].id : ""));
   };
 
+  const mutation = useAddParticipant({
+    trainingId,
+    trainingStartDate,
+    formatFormation,
+    isInterEntreprise,
+    onSuccess: () => {
+      resetForm();
+      setOpen(false);
+      onParticipantAdded();
+    },
+    onScheduledEmailsRefresh,
+  });
+
+  // Populate initial values when dialog opens with prefill data
+  useEffect(() => {
+    if (open) {
+      if (initialFirstName) setFirstName(initialFirstName);
+      if (initialLastName) setLastName(initialLastName);
+      if (initialEmail) setEmail(initialEmail);
+      if (initialCompany) {
+        setCompany(initialCompany);
+      } else if (!isInterEntreprise && clientName) {
+        // For intra trainings, prefill company with the training's client name
+        setCompany(clientName);
+      }
+      if (initialSoldPriceHt) setSoldPriceHt(initialSoldPriceHt);
+    }
+  }, [open, initialFirstName, initialLastName, initialEmail, initialCompany, initialSoldPriceHt, clientName, isInterEntreprise]);
+
+  // Fetch existing funders when dialog opens
+  useEffect(() => {
+    if (open && isInterEntreprise) {
+      fetchExistingFinanceurs().then(setExistingFinanceurs);
+    }
+  }, [open, isInterEntreprise]);
+
+  useEffect(() => {
+    if (trainingStartDate) {
+      const { status } = getEmailMode(trainingStartDate);
+      setIsManualMode(status === "non_envoye");
+    }
+  }, [trainingStartDate]);
+
+  // Sync sponsor fields when "same as participant" is checked
+  useEffect(() => {
+    if (sponsorSameAsParticipant) {
+      setSponsorFirstName(firstName);
+      setSponsorLastName(lastName);
+      setSponsorEmail(email);
+    }
+  }, [sponsorSameAsParticipant, firstName, lastName, email]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -221,233 +175,27 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
       return;
     }
 
-    setSaving(true);
-
-    try {
-      // Generate unique token for needs survey
-      const token = crypto.randomUUID();
-
-      // Determine initial status and whether to send welcome email
-      // Pass the prop value explicitly to avoid stale closure issues
-      const { status, sendWelcomeNow } = getEmailMode(trainingStartDate);
-      console.log("[AddParticipantDialog] Submit - status:", status, "sendWelcomeNow:", sendWelcomeNow);
-
-      // Compute coaching fields from selected formula
-      const coachingTotal = selectedFormula?.coaching_sessions_count || 0;
-      const coachingDeadline = coachingTotal > 0
-        ? (() => {
-            const d = new Date();
-            d.setFullYear(d.getFullYear() + 1);
-            return format(d, "yyyy-MM-dd");
-          })()
-        : null;
-
-      const participantData = {
-        training_id: trainingId,
-        first_name: capitalizeName(firstName) || null,
-        last_name: capitalizeName(lastName) || null,
-        email: email.trim().toLowerCase(),
-        company: company.trim() || null,
-        needs_survey_token: token,
-        needs_survey_status: status,
-        coaching_sessions_total: coachingTotal,
-        coaching_sessions_completed: 0,
-        coaching_deadline: coachingDeadline,
-        // Add formula if available (from catalog formulas)
-        ...(formulaId && {
-          formula,
-          formula_id: formulaId,
-        }),
-        // For inter-enterprise trainings, add sponsor, funder and payment fields
-        ...(isInterEntreprise && {
-          sponsor_first_name: capitalizeName(sponsorFirstName) || null,
-          sponsor_last_name: capitalizeName(sponsorLastName) || null,
-          sponsor_email: sponsorEmail.trim().toLowerCase() || null,
-          financeur_same_as_sponsor: financeurSameAsSponsor,
-          financeur_name: !financeurSameAsSponsor ? (financeurName.trim() || null) : null,
-          financeur_url: !financeurSameAsSponsor ? (financeurUrl.trim() || null) : null,
-          payment_mode: paymentMode,
-          sold_price_ht: soldPriceHt ? parseFloat(soldPriceHt) : null,
-        }),
-      };
-
-      const { data: insertedParticipant, error } = await supabase.from("training_participants").insert(participantData).select().single();
-
-      if (error) {
-        if (error.code === "23505") {
-          toast({
-            title: "Participant déjà inscrit",
-            description: "Un participant avec cet email est déjà inscrit à cette formation.",
-            variant: "destructive",
-          });
-        } else {
-          throw error;
-        }
-        return;
-      }
-
-      // Create questionnaire_besoins record immediately so the link works from day 1
-      if (insertedParticipant) {
-        try {
-          await supabase.from("questionnaire_besoins").insert({
-            participant_id: insertedParticipant.id,
-            training_id: trainingId,
-            token,
-            etat: "non_envoye",
-            email: email.trim().toLowerCase(),
-            prenom: firstName.trim() || null,
-            nom: lastName.trim() || null,
-            societe: company.trim() || null,
-          });
-        } catch (qErr) {
-          console.warn("Failed to pre-create questionnaire record:", qErr);
-        }
-      }
-      // If we need to send welcome email now, trigger the edge function
-      // Skip for e-learning: participants receive an access email instead of a convocation
-      if (sendWelcomeNow && insertedParticipant && formatFormation !== "e_learning") {
-        try {
-          await supabase.functions.invoke("send-welcome-email", {
-            body: {
-              participantId: insertedParticipant.id,
-              trainingId,
-            },
-          });
-        } catch (emailError) {
-          console.error("Failed to send welcome email:", emailError);
-          // Don't fail the whole operation, just log the error
-        }
-      }
-
-      // For e-learning: generate coupon if needed, then send access email
-      if (formatFormation === "e_learning" && paymentMode !== "online" && insertedParticipant) {
-        let couponCode: string | undefined;
-
-        // Generate WooCommerce coupon if requested
-        if (generateCoupon) {
-          try {
-            const { data: couponData, error: couponError } = await supabase.functions.invoke("generate-woocommerce-coupon", {
-              body: {
-                participantId: insertedParticipant.id,
-                trainingId,
-              },
-            });
-            if (couponError) {
-              console.error("Failed to generate WooCommerce coupon:", couponError);
-              toast({
-                title: "Coupon non généré",
-                description: "Le participant a été ajouté mais le coupon WooCommerce n'a pas pu être créé. Vérifiez la configuration WooCommerce.",
-                variant: "default",
-                duration: 8000,
-              });
-            } else if (couponData?.coupon_code) {
-              couponCode = couponData.coupon_code;
-            }
-          } catch (couponErr) {
-            console.error("Failed to generate WooCommerce coupon:", couponErr);
-          }
-        }
-
-        // Send e-learning access email (with coupon code if available)
-        try {
-          await supabase.functions.invoke("send-elearning-access", {
-            body: {
-              participantId: insertedParticipant.id,
-              trainingId,
-              couponCode,
-            },
-          });
-        } catch (emailError) {
-          console.error("Failed to send e-learning access email:", emailError);
-        }
-      }
-
-      // Schedule needs survey email for future trainings (skip for e-learning)
-      let needsSurveySkipped = false;
-      if (sendWelcomeNow && insertedParticipant && trainingStartDate && formatFormation !== "e_learning") {
-        try {
-          const [workingDays, needsSurveyDelay] = await Promise.all([
-            fetchWorkingDays(supabase),
-            fetchNeedsSurveyDelay(supabase),
-          ]);
-
-          const startDate = parseISO(trainingStartDate);
-          const scheduledDate = subtractWorkingDays(startDate, needsSurveyDelay, workingDays);
-
-          // Only schedule if the date is in the future
-          if (scheduledDate > new Date()) {
-            await supabase.from("scheduled_emails").insert({
-              training_id: trainingId,
-              participant_id: insertedParticipant.id,
-              email_type: "needs_survey",
-              scheduled_for: format(scheduledDate, "yyyy-MM-dd'T'09:00:00"),
-              status: "pending",
-            });
-          } else {
-            needsSurveySkipped = true;
-          }
-        } catch (scheduleError) {
-          console.error("Failed to schedule needs survey email:", scheduleError);
-        }
-      }
-
-      // Schedule trainer summary email if not already scheduled
-      if (trainingStartDate && status !== "non_envoye") {
-        await scheduleTrainerSummaryIfNeeded(supabase, trainingId, trainingStartDate);
-      }
-
-      // Log activity
-      await supabase.from("activity_logs").insert({
-        action_type: "participant_added",
-        recipient_email: email.trim().toLowerCase(),
-        details: {
-          training_id: trainingId,
-          participant_name: `${firstName.trim() || ""} ${lastName.trim() || ""}`.trim() || null,
-          company: company.trim() || null,
-        },
-      });
-
-      let statusMessage = "";
-      if (formatFormation === "e_learning" && paymentMode !== "online") {
-        const parts = [];
-        if (formula) parts.push(`Formule ${formula}`);
-        if (generateCoupon) parts.push("coupon WooCommerce généré");
-        parts.push("email d'accès envoyé");
-        statusMessage = parts.join(", ") + ".";
-      } else if (formula) {
-        statusMessage = `Formule ${formula}.`;
-      } else if (status === "non_envoye") {
-        statusMessage = "Formation passée — aucun email programmé.";
-      } else if (sendWelcomeNow && needsSurveySkipped) {
-        statusMessage = "Mail de convocation envoyé. ⚠️ Le recueil des besoins n'a pas été programmé car la date d'envoi est dépassée.";
-      } else if (sendWelcomeNow) {
-        statusMessage = "Mail de convocation envoyé, recueil des besoins programmé.";
-      }
-
-      toast({
-        title: "Participant ajouté",
-        description: `${email} a été ajouté. ${statusMessage}`,
-        ...(needsSurveySkipped && { variant: "default" as const, duration: 8000 }),
-      });
-
-      resetForm();
-      setOpen(false);
-      onParticipantAdded();
-      // Trigger scheduled emails refresh
-      if (onScheduledEmailsRefresh) {
-        onScheduledEmailsRefresh();
-      }
-    } catch (error: any) {
-      console.error("Error adding participant:", error);
-      toast({
-        title: "Erreur",
-        description: error.message || "Une erreur est survenue.",
-        variant: "destructive",
-      });
-    } finally {
-      setSaving(false);
-    }
+    mutation.mutate({
+      firstName,
+      lastName,
+      email,
+      company,
+      formulaId,
+      formulaName: formula,
+      selectedFormula,
+      sponsorFirstName,
+      sponsorLastName,
+      sponsorEmail,
+      financeurSameAsSponsor,
+      financeurName,
+      financeurUrl,
+      paymentMode,
+      soldPriceHt,
+      generateCoupon,
+    });
   };
+
+  const saving = mutation.isPending;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -645,8 +393,8 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
                         </PopoverTrigger>
                         <PopoverContent className="w-full p-0" align="start">
                           <Command>
-                            <CommandInput 
-                              placeholder="Rechercher ou saisir un financeur..." 
+                            <CommandInput
+                              placeholder="Rechercher ou saisir un financeur..."
                               value={financeurName}
                               onValueChange={setFinanceurName}
                             />
