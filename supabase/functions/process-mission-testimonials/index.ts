@@ -89,7 +89,7 @@ serve(async (req: Request) => {
     // Filter missions - we'll use mission_contacts instead of client_contact field
     const missionsToProcess = (missions || []).filter((m: any) => m.end_date);
 
-    if (missionsWithEmail.length === 0) {
+    if (missionsToProcess.length === 0) {
       return new Response(JSON.stringify({ message: "No missions to process" }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
