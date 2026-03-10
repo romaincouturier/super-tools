@@ -221,13 +221,17 @@ serve(async (req) => {
       trainingMeetingUrl = location;
     }
 
+    // Build summary page URL
+    const urls = await getAppUrls();
+    const summaryUrl = `${urls.app_url}/formation-info/${trainingId}`;
+
     // Generate calendar links for schedule days
     const calendarDays = generatePerDayCalendarLinks(
-      trainingName, location, startDate, endDate, schedules, senderEmail, trainingMeetingUrl || undefined
+      trainingName, location, startDate, endDate, schedules, senderEmail, trainingMeetingUrl || undefined, summaryUrl
     );
 
     // Generate calendar links for live meetings
-    const liveCalendarDays = generateLiveMeetingCalendarLinks(liveMeetings, senderEmail);
+    const liveCalendarDays = generateLiveMeetingCalendarLinks(liveMeetings, senderEmail, summaryUrl);
 
     // Combine: schedule days + live meetings
     const allCalendarEntries = [...calendarDays, ...liveCalendarDays];

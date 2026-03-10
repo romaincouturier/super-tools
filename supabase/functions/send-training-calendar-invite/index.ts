@@ -145,6 +145,8 @@ serve(async (req: Request): Promise<Response> => {
       getSigniticSignature(),
     ]);
 
+    const summaryUrl = `${appUrl}/formation-info/${trainingId}`;
+
     const icsContent = generateICS(
       trainingName,
       clientName,
@@ -152,7 +154,8 @@ serve(async (req: Request): Promise<Response> => {
       schedules,
       trainerEmail,
       organizerEmail,
-      meetingUrl
+      meetingUrl,
+      summaryUrl
     );
 
     // Build schedule list for email
