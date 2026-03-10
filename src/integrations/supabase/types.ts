@@ -1417,6 +1417,30 @@ export type Database = {
           },
         ]
       }
+      edge_function_health: {
+        Row: {
+          checked_at: string
+          function_name: string
+          id: string
+          response_time_ms: number
+          status: string
+        }
+        Insert: {
+          checked_at?: string
+          function_name: string
+          id?: string
+          response_time_ms?: number
+          status?: string
+        }
+        Update: {
+          checked_at?: string
+          function_name?: string
+          id?: string
+          response_time_ms?: number
+          status?: string
+        }
+        Relationships: []
+      }
       email_snippets: {
         Row: {
           category: string | null
