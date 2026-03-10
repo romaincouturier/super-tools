@@ -119,6 +119,7 @@ serve(async (req: Request): Promise<Response> => {
       trainingName,
       clientName,
       location,
+      meetingUrl,
       schedules,
       trainerEmail,
       trainerFirstName,
