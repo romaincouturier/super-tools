@@ -3,25 +3,25 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Sparkles, RefreshCw, Pencil, Eye, Copy, Check } from "lucide-react";
+import { Loader2, Sparkles, RefreshCw, Pencil, Eye, Copy, Check, Mic, MicOff, FileText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import type { CrmCard } from "@/types/crm";
 
 interface Props {
   crmCard: CrmCard;
   clientCompany: string;
-  onValidate: (synthesis: string) => void;
+  onValidate: (synthesis: string, instructions: string) => void;
   initialSynthesis?: string;
+  initialInstructions?: string;
 }
 
-/** Strip HTML tags to get plain text for clipboard */
 function htmlToPlainText(html: string): string {
   const div = document.createElement("div");
   div.innerHTML = html;
   return div.textContent || div.innerText || "";
 }
 
-/** Clean up LLM output: strip markdown wrappers */
 function cleanHtmlOutput(raw: string): string {
   return raw
     .replace(/^```html?\s*\n?/i, "")
@@ -34,12 +34,27 @@ export default function Step1Synthesis({
   clientCompany,
   onValidate,
   initialSynthesis,
+  initialInstructions,
 }: Props) {
   const [synthesis, setSynthesis] = useState(initialSynthesis || "");
+  const [instructions, setInstructions] = useState(initialInstructions || "");
   const [isGenerating, setIsGenerating] = useState(false);
   const [generated, setGenerated] = useState(!!initialSynthesis);
   const [isEditing, setIsEditing] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  const { isListening, isSupported, startListening, stopListening } =
+    useSpeechRecognition("fr-FR", true);
+
+  const handleToggleMic = () => {
+    if (isListening) {
+      stopListening();
+    } else {
+      startListening((text) => {
+        setInstructions((prev) => (prev ? prev + "\n" + text : text));
+      });
+    }
+  };
 
   const generateSynthesis = async () => {
     setIsGenerating(true);
@@ -125,6 +140,7 @@ export default function Step1Synthesis({
 
   return (
     <div className="space-y-6">
+      {/* Synthesis card */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
@@ -204,13 +220,61 @@ export default function Step1Synthesis({
         </CardContent>
       </Card>
 
+      {/* Instructions card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FileText className="w-5 h-5" />
+            Instructions complémentaires pour le devis
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Alert>
+            <FileText className="w-4 h-4" />
+            <AlertDescription>
+              Précisez les prestations, durées, tarifs et conditions
+              particulières. Vous pouvez dicter ou saisir au clavier.
+            </AlertDescription>
+          </Alert>
+
+          <div className="relative">
+            <Textarea
+              value={instructions}
+              onChange={(e) => setInstructions(e.target.value)}
+              rows={8}
+              placeholder="Ex: Formation React avancé, 3 jours, 1500€ HT/jour, 6 participants max..."
+              className="pr-14"
+            />
+            {isSupported && (
+              <Button
+                type="button"
+                variant={isListening ? "destructive" : "outline"}
+                size="icon"
+                className="absolute top-3 right-3"
+                onClick={handleToggleMic}
+                title={isListening ? "Arrêter la dictée" : "Dicter les instructions"}
+              >
+                {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+              </Button>
+            )}
+          </div>
+
+          {isListening && (
+            <div className="flex items-center gap-2 text-sm text-destructive animate-pulse">
+              <div className="w-2 h-2 bg-destructive rounded-full" />
+              Écoute en cours... Parlez puis cliquez pour arrêter.
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       <div className="flex justify-end">
         <Button
-          onClick={() => onValidate(synthesis)}
+          onClick={() => onValidate(synthesis, instructions)}
           disabled={!synthesis.trim() || isGenerating}
           size="lg"
         >
-          Valider la synthèse et continuer
+          Continuer vers la génération
         </Button>
       </div>
     </div>
