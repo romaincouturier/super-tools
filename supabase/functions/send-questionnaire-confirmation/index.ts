@@ -4,6 +4,7 @@ import { getSenderFrom, getSenderEmail, getBccList } from "../_shared/email-sett
 import { getSigniticSignature } from "../_shared/signitic.ts";
 import { processTemplate } from "../_shared/templates.ts";
 import { sendEmail } from "../_shared/resend.ts";
+import { getAppUrls } from "../_shared/app-urls.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -26,10 +27,12 @@ function generatePerDayCalendarLinks(
   endDate: string,
   schedules: Array<{ day_date: string; start_time: string; end_time: string }>,
   senderEmail: string,
-  meetingUrl?: string
+  meetingUrl?: string,
+  summaryUrl?: string
 ): Array<{ label: string; google: string; outlook: string }> {
   const meetingLine = meetingUrl ? `\n\nRejoindre la visio: ${meetingUrl}` : "";
-  const description = `Formation Supertilt: ${trainingName}${meetingLine}\n\nEmail: ${senderEmail}`;
+  const summaryLine = summaryUrl ? `\n\nInfos & documents: ${summaryUrl}` : "";
+  const description = `Formation Supertilt: ${trainingName}${meetingLine}${summaryLine}\n\nEmail: ${senderEmail}`;
   const calLocation = meetingUrl || location || '';
   
   const sortedSchedules = schedules && schedules.length > 0
@@ -82,7 +85,8 @@ function generatePerDayCalendarLinks(
 // Generate calendar links for live meetings
 function generateLiveMeetingCalendarLinks(
   liveMeetings: Array<{ title: string; scheduled_at: string; duration_minutes: number; meeting_url: string | null }>,
-  senderEmail: string
+  senderEmail: string,
+  summaryUrl?: string
 ): Array<{ label: string; google: string; outlook: string }> {
   return liveMeetings.map((live) => {
     const start = new Date(live.scheduled_at);
@@ -97,7 +101,9 @@ function generateLiveMeetingCalendarLinks(
     const monthNames = ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."];
     const label = `🎥 ${live.title} – ${dayNames[start.getDay()]} ${start.getDate()} ${monthNames[start.getMonth()]} à ${pad(start.getHours())}h${pad(start.getMinutes())}`;
 
-    const description = `Live: ${live.title}${live.meeting_url ? `\n\nRejoindre: ${live.meeting_url}` : ""}\n\nEmail: ${senderEmail}`;
+    const meetingLine = live.meeting_url ? `\n\nRejoindre: ${live.meeting_url}` : "";
+    const summaryLine = summaryUrl ? `\n\nInfos & documents: ${summaryUrl}` : "";
+    const description = `Live: ${live.title}${meetingLine}${summaryLine}\n\nEmail: ${senderEmail}`;
     const location = live.meeting_url || "En ligne";
 
     const googleParams = new URLSearchParams({
@@ -215,13 +221,17 @@ serve(async (req) => {
       trainingMeetingUrl = location;
     }
 
+    // Build summary page URL
+    const urls = await getAppUrls();
+    const summaryUrl = `${urls.app_url}/formation-info/${trainingId}`;
+
     // Generate calendar links for schedule days
     const calendarDays = generatePerDayCalendarLinks(
-      trainingName, location, startDate, endDate, schedules, senderEmail, trainingMeetingUrl || undefined
+      trainingName, location, startDate, endDate, schedules, senderEmail, trainingMeetingUrl || undefined, summaryUrl
     );
 
     // Generate calendar links for live meetings
-    const liveCalendarDays = generateLiveMeetingCalendarLinks(liveMeetings, senderEmail);
+    const liveCalendarDays = generateLiveMeetingCalendarLinks(liveMeetings, senderEmail, summaryUrl);
 
     // Combine: schedule days + live meetings
     const allCalendarEntries = [...calendarDays, ...liveCalendarDays];
