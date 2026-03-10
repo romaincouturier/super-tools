@@ -39,7 +39,8 @@ import {
 import { Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-import { useAddParticipant, getEmailMode } from "@/hooks/useAddParticipant";
+import { useAddParticipant } from "@/hooks/useAddParticipant";
+import { getEmailMode } from "@/lib/emailScheduling";
 import { fetchExistingFinanceurs } from "@/services/participants";
 
 interface AddParticipantDialogProps {

@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { differenceInDays, parseISO, format } from "date-fns";
+import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import {
   createParticipant,
@@ -10,33 +10,8 @@ import {
   scheduleParticipantEmail,
   scheduleTrainerSummary,
 } from "@/services/participants";
+import { getEmailMode } from "@/lib/emailScheduling";
 import type { FormationFormula } from "@/types/training";
-
-/**
- * Determine email scheduling mode based on training date.
- * - If training already started (past date) -> no email
- * - If training is upcoming -> send welcome email immediately
- */
-function getEmailMode(startDateStr: string | undefined): { status: string; sendWelcomeNow: boolean } {
-  console.log("[useAddParticipant] getEmailMode called with startDate:", startDateStr);
-
-  if (!startDateStr) {
-    console.warn("[useAddParticipant] No trainingStartDate provided, defaulting to non_envoye");
-    return { status: "non_envoye", sendWelcomeNow: false };
-  }
-
-  const startDate = parseISO(startDateStr);
-  const today = new Date();
-  const daysUntilStart = differenceInDays(startDate, today);
-
-  console.log("[useAddParticipant] Days until start:", daysUntilStart);
-
-  if (daysUntilStart <= 0) {
-    return { status: "non_envoye", sendWelcomeNow: false };
-  }
-
-  return { status: "programme", sendWelcomeNow: true };
-}
 
 export interface AddParticipantParams {
   firstName: string;
@@ -65,8 +40,6 @@ interface UseAddParticipantOptions {
   onSuccess: () => void;
   onScheduledEmailsRefresh?: () => void;
 }
-
-export { getEmailMode };
 
 export function useAddParticipant({
   trainingId,
