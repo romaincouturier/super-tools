@@ -279,6 +279,7 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
         <Step0ClientValidation
           crmCard={crmCard}
           onValidate={handleClientValidated}
+          initialClient={clientData}
         />
       )}
 
