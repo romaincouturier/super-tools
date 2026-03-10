@@ -221,7 +221,7 @@ serve(async (req) => {
         evaluationToken = existingEval.token;
       } else {
         // Create a new evaluation record
-        evaluationToken = generateEvaluationToken();
+        evaluationToken = await generateEvaluationToken();
 
         const { error: evalError } = await supabase
           .from("training_evaluations")
