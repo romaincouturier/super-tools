@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { capitalizeName } from "@/lib/formationConstants";
+import { capitalizeName } from "@/lib/stringUtils";
 
 interface SirenSearchResult {
   nomClient?: string;
@@ -67,13 +67,13 @@ export function useSirenSearch() {
       }
 
       const result: SirenSearchResult = {};
-      if (data?.nomClient) result.nomClient = capitalizeName(data.nomClient);
-      if (data?.adresse) result.adresseClient = capitalizeName(data.adresse);
+      if (data?.nomClient) result.nomClient = capitalizeName(data.nomClient) ?? "";
+      if (data?.adresse) result.adresseClient = capitalizeName(data.adresse) ?? "";
       if (data?.codePostal) result.codePostalClient = data.codePostal;
-      if (data?.ville) result.villeClient = capitalizeName(data.ville);
+      if (data?.ville) result.villeClient = capitalizeName(data.ville) ?? "";
       if (data?.pays && data.pays !== "France") {
         result.pays = "autre";
-        result.paysAutre = capitalizeName(data.pays);
+        result.paysAutre = capitalizeName(data.pays) ?? "";
       } else {
         result.pays = "france";
       }
@@ -169,7 +169,7 @@ export function useSirenSearch() {
         const descriptions = results
           .slice(0, 3)
           .map((r: { siren: string; nom: string; ville: string | null }) =>
-            `${r.siren} — ${capitalizeName(r.nom)}${r.ville ? ` (${capitalizeName(r.ville)})` : ""}`
+            `${r.siren} — ${capitalizeName(r.nom) ?? r.nom}${r.ville ? ` (${capitalizeName(r.ville) ?? r.ville})` : ""}`
           )
           .join("\n");
         toast({
