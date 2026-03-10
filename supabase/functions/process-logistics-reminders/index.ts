@@ -241,10 +241,11 @@ serve(async (req) => {
     // Formations
     const { data: trainingsNeedingBooking } = await supabase
       .from("trainings")
-      .select("id, training_name, location, start_date, train_booked, hotel_booked, restaurant_booked, room_rental_booked, equipment_ready, format_formation, session_type, assigned_to")
+      .select("id, training_name, location, start_date, train_booked, hotel_booked, restaurant_booked, room_rental_booked, equipment_ready, format_formation, session_type, assigned_to, is_cancelled")
       .not("start_date", "is", null)
       .gte("start_date", today)
-      .lte("start_date", sixtyDaysStr);
+      .lte("start_date", sixtyDaysStr)
+      .or("is_cancelled.is.null,is_cancelled.eq.false");
 
     if (trainingsNeedingBooking) {
       for (const t of trainingsNeedingBooking) {
@@ -272,6 +273,37 @@ serve(async (req) => {
       }
     }
     console.log(`[${VERSION}] Réservations formations: ${trainingsNeedingBooking?.length || 0}`);
+
+    // Événements internes en physique
+    const { data: eventsNeedingBooking } = await supabase
+      .from("events")
+      .select("id, title, event_date, location, location_type, event_type, train_booked, hotel_booked, room_rental_booked, restaurant_booked, assigned_to")
+      .eq("event_type", "internal")
+      .eq("location_type", "physical")
+      .eq("status", "active")
+      .not("location", "is", null)
+      .gte("event_date", today)
+      .lte("event_date", sixtyDaysStr);
+
+    if (eventsNeedingBooking) {
+      for (const ev of eventsNeedingBooking) {
+        if (!ev.location?.trim()) continue;
+        const items: string[] = [];
+        if (!ev.train_booked) items.push("🚄 Train");
+        if (!ev.hotel_booked) items.push("🏨 Hôtel");
+        if (!ev.room_rental_booked) items.push("🚪 Salle");
+        if (!ev.restaurant_booked) items.push("🍽️ Restaurant");
+        if (items.length === 0) continue;
+
+        const eventDateFormatted = new Date(ev.event_date).toLocaleDateString("fr-FR", { day: "numeric", month: "long" });
+
+        reservationAlerts.push({
+          assignedTo: ev.assigned_to,
+          html: `<li><a href="${appUrl}/events/${ev.id}" style="color: ${COLORS.primary}; text-decoration: underline;">📅 ${ev.title}</a> — ${items.join(" + ")} à réserver — ${ev.location} (${eventDateFormatted})</li>`,
+        });
+      }
+    }
+    console.log(`[${VERSION}] Réservations événements: ${eventsNeedingBooking?.length || 0}`);
 
     // ════════════════════════════════════════════
     // 1. MISSIONS À FACTURER
@@ -419,8 +451,9 @@ serve(async (req) => {
     // ════════════════════════════════════════════
     const { data: allTrainings } = await supabase
       .from("trainings")
-      .select("id, training_name, start_date, location, format_formation, convention_file_url, signed_convention_urls, sponsor_email, assigned_to")
-      .gt("start_date", today);
+      .select("id, training_name, start_date, location, format_formation, convention_file_url, signed_convention_urls, sponsor_email, assigned_to, is_cancelled")
+      .gt("start_date", today)
+      .or("is_cancelled.is.null,is_cancelled.eq.false");
 
     const trainings = allTrainings || [];
     const trainingIds = trainings.map((t) => t.id);
@@ -676,9 +709,10 @@ serve(async (req) => {
     const invoiceAlerts: TrainingAlert[] = [];
     const { data: pastTrainings } = await supabase
       .from("trainings")
-      .select("id, training_name, start_date, end_date, invoice_file_url, assigned_to")
+      .select("id, training_name, start_date, end_date, invoice_file_url, assigned_to, is_cancelled")
       .lt("start_date", today)
-      .is("invoice_file_url", null);
+      .is("invoice_file_url", null)
+      .or("is_cancelled.is.null,is_cancelled.eq.false");
 
     if (pastTrainings) {
       for (const t of pastTrainings) {

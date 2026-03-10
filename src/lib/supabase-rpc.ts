@@ -216,6 +216,7 @@ export interface MissionPublicSummary {
   daily_rate: number | null;
   total_days: number | null;
   emoji: string | null;
+  location: string | null;
 }
 
 export interface MissionActivityPublic {

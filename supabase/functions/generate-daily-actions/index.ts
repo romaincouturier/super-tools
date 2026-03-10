@@ -243,8 +243,9 @@ serve(async (req) => {
     // 5. FORMATIONS À TRAITER (conventions)
     const { data: allTrainings } = await supabase
       .from("trainings")
-      .select("id, training_name, start_date, format_formation, convention_file_url, signed_convention_urls, sponsor_email, assigned_to")
-      .gt("start_date", today);
+      .select("id, training_name, start_date, format_formation, convention_file_url, signed_convention_urls, sponsor_email, assigned_to, is_cancelled")
+      .gt("start_date", today)
+      .or("is_cancelled.is.null,is_cancelled.eq.false");
 
     const trainings = allTrainings || [];
     const trainingIds = trainings.map((t) => t.id);
@@ -539,9 +540,10 @@ serve(async (req) => {
     // Exclude trainings where ALL participants paid online (no invoice needed)
     const { data: pastTrainings } = await supabase
       .from("trainings")
-      .select("id, training_name, start_date, end_date, invoice_file_url, assigned_to, format_formation")
+      .select("id, training_name, start_date, end_date, invoice_file_url, assigned_to, format_formation, is_cancelled")
       .lt("start_date", today)
-      .is("invoice_file_url", null);
+      .is("invoice_file_url", null)
+      .or("is_cancelled.is.null,is_cancelled.eq.false");
 
     if (pastTrainings) {
       // Fetch participants for these trainings to check payment modes
@@ -693,10 +695,11 @@ serve(async (req) => {
     // 12b. Formations (train, hôtel, restaurant, salle, matériel)
     const { data: trainingsNeedingBooking } = await supabase
       .from("trainings")
-      .select("id, training_name, location, start_date, train_booked, hotel_booked, restaurant_booked, room_rental_booked, equipment_ready, format_formation, session_type, assigned_to")
+      .select("id, training_name, location, start_date, train_booked, hotel_booked, restaurant_booked, room_rental_booked, equipment_ready, format_formation, session_type, assigned_to, is_cancelled")
       .not("start_date", "is", null)
       .gte("start_date", today)
-      .lte("start_date", sixtyDaysStr);
+      .lte("start_date", sixtyDaysStr)
+      .or("is_cancelled.is.null,is_cancelled.eq.false");
 
     if (trainingsNeedingBooking) {
       for (const t of trainingsNeedingBooking) {
@@ -728,6 +731,42 @@ serve(async (req) => {
         });
       }
       console.log(`[${VERSION}] Formations nécessitant réservation: ${trainingsNeedingBooking.filter((t: any) => !t.train_booked || !t.hotel_booked || !t.restaurant_booked || !t.room_rental_booked || !t.equipment_ready).length}`);
+    }
+
+    // 12c. Événements internes en physique
+    const { data: eventsNeedingBooking } = await supabase
+      .from("events")
+      .select("id, title, event_date, location, location_type, event_type, train_booked, hotel_booked, room_rental_booked, restaurant_booked, assigned_to")
+      .eq("event_type", "internal")
+      .eq("location_type", "physical")
+      .eq("status", "active")
+      .not("location", "is", null)
+      .gte("event_date", today)
+      .lte("event_date", sixtyDaysStr);
+
+    if (eventsNeedingBooking) {
+      for (const ev of eventsNeedingBooking) {
+        if (!ev.location?.trim()) continue;
+        const items: string[] = [];
+        if (!ev.train_booked) items.push("🚄 Train");
+        if (!ev.hotel_booked) items.push("🏨 Hôtel");
+        if (!ev.room_rental_booked) items.push("🚪 Salle");
+        if (!ev.restaurant_booked) items.push("🍽️ Restaurant");
+        if (items.length === 0) continue;
+
+        const eventDateFormatted = new Date(ev.event_date).toLocaleDateString("fr-FR", { day: "numeric", month: "long" });
+
+        perUserActions.push({
+          category: "reservations_evenement",
+          title: `📅 ${ev.title}`,
+          description: `${items.join(" + ")} à réserver — ${ev.location} (${eventDateFormatted})`,
+          link: `${appUrl}/events/${ev.id}`,
+          entity_type: "event",
+          entity_id: ev.id,
+          assignedTo: ev.assigned_to,
+        });
+      }
+      console.log(`[${VERSION}] Événements nécessitant réservation: ${eventsNeedingBooking.filter((ev: any) => !ev.train_booked || !ev.hotel_booked || !ev.room_rental_booked || !ev.restaurant_booked).length}`);
     }
 
     // ══════════════════════════════════

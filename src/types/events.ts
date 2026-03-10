@@ -15,6 +15,10 @@ export interface Event {
   cfp_url: string | null;
   created_by: string | null;
   assigned_to: string | null;
+  train_booked: boolean;
+  hotel_booked: boolean;
+  room_rental_booked: boolean;
+  restaurant_booked: boolean;
   created_at: string;
   updated_at: string;
 }

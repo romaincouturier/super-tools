@@ -226,9 +226,13 @@ const CardDetailDrawer = ({
 
   useEffect(() => {
     if (!cardLoadedRef.current || !card) return;
+    // Note: sales_status and column_id are NOT included here because they are
+    // saved immediately by their dedicated handlers (handleSalesStatusChange,
+    // handleColumnChange). Including them would cause duplicate mutations and
+    // duplicate Slack notifications when an opportunity is won.
     autoSaveField({
-      title: title.trim(), sales_status: salesStatus, estimated_value: parseValue(),
-      quote_url: quoteUrl.trim() || null, column_id: columnId,
+      title: title.trim(), estimated_value: parseValue(),
+      quote_url: quoteUrl.trim() || null,
       waiting_next_action_date: scheduledDate || null, waiting_next_action_text: scheduledText.trim() || null,
       first_name: firstName.trim() || null, last_name: lastName.trim() || null,
       company: company.trim() || null, email: email.trim() || null,
@@ -239,7 +243,7 @@ const CardDetailDrawer = ({
       emoji: cardEmoji, confidence_score: confidenceScore,
       acquisition_source: acquisitionSource, assigned_to: assignedTo,
     });
-  }, [title, salesStatus, estimatedValue, quoteUrl, columnId, scheduledDate, scheduledText,
+  }, [title, estimatedValue, quoteUrl, scheduledDate, scheduledText,
       firstName, lastName, company, email, phone, linkedinUrl, websiteUrl, serviceType,
       nextActionText, nextActionDone, nextActionType, linkedMissionId, cardEmoji, confidenceScore, acquisitionSource, assignedTo]);
 

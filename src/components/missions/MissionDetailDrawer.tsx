@@ -28,6 +28,7 @@ import MissionActionsManager from "./MissionActionsManager";
 import SendDeliverablesDialog from "./SendDeliverablesDialog";
 import AssignedUserSelector from "@/components/formations/AssignedUserSelector";
 import NextActionScheduler from "@/components/shared/NextActionScheduler";
+import { getGoogleMapsSearchUrl } from "@/lib/googleMaps";
 import { startOfDay, isAfter } from "date-fns";
 
 interface MissionDetailDrawerProps {
@@ -313,7 +314,7 @@ const MissionDetailDrawer = ({
         {location && (
           <div className="mt-3 flex items-center gap-3">
             <a
-              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location)}`}
+              href={getGoogleMapsSearchUrl(location)}
               target="_blank"
               rel="noopener noreferrer"
               className="text-xs text-muted-foreground flex items-center gap-1 hover:text-primary transition-colors underline-offset-2 hover:underline"

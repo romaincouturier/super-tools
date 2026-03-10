@@ -48,6 +48,9 @@ export interface Training {
   notes?: string | null;
   assigned_to?: string | null;
   max_participants?: number | null;
+  is_cancelled?: boolean;
+  cancellation_reason?: string | null;
+  cancelled_at?: string | null;
 }
 
 export interface Schedule {

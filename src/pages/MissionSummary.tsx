@@ -16,12 +16,15 @@ import {
   Package,
   Image as ImageIcon,
   CheckCircle2,
+  MapPin,
+  Navigation,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
+import { getGoogleMapsDirectionsUrl, getGoogleMapsSearchUrl } from "@/lib/googleMaps";
 
 // ---------- Types ----------
 
@@ -37,6 +40,7 @@ interface MissionData {
   daily_rate: number | null;
   total_days: number | null;
   emoji: string | null;
+  location: string | null;
 }
 
 interface Activity {
@@ -127,6 +131,9 @@ const t: Record<Lang, Record<string, string>> = {
     downloadAll: "Télécharger tout",
     download: "Télécharger",
     noActions: "Aucune action définie",
+    location: "Lieu",
+    directions: "Itinéraire",
+    viewOnMap: "Voir sur Google Maps",
   },
   en: {
     loading: "Loading...",
@@ -165,6 +172,9 @@ const t: Record<Lang, Record<string, string>> = {
     downloadAll: "Download all",
     download: "Download",
     noActions: "No actions defined",
+    location: "Location",
+    directions: "Directions",
+    viewOnMap: "View on Google Maps",
   },
 };
 
@@ -488,6 +498,43 @@ const MissionSummary = () => {
         </div>
 
         <Separator />
+
+        {/* Location with Google Maps link */}
+        {mission.location && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <MapPin className="h-5 w-5 text-primary" />
+                {L.location}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-3">
+                <p className="text-lg">{mission.location}</p>
+                <Button size="sm" asChild>
+                  <a
+                    href={getGoogleMapsDirectionsUrl(mission.location)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <Navigation className="h-4 w-4 mr-2" />
+                    {L.directions}
+                  </a>
+                </Button>
+                <Button size="sm" variant="outline" asChild>
+                  <a
+                    href={getGoogleMapsSearchUrl(mission.location)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    {L.viewOnMap}
+                  </a>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Deliverables (only if there are any marked) */}
         {deliverables.length > 0 && (

@@ -1,4 +1,5 @@
 import { Loader2, MapPin, ExternalLink } from "lucide-react";
+import { getGoogleMapsEmbedUrl, getGoogleMapsDirectionsUrl } from "@/lib/googleMaps";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -131,12 +132,12 @@ const FormationDetail = () => {
               <iframe
                 width="100%" height="100%" style={{ border: 0 }} loading="lazy" allowFullScreen
                 referrerPolicy="no-referrer-when-downgrade"
-                src={`https://www.google.com/maps/embed/v1/place?key=${fd.googleMapsApiKey}&q=${encodeURIComponent(fd.training.location)}`}
+                src={getGoogleMapsEmbedUrl(fd.training.location, fd.googleMapsApiKey)}
               />
             </div>
             <div className="flex justify-end gap-2">
               <Button variant="outline" asChild>
-                <a href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(fd.training.location)}`} target="_blank" rel="noopener noreferrer">
+                <a href={getGoogleMapsDirectionsUrl(fd.training.location)} target="_blank" rel="noopener noreferrer">
                   <ExternalLink className="h-4 w-4 mr-2" />Itinéraire Google Maps
                 </a>
               </Button>
