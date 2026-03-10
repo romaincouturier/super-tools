@@ -5,7 +5,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card } from "@/components/ui/card";
 import {
   Tooltip,
@@ -313,7 +312,7 @@ const DailyTodoPanel = () => {
       </div>
 
       {/* Actions list */}
-      <ScrollArea className="h-0 flex-grow overflow-y-auto">
+      <div className="flex-1 min-h-0 overflow-y-auto">
         <div className="space-y-3 pr-2">
           {Object.entries(grouped).map(([category, catActions]) => {
             const config = CATEGORIES[category] || { label: category, emoji: "📌", color: "text-gray-600" };
@@ -400,7 +399,7 @@ const DailyTodoPanel = () => {
             );
           })}
         </div>
-      </ScrollArea>
+      </div>
 
       {/* Analytics toggle */}
       {themeRanking.length > 0 && (

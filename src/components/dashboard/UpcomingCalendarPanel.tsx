@@ -4,7 +4,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { addWorkingDays, fetchWorkingDays } from "@/lib/workingDays";
 import { Card } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import {
   Loader2,
@@ -175,7 +174,7 @@ const UpcomingCalendarPanel = () => {
         <h2 className="text-lg font-semibold">Calendrier J+15</h2>
       </div>
 
-      <ScrollArea className="h-0 flex-grow overflow-y-auto">
+      <div className="flex-1 min-h-0 overflow-y-auto">
         <div className="space-y-2 pr-2">
           {Object.entries(grouped).map(([dateKey, dayEntries]) => (
             <div key={dateKey}>
@@ -231,7 +230,7 @@ const UpcomingCalendarPanel = () => {
             </div>
           ))}
         </div>
-      </ScrollArea>
+      </div>
     </div>
   );
 };
