@@ -181,7 +181,7 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
 
     if (quote) {
       const travelData = { total, destinations, settings };
-      await saveWorkflowStep(quote.id, 3, { travel_data: travelData } as any);
+      await saveWorkflowStep(quote.id, 3, { travel_data: travelData });
     }
 
     setStep(3);
