@@ -86,8 +86,8 @@ serve(async (req: Request) => {
       return contact.replace(email, "").trim();
     };
 
-    // Filter missions that have a valid email in client_contact
-    const missionsWithEmail = (missions || []).filter((m: any) => extractEmail(m.client_contact));
+    // Filter missions - we'll use mission_contacts instead of client_contact field
+    const missionsToProcess = (missions || []).filter((m: any) => m.end_date);
 
     if (missionsWithEmail.length === 0) {
       return new Response(JSON.stringify({ message: "No missions to process" }), {
