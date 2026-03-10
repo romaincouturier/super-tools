@@ -4256,6 +4256,254 @@ export type Database = {
           },
         ]
       }
+      quote_settings: {
+        Row: {
+          ape_code: string
+          bank_bic: string
+          bank_iban: string
+          bank_name: string
+          company_address: string
+          company_city: string
+          company_email: string
+          company_logo_url: string | null
+          company_name: string
+          company_phone: string
+          company_zip: string
+          created_at: string
+          default_sale_type: string
+          default_unit: string
+          default_validity_days: number
+          default_vat_rate: number
+          early_payment_discount: string
+          id: string
+          insurance_coverage_zone: string
+          insurance_name: string
+          insurance_policy_number: string
+          late_penalty_text: string
+          legal_form: string
+          next_sequence_number: number
+          payment_methods: string
+          payment_terms_days: number
+          payment_terms_text: string
+          quote_prefix: string
+          rcs_city: string
+          rcs_number: string
+          recovery_indemnity_amount: number
+          rights_transfer_clause: string
+          rights_transfer_enabled: boolean
+          rights_transfer_rate: number
+          share_capital: string
+          siren: string
+          training_declaration_number: string
+          updated_at: string
+          vat_exempt: boolean
+          vat_exempt_text: string
+          vat_number: string
+        }
+        Insert: {
+          ape_code?: string
+          bank_bic?: string
+          bank_iban?: string
+          bank_name?: string
+          company_address?: string
+          company_city?: string
+          company_email?: string
+          company_logo_url?: string | null
+          company_name?: string
+          company_phone?: string
+          company_zip?: string
+          created_at?: string
+          default_sale_type?: string
+          default_unit?: string
+          default_validity_days?: number
+          default_vat_rate?: number
+          early_payment_discount?: string
+          id?: string
+          insurance_coverage_zone?: string
+          insurance_name?: string
+          insurance_policy_number?: string
+          late_penalty_text?: string
+          legal_form?: string
+          next_sequence_number?: number
+          payment_methods?: string
+          payment_terms_days?: number
+          payment_terms_text?: string
+          quote_prefix?: string
+          rcs_city?: string
+          rcs_number?: string
+          recovery_indemnity_amount?: number
+          rights_transfer_clause?: string
+          rights_transfer_enabled?: boolean
+          rights_transfer_rate?: number
+          share_capital?: string
+          siren?: string
+          training_declaration_number?: string
+          updated_at?: string
+          vat_exempt?: boolean
+          vat_exempt_text?: string
+          vat_number?: string
+        }
+        Update: {
+          ape_code?: string
+          bank_bic?: string
+          bank_iban?: string
+          bank_name?: string
+          company_address?: string
+          company_city?: string
+          company_email?: string
+          company_logo_url?: string | null
+          company_name?: string
+          company_phone?: string
+          company_zip?: string
+          created_at?: string
+          default_sale_type?: string
+          default_unit?: string
+          default_validity_days?: number
+          default_vat_rate?: number
+          early_payment_discount?: string
+          id?: string
+          insurance_coverage_zone?: string
+          insurance_name?: string
+          insurance_policy_number?: string
+          late_penalty_text?: string
+          legal_form?: string
+          next_sequence_number?: number
+          payment_methods?: string
+          payment_terms_days?: number
+          payment_terms_text?: string
+          quote_prefix?: string
+          rcs_city?: string
+          rcs_number?: string
+          recovery_indemnity_amount?: number
+          rights_transfer_clause?: string
+          rights_transfer_enabled?: boolean
+          rights_transfer_rate?: number
+          share_capital?: string
+          siren?: string
+          training_declaration_number?: string
+          updated_at?: string
+          vat_exempt?: boolean
+          vat_exempt_text?: string
+          vat_number?: string
+        }
+        Relationships: []
+      }
+      quotes: {
+        Row: {
+          client_address: string
+          client_city: string
+          client_company: string
+          client_email: string | null
+          client_signature_data: string | null
+          client_signature_date: string | null
+          client_signature_name: string | null
+          client_siren: string | null
+          client_vat_number: string | null
+          client_zip: string
+          created_at: string
+          crm_card_id: string
+          email_body: string | null
+          email_sent_at: string | null
+          email_subject: string | null
+          expiry_date: string
+          id: string
+          instructions: string | null
+          issue_date: string
+          line_items: Json
+          loom_url: string | null
+          pdf_path: string | null
+          quote_number: string
+          rights_transfer_amount: number | null
+          rights_transfer_enabled: boolean
+          rights_transfer_rate: number | null
+          sale_type: string
+          status: string
+          synthesis: string | null
+          total_ht: number
+          total_ttc: number
+          total_vat: number
+          updated_at: string
+        }
+        Insert: {
+          client_address?: string
+          client_city?: string
+          client_company?: string
+          client_email?: string | null
+          client_signature_data?: string | null
+          client_signature_date?: string | null
+          client_signature_name?: string | null
+          client_siren?: string | null
+          client_vat_number?: string | null
+          client_zip?: string
+          created_at?: string
+          crm_card_id: string
+          email_body?: string | null
+          email_sent_at?: string | null
+          email_subject?: string | null
+          expiry_date: string
+          id?: string
+          instructions?: string | null
+          issue_date?: string
+          line_items?: Json
+          loom_url?: string | null
+          pdf_path?: string | null
+          quote_number: string
+          rights_transfer_amount?: number | null
+          rights_transfer_enabled?: boolean
+          rights_transfer_rate?: number | null
+          sale_type?: string
+          status?: string
+          synthesis?: string | null
+          total_ht?: number
+          total_ttc?: number
+          total_vat?: number
+          updated_at?: string
+        }
+        Update: {
+          client_address?: string
+          client_city?: string
+          client_company?: string
+          client_email?: string | null
+          client_signature_data?: string | null
+          client_signature_date?: string | null
+          client_signature_name?: string | null
+          client_siren?: string | null
+          client_vat_number?: string | null
+          client_zip?: string
+          created_at?: string
+          crm_card_id?: string
+          email_body?: string | null
+          email_sent_at?: string | null
+          email_subject?: string | null
+          expiry_date?: string
+          id?: string
+          instructions?: string | null
+          issue_date?: string
+          line_items?: Json
+          loom_url?: string | null
+          pdf_path?: string | null
+          quote_number?: string
+          rights_transfer_amount?: number | null
+          rights_transfer_enabled?: boolean
+          rights_transfer_rate?: number | null
+          sale_type?: string
+          status?: string
+          synthesis?: string | null
+          total_ht?: number
+          total_ttc?: number
+          total_vat?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quotes_crm_card_id_fkey"
+            columns: ["crm_card_id"]
+            isOneToOne: false
+            referencedRelation: "crm_cards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reclamations: {
         Row: {
           actions_decided: string | null
