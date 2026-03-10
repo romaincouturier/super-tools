@@ -1,22 +1,10 @@
 import { supabase } from "@/integrations/supabase/client";
 import { format, parseISO } from "date-fns";
 import { subtractWorkingDays, fetchWorkingDays, fetchNeedsSurveyDelay, scheduleTrainerSummaryIfNeeded } from "@/lib/workingDays";
+import { capitalizeName } from "@/lib/stringUtils";
 
-/**
- * Capitalize the first letter of each word in a name, handling compound names (hyphen, space).
- * "jean-pierre" → "Jean-Pierre", "DUPONT" → "Dupont", "marie claire" → "Marie Claire"
- */
-const capitalizeName = (name: string): string => {
-  const trimmed = name.trim();
-  if (!trimmed) return "";
-  return trimmed
-    .split(/(\s+|-)/g)
-    .map((part) => {
-      if (part === "-" || /^\s+$/.test(part)) return part;
-      return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase();
-    })
-    .join("");
-};
+// Re-usable helper: capitalizeName returns string|null, but createParticipant needs string
+const capitalizeOrEmpty = (name: string): string => capitalizeName(name) ?? "";
 
 export interface CreateParticipantInput {
   trainingId: string;
@@ -48,8 +36,8 @@ export interface CreateParticipantInput {
 export async function createParticipant(input: CreateParticipantInput) {
   const participantData = {
     training_id: input.trainingId,
-    first_name: capitalizeName(input.firstName) || null,
-    last_name: capitalizeName(input.lastName) || null,
+    first_name: capitalizeOrEmpty(input.firstName) || null,
+    last_name: capitalizeOrEmpty(input.lastName) || null,
     email: input.email.trim().toLowerCase(),
     company: input.company.trim() || null,
     needs_survey_token: input.token,
@@ -62,8 +50,8 @@ export async function createParticipant(input: CreateParticipantInput) {
       formula_id: input.formulaId,
     }),
     ...(input.isInterEntreprise && {
-      sponsor_first_name: capitalizeName(input.sponsorFirstName) || null,
-      sponsor_last_name: capitalizeName(input.sponsorLastName) || null,
+      sponsor_first_name: capitalizeOrEmpty(input.sponsorFirstName) || null,
+      sponsor_last_name: capitalizeOrEmpty(input.sponsorLastName) || null,
       sponsor_email: input.sponsorEmail.trim().toLowerCase() || null,
       financeur_same_as_sponsor: input.financeurSameAsSponsor,
       financeur_name: !input.financeurSameAsSponsor ? (input.financeurName.trim() || null) : null,
@@ -232,4 +220,187 @@ export async function fetchExistingFinanceurs(): Promise<string[]> {
   (fromTrainings.data || []).forEach((r) => r.financeur_name && allNames.add(r.financeur_name));
   (fromParticipants.data || []).forEach((r) => r.financeur_name && allNames.add(r.financeur_name));
   return Array.from(allNames).sort();
+}
+
+// ─── Edit participant services ──────────────────────────────────────────────
+
+export interface ParticipantFile {
+  id: string;
+  file_url: string;
+  file_name: string;
+  uploaded_at: string;
+}
+
+export interface ConventionSignatureStatus {
+  signed_pdf_url: string | null;
+  signed_at: string | null;
+  status: string;
+}
+
+/** Update a training participant's data. */
+export async function updateParticipant(
+  participantId: string,
+  updateData: Record<string, unknown>,
+) {
+  return supabase
+    .from("training_participants")
+    .update(updateData)
+    .eq("id", participantId);
+}
+
+/** Sync evaluation record after participant update. */
+export async function updateParticipantEvaluation(
+  participantId: string,
+  data: {
+    email: string;
+    first_name: string | null;
+    last_name: string | null;
+    company: string | null;
+  },
+) {
+  return supabase
+    .from("training_evaluations")
+    .update(data)
+    .eq("participant_id", participantId);
+}
+
+/** Fetch the convention signature status for a participant's sponsor. */
+export async function fetchConventionSignature(
+  trainingId: string,
+  sponsorEmail: string,
+): Promise<ConventionSignatureStatus | null> {
+  const { data } = await supabase
+    .from("convention_signatures")
+    .select("signed_pdf_url, signed_at, status")
+    .eq("training_id", trainingId)
+    .eq("recipient_email", sponsorEmail)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  return data;
+}
+
+/** Fetch files attached to a participant. */
+export async function fetchParticipantFiles(
+  participantId: string,
+): Promise<ParticipantFile[]> {
+  const { data, error } = await (supabase as any)
+    .from("participant_files")
+    .select("id, file_url, file_name, uploaded_at")
+    .eq("participant_id", participantId)
+    .order("uploaded_at", { ascending: false });
+
+  if (error || !data) return [];
+  return data;
+}
+
+/** Fetch WooCommerce coupon code for a participant. */
+export async function fetchCouponCode(
+  participantId: string,
+): Promise<string | null> {
+  const { data } = await (supabase as any)
+    .from("woocommerce_coupons")
+    .select("coupon_code")
+    .eq("participant_id", participantId)
+    .eq("status", "active")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  return data?.coupon_code || null;
+}
+
+/** Upload a file to storage and insert a participant_files record. */
+export async function uploadParticipantFile(
+  trainingId: string,
+  participantId: string,
+  file: File,
+): Promise<ParticipantFile> {
+  const sanitized = file.name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9_.-]/g, "_");
+  const path = `${trainingId}/participant_${participantId}/fichier_${Date.now()}_${sanitized}`;
+
+  const { error: uploadErr } = await supabase.storage
+    .from("training-documents")
+    .upload(path, file);
+  if (uploadErr) throw uploadErr;
+
+  const {
+    data: { publicUrl },
+  } = supabase.storage.from("training-documents").getPublicUrl(path);
+
+  const { data: insertedFile, error: insertErr } = await (supabase as any)
+    .from("participant_files")
+    .insert({
+      participant_id: participantId,
+      file_url: publicUrl,
+      file_name: file.name,
+    })
+    .select("id, file_url, file_name, uploaded_at")
+    .single();
+
+  if (insertErr) throw insertErr;
+  return insertedFile;
+}
+
+/** Delete a participant file (storage + DB record). */
+export async function deleteParticipantFile(
+  fileToDelete: ParticipantFile,
+): Promise<void> {
+  const urlParts = fileToDelete.file_url.split("/training-documents/");
+  if (urlParts.length > 1) {
+    await supabase.storage.from("training-documents").remove([urlParts[1]]);
+  }
+
+  await (supabase as any)
+    .from("participant_files")
+    .delete()
+    .eq("id", fileToDelete.id);
+}
+
+/** Upload a signed convention PDF for a participant. */
+export async function uploadSignedConvention(
+  trainingId: string,
+  participantId: string,
+  file: File,
+): Promise<string> {
+  const sanitized = file.name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9_.-]/g, "_");
+  const path = `${trainingId}/participant_${participantId}/convention_signee_${Date.now()}_${sanitized}`;
+
+  const { error: uploadErr } = await supabase.storage
+    .from("training-documents")
+    .upload(path, file);
+  if (uploadErr) throw uploadErr;
+
+  const {
+    data: { publicUrl },
+  } = supabase.storage.from("training-documents").getPublicUrl(path);
+
+  await supabase
+    .from("training_participants")
+    .update({ signed_convention_url: publicUrl } as Record<string, unknown>)
+    .eq("id", participantId);
+
+  return publicUrl;
+}
+
+/** Delete a signed convention (storage + clear DB field). */
+export async function deleteSignedConvention(
+  participantId: string,
+  conventionUrl: string,
+): Promise<void> {
+  const urlParts = conventionUrl.split("/training-documents/");
+  if (urlParts.length > 1) {
+    await supabase.storage.from("training-documents").remove([urlParts[1]]);
+  }
+  await supabase
+    .from("training_participants")
+    .update({ signed_convention_url: null } as Record<string, unknown>)
+    .eq("id", participantId);
 }
