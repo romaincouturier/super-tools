@@ -129,23 +129,42 @@ export default function Step1Synthesis({
                 </AlertDescription>
               </Alert>
 
-              <Textarea
-                value={synthesis}
-                onChange={(e) => setSynthesis(e.target.value)}
-                rows={14}
-                className="font-mono text-sm"
-                placeholder="La synthèse sera générée automatiquement..."
-              />
+              {isEditing ? (
+                <Textarea
+                  value={synthesis}
+                  onChange={(e) => setSynthesis(e.target.value)}
+                  rows={18}
+                  className="font-mono text-sm"
+                  placeholder="La synthèse sera générée automatiquement..."
+                />
+              ) : (
+                <div
+                  className="prose prose-sm max-w-none p-4 border rounded-md bg-muted/30 min-h-[200px] overflow-y-auto max-h-[500px]"
+                  dangerouslySetInnerHTML={{ __html: synthesisHtml }}
+                />
+              )}
 
-              <Button
-                variant="outline"
-                onClick={generateSynthesis}
-                disabled={isGenerating}
-                className="gap-2"
-              >
-                <RefreshCw className="w-4 h-4" />
-                Régénérer la synthèse
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsEditing(!isEditing)}
+                  className="gap-2"
+                >
+                  {isEditing ? <Eye className="w-4 h-4" /> : <Pencil className="w-4 h-4" />}
+                  {isEditing ? "Aperçu" : "Modifier"}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={generateSynthesis}
+                  disabled={isGenerating}
+                  className="gap-2"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  Régénérer
+                </Button>
+              </div>
             </>
           )}
         </CardContent>
