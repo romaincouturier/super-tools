@@ -118,6 +118,10 @@ serve(async (req) => {
         if (liveMeetings && liveMeetings.length > 0 && liveMeetings[0].meeting_url) {
           meetingUrl = liveMeetings[0].meeting_url;
         }
+        // Fallback: if location looks like a URL, use it as meeting URL
+        if (!meetingUrl && training.location && /^https?:\/\//i.test(training.location)) {
+          meetingUrl = training.location;
+        }
       }
 
       // Determine tu/vous
