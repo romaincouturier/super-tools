@@ -133,7 +133,7 @@ async function checkFunction(
   const start = Date.now();
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 5000);
+    const timeout = setTimeout(() => controller.abort(), 10000);
     // Use POST with empty body - any HTTP response (even 400/401/500) means the function is deployed
     const res = await fetch(`${baseUrl}/functions/v1/${name}`, {
       method: "POST",
