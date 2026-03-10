@@ -99,10 +99,11 @@ function escapeICS(text: string): string {
     .replace(/\n/g, "\\n");
 }
 
-// Format dates for email display
+// Format dates for email display (force Europe/Paris timezone)
 function formatDateFrench(dateStr: string): string {
-  const date = new Date(dateStr);
+  const date = new Date(dateStr + "T12:00:00");
   return date.toLocaleDateString("fr-FR", {
+    timeZone: "Europe/Paris",
     weekday: "long",
     day: "numeric",
     month: "long",

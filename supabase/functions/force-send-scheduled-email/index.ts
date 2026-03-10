@@ -848,12 +848,14 @@ Règles :
             liveTitle = liveMeeting.title;
             const liveDateTime = new Date(liveMeeting.scheduled_at);
             liveDate = liveDateTime.toLocaleDateString("fr-FR", {
+              timeZone: "Europe/Paris",
               weekday: "long",
               day: "numeric",
               month: "long",
               year: "numeric",
             });
             liveTime = liveDateTime.toLocaleTimeString("fr-FR", {
+              timeZone: "Europe/Paris",
               hour: "2-digit",
               minute: "2-digit",
             });
