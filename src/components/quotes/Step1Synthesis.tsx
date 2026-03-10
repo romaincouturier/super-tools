@@ -13,6 +13,7 @@ interface Props {
   crmCard: CrmCard;
   clientCompany: string;
   onValidate: (synthesis: string, instructions: string) => void;
+  onDraftChange?: (synthesis: string, instructions: string) => void;
   initialSynthesis?: string;
   initialInstructions?: string;
 }
@@ -34,6 +35,7 @@ export default function Step1Synthesis({
   crmCard,
   clientCompany,
   onValidate,
+  onDraftChange,
   initialSynthesis,
   initialInstructions,
 }: Props) {
@@ -182,6 +184,16 @@ export default function Step1Synthesis({
       generateSynthesis();
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Auto-save draft when synthesis or instructions change
+  useEffect(() => {
+    if (onDraftChange && (synthesis || instructions)) {
+      const timeout = setTimeout(() => {
+        onDraftChange(synthesis, instructions);
+      }, 1500);
+      return () => clearTimeout(timeout);
+    }
+  }, [synthesis, instructions]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="space-y-6">

@@ -116,6 +116,28 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
     }
   };
 
+  // Auto-save draft data (debounced by the child components)
+  const handleDraftSynthesis = useCallback((s: string, i: string) => {
+    setSynthesis(s);
+    setInstructions(i);
+    if (quote) {
+      updateMutation.mutate({
+        id: quote.id,
+        updates: { synthesis: s, instructions: i },
+      });
+    }
+  }, [quote]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleDraftLoom = useCallback((url: string) => {
+    setLoomUrl(url);
+    if (quote) {
+      updateMutation.mutate({
+        id: quote.id,
+        updates: { loom_url: url },
+      });
+    }
+  }, [quote]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Step 0 → Create quote and go to step 1
   const handleClientValidated = async (client: ClientData) => {
     setClientData(client);
@@ -255,6 +277,7 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
             crmCard={crmCard}
             clientCompany={clientData?.company || crmCard.company || ""}
             onValidate={handleSynthesisValidated}
+            onDraftChange={handleDraftSynthesis}
             initialSynthesis={synthesis}
             initialInstructions={instructions}
           />
@@ -291,6 +314,7 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
           <BackButton onClick={handleBack} />
           <Step4Loom
             onContinue={handleLoomContinue}
+            onDraftChange={handleDraftLoom}
             initialLoomUrl={loomUrl}
           />
         </>

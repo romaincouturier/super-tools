@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,11 +8,20 @@ import { Video, ExternalLink, SkipForward } from "lucide-react";
 
 interface Props {
   onContinue: (loomUrl: string | null) => void;
+  onDraftChange?: (loomUrl: string) => void;
   initialLoomUrl?: string | null;
 }
 
-export default function Step4Loom({ onContinue, initialLoomUrl }: Props) {
+export default function Step4Loom({ onContinue, onDraftChange, initialLoomUrl }: Props) {
   const [loomUrl, setLoomUrl] = useState(initialLoomUrl || "");
+
+  // Auto-save draft
+  useEffect(() => {
+    if (onDraftChange && loomUrl.trim()) {
+      const timeout = setTimeout(() => onDraftChange(loomUrl.trim()), 1500);
+      return () => clearTimeout(timeout);
+    }
+  }, [loomUrl]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const isValidLoomUrl =
     !loomUrl.trim() || /^https:\/\/(www\.)?loom\.com\/share\//.test(loomUrl.trim());
