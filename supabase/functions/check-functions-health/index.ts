@@ -121,25 +121,27 @@ const FUNCTION_NAMES = [
 async function checkFunction(
   baseUrl: string,
   name: string,
-  _apiKey: string
+  apiKey: string
 ): Promise<{ name: string; status: string; response_time_ms: number }> {
   const start = Date.now();
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10000);
-    // Use OPTIONS (CORS preflight) to check if function is deployed
-    // without triggering any business logic (no emails, no alerts)
+    // POST with apikey for gateway routing, but INVALID Bearer token
+    // so auth-protected functions reject immediately at verifyAuth
+    // without executing any business logic (no emails, no alerts).
+    // Any HTTP response (even 401/403/500) = function is deployed & reachable = "up"
     const res = await fetch(`${baseUrl}/functions/v1/${name}`, {
-      method: "OPTIONS",
+      method: "POST",
       headers: {
-        "Origin": "https://health-check.internal",
-        "Access-Control-Request-Method": "POST",
-        "Access-Control-Request-Headers": "authorization, content-type",
+        "Content-Type": "application/json",
+        apikey: apiKey,
+        Authorization: "Bearer __health_check_invalid_token__",
       },
+      body: JSON.stringify({ _healthCheck: true }),
       signal: controller.signal,
     });
     clearTimeout(timeout);
-    // Any response (including 4xx) means the function is deployed and reachable
     return { name, status: "up", response_time_ms: Date.now() - start };
   } catch (error) {
     return {
