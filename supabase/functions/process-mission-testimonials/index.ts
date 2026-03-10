@@ -100,8 +100,8 @@ serve(async (req: Request) => {
     let testimonialsSent = 0;
     const bccList = await getBccList();
 
-    for (let mi = 0; mi < missionsWithEmail.length; mi++) {
-      const mission = missionsWithEmail[mi];
+    for (let mi = 0; mi < missionsToProcess.length; mi++) {
+      const mission = missionsToProcess[mi];
 
       // Rate limit between missions
       if (mi > 0) {
