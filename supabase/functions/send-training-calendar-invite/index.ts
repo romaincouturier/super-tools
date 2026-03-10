@@ -51,14 +51,18 @@ METHOD:PUBLISH
 `;
 
   schedules.forEach((schedule, index) => {
-    const startDate = new Date(`${schedule.day_date}T${schedule.start_time}`);
-    const endDate = new Date(`${schedule.day_date}T${schedule.end_time}`);
+    // Use local time components directly — day_date is "YYYY-MM-DD", start_time is "HH:MM"
+    const [sH, sM] = schedule.start_time.split(":").map(Number);
+    const [eH, eM] = schedule.end_time.split(":").map(Number);
+    const [year, month, day] = schedule.day_date.split("-");
+    const dtStart = `${year}${month}${day}T${String(sH).padStart(2,'0')}${String(sM).padStart(2,'0')}00`;
+    const dtEnd = `${year}${month}${day}T${String(eH).padStart(2,'0')}${String(eM).padStart(2,'0')}00`;
 
     icsContent += `BEGIN:VEVENT
 UID:${uid}-${index}@supertilt.fr
 DTSTAMP:${dtstamp}
-DTSTART:${formatICSDateTime(startDate)}
-DTEND:${formatICSDateTime(endDate)}
+DTSTART;TZID=Europe/Paris:${dtStart}
+DTEND;TZID=Europe/Paris:${dtEnd}
 SUMMARY:Formation: ${escapeICS(trainingName)} - ${escapeICS(clientName)}
 DESCRIPTION:Formation pour ${escapeICS(clientName)}${meetingUrl ? `\\n\\nRejoindre la visio: ${escapeICS(meetingUrl)}` : ""}${summaryUrl ? `\\n\\nInfos & documents: ${escapeICS(summaryUrl)}` : ""}\\n\\nFormateur: Vous etes le formateur de cette session.
 LOCATION:${escapeICS(meetingUrl || location)}
