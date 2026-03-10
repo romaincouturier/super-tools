@@ -140,6 +140,16 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
     }
   }, [quote]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const handleChallengeChange = useCallback((html: string) => {
+    setChallengeHtml(html);
+    if (quote) {
+      updateMutation.mutate({
+        id: quote.id,
+        updates: { challenge_html: html } as any,
+      });
+    }
+  }, [quote]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Step 0 → Create quote and go to step 1
   const handleClientValidated = async (client: ClientData) => {
     setClientData(client);
