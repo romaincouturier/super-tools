@@ -121,23 +121,25 @@ const FUNCTION_NAMES = [
 async function checkFunction(
   baseUrl: string,
   name: string,
-  apiKey: string
+  _apiKey: string
 ): Promise<{ name: string; status: string; response_time_ms: number }> {
   const start = Date.now();
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000);
+    const timeout = setTimeout(() => controller.abort(), 10000);
+    // Use OPTIONS (CORS preflight) to check if function is deployed
+    // without triggering any business logic (no emails, no alerts)
     const res = await fetch(`${baseUrl}/functions/v1/${name}`, {
-      method: "POST",
+      method: "OPTIONS",
       headers: {
-        "Content-Type": "application/json",
-        apikey: apiKey,
-        Authorization: `Bearer ${apiKey}`,
+        "Origin": "https://health-check.internal",
+        "Access-Control-Request-Method": "POST",
+        "Access-Control-Request-Headers": "authorization, content-type",
       },
-      body: JSON.stringify({}),
       signal: controller.signal,
     });
     clearTimeout(timeout);
+    // Any response (including 4xx) means the function is deployed and reachable
     return { name, status: "up", response_time_ms: Date.now() - start };
   } catch (error) {
     return {
