@@ -21,12 +21,11 @@ function htmlToPlainText(html: string): string {
   return div.textContent || div.innerText || "";
 }
 
-/** Clean up LLM output: strip markdown wrappers, normalize whitespace */
+/** Clean up LLM output: strip markdown wrappers */
 function cleanHtmlOutput(raw: string): string {
   return raw
-    .replace(/^```html?\s*/i, "")
-    .replace(/```\s*$/i, "")
-    .replace(/\n{3,}/g, "\n")
+    .replace(/^```html?\s*\n?/i, "")
+    .replace(/\n?```\s*$/i, "")
     .trim();
 }
 
