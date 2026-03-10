@@ -169,13 +169,13 @@ const UpcomingCalendarPanel = () => {
   }
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center gap-2">
+    <div className="flex flex-col min-h-0 flex-1 gap-3">
+      <div className="flex items-center gap-2 shrink-0">
         <CalendarIcon className="h-4 w-4 text-muted-foreground" />
         <h2 className="text-lg font-semibold">Calendrier J+15</h2>
       </div>
 
-      <ScrollArea className="max-h-[300px]">
+      <ScrollArea className="min-h-0 flex-1">
         <div className="space-y-2 pr-2">
           {Object.entries(grouped).map(([dateKey, dayEntries]) => (
             <div key={dateKey}>

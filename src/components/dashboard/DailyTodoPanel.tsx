@@ -342,56 +342,56 @@ const DailyTodoPanel = () => {
                 {/* Action items */}
                 {!isCollapsed && (
                   <div className="ml-5 mt-1 space-y-1">
-                    {catActions.map((action) => (
-                      <div
-                        key={action.id}
-                        className={`flex items-start gap-2 py-1.5 px-2 rounded-md transition-colors ${
-                          action.is_completed ? "opacity-60" : "hover:bg-muted/50"
-                        }`}
-                      >
-                        <Checkbox
-                          checked={action.is_completed}
-                          onCheckedChange={(checked) => toggleAction(action.id, checked === true)}
-                          className="mt-0.5 shrink-0"
-                        />
-                        <div className="min-w-0 flex-1">
-                          <p className={`text-sm leading-tight ${action.is_completed ? "line-through text-muted-foreground" : ""}`}>
-                            {action.title}
-                          </p>
-                          {action.description && (
-                            <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                              {action.description}
+                    {catActions.map((action) => {
+                      const handleNavigate = () => {
+                        if (!action.link) return;
+                        if (action.link.startsWith("http")) {
+                          window.open(action.link, "_blank", "noopener,noreferrer");
+                        } else {
+                          try {
+                            const url = new URL(action.link, window.location.origin);
+                            navigate(url.pathname);
+                          } catch {
+                            navigate(action.link);
+                          }
+                        }
+                      };
+
+                      return (
+                        <div
+                          key={action.id}
+                          className={`flex items-start gap-2 py-1.5 px-2 rounded-md transition-colors ${
+                            action.is_completed ? "opacity-60" : "hover:bg-muted/50"
+                          } ${action.link ? "cursor-pointer" : ""}`}
+                          onClick={action.link ? handleNavigate : undefined}
+                        >
+                          <Checkbox
+                            checked={action.is_completed}
+                            onCheckedChange={(checked) => toggleAction(action.id, checked === true)}
+                            onClick={(e) => e.stopPropagation()}
+                            className="mt-0.5 shrink-0"
+                          />
+                          <div className="min-w-0 flex-1">
+                            <p className={`text-sm leading-tight ${action.is_completed ? "line-through text-muted-foreground" : ""} ${action.link && !action.is_completed ? "text-primary hover:underline" : ""}`}>
+                              {action.title}
                             </p>
-                          )}
-                          {action.auto_completed && action.is_completed && (
-                            <span className="text-[10px] text-green-600 font-medium">
-                              Auto-détecté
-                            </span>
+                            {action.description && (
+                              <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                                {action.description}
+                              </p>
+                            )}
+                            {action.auto_completed && action.is_completed && (
+                              <span className="text-[10px] text-green-600 font-medium">
+                                Auto-détecté
+                              </span>
+                            )}
+                          </div>
+                          {action.link && (
+                            <ExternalLink className="h-3 w-3 text-muted-foreground shrink-0 mt-0.5" />
                           )}
                         </div>
-                        {action.link && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              // External URLs (http/https) open in new tab
-                              if (action.link!.startsWith("http")) {
-                                window.open(action.link!, "_blank", "noopener,noreferrer");
-                              } else {
-                                try {
-                                  const url = new URL(action.link!, window.location.origin);
-                                  navigate(url.pathname);
-                                } catch {
-                                  navigate(action.link!);
-                                }
-                              }
-                            }}
-                            className="shrink-0 p-1 rounded hover:bg-muted transition-colors"
-                          >
-                            <ExternalLink className="h-3 w-3 text-muted-foreground" />
-                          </button>
-                        )}
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
