@@ -1,9 +1,9 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Sparkles, RefreshCw, Pencil, Eye } from "lucide-react";
+import { Loader2, Sparkles, RefreshCw, Pencil, Eye, Copy, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { CrmCard } from "@/types/crm";
 
@@ -12,6 +12,22 @@ interface Props {
   clientCompany: string;
   onValidate: (synthesis: string) => void;
   initialSynthesis?: string;
+}
+
+/** Strip HTML tags to get plain text for clipboard */
+function htmlToPlainText(html: string): string {
+  const div = document.createElement("div");
+  div.innerHTML = html;
+  return div.textContent || div.innerText || "";
+}
+
+/** Clean up LLM output: strip markdown wrappers, normalize whitespace */
+function cleanHtmlOutput(raw: string): string {
+  return raw
+    .replace(/^```html?\s*/i, "")
+    .replace(/```\s*$/i, "")
+    .replace(/\n{3,}/g, "\n")
+    .trim();
 }
 
 export default function Step1Synthesis({
@@ -24,29 +40,11 @@ export default function Step1Synthesis({
   const [isGenerating, setIsGenerating] = useState(false);
   const [generated, setGenerated] = useState(!!initialSynthesis);
   const [isEditing, setIsEditing] = useState(false);
-
-  // Convert markdown to simple HTML for display
-  const synthesisHtml = useMemo(() => {
-    if (!synthesis) return "";
-    return synthesis
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/^### (.+)$/gm, "<h3>$1</h3>")
-      .replace(/^## (.+)$/gm, "<h2>$1</h2>")
-      .replace(/^# (.+)$/gm, "<h1>$1</h1>")
-      .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
-      .replace(/\*(.+?)\*/g, "<em>$1</em>")
-      .replace(/^- (.+)$/gm, "<li>$1</li>")
-      .replace(/(<li>.*<\/li>\n?)+/g, (match) => `<ul>${match}</ul>`)
-      .replace(/\n{2,}/g, "<br/><br/>")
-      .replace(/\n/g, "<br/>");
-  }, [synthesis]);
+  const [copied, setCopied] = useState(false);
 
   const generateSynthesis = async () => {
     setIsGenerating(true);
     try {
-      // Fetch card comments and emails for context
       const [commentsRes, emailsRes] = await Promise.all([
         (supabase as any)
           .from("crm_comments")
@@ -64,31 +62,30 @@ export default function Step1Synthesis({
       const comments = commentsRes.data || [];
       const emails = emailsRes.data || [];
 
-      // Build rich context for AI — include FULL emails and description
       const descriptionText = crmCard.description_html
         ? crmCard.description_html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim()
         : "";
 
       const context = [
-        `# Opportunité : ${crmCard.title}`,
+        `Opportunité : ${crmCard.title}`,
         `Client : ${clientCompany}`,
         crmCard.service_type ? `Type de service : ${crmCard.service_type}` : "",
         crmCard.estimated_value ? `Valeur estimée : ${crmCard.estimated_value} €` : "",
-        descriptionText ? `\n## Description complète de l'opportunité\n${descriptionText}` : "",
+        descriptionText ? `\nDescription complète :\n${descriptionText}` : "",
         comments.length > 0
-          ? `\n## Notes et commentaires internes (${comments.length})\n${comments
+          ? `\nNotes internes (${comments.length}) :\n${comments
               .map((c: any) => `[${c.created_at?.substring(0, 10) || ""}] ${c.content}`)
-              .join("\n\n")}`
+              .join("\n")}`
           : "",
         emails.length > 0
-          ? `\n## Historique complet des échanges email (${emails.length} emails)\n${emails
+          ? `\nHistorique email (${emails.length}) :\n${emails
               .map((e: any) => {
                 const bodyText = e.body_html
                   ? e.body_html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim()
                   : "";
-                return `### Email du ${e.sent_at?.substring(0, 10) || "date inconnue"}\nObjet : ${e.subject}\n\n${bodyText.substring(0, 2000)}`;
+                return `--- Email du ${e.sent_at?.substring(0, 10) || "?"} ---\nObjet : ${e.subject}\n${bodyText.substring(0, 2000)}`;
               })
-              .join("\n\n---\n\n")}`
+              .join("\n\n")}`
           : "",
       ]
         .filter(Boolean)
@@ -100,18 +97,25 @@ export default function Step1Synthesis({
       );
 
       if (error) throw error;
-      setSynthesis(data.synthesis || "");
+      const cleaned = cleanHtmlOutput(data.synthesis || "");
+      setSynthesis(cleaned);
       setGenerated(true);
     } catch (e: any) {
       console.error("Synthesis generation error:", e);
-      // Provide a default template if AI fails
       setSynthesis(
-        `## Contexte client\n${clientCompany}\n\n## Besoins identifiés\n${crmCard.title}\n\n## Périmètre pressenti\nÀ compléter\n\n## Points d'attention\nÀ compléter`
+        `<h3>Contexte client</h3><p>${clientCompany}</p><h3>Besoins identifiés</h3><p>${crmCard.title}</p><h3>Périmètre pressenti</h3><p>À compléter</p><h3>Points d'attention</h3><p>À compléter</p>`
       );
       setGenerated(true);
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  const handleCopy = async () => {
+    const text = htmlToPlainText(synthesis);
+    await navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   useEffect(() => {
@@ -124,9 +128,22 @@ export default function Step1Synthesis({
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5" />
-            Synthèse automatique de l'opportunité
+          <CardTitle className="flex items-center justify-between">
+            <span className="flex items-center gap-2">
+              <Sparkles className="w-5 h-5" />
+              Synthèse automatique de l'opportunité
+            </span>
+            {synthesis && !isGenerating && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleCopy}
+                className="gap-1.5 text-muted-foreground hover:text-foreground"
+              >
+                {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                {copied ? "Copié" : "Copier"}
+              </Button>
+            )}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -157,8 +174,8 @@ export default function Step1Synthesis({
                 />
               ) : (
                 <div
-                  className="prose prose-sm max-w-none p-4 border rounded-md bg-muted/30 min-h-[200px] overflow-y-auto max-h-[500px]"
-                  dangerouslySetInnerHTML={{ __html: synthesisHtml }}
+                  className="synthesis-content p-4 border rounded-md bg-muted/30 overflow-y-auto max-h-[500px] text-sm leading-relaxed [&_h3]:text-base [&_h3]:font-semibold [&_h3]:mt-4 [&_h3]:mb-1 [&_h3:first-child]:mt-0 [&_p]:my-1 [&_ul]:my-1 [&_ul]:pl-5 [&_ul]:list-disc [&_li]:my-0.5 [&_strong]:font-semibold"
+                  dangerouslySetInnerHTML={{ __html: synthesis }}
                 />
               )}
 
