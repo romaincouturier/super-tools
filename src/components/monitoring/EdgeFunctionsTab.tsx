@@ -57,13 +57,15 @@ const EdgeFunctionsTab = () => {
     queryKey: ["functions-health"],
     queryFn: async () => {
       const { data: { session } } = await supabase.auth.getSession();
+      // Trigger background refresh + get cached results
       const response = await supabase.functions.invoke("check-functions-health", {
         headers: { Authorization: `Bearer ${session?.access_token}` },
       });
       if (response.error) throw response.error;
       return response.data as HealthCheckResult;
     },
-    staleTime: 60000,
+    staleTime: 30000,
+    refetchInterval: 15000, // Auto-refresh to pick up background results
   });
 
   const functions = data?.functions || [];
