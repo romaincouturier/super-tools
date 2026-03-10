@@ -34,8 +34,12 @@ export default function GenericKanbanColumn<
   renderEmpty,
   className,
 }: GenericKanbanColumnProps<TCard, TColumn>) {
-  const { setNodeRef: setDroppableRef, isOver } = useDroppable({
+  // When useSortable is active (columnSortableId set), it already registers
+  // a droppable zone — using useDroppable on the same node causes double-registration
+  // conflicts that break drop detection on new/empty columns.
+  const { setNodeRef: setDroppableRef, isOver: isDroppableOver } = useDroppable({
     id: column.id,
+    disabled: !!columnSortableId,
   });
 
   const {
