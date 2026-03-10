@@ -26,10 +26,12 @@ function generatePerDayCalendarLinks(
   endDate: string,
   schedules: Array<{ day_date: string; start_time: string; end_time: string }>,
   senderEmail: string,
-  meetingUrl?: string
+  meetingUrl?: string,
+  summaryUrl?: string
 ): Array<{ label: string; google: string; outlook: string }> {
   const meetingLine = meetingUrl ? `\n\nRejoindre la visio: ${meetingUrl}` : "";
-  const description = `Formation Supertilt: ${trainingName}${meetingLine}\n\nEmail: ${senderEmail}`;
+  const summaryLine = summaryUrl ? `\n\nInfos & documents: ${summaryUrl}` : "";
+  const description = `Formation Supertilt: ${trainingName}${meetingLine}${summaryLine}\n\nEmail: ${senderEmail}`;
   const calLocation = meetingUrl || location || '';
   
   const sortedSchedules = schedules && schedules.length > 0
