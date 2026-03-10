@@ -14,8 +14,10 @@ interface Props {
   clientCompany: string;
   onValidate: (synthesis: string, instructions: string) => void;
   onDraftChange?: (synthesis: string, instructions: string) => void;
+  onChallengeChange?: (challengeHtml: string) => void;
   initialSynthesis?: string;
   initialInstructions?: string;
+  initialChallengeHtml?: string;
 }
 
 function htmlToPlainText(html: string): string {
@@ -36,8 +38,10 @@ export default function Step1Synthesis({
   clientCompany,
   onValidate,
   onDraftChange,
+  onChallengeChange,
   initialSynthesis,
   initialInstructions,
+  initialChallengeHtml,
 }: Props) {
   const [synthesis, setSynthesis] = useState(initialSynthesis || "");
   const [instructions, setInstructions] = useState(initialInstructions || "");
@@ -47,9 +51,9 @@ export default function Step1Synthesis({
   const [copied, setCopied] = useState(false);
 
   // Commercial challenge state
-  const [challengeHtml, setChallengeHtml] = useState("");
+  const [challengeHtml, setChallengeHtml] = useState(initialChallengeHtml || "");
   const [isChallenging, setIsChallenging] = useState(false);
-  const [challengeDone, setChallengeDone] = useState(false);
+  const [challengeDone, setChallengeDone] = useState(!!initialChallengeHtml);
 
   const { isRecording, isTranscribing, isSupported, startRecording, stopRecording } =
     useVoiceDictation({
@@ -164,6 +168,7 @@ export default function Step1Synthesis({
       const cleaned = cleanHtmlOutput(data.challenge || "");
       setChallengeHtml(cleaned);
       setChallengeDone(true);
+      onChallengeChange?.(cleaned);
     } catch (e: any) {
       console.error("Challenge error:", e);
       toast.error("Erreur lors du challenge commercial : " + (e.message || "Erreur inconnue"));

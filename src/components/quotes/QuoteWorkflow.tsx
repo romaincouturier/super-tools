@@ -59,6 +59,7 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
   const [instructions, setInstructions] = useState("");
   const [quote, setQuote] = useState<Quote | null>(null);
   const [loomUrl, setLoomUrl] = useState<string | null>(null);
+  const [challengeHtml, setChallengeHtml] = useState("");
 
   // Travel state
   const [travelTotal, setTravelTotal] = useState(0);
@@ -72,6 +73,7 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
       if (existingQuote.synthesis) setSynthesis(existingQuote.synthesis);
       if (existingQuote.instructions) setInstructions(existingQuote.instructions);
       if (existingQuote.loom_url) setLoomUrl(existingQuote.loom_url);
+      if ((existingQuote as any).challenge_html) setChallengeHtml((existingQuote as any).challenge_html);
       
       // Restore travel data
       const td = (existingQuote as any).travel_data;
@@ -134,6 +136,16 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
       updateMutation.mutate({
         id: quote.id,
         updates: { loom_url: url },
+      });
+    }
+  }, [quote]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleChallengeChange = useCallback((html: string) => {
+    setChallengeHtml(html);
+    if (quote) {
+      updateMutation.mutate({
+        id: quote.id,
+        updates: { challenge_html: html } as any,
       });
     }
   }, [quote]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -267,6 +279,7 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
         <Step0ClientValidation
           crmCard={crmCard}
           onValidate={handleClientValidated}
+          initialClient={clientData}
         />
       )}
 
@@ -278,8 +291,10 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
             clientCompany={clientData?.company || crmCard.company || ""}
             onValidate={handleSynthesisValidated}
             onDraftChange={handleDraftSynthesis}
+            onChallengeChange={handleChallengeChange}
             initialSynthesis={synthesis}
             initialInstructions={instructions}
+            initialChallengeHtml={challengeHtml}
           />
         </>
       )}

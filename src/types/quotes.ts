@@ -154,6 +154,7 @@ export interface UpdateQuoteInput {
   // Travel & workflow
   travel_data?: any;
   workflow_step?: number;
+  challenge_html?: string | null;
 }
 
 // SIREN API types
