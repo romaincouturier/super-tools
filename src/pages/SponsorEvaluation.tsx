@@ -119,7 +119,7 @@ const SponsorEvaluation = () => {
           start_date: evTyped.training_start_date,
           end_date: evTyped.training_end_date,
         });
-      } else {
+      } else if (evTyped.training_id) {
         // Fallback for older records: fetch from trainings via RPC
         const { data: t } = await rpc.getTrainingPublicInfo(evTyped.training_id);
         if (t) {
@@ -250,7 +250,7 @@ const SponsorEvaluation = () => {
             </div>
             <CardTitle>Merci pour votre retour !</CardTitle>
             <CardDescription>
-              Vous avez envoyé votre évaluation pour la formation <strong>{training.training_name}</strong> le{" "}
+              Vous avez envoyé votre évaluation{training ? <> pour la formation <strong>{training.training_name}</strong></> : ""} le{" "}
               {formatDateWithTime(record.date_soumission)}.
             </CardDescription>
           </CardHeader>
@@ -274,7 +274,7 @@ const SponsorEvaluation = () => {
             <h1 className="text-2xl font-bold text-foreground">
               Évaluation à froid de la formation
             </h1>
-            <p className="text-muted-foreground mt-1">{training.training_name}</p>
+            {training && <p className="text-muted-foreground mt-1">{training.training_name}</p>}
           </div>
         </div>
 
@@ -307,11 +307,13 @@ const SponsorEvaluation = () => {
                 </div>
               )}
             </div>
-            <div className="flex items-center gap-2 text-sm pt-2 border-t">
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-              <span className="text-muted-foreground">Formation :</span>
-              <span className="font-medium">{formattedDates}</span>
-            </div>
+            {formattedDates && (
+              <div className="flex items-center gap-2 text-sm pt-2 border-t">
+                <Calendar className="h-4 w-4 text-muted-foreground" />
+                <span className="text-muted-foreground">Formation :</span>
+                <span className="font-medium">{formattedDates}</span>
+              </div>
+            )}
           </CardContent>
         </Card>
 
