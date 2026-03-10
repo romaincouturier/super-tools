@@ -49,10 +49,13 @@ export default function GenericKanbanColumn<
     transform,
     transition,
     isDragging: isColumnDragging,
+    isOver: isSortableOver,
   } = useSortable({
     id: columnSortableId ?? `__col_disabled_${column.id}`,
     disabled: !columnSortableId,
   });
+
+  const isOver = isDroppableOver || isSortableOver;
 
   const style = columnSortableId
     ? { transform: CSS.Transform.toString(transform), transition }
