@@ -127,10 +127,12 @@ export default function Step3QuoteGeneration({
               (1 + (l.vat_rate ?? defaultVat) / 100),
           }))
         );
+        if (data.sale_type_suggestion && !saleType) {
+          setSaleType(data.sale_type_suggestion);
+        }
       }
     } catch (e: any) {
       console.error("Line generation error:", e);
-      // Add an empty line as fallback
       if (lines.length === 0) {
         setLines([emptyLine(defaultVat, defaultUnit)]);
       }
