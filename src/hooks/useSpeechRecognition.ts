@@ -27,6 +27,7 @@ export function useSpeechRecognition(lang: string = "fr-FR", continuous: boolean
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
   const onResultRef = useRef<((text: string) => void) | null>(null);
+  const intentionalStopRef = useRef(false);
 
   const isSupported = typeof window !== "undefined" &&
     !!(window.SpeechRecognition || window.webkitSpeechRecognition);
@@ -38,8 +39,15 @@ export function useSpeechRecognition(lang: string = "fr-FR", continuous: boolean
       const SpeechRecognitionClass = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (!SpeechRecognitionClass) return;
 
-      // Store callback in ref so it's always fresh
+      // Stop any existing instance first
+      if (recognitionRef.current) {
+        intentionalStopRef.current = true;
+        try { recognitionRef.current.stop(); } catch {}
+        recognitionRef.current = null;
+      }
+
       onResultRef.current = onResult;
+      intentionalStopRef.current = false;
 
       const recognition = new SpeechRecognitionClass();
       recognition.lang = lang;
@@ -47,38 +55,80 @@ export function useSpeechRecognition(lang: string = "fr-FR", continuous: boolean
       recognition.continuous = continuous;
 
       recognition.onresult = (event: SpeechRecognitionEvent) => {
-        // Collect all final results (iOS Safari accumulates them)
         let fullTranscript = "";
         for (let i = 0; i < event.results.length; i++) {
-          fullTranscript += event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            fullTranscript += event.results[i][0].transcript;
+          }
         }
-        console.log("[SpeechRecognition] onresult fired, transcript:", fullTranscript);
-        onResultRef.current?.(fullTranscript);
+        if (fullTranscript) {
+          onResultRef.current?.(fullTranscript);
+        }
       };
 
       recognition.onerror = (e: any) => {
-        console.error("[SpeechRecognition] error:", e);
+        const errorType = e?.error || "unknown";
+        console.error("[SpeechRecognition] error:", errorType, e);
+
+        // "no-speech" is not fatal in continuous mode — just restart
+        if (continuous && errorType === "no-speech" && !intentionalStopRef.current) {
+          console.log("[SpeechRecognition] no-speech, will restart on end");
+          return;
+        }
+
+        // "aborted" can happen on page navigation, ignore
+        if (errorType === "aborted") {
+          setIsListening(false);
+          recognitionRef.current = null;
+          return;
+        }
+
+        // Fatal errors
+        if (errorType === "not-allowed") {
+          console.error("[SpeechRecognition] Microphone permission denied");
+        }
+
         setIsListening(false);
         recognitionRef.current = null;
       };
 
       recognition.onend = () => {
-        console.log("[SpeechRecognition] onend fired");
+        console.log("[SpeechRecognition] onend, intentionalStop:", intentionalStopRef.current);
+
+        // In continuous mode, auto-restart unless user clicked stop
+        if (continuous && !intentionalStopRef.current && recognitionRef.current) {
+          console.log("[SpeechRecognition] auto-restarting continuous session");
+          try {
+            recognition.start();
+            return;
+          } catch (err) {
+            console.error("[SpeechRecognition] restart failed:", err);
+          }
+        }
+
         setIsListening(false);
         recognitionRef.current = null;
       };
 
       recognitionRef.current = recognition;
-      recognition.start();
-      setIsListening(true);
-      console.log("[SpeechRecognition] started, lang:", lang, "continuous:", continuous);
+
+      try {
+        recognition.start();
+        setIsListening(true);
+        console.log("[SpeechRecognition] started, lang:", lang, "continuous:", continuous);
+      } catch (err) {
+        console.error("[SpeechRecognition] start() failed:", err);
+        setIsListening(false);
+        recognitionRef.current = null;
+      }
     },
     [isSupported, lang, continuous]
   );
 
   const stopListening = useCallback(() => {
+    intentionalStopRef.current = true;
     if (recognitionRef.current) {
-      recognitionRef.current.stop();
+      try { recognitionRef.current.stop(); } catch {}
       recognitionRef.current = null;
     }
     setIsListening(false);
