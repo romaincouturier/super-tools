@@ -126,7 +126,7 @@ export async function deleteQuote(id: string): Promise<void> {
   throwIfError(result);
 }
 
-// ── SIREN API ─────────────────────────────────────────────────────
+// ── SIREN API (reuses existing search-siren edge function) ────────
 
 export interface SirenResult {
   siren: string;
@@ -143,37 +143,14 @@ export async function lookupSiren(siren: string): Promise<SirenResult> {
     throw new Error("Le SIREN doit contenir exactement 9 chiffres.");
   }
 
-  const response = await fetch(
-    `https://api.insee.fr/entreprises/sirene/V3.11/siren/${cleanSiren}`,
-    {
-      headers: {
-        Accept: "application/json",
-      },
-    }
-  );
+  // Use the existing search-siren edge function (same as MicroDevis)
+  // It handles INSEE API auth, maintenance detection, and siege address lookup
+  const { data, error } = await supabase.functions.invoke("search-siren", {
+    body: { siren: cleanSiren },
+  });
 
-  if (!response.ok) {
-    if (response.status === 404) {
-      throw new Error("SIREN introuvable dans la base INSEE.");
-    }
-    throw new Error(`Erreur API INSEE (${response.status})`);
-  }
-
-  const data = await response.json();
-  const unit = data.uniteLegale;
-  const periods = unit.periodesUniteLegale?.[0];
-  const denomination =
-    periods?.denominationUniteLegale ||
-    `${periods?.prenomUsuelUniteLegale || ""} ${periods?.nomUniteLegale || ""}`.trim();
-
-  // Get the siege address
-  const adresse = unit.adresseEtablissement || {};
-  const numero = adresse.numeroVoieEtablissement || "";
-  const typeVoie = adresse.typeVoieEtablissement || "";
-  const libelle = adresse.libelleVoieEtablissement || "";
-  const addressLine = `${numero} ${typeVoie} ${libelle}`.trim();
-  const zip = adresse.codePostalEtablissement || "";
-  const city = adresse.libelleCommuneEtablissement || "";
+  if (error) throw error;
+  if (data?.error) throw new Error(data.error);
 
   // Compute VAT number: FR + key + SIREN
   const sirenNum = parseInt(cleanSiren, 10);
@@ -182,10 +159,10 @@ export async function lookupSiren(siren: string): Promise<SirenResult> {
 
   return {
     siren: cleanSiren,
-    denomination,
-    address: addressLine,
-    zip,
-    city,
+    denomination: data.nomClient || "",
+    address: data.adresse || "",
+    zip: data.codePostal || "",
+    city: data.ville || "",
     vatNumber,
   };
 }

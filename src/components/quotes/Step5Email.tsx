@@ -154,12 +154,63 @@ export default function Step5Email({
 
       // Log activity in CRM activity log
       const { data: { user } } = await supabase.auth.getUser();
+      const actorEmail = user?.email || senderEmail;
       await (supabase as any).from("crm_activity_log").insert({
         card_id: quote.crm_card_id,
         action_type: "email_sent",
         new_value: `Devis ${quote.quote_number} envoyé à ${to}`,
-        actor_email: user?.email || senderEmail,
+        actor_email: actorEmail,
       });
+
+      // Auto-move CRM card to "Devis envoyé" column (same as MicroDevis)
+      try {
+        const { data: columns } = await (supabase as any)
+          .from("crm_columns")
+          .select("id, name")
+          .ilike("name", "%devis envoy%")
+          .limit(1);
+        const devisColumn = columns?.[0];
+        if (devisColumn) {
+          const { data: card } = await (supabase as any)
+            .from("crm_cards")
+            .select("column_id")
+            .eq("id", quote.crm_card_id)
+            .single();
+          if (card && card.column_id !== devisColumn.id) {
+            const oldColumnId = card.column_id;
+            await (supabase as any)
+              .from("crm_cards")
+              .update({ column_id: devisColumn.id })
+              .eq("id", quote.crm_card_id);
+            await (supabase as any).from("crm_activity_log").insert({
+              card_id: quote.crm_card_id,
+              action_type: "card_moved",
+              old_value: oldColumnId,
+              new_value: devisColumn.id,
+              actor_email: actorEmail,
+            });
+          }
+        }
+
+        // Set follow-up: WAITING + J+3 working days (same as MicroDevis)
+        const followUpDate = new Date();
+        let daysAdded = 0;
+        while (daysAdded < 3) {
+          followUpDate.setDate(followUpDate.getDate() + 1);
+          const day = followUpDate.getDay();
+          if (day !== 0 && day !== 6) daysAdded++;
+        }
+        await (supabase as any)
+          .from("crm_cards")
+          .update({
+            status_operational: "WAITING",
+            waiting_next_action_date: followUpDate.toISOString().split("T")[0],
+            waiting_next_action_text: "Relancer le client suite à l'envoi du devis",
+          })
+          .eq("id", quote.crm_card_id);
+      } catch (crmErr) {
+        console.warn("CRM auto-update failed (non-blocking):", crmErr);
+      }
 
       toast.success(`Devis envoyé à ${to}`);
       onSent();
