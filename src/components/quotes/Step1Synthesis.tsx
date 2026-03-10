@@ -14,8 +14,10 @@ interface Props {
   clientCompany: string;
   onValidate: (synthesis: string, instructions: string) => void;
   onDraftChange?: (synthesis: string, instructions: string) => void;
+  onChallengeChange?: (challengeHtml: string) => void;
   initialSynthesis?: string;
   initialInstructions?: string;
+  initialChallengeHtml?: string;
 }
 
 function htmlToPlainText(html: string): string {
