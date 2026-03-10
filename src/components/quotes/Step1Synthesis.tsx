@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Sparkles, RefreshCw, Pencil, Eye, Copy, Check, Mic, MicOff, FileText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
+import { useVoiceDictation } from "@/hooks/useVoiceDictation";
 import type { CrmCard } from "@/types/crm";
 
 interface Props {
@@ -43,16 +43,18 @@ export default function Step1Synthesis({
   const [isEditing, setIsEditing] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const { isListening, isSupported, startListening, stopListening } =
-    useSpeechRecognition("fr-FR", true);
+  const { isRecording, isTranscribing, isSupported, startRecording, stopRecording } =
+    useVoiceDictation({
+      onTranscript: (text) => {
+        setInstructions((prev) => (prev ? prev + "\n" + text : text));
+      },
+    });
 
   const handleToggleMic = () => {
-    if (isListening) {
-      stopListening();
+    if (isRecording) {
+      stopRecording();
     } else {
-      startListening((text) => {
-        setInstructions((prev) => (prev ? prev + "\n" + text : text));
-      });
+      startRecording();
     }
   };
 
@@ -248,21 +250,35 @@ export default function Step1Synthesis({
             {isSupported && (
               <Button
                 type="button"
-                variant={isListening ? "destructive" : "outline"}
+                variant={isRecording ? "destructive" : "outline"}
                 size="icon"
                 className="absolute top-3 right-3"
                 onClick={handleToggleMic}
-                title={isListening ? "Arrêter la dictée" : "Dicter les instructions"}
+                disabled={isTranscribing}
+                title={isRecording ? "Arrêter la dictée" : "Dicter les instructions"}
               >
-                {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                {isTranscribing ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : isRecording ? (
+                  <MicOff className="w-4 h-4" />
+                ) : (
+                  <Mic className="w-4 h-4" />
+                )}
               </Button>
             )}
           </div>
 
-          {isListening && (
+          {isRecording && (
             <div className="flex items-center gap-2 text-sm text-destructive animate-pulse">
               <div className="w-2 h-2 bg-destructive rounded-full" />
-              Écoute en cours... Parlez puis cliquez pour arrêter.
+              Enregistrement en cours... Parlez puis cliquez pour arrêter.
+            </div>
+          )}
+
+          {isTranscribing && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="w-3 h-3 animate-spin" />
+              Transcription en cours...
             </div>
           )}
         </CardContent>
