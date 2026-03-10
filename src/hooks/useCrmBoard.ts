@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { capitalizeName, normalizeEmail } from "@/lib/stringUtils";
 import {
   CrmColumn,
   CrmCard,
@@ -43,19 +44,6 @@ function useCrmMutation<TInput, TOutput = void>(
   });
 }
 
-/** Capitalize each part of a name: "jean-pierre" → "Jean-Pierre", "DE LA FONTAINE" → "De La Fontaine" */
-const capitalizeName = (name: string | null | undefined): string | null => {
-  if (!name) return null;
-  return name
-    .trim()
-    .toLowerCase()
-    .replace(/(^|[\s-])(\S)/g, (_m, sep, ch) => sep + ch.toUpperCase());
-};
-
-const normalizeEmail = (email: string | null | undefined): string | null => {
-  if (!email) return null;
-  return email.trim().toLowerCase();
-};
 
 const CRM_QUERY_KEY = "crm-board";
 

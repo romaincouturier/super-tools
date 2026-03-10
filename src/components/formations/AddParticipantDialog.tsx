@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { Plus, Loader2, AlertTriangle, ShoppingCart } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { capitalizeName } from "@/lib/stringUtils";
 import { differenceInDays, parseISO, format } from "date-fns";
 import type { FormationFormula } from "@/types/training";
 import {
@@ -62,21 +63,7 @@ interface AddParticipantDialogProps {
   onExternalOpenChange?: (open: boolean) => void;
 }
 
-/**
- * Capitalize the first letter of each word in a name, handling compound names (hyphen, space).
- * "jean-pierre" → "Jean-Pierre", "DUPONT" → "Dupont", "marie claire" → "Marie Claire"
- */
-const capitalizeName = (name: string): string => {
-  const trimmed = name.trim();
-  if (!trimmed) return "";
-  return trimmed
-    .split(/(\s+|-)/g) // split keeping delimiters (spaces & hyphens)
-    .map((part) => {
-      if (part === "-" || /^\s+$/.test(part)) return part;
-      return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase();
-    })
-    .join("");
-};
+
 
 const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, formatFormation, isInterEntreprise: isInterEntrepriseProp, availableFormulas = [], trainingFormulaId, onParticipantAdded, onScheduledEmailsRefresh, initialFirstName, initialLastName, initialEmail, initialCompany, initialSoldPriceHt, externalOpen, onExternalOpenChange }: AddParticipantDialogProps) => {
   const [internalOpen, setInternalOpen] = useState(false);

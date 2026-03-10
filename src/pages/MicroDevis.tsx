@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { capitalizeName } from "@/lib/stringUtils";
 import { User } from "@supabase/supabase-js";
 import type { FormationFormula } from "@/types/training";
 import { Loader2, FileText, Send, Settings, Save, X, Plus, Trash2, Star, Eye, Search, ChevronUp, ChevronDown, History, Mail, Copy } from "lucide-react";
@@ -54,12 +55,6 @@ const LIEUX = [
   "Chez le client",
 ];
 
-/** Capitalize each part of a name/city: "JEAN-PIERRE" → "Jean-Pierre", "LYON" → "Lyon" */
-const capitalizeName = (value: string): string =>
-  value
-    .trim()
-    .toLowerCase()
-    .replace(/(^|[\s-])(\S)/g, (_m, sep, ch) => sep + ch.toUpperCase());
 
 const MicroDevis = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -571,13 +566,13 @@ const MicroDevis = () => {
       }
 
       // Auto-fill fields (normalize casing from INSEE API which returns ALL CAPS)
-      if (data?.nomClient) setNomClient(capitalizeName(data.nomClient));
-      if (data?.adresse) setAdresseClient(capitalizeName(data.adresse));
+      if (data?.nomClient) setNomClient(capitalizeName(data.nomClient) ?? "");
+      if (data?.adresse) setAdresseClient(capitalizeName(data.adresse) ?? "");
       if (data?.codePostal) setCodePostalClient(data.codePostal);
-      if (data?.ville) setVilleClient(capitalizeName(data.ville));
+      if (data?.ville) setVilleClient(capitalizeName(data.ville) ?? "");
       if (data?.pays && data.pays !== "France") {
         setPays("autre");
-        setPaysAutre(capitalizeName(data.pays));
+        setPaysAutre(capitalizeName(data.pays) ?? "");
       } else {
         setPays("france");
       }
@@ -672,7 +667,7 @@ const MicroDevis = () => {
         const descriptions = results
           .slice(0, 3)
           .map((r: { siren: string; nom: string; ville: string | null }) =>
-            `${r.siren} — ${capitalizeName(r.nom)}${r.ville ? ` (${capitalizeName(r.ville)})` : ""}`
+            `${r.siren} — ${capitalizeName(r.nom) ?? r.nom}${r.ville ? ` (${capitalizeName(r.ville) ?? r.ville})` : ""}`
           )
           .join("\n");
         toast({

@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { Users, Loader2, AlertCircle, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { capitalizeName } from "@/lib/stringUtils";
 import { differenceInDays, parseISO, format } from "date-fns";
 import {
   Dialog,
@@ -26,17 +27,7 @@ interface BulkAddParticipantsDialogProps {
   formatFormation?: string | null;
 }
 
-const capitalizeName = (name: string): string => {
-  const trimmed = name.trim();
-  if (!trimmed) return "";
-  return trimmed
-    .split(/(\s+|-)/g)
-    .map((part) => {
-      if (part === "-" || /^\s+$/.test(part)) return part;
-      return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase();
-    })
-    .join("");
-};
+
 
 interface ParsedParticipant {
   email: string;

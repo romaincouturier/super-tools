@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Pencil, Loader2, FileText, Upload, Trash2, ExternalLink, CheckCircle2, Download, Paperclip, StickyNote, Check, Tag, UserCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { capitalizeName } from "@/lib/stringUtils";
 import {
   Dialog,
   DialogContent,
@@ -103,17 +104,7 @@ interface EditParticipantDialogProps {
   onParticipantUpdated: () => void;
 }
 
-const capitalizeName = (name: string): string => {
-  const trimmed = name.trim();
-  if (!trimmed) return "";
-  return trimmed
-    .split(/(\s+|-)/g)
-    .map((part) => {
-      if (part === "-" || /^\s+$/.test(part)) return part;
-      return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase();
-    })
-    .join("");
-};
+
 
 const EditParticipantDialog = ({
   participant,
