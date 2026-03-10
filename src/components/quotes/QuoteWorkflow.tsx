@@ -291,8 +291,10 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
             clientCompany={clientData?.company || crmCard.company || ""}
             onValidate={handleSynthesisValidated}
             onDraftChange={handleDraftSynthesis}
+            onChallengeChange={handleChallengeChange}
             initialSynthesis={synthesis}
             initialInstructions={instructions}
+            initialChallengeHtml={challengeHtml}
           />
         </>
       )}
