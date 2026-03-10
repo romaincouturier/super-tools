@@ -290,7 +290,7 @@ Best regards,`;
     return new Response(
       JSON.stringify({
         message: "Mission testimonials processed",
-        processed: missionsWithEmail.length,
+        processed: missionsToProcess.length,
         googleReviewsSent,
         testimonialsSent,
       }),
