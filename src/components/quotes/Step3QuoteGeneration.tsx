@@ -12,7 +12,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Loader2,
   Sparkles,
@@ -31,6 +30,7 @@ interface Props {
   quote: Quote;
   synthesis: string;
   instructions: string;
+  travelTotal?: number;
   onContinue: (updatedQuote: Quote) => void;
 }
 
@@ -52,6 +52,7 @@ export default function Step3QuoteGeneration({
   quote,
   synthesis,
   instructions,
+  travelTotal = 0,
   onContinue,
 }: Props) {
   const { data: settings } = useQuoteSettings();
@@ -107,35 +108,66 @@ export default function Step3QuoteGeneration({
             synthesis,
             instructions,
             defaultVatRate: defaultVat,
+            travelTotal,
           },
         }
       );
       if (error) throw error;
       if (data?.lines?.length > 0) {
-        setLines(
-          data.lines.map((l: any) => ({
+        let generatedLines = data.lines.map((l: any) => ({
+          id: uuid(),
+          product: l.product || "",
+          description: l.description || "",
+          quantity: l.quantity || 1,
+          unit: l.unit || defaultUnit,
+          unit_price_ht: l.unit_price_ht || 0,
+          vat_rate: l.vat_rate ?? defaultVat,
+          total_ht: (l.quantity || 1) * (l.unit_price_ht || 0),
+          total_ttc:
+            (l.quantity || 1) *
+            (l.unit_price_ht || 0) *
+            (1 + (l.vat_rate ?? defaultVat) / 100),
+        }));
+
+        // Add travel expenses line if not already included
+        if (travelTotal > 0 && !generatedLines.some((l: any) => l.product?.toLowerCase().includes("déplacement"))) {
+          generatedLines.push({
             id: uuid(),
-            product: l.product || "",
-            description: l.description || "",
-            quantity: l.quantity || 1,
-            unit: l.unit || defaultUnit,
-            unit_price_ht: l.unit_price_ht || 0,
-            vat_rate: l.vat_rate ?? defaultVat,
-            total_ht: (l.quantity || 1) * (l.unit_price_ht || 0),
-            total_ttc:
-              (l.quantity || 1) *
-              (l.unit_price_ht || 0) *
-              (1 + (l.vat_rate ?? defaultVat) / 100),
-          }))
-        );
+            product: "Frais de déplacement",
+            description: "Frais de transport, hébergement et restauration",
+            quantity: 1,
+            unit: "forfait",
+            unit_price_ht: Math.round(travelTotal * 100) / 100,
+            vat_rate: defaultVat,
+            total_ht: Math.round(travelTotal * 100) / 100,
+            total_ttc: Math.round(travelTotal * (1 + defaultVat / 100) * 100) / 100,
+          });
+        }
+
+        setLines(generatedLines);
         if (data.sale_type_suggestion && !saleType) {
           setSaleType(data.sale_type_suggestion);
         }
       }
     } catch (e: any) {
       console.error("Line generation error:", e);
+      const fallbackLines: QuoteLineItem[] = [emptyLine(defaultVat, defaultUnit)];
+      // Always add travel line on error fallback
+      if (travelTotal > 0) {
+        fallbackLines.push({
+          id: uuid(),
+          product: "Frais de déplacement",
+          description: "Frais de transport, hébergement et restauration",
+          quantity: 1,
+          unit: "forfait",
+          unit_price_ht: Math.round(travelTotal * 100) / 100,
+          vat_rate: defaultVat,
+          total_ht: Math.round(travelTotal * 100) / 100,
+          total_ttc: Math.round(travelTotal * (1 + defaultVat / 100) * 100) / 100,
+        });
+      }
       if (lines.length === 0) {
-        setLines([emptyLine(defaultVat, defaultUnit)]);
+        setLines(fallbackLines);
       }
     } finally {
       setIsGenerating(false);
@@ -187,124 +219,227 @@ export default function Step3QuoteGeneration({
   const handleDownloadPdf = async () => {
     const updated = await handleSave();
     try {
-      // Use client-side jsPDF for reliable PDF generation
       const { default: jsPDF } = await import("jspdf");
       const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
 
       const pageW = doc.internal.pageSize.getWidth();
-      const margin = 20;
-      let y = 20;
+      const pageH = doc.internal.pageSize.getHeight();
+      const margin = 15;
+      const contentW = pageW - 2 * margin;
+      let y = 15;
 
-      // Header
-      doc.setFontSize(10);
+      // ── HEADER: Company info (left) + Quote number (right) ──
+      // Yellow accent bar at top
+      doc.setFillColor(230, 188, 0); // SuperTilt yellow #e6bc00
+      doc.rect(0, 0, pageW, 4, "F");
+
+      y = 14;
+      doc.setFontSize(16);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(30, 30, 30);
+      doc.text(settings?.company_name || "SuperTilt", margin, y);
+      
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "normal");
       doc.setTextColor(100);
-      if (settings) {
-        doc.text(settings.company_name || "", margin, y);
-        y += 5;
-        doc.text(`${settings.company_address || ""}, ${settings.company_zip || ""} ${settings.company_city || ""}`, margin, y);
-        y += 5;
-        if (settings.siren) doc.text(`SIREN : ${settings.siren}`, margin, y);
-        y += 5;
-        if (settings.vat_number) doc.text(`TVA : ${settings.vat_number}`, margin, y);
-        y += 10;
-      }
-
-      // Quote number
-      doc.setFontSize(18);
-      doc.setTextColor(0);
-      doc.text(`Devis ${updated.quote_number}`, margin, y);
-      y += 10;
-
-      doc.setFontSize(9);
-      doc.setTextColor(80);
-      doc.text(`Date d'émission : ${updated.issue_date}`, margin, y);
-      doc.text(`Validité : ${updated.expiry_date}`, pageW - margin - 60, y);
-      y += 8;
-
-      // Client
-      doc.setFontSize(10);
-      doc.setTextColor(0);
-      doc.text("Client :", margin, y);
-      y += 5;
-      doc.setTextColor(60);
-      doc.text(updated.client_company, margin, y); y += 4;
-      doc.text(`${updated.client_address}`, margin, y); y += 4;
-      doc.text(`${updated.client_zip} ${updated.client_city}`, margin, y); y += 4;
-      if (updated.client_siren) { doc.text(`SIREN : ${updated.client_siren}`, margin, y); y += 4; }
       y += 6;
+      doc.text(`${settings?.company_address || ""}, ${settings?.company_zip || ""} ${settings?.company_city || ""}`, margin, y);
+      y += 4;
+      if (settings?.company_phone) { doc.text(`Tél : ${settings.company_phone}`, margin, y); y += 4; }
+      if (settings?.company_email) { doc.text(`Email : ${settings.company_email}`, margin, y); y += 4; }
+      if (settings?.siren) { doc.text(`SIREN : ${settings.siren}`, margin, y); y += 4; }
+      if (settings?.vat_number) { doc.text(`TVA : ${settings.vat_number}`, margin, y); y += 4; }
+      if (settings?.rcs_number) { doc.text(`RCS ${settings.rcs_city} ${settings.rcs_number}`, margin, y); y += 4; }
+
+      // Quote number box (right side)
+      const boxW = 65;
+      const boxX = pageW - margin - boxW;
+      doc.setFillColor(245, 245, 245);
+      doc.roundedRect(boxX, 10, boxW, 28, 2, 2, "F");
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(30);
+      doc.text("DEVIS", boxX + boxW / 2, 20, { align: "center" });
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      doc.text(updated.quote_number, boxX + boxW / 2, 26, { align: "center" });
+      doc.setFontSize(8);
+      doc.setTextColor(100);
+      doc.text(`Du ${updated.issue_date}`, boxX + boxW / 2, 32, { align: "center" });
+      doc.text(`Valide jusqu'au ${updated.expiry_date}`, boxX + boxW / 2, 36, { align: "center" });
+
+      y = Math.max(y, 46) + 4;
+
+      // ── CLIENT BOX ──
+      doc.setFillColor(250, 250, 250);
+      doc.setDrawColor(220);
+      doc.roundedRect(pageW / 2, y, contentW / 2, 30, 2, 2, "FD");
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(100);
+      doc.text("DESTINATAIRE", pageW / 2 + 5, y + 6);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(30);
+      doc.setFontSize(9);
+      doc.text(updated.client_company, pageW / 2 + 5, y + 12);
+      doc.setFontSize(8);
+      doc.setTextColor(80);
+      doc.text(updated.client_address, pageW / 2 + 5, y + 17);
+      doc.text(`${updated.client_zip} ${updated.client_city}`, pageW / 2 + 5, y + 22);
+      if (updated.client_siren) doc.text(`SIREN : ${updated.client_siren}`, pageW / 2 + 5, y + 27);
+
+      y += 36;
+
+      // ── TABLE ──
+      const cols = [
+        { header: "Désignation", x: margin, w: contentW * 0.40 },
+        { header: "Qté", x: margin + contentW * 0.40, w: contentW * 0.08 },
+        { header: "Unité", x: margin + contentW * 0.48, w: contentW * 0.10 },
+        { header: "PU HT", x: margin + contentW * 0.58, w: contentW * 0.14 },
+        { header: "TVA", x: margin + contentW * 0.72, w: contentW * 0.10 },
+        { header: "Total HT", x: margin + contentW * 0.82, w: contentW * 0.18 },
+      ];
 
       // Table header
-      const colX = [margin, margin + 55, margin + 95, margin + 115, margin + 135, margin + 155];
-      doc.setFillColor(240, 240, 240);
-      doc.rect(margin, y - 1, pageW - 2 * margin, 7, "F");
-      doc.setFontSize(8);
-      doc.setTextColor(0);
-      doc.text("Produit / Description", colX[0], y + 4);
-      doc.text("Qté", colX[1], y + 4);
-      doc.text("Unité", colX[2], y + 4);
-      doc.text("PU HT", colX[3], y + 4);
-      doc.text("TVA", colX[4], y + 4);
-      doc.text("Total HT", colX[5], y + 4);
-      y += 10;
+      doc.setFillColor(50, 50, 50);
+      doc.rect(margin, y, contentW, 8, "F");
+      doc.setFontSize(7.5);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(255);
+      for (const col of cols) {
+        const align = col.header === "Désignation" ? "left" : "right";
+        const textX = align === "left" ? col.x + 3 : col.x + col.w - 3;
+        doc.text(col.header, textX, y + 5.5, { align } as any);
+      }
+      y += 8;
 
-      // Lines
-      const lines = updated.line_items || [];
-      for (const line of lines) {
+      // Table rows
+      const allLines = updated.line_items || [];
+      doc.setFont("helvetica", "normal");
+      for (let idx = 0; idx < allLines.length; idx++) {
+        const line = allLines[idx];
         const lineHt = line.quantity * line.unit_price_ht;
-        doc.setFontSize(9);
-        doc.setTextColor(0);
-        doc.text(line.product || "", colX[0], y);
-        doc.text(String(line.quantity), colX[1], y);
-        doc.text(line.unit || "", colX[2], y);
-        doc.text(fmt(line.unit_price_ht), colX[3], y);
-        doc.text(`${line.vat_rate}%`, colX[4], y);
-        doc.text(fmt(lineHt), colX[5], y);
-        y += 5;
-        if (line.description) {
-          doc.setFontSize(7);
-          doc.setTextColor(120);
-          const descLines = doc.splitTextToSize(line.description, 50);
-          doc.text(descLines, colX[0], y);
-          y += descLines.length * 3.5;
+
+        // Alternate row background
+        if (idx % 2 === 0) {
+          doc.setFillColor(248, 248, 248);
+          doc.rect(margin, y, contentW, 10, "F");
         }
-        y += 2;
-        if (y > 260) { doc.addPage(); y = 20; }
+
+        // Product name
+        doc.setFontSize(8);
+        doc.setTextColor(30);
+        doc.setFont("helvetica", "bold");
+        doc.text(line.product || "", cols[0].x + 3, y + 4.5, { maxWidth: cols[0].w - 6 });
+
+        // Description (smaller, below product)
+        if (line.description) {
+          doc.setFontSize(6.5);
+          doc.setFont("helvetica", "normal");
+          doc.setTextColor(120);
+          const descLines = doc.splitTextToSize(line.description, cols[0].w - 6);
+          const descText = descLines.slice(0, 2).join("\n");
+          doc.text(descText, cols[0].x + 3, y + 8);
+        }
+
+        // Numbers
+        doc.setFontSize(8);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(30);
+        doc.text(String(line.quantity), cols[1].x + cols[1].w - 3, y + 4.5, { align: "right" });
+        doc.text(line.unit || "", cols[2].x + cols[2].w - 3, y + 4.5, { align: "right" });
+        doc.text(fmt(line.unit_price_ht), cols[3].x + cols[3].w - 3, y + 4.5, { align: "right" });
+        doc.text(`${line.vat_rate}%`, cols[4].x + cols[4].w - 3, y + 4.5, { align: "right" });
+        doc.setFont("helvetica", "bold");
+        doc.text(fmt(lineHt), cols[5].x + cols[5].w - 3, y + 4.5, { align: "right" });
+
+        const rowH = line.description ? 14 : 10;
+        y += rowH;
+        if (y > pageH - 60) { doc.addPage(); y = 15; }
       }
 
-      // Totals
-      y += 5;
-      doc.setDrawColor(200);
-      doc.line(margin, y, pageW - margin, y);
+      // Table bottom line
+      doc.setDrawColor(50);
+      doc.setLineWidth(0.5);
+      doc.line(margin, y, margin + contentW, y);
+
+      // ── TOTALS BOX ──
       y += 6;
-      doc.setFontSize(10);
-      doc.setTextColor(0);
-      doc.text("Total HT :", pageW - margin - 60, y);
+      const totX = pageW - margin - 80;
+
+      // Rights transfer
+      if (updated.rights_transfer_enabled && updated.rights_transfer_amount) {
+        doc.setFontSize(8);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(80);
+        doc.text("Cession de droits", totX, y);
+        doc.text(fmt(updated.rights_transfer_amount), pageW - margin, y, { align: "right" });
+        y += 5;
+      }
+
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(60);
+      doc.text("Total HT", totX, y);
+      doc.setTextColor(30);
       doc.text(fmt(updated.total_ht || 0), pageW - margin, y, { align: "right" });
-      y += 6;
+      y += 5;
+
       if (!settings?.vat_exempt) {
-        doc.text("Total TVA :", pageW - margin - 60, y);
+        doc.setTextColor(60);
+        doc.text("Total TVA", totX, y);
+        doc.setTextColor(30);
         doc.text(fmt(updated.total_vat || 0), pageW - margin, y, { align: "right" });
         y += 6;
       }
-      doc.setFontSize(12);
-      doc.text("Total TTC :", pageW - margin - 60, y);
-      doc.text(fmt(settings?.vat_exempt ? (updated.total_ht || 0) : (updated.total_ttc || 0)), pageW - margin, y, { align: "right" });
 
-      // Footer mentions
+      // Total TTC with background
+      doc.setFillColor(230, 188, 0);
+      doc.roundedRect(totX - 5, y - 4, pageW - margin - totX + 10, 12, 2, 2, "F");
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(30);
+      doc.text("Total TTC", totX, y + 4);
+      doc.text(
+        fmt(settings?.vat_exempt ? (updated.total_ht || 0) : (updated.total_ttc || 0)),
+        pageW - margin, y + 4, { align: "right" }
+      );
+
+      // ── FOOTER: Legal mentions ──
       if (settings) {
-        y += 15;
-        doc.setFontSize(7);
+        y += 20;
+        doc.setFontSize(6.5);
+        doc.setFont("helvetica", "normal");
         doc.setTextColor(120);
-        const mentions = [];
+        const mentions: string[] = [];
         if (settings.payment_terms_text) mentions.push(`Conditions de règlement : ${settings.payment_terms_text}`);
+        if (settings.early_payment_discount) mentions.push(`Escompte : ${settings.early_payment_discount}`);
         if (settings.late_penalty_text) mentions.push(`Pénalités de retard : ${settings.late_penalty_text}`);
         mentions.push(`Indemnité forfaitaire de recouvrement : ${fmt(settings.recovery_indemnity_amount)} €`);
         if (settings.training_declaration_number) mentions.push(`N° déclaration d'activité : ${settings.training_declaration_number}`);
         if (settings.vat_exempt && settings.vat_exempt_text) mentions.push(settings.vat_exempt_text);
+        if (settings.insurance_name) mentions.push(`Assurance RC Pro : ${settings.insurance_name} — Police n° ${settings.insurance_policy_number}`);
+        
+        // Signature area
+        y += 2;
+        doc.setDrawColor(200);
+        doc.line(margin, y, margin + contentW, y);
+        y += 3;
+        
         for (const m of mentions) {
-          if (y > 280) { doc.addPage(); y = 20; }
+          if (y > pageH - 10) { doc.addPage(); y = 15; }
           doc.text(m, margin, y);
           y += 3.5;
+        }
+
+        // Signature block
+        if (y < pageH - 40) {
+          y = Math.max(y + 10, pageH - 50);
+          doc.setFontSize(8);
+          doc.setTextColor(80);
+          doc.text("Bon pour accord — Date et signature du client :", margin, y);
+          doc.setDrawColor(200);
+          doc.rect(margin, y + 3, 80, 25);
         }
       }
 
@@ -377,6 +512,14 @@ export default function Step3QuoteGeneration({
             </div>
           </div>
 
+          {travelTotal > 0 && (
+            <div className="bg-accent/50 border border-accent rounded-lg p-3 text-sm">
+              <span className="font-medium">Frais de déplacement inclus :</span>{" "}
+              <span className="font-bold">{fmt(travelTotal)}</span>
+              <span className="text-muted-foreground ml-2">(ajoutés automatiquement comme ligne)</span>
+            </div>
+          )}
+
           {isGenerating ? (
             <div className="flex flex-col items-center justify-center py-16 gap-4">
               <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -389,122 +532,86 @@ export default function Step3QuoteGeneration({
             </div>
           ) : (
             <>
-              {/* Line items table */}
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="min-w-[200px]">Produit</TableHead>
-                      <TableHead className="min-w-[200px]">Description</TableHead>
-                      <TableHead className="w-20">Qté</TableHead>
-                      <TableHead className="w-24">Unité</TableHead>
-                      <TableHead className="w-32">Prix u. HT</TableHead>
-                      <TableHead className="w-24">TVA %</TableHead>
-                      <TableHead className="w-32 text-right">Total HT</TableHead>
-                      <TableHead className="w-32 text-right">Total TTC</TableHead>
-                      <TableHead className="w-10" />
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {lines.map((line) => (
-                      <TableRow key={line.id}>
-                        <TableCell>
-                          <Input
-                            value={line.product}
-                            onChange={(e) =>
-                              updateLine(line.id, "product", e.target.value)
-                            }
-                            placeholder="Intitulé"
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Textarea
-                            value={line.description}
-                            onChange={(e) =>
-                              updateLine(line.id, "description", e.target.value)
-                            }
-                            placeholder="Description"
-                            rows={2}
-                            className="min-h-[60px]"
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Input
-                            type="number"
-                            min={0}
-                            value={line.quantity}
-                            onChange={(e) =>
-                              updateLine(
-                                line.id,
-                                "quantity",
-                                parseFloat(e.target.value) || 0
-                              )
-                            }
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Input
-                            value={line.unit || defaultUnit}
-                            onChange={(e) =>
-                              updateLine(line.id, "unit", e.target.value)
-                            }
-                            placeholder="jour"
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Input
-                            type="number"
-                            min={0}
-                            step={0.01}
-                            value={line.unit_price_ht}
-                            onChange={(e) =>
-                              updateLine(
-                                line.id,
-                                "unit_price_ht",
-                                parseFloat(e.target.value) || 0
-                              )
-                            }
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Input
-                            type="number"
-                            min={0}
-                            step={0.01}
-                            value={line.vat_rate}
-                            onChange={(e) =>
-                              updateLine(
-                                line.id,
-                                "vat_rate",
-                                parseFloat(e.target.value) || 0
-                              )
-                            }
-                          />
-                        </TableCell>
-                        <TableCell className="text-right font-medium">
+              {/* Line items — card layout for readability */}
+              <div className="space-y-3">
+                {lines.map((line, idx) => (
+                  <div key={line.id} className="border rounded-lg p-4 space-y-3 bg-card">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 space-y-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-semibold text-muted-foreground bg-muted rounded px-2 py-0.5">
+                            Ligne {idx + 1}
+                          </span>
+                        </div>
+                        <Input
+                          value={line.product}
+                          onChange={(e) => updateLine(line.id, "product", e.target.value)}
+                          placeholder="Intitulé de la prestation"
+                          className="font-medium text-base"
+                        />
+                        <Textarea
+                          value={line.description}
+                          onChange={(e) => updateLine(line.id, "description", e.target.value)}
+                          placeholder="Description détaillée"
+                          rows={2}
+                          className="text-sm"
+                        />
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeLine(line.id)}
+                        className="text-destructive shrink-0 mt-6"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">Quantité</Label>
+                        <Input
+                          type="number"
+                          min={0}
+                          value={line.quantity}
+                          onChange={(e) => updateLine(line.id, "quantity", parseFloat(e.target.value) || 0)}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">Unité</Label>
+                        <Input
+                          value={line.unit || defaultUnit}
+                          onChange={(e) => updateLine(line.id, "unit", e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">Prix unitaire HT</Label>
+                        <Input
+                          type="number"
+                          min={0}
+                          step={0.01}
+                          value={line.unit_price_ht}
+                          onChange={(e) => updateLine(line.id, "unit_price_ht", parseFloat(e.target.value) || 0)}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">TVA %</Label>
+                        <Input
+                          type="number"
+                          min={0}
+                          step={0.01}
+                          value={line.vat_rate}
+                          onChange={(e) => updateLine(line.id, "vat_rate", parseFloat(e.target.value) || 0)}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">Total HT</Label>
+                        <div className="h-9 flex items-center px-3 bg-muted rounded-md font-semibold text-sm">
                           {fmt(line.quantity * line.unit_price_ht)}
-                        </TableCell>
-                        <TableCell className="text-right font-medium">
-                          {fmt(
-                            line.quantity *
-                              line.unit_price_ht *
-                              (1 + line.vat_rate / 100)
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => removeLine(line.id)}
-                            className="text-destructive"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
 
               <Button variant="outline" onClick={addLine} className="gap-2">
@@ -531,9 +638,7 @@ export default function Step3QuoteGeneration({
                         min={0}
                         step={0.01}
                         value={rightsRate}
-                        onChange={(e) =>
-                          setRightsRate(parseFloat(e.target.value) || 0)
-                        }
+                        onChange={(e) => setRightsRate(parseFloat(e.target.value) || 0)}
                         className="w-24"
                       />
                       <span className="text-sm text-muted-foreground">
@@ -545,37 +650,39 @@ export default function Step3QuoteGeneration({
               )}
 
               {/* Totals summary */}
-              <div className="border rounded-lg p-4 space-y-2">
+              <div className="border rounded-lg p-5 space-y-3 bg-card">
                 {settings?.vat_exempt && (
                   <div className="text-sm font-medium text-amber-700 bg-amber-50 p-2 rounded">
                     {settings.vat_exempt_text}
                   </div>
                 )}
                 {!settings?.vat_exempt && Object.entries(totals.vatGroups).map(([rate, g]) => (
-                  <div key={rate} className="flex justify-between text-sm">
+                  <div key={rate} className="flex justify-between text-sm text-muted-foreground">
                     <span>TVA {rate}%</span>
-                    <span>Base HT: {fmt(g.ht)} — TVA: {fmt(g.vat)}</span>
+                    <span>Base HT : {fmt(g.ht)} — TVA : {fmt(g.vat)}</span>
                   </div>
                 ))}
-                <div className="border-t pt-2 space-y-1">
-                  <div className="flex justify-between font-medium">
+                <div className="border-t pt-3 space-y-2">
+                  <div className="flex justify-between text-base font-medium">
                     <span>Total HT</span>
                     <span>{fmt(totals.totalHt)}</span>
                   </div>
                   {!settings?.vat_exempt && (
-                    <div className="flex justify-between text-sm">
+                    <div className="flex justify-between text-sm text-muted-foreground">
                       <span>Total TVA</span>
                       <span>{fmt(totals.totalVat)}</span>
                     </div>
                   )}
-                  <div className="flex justify-between text-lg font-bold">
+                  <div className="flex justify-between text-xl font-bold pt-1 border-t">
                     <span>Total TTC</span>
-                    <span>{fmt(settings?.vat_exempt ? totals.totalHt : totals.totalTtc)}</span>
+                    <span className="text-primary">
+                      {fmt(settings?.vat_exempt ? totals.totalHt : totals.totalTtc)}
+                    </span>
                   </div>
                 </div>
               </div>
 
-              {/* Conditions & mentions légales (preview) */}
+              {/* Legal mentions preview */}
               {settings && (
                 <div className="border rounded-lg p-4 space-y-3 text-xs text-muted-foreground">
                   <h4 className="font-medium text-sm text-foreground">Mentions du devis</h4>

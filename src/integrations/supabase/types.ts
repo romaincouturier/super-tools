@@ -4422,7 +4422,9 @@ export type Database = {
           total_ht: number
           total_ttc: number
           total_vat: number
+          travel_data: Json | null
           updated_at: string
+          workflow_step: number | null
         }
         Insert: {
           client_address?: string
@@ -4457,7 +4459,9 @@ export type Database = {
           total_ht?: number
           total_ttc?: number
           total_vat?: number
+          travel_data?: Json | null
           updated_at?: string
+          workflow_step?: number | null
         }
         Update: {
           client_address?: string
@@ -4492,7 +4496,9 @@ export type Database = {
           total_ht?: number
           total_ttc?: number
           total_vat?: number
+          travel_data?: Json | null
           updated_at?: string
+          workflow_step?: number | null
         }
         Relationships: [
           {
