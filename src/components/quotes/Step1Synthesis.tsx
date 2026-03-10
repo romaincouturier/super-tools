@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Sparkles, RefreshCw, Pencil, Eye, Copy, Check, Mic, MicOff, FileText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
+import { useVoiceDictation } from "@/hooks/useVoiceDictation";
 import type { CrmCard } from "@/types/crm";
 
 interface Props {
