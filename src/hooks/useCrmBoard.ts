@@ -246,6 +246,12 @@ export const useCrmCardDetails = (cardId: string | null) => {
   });
 };
 
+// Deduplicate Slack notifications: prevent the same notification from being
+// sent twice within a short window (e.g. due to multiple mutation paths
+// triggering concurrently for the same card status change).
+const _recentSlackNotifications = new Map<string, number>();
+const SLACK_DEDUP_WINDOW_MS = 30_000;
+
 // Fire-and-forget Slack notification
 const notifySlack = async (
   type: "opportunity_created" | "opportunity_won",
@@ -260,6 +266,16 @@ const notifySlack = async (
   },
   actorEmail?: string
 ) => {
+  // Dedup key based on type + card title (unique enough per opportunity)
+  const dedupKey = `${type}:${card.title}`;
+  const now = Date.now();
+  const lastSent = _recentSlackNotifications.get(dedupKey);
+  if (lastSent && now - lastSent < SLACK_DEDUP_WINDOW_MS) {
+    console.log(`[Slack] Skipping duplicate ${type} notification for "${card.title}"`);
+    return;
+  }
+  _recentSlackNotifications.set(dedupKey, now);
+
   try {
     await supabase.functions.invoke("crm-slack-notify", {
       body: { type, card, actor_email: actorEmail },
