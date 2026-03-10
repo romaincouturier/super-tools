@@ -250,21 +250,35 @@ export default function Step1Synthesis({
             {isSupported && (
               <Button
                 type="button"
-                variant={isListening ? "destructive" : "outline"}
+                variant={isRecording ? "destructive" : "outline"}
                 size="icon"
                 className="absolute top-3 right-3"
                 onClick={handleToggleMic}
-                title={isListening ? "Arrêter la dictée" : "Dicter les instructions"}
+                disabled={isTranscribing}
+                title={isRecording ? "Arrêter la dictée" : "Dicter les instructions"}
               >
-                {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                {isTranscribing ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : isRecording ? (
+                  <MicOff className="w-4 h-4" />
+                ) : (
+                  <Mic className="w-4 h-4" />
+                )}
               </Button>
             )}
           </div>
 
-          {isListening && (
+          {isRecording && (
             <div className="flex items-center gap-2 text-sm text-destructive animate-pulse">
               <div className="w-2 h-2 bg-destructive rounded-full" />
-              Écoute en cours... Parlez puis cliquez pour arrêter.
+              Enregistrement en cours... Parlez puis cliquez pour arrêter.
+            </div>
+          )}
+
+          {isTranscribing && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="w-3 h-3 animate-spin" />
+              Transcription en cours...
             </div>
           )}
         </CardContent>
