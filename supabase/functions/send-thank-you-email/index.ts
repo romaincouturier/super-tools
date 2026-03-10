@@ -1,5 +1,5 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { randomBytes, createHash } from "https://deno.land/std@0.168.0/node/crypto.ts";
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { randomBytes, createHash } from "https://deno.land/std@0.190.0/node/crypto.ts";
 import {
   handleCorsPreflightIfNeeded,
   createErrorResponse,
