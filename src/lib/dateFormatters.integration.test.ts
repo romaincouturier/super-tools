@@ -24,6 +24,7 @@ import {
 // ── Helper ──────────────────────────────────────────────────────────────────
 
 function readSource(relativePath: string): string {
+  // @ts-ignore -- __dirname available in vitest node env
   return readFileSync(resolve(__dirname, "../..", relativePath), "utf-8");
 }
 
