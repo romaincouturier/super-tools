@@ -169,16 +169,25 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const apiKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-    // Check all functions in parallel
-    const results = await Promise.allSettled(
-      FUNCTION_NAMES.map((name) => checkFunction(supabaseUrl, name, apiKey))
-    );
+    // Check functions in batches to avoid overwhelming the system
+    const BATCH_SIZE = 15;
+    const allResults: { name: string; status: string; response_time_ms: number }[] = [];
+    
+    for (let i = 0; i < FUNCTION_NAMES.length; i += BATCH_SIZE) {
+      const batch = FUNCTION_NAMES.slice(i, i + BATCH_SIZE);
+      const batchResults = await Promise.allSettled(
+        batch.map((name) => checkFunction(supabaseUrl, name, apiKey))
+      );
+      for (const r of batchResults) {
+        allResults.push(
+          r.status === "fulfilled"
+            ? r.value
+            : { name: "unknown", status: "error", response_time_ms: 0 }
+        );
+      }
+    }
 
-    const functions = results.map((r) =>
-      r.status === "fulfilled"
-        ? r.value
-        : { name: "unknown", status: "error", response_time_ms: 0 }
-    );
+    const functions = allResults;
 
     const upCount = functions.filter((f) => f.status === "up").length;
 
