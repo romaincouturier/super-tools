@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { randomBytes, createHash } from "https://deno.land/std@0.190.0/node/crypto.ts";
+
 import {
   handleCorsPreflightIfNeeded,
   createErrorResponse,
@@ -13,10 +13,17 @@ import {
 } from "../_shared/mod.ts";
 
 // Generate a secure token for evaluation access
-function generateEvaluationToken(): string {
+async function generateEvaluationToken(): Promise<string> {
   const uuid = crypto.randomUUID();
-  const randomPart = randomBytes(8).toString("hex");
-  const hash = createHash("sha256").update(uuid + randomPart).digest("hex").slice(0, 16);
+  const randomPart = Array.from(crypto.getRandomValues(new Uint8Array(8)))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+  const data = new TextEncoder().encode(uuid + randomPart);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  const hash = Array.from(new Uint8Array(hashBuffer))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("")
+    .slice(0, 16);
   return `${uuid}-${hash}`;
 }
 
@@ -214,7 +221,7 @@ serve(async (req) => {
         evaluationToken = existingEval.token;
       } else {
         // Create a new evaluation record
-        evaluationToken = generateEvaluationToken();
+        evaluationToken = await generateEvaluationToken();
 
         const { error: evalError } = await supabase
           .from("training_evaluations")
