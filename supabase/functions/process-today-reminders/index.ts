@@ -162,6 +162,7 @@ serve(async (req) => {
         const body = processTemplate(template.html_content, variables, false);
         const resolvedHtml = body
           .split(/\n\n+/)
+          .filter((paragraph: string) => paragraph.trim() !== "")
           .map((paragraph: string) => `<p>${paragraph.replace(/\n/g, "<br>")}</p>`)
           .join("") + "\n" + signatureHtml;
 
