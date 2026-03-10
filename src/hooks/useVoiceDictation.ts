@@ -9,7 +9,7 @@ interface UseVoiceDictationOptions {
 
 export function useVoiceDictation({
   onTranscript,
-  maxDurationMs = 60000,
+  maxDurationMs = 300000, // 5 minutes par défaut
 }: UseVoiceDictationOptions) {
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
