@@ -27,11 +27,15 @@ serve(async (req) => {
       return createErrorResponse("Le champ 'audio' est requis", 400);
     }
 
-    // Convert audio to base64
+    // Convert audio to base64 (chunked to avoid stack overflow)
     const arrayBuffer = await audioFile.arrayBuffer();
-    const base64Audio = btoa(
-      String.fromCharCode(...new Uint8Array(arrayBuffer))
-    );
+    const bytes = new Uint8Array(arrayBuffer);
+    const CHUNK = 8192;
+    let binary = "";
+    for (let i = 0; i < bytes.length; i += CHUNK) {
+      binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
+    }
+    const base64Audio = btoa(binary);
 
     // Determine MIME type
     const mimeType = audioFile.type || "audio/webm";
