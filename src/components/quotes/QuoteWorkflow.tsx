@@ -314,6 +314,7 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
           <BackButton onClick={handleBack} />
           <Step4Loom
             onContinue={handleLoomContinue}
+            onDraftChange={handleDraftLoom}
             initialLoomUrl={loomUrl}
           />
         </>
