@@ -3,9 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Sparkles, RefreshCw, Pencil, Eye, Copy, Check, Mic, MicOff, FileText } from "lucide-react";
+import { Loader2, Sparkles, RefreshCw, Pencil, Eye, Copy, Check, Mic, MicOff, FileText, Swords } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useVoiceDictation } from "@/hooks/useVoiceDictation";
+import { toast } from "sonner";
 import type { CrmCard } from "@/types/crm";
 
 interface Props {
@@ -42,6 +43,11 @@ export default function Step1Synthesis({
   const [generated, setGenerated] = useState(!!initialSynthesis);
   const [isEditing, setIsEditing] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  // Commercial challenge state
+  const [challengeHtml, setChallengeHtml] = useState("");
+  const [isChallenging, setIsChallenging] = useState(false);
+  const [challengeDone, setChallengeDone] = useState(false);
 
   const { isRecording, isTranscribing, isSupported, startRecording, stopRecording } =
     useVoiceDictation({
@@ -124,6 +130,43 @@ export default function Step1Synthesis({
       setGenerated(true);
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const handleChallenge = async () => {
+    if (!synthesis.trim()) {
+      toast.error("Générez d'abord la synthèse avant de lancer le challenge.");
+      return;
+    }
+    setIsChallenging(true);
+    setChallengeHtml("");
+    setChallengeDone(false);
+
+    try {
+      const clientContext = [
+        `Opportunité : ${crmCard.title}`,
+        `Client : ${clientCompany}`,
+        crmCard.service_type ? `Type : ${crmCard.service_type}` : "",
+        crmCard.estimated_value ? `Valeur estimée : ${crmCard.estimated_value} €` : "",
+      ].filter(Boolean).join("\n");
+
+      const { data, error } = await supabase.functions.invoke("commercial-challenge", {
+        body: {
+          synthesis: htmlToPlainText(synthesis),
+          instructions: instructions || null,
+          clientContext,
+        },
+      });
+
+      if (error) throw error;
+      const cleaned = cleanHtmlOutput(data.challenge || "");
+      setChallengeHtml(cleaned);
+      setChallengeDone(true);
+    } catch (e: any) {
+      console.error("Challenge error:", e);
+      toast.error("Erreur lors du challenge commercial : " + (e.message || "Erreur inconnue"));
+    } finally {
+      setIsChallenging(false);
     }
   };
 
@@ -284,13 +327,71 @@ export default function Step1Synthesis({
         </CardContent>
       </Card>
 
+      {/* Commercial Challenge */}
+      <Card className="border-amber-200 bg-amber-50/30 dark:border-amber-900 dark:bg-amber-950/20">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Swords className="w-5 h-5 text-amber-600" />
+            Challenge commercial
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Alert className="border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/40">
+            <Swords className="w-4 h-4 text-amber-600" />
+            <AlertDescription>
+              Un coach IA va challenger votre proposition pour maximiser la valeur : opportunités manquées, pricing, formulations, risques commerciaux.
+            </AlertDescription>
+          </Alert>
+
+          {!challengeDone && !isChallenging && (
+            <Button
+              onClick={handleChallenge}
+              disabled={!synthesis.trim() || isGenerating}
+              variant="outline"
+              className="gap-2 w-full py-6 text-base border-amber-300 hover:bg-amber-100 dark:border-amber-800 dark:hover:bg-amber-950/40"
+            >
+              <Swords className="w-5 h-5 text-amber-600" />
+              Lancer le challenge commercial
+            </Button>
+          )}
+
+          {isChallenging && (
+            <div className="flex items-center justify-center py-10 gap-3">
+              <Loader2 className="w-5 h-5 animate-spin text-amber-600" />
+              <span className="text-muted-foreground">
+                Le coach analyse votre proposition...
+              </span>
+            </div>
+          )}
+
+          {challengeDone && challengeHtml && (
+            <>
+              <div
+                className="p-4 border rounded-md bg-background overflow-y-auto max-h-[500px] text-sm leading-relaxed [&_h3]:text-base [&_h3]:font-semibold [&_h3]:mt-4 [&_h3]:mb-1 [&_h3:first-child]:mt-0 [&_p]:my-1 [&_ul]:my-1 [&_ul]:pl-5 [&_ul]:list-disc [&_li]:my-0.5 [&_strong]:font-semibold"
+                dangerouslySetInnerHTML={{ __html: challengeHtml }}
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleChallenge}
+                disabled={isChallenging}
+                className="gap-2"
+              >
+                <RefreshCw className="w-4 h-4" />
+                Relancer le challenge
+              </Button>
+            </>
+          )}
+        </CardContent>
+      </Card>
+
       <div className="flex justify-end">
         <Button
           onClick={() => onValidate(synthesis, instructions)}
           disabled={!synthesis.trim() || isGenerating}
           size="lg"
         >
-          Continuer vers la génération
+          Continuer vers les frais de déplacement
         </Button>
       </div>
     </div>
