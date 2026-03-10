@@ -84,7 +84,8 @@ function generatePerDayCalendarLinks(
 // Generate calendar links for live meetings
 function generateLiveMeetingCalendarLinks(
   liveMeetings: Array<{ title: string; scheduled_at: string; duration_minutes: number; meeting_url: string | null }>,
-  senderEmail: string
+  senderEmail: string,
+  summaryUrl?: string
 ): Array<{ label: string; google: string; outlook: string }> {
   return liveMeetings.map((live) => {
     const start = new Date(live.scheduled_at);
@@ -100,8 +101,8 @@ function generateLiveMeetingCalendarLinks(
     const label = `🎥 ${live.title} – ${dayNames[start.getDay()]} ${start.getDate()} ${monthNames[start.getMonth()]} à ${pad(start.getHours())}h${pad(start.getMinutes())}`;
 
     const meetingLine = live.meeting_url ? `\n\nRejoindre: ${live.meeting_url}` : "";
-    const summaryLine = senderEmail ? "" : ""; // summaryUrl added at caller level
-    const description = `Live: ${live.title}${meetingLine}\n\nEmail: ${senderEmail}`;
+    const summaryLine = summaryUrl ? `\n\nInfos & documents: ${summaryUrl}` : "";
+    const description = `Live: ${live.title}${meetingLine}${summaryLine}\n\nEmail: ${senderEmail}`;
     const location = live.meeting_url || "En ligne";
 
     const googleParams = new URLSearchParams({
