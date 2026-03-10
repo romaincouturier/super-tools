@@ -77,7 +77,7 @@ export default function GenericKanbanColumn<
       style={style}
       className={cn(
         "flex-shrink-0 w-72 bg-muted/30 rounded-lg flex flex-col",
-        isOver && "ring-2 ring-primary",
+        (isDroppableOver || isOver) && "ring-2 ring-primary",
         isColumnDragging && "opacity-50",
         className,
       )}
