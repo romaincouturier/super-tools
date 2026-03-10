@@ -25,6 +25,24 @@ export default function Step1Synthesis({
   const [generated, setGenerated] = useState(!!initialSynthesis);
   const [isEditing, setIsEditing] = useState(false);
 
+  // Convert markdown to simple HTML for display
+  const synthesisHtml = useMemo(() => {
+    if (!synthesis) return "";
+    return synthesis
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/^### (.+)$/gm, "<h3>$1</h3>")
+      .replace(/^## (.+)$/gm, "<h2>$1</h2>")
+      .replace(/^# (.+)$/gm, "<h1>$1</h1>")
+      .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+      .replace(/\*(.+?)\*/g, "<em>$1</em>")
+      .replace(/^- (.+)$/gm, "<li>$1</li>")
+      .replace(/(<li>.*<\/li>\n?)+/g, (match) => `<ul>${match}</ul>`)
+      .replace(/\n{2,}/g, "<br/><br/>")
+      .replace(/\n/g, "<br/>");
+  }, [synthesis]);
+
   const generateSynthesis = async () => {
     setIsGenerating(true);
     try {
