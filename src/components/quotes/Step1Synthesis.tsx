@@ -51,9 +51,9 @@ export default function Step1Synthesis({
   const [copied, setCopied] = useState(false);
 
   // Commercial challenge state
-  const [challengeHtml, setChallengeHtml] = useState("");
+  const [challengeHtml, setChallengeHtml] = useState(initialChallengeHtml || "");
   const [isChallenging, setIsChallenging] = useState(false);
-  const [challengeDone, setChallengeDone] = useState(false);
+  const [challengeDone, setChallengeDone] = useState(!!initialChallengeHtml);
 
   const { isRecording, isTranscribing, isSupported, startRecording, stopRecording } =
     useVoiceDictation({
