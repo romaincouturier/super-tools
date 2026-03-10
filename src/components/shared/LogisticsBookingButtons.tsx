@@ -55,8 +55,8 @@ const BookingButton = ({ icon, label, booked, href, onToggle, toastBooked, toast
 };
 
 interface LogisticsBookingButtonsProps {
-  /** Entity table name (trainings or missions) */
-  table: "trainings" | "missions";
+  /** Entity table name (trainings, missions, or events) */
+  table: "trainings" | "missions" | "events";
   entityId: string;
   location: string | null | undefined;
   trainBooked: boolean;

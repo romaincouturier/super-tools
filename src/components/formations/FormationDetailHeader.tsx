@@ -1,4 +1,5 @@
-import { ArrowLeft, ExternalLink, Edit2, Map, Train, Hotel, UtensilsCrossed, DoorOpen, Copy, MoreHorizontal, Package } from "lucide-react";
+import { useState } from "react";
+import { ArrowLeft, ExternalLink, Edit2, Map, Train, Hotel, UtensilsCrossed, DoorOpen, Copy, MoreHorizontal, Package, Ban, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -6,6 +7,22 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import LogisticsBookingButtons from "@/components/shared/LogisticsBookingButtons";
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
@@ -47,14 +64,83 @@ const FormationDetailHeader = ({
     training.location?.toLowerCase().includes("en ligne") ||
     training.location?.toLowerCase().includes("distanciel");
 
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [cancellationReason, setCancellationReason] = useState("");
+
+  const TRAINING_CANCELLATION_REASONS = [
+    { value: "manque_participants", label: "Pas assez de participants" },
+    { value: "report", label: "Reportée" },
+    { value: "client_annulation", label: "Annulation client" },
+    { value: "formateur_indisponible", label: "Formateur indisponible" },
+    { value: "autre", label: "Autre" },
+  ];
+
+  const handleCancel = async () => {
+    if (!cancellationReason) return;
+    const { error } = await supabase
+      .from("trainings")
+      .update({
+        is_cancelled: true,
+        cancellation_reason: cancellationReason,
+        cancelled_at: new Date().toISOString(),
+      } as any)
+      .eq("id", training.id);
+    if (!error) {
+      setTraining({ ...training, is_cancelled: true, cancellation_reason: cancellationReason, cancelled_at: new Date().toISOString() });
+      toast({ title: "Session annulée" });
+      setCancelDialogOpen(false);
+      setCancellationReason("");
+    }
+  };
+
+  const handleReactivate = async () => {
+    const { error } = await supabase
+      .from("trainings")
+      .update({
+        is_cancelled: false,
+        cancellation_reason: null,
+        cancelled_at: null,
+      } as any)
+      .eq("id", training.id);
+    if (!error) {
+      setTraining({ ...training, is_cancelled: false, cancellation_reason: null, cancelled_at: null });
+      toast({ title: "Session réactivée" });
+    }
+  };
+
   return (
-    <div className="flex items-center justify-between mb-4 md:mb-6 gap-2">
+    <div className="mb-4 md:mb-6 space-y-3">
+      {/* Cancelled banner */}
+      {training.is_cancelled && (
+        <div className="flex items-center justify-between gap-3 p-4 rounded-lg bg-destructive/10 border border-destructive/20">
+          <div className="flex items-center gap-2">
+            <Ban className="h-5 w-5 text-destructive flex-shrink-0" />
+            <div>
+              <p className="font-medium text-destructive">Session annulée</p>
+              {training.cancellation_reason && (
+                <p className="text-sm text-destructive/80">
+                  Raison : {TRAINING_CANCELLATION_REASONS.find((r) => r.value === training.cancellation_reason)?.label || training.cancellation_reason}
+                </p>
+              )}
+            </div>
+          </div>
+          <Button variant="outline" size="sm" onClick={handleReactivate}>
+            <RotateCcw className="h-4 w-4 mr-1" />
+            Réactiver
+          </Button>
+        </div>
+      )}
+
+      <div className="flex items-center justify-between gap-2">
       <div className="flex items-center gap-2 md:gap-4 min-w-0">
         <Button variant="ghost" size="icon" className="shrink-0" onClick={() => navigate("/formations")}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div className="min-w-0">
-          <h1 className="text-lg md:text-2xl font-bold truncate">{training.training_name}</h1>
+          <div className="flex items-center gap-2">
+            <h1 className={`text-lg md:text-2xl font-bold truncate ${training.is_cancelled ? "line-through text-muted-foreground" : ""}`}>{training.training_name}</h1>
+            {training.is_cancelled && <Badge variant="destructive">Annulée</Badge>}
+          </div>
           <p className="text-xs md:text-sm text-muted-foreground truncate">
             {formatDateWithSchedule(training.start_date, training.end_date, schedules)}
           </p>
@@ -119,6 +205,11 @@ const FormationDetailHeader = ({
               <DropdownMenuItem onClick={() => setDuplicateDialogOpen(true)}>
                 <Copy className="h-4 w-4 mr-2" />Dupliquer
               </DropdownMenuItem>
+              {isInterSession && !training.is_cancelled && (
+                <DropdownMenuItem onClick={() => setCancelDialogOpen(true)} className="text-orange-600">
+                  <Ban className="h-4 w-4 mr-2" />Annuler la session
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -228,8 +319,53 @@ const FormationDetailHeader = ({
           <Button variant="outline" onClick={() => setDuplicateDialogOpen(true)}>
             <Copy className="h-4 w-4 mr-2" />Dupliquer
           </Button>
+          {isInterSession && !training.is_cancelled && (
+            <Button variant="outline" className="text-orange-600 hover:text-orange-600" onClick={() => setCancelDialogOpen(true)}>
+              <Ban className="h-4 w-4 mr-1" />
+              Annuler
+            </Button>
+          )}
         </div>
       )}
+      </div>
+
+      {/* Cancel dialog (shared mobile/desktop) */}
+      <Dialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Annuler cette session</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Raison de l'annulation *</Label>
+              <Select value={cancellationReason} onValueChange={setCancellationReason}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner une raison..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {TRAINING_CANCELLATION_REASONS.map((r) => (
+                    <SelectItem key={r.value} value={r.value}>
+                      {r.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setCancelDialogOpen(false)}>
+                Retour
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleCancel}
+                disabled={!cancellationReason}
+              >
+                Confirmer l'annulation
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
