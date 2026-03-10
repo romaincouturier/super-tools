@@ -99,7 +99,9 @@ function generateLiveMeetingCalendarLinks(
     const monthNames = ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."];
     const label = `🎥 ${live.title} – ${dayNames[start.getDay()]} ${start.getDate()} ${monthNames[start.getMonth()]} à ${pad(start.getHours())}h${pad(start.getMinutes())}`;
 
-    const description = `Live: ${live.title}${live.meeting_url ? `\n\nRejoindre: ${live.meeting_url}` : ""}\n\nEmail: ${senderEmail}`;
+    const meetingLine = live.meeting_url ? `\n\nRejoindre: ${live.meeting_url}` : "";
+    const summaryLine = senderEmail ? "" : ""; // summaryUrl added at caller level
+    const description = `Live: ${live.title}${meetingLine}\n\nEmail: ${senderEmail}`;
     const location = live.meeting_url || "En ligne";
 
     const googleParams = new URLSearchParams({
