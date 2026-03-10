@@ -109,7 +109,7 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
     try {
       await updateMutation.mutateAsync({
         id: quoteId,
-        updates: { ...extraUpdates, ...(({ workflow_step: stepNum }) as any) },
+        updates: { ...extraUpdates, workflow_step: stepNum },
       });
     } catch (e) {
       console.warn("Could not save workflow step:", e);
