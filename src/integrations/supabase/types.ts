@@ -5038,6 +5038,66 @@ export type Database = {
           },
         ]
       }
+      support_tickets: {
+        Row: {
+          assigned_to: string | null
+          created_at: string
+          description: string
+          id: string
+          page_url: string | null
+          position: number
+          priority: string
+          resolution_notes: string | null
+          resolved_at: string | null
+          screenshot_url: string | null
+          status: string
+          submitted_by: string | null
+          submitted_by_email: string | null
+          ticket_number: string
+          title: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          created_at?: string
+          description: string
+          id?: string
+          page_url?: string | null
+          position?: number
+          priority?: string
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          screenshot_url?: string | null
+          status?: string
+          submitted_by?: string | null
+          submitted_by_email?: string | null
+          ticket_number: string
+          title: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          created_at?: string
+          description?: string
+          id?: string
+          page_url?: string | null
+          position?: number
+          priority?: string
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          screenshot_url?: string | null
+          status?: string
+          submitted_by?: string | null
+          submitted_by_email?: string | null
+          ticket_number?: string
+          title?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       trainer_attendance_signatures: {
         Row: {
           created_at: string | null
