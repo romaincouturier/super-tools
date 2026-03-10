@@ -3,6 +3,14 @@ import { format, parseISO } from "date-fns";
 import { subtractWorkingDays, fetchWorkingDays, fetchNeedsSurveyDelay, scheduleTrainerSummaryIfNeeded } from "@/lib/workingDays";
 import { capitalizeName } from "@/lib/stringUtils";
 
+/** Sanitize a filename by removing accents and special characters (preserving case). */
+function sanitizeUploadName(name: string): string {
+  return name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9_.-]/g, "_");
+}
+
 // Re-usable helper: capitalizeName returns string|null, but createParticipant needs string
 const capitalizeOrEmpty = (name: string): string => capitalizeName(name) ?? "";
 
@@ -317,10 +325,7 @@ export async function uploadParticipantFile(
   participantId: string,
   file: File,
 ): Promise<ParticipantFile> {
-  const sanitized = file.name
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-zA-Z0-9_.-]/g, "_");
+  const sanitized = sanitizeUploadName(file.name);
   const path = `${trainingId}/participant_${participantId}/fichier_${Date.now()}_${sanitized}`;
 
   const { error: uploadErr } = await supabase.storage
@@ -367,10 +372,7 @@ export async function uploadSignedConvention(
   participantId: string,
   file: File,
 ): Promise<string> {
-  const sanitized = file.name
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-zA-Z0-9_.-]/g, "_");
+  const sanitized = sanitizeUploadName(file.name);
   const path = `${trainingId}/participant_${participantId}/convention_signee_${Date.now()}_${sanitized}`;
 
   const { error: uploadErr } = await supabase.storage
