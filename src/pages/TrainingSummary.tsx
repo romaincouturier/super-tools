@@ -36,6 +36,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import SupertiltLogo from "@/components/SupertiltLogo";
+import { getGoogleMapsDirectionsUrl, getGoogleMapsEmbedUrl } from "@/lib/googleMaps";
 
 interface Training {
   id: string;
@@ -162,16 +163,9 @@ const TrainingSummary = () => {
     return urlMatch ? urlMatch[0] : null;
   };
 
-  const getGoogleMapsUrl = () => {
-    if (!training) return "";
-    const address = training.location.replace(/ /g, "+");
-    return `https://maps.google.com/maps/place/${address}`;
-  };
-
   const getDirectionsUrl = () => {
     if (!training) return "";
-    const address = encodeURIComponent(training.location);
-    return `https://www.google.com/maps/dir/?api=1&destination=${address}`;
+    return getGoogleMapsDirectionsUrl(training.location);
   };
 
   // Build calendar event title: (ENTREPRISE) NOM_DE_LA_FORMATION
@@ -584,7 +578,7 @@ END:VCALENDAR`;
                       loading="lazy"
                       allowFullScreen
                       referrerPolicy="no-referrer-when-downgrade"
-                      src={`https://www.google.com/maps/embed/v1/place?key=${googleMapsApiKey}&q=${encodeURIComponent(training.location)}`}
+                      src={getGoogleMapsEmbedUrl(training.location, googleMapsApiKey)}
                     />
                   </div>
                 </>

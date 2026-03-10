@@ -10,6 +10,7 @@ import LogisticsBookingButtons from "@/components/shared/LogisticsBookingButtons
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import type { Training, Schedule } from "@/hooks/useFormationDetail";
+import { getGoogleMapsNearbyUrl } from "@/lib/googleMaps";
 
 interface Props {
   training: Training;
@@ -91,12 +92,12 @@ const FormationDetailHeader = ({
                 </DropdownMenuItem>
               )}
               {isPresentiel && isInterSession && (
-                <DropdownMenuItem onClick={() => { if (!training.restaurant_booked) window.open(`https://www.google.com/maps/search/restaurants+near+${encodeURIComponent(training.location)}`, "_blank"); }} disabled={training.restaurant_booked}>
+                <DropdownMenuItem onClick={() => { if (!training.restaurant_booked) window.open(getGoogleMapsNearbyUrl("restaurants", training.location), "_blank"); }} disabled={training.restaurant_booked}>
                   <UtensilsCrossed className="h-4 w-4 mr-2" />Restaurant {training.restaurant_booked && "✓"}
                 </DropdownMenuItem>
               )}
               {isPresentiel && (isInterSession || training.session_type === "intra" || training.format_formation === "intra") && (
-                <DropdownMenuItem onClick={() => { if (!training.room_rental_booked) window.open(`https://www.google.com/maps/search/location+salle+reunion+near+${encodeURIComponent(training.location)}`, "_blank"); }} disabled={training.room_rental_booked}>
+                <DropdownMenuItem onClick={() => { if (!training.room_rental_booked) window.open(getGoogleMapsNearbyUrl("location+salle+reunion", training.location), "_blank"); }} disabled={training.room_rental_booked}>
                   <DoorOpen className="h-4 w-4 mr-2" />Salle {training.room_rental_booked && "✓"}
                 </DropdownMenuItem>
               )}
@@ -144,7 +145,7 @@ const FormationDetailHeader = ({
                 {training.restaurant_booked ? (
                   <span className="flex items-center"><UtensilsCrossed className="h-4 w-4 mr-2" />Restaurant</span>
                 ) : (
-                  <a href={`https://www.google.com/maps/search/restaurants+near+${encodeURIComponent(training.location)}`} target="_blank" rel="noopener noreferrer">
+                  <a href={getGoogleMapsNearbyUrl("restaurants", training.location)} target="_blank" rel="noopener noreferrer">
                     <UtensilsCrossed className="h-4 w-4 mr-2" />Restaurant
                   </a>
                 )}
@@ -170,7 +171,7 @@ const FormationDetailHeader = ({
                 {training.room_rental_booked ? (
                   <span className="flex items-center"><DoorOpen className="h-4 w-4 mr-2" />Salle</span>
                 ) : (
-                  <a href={`https://www.google.com/maps/search/location+salle+reunion+near+${encodeURIComponent(training.location)}`} target="_blank" rel="noopener noreferrer">
+                  <a href={getGoogleMapsNearbyUrl("location+salle+reunion", training.location)} target="_blank" rel="noopener noreferrer">
                     <DoorOpen className="h-4 w-4 mr-2" />Salle
                   </a>
                 )}
