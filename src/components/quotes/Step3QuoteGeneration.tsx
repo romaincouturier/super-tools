@@ -262,11 +262,14 @@ export default function Step3QuoteGeneration({
           </div>
 
           {isGenerating ? (
-            <div className="flex items-center justify-center py-12 gap-3">
-              <Loader2 className="w-5 h-5 animate-spin text-primary" />
-              <span className="text-muted-foreground">
-                Génération des lignes de prestation...
-              </span>
+            <div className="flex flex-col items-center justify-center py-16 gap-4">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              <div className="text-center space-y-1">
+                <p className="font-medium">Génération automatique du devis...</p>
+                <p className="text-sm text-muted-foreground">
+                  L'IA analyse la synthèse et vos instructions pour positionner les prestations et les prix
+                </p>
+              </div>
             </div>
           ) : (
             <>
