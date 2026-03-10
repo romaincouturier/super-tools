@@ -15,6 +15,7 @@ import {
   ImageIcon,
   Loader2,
   Mic,
+  Mail,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
@@ -145,10 +146,10 @@ const CrmDescriptionEditor = ({
     editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
   }, [editor]);
 
-  const insertVoicemailStamp = useCallback(() => {
+  const insertStamp = useCallback((label: string) => {
     if (!editor) return;
     const now = format(new Date(), "EEEE d MMMM yyyy 'à' HH:mm", { locale: fr });
-    const stampHtml = `<p>---</p><p>Message vocal laissé le ${now}</p><p>---</p>`;
+    const stampHtml = `<p>---</p><p>${label} le ${now}</p><p>---</p>`;
 
     // Insert at the very beginning of the document
     editor
@@ -167,11 +168,20 @@ const CrmDescriptionEditor = ({
         <Button
           variant="ghost"
           size="sm"
-          onClick={insertVoicemailStamp}
+          onClick={() => insertStamp("Message vocal laissé")}
           title="Ajouter un horodatage de message vocal"
           className="h-7 px-1.5 text-muted-foreground hover:text-foreground"
         >
           <Mic className="h-3.5 w-3.5" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => insertStamp("Relance mail")}
+          title="Ajouter un horodatage de relance mail"
+          className="h-7 px-1.5 text-muted-foreground hover:text-foreground"
+        >
+          <Mail className="h-3.5 w-3.5" />
         </Button>
 
         <div className="w-px h-5 bg-border mx-0.5" />
