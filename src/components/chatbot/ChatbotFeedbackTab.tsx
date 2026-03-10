@@ -5,11 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { useCreateSupportTicket } from "@/hooks/useSupport";
-import type { TicketType, TicketPriority } from "@/types/support";
+import type { TicketType } from "@/types/support";
 
 export function ChatbotFeedbackTab() {
   const { toast } = useToast();
@@ -18,7 +17,6 @@ export function ChatbotFeedbackTab() {
   const [type, setType] = useState<TicketType>("bug");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [priority, setPriority] = useState<TicketPriority>("medium");
   const [submitted, setSubmitted] = useState(false);
 
   const currentUrl = typeof window !== "undefined" ? window.location.pathname : "";
@@ -34,7 +32,7 @@ export function ChatbotFeedbackTab() {
         type,
         title: title.trim(),
         description: description.trim(),
-        priority,
+        priority: "medium",
         page_url: currentUrl || null,
       });
       setSubmitted(true);
@@ -47,7 +45,6 @@ export function ChatbotFeedbackTab() {
     setType("bug");
     setTitle("");
     setDescription("");
-    setPriority("medium");
     setSubmitted(false);
   };
 
@@ -120,22 +117,6 @@ export function ChatbotFeedbackTab() {
             rows={4}
             className="text-sm"
           />
-        </div>
-
-        {/* Priority */}
-        <div className="space-y-1.5">
-          <Label className="text-xs font-medium">Priorité</Label>
-          <Select value={priority} onValueChange={(v) => setPriority(v as TicketPriority)}>
-            <SelectTrigger className="text-sm">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="low">Basse</SelectItem>
-              <SelectItem value="medium">Moyenne</SelectItem>
-              <SelectItem value="high">Haute</SelectItem>
-              <SelectItem value="critical">Critique</SelectItem>
-            </SelectContent>
-          </Select>
         </div>
 
         {/* Page context */}

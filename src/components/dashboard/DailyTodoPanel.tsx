@@ -313,7 +313,7 @@ const DailyTodoPanel = () => {
       </div>
 
       {/* Actions list */}
-      <ScrollArea className="min-h-0 flex-1">
+      <ScrollArea className="h-0 flex-grow overflow-y-auto">
         <div className="space-y-3 pr-2">
           {Object.entries(grouped).map(([category, catActions]) => {
             const config = CATEGORIES[category] || { label: category, emoji: "📌", color: "text-gray-600" };
