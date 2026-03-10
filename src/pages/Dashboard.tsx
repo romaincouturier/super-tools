@@ -20,6 +20,7 @@ import {
   Database,
   Sparkles,
   MessageSquareWarning,
+  LifeBuoy,
   Maximize2,
   Square,
   LayoutGrid,
@@ -232,6 +233,14 @@ const tools: Tool[] = [
     icon: <MessageSquareWarning />,
     path: "/reclamations",
     module: "reclamations",
+  },
+  {
+    id: "support",
+    name: "Support",
+    description: "Bugs et demandes d'évolution remontés par les utilisateurs",
+    icon: <LifeBuoy />,
+    path: "/support",
+    module: "support",
   },
 ];
 

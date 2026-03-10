@@ -1,0 +1,63 @@
+import { supabase } from "@/integrations/supabase/client";
+import type { SupportTicket, TicketStatus } from "@/types/support";
+
+export async function fetchSupportTickets(): Promise<SupportTicket[]> {
+  const { data, error } = await (supabase as any)
+    .from("support_tickets")
+    .select("*")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data || [];
+}
+
+export async function createSupportTicket(
+  input: Pick<SupportTicket, "type" | "title" | "description" | "priority" | "page_url">
+): Promise<SupportTicket> {
+  const { data: { user } } = await supabase.auth.getUser();
+  const { data, error } = await (supabase as any)
+    .from("support_tickets")
+    .insert({
+      ...input,
+      ticket_number: "",
+      submitted_by: user?.id || null,
+      submitted_by_email: user?.email || null,
+    })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function updateSupportTicket(
+  id: string,
+  updates: Partial<Pick<SupportTicket, "status" | "priority" | "assigned_to" | "resolution_notes" | "position">>
+): Promise<SupportTicket> {
+  const payload: Record<string, unknown> = { ...updates };
+  if (updates.status === "resolu" || updates.status === "ferme") {
+    payload.resolved_at = new Date().toISOString();
+  }
+  const { data, error } = await (supabase as any)
+    .from("support_tickets")
+    .update(payload)
+    .eq("id", id)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function moveSupportTicket(
+  id: string,
+  newStatus: TicketStatus,
+  newPosition: number
+): Promise<void> {
+  const payload: Record<string, unknown> = { status: newStatus, position: newPosition };
+  if (newStatus === "resolu" || newStatus === "ferme") {
+    payload.resolved_at = new Date().toISOString();
+  }
+  const { error } = await (supabase as any)
+    .from("support_tickets")
+    .update(payload)
+    .eq("id", id);
+  if (error) throw error;
+}
