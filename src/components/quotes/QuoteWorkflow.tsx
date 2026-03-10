@@ -4,12 +4,14 @@ import { toast } from "sonner";
 import QuoteWorkflowStepper from "./QuoteWorkflowStepper";
 import Step0ClientValidation, { type ClientData } from "./Step0ClientValidation";
 import Step1Synthesis from "./Step1Synthesis";
+import StepTravelExpenses from "./StepTravelExpenses";
 import Step3QuoteGeneration from "./Step3QuoteGeneration";
 import Step4Loom from "./Step4Loom";
 import Step5Email from "./Step5Email";
 import { useCreateQuote, useUpdateQuote, useQuote } from "@/hooks/useQuotes";
 import type { CrmCard } from "@/types/crm";
 import type { Quote, QuoteWorkflowStep } from "@/types/quotes";
+import type { TravelDestination, TravelSettings } from "@/components/crm/TravelExpenseCalculator";
 import { Loader2 } from "lucide-react";
 
 interface Props {
@@ -23,15 +25,20 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
   const updateMutation = useUpdateQuote();
   const { data: existingQuote, isLoading: loadingQuote } = useQuote(existingQuoteId);
 
-  const [step, setStep] = useState<QuoteWorkflowStep>(existingQuoteId ? 2 : 0);
+  const [step, setStep] = useState<QuoteWorkflowStep>(existingQuoteId ? 3 : 0);
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(
-    existingQuoteId ? new Set([0, 1]) : new Set()
+    existingQuoteId ? new Set([0, 1, 2]) : new Set()
   );
   const [clientData, setClientData] = useState<ClientData | null>(null);
   const [synthesis, setSynthesis] = useState("");
   const [instructions, setInstructions] = useState("");
   const [quote, setQuote] = useState<Quote | null>(existingQuote || null);
   const [loomUrl, setLoomUrl] = useState<string | null>(null);
+
+  // Travel state
+  const [travelTotal, setTravelTotal] = useState(0);
+  const [travelDestinations, setTravelDestinations] = useState<TravelDestination[]>([]);
+  const [travelSettings, setTravelSettings] = useState<TravelSettings | null>(null);
 
   // Update quote when loaded
   if (existingQuote && !quote) {
@@ -73,7 +80,7 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
     setStep(1);
   };
 
-  // Step 1 → Save synthesis + instructions, go to step 2
+  // Step 1 → Save synthesis + instructions, go to step 2 (travel)
   const handleSynthesisValidated = async (s: string, i: string) => {
     setSynthesis(s);
     setInstructions(i);
@@ -89,17 +96,26 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
     setStep(2);
   };
 
-  // Step 2 → Go to step 3
-  const handleQuoteContinue = (updatedQuote: Quote) => {
-    setQuote(updatedQuote);
+  // Step 2 → Travel expenses, go to step 3
+  const handleTravelContinue = (total: number, destinations: TravelDestination[], settings: TravelSettings | null) => {
+    setTravelTotal(total);
+    setTravelDestinations(destinations);
+    setTravelSettings(settings);
     completeStep(2);
     setStep(3);
   };
 
-  // Step 3 → Save loom, go to step 4
+  // Step 3 → Go to step 4
+  const handleQuoteContinue = (updatedQuote: Quote) => {
+    setQuote(updatedQuote);
+    completeStep(3);
+    setStep(4);
+  };
+
+  // Step 4 → Save loom, go to step 5
   const handleLoomContinue = async (url: string | null) => {
     setLoomUrl(url);
-    completeStep(3);
+    completeStep(4);
 
     if (quote && url) {
       await updateMutation.mutateAsync({
@@ -108,12 +124,12 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
       });
     }
 
-    setStep(4);
+    setStep(5);
   };
 
-  // Step 4 → Done
+  // Step 5 → Done
   const handleSent = () => {
-    completeStep(4);
+    completeStep(5);
     toast.success("Devis envoyé avec succès !");
     navigate(`/crm/card/${crmCard.id}`);
   };
@@ -155,7 +171,16 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
         />
       )}
 
-      {step === 2 && quote && (
+      {step === 2 && (
+        <StepTravelExpenses
+          onContinue={handleTravelContinue}
+          initialTotal={travelTotal}
+          initialDestinations={travelDestinations}
+          initialSettings={travelSettings}
+        />
+      )}
+
+      {step === 3 && quote && (
         <Step3QuoteGeneration
           quote={quote}
           synthesis={synthesis}
@@ -164,14 +189,14 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
         />
       )}
 
-      {step === 3 && (
+      {step === 4 && (
         <Step4Loom
           onContinue={handleLoomContinue}
           initialLoomUrl={loomUrl}
         />
       )}
 
-      {step === 4 && quote && (
+      {step === 5 && quote && (
         <Step5Email
           quote={quote}
           synthesis={synthesis}
