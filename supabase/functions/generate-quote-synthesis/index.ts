@@ -81,9 +81,34 @@ IMPORTANT : Retourne UNIQUEMENT le HTML, sans aucun wrapper markdown, sans \`\`\
     }
 
     const result = await response.json();
-    const synthesis = result.choices?.[0]?.message?.content || "";
+    let raw = (result.choices?.[0]?.message?.content || "").trim();
 
-    return createJsonResponse({ synthesis });
+    // Strip markdown code fences if present
+    raw = raw.replace(/^```html?\s*\n?/i, "").replace(/\n?```\s*$/i, "");
+
+    // If the output looks like markdown (contains ## or **), convert to HTML
+    if (/^#{1,3}\s/m.test(raw) || /\*\*/.test(raw)) {
+      raw = raw
+        // Headings
+        .replace(/^### (.+)$/gm, "<h4>$1</h4>")
+        .replace(/^## (.+)$/gm, "<h3>$1</h3>")
+        .replace(/^# (.+)$/gm, "<h2>$1</h2>")
+        // Bold / italic
+        .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+        .replace(/\*(.+?)\*/g, "<em>$1</em>")
+        // List items: group consecutive lines starting with "- "
+        .replace(/(^- .+$(\n|$))+/gm, (block) => {
+          const items = block.trim().split("\n").map(l => `<li>${l.replace(/^- /, "")}</li>`).join("");
+          return `<ul>${items}</ul>`;
+        })
+        // Paragraphs: wrap remaining non-tag lines
+        .replace(/^(?!<[hup\/]|<li|<ul|<ol)(.+)$/gm, "<p>$1</p>")
+        // Clean up empty lines
+        .replace(/\n{2,}/g, "\n")
+        .trim();
+    }
+
+    return createJsonResponse({ synthesis: raw });
   } catch (error: unknown) {
     console.error("Error in generate-quote-synthesis:", error);
     const msg = error instanceof Error ? error.message : "Erreur inconnue";
