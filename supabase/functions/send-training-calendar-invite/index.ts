@@ -59,8 +59,8 @@ DTSTAMP:${dtstamp}
 DTSTART:${formatICSDateTime(startDate)}
 DTEND:${formatICSDateTime(endDate)}
 SUMMARY:Formation: ${escapeICS(trainingName)} - ${escapeICS(clientName)}
-DESCRIPTION:Formation pour ${escapeICS(clientName)}\\n\\nFormateur: Vous etes le formateur de cette session.
-LOCATION:${escapeICS(location)}
+DESCRIPTION:Formation pour ${escapeICS(clientName)}${meetingUrl ? `\\n\\nRejoindre la visio: ${escapeICS(meetingUrl)}` : ""}\\n\\nFormateur: Vous etes le formateur de cette session.
+LOCATION:${escapeICS(meetingUrl || location)}
 ORGANIZER;CN=Supertilt:mailto:${organizerEmail}
 ATTENDEE;ROLE=REQ-PARTICIPANT;PARTSTAT=ACCEPTED;CN=${escapeICS(trainerEmail)}:mailto:${trainerEmail}
 STATUS:CONFIRMED
