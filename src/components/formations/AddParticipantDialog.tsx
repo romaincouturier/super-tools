@@ -2,7 +2,8 @@ import { useState, useEffect, useMemo } from "react";
 import { Plus, Loader2, AlertTriangle, ShoppingCart } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { capitalizeName } from "@/lib/stringUtils";
-import { differenceInDays, parseISO, format } from "date-fns";
+import { getEmailMode, isManualEmailMode } from "@/lib/emailScheduling";
+import { format } from "date-fns";
 import type { FormationFormula } from "@/types/training";
 import {
   Dialog,
@@ -132,40 +133,9 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
     }
   }, [open, isInterEntreprise]);
 
-  // Determine email scheduling mode based on training date
-  // - If training already started (past date) -> no email
-  // - If training is upcoming -> send welcome email immediately
-  // NOTE: This function is called at submit time, so trainingStartDate should always be defined
-  // We use the prop directly to ensure we have the latest value
-  const getEmailMode = (startDateStr: string | undefined): { status: string; sendWelcomeNow: boolean } => {
-    console.log("[AddParticipantDialog] getEmailMode called with startDate:", startDateStr);
-    
-    if (!startDateStr) {
-      console.warn("[AddParticipantDialog] No trainingStartDate provided, defaulting to non_envoye");
-      return { status: "non_envoye", sendWelcomeNow: false };
-    }
-    
-    const startDate = parseISO(startDateStr);
-    const today = new Date();
-    const daysUntilStart = differenceInDays(startDate, today);
-    
-    console.log("[AddParticipantDialog] Days until start:", daysUntilStart);
-    
-    // Training already started or is today
-    if (daysUntilStart <= 0) {
-      return { status: "non_envoye", sendWelcomeNow: false };
-    }
-    
-    // Training is in the future -> send welcome email immediately
-    // Initial status is "programme" which means "welcome sent, needs survey scheduled"
-    // The send-welcome-email function will keep the status or update appropriately
-    return { status: "programme", sendWelcomeNow: true };
-  };
-
   useEffect(() => {
     if (trainingStartDate) {
-      const { status } = getEmailMode(trainingStartDate);
-      setIsManualMode(status === "non_envoye");
+      setIsManualMode(isManualEmailMode(trainingStartDate));
     }
   }, [trainingStartDate]);
 
