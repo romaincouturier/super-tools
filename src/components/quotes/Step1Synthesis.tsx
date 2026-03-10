@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Sparkles, RefreshCw } from "lucide-react";
+import { Loader2, Sparkles, RefreshCw, Pencil, Eye } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { CrmCard } from "@/types/crm";
 
@@ -23,6 +23,25 @@ export default function Step1Synthesis({
   const [synthesis, setSynthesis] = useState(initialSynthesis || "");
   const [isGenerating, setIsGenerating] = useState(false);
   const [generated, setGenerated] = useState(!!initialSynthesis);
+  const [isEditing, setIsEditing] = useState(false);
+
+  // Convert markdown to simple HTML for display
+  const synthesisHtml = useMemo(() => {
+    if (!synthesis) return "";
+    return synthesis
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/^### (.+)$/gm, "<h3>$1</h3>")
+      .replace(/^## (.+)$/gm, "<h2>$1</h2>")
+      .replace(/^# (.+)$/gm, "<h1>$1</h1>")
+      .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+      .replace(/\*(.+?)\*/g, "<em>$1</em>")
+      .replace(/^- (.+)$/gm, "<li>$1</li>")
+      .replace(/(<li>.*<\/li>\n?)+/g, (match) => `<ul>${match}</ul>`)
+      .replace(/\n{2,}/g, "<br/><br/>")
+      .replace(/\n/g, "<br/>");
+  }, [synthesis]);
 
   const generateSynthesis = async () => {
     setIsGenerating(true);
@@ -128,23 +147,42 @@ export default function Step1Synthesis({
                 </AlertDescription>
               </Alert>
 
-              <Textarea
-                value={synthesis}
-                onChange={(e) => setSynthesis(e.target.value)}
-                rows={14}
-                className="font-mono text-sm"
-                placeholder="La synthèse sera générée automatiquement..."
-              />
+              {isEditing ? (
+                <Textarea
+                  value={synthesis}
+                  onChange={(e) => setSynthesis(e.target.value)}
+                  rows={18}
+                  className="font-mono text-sm"
+                  placeholder="La synthèse sera générée automatiquement..."
+                />
+              ) : (
+                <div
+                  className="prose prose-sm max-w-none p-4 border rounded-md bg-muted/30 min-h-[200px] overflow-y-auto max-h-[500px]"
+                  dangerouslySetInnerHTML={{ __html: synthesisHtml }}
+                />
+              )}
 
-              <Button
-                variant="outline"
-                onClick={generateSynthesis}
-                disabled={isGenerating}
-                className="gap-2"
-              >
-                <RefreshCw className="w-4 h-4" />
-                Régénérer la synthèse
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsEditing(!isEditing)}
+                  className="gap-2"
+                >
+                  {isEditing ? <Eye className="w-4 h-4" /> : <Pencil className="w-4 h-4" />}
+                  {isEditing ? "Aperçu" : "Modifier"}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={generateSynthesis}
+                  disabled={isGenerating}
+                  className="gap-2"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  Régénérer
+                </Button>
+              </div>
             </>
           )}
         </CardContent>
