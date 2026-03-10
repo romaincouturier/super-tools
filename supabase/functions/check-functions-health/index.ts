@@ -1,13 +1,12 @@
 /**
- * Check Functions Health — v2 (background execution)
+ * Check Functions Health — v3 (static list, no pinging)
  *
- * Returns cached results from DB immediately.
- * Triggers a background refresh via EdgeRuntime.waitUntil().
- * Results are stored in edge_function_health table.
+ * Returns the static list of known edge functions.
+ * Does NOT call/ping any function — zero side effects.
+ * Status is based on deployment list, not runtime checks.
  */
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import {
   corsHeaders,
   handleCorsPreflightIfNeeded,
@@ -118,119 +117,23 @@ const FUNCTION_NAMES = [
   "zapier-create-training",
 ];
 
-async function checkFunction(
-  baseUrl: string,
-  name: string,
-  apiKey: string
-): Promise<{ name: string; status: string; response_time_ms: number }> {
-  const start = Date.now();
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 10000);
-    // POST with apikey for gateway routing, but INVALID Bearer token
-    // so auth-protected functions reject immediately at verifyAuth
-    // without executing any business logic (no emails, no alerts).
-    // Any HTTP response (even 401/403/500) = function is deployed & reachable = "up"
-    const res = await fetch(`${baseUrl}/functions/v1/${name}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        apikey: apiKey,
-        Authorization: "Bearer __health_check_invalid_token__",
-      },
-      body: JSON.stringify({ _healthCheck: true }),
-      signal: controller.signal,
-    });
-    clearTimeout(timeout);
-    return { name, status: "up", response_time_ms: Date.now() - start };
-  } catch (error) {
-    return {
-      name,
-      status: error instanceof DOMException && error.name === "AbortError" ? "timeout" : "down",
-      response_time_ms: Date.now() - start,
-    };
-  }
-}
-
-async function runHealthChecks() {
-  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-  const apiKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-
-  const supabase = createClient(supabaseUrl, serviceKey);
-  const BATCH_SIZE = 5;
-  const DELAY_MS = 500;
-
-  for (let i = 0; i < FUNCTION_NAMES.length; i += BATCH_SIZE) {
-    const batch = FUNCTION_NAMES.slice(i, i + BATCH_SIZE);
-    const results = await Promise.allSettled(
-      batch.map((name) => checkFunction(supabaseUrl, name, apiKey))
-    );
-
-    const upserts = results.map((r, idx) => {
-      const val = r.status === "fulfilled"
-        ? r.value
-        : { name: batch[idx], status: "error", response_time_ms: 0 };
-      return {
-        function_name: val.name,
-        status: val.status,
-        response_time_ms: val.response_time_ms,
-        checked_at: new Date().toISOString(),
-      };
-    });
-
-    await supabase
-      .from("edge_function_health")
-      .upsert(upserts, { onConflict: "function_name" });
-
-    // Small delay between batches to avoid overwhelming cold starts
-    if (i + BATCH_SIZE < FUNCTION_NAMES.length) {
-      await new Promise((resolve) => setTimeout(resolve, DELAY_MS));
-    }
-  }
-
-  console.log(`[check-functions-health] Done checking ${FUNCTION_NAMES.length} functions`);
-}
-
 serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
 
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, serviceKey);
-
-    // Start background health check (non-blocking)
-    EdgeRuntime.waitUntil(
-      runHealthChecks().catch((err) =>
-        console.error("[check-functions-health] Background error:", err.message)
-      )
-    );
-
-    // Return cached results immediately from DB
-    const { data: functions } = await supabase
-      .from("edge_function_health")
-      .select("*")
-      .order("function_name");
-
-    const fns = (functions || []).map((f: any) => ({
-      name: f.function_name,
-      status: f.status,
-      response_time_ms: f.response_time_ms,
+    // Simply return the static list — no HTTP calls, no side effects
+    const functions = FUNCTION_NAMES.map((name) => ({
+      name,
+      status: "deployed",
+      response_time_ms: 0,
     }));
 
-    const upCount = fns.filter((f: any) => f.status === "up").length;
-    const latestCheck = functions?.length
-      ? functions.reduce((a: any, b: any) => (a.checked_at > b.checked_at ? a : b)).checked_at
-      : new Date().toISOString();
-
     return createJsonResponse({
-      checked_at: latestCheck,
+      checked_at: new Date().toISOString(),
       total: FUNCTION_NAMES.length,
-      up: upCount,
-      down: FUNCTION_NAMES.length - upCount,
-      functions: fns,
+      deployed: FUNCTION_NAMES.length,
+      functions,
     });
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
