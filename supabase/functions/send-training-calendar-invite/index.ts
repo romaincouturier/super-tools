@@ -21,6 +21,7 @@ interface RequestBody {
   trainingName: string;
   clientName: string;
   location: string;
+  meetingUrl?: string;
   schedules: TrainingSchedule[];
   trainerEmail: string;
   trainerFirstName: string;
