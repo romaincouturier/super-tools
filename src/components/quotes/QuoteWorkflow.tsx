@@ -59,6 +59,7 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
   const [instructions, setInstructions] = useState("");
   const [quote, setQuote] = useState<Quote | null>(null);
   const [loomUrl, setLoomUrl] = useState<string | null>(null);
+  const [challengeHtml, setChallengeHtml] = useState("");
 
   // Travel state
   const [travelTotal, setTravelTotal] = useState(0);
