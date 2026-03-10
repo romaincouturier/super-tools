@@ -103,6 +103,23 @@ serve(async (req) => {
       const isClasseVirtuelle = format === "classe_virtuelle";
       const isElearning = format === "e_learning";
 
+      // For virtual trainings, fetch the meeting URL from live meetings scheduled today
+      let meetingUrl = "";
+      if (isClasseVirtuelle || isElearning) {
+        const { data: liveMeetings } = await supabase
+          .from("training_live_meetings")
+          .select("meeting_url")
+          .eq("training_id", trainingId)
+          .gte("scheduled_at", today + "T00:00:00")
+          .lte("scheduled_at", today + "T23:59:59")
+          .neq("status", "cancelled")
+          .limit(1);
+        
+        if (liveMeetings && liveMeetings.length > 0 && liveMeetings[0].meeting_url) {
+          meetingUrl = liveMeetings[0].meeting_url;
+        }
+      }
+
       // Determine tu/vous
       const useFormal = !!training.participants_formal_address;
       const templateKey = useFormal ? "today_reminder_vous" : "today_reminder_tu";
@@ -156,6 +173,7 @@ serve(async (req) => {
           is_presentiel: isPresentiel ? "1" : undefined,
           is_classe_virtuelle: isClasseVirtuelle ? "1" : undefined,
           is_elearning: isElearning ? "1" : undefined,
+          meeting_url: meetingUrl || undefined,
         };
 
         const resolvedSubject = processTemplate(template.subject, variables, false);
