@@ -8,7 +8,9 @@
  * - Section 4: trainingFormatters migration status
  */
 import { describe, it, expect } from "vitest";
+// @ts-ignore -- node built-ins available in vitest
 import { readFileSync } from "fs";
+// @ts-ignore
 import { resolve } from "path";
 import {
   formatDateWithTime,
