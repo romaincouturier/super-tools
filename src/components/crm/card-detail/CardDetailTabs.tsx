@@ -13,6 +13,7 @@ import {
   Loader2,
   Trash2,
   ImageIcon,
+  FileText,
 } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -20,6 +21,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useDeleteComment, useAddAttachment, useDeleteAttachment } from "@/hooks/useCrmBoard";
 import EntityMediaManager from "@/components/media/EntityMediaManager";
+import QuoteHistorySection from "@/components/quotes/QuoteHistorySection";
 import type { CrmTag } from "@/types/crm";
 import type { CardDetailState, CardDetailHandlers, CardDetails } from "./types";
 
@@ -68,10 +70,11 @@ const CardDetailTabs = ({ state, handlers, details, detailsLoading }: Props) => 
       <h4 className="font-medium text-xs text-muted-foreground uppercase tracking-wider mb-3">
         Compléments
       </h4>
-      <TabsList className="grid grid-cols-5 w-full">
+      <TabsList className="grid grid-cols-6 w-full">
         <TabsTrigger value="tags"><Tag className="h-4 w-4" /></TabsTrigger>
         <TabsTrigger value="comments"><MessageSquare className="h-4 w-4" /></TabsTrigger>
         <TabsTrigger value="attachments"><Paperclip className="h-4 w-4" /></TabsTrigger>
+        <TabsTrigger value="quotes"><FileText className="h-4 w-4" /></TabsTrigger>
         <TabsTrigger value="media"><ImageIcon className="h-4 w-4" /></TabsTrigger>
         <TabsTrigger value="activity"><History className="h-4 w-4" /></TabsTrigger>
       </TabsList>
@@ -199,6 +202,11 @@ const CardDetailTabs = ({ state, handlers, details, detailsLoading }: Props) => 
             </div>
           ))}
         </div>
+      </TabsContent>
+
+      {/* Quotes */}
+      <TabsContent value="quotes" className="mt-4">
+        <QuoteHistorySection cardId={card.id} />
       </TabsContent>
 
       {/* Media */}

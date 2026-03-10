@@ -62,6 +62,8 @@ const Catalogue = lazyWithRetry(() => import("./pages/Catalogue"));
 const ReclamationPublic = lazyWithRetry(() => import("./pages/ReclamationPublic"));
 const TrainerEvaluation = lazyWithRetry(() => import("./pages/TrainerEvaluation"));
 const Reclamations = lazyWithRetry(() => import("./pages/Reclamations"));
+const Support = lazyWithRetry(() => import("./pages/Support"));
+const QuoteWorkflowPage = lazyWithRetry(() => import("./pages/QuoteWorkflow"));
 const NotFound = lazyWithRetry(() => import("./pages/NotFound"));
 const Admin = lazyWithRetry(() => import("./pages/Admin"));
 const Landing = lazyWithRetry(() => import("./pages/Landing"));
@@ -198,6 +200,10 @@ const App = () => (
               <Route path="/reclamations" element={<Reclamations />} />
               {/* Trainer evaluation public form */}
               <Route path="/evaluation-formateur/:token" element={<TrainerEvaluation />} />
+              {/* Quote workflow */}
+              <Route path="/devis/:cardId" element={<QuoteWorkflowPage />} />
+              {/* Support tickets Kanban */}
+              <Route path="/support" element={<Support />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

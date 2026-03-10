@@ -116,8 +116,21 @@ export function useQuestionnaire() {
 
   const isInterEntreprises = (training as any)?.session_type === "inter" || training?.format_formation === "inter-entreprises";
 
-  useEffect(() => { questionnaireRef.current = questionnaire; }, [questionnaire]);
-  useEffect(() => { prerequisValidationsRef.current = prerequisValidations; }, [prerequisValidations]);
+  // Sync refs immediately on state change (not via useEffect which is async)
+  const setQuestionnaireAndRef: typeof setQuestionnaire = (action) => {
+    setQuestionnaire((prev) => {
+      const next = typeof action === "function" ? action(prev) : action;
+      questionnaireRef.current = next;
+      return next;
+    });
+  };
+  const setPrerequisValidationsAndRef: typeof setPrerequisValidations = (action) => {
+    setPrerequisValidations((prev) => {
+      const next = typeof action === "function" ? action(prev) : action;
+      prerequisValidationsRef.current = next;
+      return next;
+    });
+  };
 
   const markDirty = () => { dirtyRef.current = true; setSaveStatus("idle"); };
 
@@ -150,24 +163,26 @@ export function useQuestionnaire() {
       const { data: qArr, error: qErr } = await rpc.getQuestionnaireByToken(token);
       if (qErr || !qArr || qArr.length === 0) throw qErr || new Error("Questionnaire introuvable");
       const qTyped = qArr[0] as unknown as QuestionnaireRecord;
-      setQuestionnaire(qTyped);
+      setQuestionnaireAndRef(qTyped);
       if (qTyped.besoins_accessibilite && qTyped.besoins_accessibilite.trim()) setAccessibiliteChoice("oui");
       else if (qTyped.besoins_accessibilite !== null && qTyped.besoins_accessibilite !== undefined) setAccessibiliteChoice("non");
-      if (qTyped.modalites_preferences) setPrerequisValidations(qTyped.modalites_preferences as Record<string, string>);
+      if (qTyped.modalites_preferences) setPrerequisValidationsAndRef(qTyped.modalites_preferences as Record<string, string>);
 
-      const { data: t, error: tErr } = await rpc.getTrainingPublicInfo(qTyped.training_id);
-      if (!tErr && t) {
-        setTraining(t as unknown as TrainingRecord);
-        if (t.prerequisites && Array.isArray(t.prerequisites)) {
-          const existing = qTyped.modalites_preferences as Record<string, string> || {};
-          const nv: Record<string, string> = {};
-          t.prerequisites.forEach((prereq: string) => { nv[prereq] = existing[prereq] || ""; });
-          setPrerequisValidations(nv);
+      if (qTyped.training_id) {
+        const { data: t, error: tErr } = await rpc.getTrainingPublicInfo(qTyped.training_id);
+        if (!tErr && t) {
+          setTraining(t as unknown as TrainingRecord);
+          if (t.prerequisites && Array.isArray(t.prerequisites)) {
+            const existing = qTyped.modalites_preferences as Record<string, string> || {};
+            const nv: Record<string, string> = {};
+            t.prerequisites.forEach((prereq: string) => { nv[prereq] = existing[prereq] || ""; });
+            setPrerequisValidationsAndRef(nv);
+          }
         }
-      }
 
-      const { data: sched, error: schedErr } = await rpc.getTrainingSchedulesPublic(qTyped.training_id);
-      if (!schedErr && sched) setSchedules((Array.isArray(sched) ? sched : []) as ScheduleRecord[]);
+        const { data: sched, error: schedErr } = await rpc.getTrainingSchedulesPublic(qTyped.training_id);
+        if (!schedErr && sched) setSchedules((Array.isArray(sched) ? sched : []) as ScheduleRecord[]);
+      }
 
       if (!qTyped.date_premiere_ouverture) {
         const nowIso = new Date().toISOString();
@@ -201,7 +216,7 @@ export function useQuestionnaire() {
       if (upErr) throw upErr;
       dirtyRef.current = false;
       setSaveStatus("saved");
-      setQuestionnaire((prev) => (prev ? { ...prev, ...payload } : prev));
+      setQuestionnaireAndRef((prev) => (prev ? { ...prev, date_derniere_sauvegarde: nowIso } : prev));
       if (saveStatusTimerRef.current) window.clearTimeout(saveStatusTimerRef.current);
       saveStatusTimerRef.current = window.setTimeout(() => setSaveStatus("idle"), 3000);
       if (!opts?.silent) toast({ title: "Sauvegardé", description: "Vos réponses ont été enregistrées." });
@@ -255,7 +270,7 @@ export function useQuestionnaire() {
 
       dirtyRef.current = false;
       toast({ title: "Merci !", description: "Votre questionnaire a bien été envoyé." });
-      setQuestionnaire((prev) => prev ? { ...prev, etat: "complete", date_soumission: nowIso } : prev);
+      setQuestionnaireAndRef((prev) => prev ? { ...prev, etat: "complete", date_soumission: nowIso } : prev);
     } catch (e: any) {
       console.error("Submit failed", e);
       toast({ title: "Erreur", description: "Impossible de soumettre le questionnaire. Réessayez.", variant: "destructive" });
@@ -307,8 +322,8 @@ export function useQuestionnaire() {
         const draftTime = new Date(draft._savedAt).getTime();
         const dbTime = questionnaire.date_derniere_sauvegarde ? new Date(questionnaire.date_derniere_sauvegarde).getTime() : 0;
         if (draftTime > dbTime) {
-          setQuestionnaire((prev) => prev ? { ...prev, prenom: draft.prenom ?? prev.prenom, nom: draft.nom ?? prev.nom, societe: draft.societe ?? prev.societe, fonction: draft.fonction ?? prev.fonction, experience_sujet: draft.experience_sujet ?? prev.experience_sujet, experience_details: draft.experience_details ?? prev.experience_details, lecture_programme: draft.lecture_programme ?? prev.lecture_programme, prerequis_validation: draft.prerequis_validation ?? prev.prerequis_validation, prerequis_details: draft.prerequis_details ?? prev.prerequis_details, competences_actuelles: draft.competences_actuelles ?? prev.competences_actuelles, competences_visees: draft.competences_visees ?? prev.competences_visees, lien_mission: draft.lien_mission ?? prev.lien_mission, niveau_actuel: draft.niveau_actuel ?? prev.niveau_actuel, niveau_motivation: draft.niveau_motivation ?? prev.niveau_motivation, contraintes_orga: draft.contraintes_orga ?? prev.contraintes_orga, besoins_accessibilite: draft.besoins_accessibilite ?? prev.besoins_accessibilite, necessite_amenagement: draft.necessite_amenagement ?? prev.necessite_amenagement, commentaires_libres: draft.commentaires_libres ?? prev.commentaires_libres, consentement_rgpd: draft.consentement_rgpd ?? prev.consentement_rgpd } : prev);
-          if (draft.modalites_preferences) setPrerequisValidations(draft.modalites_preferences);
+          setQuestionnaireAndRef((prev) => prev ? { ...prev, prenom: draft.prenom ?? prev.prenom, nom: draft.nom ?? prev.nom, societe: draft.societe ?? prev.societe, fonction: draft.fonction ?? prev.fonction, experience_sujet: draft.experience_sujet ?? prev.experience_sujet, experience_details: draft.experience_details ?? prev.experience_details, lecture_programme: draft.lecture_programme ?? prev.lecture_programme, prerequis_validation: draft.prerequis_validation ?? prev.prerequis_validation, prerequis_details: draft.prerequis_details ?? prev.prerequis_details, competences_actuelles: draft.competences_actuelles ?? prev.competences_actuelles, competences_visees: draft.competences_visees ?? prev.competences_visees, lien_mission: draft.lien_mission ?? prev.lien_mission, niveau_actuel: draft.niveau_actuel ?? prev.niveau_actuel, niveau_motivation: draft.niveau_motivation ?? prev.niveau_motivation, contraintes_orga: draft.contraintes_orga ?? prev.contraintes_orga, besoins_accessibilite: draft.besoins_accessibilite ?? prev.besoins_accessibilite, necessite_amenagement: draft.necessite_amenagement ?? prev.necessite_amenagement, commentaires_libres: draft.commentaires_libres ?? prev.commentaires_libres, consentement_rgpd: draft.consentement_rgpd ?? prev.consentement_rgpd } : prev);
+          if (draft.modalites_preferences) setPrerequisValidationsAndRef(draft.modalites_preferences);
           dirtyRef.current = true;
           toast({ title: "Brouillon restauré", description: "Vos réponses non sauvegardées ont été récupérées." });
         }
@@ -328,11 +343,11 @@ export function useQuestionnaire() {
     submitting,
     error,
     questionnaire,
-    setQuestionnaire,
+    setQuestionnaire: setQuestionnaireAndRef,
     training,
     schedules,
     prerequisValidations,
-    setPrerequisValidations,
+    setPrerequisValidations: setPrerequisValidationsAndRef,
     editingAfterSubmit,
     setEditingAfterSubmit,
     saveStatus,

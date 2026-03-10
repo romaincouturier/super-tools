@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect } from "react";
-import { MessageCircle, X, Send, Loader2, ThumbsUp, ThumbsDown, Bot, User, Minimize2 } from "lucide-react";
+import { MessageCircle, X, Send, Loader2, ThumbsUp, ThumbsDown, Bot, User, Minimize2, Bug } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { ChatbotFeedbackTab } from "./ChatbotFeedbackTab";
 
 interface Message {
   id: string;
@@ -14,9 +15,12 @@ interface Message {
   timestamp: Date;
 }
 
+type ChatTab = "assistant" | "feedback";
+
 export function ChatbotWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
+  const [activeTab, setActiveTab] = useState<ChatTab>("assistant");
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "welcome",
@@ -42,10 +46,10 @@ export function ChatbotWidget() {
 
   // Focus input when chat opens
   useEffect(() => {
-    if (isOpen && !isMinimized && inputRef.current) {
+    if (isOpen && !isMinimized && activeTab === "assistant" && inputRef.current) {
       inputRef.current.focus();
     }
-  }, [isOpen, isMinimized]);
+  }, [isOpen, isMinimized, activeTab]);
 
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
@@ -67,7 +71,7 @@ export function ChatbotWidget() {
       const { data: ragData, error: ragError } = await supabase.functions.invoke("rag-chatbot", {
         body: { question: userMessage.content },
       });
-      
+
       if (ragError) {
         // Fallback to basic chatbot
         const { data, error } = await supabase.functions.invoke("chatbot-query", {
@@ -130,7 +134,7 @@ export function ChatbotWidget() {
     <div
       className={cn(
         "fixed bottom-6 right-6 z-50 flex flex-col bg-background border rounded-lg shadow-2xl transition-all duration-200",
-        isMinimized ? "w-72 h-14" : "w-96 h-[500px]"
+        isMinimized ? "w-72 h-14" : "w-96 h-[540px]"
       )}
     >
       {/* Header */}
@@ -161,116 +165,150 @@ export function ChatbotWidget() {
 
       {!isMinimized && (
         <>
-          {/* Messages */}
-          <ScrollArea ref={scrollAreaRef} className="flex-1 p-4">
-            <div className="space-y-4">
-              {messages.map((message) => (
-                <div
-                  key={message.id}
-                  className={cn(
-                    "flex gap-3",
-                    message.role === "user" ? "justify-end" : "justify-start"
-                  )}
-                >
-                  {message.role === "assistant" && (
-                    <div className="flex-shrink-0 h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                      <Bot className="h-4 w-4 text-primary" />
-                    </div>
-                  )}
-                  <div
-                    className={cn(
-                      "max-w-[80%] rounded-lg px-4 py-2",
-                      message.role === "user"
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted"
-                    )}
-                  >
-                    <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-
-                    {/* Sources */}
-                    {message.sources && message.sources.length > 0 && (
-                      <div className="mt-2 pt-2 border-t border-border/50">
-                        <p className="text-xs text-muted-foreground mb-1">Sources:</p>
-                        <ul className="text-xs space-y-0.5">
-                          {message.sources.map((source, idx) => (
-                            <li key={source.id} className="text-muted-foreground">
-                              [{idx + 1}] {source.category}: {source.title}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-
-                    {/* Feedback buttons for assistant messages */}
-                    {message.role === "assistant" && message.id !== "welcome" && (
-                      <div className="flex items-center gap-2 mt-2 pt-2 border-t border-border/50">
-                        <span className="text-xs text-muted-foreground">Cette réponse est-elle utile ?</span>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6"
-                          onClick={() => handleFeedback(message.id, "helpful")}
-                        >
-                          <ThumbsUp className="h-3 w-3" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6"
-                          onClick={() => handleFeedback(message.id, "not_helpful")}
-                        >
-                          <ThumbsDown className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                  {message.role === "user" && (
-                    <div className="flex-shrink-0 h-8 w-8 rounded-full bg-primary flex items-center justify-center">
-                      <User className="h-4 w-4 text-primary-foreground" />
-                    </div>
-                  )}
-                </div>
-              ))}
-
-              {/* Loading indicator */}
-              {isLoading && (
-                <div className="flex gap-3 justify-start">
-                  <div className="flex-shrink-0 h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Bot className="h-4 w-4 text-primary" />
-                  </div>
-                  <div className="bg-muted rounded-lg px-4 py-2">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  </div>
-                </div>
+          {/* Tabs */}
+          <div className="flex border-b">
+            <button
+              onClick={() => setActiveTab("assistant")}
+              className={cn(
+                "flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium transition-colors",
+                activeTab === "assistant"
+                  ? "text-primary border-b-2 border-primary"
+                  : "text-muted-foreground hover:text-foreground"
               )}
-            </div>
-          </ScrollArea>
-
-          {/* Input */}
-          <div className="p-4 border-t">
-            <div className="flex gap-2">
-              <Input
-                ref={inputRef}
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Posez votre question..."
-                disabled={isLoading}
-                className="flex-1"
-              />
-              <Button
-                onClick={sendMessage}
-                disabled={!input.trim() || isLoading}
-                size="icon"
-              >
-                {isLoading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Send className="h-4 w-4" />
-                )}
-              </Button>
-            </div>
+            >
+              <MessageCircle className="h-3.5 w-3.5" />
+              Assistant
+            </button>
+            <button
+              onClick={() => setActiveTab("feedback")}
+              className={cn(
+                "flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium transition-colors",
+                activeTab === "feedback"
+                  ? "text-primary border-b-2 border-primary"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <Bug className="h-3.5 w-3.5" />
+              Bug / Évolution
+            </button>
           </div>
+
+          {activeTab === "assistant" ? (
+            <>
+              {/* Messages */}
+              <ScrollArea ref={scrollAreaRef} className="flex-1 p-4">
+                <div className="space-y-4">
+                  {messages.map((message) => (
+                    <div
+                      key={message.id}
+                      className={cn(
+                        "flex gap-3",
+                        message.role === "user" ? "justify-end" : "justify-start"
+                      )}
+                    >
+                      {message.role === "assistant" && (
+                        <div className="flex-shrink-0 h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                          <Bot className="h-4 w-4 text-primary" />
+                        </div>
+                      )}
+                      <div
+                        className={cn(
+                          "max-w-[80%] rounded-lg px-4 py-2",
+                          message.role === "user"
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-muted"
+                        )}
+                      >
+                        <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+
+                        {/* Sources */}
+                        {message.sources && message.sources.length > 0 && (
+                          <div className="mt-2 pt-2 border-t border-border/50">
+                            <p className="text-xs text-muted-foreground mb-1">Sources:</p>
+                            <ul className="text-xs space-y-0.5">
+                              {message.sources.map((source, idx) => (
+                                <li key={source.id} className="text-muted-foreground">
+                                  [{idx + 1}] {source.category}: {source.title}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+
+                        {/* Feedback buttons for assistant messages */}
+                        {message.role === "assistant" && message.id !== "welcome" && (
+                          <div className="flex items-center gap-2 mt-2 pt-2 border-t border-border/50">
+                            <span className="text-xs text-muted-foreground">Cette réponse est-elle utile ?</span>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                              onClick={() => handleFeedback(message.id, "helpful")}
+                            >
+                              <ThumbsUp className="h-3 w-3" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                              onClick={() => handleFeedback(message.id, "not_helpful")}
+                            >
+                              <ThumbsDown className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                      {message.role === "user" && (
+                        <div className="flex-shrink-0 h-8 w-8 rounded-full bg-primary flex items-center justify-center">
+                          <User className="h-4 w-4 text-primary-foreground" />
+                        </div>
+                      )}
+                    </div>
+                  ))}
+
+                  {/* Loading indicator */}
+                  {isLoading && (
+                    <div className="flex gap-3 justify-start">
+                      <div className="flex-shrink-0 h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                        <Bot className="h-4 w-4 text-primary" />
+                      </div>
+                      <div className="bg-muted rounded-lg px-4 py-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </ScrollArea>
+
+              {/* Input */}
+              <div className="p-4 border-t">
+                <div className="flex gap-2">
+                  <Input
+                    ref={inputRef}
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    placeholder="Posez votre question..."
+                    disabled={isLoading}
+                    className="flex-1"
+                  />
+                  <Button
+                    onClick={sendMessage}
+                    disabled={!input.trim() || isLoading}
+                    size="icon"
+                  >
+                    {isLoading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Send className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </>
+          ) : (
+            <ChatbotFeedbackTab />
+          )}
         </>
       )}
     </div>
