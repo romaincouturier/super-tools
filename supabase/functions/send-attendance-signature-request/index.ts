@@ -126,9 +126,10 @@ serve(async (req) => {
 
     console.log("Using template:", customTemplate ? "custom" : "default", "mode:", useTutoiement ? "tutoiement" : "vouvoiement");
 
-    // Format date
-    const dateObj = new Date(scheduleDate);
+    // Format date — add T12:00 to avoid UTC date shift
+    const dateObj = new Date(scheduleDate + "T12:00:00");
     const formattedDate = dateObj.toLocaleDateString("fr-FR", {
+      timeZone: "Europe/Paris",
       weekday: "long",
       day: "numeric",
       month: "long",

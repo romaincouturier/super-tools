@@ -82,6 +82,25 @@ function generatePerDayCalendarLinks(
   });
 }
 
+// Helper to get date parts in Europe/Paris timezone
+function getParisDateParts(date: Date) {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const parts = new Intl.DateTimeFormat('fr-FR', {
+    timeZone: 'Europe/Paris',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+    hour12: false,
+  }).formatToParts(date);
+  const get = (type: string) => parts.find(p => p.type === type)?.value || '00';
+  return {
+    year: get('year'), month: get('month'), day: get('day'),
+    hour: get('hour'), minute: get('minute'),
+    dayOfWeek: date.toLocaleDateString('fr-FR', { timeZone: 'Europe/Paris', weekday: 'short' }),
+    dayNum: parseInt(get('day'), 10),
+    monthIdx: parseInt(get('month'), 10) - 1,
+  };
+}
+
 // Generate calendar links for live meetings
 function generateLiveMeetingCalendarLinks(
   liveMeetings: Array<{ title: string; scheduled_at: string; duration_minutes: number; meeting_url: string | null }>,
@@ -92,14 +111,14 @@ function generateLiveMeetingCalendarLinks(
     const start = new Date(live.scheduled_at);
     const end = new Date(start.getTime() + live.duration_minutes * 60 * 1000);
 
-    // Manual formatting to avoid timezone issues
-    const pad = (n: number) => String(n).padStart(2, '0');
-    const calStart = `${start.getFullYear()}${pad(start.getMonth() + 1)}${pad(start.getDate())}T${pad(start.getHours())}${pad(start.getMinutes())}00`;
-    const calEnd = `${end.getFullYear()}${pad(end.getMonth() + 1)}${pad(end.getDate())}T${pad(end.getHours())}${pad(end.getMinutes())}00`;
+    const s = getParisDateParts(start);
+    const e = getParisDateParts(end);
 
-    const dayNames = ["dim.", "lun.", "mar.", "mer.", "jeu.", "ven.", "sam."];
+    const calStart = `${s.year}${s.month}${s.day}T${s.hour}${s.minute}00`;
+    const calEnd = `${e.year}${e.month}${e.day}T${e.hour}${e.minute}00`;
+
     const monthNames = ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."];
-    const label = `🎥 ${live.title} – ${dayNames[start.getDay()]} ${start.getDate()} ${monthNames[start.getMonth()]} à ${pad(start.getHours())}h${pad(start.getMinutes())}`;
+    const label = `🎥 ${live.title} – ${s.dayOfWeek} ${s.dayNum} ${monthNames[s.monthIdx]} à ${s.hour}h${s.minute}`;
 
     const meetingLine = live.meeting_url ? `\n\nRejoindre: ${live.meeting_url}` : "";
     const summaryLine = summaryUrl ? `\n\nInfos & documents: ${summaryUrl}` : "";
@@ -115,8 +134,8 @@ function generateLiveMeetingCalendarLinks(
       ctz: 'Europe/Paris',
     });
 
-    const outlookStart = calStart.replace(/(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})/, '$1-$2-$3T$4:$5:$6');
-    const outlookEnd = calEnd.replace(/(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})/, '$1-$2-$3T$4:$5:$6');
+    const outlookStart = `${s.year}-${s.month}-${s.day}T${s.hour}:${s.minute}:00`;
+    const outlookEnd = `${e.year}-${e.month}-${e.day}T${e.hour}:${e.minute}:00`;
 
     const outlookParams = new URLSearchParams({
       path: '/calendar/action/compose',

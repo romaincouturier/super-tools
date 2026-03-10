@@ -120,9 +120,10 @@ serve(async (req) => {
       if (hasAM) periodsToProcess.push("AM");
       if (hasPM) periodsToProcess.push("PM");
 
-      // Format date for display
-      const dateObj = new Date(scheduleDate);
+      // Format date for display — add T12:00 to avoid UTC date shift
+      const dateObj = new Date(scheduleDate + "T12:00:00");
       const formattedDate = dateObj.toLocaleDateString("fr-FR", {
+        timeZone: "Europe/Paris",
         weekday: "long",
         day: "numeric",
         month: "long",
