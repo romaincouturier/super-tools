@@ -4,6 +4,7 @@ import { getSenderFrom, getSenderEmail, getBccList } from "../_shared/email-sett
 import { getSigniticSignature } from "../_shared/signitic.ts";
 import { processTemplate } from "../_shared/templates.ts";
 import { sendEmail } from "../_shared/resend.ts";
+import { getAppUrls } from "../_shared/app-urls.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
