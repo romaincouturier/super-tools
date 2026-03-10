@@ -38,7 +38,7 @@ ${loomUrl ? "- Mentionner la vidéo explicative avec le lien" : ""}
 
 Réponds UNIQUEMENT avec le JSON, sans markdown.`;
 
-    const response = await fetch("https://api.lovable.dev/v1/chat/completions", {
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${apiKey}`,
