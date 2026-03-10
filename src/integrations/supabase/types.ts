@@ -4390,6 +4390,7 @@ export type Database = {
       }
       quotes: {
         Row: {
+          challenge_html: string | null
           client_address: string
           client_city: string
           client_company: string
@@ -4427,6 +4428,7 @@ export type Database = {
           workflow_step: number | null
         }
         Insert: {
+          challenge_html?: string | null
           client_address?: string
           client_city?: string
           client_company?: string
@@ -4464,6 +4466,7 @@ export type Database = {
           workflow_step?: number | null
         }
         Update: {
+          challenge_html?: string | null
           client_address?: string
           client_city?: string
           client_company?: string
