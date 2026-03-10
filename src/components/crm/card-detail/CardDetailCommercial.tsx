@@ -30,6 +30,11 @@ const CardDetailCommercial = ({ state, handlers }: Props) => {
     quoteGenerating, quoteDescription, setQuoteDescription,
   } = state;
 
+  const { data: existingQuotes } = useQuotesByCard(card?.id);
+  const draftQuotes = (existingQuotes || []).filter(q => q.status !== 'signed');
+
+  const stepLabels = ["Client", "Synthèse", "Déplacements", "Devis", "Loom", "Email"];
+
   return (
     <div className="space-y-4 mt-6 border-t pt-4">
       <h4 className="font-medium text-xs text-muted-foreground uppercase tracking-wider">
