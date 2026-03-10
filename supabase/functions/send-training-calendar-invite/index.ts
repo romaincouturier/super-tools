@@ -35,7 +35,8 @@ function generateICS(
   location: string,
   schedules: TrainingSchedule[],
   trainerEmail: string,
-  organizerEmail: string
+  organizerEmail: string,
+  meetingUrl?: string
 ): string {
   const uid = crypto.randomUUID();
   const now = new Date();
