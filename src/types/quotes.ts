@@ -168,7 +168,7 @@ export interface SirenEstablishment {
 }
 
 // Workflow state
-export type QuoteWorkflowStep = 0 | 1 | 2 | 3 | 4;
+export type QuoteWorkflowStep = 0 | 1 | 2 | 3 | 4 | 5;
 
 export interface QuoteWorkflowState {
   currentStep: QuoteWorkflowStep;
