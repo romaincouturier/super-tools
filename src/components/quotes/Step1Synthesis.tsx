@@ -45,31 +45,31 @@ export default function Step1Synthesis({
       const comments = commentsRes.data || [];
       const emails = emailsRes.data || [];
 
-      // Build context for AI
+      // Build rich context for AI — include FULL emails and description
+      const descriptionText = crmCard.description_html
+        ? crmCard.description_html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim()
+        : "";
+
       const context = [
-        `Opportunité : ${crmCard.title}`,
+        `# Opportunité : ${crmCard.title}`,
         `Client : ${clientCompany}`,
-        crmCard.description_html
-          ? `Description : ${crmCard.description_html.replace(/<[^>]+>/g, "")}`
-          : "",
-        crmCard.service_type
-          ? `Type de service : ${crmCard.service_type}`
-          : "",
-        crmCard.estimated_value
-          ? `Valeur estimée : ${crmCard.estimated_value} €`
-          : "",
+        crmCard.service_type ? `Type de service : ${crmCard.service_type}` : "",
+        crmCard.estimated_value ? `Valeur estimée : ${crmCard.estimated_value} €` : "",
+        descriptionText ? `\n## Description complète de l'opportunité\n${descriptionText}` : "",
         comments.length > 0
-          ? `\nNotes et commentaires :\n${comments
-              .map((c: any) => `- ${c.content}`)
-              .join("\n")}`
+          ? `\n## Notes et commentaires internes (${comments.length})\n${comments
+              .map((c: any) => `[${c.created_at?.substring(0, 10) || ""}] ${c.content}`)
+              .join("\n\n")}`
           : "",
         emails.length > 0
-          ? `\nÉchanges email :\n${emails
-              .map(
-                (e: any) =>
-                  `- Objet: ${e.subject}\n  ${e.body_html?.replace(/<[^>]+>/g, "").substring(0, 300)}`
-              )
-              .join("\n")}`
+          ? `\n## Historique complet des échanges email (${emails.length} emails)\n${emails
+              .map((e: any) => {
+                const bodyText = e.body_html
+                  ? e.body_html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim()
+                  : "";
+                return `### Email du ${e.sent_at?.substring(0, 10) || "date inconnue"}\nObjet : ${e.subject}\n\n${bodyText.substring(0, 2000)}`;
+              })
+              .join("\n\n---\n\n")}`
           : "",
       ]
         .filter(Boolean)
