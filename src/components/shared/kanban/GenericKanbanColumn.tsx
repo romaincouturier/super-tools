@@ -34,8 +34,12 @@ export default function GenericKanbanColumn<
   renderEmpty,
   className,
 }: GenericKanbanColumnProps<TCard, TColumn>) {
-  const { setNodeRef: setDroppableRef, isOver } = useDroppable({
+  // When useSortable is active (columnSortableId set), it already registers
+  // a droppable zone — using useDroppable on the same node causes double-registration
+  // conflicts that break drop detection on new/empty columns.
+  const { setNodeRef: setDroppableRef, isOver: isDroppableOver } = useDroppable({
     id: column.id,
+    disabled: !!columnSortableId,
   });
 
   const {
@@ -45,10 +49,13 @@ export default function GenericKanbanColumn<
     transform,
     transition,
     isDragging: isColumnDragging,
+    isOver: isSortableOver,
   } = useSortable({
     id: columnSortableId ?? `__col_disabled_${column.id}`,
     disabled: !columnSortableId,
   });
+
+  const isOver = isDroppableOver || isSortableOver;
 
   const style = columnSortableId
     ? { transform: CSS.Transform.toString(transform), transition }
