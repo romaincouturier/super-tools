@@ -38,8 +38,10 @@ export default function Step1Synthesis({
   clientCompany,
   onValidate,
   onDraftChange,
+  onChallengeChange,
   initialSynthesis,
   initialInstructions,
+  initialChallengeHtml,
 }: Props) {
   const [synthesis, setSynthesis] = useState(initialSynthesis || "");
   const [instructions, setInstructions] = useState(initialInstructions || "");
