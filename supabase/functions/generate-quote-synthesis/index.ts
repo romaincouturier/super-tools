@@ -33,25 +33,29 @@ RÈGLES IMPÉRATIVES :
 - Identifie les points non clarifiés ou les contradictions éventuelles
 - Sois factuel et précis, cite les informations clés avec leur source quand pertinent
 - Rédige en français professionnel
+- ÉCRIS DE MANIÈRE DENSE ET CONCISE : pas de sauts de ligne inutiles, pas de lignes vides entre les puces, texte compact
 
-FORMAT DE SORTIE (utilise ces sections markdown) :
-## Contexte client
-Qui est le client, son secteur, sa taille si connue
+FORMAT DE SORTIE — EXCLUSIVEMENT en HTML simple (PAS de markdown, PAS de \`\`\`, PAS de balises code) :
 
-## Besoins identifiés
-Liste détaillée et hiérarchisée des besoins exprimés dans les échanges
+<h3>Contexte client</h3>
+<p>Qui est le client, son secteur, sa taille si connue</p>
 
-## Périmètre de la prestation
-Ce qui se dessine comme périmètre : type de prestation, durée, modalités, nombre de participants, dates envisagées
+<h3>Besoins identifiés</h3>
+<ul><li>Besoin 1</li><li>Besoin 2</li></ul>
 
-## Contraintes et spécificités
-Budget mentionné, contraintes de planning, prérequis techniques, public cible spécifique
+<h3>Périmètre de la prestation</h3>
+<p>Type de prestation, durée, modalités, nombre de participants, dates envisagées</p>
 
-## Points d'attention
-Éléments à clarifier, risques identifiés, points non encore validés
+<h3>Contraintes et spécificités</h3>
+<ul><li>Budget, planning, prérequis, public cible</li></ul>
 
-## Éléments de valorisation
-Arguments commerciaux, leviers de valeur, points différenciants à mettre en avant dans le devis`;
+<h3>Points d'attention</h3>
+<ul><li>Éléments à clarifier, risques, points non validés</li></ul>
+
+<h3>Éléments de valorisation</h3>
+<ul><li>Arguments commerciaux, leviers de valeur</li></ul>
+
+IMPORTANT : Retourne UNIQUEMENT le HTML, sans aucun wrapper markdown, sans \`\`\`html, sans commentaires.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
