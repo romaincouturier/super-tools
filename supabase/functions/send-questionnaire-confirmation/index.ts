@@ -205,9 +205,19 @@ serve(async (req) => {
 
     const senderEmail = await getSenderEmail();
 
+    // Determine meeting URL for online trainings
+    let trainingMeetingUrl = "";
+    if (isOnline && liveMeetings.length > 0 && liveMeetings[0].meeting_url) {
+      trainingMeetingUrl = liveMeetings[0].meeting_url;
+    }
+    // Fallback: if location looks like a URL, use it as meeting URL
+    if (!trainingMeetingUrl && location && /^https?:\/\//i.test(location)) {
+      trainingMeetingUrl = location;
+    }
+
     // Generate calendar links for schedule days
     const calendarDays = generatePerDayCalendarLinks(
-      trainingName, location, startDate, endDate, schedules, senderEmail
+      trainingName, location, startDate, endDate, schedules, senderEmail, trainingMeetingUrl || undefined
     );
 
     // Generate calendar links for live meetings

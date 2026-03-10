@@ -150,7 +150,8 @@ serve(async (req: Request): Promise<Response> => {
       location,
       schedules,
       trainerEmail,
-      organizerEmail
+      organizerEmail,
+      meetingUrl
     );
 
     // Build schedule list for email
