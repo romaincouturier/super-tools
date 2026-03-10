@@ -59,19 +59,23 @@ const NextActionScheduler = ({
 }: NextActionSchedulerProps) => {
   const tomorrow = format(addDays(new Date(), 1), "yyyy-MM-dd");
 
+  // Use local state when it differs from server (optimistic display)
+  const displayDate = scheduledDate || currentAction.date;
+  const displayText = scheduledText || currentAction.text;
+
   return (
     <>
       {/* Banner showing current scheduled action */}
-      {currentAction.date && !showForm && (
+      {displayDate && !showForm && (
         <div className="mb-3 px-3 py-2 bg-blue-50 rounded-lg border border-blue-200 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 text-sm text-blue-700 min-w-0">
             <Calendar className="h-4 w-4 shrink-0" />
             <span className="truncate">
               <span className="font-medium">
-                {format(new Date(currentAction.date), "d MMM yyyy", { locale: fr })}
+                {format(new Date(displayDate), "d MMM yyyy", { locale: fr })}
               </span>
-              {currentAction.text && (
-                <span> — {currentAction.text}</span>
+              {displayText && (
+                <span> — {displayText}</span>
               )}
             </span>
           </div>
@@ -98,11 +102,11 @@ const NextActionScheduler = ({
               <X className="h-4 w-4" />
             </Button>
           </div>
-          {currentAction.date && (
+          {currentAction.date && currentAction.date !== scheduledDate && (
             <div className="text-sm text-blue-700 flex items-center justify-between">
               <span>
-                Action programmée le {format(new Date(currentAction.date), "d MMMM yyyy", { locale: fr })}
-                {currentAction.text && ` : ${currentAction.text}`}
+                Action actuelle : {format(new Date(currentAction.date), "d MMMM yyyy", { locale: fr })}
+                {currentAction.text && ` — ${currentAction.text}`}
               </span>
               <Button variant="ghost" size="sm" onClick={() => onClear()}>
                 <X className="h-4 w-4" />
