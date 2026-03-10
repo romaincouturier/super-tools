@@ -73,6 +73,7 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
       if (existingQuote.synthesis) setSynthesis(existingQuote.synthesis);
       if (existingQuote.instructions) setInstructions(existingQuote.instructions);
       if (existingQuote.loom_url) setLoomUrl(existingQuote.loom_url);
+      if ((existingQuote as any).challenge_html) setChallengeHtml((existingQuote as any).challenge_html);
       
       // Restore travel data
       const td = (existingQuote as any).travel_data;
