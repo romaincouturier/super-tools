@@ -10,8 +10,10 @@ import {
   X,
   Copy,
   ClipboardList,
+  PlayCircle,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useQuotesByCard } from "@/hooks/useQuotes";
 import type { CardDetailState, CardDetailHandlers } from "./types";
 
 interface Props {
