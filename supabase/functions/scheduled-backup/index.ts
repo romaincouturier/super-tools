@@ -694,6 +694,11 @@ serve(async (req) => {
   const startTime = Date.now();
 
   try {
+    // Health check: respond immediately to empty body requests (from check-functions-health)
+    const body = await req.json().catch(() => ({}));
+    if (Object.keys(body).length === 0 && req.headers.get("authorization")?.includes(Deno.env.get("SUPABASE_ANON_KEY") || "__none__")) {
+      return createJsonResponse({ status: "ok", function: "scheduled-backup" });
+    }
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
