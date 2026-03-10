@@ -201,7 +201,7 @@ export function useQuestionnaire() {
       if (upErr) throw upErr;
       dirtyRef.current = false;
       setSaveStatus("saved");
-      setQuestionnaire((prev) => (prev ? { ...prev, ...payload } : prev));
+      setQuestionnaire((prev) => (prev ? { ...prev, date_derniere_sauvegarde: nowIso } : prev));
       if (saveStatusTimerRef.current) window.clearTimeout(saveStatusTimerRef.current);
       saveStatusTimerRef.current = window.setTimeout(() => setSaveStatus("idle"), 3000);
       if (!opts?.silent) toast({ title: "Sauvegardé", description: "Vos réponses ont été enregistrées." });

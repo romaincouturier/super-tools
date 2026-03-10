@@ -120,20 +120,22 @@ const Evaluation = () => {
       if (evTyped.consent_publication !== null) setConsentPublication(evTyped.consent_publication);
       if (evTyped.remarques_libres) setRemarquesLibres(evTyped.remarques_libres);
 
-      // Fetch training
-      const { data: t, error: tErr } = await rpc.getTrainingPublicInfo(evTyped.training_id);
+      // Fetch training (may be null for orphan evaluations)
+      if (evTyped.training_id) {
+        const { data: t, error: tErr } = await rpc.getTrainingPublicInfo(evTyped.training_id);
 
-      if (!tErr && t) {
-        setTraining(t as unknown as TrainingRecord);
+        if (!tErr && t) {
+          setTraining(t as unknown as TrainingRecord);
 
-        // Initialize objectives evaluation
-        if (t.objectives && Array.isArray(t.objectives)) {
-          const existingEvals = (evTyped.objectifs_evaluation || []) as { objectif: string; niveau: number }[];
-          const objectivesWithEval = t.objectives.map((obj: string) => {
-            const existing = existingEvals.find((e) => e.objectif === obj);
-            return { objectif: obj, niveau: existing?.niveau || 0 };
-          });
-          setObjectifsEvaluation(objectivesWithEval);
+          // Initialize objectives evaluation
+          if (t.objectives && Array.isArray(t.objectives)) {
+            const existingEvals = (evTyped.objectifs_evaluation || []) as { objectif: string; niveau: number }[];
+            const objectivesWithEval = t.objectives.map((obj: string) => {
+              const existing = existingEvals.find((e) => e.objectif === obj);
+              return { objectif: obj, niveau: existing?.niveau || 0 };
+            });
+            setObjectifsEvaluation(objectivesWithEval);
+          }
         }
       }
 
@@ -281,11 +283,11 @@ const Evaluation = () => {
     );
   }
 
-  if (!evaluation || !training) return null;
+  if (!evaluation) return null;
 
   // Already submitted view
   if (evaluation.etat === "soumis" && evaluation.date_soumission) {
-    const trainingSummaryUrl = `/formation-info/${evaluation.training_id}`;
+    const trainingSummaryUrl = evaluation.training_id ? `/formation-info/${evaluation.training_id}` : null;
 
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
@@ -301,7 +303,7 @@ const Evaluation = () => {
             </div>
             <CardTitle>Merci pour votre retour !</CardTitle>
             <CardDescription>
-              Vous avez envoyé votre évaluation pour la formation <strong>{training.training_name}</strong> le{" "}
+              Vous avez envoyé votre évaluation{training ? <> pour la formation <strong>{training.training_name}</strong></> : ""} le{" "}
               {formatDateWithTime(evaluation.date_soumission)}.
             </CardDescription>
           </CardHeader>
@@ -309,15 +311,19 @@ const Evaluation = () => {
             <p className="text-muted-foreground">
               Votre certificat de réalisation vous sera envoyé par email.
             </p>
-            <p className="text-muted-foreground">
-              Les supports de la formation restent disponibles sur la page de synthèse de la formation.
-            </p>
-            <Link
-              to={trainingSummaryUrl}
-              className="inline-block bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 transition-colors"
-            >
-              Voir la page de la formation
-            </Link>
+            {trainingSummaryUrl && (
+              <>
+                <p className="text-muted-foreground">
+                  Les supports de la formation restent disponibles sur la page de synthèse de la formation.
+                </p>
+                <Link
+                  to={trainingSummaryUrl}
+                  className="inline-block bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 transition-colors"
+                >
+                  Voir la page de la formation
+                </Link>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -334,7 +340,7 @@ const Evaluation = () => {
             <h1 className="text-2xl font-bold text-foreground">
               Questionnaire d'évaluation de formation
             </h1>
-            <p className="text-muted-foreground mt-1">{training.training_name}</p>
+            {training && <p className="text-muted-foreground mt-1">{training.training_name}</p>}
           </div>
         </div>
 
@@ -366,11 +372,13 @@ const Evaluation = () => {
                 <span className="font-medium">{evaluation.company || "—"}</span>
               </div>
             </div>
-            <div className="flex items-center gap-2 text-sm pt-2 border-t">
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-              <span className="text-muted-foreground">Formation :</span>
-              <span className="font-medium">{formattedDates}</span>
-            </div>
+            {formattedDates && (
+              <div className="flex items-center gap-2 text-sm pt-2 border-t">
+                <Calendar className="h-4 w-4 text-muted-foreground" />
+                <span className="text-muted-foreground">Formation :</span>
+                <span className="font-medium">{formattedDates}</span>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -430,7 +438,7 @@ const Evaluation = () => {
         </Card>
 
         {/* Atteinte des objectifs pédagogiques */}
-        {training.objectives && training.objectives.length > 0 && (
+        {training?.objectives && training.objectives.length > 0 && (
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Atteinte des objectifs pédagogiques</CardTitle>

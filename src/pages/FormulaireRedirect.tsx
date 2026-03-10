@@ -209,19 +209,6 @@ const FormulaireRedirect = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="lastName">Nom *</Label>
-              <Input
-                id="lastName"
-                type="text"
-                value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
-                placeholder="Votre nom"
-                required
-                autoFocus
-              />
-            </div>
-
-            <div className="space-y-2">
               <Label htmlFor="firstName">Prénom *</Label>
               <Input
                 id="firstName"
@@ -229,6 +216,19 @@ const FormulaireRedirect = () => {
                 value={firstName}
                 onChange={(e) => setFirstName(e.target.value)}
                 placeholder="Votre prénom"
+                required
+                autoFocus
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="lastName">Nom *</Label>
+              <Input
+                id="lastName"
+                type="text"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                placeholder="Votre nom"
                 required
               />
             </div>
