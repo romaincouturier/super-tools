@@ -1643,14 +1643,18 @@ export type Database = {
           event_time: string | null
           event_type: string
           event_url: string | null
+          hotel_booked: boolean | null
           id: string
           location: string | null
           location_type: string
           notes: string | null
           org_id: string | null
           private_group_url: string | null
+          restaurant_booked: boolean | null
+          room_rental_booked: boolean | null
           status: string
           title: string
+          train_booked: boolean | null
           updated_at: string
         }
         Insert: {
@@ -1665,14 +1669,18 @@ export type Database = {
           event_time?: string | null
           event_type?: string
           event_url?: string | null
+          hotel_booked?: boolean | null
           id?: string
           location?: string | null
           location_type?: string
           notes?: string | null
           org_id?: string | null
           private_group_url?: string | null
+          restaurant_booked?: boolean | null
+          room_rental_booked?: boolean | null
           status?: string
           title: string
+          train_booked?: boolean | null
           updated_at?: string
         }
         Update: {
@@ -1687,14 +1695,18 @@ export type Database = {
           event_time?: string | null
           event_type?: string
           event_url?: string | null
+          hotel_booked?: boolean | null
           id?: string
           location?: string | null
           location_type?: string
           notes?: string | null
           org_id?: string | null
           private_group_url?: string | null
+          restaurant_booked?: boolean | null
+          room_rental_booked?: boolean | null
           status?: string
           title?: string
+          train_booked?: boolean | null
           updated_at?: string
         }
         Relationships: [
@@ -5524,6 +5536,8 @@ export type Database = {
         Row: {
           assigned_to: string | null
           attendance_sheets_urls: string[] | null
+          cancellation_reason: string | null
+          cancelled_at: string | null
           catalog_id: string | null
           client_address: string | null
           client_name: string
@@ -5544,6 +5558,7 @@ export type Database = {
           hotel_booked: boolean | null
           id: string
           invoice_file_url: string | null
+          is_cancelled: boolean | null
           location: string
           max_participants: number | null
           notes: string | null
@@ -5575,6 +5590,8 @@ export type Database = {
         Insert: {
           assigned_to?: string | null
           attendance_sheets_urls?: string[] | null
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
           catalog_id?: string | null
           client_address?: string | null
           client_name?: string
@@ -5595,6 +5612,7 @@ export type Database = {
           hotel_booked?: boolean | null
           id?: string
           invoice_file_url?: string | null
+          is_cancelled?: boolean | null
           location: string
           max_participants?: number | null
           notes?: string | null
@@ -5626,6 +5644,8 @@ export type Database = {
         Update: {
           assigned_to?: string | null
           attendance_sheets_urls?: string[] | null
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
           catalog_id?: string | null
           client_address?: string | null
           client_name?: string
@@ -5646,6 +5666,7 @@ export type Database = {
           hotel_booked?: boolean | null
           id?: string
           invoice_file_url?: string | null
+          is_cancelled?: boolean | null
           location?: string
           max_participants?: number | null
           notes?: string | null
