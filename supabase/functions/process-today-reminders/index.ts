@@ -173,6 +173,7 @@ serve(async (req) => {
           is_presentiel: isPresentiel ? "1" : undefined,
           is_classe_virtuelle: isClasseVirtuelle ? "1" : undefined,
           is_elearning: isElearning ? "1" : undefined,
+          meeting_url: meetingUrl || undefined,
         };
 
         const resolvedSubject = processTemplate(template.subject, variables, false);
