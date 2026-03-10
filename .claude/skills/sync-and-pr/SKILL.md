@@ -1,6 +1,6 @@
 ---
 name: sync-and-pr
-description: Synchronise la branche courante avec main, gère les conflits de rebase, vérifie la couverture de tests sur les fichiers modifiés, enrichit les zones non couvertes, et pousse une Pull Request. Utiliser quand l'utilisateur veut synchroniser sa branche, merger main, ou créer une PR après sync.
+description: Synchronise la branche courante avec main, gère les conflits de rebase, vérifie la couverture de tests, enrichit les zones non couvertes, refactorise le code dupliqué, et pousse une Pull Request. Utiliser quand l'utilisateur veut synchroniser sa branche, merger main, ou créer une PR après sync.
 allowed-tools: Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion
 ---
 
@@ -79,12 +79,59 @@ Exécute les étapes suivantes dans l'ordre :
   `git add <fichiers de test>`
   `git commit -m "test: add/improve tests for <description des fichiers couverts>"`
 
-## 5. Pousser la branche
+## 5. Détection et refactorisation du code dupliqué
+
+### 5a. Détecter le code dupliqué dans les fichiers modifiés
+- Reprendre la liste des fichiers source modifiés identifiés à l'étape 4a
+- Si aucun fichier source n'a été modifié, passer directement à l'étape 6
+- Pour chaque fichier modifié, rechercher les duplications :
+  1. **Duplication interne** : blocs de code répétés au sein du même fichier (≥ 3 lignes similaires apparaissant 2+ fois)
+  2. **Duplication inter-fichiers** : extraire les signatures de fonctions, patterns et blocs logiques significatifs des fichiers modifiés, puis les rechercher dans le reste du projet avec `Grep` :
+     - Chercher des fonctions avec une logique similaire dans `src/` et `supabase/`
+     - Chercher des patterns copy-paste (mêmes structures conditionnelles, mêmes transformations de données)
+  3. **Constantes et valeurs magiques** : repérer les valeurs littérales (strings, nombres) utilisées à plusieurs endroits qui devraient être des constantes partagées
+
+### 5b. Évaluer les duplications trouvées
+- Pour chaque duplication détectée, évaluer :
+  - **Impact** : combien de fichiers/lignes sont concernés
+  - **Risque** : la duplication peut-elle causer des incohérences si un seul endroit est modifié ?
+  - **Faisabilité** : la refactorisation est-elle simple et safe, ou risque-t-elle d'introduire des régressions ?
+- Classer les duplications :
+  - **À refactoriser** : logique métier dupliquée, helpers copiés-collés, constantes répétées — refactorisation simple et bénéfique
+  - **À signaler** : duplication structurelle plus profonde qui nécessiterait un refactoring plus large — informer l'utilisateur sans modifier
+  - **À ignorer** : duplication acceptable (code de test, boilerplate framework, patterns idiomatiques volontaires)
+
+### 5c. Refactoriser les duplications simples
+- Pour chaque duplication classée **à refactoriser** :
+  1. **Extraire** la logique commune dans une fonction/constante/type partagé :
+     - Utilitaires → `src/lib/` (dans un fichier existant pertinent, ou nouveau si nécessaire)
+     - Constantes → fichier de constantes existant le plus proche, ou nouveau `constants.ts` dans le dossier concerné
+     - Types partagés → fichier de types existant ou nouveau dans le même dossier
+     - Hooks React dupliqués → `src/hooks/`
+  2. **Remplacer** chaque occurrence par un import de l'élément extrait
+  3. **Vérifier** que les imports sont corrects et que le code compile : `npx tsc --noEmit` (limité aux fichiers concernés si possible)
+  4. Demander confirmation à l'utilisateur avant de refactoriser si le changement touche plus de 5 fichiers
+
+### 5d. Valider la refactorisation
+- Relancer la suite de tests complète : `npx vitest run`
+- Si des tests échouent :
+  1. Analyser si l'échec est lié à la refactorisation
+  2. Corriger le code refactorisé ou les imports manquants
+  3. Relancer jusqu'à ce que tous les tests passent
+- Vérifier qu'aucune régression de couverture n'a été introduite
+
+### 5e. Commiter la refactorisation
+- Si des fichiers ont été refactorisés :
+  `git add <fichiers modifiés>`
+  `git commit -m "refactor: extract <description> to reduce duplication"`
+- Si des duplications ont été classées **à signaler**, les lister dans la sortie pour l'utilisateur
+
+## 6. Pousser la branche
 - `git push -u origin <nom-de-branche> --force-with-lease`
 - Utilise `--force-with-lease` (pas `--force`) car le rebase réécrit l'historique mais on veut rester safe
 - En cas d'erreur réseau, réessaye jusqu'à 4 fois avec backoff exponentiel
 
-## 6. Créer ou mettre à jour la PR
+## 7. Créer ou mettre à jour la PR
 - Vérifie si une PR existe déjà pour cette branche : `gh pr list --head <nom-de-branche> --json number,url`
 - **Si aucune PR n'existe** : crée-la avec `gh pr create`
   - Titre : résumé concis des changements basé sur les commits de la branche
@@ -93,12 +140,13 @@ Exécute les étapes suivantes dans l'ordre :
 - **Si une PR existe déjà** : informe l'utilisateur que la PR est à jour avec le lien
 - Affiche le lien de la PR à l'utilisateur
 
-## 7. Résumé
+## 8. Résumé
 Affiche un résumé :
 - Branche synchronisée
 - Nombre de conflits résolus (le cas échéant)
 - Couverture des tests : tableau des fichiers modifiés avec % couverture avant/après
 - Nombre de tests ajoutés/modifiés
+- Duplications refactorisées (le cas échéant) et duplications signalées à traiter
 - Lien vers la PR
 
 $ARGUMENTS
