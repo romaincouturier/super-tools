@@ -4,7 +4,6 @@ import { toast } from "sonner";
 import QuoteWorkflowStepper from "./QuoteWorkflowStepper";
 import Step0ClientValidation, { type ClientData } from "./Step0ClientValidation";
 import Step1Synthesis from "./Step1Synthesis";
-import Step2Instructions from "./Step2Instructions";
 import Step3QuoteGeneration from "./Step3QuoteGeneration";
 import Step4Loom from "./Step4Loom";
 import Step5Email from "./Step5Email";
@@ -24,9 +23,9 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
   const updateMutation = useUpdateQuote();
   const { data: existingQuote, isLoading: loadingQuote } = useQuote(existingQuoteId);
 
-  const [step, setStep] = useState<QuoteWorkflowStep>(existingQuoteId ? 3 : 0);
+  const [step, setStep] = useState<QuoteWorkflowStep>(existingQuoteId ? 2 : 0);
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(
-    existingQuoteId ? new Set([0, 1, 2]) : new Set()
+    existingQuoteId ? new Set([0, 1]) : new Set()
   );
   const [clientData, setClientData] = useState<ClientData | null>(null);
   const [synthesis, setSynthesis] = useState("");
@@ -74,47 +73,33 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
     setStep(1);
   };
 
-  // Step 1 → Save synthesis, go to step 2
-  const handleSynthesisValidated = async (s: string) => {
+  // Step 1 → Save synthesis + instructions, go to step 2
+  const handleSynthesisValidated = async (s: string, i: string) => {
     setSynthesis(s);
+    setInstructions(i);
     completeStep(1);
 
     if (quote) {
       await updateMutation.mutateAsync({
         id: quote.id,
-        updates: { synthesis: s },
+        updates: { synthesis: s, instructions: i },
       });
     }
 
     setStep(2);
   };
 
-  // Step 2 → Save instructions, go to step 3
-  const handleInstructionsValidated = async (i: string) => {
-    setInstructions(i);
+  // Step 2 → Go to step 3
+  const handleQuoteContinue = (updatedQuote: Quote) => {
+    setQuote(updatedQuote);
     completeStep(2);
-
-    if (quote) {
-      await updateMutation.mutateAsync({
-        id: quote.id,
-        updates: { instructions: i },
-      });
-    }
-
     setStep(3);
   };
 
-  // Step 3 → Go to step 4
-  const handleQuoteContinue = (updatedQuote: Quote) => {
-    setQuote(updatedQuote);
-    completeStep(3);
-    setStep(4);
-  };
-
-  // Step 4 → Save loom, go to step 5
+  // Step 3 → Save loom, go to step 4
   const handleLoomContinue = async (url: string | null) => {
     setLoomUrl(url);
-    completeStep(4);
+    completeStep(3);
 
     if (quote && url) {
       await updateMutation.mutateAsync({
@@ -123,12 +108,12 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
       });
     }
 
-    setStep(5);
+    setStep(4);
   };
 
-  // Step 5 → Done
+  // Step 4 → Done
   const handleSent = () => {
-    completeStep(5);
+    completeStep(4);
     toast.success("Devis envoyé avec succès !");
     navigate(`/crm/card/${crmCard.id}`);
   };
@@ -166,17 +151,11 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
           clientCompany={clientData?.company || crmCard.company || ""}
           onValidate={handleSynthesisValidated}
           initialSynthesis={synthesis}
-        />
-      )}
-
-      {step === 2 && (
-        <Step2Instructions
-          onValidate={handleInstructionsValidated}
           initialInstructions={instructions}
         />
       )}
 
-      {step === 3 && quote && (
+      {step === 2 && quote && (
         <Step3QuoteGeneration
           quote={quote}
           synthesis={synthesis}
@@ -185,14 +164,14 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
         />
       )}
 
-      {step === 4 && (
+      {step === 3 && (
         <Step4Loom
           onContinue={handleLoomContinue}
           initialLoomUrl={loomUrl}
         />
       )}
 
-      {step === 5 && quote && (
+      {step === 4 && quote && (
         <Step5Email
           quote={quote}
           synthesis={synthesis}
