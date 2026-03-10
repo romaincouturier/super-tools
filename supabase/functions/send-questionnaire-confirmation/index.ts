@@ -25,9 +25,12 @@ function generatePerDayCalendarLinks(
   startDate: string,
   endDate: string,
   schedules: Array<{ day_date: string; start_time: string; end_time: string }>,
-  senderEmail: string
+  senderEmail: string,
+  meetingUrl?: string
 ): Array<{ label: string; google: string; outlook: string }> {
-  const description = `Formation Supertilt: ${trainingName}\n\nEmail: ${senderEmail}`;
+  const meetingLine = meetingUrl ? `\n\nRejoindre la visio: ${meetingUrl}` : "";
+  const description = `Formation Supertilt: ${trainingName}${meetingLine}\n\nEmail: ${senderEmail}`;
+  const calLocation = meetingUrl || location || '';
   
   const sortedSchedules = schedules && schedules.length > 0
     ? [...schedules].sort((a, b) => a.day_date.localeCompare(b.day_date))
