@@ -185,6 +185,16 @@ export default function Step1Synthesis({
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Auto-save draft when synthesis or instructions change
+  useEffect(() => {
+    if (onDraftChange && (synthesis || instructions)) {
+      const timeout = setTimeout(() => {
+        onDraftChange(synthesis, instructions);
+      }, 1500);
+      return () => clearTimeout(timeout);
+    }
+  }, [synthesis, instructions]); // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
     <div className="space-y-6">
       {/* Synthesis card */}

@@ -12,8 +12,16 @@ interface Props {
   initialLoomUrl?: string | null;
 }
 
-export default function Step4Loom({ onContinue, initialLoomUrl }: Props) {
+export default function Step4Loom({ onContinue, onDraftChange, initialLoomUrl }: Props) {
   const [loomUrl, setLoomUrl] = useState(initialLoomUrl || "");
+
+  // Auto-save draft
+  useEffect(() => {
+    if (onDraftChange && loomUrl.trim()) {
+      const timeout = setTimeout(() => onDraftChange(loomUrl.trim()), 1500);
+      return () => clearTimeout(timeout);
+    }
+  }, [loomUrl]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const isValidLoomUrl =
     !loomUrl.trim() || /^https:\/\/(www\.)?loom\.com\/share\//.test(loomUrl.trim());
