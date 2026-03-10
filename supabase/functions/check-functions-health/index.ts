@@ -1,15 +1,13 @@
 /**
- * Check Functions Health
+ * Check Functions Health — v2 (background execution)
  *
- * Pings all edge functions via OPTIONS request to verify they are
- * deployed and reachable. Returns status and response time for each.
- *
- * IMPORTANT: When adding a new edge function to the project,
- * add its name to the FUNCTION_NAMES array below so it appears
- * in the monitoring dashboard automatically.
+ * Returns cached results from DB immediately.
+ * Triggers a background refresh via EdgeRuntime.waitUntil().
+ * Results are stored in edge_function_health table.
  */
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import {
   corsHeaders,
   handleCorsPreflightIfNeeded,
@@ -17,11 +15,6 @@ import {
   createJsonResponse,
 } from "../_shared/cors.ts";
 
-/**
- * Complete list of all edge functions in the project.
- * Keep this list in sync with supabase/functions/ directories.
- * Excluded: _shared (not a function), check-functions-health (self).
- */
 const FUNCTION_NAMES = [
   "ai-content-assist",
   "alert-form-error",
@@ -133,8 +126,7 @@ async function checkFunction(
   const start = Date.now();
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 10000);
-    // Use POST with empty body - any HTTP response (even 400/401/500) means the function is deployed
+    const timeout = setTimeout(() => controller.abort(), 15000);
     const res = await fetch(`${baseUrl}/functions/v1/${name}`, {
       method: "POST",
       headers: {
@@ -146,12 +138,7 @@ async function checkFunction(
       signal: controller.signal,
     });
     clearTimeout(timeout);
-    // Any HTTP response means the function is deployed and reachable
-    return {
-      name,
-      status: "up",
-      response_time_ms: Date.now() - start,
-    };
+    return { name, status: "up", response_time_ms: Date.now() - start };
   } catch (error) {
     return {
       name,
@@ -161,42 +148,85 @@ async function checkFunction(
   }
 }
 
+async function runHealthChecks() {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const apiKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+
+  const supabase = createClient(supabaseUrl, serviceKey);
+  const BATCH_SIZE = 5;
+  const DELAY_MS = 500;
+
+  for (let i = 0; i < FUNCTION_NAMES.length; i += BATCH_SIZE) {
+    const batch = FUNCTION_NAMES.slice(i, i + BATCH_SIZE);
+    const results = await Promise.allSettled(
+      batch.map((name) => checkFunction(supabaseUrl, name, apiKey))
+    );
+
+    const upserts = results.map((r, idx) => {
+      const val = r.status === "fulfilled"
+        ? r.value
+        : { name: batch[idx], status: "error", response_time_ms: 0 };
+      return {
+        function_name: val.name,
+        status: val.status,
+        response_time_ms: val.response_time_ms,
+        checked_at: new Date().toISOString(),
+      };
+    });
+
+    await supabase
+      .from("edge_function_health")
+      .upsert(upserts, { onConflict: "function_name" });
+
+    // Small delay between batches to avoid overwhelming cold starts
+    if (i + BATCH_SIZE < FUNCTION_NAMES.length) {
+      await new Promise((resolve) => setTimeout(resolve, DELAY_MS));
+    }
+  }
+
+  console.log(`[check-functions-health] Done checking ${FUNCTION_NAMES.length} functions`);
+}
+
 serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const apiKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, serviceKey);
 
-    // Check functions in batches to avoid overwhelming the system
-    const BATCH_SIZE = 15;
-    const allResults: { name: string; status: string; response_time_ms: number }[] = [];
-    
-    for (let i = 0; i < FUNCTION_NAMES.length; i += BATCH_SIZE) {
-      const batch = FUNCTION_NAMES.slice(i, i + BATCH_SIZE);
-      const batchResults = await Promise.allSettled(
-        batch.map((name) => checkFunction(supabaseUrl, name, apiKey))
-      );
-      for (const r of batchResults) {
-        allResults.push(
-          r.status === "fulfilled"
-            ? r.value
-            : { name: "unknown", status: "error", response_time_ms: 0 }
-        );
-      }
-    }
+    // Start background health check (non-blocking)
+    EdgeRuntime.waitUntil(
+      runHealthChecks().catch((err) =>
+        console.error("[check-functions-health] Background error:", err.message)
+      )
+    );
 
-    const functions = allResults;
+    // Return cached results immediately from DB
+    const { data: functions } = await supabase
+      .from("edge_function_health")
+      .select("*")
+      .order("function_name");
 
-    const upCount = functions.filter((f) => f.status === "up").length;
+    const fns = (functions || []).map((f: any) => ({
+      name: f.function_name,
+      status: f.status,
+      response_time_ms: f.response_time_ms,
+    }));
+
+    const upCount = fns.filter((f: any) => f.status === "up").length;
+    const latestCheck = functions?.length
+      ? functions.reduce((a: any, b: any) => (a.checked_at > b.checked_at ? a : b)).checked_at
+      : new Date().toISOString();
 
     return createJsonResponse({
-      checked_at: new Date().toISOString(),
-      total: functions.length,
+      checked_at: latestCheck,
+      total: FUNCTION_NAMES.length,
       up: upCount,
-      down: functions.length - upCount,
-      functions,
+      down: FUNCTION_NAMES.length - upCount,
+      functions: fns,
     });
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
