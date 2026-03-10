@@ -54,7 +54,7 @@ function generatePerDayCalendarLinks(
       text: `Formation: ${trainingName}${titleSuffix}`,
       dates: `${calStart}/${calEnd}`,
       details: description,
-      location: location || '',
+      location: calLocation,
       ctz: 'Europe/Paris',
     });
 
@@ -68,7 +68,7 @@ function generatePerDayCalendarLinks(
       startdt: outlookStart,
       enddt: outlookEnd,
       body: description,
-      location: location || '',
+      location: calLocation,
     });
 
     return {
