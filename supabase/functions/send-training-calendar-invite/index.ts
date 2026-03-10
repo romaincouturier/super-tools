@@ -21,6 +21,7 @@ interface RequestBody {
   trainingName: string;
   clientName: string;
   location: string;
+  meetingUrl?: string;
   schedules: TrainingSchedule[];
   trainerEmail: string;
   trainerFirstName: string;
@@ -34,7 +35,8 @@ function generateICS(
   location: string,
   schedules: TrainingSchedule[],
   trainerEmail: string,
-  organizerEmail: string
+  organizerEmail: string,
+  meetingUrl?: string
 ): string {
   const uid = crypto.randomUUID();
   const now = new Date();
@@ -57,8 +59,8 @@ DTSTAMP:${dtstamp}
 DTSTART:${formatICSDateTime(startDate)}
 DTEND:${formatICSDateTime(endDate)}
 SUMMARY:Formation: ${escapeICS(trainingName)} - ${escapeICS(clientName)}
-DESCRIPTION:Formation pour ${escapeICS(clientName)}\\n\\nFormateur: Vous etes le formateur de cette session.
-LOCATION:${escapeICS(location)}
+DESCRIPTION:Formation pour ${escapeICS(clientName)}${meetingUrl ? `\\n\\nRejoindre la visio: ${escapeICS(meetingUrl)}` : ""}\\n\\nFormateur: Vous etes le formateur de cette session.
+LOCATION:${escapeICS(meetingUrl || location)}
 ORGANIZER;CN=Supertilt:mailto:${organizerEmail}
 ATTENDEE;ROLE=REQ-PARTICIPANT;PARTSTAT=ACCEPTED;CN=${escapeICS(trainerEmail)}:mailto:${trainerEmail}
 STATUS:CONFIRMED
@@ -117,6 +119,7 @@ serve(async (req: Request): Promise<Response> => {
       trainingName,
       clientName,
       location,
+      meetingUrl,
       schedules,
       trainerEmail,
       trainerFirstName,
@@ -147,7 +150,8 @@ serve(async (req: Request): Promise<Response> => {
       location,
       schedules,
       trainerEmail,
-      organizerEmail
+      organizerEmail,
+      meetingUrl
     );
 
     // Build schedule list for email

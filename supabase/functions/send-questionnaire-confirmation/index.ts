@@ -25,9 +25,12 @@ function generatePerDayCalendarLinks(
   startDate: string,
   endDate: string,
   schedules: Array<{ day_date: string; start_time: string; end_time: string }>,
-  senderEmail: string
+  senderEmail: string,
+  meetingUrl?: string
 ): Array<{ label: string; google: string; outlook: string }> {
-  const description = `Formation Supertilt: ${trainingName}\n\nEmail: ${senderEmail}`;
+  const meetingLine = meetingUrl ? `\n\nRejoindre la visio: ${meetingUrl}` : "";
+  const description = `Formation Supertilt: ${trainingName}${meetingLine}\n\nEmail: ${senderEmail}`;
+  const calLocation = meetingUrl || location || '';
   
   const sortedSchedules = schedules && schedules.length > 0
     ? [...schedules].sort((a, b) => a.day_date.localeCompare(b.day_date))
@@ -51,7 +54,7 @@ function generatePerDayCalendarLinks(
       text: `Formation: ${trainingName}${titleSuffix}`,
       dates: `${calStart}/${calEnd}`,
       details: description,
-      location: location || '',
+      location: calLocation,
       ctz: 'Europe/Paris',
     });
 
@@ -65,7 +68,7 @@ function generatePerDayCalendarLinks(
       startdt: outlookStart,
       enddt: outlookEnd,
       body: description,
-      location: location || '',
+      location: calLocation,
     });
 
     return {
@@ -202,9 +205,19 @@ serve(async (req) => {
 
     const senderEmail = await getSenderEmail();
 
+    // Determine meeting URL for online trainings
+    let trainingMeetingUrl = "";
+    if (isOnline && liveMeetings.length > 0 && liveMeetings[0].meeting_url) {
+      trainingMeetingUrl = liveMeetings[0].meeting_url;
+    }
+    // Fallback: if location looks like a URL, use it as meeting URL
+    if (!trainingMeetingUrl && location && /^https?:\/\//i.test(location)) {
+      trainingMeetingUrl = location;
+    }
+
     // Generate calendar links for schedule days
     const calendarDays = generatePerDayCalendarLinks(
-      trainingName, location, startDate, endDate, schedules, senderEmail
+      trainingName, location, startDate, endDate, schedules, senderEmail, trainingMeetingUrl || undefined
     );
 
     // Generate calendar links for live meetings
