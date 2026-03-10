@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Bug, Lightbulb, Send, Loader2, CheckCircle2 } from "lucide-react";
+import { useState, useRef } from "react";
+import { Bug, Lightbulb, Send, Loader2, CheckCircle2, Paperclip, X, ImageIcon, FileIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -10,16 +10,65 @@ import { useToast } from "@/hooks/use-toast";
 import { useCreateSupportTicket } from "@/hooks/useSupport";
 import type { TicketType } from "@/types/support";
 
+const MAX_FILES = 5;
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const ACCEPTED_TYPES = [
+  "image/jpeg", "image/png", "image/gif", "image/webp",
+  "application/pdf",
+  "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "text/plain", "text/csv",
+];
+
+function isImageType(mime: string) {
+  return mime.startsWith("image/");
+}
+
+function formatFileSize(bytes: number) {
+  if (bytes < 1024) return `${bytes} o`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} Ko`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`;
+}
+
 export function ChatbotFeedbackTab() {
   const { toast } = useToast();
   const createTicket = useCreateSupportTicket();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [type, setType] = useState<TicketType>("bug");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [files, setFiles] = useState<File[]>([]);
   const [submitted, setSubmitted] = useState(false);
 
   const currentUrl = typeof window !== "undefined" ? window.location.pathname : "";
+
+  const addFiles = (newFiles: FileList | File[]) => {
+    const toAdd: File[] = [];
+    for (const file of Array.from(newFiles)) {
+      if (!ACCEPTED_TYPES.includes(file.type)) {
+        toast({ title: "Type non supporté", description: `"${file.name}" n'est pas un format accepté.`, variant: "destructive" });
+        continue;
+      }
+      if (file.size > MAX_FILE_SIZE) {
+        toast({ title: "Fichier trop volumineux", description: `"${file.name}" dépasse 10 Mo.`, variant: "destructive" });
+        continue;
+      }
+      toAdd.push(file);
+    }
+    setFiles((prev) => {
+      const combined = [...prev, ...toAdd];
+      if (combined.length > MAX_FILES) {
+        toast({ title: "Limite atteinte", description: `Maximum ${MAX_FILES} fichiers.`, variant: "destructive" });
+        return combined.slice(0, MAX_FILES);
+      }
+      return combined;
+    });
+  };
+
+  const removeFile = (index: number) => {
+    setFiles((prev) => prev.filter((_, i) => i !== index));
+  };
 
   const handleSubmit = async () => {
     if (!title.trim() || !description.trim()) {
@@ -34,6 +83,7 @@ export function ChatbotFeedbackTab() {
         description: description.trim(),
         priority: "medium",
         page_url: currentUrl || null,
+        files: files.length > 0 ? files : undefined,
       });
       setSubmitted(true);
     } catch (e: any) {
@@ -45,6 +95,7 @@ export function ChatbotFeedbackTab() {
     setType("bug");
     setTitle("");
     setDescription("");
+    setFiles([]);
     setSubmitted(false);
   };
 
@@ -117,6 +168,65 @@ export function ChatbotFeedbackTab() {
             rows={4}
             className="text-sm"
           />
+        </div>
+
+        {/* File attachments */}
+        <div className="space-y-2">
+          <Label className="text-xs font-medium">Pièces jointes</Label>
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            accept={ACCEPTED_TYPES.join(",")}
+            className="hidden"
+            onChange={(e) => {
+              if (e.target.files) addFiles(e.target.files);
+              e.target.value = "";
+            }}
+          />
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="w-full text-sm"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={files.length >= MAX_FILES}
+          >
+            <Paperclip className="h-3.5 w-3.5 mr-2" />
+            Ajouter des fichiers
+          </Button>
+          <p className="text-[11px] text-muted-foreground">
+            Images, PDF, Word, Excel — max 10 Mo/fichier, {MAX_FILES} fichiers max
+          </p>
+
+          {/* File list */}
+          {files.length > 0 && (
+            <div className="space-y-1.5">
+              {files.map((file, i) => (
+                <div
+                  key={`${file.name}-${i}`}
+                  className="flex items-center gap-2 p-2 rounded-md bg-muted/50 text-sm"
+                >
+                  {isImageType(file.type) ? (
+                    <ImageIcon className="h-3.5 w-3.5 text-blue-500 shrink-0" />
+                  ) : (
+                    <FileIcon className="h-3.5 w-3.5 text-gray-500 shrink-0" />
+                  )}
+                  <span className="truncate flex-1 text-xs">{file.name}</span>
+                  <span className="text-[10px] text-muted-foreground shrink-0">
+                    {formatFileSize(file.size)}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => removeFile(i)}
+                    className="p-0.5 rounded hover:bg-muted transition-colors shrink-0"
+                  >
+                    <X className="h-3 w-3 text-muted-foreground" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Page context */}

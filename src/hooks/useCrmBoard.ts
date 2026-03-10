@@ -410,8 +410,17 @@ export const useUpdateCard = () => {
       actorEmail: string;
       oldCard: CrmCard;
     }) => {
-      // Prepare update data, converting brief_questions to Json type
+      // Prepare update data, normalizing names/email and converting brief_questions
       const updateData: Record<string, unknown> = { ...updates };
+      if (updates.first_name !== undefined) {
+        updateData.first_name = capitalizeName(updates.first_name as string);
+      }
+      if (updates.last_name !== undefined) {
+        updateData.last_name = capitalizeName(updates.last_name as string);
+      }
+      if (updates.email !== undefined) {
+        updateData.email = normalizeEmail(updates.email as string);
+      }
       if (updates.brief_questions !== undefined) {
         updateData.brief_questions = updates.brief_questions as unknown;
       }
