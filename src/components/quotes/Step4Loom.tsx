@@ -8,6 +8,7 @@ import { Video, ExternalLink, SkipForward } from "lucide-react";
 
 interface Props {
   onContinue: (loomUrl: string | null) => void;
+  onDraftChange?: (loomUrl: string) => void;
   initialLoomUrl?: string | null;
 }
 
