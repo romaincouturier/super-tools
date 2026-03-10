@@ -43,16 +43,18 @@ export default function Step1Synthesis({
   const [isEditing, setIsEditing] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const { isListening, isSupported, startListening, stopListening } =
-    useSpeechRecognition("fr-FR", true);
+  const { isRecording, isTranscribing, isSupported, startRecording, stopRecording } =
+    useVoiceDictation({
+      onTranscript: (text) => {
+        setInstructions((prev) => (prev ? prev + "\n" + text : text));
+      },
+    });
 
   const handleToggleMic = () => {
-    if (isListening) {
-      stopListening();
+    if (isRecording) {
+      stopRecording();
     } else {
-      startListening((text) => {
-        setInstructions((prev) => (prev ? prev + "\n" + text : text));
-      });
+      startRecording();
     }
   };
 
