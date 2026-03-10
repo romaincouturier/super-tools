@@ -4541,7 +4541,10 @@ export type Database = {
           sponsor_email: string | null
           sponsor_name: string | null
           token: string
+          training_end_date: string | null
           training_id: string
+          training_name: string | null
+          training_start_date: string | null
           updated_at: string | null
         }
         Insert: {
@@ -4569,7 +4572,10 @@ export type Database = {
           sponsor_email?: string | null
           sponsor_name?: string | null
           token: string
+          training_end_date?: string | null
           training_id: string
+          training_name?: string | null
+          training_start_date?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -4597,7 +4603,10 @@ export type Database = {
           sponsor_email?: string | null
           sponsor_name?: string | null
           token?: string
+          training_end_date?: string | null
           training_id?: string
+          training_name?: string | null
+          training_start_date?: string | null
           updated_at?: string | null
         }
         Relationships: [

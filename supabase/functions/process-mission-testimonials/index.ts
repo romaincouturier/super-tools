@@ -86,10 +86,10 @@ serve(async (req: Request) => {
       return contact.replace(email, "").trim();
     };
 
-    // Filter missions that have a valid email in client_contact
-    const missionsWithEmail = (missions || []).filter((m: any) => extractEmail(m.client_contact));
+    // Filter missions - we'll use mission_contacts instead of client_contact field
+    const missionsToProcess = (missions || []).filter((m: any) => m.end_date);
 
-    if (missionsWithEmail.length === 0) {
+    if (missionsToProcess.length === 0) {
       return new Response(JSON.stringify({ message: "No missions to process" }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -100,8 +100,8 @@ serve(async (req: Request) => {
     let testimonialsSent = 0;
     const bccList = await getBccList();
 
-    for (let mi = 0; mi < missionsWithEmail.length; mi++) {
-      const mission = missionsWithEmail[mi];
+    for (let mi = 0; mi < missionsToProcess.length; mi++) {
+      const mission = missionsToProcess[mi];
 
       // Rate limit between missions
       if (mi > 0) {
@@ -290,7 +290,7 @@ Best regards,`;
     return new Response(
       JSON.stringify({
         message: "Mission testimonials processed",
-        processed: missionsWithEmail.length,
+        processed: missionsToProcess.length,
         googleReviewsSent,
         testimonialsSent,
       }),
