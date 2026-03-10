@@ -13,6 +13,7 @@ interface Props {
   crmCard: CrmCard;
   clientCompany: string;
   onValidate: (synthesis: string, instructions: string) => void;
+  onDraftChange?: (synthesis: string, instructions: string) => void;
   initialSynthesis?: string;
   initialInstructions?: string;
 }
