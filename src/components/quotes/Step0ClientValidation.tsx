@@ -21,6 +21,7 @@ export interface ClientData {
 interface Props {
   crmCard: CrmCard;
   onValidate: (client: ClientData) => void;
+  initialClient?: ClientData | null;
 }
 
 export default function Step0ClientValidation({ crmCard, onValidate }: Props) {
