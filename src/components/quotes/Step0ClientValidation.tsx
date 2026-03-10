@@ -24,19 +24,21 @@ interface Props {
   initialClient?: ClientData | null;
 }
 
-export default function Step0ClientValidation({ crmCard, onValidate }: Props) {
+export default function Step0ClientValidation({ crmCard, onValidate, initialClient }: Props) {
   const sirenLookup = useSirenLookup();
-  const [siren, setSiren] = useState(crmCard.company || "");
-  const [client, setClient] = useState<ClientData>({
-    company: crmCard.company || "",
-    address: "",
-    zip: "",
-    city: "",
-    siren: "",
-    vatNumber: "",
-    email: crmCard.email || "",
-  });
-  const [sirenLoaded, setSirenLoaded] = useState(false);
+  const [siren, setSiren] = useState(initialClient?.siren || crmCard.company || "");
+  const [client, setClient] = useState<ClientData>(
+    initialClient || {
+      company: crmCard.company || "",
+      address: "",
+      zip: "",
+      city: "",
+      siren: "",
+      vatNumber: "",
+      email: crmCard.email || "",
+    }
+  );
+  const [sirenLoaded, setSirenLoaded] = useState(!!initialClient?.siren);
 
   const set = (key: keyof ClientData, value: string) =>
     setClient((prev) => ({ ...prev, [key]: value }));

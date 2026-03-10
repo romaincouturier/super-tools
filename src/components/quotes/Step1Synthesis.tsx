@@ -168,6 +168,7 @@ export default function Step1Synthesis({
       const cleaned = cleanHtmlOutput(data.challenge || "");
       setChallengeHtml(cleaned);
       setChallengeDone(true);
+      onChallengeChange?.(cleaned);
     } catch (e: any) {
       console.error("Challenge error:", e);
       toast.error("Erreur lors du challenge commercial : " + (e.message || "Erreur inconnue"));
