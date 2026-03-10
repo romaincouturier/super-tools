@@ -31,6 +31,21 @@ export interface QuoteSettings {
   rights_transfer_rate: number;
   rights_transfer_clause: string;
   rights_transfer_enabled: boolean;
+  // Conformité légale française
+  rcs_number: string;
+  rcs_city: string;
+  ape_code: string;
+  training_declaration_number: string;
+  payment_terms_days: number;
+  payment_terms_text: string;
+  payment_methods: string;
+  early_payment_discount: string;
+  insurance_name: string;
+  insurance_policy_number: string;
+  insurance_coverage_zone: string;
+  vat_exempt: boolean;
+  vat_exempt_text: string;
+  default_unit: string;
   // Timestamps
   created_at: string;
   updated_at: string;
@@ -43,6 +58,7 @@ export interface QuoteLineItem {
   product: string;
   description: string;
   quantity: number;
+  unit: string;
   unit_price_ht: number;
   vat_rate: number;
   total_ht: number;
@@ -85,6 +101,10 @@ export interface Quote {
   email_sent_at: string | null;
   // PDF
   pdf_path: string | null;
+  // Signature client
+  client_signature_name: string | null;
+  client_signature_date: string | null;
+  client_signature_data: string | null;
   // Timestamps
   created_at: string;
   updated_at: string;

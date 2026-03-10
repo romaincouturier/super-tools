@@ -33,12 +33,13 @@ interface Props {
   onContinue: (updatedQuote: Quote) => void;
 }
 
-function emptyLine(vatRate: number): QuoteLineItem {
+function emptyLine(vatRate: number, defaultUnit = "jour"): QuoteLineItem {
   return {
     id: uuid(),
     product: "",
     description: "",
     quantity: 1,
+    unit: defaultUnit,
     unit_price_ht: 0,
     vat_rate: vatRate,
     total_ht: 0,
@@ -55,6 +56,7 @@ export default function Step3QuoteGeneration({
   const { data: settings } = useQuoteSettings();
   const updateMutation = useUpdateQuote();
   const defaultVat = settings?.default_vat_rate ?? 20;
+  const defaultUnit = settings?.default_unit || "jour";
 
   const [lines, setLines] = useState<QuoteLineItem[]>(
     quote.line_items?.length > 0 ? quote.line_items : []
@@ -115,6 +117,7 @@ export default function Step3QuoteGeneration({
             product: l.product || "",
             description: l.description || "",
             quantity: l.quantity || 1,
+            unit: l.unit || defaultUnit,
             unit_price_ht: l.unit_price_ht || 0,
             vat_rate: l.vat_rate ?? defaultVat,
             total_ht: (l.quantity || 1) * (l.unit_price_ht || 0),
@@ -129,7 +132,7 @@ export default function Step3QuoteGeneration({
       console.error("Line generation error:", e);
       // Add an empty line as fallback
       if (lines.length === 0) {
-        setLines([emptyLine(defaultVat)]);
+        setLines([emptyLine(defaultVat, defaultUnit)]);
       }
     } finally {
       setIsGenerating(false);
@@ -154,7 +157,7 @@ export default function Step3QuoteGeneration({
     );
   };
 
-  const addLine = () => setLines((prev) => [...prev, emptyLine(defaultVat)]);
+  const addLine = () => setLines((prev) => [...prev, emptyLine(defaultVat, defaultUnit)]);
   const removeLine = (id: string) =>
     setLines((prev) => prev.filter((l) => l.id !== id));
 
@@ -273,6 +276,7 @@ export default function Step3QuoteGeneration({
                       <TableHead className="min-w-[200px]">Produit</TableHead>
                       <TableHead className="min-w-[200px]">Description</TableHead>
                       <TableHead className="w-20">Qté</TableHead>
+                      <TableHead className="w-24">Unité</TableHead>
                       <TableHead className="w-32">Prix u. HT</TableHead>
                       <TableHead className="w-24">TVA %</TableHead>
                       <TableHead className="w-32 text-right">Total HT</TableHead>
@@ -315,6 +319,15 @@ export default function Step3QuoteGeneration({
                                 parseFloat(e.target.value) || 0
                               )
                             }
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Input
+                            value={line.unit || defaultUnit}
+                            onChange={(e) =>
+                              updateLine(line.id, "unit", e.target.value)
+                            }
+                            placeholder="jour"
                           />
                         </TableCell>
                         <TableCell>
@@ -412,7 +425,12 @@ export default function Step3QuoteGeneration({
 
               {/* Totals summary */}
               <div className="border rounded-lg p-4 space-y-2">
-                {Object.entries(totals.vatGroups).map(([rate, g]) => (
+                {settings?.vat_exempt && (
+                  <div className="text-sm font-medium text-amber-700 bg-amber-50 p-2 rounded">
+                    {settings.vat_exempt_text}
+                  </div>
+                )}
+                {!settings?.vat_exempt && Object.entries(totals.vatGroups).map(([rate, g]) => (
                   <div key={rate} className="flex justify-between text-sm">
                     <span>TVA {rate}%</span>
                     <span>Base HT: {fmt(g.ht)} — TVA: {fmt(g.vat)}</span>
@@ -423,16 +441,46 @@ export default function Step3QuoteGeneration({
                     <span>Total HT</span>
                     <span>{fmt(totals.totalHt)}</span>
                   </div>
-                  <div className="flex justify-between text-sm">
-                    <span>Total TVA</span>
-                    <span>{fmt(totals.totalVat)}</span>
-                  </div>
+                  {!settings?.vat_exempt && (
+                    <div className="flex justify-between text-sm">
+                      <span>Total TVA</span>
+                      <span>{fmt(totals.totalVat)}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between text-lg font-bold">
                     <span>Total TTC</span>
-                    <span>{fmt(totals.totalTtc)}</span>
+                    <span>{fmt(settings?.vat_exempt ? totals.totalHt : totals.totalTtc)}</span>
                   </div>
                 </div>
               </div>
+
+              {/* Conditions & mentions légales (preview) */}
+              {settings && (
+                <div className="border rounded-lg p-4 space-y-3 text-xs text-muted-foreground">
+                  <h4 className="font-medium text-sm text-foreground">Mentions du devis</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {settings.payment_terms_text && (
+                      <p><span className="font-medium">Conditions de règlement :</span> {settings.payment_terms_text}</p>
+                    )}
+                    {settings.early_payment_discount && (
+                      <p><span className="font-medium">Escompte :</span> {settings.early_payment_discount}</p>
+                    )}
+                    {settings.late_penalty_text && (
+                      <p><span className="font-medium">Pénalités de retard :</span> {settings.late_penalty_text}</p>
+                    )}
+                    <p><span className="font-medium">Indemnité forfaitaire de recouvrement :</span> {fmt(settings.recovery_indemnity_amount)}</p>
+                    {settings.training_declaration_number && (
+                      <p><span className="font-medium">N° déclaration d'activité :</span> {settings.training_declaration_number}</p>
+                    )}
+                    {settings.rcs_number && (
+                      <p><span className="font-medium">RCS :</span> {settings.rcs_city} {settings.rcs_number}</p>
+                    )}
+                    {settings.insurance_name && (
+                      <p><span className="font-medium">Assurance :</span> {settings.insurance_name} — Police n° {settings.insurance_policy_number}</p>
+                    )}
+                  </div>
+                </div>
+              )}
             </>
           )}
         </CardContent>

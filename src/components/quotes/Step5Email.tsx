@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Mail, Send, TestTube, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useUpdateQuote } from "@/hooks/useQuotes";
+import { useUpdateQuote, useQuoteSettings } from "@/hooks/useQuotes";
 import { toast } from "sonner";
 import type { Quote } from "@/types/quotes";
 
@@ -29,6 +29,7 @@ export default function Step5Email({
   onSent,
 }: Props) {
   const updateMutation = useUpdateQuote();
+  const { data: settings } = useQuoteSettings();
   const [to, setTo] = useState(clientEmail);
   const [subject, setSubject] = useState(
     quote.email_subject || `Devis ${quote.quote_number} — ${clientCompany}`
@@ -114,17 +115,20 @@ export default function Step5Email({
 
     setIsSending(true);
     try {
+      const sentAt = new Date().toISOString();
+
       // Save email content to quote
       await updateMutation.mutateAsync({
         id: quote.id,
         updates: {
           email_subject: subject,
           email_body: body,
-          email_sent_at: new Date().toISOString(),
+          email_sent_at: sentAt,
           status: "sent",
         },
       });
 
+      // Send email via edge function
       await supabase.functions.invoke("send-quote-email", {
         body: {
           quoteId: quote.id,
@@ -133,6 +137,28 @@ export default function Step5Email({
           body,
           isTest: false,
         },
+      });
+
+      // Log email in CRM card history (crm_card_emails)
+      const senderEmail = settings?.company_email || "";
+      await (supabase as any).from("crm_card_emails").insert({
+        card_id: quote.crm_card_id,
+        sender_email: senderEmail,
+        recipient_email: to,
+        subject,
+        body_html: body.replace(/\n/g, "<br>"),
+        sent_at: sentAt,
+        attachment_names: [`${quote.quote_number}.pdf`],
+        delivery_status: "sent",
+      });
+
+      // Log activity in CRM activity log
+      const { data: { user } } = await supabase.auth.getUser();
+      await (supabase as any).from("crm_activity_log").insert({
+        card_id: quote.crm_card_id,
+        action_type: "email_sent",
+        new_value: `Devis ${quote.quote_number} envoyé à ${to}`,
+        actor_email: user?.email || senderEmail,
       });
 
       toast.success(`Devis envoyé à ${to}`);

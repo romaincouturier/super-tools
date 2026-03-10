@@ -255,6 +255,135 @@ export default function QuoteSettingsForm() {
               onChange={(e) => set("vat_number", e.target.value)}
             />
           </div>
+          <div className="space-y-2">
+            <Label>N° RCS</Label>
+            <Input
+              value={form.rcs_number || ""}
+              onChange={(e) => set("rcs_number", e.target.value)}
+              placeholder="123 456 789"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Ville du RCS</Label>
+            <Input
+              value={form.rcs_city || ""}
+              onChange={(e) => set("rcs_city", e.target.value)}
+              placeholder="Paris"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Code APE / NAF</Label>
+            <Input
+              value={form.ape_code || ""}
+              onChange={(e) => set("ape_code", e.target.value)}
+              placeholder="8559A"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>N° de déclaration d'activité (NDA)</Label>
+            <Input
+              value={form.training_declaration_number || ""}
+              onChange={(e) => set("training_declaration_number", e.target.value)}
+              placeholder="11 75 XXXXX 75"
+            />
+          </div>
+          <div className="flex items-center gap-3 md:col-span-2">
+            <Switch
+              checked={form.vat_exempt ?? false}
+              onCheckedChange={(v) => set("vat_exempt", v)}
+            />
+            <Label>TVA non applicable (art. 293 B du CGI)</Label>
+          </div>
+          {form.vat_exempt && (
+            <div className="space-y-2 md:col-span-2">
+              <Label>Mention d'exonération de TVA</Label>
+              <Input
+                value={form.vat_exempt_text || ""}
+                onChange={(e) => set("vat_exempt_text", e.target.value)}
+              />
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Conditions de règlement */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Conditions de règlement</CardTitle>
+        </CardHeader>
+        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label>Délai de paiement (jours)</Label>
+            <Input
+              type="number"
+              min={0}
+              value={form.payment_terms_days || 30}
+              onChange={(e) => set("payment_terms_days", parseInt(e.target.value) || 30)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Modes de paiement acceptés</Label>
+            <Input
+              value={form.payment_methods || ""}
+              onChange={(e) => set("payment_methods", e.target.value)}
+              placeholder="Virement bancaire"
+            />
+          </div>
+          <div className="space-y-2 md:col-span-2">
+            <Label>Conditions de paiement (texte complet)</Label>
+            <Textarea
+              value={form.payment_terms_text || ""}
+              onChange={(e) => set("payment_terms_text", e.target.value)}
+              rows={2}
+            />
+          </div>
+          <div className="space-y-2 md:col-span-2">
+            <Label>Escompte pour paiement anticipé</Label>
+            <Input
+              value={form.early_payment_discount || ""}
+              onChange={(e) => set("early_payment_discount", e.target.value)}
+              placeholder="Pas d'escompte pour paiement anticipé"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Unité par défaut (lignes de prestation)</Label>
+            <Input
+              value={form.default_unit || ""}
+              onChange={(e) => set("default_unit", e.target.value)}
+              placeholder="jour, heure, forfait..."
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Assurance professionnelle */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Assurance professionnelle</CardTitle>
+        </CardHeader>
+        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label>Nom de l'assureur</Label>
+            <Input
+              value={form.insurance_name || ""}
+              onChange={(e) => set("insurance_name", e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>N° de police</Label>
+            <Input
+              value={form.insurance_policy_number || ""}
+              onChange={(e) => set("insurance_policy_number", e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Zone de couverture</Label>
+            <Input
+              value={form.insurance_coverage_zone || ""}
+              onChange={(e) => set("insurance_coverage_zone", e.target.value)}
+              placeholder="France"
+            />
+          </div>
         </CardContent>
       </Card>
 
