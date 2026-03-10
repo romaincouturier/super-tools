@@ -23,6 +23,7 @@ export default function Step1Synthesis({
   const [synthesis, setSynthesis] = useState(initialSynthesis || "");
   const [isGenerating, setIsGenerating] = useState(false);
   const [generated, setGenerated] = useState(!!initialSynthesis);
+  const [isEditing, setIsEditing] = useState(false);
 
   const generateSynthesis = async () => {
     setIsGenerating(true);
