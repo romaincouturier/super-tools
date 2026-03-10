@@ -1,4 +1,4 @@
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import ModuleLayout from "@/components/ModuleLayout";
 import QuoteWorkflow from "@/components/quotes/QuoteWorkflow";
@@ -9,6 +9,8 @@ import type { CrmCard } from "@/types/crm";
 
 export default function QuoteWorkflowPage() {
   const { cardId } = useParams<{ cardId: string }>();
+  const [searchParams] = useSearchParams();
+  const existingQuoteId = searchParams.get("quoteId") || undefined;
   const navigate = useNavigate();
   const [crmCard, setCrmCard] = useState<CrmCard | null>(null);
   const [loading, setLoading] = useState(true);
@@ -75,7 +77,7 @@ export default function QuoteWorkflowPage() {
           </div>
         )}
 
-        {crmCard && <QuoteWorkflow crmCard={crmCard} />}
+        {crmCard && <QuoteWorkflow crmCard={crmCard} existingQuoteId={existingQuoteId} />}
       </div>
     </ModuleLayout>
   );

@@ -9,7 +9,9 @@ import {
   FileText,
   X,
   Copy,
+  ClipboardList,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import type { CardDetailState, CardDetailHandlers } from "./types";
 
 interface Props {
@@ -18,6 +20,7 @@ interface Props {
 }
 
 const CardDetailCommercial = ({ state, handlers }: Props) => {
+  const navigate = useNavigate();
   const {
     card, serviceType, company, email, firstName, lastName,
     estimatedValue, quoteUrl, setQuoteUrl, descriptionHtml,
@@ -33,6 +36,14 @@ const CardDetailCommercial = ({ state, handlers }: Props) => {
 
       {/* Devis buttons */}
       <div className="flex gap-2 flex-wrap">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => navigate(`/devis/${card.id}`)}
+        >
+          <ClipboardList className="h-4 w-4 mr-2" />
+          Créer un devis guidé
+        </Button>
         {serviceType === "formation" && (
           <Button
             variant="outline"
