@@ -35,6 +35,7 @@ export default function Step1Synthesis({
   crmCard,
   clientCompany,
   onValidate,
+  onDraftChange,
   initialSynthesis,
   initialInstructions,
 }: Props) {
