@@ -59,9 +59,46 @@ Réponds UNIQUEMENT avec le JSON, sans markdown.`;
     const aiData = await response.json();
     const raw = aiData.choices?.[0]?.message?.content || "";
     
-    // Parse JSON from response
-    const cleaned = raw.replace(/```json?\s*\n?/gi, "").replace(/\n?```\s*$/gi, "").trim();
-    const parsed = JSON.parse(cleaned);
+    // Clean markdown fences
+    let cleaned = raw.replace(/```json?\s*\n?/gi, "").replace(/\n?```\s*$/gi, "").trim();
+
+    let parsed: { subject: string; body: string };
+    try {
+      parsed = JSON.parse(cleaned);
+    } catch {
+      // Try to extract JSON object from the string
+      const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        let jsonStr = jsonMatch[0];
+        // Try to repair truncated JSON: ensure closing brace
+        if (!jsonStr.endsWith("}")) {
+          // Find last complete value and close
+          const lastQuote = jsonStr.lastIndexOf('"');
+          if (lastQuote > 0) {
+            jsonStr = jsonStr.substring(0, lastQuote + 1) + "}";
+          }
+        }
+        try {
+          parsed = JSON.parse(jsonStr);
+        } catch {
+          // Last resort: extract subject and body with regex
+          const subjectMatch = cleaned.match(/"subject"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+          const bodyMatch = cleaned.match(/"body"\s*:\s*"((?:[^"\\]|\\[\s\S])*)"/);
+          parsed = {
+            subject: subjectMatch ? subjectMatch[1].replace(/\\"/g, '"') : `Devis ${clientCompany}`,
+            body: bodyMatch
+              ? bodyMatch[1].replace(/\\"/g, '"').replace(/\\n/g, "\n")
+              : `Bonjour,\n\nVeuillez trouver ci-joint notre devis ${quoteNumber}.\n\nCordialement`,
+          };
+        }
+      } else {
+        // No JSON found at all — generate fallback
+        parsed = {
+          subject: `Votre devis ${quoteNumber} — ${clientCompany}`,
+          body: `Bonjour,\n\nSuite à nos échanges, veuillez trouver ci-joint notre devis n°${quoteNumber}.\n\nNous restons à votre disposition pour toute question.\n\nCordialement`,
+        };
+      }
+    }
 
     return new Response(JSON.stringify(parsed), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
