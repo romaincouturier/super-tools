@@ -285,6 +285,7 @@ Bonne journée`,
   mission_google_review: {
     name: "Demande d'avis Google (Mission)",
     timing: "mission_after",
+    sendingInfo: "📤 Envoyé automatiquement au contact de la mission, J+X jours après la fin de mission (configurable)",
     delayKey: "delay_mission_google_review_days",
     subject: {
       tu: "🌟 Ton avis sur notre collaboration \"{{mission_title}}\"",
