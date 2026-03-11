@@ -265,7 +265,7 @@ const FormationCreate = () => {
     // Build specific missing fields list
     const missingFields: string[] = [];
     if (!trainingName) missingFields.push("nom de la formation");
-    if (isPermanent && !catalogId) missingFields.push("formation du catalogue (obligatoire pour une formation permanente)");
+    if (!catalogId) missingFields.push("formation du catalogue (sélectionnez une entrée du catalogue)");
     if (isPermanent && !selectedFormulaId) missingFields.push("formule (sélectionnez une formule pour la session permanente)");
     if (!hasValidDates) missingFields.push("jours de formation");
     if (!isPermanent && !isElearning && !finalLocation) missingFields.push("lieu de la formation");

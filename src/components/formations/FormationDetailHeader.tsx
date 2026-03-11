@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowLeft, ExternalLink, Edit2, Map, Train, Hotel, UtensilsCrossed, DoorOpen, Copy, MoreHorizontal, Package, Ban, RotateCcw } from "lucide-react";
+import { ArrowLeft, ExternalLink, Edit2, Map, Train, Hotel, UtensilsCrossed, DoorOpen, Copy, MoreHorizontal, Package, Ban, RotateCcw, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -26,7 +26,9 @@ import { Badge } from "@/components/ui/badge";
 import LogisticsBookingButtons from "@/components/shared/LogisticsBookingButtons";
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
+import { deleteTraining } from "@/services/trainings";
 import type { Training, Schedule } from "@/hooks/useFormationDetail";
+import { Input } from "@/components/ui/input";
 import { getGoogleMapsNearbyUrl } from "@/lib/googleMaps";
 
 interface Props {
@@ -66,6 +68,23 @@ const FormationDetailHeader = ({
 
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [cancellationReason, setCancellationReason] = useState("");
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    if (deleteConfirmText !== "SUPPRIMER") return;
+    setDeleting(true);
+    try {
+      await deleteTraining(training.id);
+      toast({ title: "Formation supprimée" });
+      navigate("/formations");
+    } catch {
+      toast({ title: "Erreur lors de la suppression", variant: "destructive" });
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const TRAINING_CANCELLATION_REASONS = [
     { value: "manque_participants", label: "Pas assez de participants" },
@@ -210,6 +229,9 @@ const FormationDetailHeader = ({
                   <Ban className="h-4 w-4 mr-2" />Annuler la session
                 </DropdownMenuItem>
               )}
+              <DropdownMenuItem onClick={() => setDeleteDialogOpen(true)} className="text-destructive">
+                <Trash2 className="h-4 w-4 mr-2" />Supprimer
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -325,6 +347,10 @@ const FormationDetailHeader = ({
               Annuler
             </Button>
           )}
+          <Button variant="outline" className="text-destructive hover:text-destructive" onClick={() => setDeleteDialogOpen(true)}>
+            <Trash2 className="h-4 w-4 mr-1" />
+            Supprimer
+          </Button>
         </div>
       )}
       </div>
@@ -361,6 +387,40 @@ const FormationDetailHeader = ({
                 disabled={!cancellationReason}
               >
                 Confirmer l'annulation
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={(open) => { setDeleteDialogOpen(open); if (!open) setDeleteConfirmText(""); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Supprimer cette formation</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Cette action est <strong>irréversible</strong>. Toutes les données associées seront supprimées (participants, signatures, évaluations, documents, etc.).
+            </p>
+            <div className="space-y-2">
+              <Label>Tapez <strong>SUPPRIMER</strong> pour confirmer</Label>
+              <Input
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                placeholder="SUPPRIMER"
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+                Retour
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleDelete}
+                disabled={deleteConfirmText !== "SUPPRIMER" || deleting}
+              >
+                {deleting ? "Suppression..." : "Supprimer définitivement"}
               </Button>
             </div>
           </div>
