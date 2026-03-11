@@ -56,7 +56,7 @@ Deno.serve(async (req) => {
       to: email,
       subject: "Votre accès à l'espace apprenant",
       html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="font-family: Arial, sans-serif; max-width: 600px; padding: 20px;">
           <h1 style="color: #101820; font-size: 24px;">Bonjour ${firstName} 👋</h1>
           <p style="color: #555; font-size: 16px; line-height: 1.6;">
             Vous avez demandé l'accès à votre espace apprenant. Cliquez sur le bouton ci-dessous pour y accéder :

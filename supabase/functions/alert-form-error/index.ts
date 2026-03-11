@@ -44,7 +44,7 @@ serve(async (req) => {
       to: bccList,
       subject: `${emoji} Erreur formulaire ${formLabel}`,
       html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="font-family: Arial, sans-serif; max-width: 600px;">
           <h1 style="color: #b91c1c;">${emoji} Erreur de chargement de formulaire</h1>
           <p>Un participant a rencontré une erreur en tentant d'accéder à un formulaire public.</p>
 
