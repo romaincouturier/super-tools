@@ -32,7 +32,7 @@ const BookingButton = ({ icon, label, booked, href, onToggle, toastBooked, toast
             {label}
           </span>
         ) : (
-          <a href={href} target="_blank" rel="noopener noreferrer">
+          <a href={href} target="_blank" rel="noopener">
             {icon}
             {label}
           </a>

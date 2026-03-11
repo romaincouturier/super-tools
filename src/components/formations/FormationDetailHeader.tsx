@@ -187,22 +187,22 @@ const FormationDetailHeader = ({
                 </DropdownMenuItem>
               )}
               {isPresentiel && (
-                <DropdownMenuItem onClick={() => { if (!training.train_booked) window.open(`https://www.trainline.fr/search/${encodeURIComponent(training.location)}`, "_blank"); }} disabled={training.train_booked}>
+                <DropdownMenuItem onClick={() => { if (!training.train_booked) { const a = document.createElement("a"); a.href = `https://www.trainline.fr/search/${encodeURIComponent(training.location)}`; a.target = "_blank"; a.rel = "noopener"; a.click(); } }} disabled={training.train_booked}>
                   <Train className="h-4 w-4 mr-2" />Train {training.train_booked && "✓"}
                 </DropdownMenuItem>
               )}
               {isPresentiel && (
-                <DropdownMenuItem onClick={() => { if (!training.hotel_booked) window.open(`https://www.booking.com/searchresults.fr.html?ss=${encodeURIComponent(training.location)}`, "_blank"); }} disabled={training.hotel_booked}>
+                <DropdownMenuItem onClick={() => { if (!training.hotel_booked) { const a = document.createElement("a"); a.href = `https://www.booking.com/searchresults.fr.html?ss=${encodeURIComponent(training.location)}`; a.target = "_blank"; a.rel = "noopener"; a.click(); } }} disabled={training.hotel_booked}>
                   <Hotel className="h-4 w-4 mr-2" />Hôtel {training.hotel_booked && "✓"}
                 </DropdownMenuItem>
               )}
               {isPresentiel && isInterSession && (
-                <DropdownMenuItem onClick={() => { if (!training.restaurant_booked) window.open(getGoogleMapsNearbyUrl("restaurants", training.location), "_blank"); }} disabled={training.restaurant_booked}>
+                <DropdownMenuItem onClick={() => { if (!training.restaurant_booked) { const a = document.createElement("a"); a.href = getGoogleMapsNearbyUrl("restaurants", training.location); a.target = "_blank"; a.rel = "noopener"; a.click(); } }} disabled={training.restaurant_booked}>
                   <UtensilsCrossed className="h-4 w-4 mr-2" />Restaurant {training.restaurant_booked && "✓"}
                 </DropdownMenuItem>
               )}
               {isPresentiel && (isInterSession || training.session_type === "intra" || training.format_formation === "intra") && (
-                <DropdownMenuItem onClick={() => { if (!training.room_rental_booked) window.open(getGoogleMapsNearbyUrl("location+salle+reunion", training.location), "_blank"); }} disabled={training.room_rental_booked}>
+                <DropdownMenuItem onClick={() => { if (!training.room_rental_booked) { const a = document.createElement("a"); a.href = getGoogleMapsNearbyUrl("location+salle+reunion", training.location); a.target = "_blank"; a.rel = "noopener"; a.click(); } }} disabled={training.room_rental_booked}>
                   <DoorOpen className="h-4 w-4 mr-2" />Salle {training.room_rental_booked && "✓"}
                 </DropdownMenuItem>
               )}
