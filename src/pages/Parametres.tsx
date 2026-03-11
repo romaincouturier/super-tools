@@ -102,6 +102,7 @@ Je vous remercie de le compléter avant le {{deadline_date}}.
   needs_survey_reminder: {
     name: "Rappel questionnaire besoins",
     timing: "before",
+    sendingInfo: "📤 Envoyé automatiquement aux participants qui n'ont pas complété le questionnaire, 3 jours après l'envoi initial",
     subject: {
       tu: "Rappel : Prépare ta formation \"{{training_name}}\"",
       vous: "Rappel : Préparez votre formation \"{{training_name}}\"",
