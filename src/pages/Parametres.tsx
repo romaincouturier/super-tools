@@ -809,6 +809,7 @@ Bonne continuation et à bientôt !`,
   certificate_sponsor: {
     name: "Envoi du certificat au commanditaire",
     timing: "manual",
+    sendingInfo: "✋ Envoyé manuellement depuis la fiche formation au commanditaire avec les certificats des participants en PJ",
     subject: {
       tu: "Certificat de réalisation - {{training_name}} - {{participant_name}}",
       vous: "Certificat de réalisation - {{training_name}} - {{participant_name}}",
