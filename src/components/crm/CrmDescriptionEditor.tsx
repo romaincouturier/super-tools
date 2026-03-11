@@ -20,7 +20,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
 import { cn } from "@/lib/utils";
-import { useEffect, useCallback, useState } from "react";
+import { useEffect, useCallback, useState, useRef } from "react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
@@ -41,6 +41,7 @@ const CrmDescriptionEditor = ({
   cardId,
 }: CrmDescriptionEditorProps) => {
   const [imageUploading, setImageUploading] = useState(false);
+  const timestampInsertedRef = useRef(false);
 
   const uploadImage = useCallback(
     async (file: File): Promise<string | null> => {
@@ -128,6 +129,13 @@ const CrmDescriptionEditor = ({
     },
     onUpdate: ({ editor }) => {
       onChange(editor.getHTML());
+    },
+    onFocus: ({ editor }) => {
+      if (timestampInsertedRef.current) return;
+      timestampInsertedRef.current = true;
+      const now = format(new Date(), "EEEE d MMMM yyyy 'à' HH:mm", { locale: fr });
+      const stampHtml = `<p>--- ${now} ---</p><p></p>`;
+      editor.chain().focus("start").insertContent(stampHtml).run();
     },
   });
 
