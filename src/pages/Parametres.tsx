@@ -2874,19 +2874,22 @@ const Parametres = () => {
                         return (
                           <AccordionItem key={type} value={type}>
                             <AccordionTrigger className="text-left">
-                              <div className="flex items-center gap-3">
-                                <Mail className="h-4 w-4 text-muted-foreground" />
-                                <span>{defaultTemplate.name}</span>
-                                {timingLabel && (
-                                  <span className="text-xs bg-accent text-accent-foreground px-2 py-0.5 rounded font-medium">
-                                    {timingLabel}
-                                  </span>
-                                )}
-                                {isCustomized && (
-                                  <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
-                                    Personnalisé
-                                  </span>
-                                )}
+                              <div className="flex flex-col gap-1">
+                                <div className="flex items-center gap-3">
+                                  <Mail className="h-4 w-4 text-muted-foreground" />
+                                  <span>{defaultTemplate.name}</span>
+                                  {timingLabel && (
+                                    <span className="text-xs bg-accent text-accent-foreground px-2 py-0.5 rounded font-medium">
+                                      {timingLabel}
+                                    </span>
+                                  )}
+                                  {isCustomized && (
+                                    <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
+                                      Personnalisé
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-xs text-muted-foreground font-normal ml-7">{defaultTemplate.sendingInfo}</p>
                               </div>
                             </AccordionTrigger>
                             <AccordionContent className="space-y-4 pt-4">
