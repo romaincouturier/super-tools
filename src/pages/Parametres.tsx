@@ -480,6 +480,7 @@ Je vous remercie sincèrement pour votre aide et vous souhaite une excellente co
   funder_reminder: {
     name: "Évaluation à froid financeur",
     timing: "after",
+    sendingInfo: "📤 Envoyé automatiquement (à soi-même comme rappel) pour contacter le financeur, J+X jours ouvrables après la formation (configurable)",
     delayKey: "delay_funder_reminder_days",
     subject: {
       tu: "📋 Prendre contact avec {{financeur_name}} pour formation \"{{training_name}}\"",
