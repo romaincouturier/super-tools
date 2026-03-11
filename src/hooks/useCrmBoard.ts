@@ -522,7 +522,7 @@ export const useCrmReports = () => {
         return {
           category: cat,
           count: uniqueCardIds.length,
-          value: cards
+          totalValue: cards
             .filter((c) => uniqueCardIds.includes(c.id))
             .reduce((sum, c) => sum + (c.estimated_value || 0), 0),
         };

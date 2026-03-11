@@ -1,7 +1,5 @@
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Plus,
@@ -9,7 +7,6 @@ import {
   Paperclip,
   MessageSquare,
   History,
-  Tag,
   Loader2,
   Trash2,
   ImageIcon,
@@ -22,7 +19,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { useDeleteComment, useAddAttachment, useDeleteAttachment } from "@/hooks/useCrmBoard";
 import EntityMediaManager from "@/components/media/EntityMediaManager";
 import QuoteHistorySection from "@/components/quotes/QuoteHistorySection";
-import type { CrmTag } from "@/types/crm";
 import type { CardDetailState, CardDetailHandlers, CardDetails } from "./types";
 
 function formatActivityType(type: string): string {
@@ -55,74 +51,20 @@ const CardDetailTabs = ({ state, handlers, details, detailsLoading }: Props) => 
   const deleteComment = useDeleteComment();
   const addAttachment = useAddAttachment();
   const deleteAttachment = useDeleteAttachment();
-  const { card, allTags, newComment, setNewComment } = state;
-
-  const cardTags = card.tags || [];
-  const tagsByCategory = allTags.reduce((acc, tag) => {
-    const cat = tag.category || "Autre";
-    if (!acc[cat]) acc[cat] = [];
-    acc[cat].push(tag);
-    return acc;
-  }, {} as Record<string, CrmTag[]>);
+  const { card, newComment, setNewComment } = state;
 
   return (
-    <Tabs defaultValue="tags" className="mt-6 border-t pt-4">
+    <Tabs defaultValue="comments" className="mt-6 border-t pt-4">
       <h4 className="font-medium text-xs text-muted-foreground uppercase tracking-wider mb-3">
         Compléments
       </h4>
-      <TabsList className="grid grid-cols-6 w-full">
-        <TabsTrigger value="tags"><Tag className="h-4 w-4" /></TabsTrigger>
+      <TabsList className="grid grid-cols-5 w-full">
         <TabsTrigger value="comments"><MessageSquare className="h-4 w-4" /></TabsTrigger>
         <TabsTrigger value="attachments"><Paperclip className="h-4 w-4" /></TabsTrigger>
         <TabsTrigger value="quotes"><FileText className="h-4 w-4" /></TabsTrigger>
         <TabsTrigger value="media"><ImageIcon className="h-4 w-4" /></TabsTrigger>
         <TabsTrigger value="activity"><History className="h-4 w-4" /></TabsTrigger>
       </TabsList>
-
-      {/* Tags */}
-      <TabsContent value="tags" className="space-y-4 mt-4">
-        <div>
-          <Label className="mb-2 block">Tags assignés</Label>
-          <div className="flex flex-wrap gap-2">
-            {cardTags.length === 0 && <p className="text-sm text-muted-foreground">Aucun tag</p>}
-            {cardTags.map((tag) => (
-              <Badge
-                key={tag.id}
-                style={{ backgroundColor: tag.color + "20", color: tag.color }}
-                className="cursor-pointer"
-                onClick={() => handlers.handleToggleTag(tag.id)}
-              >
-                {tag.name}
-                <X className="h-3 w-3 ml-1" />
-              </Badge>
-            ))}
-          </div>
-        </div>
-        <div>
-          <Label className="mb-2 block">Ajouter un tag</Label>
-          {Object.entries(tagsByCategory).map(([category, tags]) => (
-            <div key={category} className="mb-3">
-              <p className="text-xs text-muted-foreground mb-1">{category}</p>
-              <div className="flex flex-wrap gap-2">
-                {tags
-                  .filter((t) => !cardTags.some((ct) => ct.id === t.id))
-                  .map((tag) => (
-                    <Badge
-                      key={tag.id}
-                      variant="outline"
-                      style={{ borderColor: tag.color, color: tag.color }}
-                      className="cursor-pointer hover:bg-muted"
-                      onClick={() => handlers.handleToggleTag(tag.id)}
-                    >
-                      <Plus className="h-3 w-3 mr-1" />
-                      {tag.name}
-                    </Badge>
-                  ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      </TabsContent>
 
       {/* Comments */}
       <TabsContent value="comments" className="space-y-4 mt-4">
