@@ -612,6 +612,7 @@ Bonne réception.`,
   micro_devis: {
     name: "Envoi de micro-devis",
     timing: "manual",
+    sendingInfo: "✋ Envoyé manuellement depuis le CRM ou la fiche formation lors de la génération d'un devis",
     subject: {
       tu: "Votre devis pour la formation \"{{formation_name}}\"",
       vous: "Votre devis pour la formation \"{{formation_name}}\"",
