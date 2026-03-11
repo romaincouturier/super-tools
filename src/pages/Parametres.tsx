@@ -902,6 +902,7 @@ Cordialement,`,
   welcome: {
     name: "Convocation / Confirmation d'inscription",
     timing: "before",
+    sendingInfo: "✋ Envoyé manuellement depuis la fiche formation (bouton « Envoyer convocations »). Contient les infos pratiques (date, horaires, lieu)",
     subject: {
       tu: "{{training_name}} – {{training_date}} – Confirmation d'inscription",
       vous: "{{training_name}} – {{training_date}} – Confirmation d'inscription",
