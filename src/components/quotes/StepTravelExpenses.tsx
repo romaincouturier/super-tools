@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/collapsible";
 import {
   Car,
+  CarTaxiFront,
   ArrowRight,
   SkipForward,
   Plus,
@@ -188,6 +189,7 @@ function calcDestinationCost(dest: TravelDestination, settings: TravelSettings) 
       loyaltyCost = settings.trainLoyaltyPerTrip * dest.roundTrips;
       break;
     case "plane":
+    case "taxi":
     case "other":
       transportCost = dest.ticketPriceRoundTrip * dest.roundTrips;
       break;
@@ -360,6 +362,8 @@ function TransportIcon({ mode }: { mode: TravelDestination["transportMode"] }) {
       return <Train className="h-3.5 w-3.5" />;
     case "plane":
       return <Plane className="h-3.5 w-3.5" />;
+    case "taxi":
+      return <CarTaxiFront className="h-3.5 w-3.5" />;
     default:
       return <Navigation className="h-3.5 w-3.5" />;
   }
@@ -599,6 +603,7 @@ export default function StepTravelExpenses({
                           <SelectItem value="train"><span className="flex items-center gap-1.5"><Train className="h-3.5 w-3.5" /> Train</span></SelectItem>
                           <SelectItem value="car"><span className="flex items-center gap-1.5"><Car className="h-3.5 w-3.5" /> Voiture</span></SelectItem>
                           <SelectItem value="plane"><span className="flex items-center gap-1.5"><Plane className="h-3.5 w-3.5" /> Avion</span></SelectItem>
+                          <SelectItem value="taxi"><span className="flex items-center gap-1.5"><CarTaxiFront className="h-3.5 w-3.5" /> Taxi</span></SelectItem>
                           <SelectItem value="other"><span className="flex items-center gap-1.5"><Navigation className="h-3.5 w-3.5" /> Autre</span></SelectItem>
                         </SelectContent>
                       </Select>
@@ -643,9 +648,11 @@ export default function StepTravelExpenses({
                         )}
                       </>
                     )}
-                    {(dest.transportMode === "train" || dest.transportMode === "plane" || dest.transportMode === "other") && (
+                    {(dest.transportMode === "train" || dest.transportMode === "plane" || dest.transportMode === "taxi" || dest.transportMode === "other") && (
                       <div className="flex items-center gap-1.5">
-                        <Label className="text-[10px] text-muted-foreground whitespace-nowrap">Billet A/R (€)</Label>
+                        <Label className="text-[10px] text-muted-foreground whitespace-nowrap">
+                          {dest.transportMode === "taxi" ? "Course A/R (€)" : dest.transportMode === "other" ? "Coût A/R (€)" : "Billet A/R (€)"}
+                        </Label>
                         <Input type="number" min="0" value={dest.ticketPriceRoundTrip || ""} onChange={(e) => updateDest(dest.id, { ticketPriceRoundTrip: parseFloat(e.target.value) || 0 })} className="h-7 w-24 text-xs text-right" />
                       </div>
                     )}
