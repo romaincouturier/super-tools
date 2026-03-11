@@ -452,8 +452,10 @@ export default function FormationFormSection({
           {(() => {
             const config = getSelectedFormationConfig();
             if (!config) return null;
+            const activeFormula = formationFormulas.find(f => f.id === selectedFormulaId);
+            const prixUnitaire = activeFormula?.prix ?? config.prix;
             const nbParticipants = countParticipants();
-            const prixFormation = config.prix * nbParticipants;
+            const prixFormation = prixUnitaire * nbParticipants;
             const frais = fraisDossier === "oui" ? 150 : 0;
             const totalHT = prixFormation + frais;
             const tva = 0;
@@ -461,7 +463,7 @@ export default function FormationFormSection({
 
             return (
               <div className="text-sm space-y-1">
-                <p>Formation : {config.prix}€ × {nbParticipants} = <strong>{prixFormation}€</strong></p>
+                <p>Formation : {prixUnitaire}€ × {nbParticipants} = <strong>{prixFormation}€</strong></p>
                 {frais > 0 && <p>Frais de dossier : {frais}€</p>}
                 <p>Total HT : <strong>{totalHT}€</strong></p>
                 <p>TVA (0%) : Exonéré</p>
