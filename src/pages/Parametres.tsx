@@ -52,7 +52,7 @@ type AddressMode = "tu" | "vous";
 // Template configuration with timing info
 interface TemplateConfig {
   name: string;
-  timing: "before" | "during" | "after" | "manual";
+  timing: "before" | "during" | "after" | "manual" | "mission_after";
   delayKey?: string; // Key in app_settings for delay
   subject: { tu: string; vous: string };
   content: { tu: string; vous: string };
@@ -273,6 +273,83 @@ Merci d'avance pour votre temps et votre retour ! Je reste à disposition pour t
 Bonne journée`,
     },
     variables: ["first_name", "training_name"],
+  },
+  // MISSION EMAILS
+  mission_google_review: {
+    name: "Demande d'avis Google (Mission)",
+    timing: "mission_after",
+    delayKey: "delay_mission_google_review_days",
+    subject: {
+      tu: "🌟 Ton avis sur notre collaboration \"{{mission_title}}\"",
+      vous: "🌟 Votre avis sur notre collaboration \"{{mission_title}}\"",
+    },
+    content: {
+      tu: `Bonjour {{first_name}},
+
+Notre collaboration sur "{{mission_title}}" touche à sa fin, et je tenais à te remercier pour ta confiance.
+
+Pour continuer à améliorer nos services et partager des retours d'expérience, ton avis serait très précieux. Pourrais-tu nous accorder 1 minute pour laisser un commentaire sur notre page Google ?
+
+👉 Laisser un avis : {{google_review_link}}
+
+Ton retour est essentiel pour nous permettre de progresser et d'aider d'autres organisations à découvrir nos services.
+
+Merci infiniment pour ton soutien !
+
+À bientôt,`,
+      vous: `Bonjour {{first_name}},
+
+Notre collaboration sur "{{mission_title}}" touche à sa fin, et je tenais à vous remercier pour votre confiance.
+
+Pour continuer à améliorer nos services et partager des retours d'expérience, votre avis serait très précieux. Pourriez-vous nous accorder 1 minute pour laisser un commentaire sur notre page Google ?
+
+👉 Laisser un avis : {{google_review_link}}
+
+Votre retour est essentiel pour nous permettre de progresser et d'aider d'autres organisations à découvrir nos services.
+
+Merci infiniment pour votre soutien !
+
+À bientôt,`,
+    },
+    variables: ["first_name", "mission_title", "google_review_link"],
+  },
+  mission_video_testimonial: {
+    name: "Demande de témoignage vidéo (Mission)",
+    timing: "mission_after",
+    delayKey: "delay_mission_video_testimonial_days",
+    subject: {
+      tu: "🎥 Partager ton expérience sur \"{{mission_title}}\"",
+      vous: "🎥 Partager votre expérience sur \"{{mission_title}}\"",
+    },
+    content: {
+      tu: `Bonjour {{first_name}},
+
+Je me permets de te contacter pour te proposer de partager ton retour d'expérience sur notre collaboration "{{mission_title}}".
+
+Ce témoignage pourrait prendre la forme d'une courte interview en visioconférence (10 minutes maximum) ou d'un texte qui sera publié sur {{site_url}}.
+
+Ton retour serait précieux pour inspirer d'autres organisations et valoriser ton analyse.
+
+Si tu es partant(e), réponds simplement à cet email pour que nous puissions convenir d'un moment ensemble.
+
+Merci d'avance pour ton temps !
+
+Bonne journée,`,
+      vous: `Bonjour {{first_name}},
+
+Je me permets de vous contacter pour vous proposer de partager votre retour d'expérience sur notre collaboration "{{mission_title}}".
+
+Ce témoignage pourrait prendre la forme d'une courte interview en visioconférence (10 minutes maximum) ou d'un texte qui sera publié sur {{site_url}}.
+
+Votre retour serait précieux pour inspirer d'autres organisations et valoriser votre analyse.
+
+Si vous êtes partant(e), répondez simplement à cet email pour que nous puissions convenir d'un moment ensemble.
+
+Merci d'avance pour votre temps !
+
+Bonne journée,`,
+    },
+    variables: ["first_name", "mission_title", "site_url"],
   },
   cold_evaluation: {
     name: "Évaluation à froid commanditaire",
@@ -1124,6 +1201,8 @@ const SETTINGS_REGISTRY: Record<string, { default: string; description: string }
   delay_trainer_summary_days: { default: "1", description: "Délai avant formation pour envoyer la synthèse au formateur (en jours)" },
   delay_google_review_days: { default: "1", description: "Délai après formation pour demander un avis Google (en jours ouvrables)" },
   delay_video_testimonial_days: { default: "3", description: "Délai après formation pour demander un témoignage vidéo (en jours ouvrables)" },
+  delay_mission_google_review_days: { default: "2", description: "Délai après mission pour demander un avis Google (en jours)" },
+  delay_mission_video_testimonial_days: { default: "4", description: "Délai après mission pour demander un témoignage vidéo (en jours après l'avis Google)" },
   delay_cold_evaluation_days: { default: "10", description: "Délai après formation pour envoyer l'évaluation à froid (en jours ouvrables)" },
   delay_cold_evaluation_funder_days: { default: "15", description: "Délai après formation pour rappeler de contacter le financeur (en jours ouvrables)" },
   delay_evaluation_reminder_1_days: { default: "2", description: "Délai pour la 1ère relance d'évaluation (en jours ouvrables après le mail de remerciement)" },
@@ -2428,6 +2507,52 @@ const Parametres = () => {
 
                 <Separator />
 
+                {/* Mission email delays */}
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium">Délais des emails après mission</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Configurez les délais d'envoi des emails automatiques après la date de fin de mission. Envoyés à tous les contacts de la mission.
+                  </p>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="delay-mission-google-review">Avis Google</Label>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground">J +</span>
+                        <Input
+                          id="delay-mission-google-review"
+                          type="number"
+                          min="1"
+                          max="60"
+                          value={settings.delay_mission_google_review_days}
+                          onChange={(e) => updateSetting("delay_mission_google_review_days", e.target.value)}
+                          className="w-20"
+                        />
+                        <span className="text-sm text-muted-foreground">jours après fin mission</span>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="delay-mission-video-testimonial">Témoignage vidéo</Label>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground">J +</span>
+                        <Input
+                          id="delay-mission-video-testimonial"
+                          type="number"
+                          min="1"
+                          max="60"
+                          value={settings.delay_mission_video_testimonial_days}
+                          onChange={(e) => updateSetting("delay_mission_video_testimonial_days", e.target.value)}
+                          className="w-20"
+                        />
+                        <span className="text-sm text-muted-foreground">jours après l'avis Google</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
                 {/* Evaluation reminder delays */}
                 <div className="space-y-4">
                   <h3 className="text-sm font-medium">Relances pour collecte des évaluations</h3>
@@ -2797,6 +2922,51 @@ const Parametres = () => {
                               <div className="flex items-center gap-3">
                                 <Mail className="h-4 w-4 text-muted-foreground" />
                                 <span>{defaultTemplate.name}</span>
+                                {isCustomized && (
+                                  <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
+                                    Personnalisé
+                                  </span>
+                                )}
+                              </div>
+                            </AccordionTrigger>
+                            <AccordionContent className="space-y-4 pt-4">
+                              {renderTemplateEditor(type, defaultTemplate, currentMode, saveKey)}
+                            </AccordionContent>
+                          </AccordionItem>
+                        );
+                      })}
+                  </Accordion>
+                </div>
+
+                <Separator />
+
+                {/* Mission Emails */}
+                <div className="space-y-3">
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                    💼 Après une mission
+                  </h3>
+                  <Accordion type="single" collapsible className="w-full">
+                    {Object.entries(DEFAULT_TEMPLATES)
+                      .filter(([, t]) => t.timing === "mission_after")
+                      .map(([type, defaultTemplate]) => {
+                        const currentMode = activeMode[type] || "vous";
+                        const saveKey = `${type}_${currentMode}`;
+                        const isCustomized = templates[type]?.tu || templates[type]?.vous;
+                        
+                        const delayValue = defaultTemplate.delayKey ? (settings[defaultTemplate.delayKey] || null) : null;
+                        const timingLabel = delayValue ? `J+${delayValue}` : null;
+                        
+                        return (
+                          <AccordionItem key={type} value={type}>
+                            <AccordionTrigger className="text-left">
+                              <div className="flex items-center gap-3">
+                                <Mail className="h-4 w-4 text-muted-foreground" />
+                                <span>{defaultTemplate.name}</span>
+                                {timingLabel && (
+                                  <span className="text-xs bg-purple-500/10 text-purple-700 dark:text-purple-300 px-2 py-0.5 rounded font-medium">
+                                    {timingLabel}
+                                  </span>
+                                )}
                                 {isCustomized && (
                                   <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
                                     Personnalisé
