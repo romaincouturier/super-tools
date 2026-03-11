@@ -2,13 +2,17 @@
  * Process Mission Testimonials
  *
  * Cron-triggered function that checks completed missions and sends
- * testimonial request emails to clients:
+ * testimonial request emails to ALL mission contacts:
  *
- * - Wait 2 days after mission end_date before sending anything
- * - Step 1: Send Google review request email
- * - Step 2: 2 days later, send video testimonial request email
+ * - Wait X days after mission end_date before sending (configurable via app_settings)
+ * - Step 1: Send Google review request email to all contacts
+ * - Step 2: Y days later, send video testimonial request email to all contacts
  *
- * Designed to be called by a cron job (daily at 7AM like process-logistics-reminders)
+ * Delays are read from app_settings:
+ *   delay_mission_google_review_days (default: 2)
+ *   delay_mission_video_testimonial_days (default: 4, days after google review)
+ *
+ * Email templates are read from email_templates table (mission_google_review / mission_video_testimonial)
  */
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
@@ -23,9 +27,6 @@ import {
 } from "../_shared/mod.ts";
 import { getBccList } from "../_shared/email-settings.ts";
 
-const DAYS_BEFORE_GOOGLE_REVIEW = 2;
-const DAYS_BETWEEN_EMAILS = 2;
-
 serve(async (req: Request) => {
   const cors = handleCorsPreflightIfNeeded(req);
   if (cors) return cors;
@@ -33,14 +34,24 @@ serve(async (req: Request) => {
   try {
     const supabase = getSupabaseClient();
 
-    // Fetch google_my_business_url from settings
-    const { data: settings } = await supabase
+    // Fetch settings
+    const { data: settingsRows } = await supabase
       .from("app_settings")
       .select("setting_key, setting_value")
-      .in("setting_key", ["google_my_business_url", "supertilt_site_url"]);
+      .in("setting_key", [
+        "google_my_business_url",
+        "supertilt_site_url",
+        "delay_mission_google_review_days",
+        "delay_mission_video_testimonial_days",
+      ]);
 
-    const googleReviewUrl = settings?.find((s: any) => s.setting_key === "google_my_business_url")?.setting_value || "";
-    const siteUrl = settings?.find((s: any) => s.setting_key === "supertilt_site_url")?.setting_value || "https://www.supertilt.fr";
+    const getSetting = (key: string, fallback: string) =>
+      settingsRows?.find((s: any) => s.setting_key === key)?.setting_value || fallback;
+
+    const googleReviewUrl = getSetting("google_my_business_url", "");
+    const siteUrl = getSetting("supertilt_site_url", "https://www.supertilt.fr");
+    const delayGoogleReview = parseInt(getSetting("delay_mission_google_review_days", "2"), 10);
+    const delayVideoTestimonial = parseInt(getSetting("delay_mission_video_testimonial_days", "4"), 10);
 
     // Get email signature
     let signature = "";
@@ -50,14 +61,10 @@ serve(async (req: Request) => {
       console.warn("Could not fetch signature:", e);
     }
 
-    // Find missions needing testimonial processing:
-    // - end_date is set and in the past
-    // - client_contact is set (contains name + email)
-    // - testimonial_status is not 'completed'
     const today = new Date();
     const todayStr = today.toISOString().split("T")[0];
 
-    // Fetch missions that need testimonial processing
+    // Fetch missions needing testimonial processing
     const { data: missions, error } = await (supabase as any)
       .from("missions")
       .select("id, title, client_name, end_date, testimonial_status, testimonial_last_sent_at")
@@ -73,20 +80,6 @@ serve(async (req: Request) => {
       });
     }
 
-    // Helper: extract email from client_contact string (e.g. "Jean Dupont jean@example.com")
-    const extractEmail = (contact: string): string | null => {
-      const match = contact.match(/[\w.+-]+@[\w.-]+\.\w+/);
-      return match ? match[0] : null;
-    };
-
-    // Helper: extract name from client_contact (everything before the email)
-    const extractName = (contact: string): string => {
-      const email = extractEmail(contact);
-      if (!email) return contact.trim();
-      return contact.replace(email, "").trim();
-    };
-
-    // Filter missions - we'll use mission_contacts instead of client_contact field
     const missionsToProcess = (missions || []).filter((m: any) => m.end_date);
 
     if (missionsToProcess.length === 0) {
@@ -103,53 +96,65 @@ serve(async (req: Request) => {
     for (let mi = 0; mi < missionsToProcess.length; mi++) {
       const mission = missionsToProcess[mi];
 
-      // Rate limit between missions
       if (mi > 0) {
         await new Promise(resolve => setTimeout(resolve, 400));
       }
+
       const endDate = new Date(mission.end_date);
       const daysSinceEnd = Math.floor((today.getTime() - endDate.getTime()) / (1000 * 60 * 60 * 24));
 
-      // Fetch primary contact from mission_contacts
+      // Fetch ALL contacts for this mission (not just primary)
       const { data: contacts } = await (supabase as any)
         .from("mission_contacts")
         .select("first_name, last_name, email, language")
-        .eq("mission_id", mission.id)
-        .eq("is_primary", true)
-        .limit(1);
+        .eq("mission_id", mission.id);
 
-      const primaryContact = contacts?.[0];
-      if (!primaryContact || !primaryContact.email) {
-        console.log(`Mission ${mission.id}: no primary contact with email, skipping`);
+      const validContacts = (contacts || []).filter((c: any) => c.email);
+      if (validContacts.length === 0) {
+        console.log(`Mission ${mission.id}: no contacts with email, skipping`);
         continue;
       }
 
-      const clientName = primaryContact.first_name || mission.client_name || "";
-      const clientEmail = primaryContact.email;
-
-      // Determine language from primary contact
-      const isFrench = primaryContact.language === "fr" || !primaryContact.language;
-
       // STEP 1: Send Google Review request
-      if (mission.testimonial_status === "pending" && daysSinceEnd >= DAYS_BEFORE_GOOGLE_REVIEW) {
-        // Try to get custom template from email_templates
-        const { data: customTemplate } = await supabase
+      if (mission.testimonial_status === "pending" && daysSinceEnd >= delayGoogleReview) {
+        // Try custom template from email_templates (tu/vous variants)
+        const { data: customTemplates } = await supabase
           .from("email_templates")
-          .select("subject, html_content")
-          .eq("template_type", "mission_google_review")
-          .maybeSingle();
+          .select("subject, html_content, template_type")
+          .in("template_type", ["mission_google_review_tu", "mission_google_review_vous", "mission_google_review"]);
 
-        let subject: string;
-        let body: string;
+        let allSent = true;
+        for (let ci = 0; ci < validContacts.length; ci++) {
+          const contact = validContacts[ci];
+          if (ci > 0) await new Promise(r => setTimeout(r, 400));
 
-        if (customTemplate) {
-          subject = customTemplate.subject.replace(/\{\{mission_title\}\}/g, mission.title).replace(/\{\{first_name\}\}/g, clientName);
-          body = customTemplate.html_content.replace(/\{\{mission_title\}\}/g, mission.title).replace(/\{\{first_name\}\}/g, clientName).replace(/\{\{google_review_link\}\}/g, googleReviewUrl);
-        } else {
-          // Default template
-          subject = `🌟 Votre avis sur notre collaboration "${mission.title}"`;
-          const bodyText = isFrench
-            ? `Bonjour${clientName ? ` ${clientName}` : ""},
+          const clientName = contact.first_name || mission.client_name || "";
+          const isFrench = contact.language === "fr" || !contact.language;
+
+          // Determine tu/vous — default to vous
+          const addressMode = "vous";
+          const templateKey = `mission_google_review_${addressMode}`;
+          const customTemplate = customTemplates?.find((t: any) => t.template_type === templateKey)
+            || customTemplates?.find((t: any) => t.template_type === "mission_google_review");
+
+          let subject: string;
+          let body: string;
+
+          if (customTemplate) {
+            subject = customTemplate.subject
+              .replace(/\{\{mission_title\}\}/g, mission.title)
+              .replace(/\{\{first_name\}\}/g, clientName);
+            body = customTemplate.html_content
+              .replace(/\{\{mission_title\}\}/g, mission.title)
+              .replace(/\{\{first_name\}\}/g, clientName)
+              .replace(/\{\{google_review_link\}\}/g, googleReviewUrl);
+          } else {
+            subject = isFrench
+              ? `🌟 Votre avis sur notre collaboration "${mission.title}"`
+              : `🌟 Your feedback on our collaboration "${mission.title}"`;
+
+            const bodyText = isFrench
+              ? `Bonjour${clientName ? ` ${clientName}` : ""},
 
 Notre collaboration sur "${mission.title}" touche à sa fin, et je tenais à vous remercier pour votre confiance.
 
@@ -162,7 +167,7 @@ Votre retour est essentiel pour nous permettre de progresser et d'aider d'autres
 Merci infiniment pour votre soutien !
 
 À bientôt,`
-            : `Hello${clientName ? ` ${clientName}` : ""},
+              : `Hello${clientName ? ` ${clientName}` : ""},
 
 Our collaboration on "${mission.title}" is coming to an end, and I wanted to thank you for your trust.
 
@@ -176,20 +181,25 @@ Thank you for your support!
 
 Best regards,`;
 
-          body = textToHtml(bodyText);
+            body = textToHtml(bodyText);
+          }
+
+          const html = wrapEmailHtml(body, signature);
+          const result = await sendEmail({
+            to: contact.email,
+            bcc: ci === 0 ? bccList : undefined, // BCC only on first contact
+            subject,
+            html,
+            _emailType: "mission_google_review",
+          });
+
+          if (!result.success) {
+            console.error(`Failed to send google review email to ${contact.email} for mission ${mission.id}:`, result.error);
+            allSent = false;
+          }
         }
 
-        const html = wrapEmailHtml(body, signature);
-
-        const result = await sendEmail({
-          to: clientEmail,
-          bcc: bccList,
-          subject,
-          html,
-          _emailType: "mission_google_review",
-        });
-
-        if (result.success) {
+        if (allSent) {
           await (supabase as any)
             .from("missions")
             .update({
@@ -199,37 +209,52 @@ Best regards,`;
             .eq("id", mission.id);
 
           googleReviewsSent++;
-          console.log(`Google review email sent for mission ${mission.id}`);
-        } else {
-          console.error(`Failed to send google review email for mission ${mission.id}:`, result.error);
+          console.log(`Google review emails sent for mission ${mission.id} (${validContacts.length} contacts)`);
         }
       }
 
-      // STEP 2: Send Video Testimonial request (2 days after Google review)
+      // STEP 2: Send Video Testimonial request
       if (mission.testimonial_status === "google_review_sent" && mission.testimonial_last_sent_at) {
         const lastSent = new Date(mission.testimonial_last_sent_at);
         const daysSinceLastEmail = Math.floor((today.getTime() - lastSent.getTime()) / (1000 * 60 * 60 * 24));
 
-        if (daysSinceLastEmail >= DAYS_BETWEEN_EMAILS) {
-          const { data: customTemplate } = await supabase
+        if (daysSinceLastEmail >= delayVideoTestimonial) {
+          const { data: customTemplates } = await supabase
             .from("email_templates")
-            .select("subject, html_content")
-            .eq("template_type", "mission_video_testimonial")
-            .maybeSingle();
+            .select("subject, html_content, template_type")
+            .in("template_type", ["mission_video_testimonial_tu", "mission_video_testimonial_vous", "mission_video_testimonial"]);
 
-          let subject: string;
-          let body: string;
+          let allSent = true;
+          for (let ci = 0; ci < validContacts.length; ci++) {
+            const contact = validContacts[ci];
+            if (ci > 0) await new Promise(r => setTimeout(r, 400));
 
-          if (customTemplate) {
-            subject = customTemplate.subject.replace(/\{\{mission_title\}\}/g, mission.title).replace(/\{\{first_name\}\}/g, clientName);
-            body = customTemplate.html_content.replace(/\{\{mission_title\}\}/g, mission.title).replace(/\{\{first_name\}\}/g, clientName);
-          } else {
-            subject = isFrench
-              ? `🎥 Partager votre expérience sur "${mission.title}"`
-              : `🎥 Share your experience about "${mission.title}"`;
+            const clientName = contact.first_name || mission.client_name || "";
+            const isFrench = contact.language === "fr" || !contact.language;
 
-            const bodyText = isFrench
-              ? `Bonjour${clientName ? ` ${clientName}` : ""},
+            const addressMode = "vous";
+            const templateKey = `mission_video_testimonial_${addressMode}`;
+            const customTemplate = customTemplates?.find((t: any) => t.template_type === templateKey)
+              || customTemplates?.find((t: any) => t.template_type === "mission_video_testimonial");
+
+            let subject: string;
+            let body: string;
+
+            if (customTemplate) {
+              subject = customTemplate.subject
+                .replace(/\{\{mission_title\}\}/g, mission.title)
+                .replace(/\{\{first_name\}\}/g, clientName);
+              body = customTemplate.html_content
+                .replace(/\{\{mission_title\}\}/g, mission.title)
+                .replace(/\{\{first_name\}\}/g, clientName)
+                .replace(/\{\{site_url\}\}/g, siteUrl);
+            } else {
+              subject = isFrench
+                ? `🎥 Partager votre expérience sur "${mission.title}"`
+                : `🎥 Share your experience about "${mission.title}"`;
+
+              const bodyText = isFrench
+                ? `Bonjour${clientName ? ` ${clientName}` : ""},
 
 Je me permets de vous contacter pour vous proposer de partager votre retour d'expérience sur notre collaboration "${mission.title}".
 
@@ -242,7 +267,7 @@ Si vous êtes partant(e), répondez simplement à cet email pour que nous puissi
 Merci d'avance pour votre temps !
 
 Bonne journée,`
-              : `Hello${clientName ? ` ${clientName}` : ""},
+                : `Hello${clientName ? ` ${clientName}` : ""},
 
 I'm reaching out to invite you to share your feedback about our collaboration on "${mission.title}".
 
@@ -256,20 +281,25 @@ Thank you for your time!
 
 Best regards,`;
 
-            body = textToHtml(bodyText);
+              body = textToHtml(bodyText);
+            }
+
+            const html = wrapEmailHtml(body, signature);
+            const result = await sendEmail({
+              to: contact.email,
+              bcc: ci === 0 ? bccList : undefined,
+              subject,
+              html,
+              _emailType: "mission_video_testimonial",
+            });
+
+            if (!result.success) {
+              console.error(`Failed to send testimonial email to ${contact.email} for mission ${mission.id}:`, result.error);
+              allSent = false;
+            }
           }
 
-          const html = wrapEmailHtml(body, signature);
-
-          const result = await sendEmail({
-            to: clientEmail,
-            bcc: bccList,
-            subject,
-            html,
-            _emailType: "mission_video_testimonial",
-          });
-
-          if (result.success) {
+          if (allSent) {
             await (supabase as any)
               .from("missions")
               .update({
@@ -279,9 +309,7 @@ Best regards,`;
               .eq("id", mission.id);
 
             testimonialsSent++;
-            console.log(`Video testimonial email sent for mission ${mission.id}`);
-          } else {
-            console.error(`Failed to send testimonial email for mission ${mission.id}:`, result.error);
+            console.log(`Video testimonial emails sent for mission ${mission.id} (${validContacts.length} contacts)`);
           }
         }
       }
