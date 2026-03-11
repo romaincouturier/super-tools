@@ -482,11 +482,6 @@ async function sendEmailWithResend(
   }
 
   console.log("Email sent successfully:", emailResponse);
-    subject,
-    htmlContent,
-    attachmentNames: attachments.map((a) => a.filename),
-    attachments,
-  };
 }
 
 serve(async (req: Request): Promise<Response> => {
