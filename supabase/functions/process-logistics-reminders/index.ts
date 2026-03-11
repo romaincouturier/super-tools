@@ -819,7 +819,14 @@ serve(async (req) => {
         alertCount += userMissionAlerts.length;
       }
 
-      // 2b. Missions sans date de début (filtered by assigned_to)
+      // 2b. Activités mission non facturées (filtered by assigned_to)
+      const userUnbilledAlerts = unbilledAlerts.filter((a) => userCanSee(recipient, a.assignedTo));
+      if (userUnbilledAlerts.length > 0) {
+        sections.push(sectionHtml("📋", "Activités non facturées", COLORS.amber, userUnbilledAlerts.map((a) => a.html), userUnbilledAlerts.length));
+        alertCount += userUnbilledAlerts.length;
+      }
+
+      // 2c. Missions sans date de début (filtered by assigned_to)
       const userMissionNoDateAlerts = missionNoDateAlerts.filter((a) => userCanSee(recipient, a.assignedTo));
       if (userMissionNoDateAlerts.length > 0) {
         sections.push(sectionHtml("📅", "Missions sans date de début", COLORS.orange, userMissionNoDateAlerts.map((a) => a.html), userMissionNoDateAlerts.length));
