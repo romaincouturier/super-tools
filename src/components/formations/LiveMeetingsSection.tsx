@@ -525,8 +525,14 @@ const LiveMeetingsSection = ({ trainingId }: LiveMeetingsSectionProps) => {
       </Dialog>
 
       {/* Run Notes Dialog */}
-      <Dialog open={notesDialogOpen} onOpenChange={setNotesDialogOpen}>
-        <DialogContent>
+      <Dialog open={notesDialogOpen} onOpenChange={(open) => {
+        if (!open && notesMeeting && autoSaveTimerRef.current) {
+          clearTimeout(autoSaveTimerRef.current);
+          saveNotesNow(notesMeeting.id, runNotes);
+        }
+        setNotesDialogOpen(open);
+      }}>
+        <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5" />
@@ -536,21 +542,35 @@ const LiveMeetingsSection = ({ trainingId }: LiveMeetingsSectionProps) => {
                   — {notesMeeting.title}
                 </span>
               )}
+              <span className="ml-auto flex items-center gap-2 text-sm font-normal">
+                {savingNotes && (
+                  <span className="flex items-center gap-1 text-muted-foreground">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    Enregistrement...
+                  </span>
+                )}
+                {notesSaved && !savingNotes && (
+                  <span className="flex items-center gap-1 text-green-600">
+                    <Check className="h-3.5 w-3.5" />
+                    Enregistré
+                  </span>
+                )}
+              </span>
             </DialogTitle>
           </DialogHeader>
-          <div className="py-2">
-            <Textarea
-              value={runNotes}
-              onChange={(e) => setRunNotes(e.target.value)}
+          <div className="flex-1 overflow-y-auto py-2">
+            <RichTextEditor
+              content={runNotes}
+              onChange={handleRunNotesChange}
               placeholder="Notez le déroulé du live, les points abordés, les questions posées..."
-              rows={10}
-              className="resize-y"
+              minHeight="350px"
             />
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setNotesDialogOpen(false)}>Fermer</Button>
             <Button onClick={handleSaveNotes} disabled={savingNotes}>
               {savingNotes && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              <Save className="h-4 w-4 mr-2" />
               Enregistrer
             </Button>
           </DialogFooter>
