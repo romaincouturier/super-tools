@@ -55,6 +55,7 @@ export default function Step3QuoteGeneration({
   synthesis,
   instructions,
   travelTotal = 0,
+  crmCard,
   onContinue,
 }: Props) {
   const { data: settings } = useQuoteSettings();
