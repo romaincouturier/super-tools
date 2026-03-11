@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Video, Plus, Trash2, Loader2, ExternalLink, Check, X, Pencil, Copy } from "lucide-react";
+import { Video, Plus, Trash2, Loader2, ExternalLink, Check, X, Pencil, Copy, FileText } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,6 +45,7 @@ interface LiveMeeting {
   meeting_url: string | null;
   description: string | null;
   email_content: string | null;
+  run_notes: string | null;
   status: string;
 }
 
@@ -65,6 +66,10 @@ const LiveMeetingsSection = ({ trainingId }: LiveMeetingsSectionProps) => {
   const [meetingUrl, setMeetingUrl] = useState("");
   const [description, setDescription] = useState("");
   const [emailContent, setEmailContent] = useState("");
+  const [notesDialogOpen, setNotesDialogOpen] = useState(false);
+  const [notesMeeting, setNotesMeeting] = useState<LiveMeeting | null>(null);
+  const [runNotes, setRunNotes] = useState("");
+  const [savingNotes, setSavingNotes] = useState(false);
   const { toast } = useToast();
 
   const fetchMeetings = async () => {
@@ -245,6 +250,31 @@ const LiveMeetingsSection = ({ trainingId }: LiveMeetingsSectionProps) => {
     if (!error) fetchMeetings();
   };
 
+  const openNotes = (meeting: LiveMeeting) => {
+    setNotesMeeting(meeting);
+    setRunNotes(meeting.run_notes || "");
+    setNotesDialogOpen(true);
+  };
+
+  const handleSaveNotes = async () => {
+    if (!notesMeeting) return;
+    setSavingNotes(true);
+    try {
+      const { error } = await supabase
+        .from("training_live_meetings")
+        .update({ run_notes: runNotes.trim() || null })
+        .eq("id", notesMeeting.id);
+      if (error) throw error;
+      toast({ title: "Notes enregistrées" });
+      setNotesDialogOpen(false);
+      fetchMeetings();
+    } catch (error: any) {
+      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+    } finally {
+      setSavingNotes(false);
+    }
+  };
+
   const statusBadge = (status: string) => {
     switch (status) {
       case "scheduled":
@@ -324,6 +354,15 @@ const LiveMeetingsSection = ({ trainingId }: LiveMeetingsSectionProps) => {
                     ) : (
                       <Check className="h-3.5 w-3.5" />
                     )}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className={`h-7 w-7 ${meeting.run_notes ? "text-blue-600" : ""}`}
+                    onClick={() => openNotes(meeting)}
+                    title="Notes de déroulé"
+                  >
+                    <FileText className="h-3.5 w-3.5" />
                   </Button>
                   <Button
                     variant="ghost"
@@ -453,6 +492,39 @@ const LiveMeetingsSection = ({ trainingId }: LiveMeetingsSectionProps) => {
             <Button onClick={handleSave} disabled={saving || !title.trim() || !scheduledDate}>
               {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               {editingMeeting ? "Enregistrer" : "Ajouter"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Run Notes Dialog */}
+      <Dialog open={notesDialogOpen} onOpenChange={setNotesDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Notes de déroulé
+              {notesMeeting && (
+                <span className="text-sm font-normal text-muted-foreground">
+                  — {notesMeeting.title}
+                </span>
+              )}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-2">
+            <Textarea
+              value={runNotes}
+              onChange={(e) => setRunNotes(e.target.value)}
+              placeholder="Notez le déroulé du live, les points abordés, les questions posées..."
+              rows={10}
+              className="resize-y"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setNotesDialogOpen(false)}>Fermer</Button>
+            <Button onClick={handleSaveNotes} disabled={savingNotes}>
+              {savingNotes && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Enregistrer
             </Button>
           </DialogFooter>
         </DialogContent>
