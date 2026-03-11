@@ -151,6 +151,51 @@ serve(async (req) => {
     }
     console.log(`[${VERSION}] Missions à facturer: ${perUserActions.filter(a => a.category === "missions_a_facturer").length}`);
 
+    // 1c. ACTIVITÉS MISSION NON FACTURÉES
+    const { data: unbilledActivities } = await supabase
+      .from("mission_activities")
+      .select("id, mission_id, description, activity_date, billable_amount, duration, duration_type")
+      .eq("is_billed", false)
+      .gt("billable_amount", 0);
+
+    if (unbilledActivities && unbilledActivities.length > 0) {
+      // Group by mission_id
+      const byMission = new Map<string, any[]>();
+      for (const a of unbilledActivities) {
+        const list = byMission.get(a.mission_id) || [];
+        list.push(a);
+        byMission.set(a.mission_id, list);
+      }
+
+      // Fetch mission info for these missions
+      const missionIds = [...byMission.keys()];
+      const { data: activityMissions } = await supabase
+        .from("missions")
+        .select("id, title, client_name, emoji, assigned_to, waiting_next_action_date")
+        .in("id", missionIds);
+
+      if (activityMissions) {
+        for (const m of activityMissions) {
+          // Skip missions with a future scheduled action
+          if (m.waiting_next_action_date && m.waiting_next_action_date > today) continue;
+          const activities = byMission.get(m.id) || [];
+          const totalUnbilled = activities.reduce((sum: number, a: any) => sum + (Number(a.billable_amount) || 0), 0);
+          const label = m.client_name ? `${m.client_name} — ${m.title}` : m.title;
+          const emoji = m.emoji ? `${m.emoji} ` : "";
+          perUserActions.push({
+            category: "missions_activites_non_facturees",
+            title: `${emoji}${label}`,
+            description: `${activities.length} activité(s) non facturée(s) — ${totalUnbilled.toLocaleString("fr-FR")} €`,
+            link: `${appUrl}/missions/${m.id}`,
+            entity_type: "mission",
+            entity_id: m.id,
+            assignedTo: m.assigned_to,
+          });
+        }
+      }
+    }
+    console.log(`[${VERSION}] Activités non facturées: ${perUserActions.filter(a => a.category === "missions_activites_non_facturees").length}`);
+
     // 1b. MISSIONS SANS DATE DE DÉBUT (filtered by assigned_to)
     const { data: missionsNoStartDate } = await supabase
       .from("missions")
