@@ -1,4 +1,7 @@
-import { Calendar, FileText, MapPin, Building, UserIcon, Clock, Copy, Check, Euro, Mail, ExternalLink } from "lucide-react";
+import { useState } from "react";
+import { Calendar, FileText, MapPin, Building, UserIcon, Clock, Copy, Check, Euro, Mail, ExternalLink, Truck, Loader2, CheckCircle2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { formatSentDateTime } from "@/lib/dateFormatters";
 import { User as UserIconLucide } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
