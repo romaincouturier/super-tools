@@ -475,9 +475,13 @@ async function sendEmailWithResend(
     _emailType: "micro_devis",
   });
 
-  console.log("Email sent successfully:", emailResponse);
+  if (!emailResponse.success) {
+    const errorMessage = emailResponse.error || "Échec de l'envoi du micro-devis";
+    console.error("Micro-devis email send failed:", errorMessage);
+    throw new Error(errorMessage);
+  }
 
-  return {
+  console.log("Email sent successfully:", emailResponse);
     subject,
     htmlContent,
     attachmentNames: attachments.map((a) => a.filename),
