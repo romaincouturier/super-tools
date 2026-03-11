@@ -928,7 +928,7 @@ serve(async (req) => {
 <html>
 <head><meta charset="utf-8"></head>
 <body style="margin: 0; padding: 0; background-color: #f9fafb;">
-  <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; max-width: 640px; margin: 0 auto; padding: 20px;">
+  <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; max-width: 640px; padding: 20px;">
     <div style="background: linear-gradient(135deg, ${COLORS.primary} 0%, #2d2d5e 100%); border-radius: 12px 12px 0 0; padding: 24px 28px;">
       <h1 style="color: white; margin: 0; font-size: 20px; font-weight: 600;">
         🔔 Récapitulatif quotidien

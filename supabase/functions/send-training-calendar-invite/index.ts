@@ -173,7 +173,7 @@ serve(async (req: Request): Promise<Response> => {
 
     // Build email HTML
     const htmlContent = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <div style="font-family: Arial, sans-serif; max-width: 600px; padding: 20px;">
         <p>Bonjour ${trainerFirstName},</p>
 
         <p>Une nouvelle formation vient d'etre creee et vous avez ete designe(e) comme formateur(trice) :</p>

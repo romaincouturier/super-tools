@@ -1135,7 +1135,7 @@ serve(async (req) => {
         bcc: bccList.filter(e => e !== adminEmail),
         subject: `❌ ÉCHEC sauvegarde SuperTools ${new Date().toISOString().split("T")[0]}`,
         html: `
-          <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="font-family: sans-serif; max-width: 600px;">
             <h2 style="color: #dc2626;">Échec de la sauvegarde automatique</h2>
             <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 16px;">
               <p style="margin: 0; color: #991b1b;"><strong>Erreur :</strong> ${errorMessage}</p>

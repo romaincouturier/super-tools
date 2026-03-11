@@ -178,7 +178,7 @@ serve(async (req: Request) => {
             to: [ADMIN_EMAIL],
             subject: "⚠️ Alerte sécurité SuperTools - Tentatives de connexion suspectes",
             html: `
-              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+              <div style="font-family: Arial, sans-serif; max-width: 600px;">
                 <h1 style="color: #dc2626;">⚠️ Alerte Sécurité</h1>
                 <p><strong>${ALERT_THRESHOLD} tentatives de connexion échouées détectées</strong></p>
                 

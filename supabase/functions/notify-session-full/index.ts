@@ -67,7 +67,7 @@ Deno.serve(async (req) => {
     const managerFirstName = commManager.first_name || ""; 
 
     const html = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <div style="font-family: Arial, sans-serif; max-width: 600px;">
         <h2 style="color: #10b981;">🎉 Session complète !</h2>
         <p>${managerFirstName ? `Bonjour ${managerFirstName},` : "Bonjour,"}</p>
         <p>La formation <strong>${training.training_name}</strong> a atteint son nombre maximum de participants.</p>

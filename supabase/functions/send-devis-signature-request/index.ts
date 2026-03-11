@@ -110,7 +110,7 @@ serve(async (req: Request): Promise<Response> => {
       : "sans subrogation de paiement";
 
     const htmlContent = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <div style="font-family: Arial, sans-serif; max-width: 600px; padding: 20px;">
         <p>${greeting}</p>
 
         <p>Suite a votre demande, nous vous invitons a signer electroniquement le devis pour la formation <strong>"${formationName}"</strong> (${clientName}).</p>
