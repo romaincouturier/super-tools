@@ -1180,6 +1180,7 @@ Ce rappel sera envoyé chaque lundi jusqu'à ce que les réservations soient con
   sponsor_notification: {
     name: "Notification convocations au commanditaire",
     timing: "manual",
+    sendingInfo: "📤 Envoyé automatiquement au commanditaire juste après l'envoi des convocations aux participants. Liste les participants convoqués",
     subject: {
       tu: "Convocations envoyées - {{training_name}}",
       vous: "Convocations envoyées - {{training_name}}",
