@@ -1630,33 +1630,6 @@ export type Database = {
           },
         ]
       }
-      feature_usage: {
-        Row: {
-          id: string
-          user_id: string | null
-          feature_name: string
-          feature_category: string
-          metadata: Json | null
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          user_id?: string | null
-          feature_name: string
-          feature_category: string
-          metadata?: Json | null
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          user_id?: string | null
-          feature_name?: string
-          feature_category?: string
-          metadata?: Json | null
-          created_at?: string
-        }
-        Relationships: []
-      }
       events: {
         Row: {
           assigned_to: string | null
@@ -1808,6 +1781,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      feature_usage: {
+        Row: {
+          created_at: string
+          feature_category: string
+          feature_name: string
+          id: string
+          metadata: Json | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          feature_category: string
+          feature_name: string
+          id?: string
+          metadata?: Json | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          feature_category?: string
+          feature_name?: string
+          id?: string
+          metadata?: Json | null
+          user_id?: string | null
+        }
+        Relationships: []
       }
       formation_configs: {
         Row: {

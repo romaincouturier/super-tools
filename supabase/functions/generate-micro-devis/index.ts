@@ -478,6 +478,15 @@ async function sendEmailWithResend(
   }
 
   console.log("Email sent successfully:", emailResponse);
+
+  const attachmentNames = attachments.map((a) => a.filename);
+
+  return {
+    subject,
+    htmlContent,
+    attachmentNames,
+    attachments,
+  };
 }
 
 serve(async (req: Request): Promise<Response> => {
