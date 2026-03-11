@@ -39,6 +39,7 @@ const RichTextEditor = ({
   onChange,
   placeholder = "Écrivez ici...",
   className,
+  minHeight = "200px",
 }: RichTextEditorProps) => {
   const editor = useEditor({
     extensions: [
