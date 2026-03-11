@@ -28,15 +28,16 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
   const { data: existingQuote, isLoading: loadingQuote } = useQuote(existingQuoteId);
 
   // Determine initial step from existing quote
+  // Step order: 0 Client → 1 Déplacements → 2 Devis → 3 Loom → 4 Synthèse → 5 Email
   const getInitialStep = (q: Quote | null | undefined): QuoteWorkflowStep => {
     if (!q) return 0;
     const saved = (q as any).workflow_step;
     if (typeof saved === "number" && saved >= 0 && saved <= 5) return saved as QuoteWorkflowStep;
     // Fallback: infer from data
     if (q.email_sent_at) return 5;
-    if (q.loom_url) return 4;
-    if (q.line_items?.length > 0) return 3;
-    if (q.synthesis) return 1;
+    if (q.synthesis) return 4;
+    if (q.loom_url) return 3;
+    if (q.line_items?.length > 0) return 2;
     return 0;
   };
 
@@ -150,7 +151,7 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
     }
   }, [quote]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Step 0 → Create quote and go to step 1
+  // Step 0 → Create quote and go to step 1 (Déplacements)
   const handleClientValidated = async (client: ClientData) => {
     setClientData(client);
     completeStep(0);
@@ -193,49 +194,49 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
     setStep(1);
   };
 
-  // Step 1 → Save synthesis + instructions, go to step 2
-  const handleSynthesisValidated = async (s: string, i: string) => {
-    setSynthesis(s);
-    setInstructions(i);
+  // Step 1 → Travel expenses, go to step 2 (Devis)
+  const handleTravelContinue = async (total: number, destinations: TravelDestination[], settings: TravelSettings | null) => {
+    setTravelTotal(total);
+    setTravelDestinations(destinations);
+    setTravelSettings(settings);
     completeStep(1);
 
     if (quote) {
-      await saveWorkflowStep(quote.id, 2, { synthesis: s, instructions: i });
+      const travelData = { total, destinations, settings };
+      await saveWorkflowStep(quote.id, 2, { travel_data: travelData });
     }
 
     setStep(2);
   };
 
-  // Step 2 → Travel expenses, go to step 3
-  const handleTravelContinue = async (total: number, destinations: TravelDestination[], settings: TravelSettings | null) => {
-    setTravelTotal(total);
-    setTravelDestinations(destinations);
-    setTravelSettings(settings);
+  // Step 2 → Go to step 3 (Loom)
+  const handleQuoteContinue = async (updatedQuote: Quote) => {
+    setQuote(updatedQuote);
     completeStep(2);
-
-    if (quote) {
-      const travelData = { total, destinations, settings };
-      await saveWorkflowStep(quote.id, 3, { travel_data: travelData });
-    }
-
+    saveWorkflowStep(updatedQuote.id, 3);
     setStep(3);
   };
 
-  // Step 3 → Go to step 4
-  const handleQuoteContinue = async (updatedQuote: Quote) => {
-    setQuote(updatedQuote);
+  // Step 3 → Save loom, go to step 4 (Synthèse)
+  const handleLoomContinue = async (url: string | null) => {
+    setLoomUrl(url);
     completeStep(3);
-    saveWorkflowStep(updatedQuote.id, 4);
+
+    if (quote) {
+      await saveWorkflowStep(quote.id, 4, url ? { loom_url: url } : {});
+    }
+
     setStep(4);
   };
 
-  // Step 4 → Save loom, go to step 5
-  const handleLoomContinue = async (url: string | null) => {
-    setLoomUrl(url);
+  // Step 4 → Save synthesis + instructions, go to step 5 (Email)
+  const handleSynthesisValidated = async (s: string, i: string) => {
+    setSynthesis(s);
+    setInstructions(i);
     completeStep(4);
 
     if (quote) {
-      await saveWorkflowStep(quote.id, 5, url ? { loom_url: url } : {});
+      await saveWorkflowStep(quote.id, 5, { synthesis: s, instructions: i });
     }
 
     setStep(5);
@@ -286,22 +287,6 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
       {step === 1 && (
         <>
           <BackButton onClick={handleBack} />
-          <Step1Synthesis
-            crmCard={crmCard}
-            clientCompany={clientData?.company || crmCard.company || ""}
-            onValidate={handleSynthesisValidated}
-            onDraftChange={handleDraftSynthesis}
-            onChallengeChange={handleChallengeChange}
-            initialSynthesis={synthesis}
-            initialInstructions={instructions}
-            initialChallengeHtml={challengeHtml}
-          />
-        </>
-      )}
-
-      {step === 2 && (
-        <>
-          <BackButton onClick={handleBack} />
           <StepTravelExpenses
             onContinue={handleTravelContinue}
             initialTotal={travelTotal}
@@ -311,7 +296,7 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
         </>
       )}
 
-      {step === 3 && quote && (
+      {step === 2 && quote && (
         <>
           <BackButton onClick={handleBack} />
           <Step3QuoteGeneration
@@ -325,13 +310,29 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
         </>
       )}
 
-      {step === 4 && (
+      {step === 3 && (
         <>
           <BackButton onClick={handleBack} />
           <Step4Loom
             onContinue={handleLoomContinue}
             onDraftChange={handleDraftLoom}
             initialLoomUrl={loomUrl}
+          />
+        </>
+      )}
+
+      {step === 4 && (
+        <>
+          <BackButton onClick={handleBack} />
+          <Step1Synthesis
+            crmCard={crmCard}
+            clientCompany={clientData?.company || crmCard.company || ""}
+            onValidate={handleSynthesisValidated}
+            onDraftChange={handleDraftSynthesis}
+            onChallengeChange={handleChallengeChange}
+            initialSynthesis={synthesis}
+            initialInstructions={instructions}
+            initialChallengeHtml={challengeHtml}
           />
         </>
       )}

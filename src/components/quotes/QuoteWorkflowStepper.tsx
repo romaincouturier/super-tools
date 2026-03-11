@@ -4,10 +4,10 @@ import type { QuoteWorkflowStep } from "@/types/quotes";
 
 const STEPS: { label: string; description: string }[] = [
   { label: "Client", description: "Validation SIREN" },
-  { label: "Synthèse", description: "Résumé + instructions" },
   { label: "Déplacements", description: "Frais de route" },
   { label: "Devis", description: "Génération PDF" },
   { label: "Loom", description: "Vidéo (optionnel)" },
+  { label: "Synthèse", description: "Résumé + instructions" },
   { label: "Email", description: "Envoi final" },
 ];
 
