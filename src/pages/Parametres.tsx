@@ -206,6 +206,7 @@ Je vous souhaite une bonne journée`,
   google_review: {
     name: "Demande d'avis Google",
     timing: "after",
+    sendingInfo: "📤 Envoyé automatiquement au commanditaire, J+X jours ouvrables après la fin de la formation (configurable)",
     delayKey: "delay_google_review_days",
     subject: {
       tu: "🌟 Ton avis sur la formation \"{{training_name}}\"",
