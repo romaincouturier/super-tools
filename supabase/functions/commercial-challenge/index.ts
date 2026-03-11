@@ -62,6 +62,9 @@ FORMAT DE SORTIE — HTML simple (PAS de markdown) :
 <h3>🚀 Recommandation finale</h3>
 <p>Résumé actionable en 2-3 phrases</p>
 
+<h3>❓ Questions puissantes pour parfaire la proposition</h3>
+<ol><li>5 à 10 questions stratégiques et percutantes à poser au client ou à se poser soi-même pour affiner la proposition, lever les zones d'ombre, et maximiser l'impact commercial. Chaque question doit être concrète, orientée action, et viser un angle différent (besoin réel, budget, décision, timing, concurrence, valeur perçue, etc.).</li></ol>
+
 IMPORTANT : Retourne UNIQUEMENT le HTML, sans wrapper markdown.`;
 
     const userContent = [
@@ -82,7 +85,7 @@ IMPORTANT : Retourne UNIQUEMENT le HTML, sans wrapper markdown.`;
           { role: "system", content: systemPrompt },
           { role: "user", content: userContent },
         ],
-        max_tokens: 2048,
+        max_tokens: 3000,
         temperature: 0.4,
       }),
     });
