@@ -97,6 +97,10 @@ const MissionsKanbanBoard = ({ prefillFromCrm, onPrefillConsumed, openMissionId 
     if (!normalizedSearch) {
       filtered = filtered.filter((m) => !isScheduledInFuture(m));
     }
+    // Hide completed missions that have an end_date set (they are archived)
+    if (!normalizedSearch) {
+      filtered = filtered.filter((m) => !(m.status === "completed" && m.end_date));
+    }
 
     return filtered.map((m) => ({
       ...m,
