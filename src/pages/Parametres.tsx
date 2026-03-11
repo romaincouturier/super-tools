@@ -771,6 +771,7 @@ Cordialement,`,
   certificate: {
     name: "Envoi du certificat de réalisation",
     timing: "after",
+    sendingInfo: "📤 Envoyé automatiquement au participant après qu'il a complété son évaluation de satisfaction",
     subject: {
       tu: "Ton certificat de réalisation pour la formation {{training_name}}",
       vous: "Votre certificat de réalisation pour la formation {{training_name}}",
