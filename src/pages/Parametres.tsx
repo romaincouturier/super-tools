@@ -406,6 +406,7 @@ PS : nous pouvons continuer à rester en contact sur LinkedIn (https://www.linke
   evaluation_reminder_1: {
     name: "Relance évaluation - 1ère",
     timing: "after",
+    sendingInfo: "📤 Envoyé automatiquement aux participants n'ayant pas complété l'évaluation, J+X jours ouvrables après le mail de remerciement (configurable)",
     delayKey: "delay_evaluation_reminder_1_days",
     subject: {
       tu: "📝 Petit rappel : ton avis compte pour \"{{training_name}}\"",
