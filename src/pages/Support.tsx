@@ -1,5 +1,5 @@
-import { useState, useMemo } from "react";
-import { Loader2, LifeBuoy, Bug, Lightbulb, Plus, Search, X, AlertCircle } from "lucide-react";
+import { useState, useMemo, useCallback } from "react";
+import { Loader2, LifeBuoy, Bug, Lightbulb, Plus, Search, X, AlertCircle, ClipboardCopy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -124,6 +124,25 @@ const Support = () => {
     }
   };
 
+  const exportNewTickets = useCallback(() => {
+    if (!tickets) return;
+    const newTickets = tickets.filter((t) => t.status === "nouveau");
+    if (newTickets.length === 0) {
+      toast({ title: "Aucun ticket nouveau", description: "Il n'y a aucun ticket dans la colonne \"Nouveau\"." });
+      return;
+    }
+    const text = newTickets
+      .map((t) => {
+        const typeLabel = t.type === "bug" ? "BUG" : "ÉVOLUTION";
+        const prioLabel = TICKET_PRIORITY_CONFIG[t.priority].label.toUpperCase();
+        return `## ${t.ticket_number} — [${typeLabel}] [${prioLabel}]\n${t.title}\n\n${t.description}${t.page_url ? `\n\nPage: ${t.page_url}` : ""}`;
+      })
+      .join("\n\n---\n\n");
+    const header = `# Tickets nouveaux (${newTickets.length})\n\n`;
+    navigator.clipboard.writeText(header + text);
+    toast({ title: "Copié !", description: `${newTickets.length} ticket${newTickets.length > 1 ? "s" : ""} copié${newTickets.length > 1 ? "s" : ""} dans le presse-papier.` });
+  }, [tickets, toast]);
+
   const renderCard = (card: SupportTicketCard) => {
     const t = card.ticket;
     const typeConf = TICKET_TYPE_CONFIG[t.type];
@@ -227,6 +246,12 @@ const Support = () => {
                 <SelectItem value="evolution">Évolutions</SelectItem>
               </SelectContent>
             </Select>
+
+            {/* Export new tickets */}
+            <Button size="sm" variant="outline" onClick={exportNewTickets} title="Copier les tickets nouveaux en texte">
+              <ClipboardCopy className="h-4 w-4 mr-1" />
+              Export nouveaux
+            </Button>
 
             {/* Create */}
             <Dialog open={createOpen} onOpenChange={setCreateOpen}>

@@ -44,6 +44,7 @@ import { PricingLine } from "./MacroPricingDialog";
 
 // Sub-components
 import CardDetailToolbar from "./card-detail/CardDetailToolbar";
+import CardDetailTagsBar from "./card-detail/CardDetailTagsBar";
 import CardDetailSchedule from "./card-detail/CardDetailSchedule";
 import CardDetailContact from "./card-detail/CardDetailContact";
 import CardDetailQualification from "./card-detail/CardDetailQualification";
@@ -706,6 +707,7 @@ const CardDetailDrawer = ({
       >
         <div className="flex-1 overflow-y-auto">
           <CardDetailToolbar state={state} handlers={handlers} updatePending={updateCard.isPending} />
+          <CardDetailTagsBar state={state} handlers={handlers} />
           <CardDetailSchedule state={state} handlers={handlers} updatePending={updateCard.isPending} />
           <CardDetailContact state={state} handlers={handlers} />
           <CardDetailQualification state={state} handlers={handlers} />

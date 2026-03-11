@@ -174,8 +174,8 @@ const CrmReports = () => {
                       ))}
                     </Pie>
                     <Tooltip
-                      formatter={(value, name, props) => [
-                        `${value} opportunités (${props.payload.value.toLocaleString("fr-FR")} €)`,
+                      formatter={(value, _name, props) => [
+                        `${value} opportunités (${(props.payload.totalValue ?? 0).toLocaleString("fr-FR")} €)`,
                         props.payload.category,
                       ]}
                     />
