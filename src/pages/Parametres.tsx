@@ -363,6 +363,7 @@ Bonne journée,`,
   cold_evaluation: {
     name: "Évaluation à froid commanditaire",
     timing: "after",
+    sendingInfo: "📤 Envoyé automatiquement au commanditaire, J+X jours ouvrables après la formation (configurable)",
     delayKey: "delay_cold_evaluation_days",
     subject: {
       tu: "💡 Évaluation à froid de la formation \"{{training_name}}\" 💡",
