@@ -5924,6 +5924,8 @@ export type Database = {
           invoice_file_url: string | null
           is_cancelled: boolean | null
           location: string
+          logistics_email_sent_at: string | null
+          logistics_email_sent_to: string | null
           max_participants: number | null
           notes: string | null
           objectives: string[] | null
@@ -5978,6 +5980,8 @@ export type Database = {
           invoice_file_url?: string | null
           is_cancelled?: boolean | null
           location: string
+          logistics_email_sent_at?: string | null
+          logistics_email_sent_to?: string | null
           max_participants?: number | null
           notes?: string | null
           objectives?: string[] | null
@@ -6032,6 +6036,8 @@ export type Database = {
           invoice_file_url?: string | null
           is_cancelled?: boolean | null
           location?: string
+          logistics_email_sent_at?: string | null
+          logistics_email_sent_to?: string | null
           max_participants?: number | null
           notes?: string | null
           objectives?: string[] | null
