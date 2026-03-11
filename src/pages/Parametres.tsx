@@ -566,6 +566,7 @@ N'hésitez pas à me répondre, même en quelques mots !`,
   training_documents: {
     name: "Envoi des documents de formation",
     timing: "manual",
+    sendingInfo: "✋ Envoyé manuellement depuis la fiche formation (bouton « Envoyer documents »). Inclut facture, émargements et certificats en PJ",
     subject: {
       tu: "Documents de la formation \"{{training_name}}\"",
       vous: "Documents de la formation \"{{training_name}}\"",
