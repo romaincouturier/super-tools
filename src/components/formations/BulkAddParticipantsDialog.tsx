@@ -3,7 +3,7 @@ import { Users, Loader2, AlertCircle, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { capitalizeName } from "@/lib/stringUtils";
 import { getEmailMode, isManualEmailMode } from "@/lib/emailScheduling";
-import { format } from "date-fns";
+import { format, parseISO, differenceInDays } from "date-fns";
 import {
   Dialog,
   DialogContent,

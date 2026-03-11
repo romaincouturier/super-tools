@@ -7,6 +7,8 @@ import { logCrmActivity } from "@/services/crmActivity";
 import { notifyCrmSlack } from "@/services/crmSlack";
 import {
   CrmCard,
+  CrmColumn,
+  CrmTag,
   CreateCardInput,
   UpdateCardInput,
   CreateColumnInput,

@@ -56,7 +56,7 @@ Deno.serve(async (req) => {
       .select("id", { count: "exact", head: true })
       .eq("training_id", trainingId);
 
-    const bccList = await getBccList(supabase);
+    const bccList = await getBccList();
     let signature = "";
     try { signature = await getSigniticSignature(); } catch (_) { /* ignore */ }
 
