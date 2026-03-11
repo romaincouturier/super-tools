@@ -539,6 +539,7 @@ PS : on peut continuer à rester en contact sur LinkedIn (https://www.linkedin.c
   follow_up_news: {
     name: "Prise de nouvelles informelle",
     timing: "after",
+    sendingInfo: "📤 Envoyé automatiquement au commanditaire, J+X jours ouvrables après la formation (configurable)",
     delayKey: "delay_follow_up_news_days",
     subject: {
       tu: "{{first_name}}, des nouvelles depuis la formation ?",
