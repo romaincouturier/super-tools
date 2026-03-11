@@ -1144,6 +1144,7 @@ Si vous avez la moindre question, je reste à votre disposition par mail <a href
   booking_reminder: {
     name: "Rappel réservation logistique",
     timing: "before",
+    sendingInfo: "📤 Envoyé automatiquement chaque lundi au formateur tant que les réservations logistiques (hôtel, train, restaurant, salle) ne sont pas confirmées",
     subject: {
       tu: "Rappel : Réservation pour {{entity_type}} \"{{entity_name}}\"",
       vous: "Rappel : Réservation pour {{entity_type}} \"{{entity_name}}\"",
