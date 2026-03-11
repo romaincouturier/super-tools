@@ -97,8 +97,8 @@ IMPORTANT : Retourne UNIQUEMENT le HTML, sans aucun wrapper markdown, sans \`\`\
         .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
         .replace(/\*(.+?)\*/g, "<em>$1</em>")
         // List items: group consecutive lines starting with "- "
-        .replace(/(^- .+$(\n|$))+/gm, (block) => {
-          const items = block.trim().split("\n").map(l => `<li>${l.replace(/^- /, "")}</li>`).join("");
+        .replace(/(^- .+$(\n|$))+/gm, (block: string) => {
+          const items = block.trim().split("\n").map((l: string) => `<li>${l.replace(/^- /, "")}</li>`).join("");
           return `<ul>${items}</ul>`;
         })
         // Paragraphs: wrap remaining non-tag lines

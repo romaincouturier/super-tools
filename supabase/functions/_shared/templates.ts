@@ -36,12 +36,12 @@ export function processTemplate(
 
   // Process simple variables: {{var}}
   const variableRegex = /\{\{(\w+)\}\}/g;
-  result = result.replace(variableRegex, (_match, varName) => {
+  result = result.replace(variableRegex, (_match: string, varName: string): string => {
     const value = variables[varName];
     if (value === null || value === undefined) {
       return "";
     }
-    return escapeValues ? escapeHtml(value) : value;
+    return escapeValues ? escapeHtml(String(value)) : String(value);
   });
 
   return result;
