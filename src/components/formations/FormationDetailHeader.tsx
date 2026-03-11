@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { ArrowLeft, ExternalLink, Edit2, Map, Train, Hotel, UtensilsCrossed, DoorOpen, Copy, MoreHorizontal, Package, Ban, RotateCcw } from "lucide-react";
+import { ArrowLeft, ExternalLink, Edit2, Map, Train, Hotel, UtensilsCrossed, DoorOpen, Copy, MoreHorizontal, Package, Ban, RotateCcw, Trash2 } from "lucide-react";
+import { useFeatureTracking } from "@/hooks/useFeatureTracking";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -26,8 +27,11 @@ import { Badge } from "@/components/ui/badge";
 import LogisticsBookingButtons from "@/components/shared/LogisticsBookingButtons";
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
+import { deleteTraining } from "@/services/trainings";
 import type { Training, Schedule } from "@/hooks/useFormationDetail";
+import { Input } from "@/components/ui/input";
 import { getGoogleMapsNearbyUrl } from "@/lib/googleMaps";
+import { openExternalLink } from "@/lib/utils";
 
 interface Props {
   training: Training;
@@ -60,12 +64,32 @@ const FormationDetailHeader = ({
   setDuplicateDialogOpen,
   requiredEquipment,
 }: Props) => {
+  const { trackFeature } = useFeatureTracking();
+
   const isOnline = training.location?.toLowerCase().includes("visio") ||
     training.location?.toLowerCase().includes("en ligne") ||
     training.location?.toLowerCase().includes("distanciel");
 
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [cancellationReason, setCancellationReason] = useState("");
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    if (deleteConfirmText !== "SUPPRIMER") return;
+    setDeleting(true);
+    try {
+      trackFeature("delete_training", "formations", { training_id: training.id });
+      await deleteTraining(training.id);
+      toast({ title: "Formation supprimée" });
+      navigate("/formations");
+    } catch {
+      toast({ title: "Erreur lors de la suppression", variant: "destructive" });
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const TRAINING_CANCELLATION_REASONS = [
     { value: "manque_participants", label: "Pas assez de participants" },
@@ -77,6 +101,7 @@ const FormationDetailHeader = ({
 
   const handleCancel = async () => {
     if (!cancellationReason) return;
+    trackFeature("cancel_training", "formations", { training_id: training.id, reason: cancellationReason });
     const { error } = await supabase
       .from("trainings")
       .update({
@@ -94,6 +119,7 @@ const FormationDetailHeader = ({
   };
 
   const handleReactivate = async () => {
+    trackFeature("reactivate_training", "formations", { training_id: training.id });
     const { error } = await supabase
       .from("trainings")
       .update({
@@ -168,22 +194,22 @@ const FormationDetailHeader = ({
                 </DropdownMenuItem>
               )}
               {isPresentiel && (
-                <DropdownMenuItem onClick={() => { if (!training.train_booked) window.open(`https://www.trainline.fr/search/${encodeURIComponent(training.location)}`, "_blank"); }} disabled={training.train_booked}>
+                <DropdownMenuItem onClick={() => { if (!training.train_booked) openExternalLink(`https://www.trainline.fr/search/${encodeURIComponent(training.location)}`); }} disabled={training.train_booked}>
                   <Train className="h-4 w-4 mr-2" />Train {training.train_booked && "✓"}
                 </DropdownMenuItem>
               )}
               {isPresentiel && (
-                <DropdownMenuItem onClick={() => { if (!training.hotel_booked) window.open(`https://www.booking.com/searchresults.fr.html?ss=${encodeURIComponent(training.location)}`, "_blank"); }} disabled={training.hotel_booked}>
+                <DropdownMenuItem onClick={() => { if (!training.hotel_booked) openExternalLink(`https://www.booking.com/searchresults.fr.html?ss=${encodeURIComponent(training.location)}`); }} disabled={training.hotel_booked}>
                   <Hotel className="h-4 w-4 mr-2" />Hôtel {training.hotel_booked && "✓"}
                 </DropdownMenuItem>
               )}
               {isPresentiel && isInterSession && (
-                <DropdownMenuItem onClick={() => { if (!training.restaurant_booked) window.open(getGoogleMapsNearbyUrl("restaurants", training.location), "_blank"); }} disabled={training.restaurant_booked}>
+                <DropdownMenuItem onClick={() => { if (!training.restaurant_booked) openExternalLink(getGoogleMapsNearbyUrl("restaurants", training.location)); }} disabled={training.restaurant_booked}>
                   <UtensilsCrossed className="h-4 w-4 mr-2" />Restaurant {training.restaurant_booked && "✓"}
                 </DropdownMenuItem>
               )}
               {isPresentiel && (isInterSession || training.session_type === "intra" || training.format_formation === "intra") && (
-                <DropdownMenuItem onClick={() => { if (!training.room_rental_booked) window.open(getGoogleMapsNearbyUrl("location+salle+reunion", training.location), "_blank"); }} disabled={training.room_rental_booked}>
+                <DropdownMenuItem onClick={() => { if (!training.room_rental_booked) openExternalLink(getGoogleMapsNearbyUrl("location+salle+reunion", training.location)); }} disabled={training.room_rental_booked}>
                   <DoorOpen className="h-4 w-4 mr-2" />Salle {training.room_rental_booked && "✓"}
                 </DropdownMenuItem>
               )}
@@ -199,10 +225,10 @@ const FormationDetailHeader = ({
                   <Package className="h-4 w-4 mr-2" />Matériel {training.equipment_ready && "✓"}
                 </DropdownMenuItem>
               )}
-              <DropdownMenuItem onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/formation-info/${id}`); toast({ title: "Lien copié", description: "Le lien vers la page participant a été copié." }); }}>
+              <DropdownMenuItem onClick={() => { trackFeature("copy_participant_link", "formations", { training_id: id }); navigator.clipboard.writeText(`${window.location.origin}/formation-info/${id}`); toast({ title: "Lien copié", description: "Le lien vers la page participant a été copié." }); }}>
                 <Copy className="h-4 w-4 mr-2" />Copier lien participant
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setDuplicateDialogOpen(true)}>
+              <DropdownMenuItem onClick={() => { trackFeature("duplicate_training", "formations", { training_id: id }); setDuplicateDialogOpen(true); }}>
                 <Copy className="h-4 w-4 mr-2" />Dupliquer
               </DropdownMenuItem>
               {isInterSession && !training.is_cancelled && (
@@ -210,6 +236,9 @@ const FormationDetailHeader = ({
                   <Ban className="h-4 w-4 mr-2" />Annuler la session
                 </DropdownMenuItem>
               )}
+              <DropdownMenuItem onClick={() => setDeleteDialogOpen(true)} className="text-destructive">
+                <Trash2 className="h-4 w-4 mr-2" />Supprimer
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -325,6 +354,10 @@ const FormationDetailHeader = ({
               Annuler
             </Button>
           )}
+          <Button variant="outline" className="text-destructive hover:text-destructive" onClick={() => setDeleteDialogOpen(true)}>
+            <Trash2 className="h-4 w-4 mr-1" />
+            Supprimer
+          </Button>
         </div>
       )}
       </div>
@@ -361,6 +394,40 @@ const FormationDetailHeader = ({
                 disabled={!cancellationReason}
               >
                 Confirmer l'annulation
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={(open) => { setDeleteDialogOpen(open); if (!open) setDeleteConfirmText(""); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Supprimer cette formation</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Cette action est <strong>irréversible</strong>. Toutes les données associées seront supprimées (participants, signatures, évaluations, documents, etc.).
+            </p>
+            <div className="space-y-2">
+              <Label>Tapez <strong>SUPPRIMER</strong> pour confirmer</Label>
+              <Input
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                placeholder="SUPPRIMER"
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+                Retour
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleDelete}
+                disabled={deleteConfirmText !== "SUPPRIMER" || deleting}
+              >
+                {deleting ? "Suppression..." : "Supprimer définitivement"}
               </Button>
             </div>
           </div>

@@ -50,6 +50,7 @@ const UpcomingCalendarPanel = () => {
       supabase
         .from("trainings")
         .select("id, training_name, start_date, end_date, location")
+        .or("is_cancelled.is.null,is_cancelled.eq.false")
         .gte("start_date", todayStr)
         .lte("start_date", endDateStr)
         .order("start_date", { ascending: true }),

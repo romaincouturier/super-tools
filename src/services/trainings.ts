@@ -69,6 +69,12 @@ export async function fetchParticipants(trainingId: string) {
   return throwIfError(result) || [];
 }
 
+/** Delete a training and all cascaded related data */
+export async function deleteTraining(id: string) {
+  const result = await db().from("trainings").delete().eq("id", id);
+  throwIfError(result);
+}
+
 /** Fetch inter/e-learning trainings for CRM linking */
 export async function fetchLinkableTrainings(fromDate: string) {
   const result = await db()

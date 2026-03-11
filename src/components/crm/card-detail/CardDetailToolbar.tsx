@@ -25,6 +25,7 @@ import {
   Calculator,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useFeatureTracking } from "@/hooks/useFeatureTracking";
 import type { CardDetailState, CardDetailHandlers } from "./types";
 
 interface Props {
@@ -34,6 +35,7 @@ interface Props {
 }
 
 const CardDetailToolbar = ({ state, handlers, updatePending }: Props) => {
+  const { trackFeature } = useFeatureTracking();
   const {
     card, allColumns, columnId, estimatedValue, setEstimatedValue,
     confidenceScore, setConfidenceScore, salesStatus, setShowPricingDialog,
@@ -43,18 +45,18 @@ const CardDetailToolbar = ({ state, handlers, updatePending }: Props) => {
   return (
     <div className="mt-4 mb-4 flex items-center gap-2">
       {/* Action menu */}
-      <DropdownMenu>
+      <DropdownMenu modal={false}>
         <DropdownMenuTrigger asChild>
           <Button variant="outline" size="sm" className="gap-1">
             <MoreVertical className="h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="w-56">
-          <DropdownMenuItem onClick={() => setShowSchedulePopover(true)}>
+          <DropdownMenuItem onClick={() => { trackFeature("schedule_action", "crm"); setShowSchedulePopover(true); }}>
             <Calendar className="h-4 w-4 mr-2" />
             Programmer une action
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={handlers.handleSuggestNextAction} disabled={nextActionSuggesting}>
+          <DropdownMenuItem onClick={() => { trackFeature("ai_suggestion", "crm"); handlers.handleSuggestNextAction(); }} disabled={nextActionSuggesting}>
             {nextActionSuggesting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Wand2 className="h-4 w-4 mr-2" />}
             Suggestion IA
           </DropdownMenuItem>
@@ -62,7 +64,7 @@ const CardDetailToolbar = ({ state, handlers, updatePending }: Props) => {
       </DropdownMenu>
 
       {/* Column selector */}
-      <DropdownMenu>
+      <DropdownMenu modal={false}>
         <DropdownMenuTrigger asChild>
           <Button variant="default" size="sm" className="gap-1.5">
             {allColumns.find(c => c.id === columnId)?.name || "Colonne"}
@@ -109,7 +111,7 @@ const CardDetailToolbar = ({ state, handlers, updatePending }: Props) => {
       {/* Macro pricing */}
       <button
         className="inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium transition-colors cursor-pointer hover:opacity-80 text-violet-700 bg-violet-50 border-violet-200"
-        onClick={() => setShowPricingDialog(true)}
+        onClick={() => { trackFeature("macro_pricing", "crm"); setShowPricingDialog(true); }}
         title="Macro chiffrage"
       >
         <Calculator className="h-3.5 w-3.5" />
@@ -180,7 +182,7 @@ const CardDetailToolbar = ({ state, handlers, updatePending }: Props) => {
           "gap-1 text-green-600 hover:text-green-700 hover:bg-green-50",
           salesStatus === "WON" && "bg-green-100 text-green-700"
         )}
-        onClick={() => handlers.handleSalesStatusChange("WON")}
+        onClick={() => { trackFeature("mark_won", "crm"); handlers.handleSalesStatusChange("WON"); }}
         disabled={updatePending}
         title="Gagné"
       >
@@ -193,7 +195,7 @@ const CardDetailToolbar = ({ state, handlers, updatePending }: Props) => {
           "gap-1 text-red-600 hover:text-red-700 hover:bg-red-50",
           salesStatus === "LOST" && "bg-red-100 text-red-700"
         )}
-        onClick={() => handlers.handleSalesStatusChange("LOST")}
+        onClick={() => { trackFeature("mark_lost", "crm"); handlers.handleSalesStatusChange("LOST"); }}
         disabled={updatePending}
         title="Perdu"
       >
