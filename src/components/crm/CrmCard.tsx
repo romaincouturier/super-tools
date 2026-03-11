@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { GraduationCap, Briefcase } from "lucide-react";
+import { GraduationCap, Briefcase, Building } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { CrmCard } from "@/types/crm";
@@ -85,22 +85,11 @@ const CrmCardComponent = ({ card, isDragging: isDraggingProp, onClick, serviceTy
     onClick?.();
   };
 
-  const companyTag = card.company
-    ? {
-        key: "company",
-        label: card.company,
-        style: { backgroundColor: "#e2e8f0", color: "#475569" },
-      }
-    : null;
-
-  const tags = [
-    ...(companyTag ? [companyTag] : []),
-    ...(card.tags || []).map((tag) => ({
-      key: tag.id,
-      label: tag.name,
-      style: { backgroundColor: tag.color + "20", color: tag.color },
-    })),
-  ];
+  const tags = (card.tags || []).map((tag) => ({
+    key: tag.id,
+    label: tag.name,
+    style: { backgroundColor: tag.color + "20", color: tag.color },
+  }));
 
   return (
     <Card
@@ -197,6 +186,14 @@ const CrmCardComponent = ({ card, isDragging: isDraggingProp, onClick, serviceTy
           </span>
           <div className="font-medium text-sm line-clamp-2">{card.title}</div>
         </div>
+
+        {/* Company */}
+        {card.company && (
+          <div className="flex items-center gap-1 text-xs text-slate-600">
+            <Building className="h-3 w-3 shrink-0" />
+            <span className="truncate">{card.company}</span>
+          </div>
+        )}
 
         {/* Tags */}
         <CardTagList tags={tags} />

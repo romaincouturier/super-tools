@@ -43,7 +43,6 @@ const Support = () => {
 
   // New ticket form state
   const [newType, setNewType] = useState<TicketType>("bug");
-  const [newTitle, setNewTitle] = useState("");
   const [newDescription, setNewDescription] = useState("");
   const [newPriority, setNewPriority] = useState<TicketPriority>("medium");
 
@@ -96,17 +95,17 @@ const Support = () => {
   };
 
   const handleCreate = async () => {
-    if (!newTitle.trim() || !newDescription.trim()) return;
+    if (!newDescription.trim()) return;
+    const autoTitle = newDescription.trim().split(/[.\n]/)[0].slice(0, 80).trim() || "Ticket sans titre";
     try {
       await createTicket.mutateAsync({
         type: newType,
-        title: newTitle.trim(),
+        title: autoTitle,
         description: newDescription.trim(),
         priority: newPriority,
         page_url: null,
       });
       setCreateOpen(false);
-      setNewTitle("");
       setNewDescription("");
       setNewPriority("medium");
       setNewType("bug");
@@ -178,20 +177,24 @@ const Support = () => {
 
   return (
     <ModuleLayout>
-      <div className="flex flex-col h-[calc(100vh-4rem)]">
+      <main className="max-w-[1600px] mx-auto p-4 sm:p-6 h-[calc(100vh-80px)] flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b">
-          <div className="flex items-center gap-3">
-            <LifeBuoy className="h-6 w-6 text-primary" />
-            <div>
-              <h1 className="text-xl font-bold">Support</h1>
-              <p className="text-sm text-muted-foreground">Bugs et demandes d'évolution</p>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 sm:mb-6">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-primary/10 hidden sm:block">
+                <LifeBuoy className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <h1 className="text-xl sm:text-2xl font-bold">Support</h1>
+                <p className="text-muted-foreground text-xs sm:text-sm hidden sm:block">Bugs et demandes d'évolution</p>
+              </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2">
             {/* Stats */}
-            <div className="hidden md:flex items-center gap-4 text-sm text-muted-foreground mr-4">
+            <div className="hidden md:flex items-center gap-4 text-sm text-muted-foreground mr-2">
               <span className="flex items-center gap-1"><AlertCircle className="h-3.5 w-3.5" />{stats.open} ouvert{stats.open > 1 ? "s" : ""}</span>
               <span className="flex items-center gap-1"><Bug className="h-3.5 w-3.5 text-red-500" />{stats.bugs}</span>
               <span className="flex items-center gap-1"><Lightbulb className="h-3.5 w-3.5 text-violet-500" />{stats.evolutions}</span>
@@ -249,12 +252,8 @@ const Support = () => {
                     </RadioGroup>
                   </div>
                   <div className="space-y-2">
-                    <Label>Titre *</Label>
-                    <Input value={newTitle} onChange={(e) => setNewTitle(e.target.value)} placeholder="Résumé du problème ou de la demande" />
-                  </div>
-                  <div className="space-y-2">
                     <Label>Description *</Label>
-                    <Textarea value={newDescription} onChange={(e) => setNewDescription(e.target.value)} rows={4} placeholder="Détails, étapes pour reproduire, contexte..." />
+                    <Textarea value={newDescription} onChange={(e) => setNewDescription(e.target.value)} rows={6} placeholder="Décrivez le bug ou l'évolution souhaitée..." />
                   </div>
                   <div className="space-y-2">
                     <Label>Priorité</Label>
@@ -268,7 +267,7 @@ const Support = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                  <Button onClick={handleCreate} disabled={createTicket.isPending || !newTitle.trim() || !newDescription.trim()} className="w-full">
+                  <Button onClick={handleCreate} disabled={createTicket.isPending || !newDescription.trim()} className="w-full">
                     {createTicket.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                     Créer le ticket
                   </Button>
@@ -279,7 +278,7 @@ const Support = () => {
         </div>
 
         {/* Kanban Board */}
-        <div className="flex-1 overflow-hidden px-4 py-3">
+        <div className="flex-1 overflow-hidden">
           <GenericKanbanBoard
             columns={SUPPORT_COLUMNS}
             cards={cards}
@@ -291,7 +290,7 @@ const Support = () => {
             columnClassName="min-w-[260px] max-w-[300px]"
           />
         </div>
-      </div>
+      </main>
 
       {/* Detail Sheet */}
       <Sheet open={!!detailTicket} onOpenChange={(open) => !open && setDetailTicket(null)}>

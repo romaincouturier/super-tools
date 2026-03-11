@@ -181,52 +181,57 @@ const UpcomingCalendarPanel = () => {
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">
                 {formatEntryDate(dateKey)}
               </p>
-              {dayEntries.map((entry) => (
-                <button
-                  key={`${entry.type}-${entry.id}`}
-                  onClick={() => navigate(entry.path)}
-                  className="flex items-start gap-2 w-full text-left py-1.5 px-2 rounded-md hover:bg-muted/50 transition-colors"
-                >
-                  {entry.type === "formation" ? (
-                    <GraduationCap className="h-3.5 w-3.5 text-blue-600 mt-0.5 shrink-0" />
-                  ) : entry.type === "live" ? (
-                    <Video className="h-3.5 w-3.5 text-purple-600 mt-0.5 shrink-0" />
-                  ) : (
-                    <CalendarDays className="h-3.5 w-3.5 text-teal-600 mt-0.5 shrink-0" />
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm leading-tight truncate">{entry.title}</p>
-                    {entry.time && (
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        à {entry.time}
-                      </p>
-                    )}
-                    {entry.location && (
-                      <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                        <MapPin className="h-2.5 w-2.5" />
-                        <span className="truncate">{entry.location}</span>
-                      </p>
-                    )}
-                    {entry.type === "formation" && entry.endDate && entry.endDate !== entry.date && (
-                      <p className="text-[10px] text-muted-foreground mt-0.5">
-                        jusqu'au {format(parseISO(entry.endDate), "d MMM", { locale: fr })}
-                      </p>
-                    )}
-                  </div>
-                  <Badge
-                    variant="secondary"
-                    className={`text-[10px] shrink-0 ${
-                      entry.type === "formation"
-                        ? "bg-blue-50 text-blue-700"
-                        : entry.type === "live"
-                        ? "bg-purple-50 text-purple-700"
-                        : "bg-teal-50 text-teal-700"
-                    }`}
+              {dayEntries.map((entry) => {
+                const entryIsToday = isToday(parseISO(entry.date));
+                return (
+                  <button
+                    key={`${entry.type}-${entry.id}`}
+                    onClick={() => navigate(entry.path)}
+                    className="flex items-start gap-2 w-full text-left py-1.5 px-2 rounded-md hover:bg-muted/50 transition-colors"
                   >
-                    {entry.type === "formation" ? "Formation" : entry.type === "live" ? "Live" : "Événement"}
-                  </Badge>
-                </button>
-              ))}
+                    {entry.type === "formation" ? (
+                      <GraduationCap className="h-3.5 w-3.5 text-blue-600 mt-0.5 shrink-0" />
+                    ) : entry.type === "live" ? (
+                      <Video className="h-3.5 w-3.5 text-purple-600 mt-0.5 shrink-0" />
+                    ) : (
+                      <CalendarDays className="h-3.5 w-3.5 text-teal-600 mt-0.5 shrink-0" />
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className={`text-sm leading-tight truncate ${entryIsToday ? "font-bold" : ""}`}>
+                        {entry.title}
+                      </p>
+                      {!entryIsToday && (
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {formatEntryDate(entry.date, entry.endDate)}
+                        </p>
+                      )}
+                      {entryIsToday && entry.time && (
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          à {entry.time}
+                        </p>
+                      )}
+                      {entryIsToday && entry.location && (
+                        <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                          <MapPin className="h-2.5 w-2.5" />
+                          <span className="truncate">{entry.location}</span>
+                        </p>
+                      )}
+                    </div>
+                    <Badge
+                      variant="secondary"
+                      className={`text-[10px] shrink-0 ${
+                        entry.type === "formation"
+                          ? "bg-blue-50 text-blue-700"
+                          : entry.type === "live"
+                          ? "bg-purple-50 text-purple-700"
+                          : "bg-teal-50 text-teal-700"
+                      }`}
+                    >
+                      {entry.type === "formation" ? "Formation" : entry.type === "live" ? "Live" : "Événement"}
+                    </Badge>
+                  </button>
+                );
+              })}
             </div>
           ))}
         </div>

@@ -151,6 +151,16 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
 
+  /* Hide number input spinners globally */
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type="number"] {
+    -moz-appearance: textfield;
+  }
+
   /* iOS/iPadOS: normalize native date input sizing to match our h-10 inputs */
   input.ui-input[type="date"] {
     -webkit-appearance: none !important;

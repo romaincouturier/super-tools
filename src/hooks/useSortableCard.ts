@@ -13,7 +13,7 @@ export function useSortableCard(id: string, isDraggingProp?: boolean) {
   } = useSortable({ id });
 
   const style: CSSProperties = {
-    transform: CSS.Transform.toString(transform),
+    transform: CSS.Translate.toString(transform),
     transition,
   };
 

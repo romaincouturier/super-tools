@@ -13,8 +13,9 @@ import {
   Trash2,
 } from "lucide-react";
 import DOMPurify from "dompurify";
+import { isWonColumnName, isLostColumnName } from "@/lib/crmColumnStatus";
 import EmojiPickerButton from "@/components/ui/emoji-picker-button";
-import confetti from "canvas-confetti";
+import { celebrateWin } from "@/lib/celebrateWin";
 import {
   CrmCard,
   CrmTag,
@@ -413,18 +414,6 @@ const CardDetailDrawer = ({
   }, [email, company]);
 
   // ═══ STATUS CHANGES ═══
-  const celebrateWin = () => {
-    const duration = 3000;
-    const end = Date.now() + duration;
-    const colors = ["#FFD700", "#FFA500", "#FF6347", "#32CD32", "#1E90FF", "#9370DB"];
-    const frame = () => {
-      confetti({ particleCount: 3, angle: 60, spread: 55, origin: { x: 0, y: 0.8 }, colors });
-      confetti({ particleCount: 3, angle: 120, spread: 55, origin: { x: 1, y: 0.8 }, colors });
-      if (Date.now() < end) requestAnimationFrame(frame);
-    };
-    confetti({ particleCount: 100, spread: 70, origin: { x: 0.5, y: 0.5 }, colors });
-    frame();
-  };
 
   const buildTrainingParams = (): URLSearchParams => {
     const params = new URLSearchParams();
@@ -497,11 +486,11 @@ const CardDetailDrawer = ({
   const handleColumnChange = async (newColumnId: string, columnName: string) => {
     if (!card || !user?.email) return;
     setColumnId(newColumnId);
-    const isWonColumn = columnName.toLowerCase().includes("gagné");
-    const isLostColumn = columnName.toLowerCase().includes("perdu");
+    const isWonColumn = isWonColumnName(columnName);
+    const isLostColumn = isLostColumnName(columnName);
     const currentColumn = allColumns.find(col => col.id === card.column_id);
-    const wasInWonColumn = currentColumn?.name.toLowerCase().includes("gagné") || false;
-    const wasInLostColumn = currentColumn?.name.toLowerCase().includes("perdu") || false;
+    const wasInWonColumn = currentColumn ? isWonColumnName(currentColumn.name) : false;
+    const wasInLostColumn = currentColumn ? isLostColumnName(currentColumn.name) : false;
     const movingToWon = isWonColumn && !wasInWonColumn;
     const movingToLost = isLostColumn && !wasInLostColumn;
     const leavingWonColumn = wasInWonColumn && !isWonColumn;
@@ -518,38 +507,71 @@ const CardDetailDrawer = ({
     if (!card || !user?.email || !scheduledDate || !scheduledText.trim()) return;
     const selectedDate = startOfDay(new Date(scheduledDate));
     const today = startOfDay(new Date());
-    if (!isAfter(selectedDate, today)) { alert("La date doit être dans le futur (pas aujourd'hui)"); return; }
-    await updateCard.mutateAsync({ id: card.id, updates: { waiting_next_action_date: scheduledDate, waiting_next_action_text: scheduledText.trim() }, actorEmail: user.email, oldCard: card });
-    onOpenChange(false);
+    if (!isAfter(selectedDate, today)) { toast({ title: "Date invalide", description: "La date doit être dans le futur (pas aujourd'hui).", variant: "destructive" }); return; }
+    try {
+      await updateCard.mutateAsync({ id: card.id, updates: { waiting_next_action_date: scheduledDate, waiting_next_action_text: scheduledText.trim() }, actorEmail: user.email, oldCard: card });
+      setShowSchedulePopover(false);
+    } catch (e) {
+      console.error("handleScheduleAction error:", e);
+      toast({ title: "Erreur", description: "Impossible de programmer l'action.", variant: "destructive" });
+    }
   };
 
   const handleClearSchedule = async () => {
     if (!card || !user?.email) return;
-    await updateCard.mutateAsync({ id: card.id, updates: { waiting_next_action_date: null, waiting_next_action_text: null }, actorEmail: user.email, oldCard: card });
-    setScheduledDate(""); setScheduledText("");
+    try {
+      await updateCard.mutateAsync({ id: card.id, updates: { waiting_next_action_date: null, waiting_next_action_text: null }, actorEmail: user.email, oldCard: card });
+      setScheduledDate(""); setScheduledText("");
+    } catch (e) {
+      console.error("handleClearSchedule error:", e);
+      toast({ title: "Erreur", description: "Impossible d'annuler la programmation.", variant: "destructive" });
+    }
   };
 
   const handleDelete = async () => {
     if (!card) return;
-    if (confirm("Supprimer cette opportunité ?")) { await deleteCard.mutateAsync(card.id); onOpenChange(false); }
+    if (confirm("Supprimer cette opportunité ?")) {
+      try {
+        await deleteCard.mutateAsync(card.id);
+        onOpenChange(false);
+      } catch (e) {
+        console.error("handleDelete error:", e);
+        toast({ title: "Erreur", description: "Impossible de supprimer l'opportunité.", variant: "destructive" });
+      }
+    }
   };
 
   const handleToggleTag = async (tagId: string) => {
     if (!card || !user?.email) return;
-    const hasTag = card.tags?.some((t) => t.id === tagId);
-    if (hasTag) { await unassignTag.mutateAsync({ cardId: card.id, tagId, actorEmail: user.email }); }
-    else { await assignTag.mutateAsync({ cardId: card.id, tagId, actorEmail: user.email }); }
+    try {
+      const hasTag = card.tags?.some((t) => t.id === tagId);
+      if (hasTag) { await unassignTag.mutateAsync({ cardId: card.id, tagId, actorEmail: user.email }); }
+      else { await assignTag.mutateAsync({ cardId: card.id, tagId, actorEmail: user.email }); }
+    } catch (e) {
+      console.error("handleToggleTag error:", e);
+      toast({ title: "Erreur", description: "Impossible de modifier le tag.", variant: "destructive" });
+    }
   };
 
   const handleAddComment = async () => {
     if (!card || !user?.email || !newComment.trim()) return;
-    await addComment.mutateAsync({ cardId: card.id, content: newComment.trim(), authorEmail: user.email });
-    setNewComment("");
+    try {
+      await addComment.mutateAsync({ cardId: card.id, content: newComment.trim(), authorEmail: user.email });
+      setNewComment("");
+    } catch (e) {
+      console.error("handleAddComment error:", e);
+      toast({ title: "Erreur", description: "Impossible d'ajouter le commentaire.", variant: "destructive" });
+    }
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!card || !user?.email || !e.target.files?.[0]) return;
-    await addAttachment.mutateAsync({ cardId: card.id, file: e.target.files[0], actorEmail: user.email });
+    try {
+      await addAttachment.mutateAsync({ cardId: card.id, file: e.target.files[0], actorEmail: user.email });
+    } catch (err) {
+      console.error("handleFileUpload error:", err);
+      toast({ title: "Erreur", description: "Impossible d'uploader le fichier.", variant: "destructive" });
+    }
     e.target.value = "";
   };
 

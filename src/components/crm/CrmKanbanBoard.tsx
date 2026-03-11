@@ -2,12 +2,12 @@ import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import {
   DndContext,
   DragOverlay,
-  closestCorners,
   DragStartEvent,
   DragEndEvent,
   DragOverEvent,
 } from "@dnd-kit/core";
 import {
+  arrayMove,
   SortableContext,
   horizontalListSortingStrategy,
 } from "@dnd-kit/sortable";
@@ -26,8 +26,10 @@ import AddColumnDialog from "@/components/shared/AddColumnDialog";
 import { CreateTrainingDialog } from "./CreateTrainingDialog";
 import { useNavigate } from "react-router-dom";
 import { isAfter, startOfDay } from "date-fns";
-import confetti from "canvas-confetti";
+import { celebrateWin } from "@/lib/celebrateWin";
 import { useKanbanDnd } from "@/hooks/useKanbanDnd";
+import { kanbanCollision } from "@/lib/kanbanCollision";
+import { isWonColumnName, isLostColumnName } from "@/lib/crmColumnStatus";
 
 interface CrmKanbanBoardProps {
   initialCardId?: string | null;
@@ -179,12 +181,12 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
 
     const activeCardId = active.id as string;
     const overId = over.id as string;
-    const activeCard = localCards.find((c) => c.id === activeCardId);
-    if (!activeCard) return;
+    const activeCardData = localCards.find((c) => c.id === activeCardId);
+    if (!activeCardData) return;
 
-    // Check if over a column
+    // Check if over a column directly
     const overColumn = boardData?.columns.find((col) => col.id === overId);
-    if (overColumn && activeCard.column_id !== overColumn.id) {
+    if (overColumn && activeCardData.column_id !== overColumn.id) {
       setLocalCards((prev) =>
         prev.map((c) =>
           c.id === activeCardId ? { ...c, column_id: overColumn.id } : c
@@ -195,12 +197,35 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
 
     // Check if over another card
     const overCard = localCards.find((c) => c.id === overId);
-    if (overCard && activeCard.column_id !== overCard.column_id) {
+    if (!overCard || activeCardId === overId) return;
+
+    if (activeCardData.column_id !== overCard.column_id) {
+      // Cross-column: move card to the target column
       setLocalCards((prev) =>
         prev.map((c) =>
           c.id === activeCardId ? { ...c, column_id: overCard.column_id } : c
         )
       );
+    } else {
+      // Same column: reorder cards optimistically
+      setLocalCards((prev) => {
+        const colCards = prev
+          .filter((c) => c.column_id === activeCardData.column_id)
+          .sort((a, b) => a.position - b.position);
+        const fromIndex = colCards.findIndex((c) => c.id === activeCardId);
+        const toIndex = colCards.findIndex((c) => c.id === overId);
+        if (fromIndex === -1 || toIndex === -1 || fromIndex === toIndex) return prev;
+
+        const reordered = arrayMove(colCards, fromIndex, toIndex);
+        // Update positions to reflect new order
+        const positionMap = new Map<string, number>();
+        reordered.forEach((c, i) => positionMap.set(c.id, i));
+
+        return prev.map((c) => {
+          const newPos = positionMap.get(c.id);
+          return newPos !== undefined ? { ...c, position: newPos } : c;
+        });
+      });
     }
   };
 
@@ -235,46 +260,6 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
 
   // Celebration confetti animation for won deals
   const confettiFrameRef = useRef<number | null>(null);
-  const celebrateWin = () => {
-    if (confettiFrameRef.current) cancelAnimationFrame(confettiFrameRef.current);
-
-    const duration = 3000;
-    const end = Date.now() + duration;
-    const colors = ["#FFD700", "#FFA500", "#FF6347", "#32CD32", "#1E90FF", "#9370DB"];
-
-    const frame = () => {
-      confetti({
-        particleCount: 3,
-        angle: 60,
-        spread: 55,
-        origin: { x: 0, y: 0.8 },
-        colors: colors,
-      });
-      confetti({
-        particleCount: 3,
-        angle: 120,
-        spread: 55,
-        origin: { x: 1, y: 0.8 },
-        colors: colors,
-      });
-
-      if (Date.now() < end) {
-        confettiFrameRef.current = requestAnimationFrame(frame);
-      } else {
-        confettiFrameRef.current = null;
-      }
-    };
-
-    // Initial burst
-    confetti({
-      particleCount: 100,
-      spread: 70,
-      origin: { x: 0.5, y: 0.5 },
-      colors: colors,
-    });
-
-    frame();
-  };
 
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
@@ -283,28 +268,20 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
     if (!over || !user?.email) return;
 
     const activeCardId = active.id as string;
-    const overId = over.id as string;
     const draggedCard = localCards.find((c) => c.id === activeCardId);
     if (!draggedCard) return;
 
-    // Determine target column
-    let targetColumnId = draggedCard.column_id;
-    const overColumn = boardData?.columns.find((col) => col.id === overId);
-    const overCard = localCards.find((c) => c.id === overId);
-    let targetColumn = overColumn;
+    // The dragged card's column_id has been updated optimistically during dragOver,
+    // so draggedCard.column_id is the target column.
+    const targetColumnId = draggedCard.column_id;
+    const targetColumn = boardData?.columns.find((col) => col.id === targetColumnId);
 
-    if (overColumn) {
-      targetColumnId = overColumn.id;
-    } else if (overCard) {
-      targetColumnId = overCard.column_id;
-      targetColumn = boardData?.columns.find((col) => col.id === targetColumnId);
-    }
-
-    // Calculate new position
-    const columnCards = localCards.filter((c) => c.column_id === targetColumnId);
-    const newIndex = overCard
-      ? columnCards.findIndex((c) => c.id === overId)
-      : columnCards.length;
+    // Calculate new position from the optimistic local order
+    const columnCards = localCards
+      .filter((c) => c.column_id === targetColumnId)
+      .sort((a, b) => a.position - b.position);
+    const newIndex = columnCards.findIndex((c) => c.id === activeCardId);
+    if (newIndex === -1) return;
 
     // Get old column for logging
     const originalCard = boardData?.cards.find((c) => c.id === activeCardId);
@@ -312,10 +289,10 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
     const oldColumn = boardData?.columns.find((col) => col.id === oldColumnId);
 
     // Check if moving to/from a "won" or "lost" column
-    const isWonColumn = targetColumn?.name.toLowerCase().includes("gagné") || false;
-    const wasInWonColumn = oldColumn?.name.toLowerCase().includes("gagné") || false;
-    const isLostColumn = targetColumn?.name.toLowerCase().includes("perdu") || false;
-    const wasInLostColumn = oldColumn?.name.toLowerCase().includes("perdu") || false;
+    const isWonColumn = targetColumn ? isWonColumnName(targetColumn.name) : false;
+    const wasInWonColumn = oldColumn ? isWonColumnName(oldColumn.name) : false;
+    const isLostColumn = targetColumn ? isLostColumnName(targetColumn.name) : false;
+    const wasInLostColumn = oldColumn ? isLostColumnName(oldColumn.name) : false;
 
     // Detect transitions
     const movingToWon = isWonColumn && !wasInWonColumn;
@@ -348,7 +325,7 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
       });
 
       // Celebrate with confetti!
-      celebrateWin();
+      celebrateWin(confettiFrameRef);
 
       // Check if card is a formation (or no type set) and prompt for training creation
       const cardServiceType = originalCard?.service_type;
@@ -592,7 +569,7 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
 
       <DndContext
         sensors={sensors}
-        collisionDetection={closestCorners}
+        collisionDetection={kanbanCollision}
         onDragStart={handleDragStart}
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}

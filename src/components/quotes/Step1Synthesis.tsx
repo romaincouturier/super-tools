@@ -3,7 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Sparkles, RefreshCw, Pencil, Eye, Copy, Check, Mic, MicOff, FileText, Swords } from "lucide-react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Loader2, Sparkles, RefreshCw, Pencil, Eye, Copy, Check, Mic, MicOff, FileText, Swords, PanelRightOpen } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useVoiceDictation } from "@/hooks/useVoiceDictation";
 import { toast } from "sonner";
@@ -210,17 +211,52 @@ export default function Step1Synthesis({
               <Sparkles className="w-5 h-5" />
               Synthèse automatique de l'opportunité
             </span>
-            {synthesis && !isGenerating && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleCopy}
-                className="gap-1.5 text-muted-foreground hover:text-foreground"
-              >
-                {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                {copied ? "Copié" : "Copier"}
-              </Button>
-            )}
+            <div className="flex items-center gap-1">
+              {crmCard.description_html && (
+                <Sheet>
+                  <SheetTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="gap-1.5 text-muted-foreground hover:text-foreground"
+                    >
+                      <PanelRightOpen className="w-3.5 h-3.5" />
+                      Fiche opportunité
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent className="w-[400px] sm:w-[540px] overflow-y-auto">
+                    <SheetHeader>
+                      <SheetTitle className="flex items-center gap-2">
+                        <FileText className="w-5 h-5" />
+                        {crmCard.title}
+                      </SheetTitle>
+                    </SheetHeader>
+                    <div className="mt-4 space-y-4">
+                      <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
+                        {clientCompany && <span className="bg-muted px-2 py-0.5 rounded">{clientCompany}</span>}
+                        {crmCard.service_type && <span className="bg-muted px-2 py-0.5 rounded">{crmCard.service_type}</span>}
+                        {crmCard.estimated_value && <span className="bg-muted px-2 py-0.5 rounded">{crmCard.estimated_value} €</span>}
+                      </div>
+                      <div
+                        className="text-sm leading-relaxed [&_h1]:text-lg [&_h1]:font-bold [&_h1]:mt-4 [&_h1]:mb-2 [&_h2]:text-base [&_h2]:font-semibold [&_h2]:mt-3 [&_h2]:mb-1 [&_h3]:text-sm [&_h3]:font-semibold [&_h3]:mt-3 [&_h3]:mb-1 [&_p]:my-1.5 [&_ul]:my-1 [&_ul]:pl-5 [&_ul]:list-disc [&_ol]:my-1 [&_ol]:pl-5 [&_ol]:list-decimal [&_li]:my-0.5 [&_strong]:font-semibold [&_a]:text-primary [&_a]:underline"
+                        dangerouslySetInnerHTML={{ __html: crmCard.description_html }}
+                      />
+                    </div>
+                  </SheetContent>
+                </Sheet>
+              )}
+              {synthesis && !isGenerating && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleCopy}
+                  className="gap-1.5 text-muted-foreground hover:text-foreground"
+                >
+                  {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                  {copied ? "Copié" : "Copier"}
+                </Button>
+              )}
+            </div>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
