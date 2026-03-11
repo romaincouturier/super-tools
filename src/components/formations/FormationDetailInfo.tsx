@@ -168,6 +168,32 @@ const FormationDetailInfo = ({
                   </Button>
                 </div>
               )}
+              {/* Logistics email button - only for presentiel intra */}
+              {isPresentiel && training.sponsor_email && !isInterSession && (
+                <div className="flex items-center gap-2 pt-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 text-xs"
+                    onClick={handleSendLogisticsEmail}
+                    disabled={sendingLogistics}
+                  >
+                    {sendingLogistics ? (
+                      <Loader2 className="h-3 w-3 mr-1.5 animate-spin" />
+                    ) : (training as any).logistics_email_sent_at ? (
+                      <CheckCircle2 className="h-3 w-3 mr-1.5 text-primary" />
+                    ) : (
+                      <Truck className="h-3 w-3 mr-1.5" />
+                    )}
+                    {(training as any).logistics_email_sent_at ? "Renvoyer besoins logistiques" : "Envoyer besoins logistiques"}
+                  </Button>
+                  {(training as any).logistics_email_sent_at && (
+                    <span className="text-xs text-muted-foreground">
+                      Envoyé le {formatSentDateTime((training as any).logistics_email_sent_at)}
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </>
