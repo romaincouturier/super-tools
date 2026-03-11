@@ -696,6 +696,7 @@ Cordialement,`,
   elearning_access: {
     name: "Email d'accès e-learning",
     timing: "manual",
+    sendingInfo: "✋ Envoyé manuellement depuis la fiche formation pour les formats e-learning. Contient le lien d'accès à la plateforme",
     subject: {
       tu: "Accès à ta formation e-learning \"{{training_name}}\"",
       vous: "Accès à votre formation e-learning \"{{training_name}}\"",
