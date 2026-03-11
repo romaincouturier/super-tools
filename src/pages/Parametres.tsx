@@ -274,6 +274,83 @@ Bonne journée`,
     },
     variables: ["first_name", "training_name"],
   },
+  // MISSION EMAILS
+  mission_google_review: {
+    name: "Demande d'avis Google (Mission)",
+    timing: "mission_after",
+    delayKey: "delay_mission_google_review_days",
+    subject: {
+      tu: "🌟 Ton avis sur notre collaboration \"{{mission_title}}\"",
+      vous: "🌟 Votre avis sur notre collaboration \"{{mission_title}}\"",
+    },
+    content: {
+      tu: `Bonjour {{first_name}},
+
+Notre collaboration sur "{{mission_title}}" touche à sa fin, et je tenais à te remercier pour ta confiance.
+
+Pour continuer à améliorer nos services et partager des retours d'expérience, ton avis serait très précieux. Pourrais-tu nous accorder 1 minute pour laisser un commentaire sur notre page Google ?
+
+👉 Laisser un avis : {{google_review_link}}
+
+Ton retour est essentiel pour nous permettre de progresser et d'aider d'autres organisations à découvrir nos services.
+
+Merci infiniment pour ton soutien !
+
+À bientôt,`,
+      vous: `Bonjour {{first_name}},
+
+Notre collaboration sur "{{mission_title}}" touche à sa fin, et je tenais à vous remercier pour votre confiance.
+
+Pour continuer à améliorer nos services et partager des retours d'expérience, votre avis serait très précieux. Pourriez-vous nous accorder 1 minute pour laisser un commentaire sur notre page Google ?
+
+👉 Laisser un avis : {{google_review_link}}
+
+Votre retour est essentiel pour nous permettre de progresser et d'aider d'autres organisations à découvrir nos services.
+
+Merci infiniment pour votre soutien !
+
+À bientôt,`,
+    },
+    variables: ["first_name", "mission_title", "google_review_link"],
+  },
+  mission_video_testimonial: {
+    name: "Demande de témoignage vidéo (Mission)",
+    timing: "mission_after",
+    delayKey: "delay_mission_video_testimonial_days",
+    subject: {
+      tu: "🎥 Partager ton expérience sur \"{{mission_title}}\"",
+      vous: "🎥 Partager votre expérience sur \"{{mission_title}}\"",
+    },
+    content: {
+      tu: `Bonjour {{first_name}},
+
+Je me permets de te contacter pour te proposer de partager ton retour d'expérience sur notre collaboration "{{mission_title}}".
+
+Ce témoignage pourrait prendre la forme d'une courte interview en visioconférence (10 minutes maximum) ou d'un texte qui sera publié sur {{site_url}}.
+
+Ton retour serait précieux pour inspirer d'autres organisations et valoriser ton analyse.
+
+Si tu es partant(e), réponds simplement à cet email pour que nous puissions convenir d'un moment ensemble.
+
+Merci d'avance pour ton temps !
+
+Bonne journée,`,
+      vous: `Bonjour {{first_name}},
+
+Je me permets de vous contacter pour vous proposer de partager votre retour d'expérience sur notre collaboration "{{mission_title}}".
+
+Ce témoignage pourrait prendre la forme d'une courte interview en visioconférence (10 minutes maximum) ou d'un texte qui sera publié sur {{site_url}}.
+
+Votre retour serait précieux pour inspirer d'autres organisations et valoriser votre analyse.
+
+Si vous êtes partant(e), répondez simplement à cet email pour que nous puissions convenir d'un moment ensemble.
+
+Merci d'avance pour votre temps !
+
+Bonne journée,`,
+    },
+    variables: ["first_name", "mission_title", "site_url"],
+  },
   cold_evaluation: {
     name: "Évaluation à froid commanditaire",
     timing: "after",
