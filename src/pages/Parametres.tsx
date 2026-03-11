@@ -133,6 +133,7 @@ Merci d'avance pour votre participation !`,
   attendance_signature: {
     name: "Demande de signature d'émargement",
     timing: "during",
+    sendingInfo: "📤 Envoyé automatiquement aux participants chaque demi-journée de formation (matin/après-midi) pour les formats présentiel",
     subject: {
       tu: "Signature d'émargement - {{training_name}}",
       vous: "Signature d'émargement - {{training_name}}",
