@@ -1019,7 +1019,7 @@ serve(async (req) => {
       bcc: bccList.filter(e => e !== adminEmail),
       subject: `${statusEmoji} Sauvegarde SuperTools ${today} ${statusText}`,
       html: `
-        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="font-family: sans-serif; max-width: 600px;">
           <h2 style="color: ${success ? "#16a34a" : "#dc2626"};">
             Sauvegarde automatique ${statusText}
           </h2>
