@@ -257,23 +257,49 @@ const LiveMeetingsSection = ({ trainingId }: LiveMeetingsSectionProps) => {
     setNotesDialogOpen(true);
   };
 
-  const handleSaveNotes = async () => {
-    if (!notesMeeting) return;
+  const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [notesSaved, setNotesSaved] = useState(false);
+
+  const saveNotesNow = useCallback(async (meetingId: string, notes: string) => {
     setSavingNotes(true);
     try {
       const { error } = await supabase
         .from("training_live_meetings")
-        .update({ run_notes: runNotes.trim() || null })
-        .eq("id", notesMeeting.id);
+        .update({ run_notes: notes.trim() || null })
+        .eq("id", meetingId);
       if (error) throw error;
-      toast({ title: "Notes enregistrées" });
-      setNotesDialogOpen(false);
+      setNotesSaved(true);
+      setTimeout(() => setNotesSaved(false), 2000);
       fetchMeetings();
     } catch (error: any) {
       toast({ title: "Erreur", description: error.message, variant: "destructive" });
     } finally {
       setSavingNotes(false);
     }
+  }, [fetchMeetings, toast]);
+
+  const handleRunNotesChange = useCallback((html: string) => {
+    setRunNotes(html);
+    setNotesSaved(false);
+    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+    if (notesMeeting) {
+      autoSaveTimerRef.current = setTimeout(() => {
+        saveNotesNow(notesMeeting.id, html);
+      }, 1500);
+    }
+  }, [notesMeeting, saveNotesNow]);
+
+  // Cleanup timer on unmount / dialog close
+  useEffect(() => {
+    return () => {
+      if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+    };
+  }, []);
+
+  const handleSaveNotes = async () => {
+    if (!notesMeeting) return;
+    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+    await saveNotesNow(notesMeeting.id, runNotes);
   };
 
   const statusBadge = (status: string) => {
