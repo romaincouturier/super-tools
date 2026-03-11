@@ -179,7 +179,7 @@ const NextActionScheduler = ({
           </div>
           <Button
             size="sm"
-            onClick={() => { onSchedule(); setShowForm(false); }}
+            onClick={async () => { try { await onSchedule(); } finally { setShowForm(false); } }}
             disabled={!scheduledDate || !scheduledText.trim() || saving}
             className="w-full"
           >
