@@ -732,6 +732,7 @@ Bonne formation !`,
   convention_reminder: {
     name: "Relance convention de formation",
     timing: "before",
+    sendingInfo: "📤 Envoyé automatiquement au commanditaire si la convention n'est pas signée, J+X jours ouvrés après l'envoi (configurable)",
     delayKey: "delay_convention_reminder_1_days",
     subject: {
       tu: "Rappel : convention de formation \"{{training_name}}\"",
