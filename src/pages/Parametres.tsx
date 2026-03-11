@@ -324,6 +324,7 @@ Merci infiniment pour votre soutien !
   mission_video_testimonial: {
     name: "Demande de témoignage vidéo (Mission)",
     timing: "mission_after",
+    sendingInfo: "📤 Envoyé automatiquement au contact de la mission, J+X jours après l'avis Google mission (configurable)",
     delayKey: "delay_mission_video_testimonial_days",
     subject: {
       tu: "🎥 Partager ton expérience sur \"{{mission_title}}\"",
