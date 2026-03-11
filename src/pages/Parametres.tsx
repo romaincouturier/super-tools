@@ -65,6 +65,7 @@ const DEFAULT_TEMPLATES: Record<string, TemplateConfig> = {
   needs_survey: {
     name: "Questionnaire de recueil des besoins",
     timing: "before",
+    sendingInfo: "📤 Envoyé automatiquement aux participants, J-X avant la formation (configurable)",
     delayKey: "delay_needs_survey_days",
     subject: {
       tu: "Prépare ta formation \"{{training_name}}\"",
