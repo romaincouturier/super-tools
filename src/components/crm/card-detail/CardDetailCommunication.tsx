@@ -296,8 +296,17 @@ const CardDetailCommunication = ({ state, handlers, details, emailFileInputRef, 
             disabled={!emailTo.trim() || !emailSubject.trim() || sendEmail.isPending}
             className="flex-1"
           >
-            {sendEmail.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Mail className="h-4 w-4 mr-2" />}
-            Envoyer{emailAttachments.length > 0 ? ` (${emailAttachments.length} pièce${emailAttachments.length > 1 ? "s" : ""} jointe${emailAttachments.length > 1 ? "s" : ""})` : ""}
+            {sendEmail.isPending ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Envoi en cours…
+              </>
+            ) : (
+              <>
+                <Mail className="h-4 w-4 mr-2" />
+                Envoyer{emailAttachments.length > 0 ? ` (${emailAttachments.length} pièce${emailAttachments.length > 1 ? "s" : ""} jointe${emailAttachments.length > 1 ? "s" : ""})` : ""}
+              </>
+            )}
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
