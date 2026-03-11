@@ -290,3 +290,42 @@ verify_jwt = false
 
 [functions.google-calendar-events]
 verify_jwt = false
+
+[functions.arena-orchestrate]
+verify_jwt = false
+
+[functions.arena-orchestrator]
+verify_jwt = false
+
+[functions.arena-suggest-experts]
+verify_jwt = false
+
+[functions.check-functions-health]
+verify_jwt = false
+
+[functions.commercial-challenge]
+verify_jwt = false
+
+[functions.generate-quote-email]
+verify_jwt = false
+
+[functions.generate-quote-lines]
+verify_jwt = false
+
+[functions.generate-quote-pdf]
+verify_jwt = false
+
+[functions.generate-quote-synthesis]
+verify_jwt = false
+
+[functions.notify-session-full]
+verify_jwt = false
+
+[functions.okr-ai-assistant]
+verify_jwt = false
+
+[functions.send-quote-email]
+verify_jwt = false
+
+[functions.transcribe-audio]
+verify_jwt = false
