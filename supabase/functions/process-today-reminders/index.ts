@@ -142,6 +142,16 @@ serve(async (req) => {
       const isClasseVirtuelle = format === "classe_virtuelle";
       const isElearning = format === "e_learning";
 
+      // Determine if this is the first scheduled day
+      const { data: allSchedules } = await supabase
+        .from("training_schedules")
+        .select("day_date")
+        .eq("training_id", trainingId)
+        .order("day_date")
+        .limit(1);
+      const firstDate = allSchedules && allSchedules.length > 0 ? allSchedules[0].day_date : today;
+      const isFirstDay = today === firstDate;
+
       // For virtual trainings, fetch the meeting URL from live meetings scheduled today
       let meetingUrl = "";
       if (isClasseVirtuelle || isElearning) {
@@ -203,6 +213,8 @@ serve(async (req) => {
           is_classe_virtuelle: isClasseVirtuelle ? "1" : undefined,
           is_elearning: isElearning ? "1" : undefined,
           meeting_url: meetingUrl || undefined,
+          is_first_day: isFirstDay ? "1" : undefined,
+          is_next_day: !isFirstDay ? "1" : undefined,
         };
 
         const resolvedSubject = processTemplate(template.subject, variables, false);
