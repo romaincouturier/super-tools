@@ -289,6 +289,7 @@ const FormationDetailInfo = ({
       )}
     </CardContent>
   </Card>
-);
+  );
+};
 
 export default FormationDetailInfo;
