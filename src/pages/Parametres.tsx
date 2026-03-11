@@ -52,7 +52,7 @@ type AddressMode = "tu" | "vous";
 // Template configuration with timing info
 interface TemplateConfig {
   name: string;
-  timing: "before" | "during" | "after" | "manual";
+  timing: "before" | "during" | "after" | "manual" | "mission_after";
   delayKey?: string; // Key in app_settings for delay
   subject: { tu: string; vous: string };
   content: { tu: string; vous: string };
