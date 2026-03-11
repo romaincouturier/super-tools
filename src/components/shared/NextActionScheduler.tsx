@@ -2,6 +2,7 @@
  * Shared "Next Action" scheduler component.
  * Used by both CRM cards and Missions to schedule future actions.
  */
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -59,9 +60,18 @@ const NextActionScheduler = ({
 }: NextActionSchedulerProps) => {
   const tomorrow = format(addDays(new Date(), 1), "yyyy-MM-dd");
 
+  // Track explicit clear so we don't fall back to stale server data
+  const [wasCleared, setWasCleared] = useState(false);
+  useEffect(() => { setWasCleared(false); }, [currentAction.date]);
+
+  const handleClear = () => {
+    setWasCleared(true);
+    onClear();
+  };
+
   // Use local state when it differs from server (optimistic display)
-  const displayDate = scheduledDate || currentAction.date;
-  const displayText = scheduledText || currentAction.text;
+  const displayDate = scheduledDate || (wasCleared ? null : currentAction.date);
+  const displayText = scheduledText || (wasCleared ? null : currentAction.text);
 
   return (
     <>
@@ -83,7 +93,7 @@ const NextActionScheduler = ({
             <Button variant="ghost" size="sm" className="h-6 px-2 text-xs text-blue-700 hover:text-blue-900" onClick={() => setShowForm(true)}>
               <Pencil className="h-3 w-3" />
             </Button>
-            <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-blue-500 hover:text-blue-700" onClick={() => onClear()}>
+            <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-blue-500 hover:text-blue-700" onClick={handleClear}>
               <X className="h-3.5 w-3.5" />
             </Button>
           </div>
@@ -108,7 +118,7 @@ const NextActionScheduler = ({
                 Action actuelle : {format(new Date(currentAction.date), "d MMMM yyyy", { locale: fr })}
                 {currentAction.text && ` — ${currentAction.text}`}
               </span>
-              <Button variant="ghost" size="sm" onClick={() => onClear()}>
+              <Button variant="ghost" size="sm" onClick={handleClear}>
                 <X className="h-4 w-4" />
               </Button>
             </div>
