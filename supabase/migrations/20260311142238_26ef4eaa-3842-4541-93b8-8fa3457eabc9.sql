@@ -1,0 +1,1 @@
+ALTER TABLE public.mission_activities ADD COLUMN IF NOT EXISTS google_event_id text, ADD COLUMN IF NOT EXISTS google_event_link text;

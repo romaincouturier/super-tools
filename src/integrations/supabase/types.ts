@@ -3143,6 +3143,8 @@ export type Database = {
           description: string
           duration: number
           duration_type: string
+          google_event_id: string | null
+          google_event_link: string | null
           id: string
           invoice_number: string | null
           invoice_url: string | null
@@ -3158,6 +3160,8 @@ export type Database = {
           description: string
           duration?: number
           duration_type?: string
+          google_event_id?: string | null
+          google_event_link?: string | null
           id?: string
           invoice_number?: string | null
           invoice_url?: string | null
@@ -3173,6 +3177,8 @@ export type Database = {
           description?: string
           duration?: number
           duration_type?: string
+          google_event_id?: string | null
+          google_event_link?: string | null
           id?: string
           invoice_number?: string | null
           invoice_url?: string | null
