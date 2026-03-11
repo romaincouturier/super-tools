@@ -40,6 +40,7 @@ const CATEGORY_ORDER = [
   "formations_facture",
   "cfp_soumettre",
   "missions_a_facturer",
+  "missions_activites_non_facturees",
   "missions_sans_date",
   "devis_a_faire",
   "devis_a_relancer",
