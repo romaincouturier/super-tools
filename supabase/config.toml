@@ -249,6 +249,9 @@ verify_jwt = false
 [functions.stripe-webhook]
 verify_jwt = false
 
+[functions.process-live-reminders]
+verify_jwt = false
+
 [functions.process-today-reminders]
 verify_jwt = false
 
