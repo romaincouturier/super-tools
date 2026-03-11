@@ -1106,6 +1106,7 @@ Je reste à votre disposition pour en discuter.`,
   questionnaire_confirmation: {
     name: "Confirmation questionnaire complété",
     timing: "before",
+    sendingInfo: "📤 Envoyé automatiquement au participant juste après qu'il a complété le questionnaire de recueil des besoins",
     subject: {
       tu: "Questionnaire complété - {{training_name}}",
       vous: "Questionnaire complété - {{training_name}}",
