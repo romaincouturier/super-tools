@@ -319,6 +319,7 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
             synthesis={synthesis}
             instructions={instructions}
             travelTotal={travelTotal}
+            crmCard={crmCard}
             onContinue={handleQuoteContinue}
           />
         </>

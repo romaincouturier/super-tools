@@ -60,6 +60,7 @@ IMPORTANT : Utilise la fonction suggest_quote_lines pour retourner les lignes.`;
     const userContent = [
       synthesis ? `=== SYNTHÈSE ===\n${synthesis}` : "",
       instructions ? `\n=== INSTRUCTIONS / NOTES DU CONSULTANT ===\n${instructions}` : "",
+      pricingContext ? `\n=== ${pricingContext}` : "",
     ].filter(Boolean).join("\n");
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
