@@ -654,6 +654,7 @@ N'hésitez pas à revenir vers nous si vous avez la moindre question. Nous somme
   convention: {
     name: "Envoi de convention de formation",
     timing: "manual",
+    sendingInfo: "✋ Envoyé manuellement depuis la fiche formation (bouton « Envoyer convention »). Contient la convention PDF et le lien de signature en ligne",
     subject: {
       tu: "Convention de formation - {{training_name}}",
       vous: "Convention de formation - {{training_name}}",
