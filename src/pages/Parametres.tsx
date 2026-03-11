@@ -1064,6 +1064,7 @@ Votre présence est importante pour profiter pleinement de ce moment d'échange.
   prerequis_warning: {
     name: "Alerte prérequis non validés",
     timing: "before",
+    sendingInfo: "📤 Envoyé automatiquement au participant lorsqu'il indique dans le questionnaire ne pas valider certains prérequis de la formation",
     subject: {
       tu: "Prérequis de la formation \"{{training_name}}\" - Faisons le point",
       vous: "Prérequis de la formation \"{{training_name}}\" - Faisons le point",
