@@ -43,7 +43,34 @@ const FormationDetailInfo = ({
   getFormatLabel,
   calculateTotalDuration,
   toast,
-}: Props) => (
+}: Props) => {
+  const [sendingLogistics, setSendingLogistics] = useState(false);
+
+  const handleSendLogisticsEmail = async () => {
+    setSendingLogistics(true);
+    try {
+      const { error } = await supabase.functions.invoke("send-logistics-requirements", {
+        body: { trainingId: training.id },
+      });
+      if (error) throw error;
+      toast({
+        title: "Email envoyé",
+        description: `Les besoins logistiques ont été envoyés à ${training.sponsor_email}.`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Erreur",
+        description: error.message || "Impossible d'envoyer l'email.",
+        variant: "destructive",
+      });
+    } finally {
+      setSendingLogistics(false);
+    }
+  };
+
+  const isPresentiel = training.format_formation !== "e_learning" && training.format_formation !== "classe_virtuelle";
+
+  return (
   <Card>
     <CardHeader>
       <CardTitle className="flex items-center gap-2">
