@@ -53,6 +53,7 @@ type AddressMode = "tu" | "vous";
 interface TemplateConfig {
   name: string;
   timing: "before" | "during" | "after" | "manual" | "mission_after";
+  sendingInfo: string; // Human-readable description of when/how the email is sent
   delayKey?: string; // Key in app_settings for delay
   subject: { tu: string; vous: string };
   content: { tu: string; vous: string };
