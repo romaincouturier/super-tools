@@ -48,6 +48,11 @@ const {
   deleteTraining,
   updateTraining,
   fetchAllTrainings,
+  fetchTrainingNames,
+  fetchUpcomingTrainings,
+  fetchSchedules,
+  fetchParticipants,
+  fetchLinkableTrainings,
 } = await import("./trainings");
 
 beforeEach(() => {
@@ -101,6 +106,74 @@ describe("trainings service", () => {
       mockOrder.mockReturnValue({ data: trainings, error: null });
       const result = await fetchAllTrainings();
       expect(result).toEqual(trainings);
+      expect(mockFrom).toHaveBeenCalledWith("trainings");
+    });
+  });
+
+  describe("fetchTrainingNames", () => {
+    it("returns id and training_name ordered by start_date desc", async () => {
+      const names = [{ id: "1", training_name: "A" }];
+      mockOrder.mockReturnValue({ data: names, error: null });
+      const result = await fetchTrainingNames();
+      expect(result).toEqual(names);
+      expect(mockFrom).toHaveBeenCalledWith("trainings");
+    });
+
+    it("throws on error", async () => {
+      mockOrder.mockReturnValue({ data: null, error: { message: "fail" } });
+      await expect(fetchTrainingNames()).rejects.toEqual({ message: "fail" });
+    });
+  });
+
+  describe("fetchUpcomingTrainings", () => {
+    it("fetches trainings from a given date with limit 20", async () => {
+      const upcoming = [{ id: "1", training_name: "Up" }];
+      mockOrder.mockReturnValue({ limit: mockLimit });
+      mockLimit.mockReturnValue({ data: upcoming, error: null });
+      const result = await fetchUpcomingTrainings("2026-03-01");
+      expect(result).toEqual(upcoming);
+      expect(mockFrom).toHaveBeenCalledWith("trainings");
+    });
+  });
+
+  describe("fetchSchedules", () => {
+    it("fetches schedules for a training id", async () => {
+      const schedules = [{ id: "s1", day_date: "2026-03-10" }];
+      const mockScheduleEq = vi.fn().mockReturnValue({ order: vi.fn().mockReturnValue({ data: schedules, error: null }) });
+      mockSelect.mockReturnValue({
+        eq: mockScheduleEq,
+        order: mockOrder,
+        gte: mockGte,
+        in: mockIn,
+      });
+      const result = await fetchSchedules("t1");
+      expect(result).toEqual(schedules);
+      expect(mockFrom).toHaveBeenCalledWith("training_schedules");
+    });
+  });
+
+  describe("fetchParticipants", () => {
+    it("fetches participants for a training id", async () => {
+      const participants = [{ id: "p1", name: "Alice" }];
+      const mockParticipantEq = vi.fn().mockReturnValue({ order: vi.fn().mockReturnValue({ data: participants, error: null }) });
+      mockSelect.mockReturnValue({
+        eq: mockParticipantEq,
+        order: mockOrder,
+        gte: mockGte,
+        in: mockIn,
+      });
+      const result = await fetchParticipants("t1");
+      expect(result).toEqual(participants);
+      expect(mockFrom).toHaveBeenCalledWith("training_participants");
+    });
+  });
+
+  describe("fetchLinkableTrainings", () => {
+    it("fetches inter/e-learning trainings from a date", async () => {
+      const linkable = [{ id: "1", format_formation: "inter-entreprises" }];
+      mockOrder.mockReturnValue({ data: linkable, error: null });
+      const result = await fetchLinkableTrainings("2026-03-01");
+      expect(result).toEqual(linkable);
       expect(mockFrom).toHaveBeenCalledWith("trainings");
     });
   });
