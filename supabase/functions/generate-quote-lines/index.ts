@@ -16,9 +16,27 @@ serve(async (req) => {
     const authResult = await verifyAuth(req.headers.get("Authorization"));
     if (!authResult) return createErrorResponse("Non autorisé", 401);
 
-    const { synthesis, instructions, defaultVatRate = 20 } = await req.json();
+    const { synthesis, instructions, defaultVatRate = 20, catalogPricing } = await req.json();
     if (!synthesis && !instructions) {
       return createErrorResponse("synthesis ou instructions requis", 400);
+    }
+
+    // Build catalog pricing context if available
+    let pricingContext = "";
+    if (catalogPricing) {
+      const parts = [`\nRÉFÉRENTIEL PRIX CATALOGUE :`];
+      parts.push(`Formation : ${catalogPricing.formation_name}`);
+      if (catalogPricing.formulas?.length > 0) {
+        parts.push(`Formules disponibles :`);
+        for (const f of catalogPricing.formulas) {
+          parts.push(`  - ${f.name} : ${f.price != null ? f.price + "€ HT" : "prix non défini"}${f.duration_hours ? ` (${f.duration_hours}h)` : ""}`);
+        }
+        parts.push(`\nIMPORTANT : Si la synthèse ou les instructions mentionnent une formule spécifique, utilise le prix de CETTE FORMULE, pas le prix de base de la formation.`);
+      }
+      if (catalogPricing.formation_price != null) {
+        parts.push(`Prix de base formation : ${catalogPricing.formation_price}€ HT${catalogPricing.formation_duration_hours ? ` (${catalogPricing.formation_duration_hours}h)` : ""}`);
+      }
+      pricingContext = parts.join("\n");
     }
 
     const systemPrompt = `Tu es un expert en chiffrage de prestations de conseil et formation professionnelle en France.
@@ -28,7 +46,8 @@ serve(async (req) => {
 RÈGLES IMPÉRATIVES :
 - Analyse les instructions pour extraire les prix, durées, quantités mentionnés
 - Si un tarif journalier est mentionné, utilise-le exactement
-- Si aucun prix n'est mentionné, propose un tarif cohérent pour le type de prestation (formation ~1200-1800€/jour, conseil ~1000-1500€/jour, coaching ~200-400€/session)
+- Si un référentiel prix catalogue est fourni, utilise les prix du catalogue (et en particulier le prix de la formule si une formule est identifiable)
+- Si aucun prix n'est mentionné et pas de catalogue, propose un tarif cohérent pour le type de prestation (formation ~1200-1800€/jour, conseil ~1000-1500€/jour, coaching ~200-400€/session)
 - Décompose la prestation en lignes distinctes et logiques
 - Chaque ligne doit avoir un intitulé clair et une description utile
 - L'unité par défaut est "jour" pour les formations, "forfait" pour les livrables, "heure" pour le coaching
