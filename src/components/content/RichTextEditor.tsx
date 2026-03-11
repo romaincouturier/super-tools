@@ -112,7 +112,34 @@ const RichTextEditor = ({
 
   return (
     <div className={cn("border rounded-md bg-background", className)}>
-      <div className="flex flex-wrap gap-1 p-2 border-b bg-muted/30">
+      <div className="flex flex-wrap items-center gap-1 p-2 border-b bg-muted/30">
+        <Toggle
+          size="sm"
+          pressed={editor.isActive("heading", { level: 1 })}
+          onPressedChange={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+          aria-label="Titre H1"
+        >
+          <Heading1 className="h-4 w-4" />
+        </Toggle>
+        <Toggle
+          size="sm"
+          pressed={editor.isActive("heading", { level: 2 })}
+          onPressedChange={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+          aria-label="Titre H2"
+        >
+          <Heading2 className="h-4 w-4" />
+        </Toggle>
+        <Toggle
+          size="sm"
+          pressed={editor.isActive("heading", { level: 3 })}
+          onPressedChange={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+          aria-label="Titre H3"
+        >
+          <Heading3 className="h-4 w-4" />
+        </Toggle>
+
+        <div className="w-px h-6 bg-border mx-1" />
+
         <Toggle
           size="sm"
           pressed={editor.isActive("bold")}
