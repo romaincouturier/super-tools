@@ -8,6 +8,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { ChatbotProvider } from "@/components/chatbot/ChatbotProvider";
 import { GlobalChunkErrorHandler } from "@/components/GlobalChunkErrorHandler";
+import { PageViewTracker } from "@/components/PageViewTracker";
 import { RouteErrorBoundary } from "@/components/RouteErrorBoundary";
 import { lazyWithRetry } from "@/lib/lazyWithRetry";
 import "@/i18n";
@@ -106,6 +107,7 @@ const App = () => (
       <GlobalChunkErrorHandler />
       <OfflineBanner />
       <BrowserRouter>
+        <PageViewTracker />
         <Suspense fallback={<PageLoader />}>
           <RouteErrorBoundary>
             <Routes>

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { ArrowLeft, ExternalLink, Edit2, Map, Train, Hotel, UtensilsCrossed, DoorOpen, Copy, MoreHorizontal, Package, Ban, RotateCcw, Trash2 } from "lucide-react";
+import { useFeatureTracking } from "@/hooks/useFeatureTracking";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -63,6 +64,8 @@ const FormationDetailHeader = ({
   setDuplicateDialogOpen,
   requiredEquipment,
 }: Props) => {
+  const { trackFeature } = useFeatureTracking();
+
   const isOnline = training.location?.toLowerCase().includes("visio") ||
     training.location?.toLowerCase().includes("en ligne") ||
     training.location?.toLowerCase().includes("distanciel");
@@ -77,6 +80,7 @@ const FormationDetailHeader = ({
     if (deleteConfirmText !== "SUPPRIMER") return;
     setDeleting(true);
     try {
+      trackFeature("delete_training", "formations", { training_id: training.id });
       await deleteTraining(training.id);
       toast({ title: "Formation supprimée" });
       navigate("/formations");
@@ -97,6 +101,7 @@ const FormationDetailHeader = ({
 
   const handleCancel = async () => {
     if (!cancellationReason) return;
+    trackFeature("cancel_training", "formations", { training_id: training.id, reason: cancellationReason });
     const { error } = await supabase
       .from("trainings")
       .update({
@@ -114,6 +119,7 @@ const FormationDetailHeader = ({
   };
 
   const handleReactivate = async () => {
+    trackFeature("reactivate_training", "formations", { training_id: training.id });
     const { error } = await supabase
       .from("trainings")
       .update({
@@ -219,10 +225,10 @@ const FormationDetailHeader = ({
                   <Package className="h-4 w-4 mr-2" />Matériel {training.equipment_ready && "✓"}
                 </DropdownMenuItem>
               )}
-              <DropdownMenuItem onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/formation-info/${id}`); toast({ title: "Lien copié", description: "Le lien vers la page participant a été copié." }); }}>
+              <DropdownMenuItem onClick={() => { trackFeature("copy_participant_link", "formations", { training_id: id }); navigator.clipboard.writeText(`${window.location.origin}/formation-info/${id}`); toast({ title: "Lien copié", description: "Le lien vers la page participant a été copié." }); }}>
                 <Copy className="h-4 w-4 mr-2" />Copier lien participant
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setDuplicateDialogOpen(true)}>
+              <DropdownMenuItem onClick={() => { trackFeature("duplicate_training", "formations", { training_id: id }); setDuplicateDialogOpen(true); }}>
                 <Copy className="h-4 w-4 mr-2" />Dupliquer
               </DropdownMenuItem>
               {isInterSession && !training.is_cancelled && (

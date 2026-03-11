@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useFeatureTracking } from "@/hooks/useFeatureTracking";
 
 interface BookingButtonProps {
   icon: React.ReactNode;
@@ -75,9 +76,11 @@ const LogisticsBookingButtons = ({
   onUpdate,
   compact = false,
 }: LogisticsBookingButtonsProps) => {
+  const { trackFeature } = useFeatureTracking();
   const encodedLocation = encodeURIComponent(location || "");
 
   const handleToggle = async (field: "train_booked" | "hotel_booked", value: boolean) => {
+    trackFeature(`toggle_${field}`, "logistics", { table, entity_id: entityId, value });
     const { error } = await supabase
       .from(table)
       .update({ [field]: value } as any)
