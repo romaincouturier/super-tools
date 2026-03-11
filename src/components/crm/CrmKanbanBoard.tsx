@@ -2,12 +2,16 @@ import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import {
   DndContext,
   DragOverlay,
-  closestCorners,
+  closestCenter,
+  pointerWithin,
+  rectIntersection,
   DragStartEvent,
   DragEndEvent,
   DragOverEvent,
+  type CollisionDetection,
 } from "@dnd-kit/core";
 import {
+  arrayMove,
   SortableContext,
   horizontalListSortingStrategy,
 } from "@dnd-kit/sortable";
@@ -28,6 +32,22 @@ import { useNavigate } from "react-router-dom";
 import { isAfter, startOfDay } from "date-fns";
 import confetti from "canvas-confetti";
 import { useKanbanDnd } from "@/hooks/useKanbanDnd";
+
+const crmCollision: CollisionDetection = (args) => {
+  const pointerCollisions = pointerWithin(args);
+  if (pointerCollisions.length > 0) {
+    const ids = new Set(pointerCollisions.map((c) => c.id));
+    const filtered = args.droppableContainers.filter((c) => ids.has(c.id));
+    if (filtered.length > 0) {
+      const refined = closestCenter({ ...args, droppableContainers: filtered });
+      if (refined.length > 0) return refined;
+    }
+    return pointerCollisions;
+  }
+  const rectCollisions = rectIntersection(args);
+  if (rectCollisions.length > 0) return rectCollisions;
+  return closestCenter(args);
+};
 
 interface CrmKanbanBoardProps {
   initialCardId?: string | null;
@@ -179,12 +199,12 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
 
     const activeCardId = active.id as string;
     const overId = over.id as string;
-    const activeCard = localCards.find((c) => c.id === activeCardId);
-    if (!activeCard) return;
+    const activeCardData = localCards.find((c) => c.id === activeCardId);
+    if (!activeCardData) return;
 
-    // Check if over a column
+    // Check if over a column directly
     const overColumn = boardData?.columns.find((col) => col.id === overId);
-    if (overColumn && activeCard.column_id !== overColumn.id) {
+    if (overColumn && activeCardData.column_id !== overColumn.id) {
       setLocalCards((prev) =>
         prev.map((c) =>
           c.id === activeCardId ? { ...c, column_id: overColumn.id } : c
@@ -195,12 +215,35 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
 
     // Check if over another card
     const overCard = localCards.find((c) => c.id === overId);
-    if (overCard && activeCard.column_id !== overCard.column_id) {
+    if (!overCard || activeCardId === overId) return;
+
+    if (activeCardData.column_id !== overCard.column_id) {
+      // Cross-column: move card to the target column
       setLocalCards((prev) =>
         prev.map((c) =>
           c.id === activeCardId ? { ...c, column_id: overCard.column_id } : c
         )
       );
+    } else {
+      // Same column: reorder cards optimistically
+      setLocalCards((prev) => {
+        const colCards = prev
+          .filter((c) => c.column_id === activeCardData.column_id)
+          .sort((a, b) => a.position - b.position);
+        const fromIndex = colCards.findIndex((c) => c.id === activeCardId);
+        const toIndex = colCards.findIndex((c) => c.id === overId);
+        if (fromIndex === -1 || toIndex === -1 || fromIndex === toIndex) return prev;
+
+        const reordered = arrayMove(colCards, fromIndex, toIndex);
+        // Update positions to reflect new order
+        const positionMap = new Map<string, number>();
+        reordered.forEach((c, i) => positionMap.set(c.id, i));
+
+        return prev.map((c) => {
+          const newPos = positionMap.get(c.id);
+          return newPos !== undefined ? { ...c, position: newPos } : c;
+        });
+      });
     }
   };
 
@@ -283,28 +326,20 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
     if (!over || !user?.email) return;
 
     const activeCardId = active.id as string;
-    const overId = over.id as string;
     const draggedCard = localCards.find((c) => c.id === activeCardId);
     if (!draggedCard) return;
 
-    // Determine target column
-    let targetColumnId = draggedCard.column_id;
-    const overColumn = boardData?.columns.find((col) => col.id === overId);
-    const overCard = localCards.find((c) => c.id === overId);
-    let targetColumn = overColumn;
+    // The dragged card's column_id has been updated optimistically during dragOver,
+    // so draggedCard.column_id is the target column.
+    const targetColumnId = draggedCard.column_id;
+    const targetColumn = boardData?.columns.find((col) => col.id === targetColumnId);
 
-    if (overColumn) {
-      targetColumnId = overColumn.id;
-    } else if (overCard) {
-      targetColumnId = overCard.column_id;
-      targetColumn = boardData?.columns.find((col) => col.id === targetColumnId);
-    }
-
-    // Calculate new position
-    const columnCards = localCards.filter((c) => c.column_id === targetColumnId);
-    const newIndex = overCard
-      ? columnCards.findIndex((c) => c.id === overId)
-      : columnCards.length;
+    // Calculate new position from the optimistic local order
+    const columnCards = localCards
+      .filter((c) => c.column_id === targetColumnId)
+      .sort((a, b) => a.position - b.position);
+    const newIndex = columnCards.findIndex((c) => c.id === activeCardId);
+    if (newIndex === -1) return;
 
     // Get old column for logging
     const originalCard = boardData?.cards.find((c) => c.id === activeCardId);
@@ -592,7 +627,7 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
 
       <DndContext
         sensors={sensors}
-        collisionDetection={closestCorners}
+        collisionDetection={crmCollision}
         onDragStart={handleDragStart}
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}

@@ -1,8 +1,8 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useRef } from "react";
 import {
   DndContext,
   DragOverlay,
-  closestCorners,
+  closestCenter,
   pointerWithin,
   rectIntersection,
   type DragStartEvent,
@@ -29,29 +29,24 @@ import { cn } from "@/lib/utils";
 const COLUMN_PREFIX = "column-";
 
 /**
- * Custom collision detection that handles empty columns properly.
- * closestCorners alone fails on empty columns because cards in adjacent
- * columns have closer corners than the empty column container.
- * We use pointerWithin first (reliable for containers), then closestCorners
- * among the matched droppables for card-level precision.
+ * Collision detection optimised for multi-container kanban boards.
+ * Uses pointerWithin for reliable container detection (handles empty columns),
+ * then closestCenter among matched droppables for card-level precision.
  */
-const multiContainerCollision: CollisionDetection = (args) => {
-  // pointerWithin detects all droppables under the pointer, sorted by area (smallest first)
+const kanbanCollision: CollisionDetection = (args) => {
   const pointerCollisions = pointerWithin(args);
   if (pointerCollisions.length > 0) {
-    // Filter closestCorners to only droppables that the pointer is within
     const ids = new Set(pointerCollisions.map((c) => c.id));
     const filtered = args.droppableContainers.filter((c) => ids.has(c.id));
     if (filtered.length > 0) {
-      const refined = closestCorners({ ...args, droppableContainers: filtered });
+      const refined = closestCenter({ ...args, droppableContainers: filtered });
       if (refined.length > 0) return refined;
     }
     return pointerCollisions;
   }
-  // Fallback: rectIntersection then closestCorners
   const rectCollisions = rectIntersection(args);
   if (rectCollisions.length > 0) return rectCollisions;
-  return closestCorners(args);
+  return closestCenter(args);
 };
 
 export default function GenericKanbanBoard<
@@ -82,44 +77,61 @@ export default function GenericKanbanBoard<
 
   const [activeCard, setActiveCard] = useState<TCard | null>(null);
   const [activeColumn, setActiveColumn] = useState<TColumn | null>(null);
-  // Track column override for card being dragged across columns
-  const [dragColumnOverride, setDragColumnOverride] = useState<{
-    cardId: string;
-    columnId: string;
-  } | null>(null);
+
+  // Optimistic local order: columnId → ordered card IDs.
+  // Non-null only while a card drag is in progress.
+  const [itemsMap, setItemsMap] = useState<Record<string, string[]> | null>(null);
+
   // Track column order during column drag
   const [columnOrder, setColumnOrder] = useState<TColumn[] | null>(null);
+
+  // Keep a ref to cards so callbacks always see the latest value
+  const cardsRef = useRef(cards);
+  cardsRef.current = cards;
+
+  const cardById = useMemo(() => {
+    const map = new Map<string, TCard>();
+    for (const c of cards) map.set(c.id, c);
+    return map;
+  }, [cards]);
 
   const sortedColumns = useMemo(() => {
     const cols = columnOrder ?? columns;
     return [...cols].sort((a, b) => a.position - b.position);
   }, [columns, columnOrder]);
 
+  /** Build the initial items map from current cards/columns. */
+  const buildItemsMap = useCallback((): Record<string, string[]> => {
+    const map: Record<string, string[]> = {};
+    for (const col of columns) {
+      map[col.id] = cards
+        .filter((c) => c.columnId === col.id)
+        .sort((a, b) => a.position - b.position)
+        .map((c) => c.id);
+    }
+    return map;
+  }, [cards, columns]);
+
+  /** Get ordered cards for a column, using optimistic local state when dragging. */
   const getCardsByColumn = useCallback(
-    (columnId: string) => {
-      let result = cards.filter((c) => {
-        if (dragColumnOverride && c.id === dragColumnOverride.cardId) {
-          return dragColumnOverride.columnId === columnId;
-        }
-        return c.columnId === columnId;
-      });
-      return result.sort((a, b) => a.position - b.position);
+    (columnId: string): TCard[] => {
+      if (itemsMap) {
+        const ids = itemsMap[columnId] || [];
+        return ids.map((id) => cardById.get(id)).filter(Boolean) as TCard[];
+      }
+      return cards
+        .filter((c) => c.columnId === columnId)
+        .sort((a, b) => a.position - b.position);
     },
-    [cards, dragColumnOverride],
+    [cards, cardById, itemsMap],
   );
 
-  const handleDragStart = (event: DragStartEvent) => {
-    const idStr = String(event.active.id);
-
-    if (columnSortable && idStr.startsWith(COLUMN_PREFIX)) {
-      const colId = idStr.slice(COLUMN_PREFIX.length);
-      const col = columns.find((c) => c.id === colId);
-      if (col) setActiveColumn(col);
-      return;
+  /** Find which column contains a card ID in the current items map. */
+  const findColumnForCard = (map: Record<string, string[]>, cardId: string): string | undefined => {
+    for (const [colId, ids] of Object.entries(map)) {
+      if (ids.includes(cardId)) return colId;
     }
-
-    const card = cards.find((c) => c.id === event.active.id);
-    if (card) setActiveCard(card);
+    return undefined;
   };
 
   const resolveColumnId = useCallback(
@@ -134,72 +146,92 @@ export default function GenericKanbanBoard<
     [columns],
   );
 
-  const handleDragOver = (event: DragOverEvent) => {
-    const { active, over } = event;
-    if (!over) return;
+  // ---- Drag handlers ----
 
-    // Skip column drags
-    if (String(active.id).startsWith(COLUMN_PREFIX)) return;
+  const handleDragStart = (event: DragStartEvent) => {
+    const idStr = String(event.active.id);
 
-    const activeCardId = active.id as string;
-    const overId = over.id as string;
-
-    const card = cards.find((c) => c.id === activeCardId);
-    if (!card) return;
-
-    const currentColumnId = dragColumnOverride?.cardId === activeCardId
-      ? dragColumnOverride.columnId
-      : card.columnId;
-
-    // Over a column directly
-    const overColumnId = resolveColumnId(overId);
-    if (overColumnId && currentColumnId !== overColumnId) {
-      setDragColumnOverride({ cardId: activeCardId, columnId: overColumnId });
+    if (columnSortable && idStr.startsWith(COLUMN_PREFIX)) {
+      const colId = idStr.slice(COLUMN_PREFIX.length);
+      const col = columns.find((c) => c.id === colId);
+      if (col) setActiveColumn(col);
       return;
     }
 
-    // Over another card
-    const overCard = cards.find((c) => c.id === overId);
-    if (overCard) {
-      const overCardColumnId = dragColumnOverride?.cardId === overId
-        ? dragColumnOverride.columnId
-        : overCard.columnId;
-      if (currentColumnId !== overCardColumnId) {
-        setDragColumnOverride({ cardId: activeCardId, columnId: overCardColumnId });
-      }
+    const card = cards.find((c) => c.id === event.active.id);
+    if (card) {
+      setActiveCard(card);
+      setItemsMap(buildItemsMap());
     }
+  };
+
+  const handleDragOver = (event: DragOverEvent) => {
+    const { active, over } = event;
+    if (!over || !itemsMap) return;
+    if (String(active.id).startsWith(COLUMN_PREFIX)) return;
+
+    const activeId = active.id as string;
+    const overId = over.id as string;
+
+    const activeColId = findColumnForCard(itemsMap, activeId);
+    if (!activeColId) return;
+
+    // Determine target column
+    let overColId: string | undefined;
+    const overCard = cardById.get(overId);
+    if (overCard) {
+      overColId = findColumnForCard(itemsMap, overId);
+    } else {
+      overColId = resolveColumnId(overId);
+    }
+    if (!overColId) return;
+
+    setItemsMap((prev) => {
+      if (!prev) return prev;
+      const next = { ...prev };
+
+      if (activeColId !== overColId) {
+        // Cross-column move: remove from source, insert in target
+        const sourceIds = [...(next[activeColId] || [])];
+        const targetIds = [...(next[overColId!] || [])];
+        const fromIndex = sourceIds.indexOf(activeId);
+        if (fromIndex === -1) return prev;
+
+        sourceIds.splice(fromIndex, 1);
+
+        // Insert at the position of the over card, or at the end
+        let toIndex = targetIds.length;
+        if (overCard) {
+          const overIndex = targetIds.indexOf(overId);
+          if (overIndex !== -1) toIndex = overIndex;
+        }
+        targetIds.splice(toIndex, 0, activeId);
+
+        next[activeColId] = sourceIds;
+        next[overColId!] = targetIds;
+      } else {
+        // Same column: reorder
+        const ids = [...(next[activeColId] || [])];
+        const fromIndex = ids.indexOf(activeId);
+        let toIndex = overCard ? ids.indexOf(overId) : ids.length - 1;
+        if (fromIndex === -1 || toIndex === -1 || fromIndex === toIndex) return prev;
+
+        next[activeColId] = arrayMove(ids, fromIndex, toIndex);
+      }
+      return next;
+    });
   };
 
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
-
-    // Capture dragColumnOverride before clearing state
-    const lastDragOverride = dragColumnOverride;
+    const finalMap = itemsMap;
 
     setActiveCard(null);
     setActiveColumn(null);
-    setDragColumnOverride(null);
+    setItemsMap(null);
     setColumnOrder(null);
 
-    if (!over) {
-      // Fallback: if collision detection lost the target but we had a valid
-      // column override during drag, use it to complete the drop.
-      if (lastDragOverride) {
-        const card = cards.find((c) => c.id === active.id);
-        if (!card) return;
-        const targetCards = getCardsByColumn(lastDragOverride.columnId);
-        const newPosition = targetCards.length;
-        if (card.columnId === lastDragOverride.columnId && card.position === newPosition) return;
-        const dropResult: KanbanDropResult<TCard> = {
-          card,
-          sourceColumnId: card.columnId,
-          targetColumnId: lastDragOverride.columnId,
-          newPosition,
-        };
-        await onCardMove(dropResult);
-      }
-      return;
-    }
+    if (!over) return;
 
     const activeIdStr = String(active.id);
     const overIdStr = String(over.id);
@@ -226,33 +258,16 @@ export default function GenericKanbanBoard<
 
     // --- Card move ---
     const card = cards.find((c) => c.id === active.id);
-    if (!card) return;
+    if (!card || !finalMap) return;
 
-    let targetColumnId: string;
-    const overCard = cards.find((c) => c.id === over.id);
-    if (overCard) {
-      targetColumnId = overCard.columnId;
-    } else {
-      const resolvedColId = resolveColumnId(over.id as string);
-      if (resolvedColId) {
-        targetColumnId = resolvedColId;
-      } else if (lastDragOverride) {
-        // Fallback to last known column override
-        targetColumnId = lastDragOverride.columnId;
-      } else {
-        return;
-      }
-    }
+    // Find final column and position from the optimistic map
+    const targetColumnId = findColumnForCard(finalMap, card.id);
+    if (!targetColumnId) return;
 
-    const targetCards = getCardsByColumn(targetColumnId);
-    let newPosition: number;
-    if (overCard) {
-      newPosition = targetCards.findIndex((c) => c.id === overCard.id);
-      if (newPosition === -1) newPosition = targetCards.length;
-    } else {
-      newPosition = targetCards.length;
-    }
+    const newPosition = (finalMap[targetColumnId] || []).indexOf(card.id);
+    if (newPosition === -1) return;
 
+    // Skip if nothing changed
     if (card.columnId === targetColumnId && card.position === newPosition) return;
 
     const dropResult: KanbanDropResult<TCard> = {
@@ -305,7 +320,7 @@ export default function GenericKanbanBoard<
   return (
     <DndContext
       sensors={sensors}
-      collisionDetection={collisionDetection ?? multiContainerCollision}
+      collisionDetection={collisionDetection ?? kanbanCollision}
       onDragStart={handleDragStart}
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}

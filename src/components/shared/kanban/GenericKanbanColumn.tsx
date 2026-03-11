@@ -86,7 +86,7 @@ export default function GenericKanbanColumn<
       )}
     >
       {renderHeader?.(column, cards, dragHandle)}
-      <div className="flex-1 overflow-y-auto space-y-2 min-h-[80px] p-2 transition-colors">
+      <div className="flex-1 overflow-y-auto space-y-1.5 min-h-[100px] p-2 transition-colors">
         {sortable ? (
           <SortableContext
             items={cards.map((c) => c.id)}
@@ -102,7 +102,7 @@ export default function GenericKanbanColumn<
           (renderEmpty ? (
             renderEmpty(column)
           ) : (
-            <div className="text-center py-6 text-muted-foreground text-xs">
+            <div className="text-center py-8 text-muted-foreground text-xs">
               Aucun élément
             </div>
           ))}
