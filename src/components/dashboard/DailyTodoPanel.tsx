@@ -59,6 +59,7 @@ const CATEGORIES: Record<string, CategoryConfig> = {
   reservations_evenement: { label: "Réservations événements", emoji: "📅", color: "text-amber-600" },
   formations_facture: { label: "Factures à émettre", emoji: "🧾", color: "text-red-600" },
   missions_a_facturer: { label: "Factures missions", emoji: "💰", color: "text-green-600" },
+  missions_activites_non_facturees: { label: "Activités non facturées", emoji: "📋", color: "text-amber-600" },
   missions_sans_date: { label: "Missions sans date", emoji: "📅", color: "text-orange-600" },
   devis_a_faire: { label: "Devis à faire", emoji: "📝", color: "text-blue-600" },
   devis_a_relancer: { label: "Devis à relancer", emoji: "🔄", color: "text-orange-600" },

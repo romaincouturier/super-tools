@@ -24,6 +24,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   okr_initiatives: "🎯 Initiatives OKR",
   reservations_mission: "🚄 Réservations à faire",
   missions_a_facturer: "Missions à facturer",
+  missions_activites_non_facturees: "Activités non facturées",
   devis_a_faire: "Devis à faire",
   opportunites: "Opportunités",
   devis_a_relancer: "Devis à relancer",
