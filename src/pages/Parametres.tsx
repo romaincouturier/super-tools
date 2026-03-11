@@ -164,6 +164,7 @@ Merci !`,
   thank_you: {
     name: "Email de remerciement",
     timing: "manual",
+    sendingInfo: "✋ Envoyé manuellement depuis la fiche formation (bouton « Envoyer remerciements »). Contient le lien d'évaluation et les supports",
     subject: {
       tu: "Merci pour ta participation à la formation {{training_name}}",
       vous: "Merci pour votre participation à la formation {{training_name}}",
