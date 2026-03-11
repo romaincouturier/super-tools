@@ -17,6 +17,9 @@ import {
   ListOrdered,
   Undo,
   Redo,
+  Heading1,
+  Heading2,
+  Heading3,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
@@ -28,6 +31,7 @@ interface RichTextEditorProps {
   onChange: (content: string) => void;
   placeholder?: string;
   className?: string;
+  minHeight?: string;
 }
 
 const RichTextEditor = ({
@@ -35,6 +39,7 @@ const RichTextEditor = ({
   onChange,
   placeholder = "Écrivez ici...",
   className,
+  minHeight = "200px",
 }: RichTextEditorProps) => {
   const editor = useEditor({
     extensions: [
@@ -63,7 +68,8 @@ const RichTextEditor = ({
     editorProps: {
       attributes: {
         class:
-          "prose prose-sm dark:prose-invert max-w-none focus:outline-none min-h-[200px] p-3",
+          `prose prose-sm dark:prose-invert max-w-none focus:outline-none p-3`,
+        style: `min-height: ${minHeight}`,
       },
     },
     onUpdate: ({ editor }) => {
@@ -106,7 +112,34 @@ const RichTextEditor = ({
 
   return (
     <div className={cn("border rounded-md bg-background", className)}>
-      <div className="flex flex-wrap gap-1 p-2 border-b bg-muted/30">
+      <div className="flex flex-wrap items-center gap-1 p-2 border-b bg-muted/30">
+        <Toggle
+          size="sm"
+          pressed={editor.isActive("heading", { level: 1 })}
+          onPressedChange={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+          aria-label="Titre H1"
+        >
+          <Heading1 className="h-4 w-4" />
+        </Toggle>
+        <Toggle
+          size="sm"
+          pressed={editor.isActive("heading", { level: 2 })}
+          onPressedChange={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+          aria-label="Titre H2"
+        >
+          <Heading2 className="h-4 w-4" />
+        </Toggle>
+        <Toggle
+          size="sm"
+          pressed={editor.isActive("heading", { level: 3 })}
+          onPressedChange={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+          aria-label="Titre H3"
+        >
+          <Heading3 className="h-4 w-4" />
+        </Toggle>
+
+        <div className="w-px h-6 bg-border mx-1" />
+
         <Toggle
           size="sm"
           pressed={editor.isActive("bold")}

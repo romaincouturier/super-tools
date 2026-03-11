@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Video, Plus, Trash2, Loader2, ExternalLink, Check, X, Pencil, Copy, FileText } from "lucide-react";
+import { Video, Plus, Trash2, Loader2, ExternalLink, Check, X, Pencil, Copy, FileText, Save } from "lucide-react";
+import RichTextEditor from "@/components/content/RichTextEditor";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -256,23 +257,49 @@ const LiveMeetingsSection = ({ trainingId }: LiveMeetingsSectionProps) => {
     setNotesDialogOpen(true);
   };
 
-  const handleSaveNotes = async () => {
-    if (!notesMeeting) return;
+  const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [notesSaved, setNotesSaved] = useState(false);
+
+  const saveNotesNow = useCallback(async (meetingId: string, notes: string) => {
     setSavingNotes(true);
     try {
       const { error } = await supabase
         .from("training_live_meetings")
-        .update({ run_notes: runNotes.trim() || null })
-        .eq("id", notesMeeting.id);
+        .update({ run_notes: notes.trim() || null })
+        .eq("id", meetingId);
       if (error) throw error;
-      toast({ title: "Notes enregistrées" });
-      setNotesDialogOpen(false);
+      setNotesSaved(true);
+      setTimeout(() => setNotesSaved(false), 2000);
       fetchMeetings();
     } catch (error: any) {
       toast({ title: "Erreur", description: error.message, variant: "destructive" });
     } finally {
       setSavingNotes(false);
     }
+  }, [fetchMeetings, toast]);
+
+  const handleRunNotesChange = useCallback((html: string) => {
+    setRunNotes(html);
+    setNotesSaved(false);
+    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+    if (notesMeeting) {
+      autoSaveTimerRef.current = setTimeout(() => {
+        saveNotesNow(notesMeeting.id, html);
+      }, 1500);
+    }
+  }, [notesMeeting, saveNotesNow]);
+
+  // Cleanup timer on unmount / dialog close
+  useEffect(() => {
+    return () => {
+      if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+    };
+  }, []);
+
+  const handleSaveNotes = async () => {
+    if (!notesMeeting) return;
+    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+    await saveNotesNow(notesMeeting.id, runNotes);
   };
 
   const statusBadge = (status: string) => {
@@ -498,8 +525,14 @@ const LiveMeetingsSection = ({ trainingId }: LiveMeetingsSectionProps) => {
       </Dialog>
 
       {/* Run Notes Dialog */}
-      <Dialog open={notesDialogOpen} onOpenChange={setNotesDialogOpen}>
-        <DialogContent>
+      <Dialog open={notesDialogOpen} onOpenChange={(open) => {
+        if (!open && notesMeeting && autoSaveTimerRef.current) {
+          clearTimeout(autoSaveTimerRef.current);
+          saveNotesNow(notesMeeting.id, runNotes);
+        }
+        setNotesDialogOpen(open);
+      }}>
+        <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5" />
@@ -509,21 +542,35 @@ const LiveMeetingsSection = ({ trainingId }: LiveMeetingsSectionProps) => {
                   — {notesMeeting.title}
                 </span>
               )}
+              <span className="ml-auto flex items-center gap-2 text-sm font-normal">
+                {savingNotes && (
+                  <span className="flex items-center gap-1 text-muted-foreground">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    Enregistrement...
+                  </span>
+                )}
+                {notesSaved && !savingNotes && (
+                  <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+                    <Check className="h-3.5 w-3.5" />
+                    Enregistré
+                  </span>
+                )}
+              </span>
             </DialogTitle>
           </DialogHeader>
-          <div className="py-2">
-            <Textarea
-              value={runNotes}
-              onChange={(e) => setRunNotes(e.target.value)}
+          <div className="flex-1 overflow-y-auto py-2">
+            <RichTextEditor
+              content={runNotes}
+              onChange={handleRunNotesChange}
               placeholder="Notez le déroulé du live, les points abordés, les questions posées..."
-              rows={10}
-              className="resize-y"
+              minHeight="350px"
             />
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setNotesDialogOpen(false)}>Fermer</Button>
             <Button onClick={handleSaveNotes} disabled={savingNotes}>
               {savingNotes && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              <Save className="h-4 w-4 mr-2" />
               Enregistrer
             </Button>
           </DialogFooter>
