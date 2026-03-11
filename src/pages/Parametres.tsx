@@ -1201,6 +1201,8 @@ const SETTINGS_REGISTRY: Record<string, { default: string; description: string }
   delay_trainer_summary_days: { default: "1", description: "Délai avant formation pour envoyer la synthèse au formateur (en jours)" },
   delay_google_review_days: { default: "1", description: "Délai après formation pour demander un avis Google (en jours ouvrables)" },
   delay_video_testimonial_days: { default: "3", description: "Délai après formation pour demander un témoignage vidéo (en jours ouvrables)" },
+  delay_mission_google_review_days: { default: "2", description: "Délai après mission pour demander un avis Google (en jours)" },
+  delay_mission_video_testimonial_days: { default: "4", description: "Délai après mission pour demander un témoignage vidéo (en jours après l'avis Google)" },
   delay_cold_evaluation_days: { default: "10", description: "Délai après formation pour envoyer l'évaluation à froid (en jours ouvrables)" },
   delay_cold_evaluation_funder_days: { default: "15", description: "Délai après formation pour rappeler de contacter le financeur (en jours ouvrables)" },
   delay_evaluation_reminder_1_days: { default: "2", description: "Délai pour la 1ère relance d'évaluation (en jours ouvrables après le mail de remerciement)" },
