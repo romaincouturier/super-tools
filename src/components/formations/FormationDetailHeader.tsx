@@ -30,6 +30,7 @@ import { deleteTraining } from "@/services/trainings";
 import type { Training, Schedule } from "@/hooks/useFormationDetail";
 import { Input } from "@/components/ui/input";
 import { getGoogleMapsNearbyUrl } from "@/lib/googleMaps";
+import { openExternalLink } from "@/lib/utils";
 
 interface Props {
   training: Training;
@@ -187,22 +188,22 @@ const FormationDetailHeader = ({
                 </DropdownMenuItem>
               )}
               {isPresentiel && (
-                <DropdownMenuItem onClick={() => { if (!training.train_booked) { const a = document.createElement("a"); a.href = `https://www.trainline.fr/search/${encodeURIComponent(training.location)}`; a.target = "_blank"; a.rel = "noopener"; a.click(); } }} disabled={training.train_booked}>
+                <DropdownMenuItem onClick={() => { if (!training.train_booked) openExternalLink(`https://www.trainline.fr/search/${encodeURIComponent(training.location)}`); }} disabled={training.train_booked}>
                   <Train className="h-4 w-4 mr-2" />Train {training.train_booked && "✓"}
                 </DropdownMenuItem>
               )}
               {isPresentiel && (
-                <DropdownMenuItem onClick={() => { if (!training.hotel_booked) { const a = document.createElement("a"); a.href = `https://www.booking.com/searchresults.fr.html?ss=${encodeURIComponent(training.location)}`; a.target = "_blank"; a.rel = "noopener"; a.click(); } }} disabled={training.hotel_booked}>
+                <DropdownMenuItem onClick={() => { if (!training.hotel_booked) openExternalLink(`https://www.booking.com/searchresults.fr.html?ss=${encodeURIComponent(training.location)}`); }} disabled={training.hotel_booked}>
                   <Hotel className="h-4 w-4 mr-2" />Hôtel {training.hotel_booked && "✓"}
                 </DropdownMenuItem>
               )}
               {isPresentiel && isInterSession && (
-                <DropdownMenuItem onClick={() => { if (!training.restaurant_booked) { const a = document.createElement("a"); a.href = getGoogleMapsNearbyUrl("restaurants", training.location); a.target = "_blank"; a.rel = "noopener"; a.click(); } }} disabled={training.restaurant_booked}>
+                <DropdownMenuItem onClick={() => { if (!training.restaurant_booked) openExternalLink(getGoogleMapsNearbyUrl("restaurants", training.location)); }} disabled={training.restaurant_booked}>
                   <UtensilsCrossed className="h-4 w-4 mr-2" />Restaurant {training.restaurant_booked && "✓"}
                 </DropdownMenuItem>
               )}
               {isPresentiel && (isInterSession || training.session_type === "intra" || training.format_formation === "intra") && (
-                <DropdownMenuItem onClick={() => { if (!training.room_rental_booked) { const a = document.createElement("a"); a.href = getGoogleMapsNearbyUrl("location+salle+reunion", training.location); a.target = "_blank"; a.rel = "noopener"; a.click(); } }} disabled={training.room_rental_booked}>
+                <DropdownMenuItem onClick={() => { if (!training.room_rental_booked) openExternalLink(getGoogleMapsNearbyUrl("location+salle+reunion", training.location)); }} disabled={training.room_rental_booked}>
                   <DoorOpen className="h-4 w-4 mr-2" />Salle {training.room_rental_booked && "✓"}
                 </DropdownMenuItem>
               )}
