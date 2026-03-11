@@ -79,6 +79,7 @@ const CrmDescriptionEditor = ({
       Underline,
       Image.configure({
         inline: true,
+        allowBase64: true,
         HTMLAttributes: {
           class: "max-w-full rounded",
         },
@@ -113,8 +114,10 @@ const CrmDescriptionEditor = ({
             setImageUploading(true);
             uploadImage(file).then((url) => {
               setImageUploading(false);
-              if (url && editor) {
-                editor.chain().focus().setImage({ src: url }).run();
+              if (url) {
+                const node = view.state.schema.nodes.image.create({ src: url });
+                const tr = view.state.tr.replaceSelectionWith(node);
+                view.dispatch(tr);
               }
             });
             return true;
