@@ -2,13 +2,9 @@ import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import {
   DndContext,
   DragOverlay,
-  closestCenter,
-  pointerWithin,
-  rectIntersection,
   DragStartEvent,
   DragEndEvent,
   DragOverEvent,
-  type CollisionDetection,
 } from "@dnd-kit/core";
 import {
   arrayMove,
@@ -32,22 +28,7 @@ import { useNavigate } from "react-router-dom";
 import { isAfter, startOfDay } from "date-fns";
 import confetti from "canvas-confetti";
 import { useKanbanDnd } from "@/hooks/useKanbanDnd";
-
-const crmCollision: CollisionDetection = (args) => {
-  const pointerCollisions = pointerWithin(args);
-  if (pointerCollisions.length > 0) {
-    const ids = new Set(pointerCollisions.map((c) => c.id));
-    const filtered = args.droppableContainers.filter((c) => ids.has(c.id));
-    if (filtered.length > 0) {
-      const refined = closestCenter({ ...args, droppableContainers: filtered });
-      if (refined.length > 0) return refined;
-    }
-    return pointerCollisions;
-  }
-  const rectCollisions = rectIntersection(args);
-  if (rectCollisions.length > 0) return rectCollisions;
-  return closestCenter(args);
-};
+import { kanbanCollision } from "@/lib/kanbanCollision";
 
 interface CrmKanbanBoardProps {
   initialCardId?: string | null;
@@ -627,7 +608,7 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
 
       <DndContext
         sensors={sensors}
-        collisionDetection={crmCollision}
+        collisionDetection={kanbanCollision}
         onDragStart={handleDragStart}
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
