@@ -309,7 +309,7 @@ Vous trouverez en pièces jointes :
 {{devis_description}}
 
 {{#programme_link}}
-Le programme de la formation est disponible en consultation et téléchargement ici : {{programme_link}}
+Le programme de la formation est disponible en consultation et téléchargement <a href="{{programme_link}}" style="color:#1a73e8;text-decoration:underline;">ici</a>.
 {{/programme_link}}
 
 N'hésitez pas à revenir vers nous si vous avez la moindre question. Nous sommes à votre disposition pour vous accompagner dans votre projet de formation.
@@ -382,12 +382,8 @@ async function sendEmailWithResend(
     let devisDescription = "";
     if (typeSubrogation === "les2") {
       devisDescription = `<ul style="margin:8px 0;padding-left:20px;">
-        <li>Deux versions de notre devis :
-          <ul style="margin:4px 0;padding-left:20px;">
-            <li>Sans subrogation de paiement : vous réglez directement la formation</li>
-            <li>Avec subrogation de paiement : votre OPCO règle directement la formation</li>
-          </ul>
-        </li>
+        <li>Un devis sans subrogation de paiement : vous réglez directement la formation</li>
+        <li>Un devis avec subrogation de paiement : votre OPCO règle directement la formation</li>
         <li>Notre certificat Qualiopi, attestant de la qualité de nos formations</li>
       </ul>`;
     } else if (typeSubrogation === "sans") {
