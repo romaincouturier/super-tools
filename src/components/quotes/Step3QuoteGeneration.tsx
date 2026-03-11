@@ -24,6 +24,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQuoteSettings, useUpdateQuote } from "@/hooks/useQuotes";
 import type { Quote, QuoteLineItem } from "@/types/quotes";
+import type { CrmCard } from "@/types/crm";
 import { v4 as uuid } from "uuid";
 
 interface Props {
@@ -31,6 +32,7 @@ interface Props {
   synthesis: string;
   instructions: string;
   travelTotal?: number;
+  crmCard: CrmCard;
   onContinue: (updatedQuote: Quote) => void;
 }
 
