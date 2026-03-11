@@ -90,7 +90,7 @@ const CrmDescriptionEditor = ({
     editorProps: {
       attributes: {
         class:
-          "prose prose-sm dark:prose-invert max-w-none focus:outline-none min-h-[180px] p-3 text-[11px] leading-relaxed",
+          "prose prose-sm dark:prose-invert max-w-none focus:outline-none min-h-[180px] p-3 text-[11px] leading-relaxed [&_ul>li]:list-disc [&_ol>li]:list-decimal marker:text-foreground",
       },
       // Convert emoji <img> tags (from email clients) back to their text characters
       transformPastedHTML(html: string) {
