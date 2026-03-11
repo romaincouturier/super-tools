@@ -5652,6 +5652,7 @@ export type Database = {
           email_content: string | null
           id: string
           meeting_url: string | null
+          run_notes: string | null
           scheduled_at: string
           status: string
           title: string
@@ -5665,6 +5666,7 @@ export type Database = {
           email_content?: string | null
           id?: string
           meeting_url?: string | null
+          run_notes?: string | null
           scheduled_at: string
           status?: string
           title: string
@@ -5678,6 +5680,7 @@ export type Database = {
           email_content?: string | null
           id?: string
           meeting_url?: string | null
+          run_notes?: string | null
           scheduled_at?: string
           status?: string
           title?: string
