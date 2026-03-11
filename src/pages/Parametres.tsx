@@ -53,6 +53,7 @@ type AddressMode = "tu" | "vous";
 interface TemplateConfig {
   name: string;
   timing: "before" | "during" | "after" | "manual" | "mission_after";
+  sendingInfo: string; // Human-readable description of when/how the email is sent
   delayKey?: string; // Key in app_settings for delay
   subject: { tu: string; vous: string };
   content: { tu: string; vous: string };
@@ -64,6 +65,7 @@ const DEFAULT_TEMPLATES: Record<string, TemplateConfig> = {
   needs_survey: {
     name: "Questionnaire de recueil des besoins",
     timing: "before",
+    sendingInfo: "📤 Envoyé automatiquement aux participants, J-X avant la formation (configurable)",
     delayKey: "delay_needs_survey_days",
     subject: {
       tu: "Prépare ta formation \"{{training_name}}\"",
@@ -100,6 +102,7 @@ Je vous remercie de le compléter avant le {{deadline_date}}.
   needs_survey_reminder: {
     name: "Rappel questionnaire besoins",
     timing: "before",
+    sendingInfo: "📤 Envoyé automatiquement aux participants qui n'ont pas complété le questionnaire, 3 jours après l'envoi initial",
     subject: {
       tu: "Rappel : Prépare ta formation \"{{training_name}}\"",
       vous: "Rappel : Préparez votre formation \"{{training_name}}\"",
@@ -130,6 +133,7 @@ Merci d'avance pour votre participation !`,
   attendance_signature: {
     name: "Demande de signature d'émargement",
     timing: "during",
+    sendingInfo: "📤 Envoyé automatiquement aux participants chaque demi-journée de formation (matin/après-midi) pour les formats présentiel",
     subject: {
       tu: "Signature d'émargement - {{training_name}}",
       vous: "Signature d'émargement - {{training_name}}",
@@ -160,6 +164,7 @@ Merci !`,
   thank_you: {
     name: "Email de remerciement",
     timing: "manual",
+    sendingInfo: "✋ Envoyé manuellement depuis la fiche formation (bouton « Envoyer remerciements »). Contient le lien d'évaluation et les supports",
     subject: {
       tu: "Merci pour ta participation à la formation {{training_name}}",
       vous: "Merci pour votre participation à la formation {{training_name}}",
@@ -201,6 +206,7 @@ Je vous souhaite une bonne journée`,
   google_review: {
     name: "Demande d'avis Google",
     timing: "after",
+    sendingInfo: "📤 Envoyé automatiquement au commanditaire, J+X jours ouvrables après la fin de la formation (configurable)",
     delayKey: "delay_google_review_days",
     subject: {
       tu: "🌟 Ton avis sur la formation \"{{training_name}}\"",
@@ -239,6 +245,7 @@ Merci infiniment pour votre soutien et pour avoir participé à notre formation 
   video_testimonial: {
     name: "Demande de témoignage vidéo",
     timing: "after",
+    sendingInfo: "📤 Envoyé automatiquement au commanditaire, J+X jours ouvrables après la formation (configurable)",
     delayKey: "delay_video_testimonial_days",
     subject: {
       tu: "🎥 Partager ton expérience sur la formation \"{{training_name}}\"",
@@ -278,6 +285,7 @@ Bonne journée`,
   mission_google_review: {
     name: "Demande d'avis Google (Mission)",
     timing: "mission_after",
+    sendingInfo: "📤 Envoyé automatiquement au contact de la mission, J+X jours après la fin de mission (configurable)",
     delayKey: "delay_mission_google_review_days",
     subject: {
       tu: "🌟 Ton avis sur notre collaboration \"{{mission_title}}\"",
@@ -316,6 +324,7 @@ Merci infiniment pour votre soutien !
   mission_video_testimonial: {
     name: "Demande de témoignage vidéo (Mission)",
     timing: "mission_after",
+    sendingInfo: "📤 Envoyé automatiquement au contact de la mission, J+X jours après l'avis Google mission (configurable)",
     delayKey: "delay_mission_video_testimonial_days",
     subject: {
       tu: "🎥 Partager ton expérience sur \"{{mission_title}}\"",
@@ -354,6 +363,7 @@ Bonne journée,`,
   cold_evaluation: {
     name: "Évaluation à froid commanditaire",
     timing: "after",
+    sendingInfo: "📤 Envoyé automatiquement au commanditaire, J+X jours ouvrables après la formation (configurable)",
     delayKey: "delay_cold_evaluation_days",
     subject: {
       tu: "💡 Évaluation à froid de la formation \"{{training_name}}\" 💡",
@@ -396,6 +406,7 @@ PS : nous pouvons continuer à rester en contact sur LinkedIn (https://www.linke
   evaluation_reminder_1: {
     name: "Relance évaluation - 1ère",
     timing: "after",
+    sendingInfo: "📤 Envoyé automatiquement aux participants n'ayant pas complété l'évaluation, J+X jours ouvrables après le mail de remerciement (configurable)",
     delayKey: "delay_evaluation_reminder_1_days",
     subject: {
       tu: "📝 Petit rappel : ton avis compte pour \"{{training_name}}\"",
@@ -432,6 +443,7 @@ Belle journée à vous`,
   evaluation_reminder_2: {
     name: "Relance évaluation - 2ème",
     timing: "after",
+    sendingInfo: "📤 Envoyé automatiquement aux participants n'ayant pas complété l'évaluation, J+X jours ouvrables après le mail de remerciement (configurable)",
     delayKey: "delay_evaluation_reminder_2_days",
     subject: {
       tu: "🙏 Dernière relance : ta contribution pour \"{{training_name}}\"",
@@ -468,6 +480,7 @@ Je vous remercie sincèrement pour votre aide et vous souhaite une excellente co
   funder_reminder: {
     name: "Évaluation à froid financeur",
     timing: "after",
+    sendingInfo: "📤 Envoyé automatiquement (à soi-même comme rappel) pour contacter le financeur, J+X jours ouvrables après la formation (configurable)",
     delayKey: "delay_funder_reminder_days",
     subject: {
       tu: "📋 Prendre contact avec {{financeur_name}} pour formation \"{{training_name}}\"",
@@ -526,6 +539,7 @@ PS : on peut continuer à rester en contact sur LinkedIn (https://www.linkedin.c
   follow_up_news: {
     name: "Prise de nouvelles informelle",
     timing: "after",
+    sendingInfo: "📤 Envoyé automatiquement au commanditaire, J+X jours ouvrables après la formation (configurable)",
     delayKey: "delay_follow_up_news_days",
     subject: {
       tu: "{{first_name}}, des nouvelles depuis la formation ?",
@@ -552,6 +566,7 @@ N'hésitez pas à me répondre, même en quelques mots !`,
   training_documents: {
     name: "Envoi des documents de formation",
     timing: "manual",
+    sendingInfo: "✋ Envoyé manuellement depuis la fiche formation (bouton « Envoyer documents »). Inclut facture, émargements et certificats en PJ",
     subject: {
       tu: "Documents de la formation \"{{training_name}}\"",
       vous: "Documents de la formation \"{{training_name}}\"",
@@ -597,6 +612,7 @@ Bonne réception.`,
   micro_devis: {
     name: "Envoi de micro-devis",
     timing: "manual",
+    sendingInfo: "✋ Envoyé manuellement depuis le CRM ou la fiche formation lors de la génération d'un devis",
     subject: {
       tu: "Votre devis pour la formation \"{{formation_name}}\"",
       vous: "Votre devis pour la formation \"{{formation_name}}\"",
@@ -638,6 +654,7 @@ N'hésitez pas à revenir vers nous si vous avez la moindre question. Nous somme
   convention: {
     name: "Envoi de convention de formation",
     timing: "manual",
+    sendingInfo: "✋ Envoyé manuellement depuis la fiche formation (bouton « Envoyer convention »). Contient la convention PDF et le lien de signature en ligne",
     subject: {
       tu: "Convention de formation - {{training_name}}",
       vous: "Convention de formation - {{training_name}}",
@@ -679,6 +696,7 @@ Cordialement,`,
   elearning_access: {
     name: "Email d'accès e-learning",
     timing: "manual",
+    sendingInfo: "✋ Envoyé manuellement depuis la fiche formation pour les formats e-learning. Contient le lien d'accès à la plateforme",
     subject: {
       tu: "Accès à ta formation e-learning \"{{training_name}}\"",
       vous: "Accès à votre formation e-learning \"{{training_name}}\"",
@@ -714,6 +732,7 @@ Bonne formation !`,
   convention_reminder: {
     name: "Relance convention de formation",
     timing: "before",
+    sendingInfo: "📤 Envoyé automatiquement au commanditaire si la convention n'est pas signée, J+X jours ouvrés après l'envoi (configurable)",
     delayKey: "delay_convention_reminder_1_days",
     subject: {
       tu: "Rappel : convention de formation \"{{training_name}}\"",
@@ -752,6 +771,7 @@ Cordialement,`,
   certificate: {
     name: "Envoi du certificat de réalisation",
     timing: "after",
+    sendingInfo: "📤 Envoyé automatiquement au participant après qu'il a complété son évaluation de satisfaction",
     subject: {
       tu: "Ton certificat de réalisation pour la formation {{training_name}}",
       vous: "Votre certificat de réalisation pour la formation {{training_name}}",
@@ -789,6 +809,7 @@ Bonne continuation et à bientôt !`,
   certificate_sponsor: {
     name: "Envoi du certificat au commanditaire",
     timing: "manual",
+    sendingInfo: "✋ Envoyé manuellement depuis la fiche formation au commanditaire avec les certificats des participants en PJ",
     subject: {
       tu: "Certificat de réalisation - {{training_name}} - {{participant_name}}",
       vous: "Certificat de réalisation - {{training_name}} - {{participant_name}}",
@@ -810,6 +831,7 @@ Bonne réception et à bientôt !`,
   accessibility_needs: {
     name: "Besoins d'accessibilité",
     timing: "manual",
+    sendingInfo: "📤 Envoyé automatiquement au formateur lorsqu'un participant signale un besoin spécifique dans le questionnaire de recueil des besoins",
     subject: {
       tu: "Tes besoins spécifiques pour la formation \"{{training_name}}\"",
       vous: "Vos besoins spécifiques pour la formation \"{{training_name}}\"",
@@ -845,6 +867,7 @@ Dans l'attente de votre retour, je reste à votre disposition pour toute questio
   mission_deliverables: {
     name: "Envoi des livrables de mission",
     timing: "manual",
+    sendingInfo: "✋ Envoyé manuellement depuis la fiche mission lors du partage des livrables au client",
     subject: {
       tu: "Vos livrables sont disponibles - {{mission_title}}",
       vous: "Vos livrables sont disponibles - {{mission_title}}",
@@ -879,6 +902,7 @@ Cordialement,`,
   welcome: {
     name: "Convocation / Confirmation d'inscription",
     timing: "before",
+    sendingInfo: "✋ Envoyé manuellement depuis la fiche formation (bouton « Envoyer convocations »). Contient les infos pratiques (date, horaires, lieu)",
     subject: {
       tu: "{{training_name}} – {{training_date}} – Confirmation d'inscription",
       vous: "{{training_name}} – {{training_date}} – Confirmation d'inscription",
@@ -916,6 +940,7 @@ Nous restons à votre disposition pour toute question.
   reminder: {
     name: "Rappel formation imminente",
     timing: "before",
+    sendingInfo: "📤 Envoyé automatiquement aux participants le jour de la formation à 07h00",
     delayKey: "delay_reminder_days",
     subject: {
       tu: "Rappel : Formation {{training_name}} – {{training_date}}",
@@ -954,6 +979,7 @@ N'hésitez pas à me contacter si vous avez des questions.
   trainer_summary: {
     name: "Synthèse pré-formation (formateur)",
     timing: "before",
+    sendingInfo: "📤 Envoyé automatiquement au formateur J-1 avant la formation. Contient la synthèse IA des besoins des participants",
     delayKey: "delay_trainer_summary_days",
     subject: {
       tu: "☀️ Demain c'est le grand jour ! Synthèse pré-formation – {{training_name}}",
@@ -1000,6 +1026,7 @@ Bonne préparation et bonne formation demain !`,
   live_reminder: {
     name: "Rappel de live collectif",
     timing: "during",
+    sendingInfo: "📤 Envoyé automatiquement aux participants le jour d'un live collectif à 07h00. Contient le lien de connexion",
     subject: {
       tu: "📺 Rappel : Live \"{{live_title}}\" aujourd'hui – {{training_name}}",
       vous: "📺 Rappel : Live \"{{live_title}}\" aujourd'hui – {{training_name}}",
@@ -1037,6 +1064,7 @@ Votre présence est importante pour profiter pleinement de ce moment d'échange.
   prerequis_warning: {
     name: "Alerte prérequis non validés",
     timing: "before",
+    sendingInfo: "📤 Envoyé automatiquement au participant lorsqu'il indique dans le questionnaire ne pas valider certains prérequis de la formation",
     subject: {
       tu: "Prérequis de la formation \"{{training_name}}\" - Faisons le point",
       vous: "Prérequis de la formation \"{{training_name}}\" - Faisons le point",
@@ -1078,6 +1106,7 @@ Je reste à votre disposition pour en discuter.`,
   questionnaire_confirmation: {
     name: "Confirmation questionnaire complété",
     timing: "before",
+    sendingInfo: "📤 Envoyé automatiquement au participant juste après qu'il a complété le questionnaire de recueil des besoins",
     subject: {
       tu: "Questionnaire complété - {{training_name}}",
       vous: "Questionnaire complété - {{training_name}}",
@@ -1115,6 +1144,7 @@ Si vous avez la moindre question, je reste à votre disposition par mail <a href
   booking_reminder: {
     name: "Rappel réservation logistique",
     timing: "before",
+    sendingInfo: "📤 Envoyé automatiquement chaque lundi au formateur tant que les réservations logistiques (hôtel, train, restaurant, salle) ne sont pas confirmées",
     subject: {
       tu: "Rappel : Réservation pour {{entity_type}} \"{{entity_name}}\"",
       vous: "Rappel : Réservation pour {{entity_type}} \"{{entity_name}}\"",
@@ -1150,6 +1180,7 @@ Ce rappel sera envoyé chaque lundi jusqu'à ce que les réservations soient con
   sponsor_notification: {
     name: "Notification convocations au commanditaire",
     timing: "manual",
+    sendingInfo: "📤 Envoyé automatiquement au commanditaire juste après l'envoi des convocations aux participants. Liste les participants convoqués",
     subject: {
       tu: "Convocations envoyées - {{training_name}}",
       vous: "Convocations envoyées - {{training_name}}",
@@ -2795,19 +2826,22 @@ const Parametres = () => {
                         return (
                           <AccordionItem key={type} value={type}>
                             <AccordionTrigger className="text-left">
-                              <div className="flex items-center gap-3">
-                                <Mail className="h-4 w-4 text-muted-foreground" />
-                                <span>{defaultTemplate.name}</span>
-                                {timingLabel && (
-                                  <span className="text-xs bg-secondary text-secondary-foreground px-2 py-0.5 rounded font-medium">
-                                    {timingLabel}
-                                  </span>
-                                )}
-                                {isCustomized && (
-                                  <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
-                                    Personnalisé
-                                  </span>
-                                )}
+                              <div className="flex flex-col gap-1">
+                                <div className="flex items-center gap-3">
+                                  <Mail className="h-4 w-4 text-muted-foreground" />
+                                  <span>{defaultTemplate.name}</span>
+                                  {timingLabel && (
+                                    <span className="text-xs bg-secondary text-secondary-foreground px-2 py-0.5 rounded font-medium">
+                                      {timingLabel}
+                                    </span>
+                                  )}
+                                  {isCustomized && (
+                                    <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
+                                      Personnalisé
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-xs text-muted-foreground font-normal ml-7">{defaultTemplate.sendingInfo}</p>
                               </div>
                             </AccordionTrigger>
                             <AccordionContent className="space-y-4 pt-4">
@@ -2840,19 +2874,22 @@ const Parametres = () => {
                         return (
                           <AccordionItem key={type} value={type}>
                             <AccordionTrigger className="text-left">
-                              <div className="flex items-center gap-3">
-                                <Mail className="h-4 w-4 text-muted-foreground" />
-                                <span>{defaultTemplate.name}</span>
-                                {timingLabel && (
-                                  <span className="text-xs bg-accent text-accent-foreground px-2 py-0.5 rounded font-medium">
-                                    {timingLabel}
-                                  </span>
-                                )}
-                                {isCustomized && (
-                                  <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
-                                    Personnalisé
-                                  </span>
-                                )}
+                              <div className="flex flex-col gap-1">
+                                <div className="flex items-center gap-3">
+                                  <Mail className="h-4 w-4 text-muted-foreground" />
+                                  <span>{defaultTemplate.name}</span>
+                                  {timingLabel && (
+                                    <span className="text-xs bg-accent text-accent-foreground px-2 py-0.5 rounded font-medium">
+                                      {timingLabel}
+                                    </span>
+                                  )}
+                                  {isCustomized && (
+                                    <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
+                                      Personnalisé
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-xs text-muted-foreground font-normal ml-7">{defaultTemplate.sendingInfo}</p>
                               </div>
                             </AccordionTrigger>
                             <AccordionContent className="space-y-4 pt-4">
@@ -2882,14 +2919,17 @@ const Parametres = () => {
                         return (
                           <AccordionItem key={type} value={type}>
                             <AccordionTrigger className="text-left">
-                              <div className="flex items-center gap-3">
-                                <Mail className="h-4 w-4 text-muted-foreground" />
-                                <span>{defaultTemplate.name}</span>
-                                {isCustomized && (
-                                  <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
-                                    Personnalisé
-                                  </span>
-                                )}
+                              <div className="flex flex-col gap-1">
+                                <div className="flex items-center gap-3">
+                                  <Mail className="h-4 w-4 text-muted-foreground" />
+                                  <span>{defaultTemplate.name}</span>
+                                  {isCustomized && (
+                                    <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
+                                      Personnalisé
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-xs text-muted-foreground font-normal ml-7">{defaultTemplate.sendingInfo}</p>
                               </div>
                             </AccordionTrigger>
                             <AccordionContent className="space-y-4 pt-4">
@@ -2919,14 +2959,17 @@ const Parametres = () => {
                         return (
                           <AccordionItem key={type} value={type}>
                             <AccordionTrigger className="text-left">
-                              <div className="flex items-center gap-3">
-                                <Mail className="h-4 w-4 text-muted-foreground" />
-                                <span>{defaultTemplate.name}</span>
-                                {isCustomized && (
-                                  <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
-                                    Personnalisé
-                                  </span>
-                                )}
+                              <div className="flex flex-col gap-1">
+                                <div className="flex items-center gap-3">
+                                  <Mail className="h-4 w-4 text-muted-foreground" />
+                                  <span>{defaultTemplate.name}</span>
+                                  {isCustomized && (
+                                    <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
+                                      Personnalisé
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-xs text-muted-foreground font-normal ml-7">{defaultTemplate.sendingInfo}</p>
                               </div>
                             </AccordionTrigger>
                             <AccordionContent className="space-y-4 pt-4">
@@ -2959,19 +3002,22 @@ const Parametres = () => {
                         return (
                           <AccordionItem key={type} value={type}>
                             <AccordionTrigger className="text-left">
-                              <div className="flex items-center gap-3">
-                                <Mail className="h-4 w-4 text-muted-foreground" />
-                                <span>{defaultTemplate.name}</span>
-                                {timingLabel && (
-                                  <span className="text-xs bg-purple-500/10 text-purple-700 dark:text-purple-300 px-2 py-0.5 rounded font-medium">
-                                    {timingLabel}
-                                  </span>
-                                )}
-                                {isCustomized && (
-                                  <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
-                                    Personnalisé
-                                  </span>
-                                )}
+                              <div className="flex flex-col gap-1">
+                                <div className="flex items-center gap-3">
+                                  <Mail className="h-4 w-4 text-muted-foreground" />
+                                  <span>{defaultTemplate.name}</span>
+                                  {timingLabel && (
+                                    <span className="text-xs bg-accent text-accent-foreground px-2 py-0.5 rounded font-medium">
+                                      {timingLabel}
+                                    </span>
+                                  )}
+                                  {isCustomized && (
+                                    <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
+                                      Personnalisé
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-xs text-muted-foreground font-normal ml-7">{defaultTemplate.sendingInfo}</p>
                               </div>
                             </AccordionTrigger>
                             <AccordionContent className="space-y-4 pt-4">
