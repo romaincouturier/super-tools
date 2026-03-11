@@ -43,7 +43,7 @@ const CardDetailToolbar = ({ state, handlers, updatePending }: Props) => {
   return (
     <div className="mt-4 mb-4 flex items-center gap-2">
       {/* Action menu */}
-      <DropdownMenu>
+      <DropdownMenu modal={false}>
         <DropdownMenuTrigger asChild>
           <Button variant="outline" size="sm" className="gap-1">
             <MoreVertical className="h-4 w-4" />
@@ -62,7 +62,7 @@ const CardDetailToolbar = ({ state, handlers, updatePending }: Props) => {
       </DropdownMenu>
 
       {/* Column selector */}
-      <DropdownMenu>
+      <DropdownMenu modal={false}>
         <DropdownMenuTrigger asChild>
           <Button variant="default" size="sm" className="gap-1.5">
             {allColumns.find(c => c.id === columnId)?.name || "Colonne"}
