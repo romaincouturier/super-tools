@@ -443,6 +443,7 @@ Belle journée à vous`,
   evaluation_reminder_2: {
     name: "Relance évaluation - 2ème",
     timing: "after",
+    sendingInfo: "📤 Envoyé automatiquement aux participants n'ayant pas complété l'évaluation, J+X jours ouvrables après le mail de remerciement (configurable)",
     delayKey: "delay_evaluation_reminder_2_days",
     subject: {
       tu: "🙏 Dernière relance : ta contribution pour \"{{training_name}}\"",
