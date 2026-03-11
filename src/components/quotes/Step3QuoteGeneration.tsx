@@ -101,9 +101,58 @@ export default function Step3QuoteGeneration({
     };
   }, [lines, rightsEnabled, rightsRate, defaultVat]);
 
+  // Fetch catalog pricing for the CRM card's formation
+  const fetchCatalogPricing = useCallback(async () => {
+    if (crmCard.service_type !== "formation") return null;
+    try {
+      const title = crmCard.title?.trim();
+      if (!title) return null;
+
+      // Search for matching formation in catalog
+      const { data: formations } = await supabase
+        .from("formation_configs")
+        .select("id, formation_name, prix, duree_heures")
+        .eq("is_active", true);
+
+      if (!formations?.length) return null;
+
+      // Find best match by name similarity
+      const titleLower = title.toLowerCase();
+      const match = formations.find((f) =>
+        titleLower.includes(f.formation_name.toLowerCase()) ||
+        f.formation_name.toLowerCase().includes(titleLower)
+      );
+
+      if (!match) return null;
+
+      // Fetch formulas for this formation
+      const { data: formulas } = await supabase
+        .from("formation_formulas")
+        .select("id, name, prix, duree_heures")
+        .eq("formation_config_id", match.id)
+        .order("display_order");
+
+      return {
+        formation_name: match.formation_name,
+        formation_price: match.prix,
+        formation_duration_hours: match.duree_heures,
+        formulas: formulas?.map((f) => ({
+          name: f.name,
+          price: f.prix,
+          duration_hours: f.duree_heures,
+        })) || [],
+      };
+    } catch (e) {
+      console.warn("Could not fetch catalog pricing:", e);
+      return null;
+    }
+  }, [crmCard]);
+
   const generateLines = async () => {
     setIsGenerating(true);
     try {
+      const catalogPricing = await fetchCatalogPricing();
+
       const { data, error } = await supabase.functions.invoke(
         "generate-quote-lines",
         {
@@ -112,6 +161,7 @@ export default function Step3QuoteGeneration({
             instructions,
             defaultVatRate: defaultVat,
             travelTotal,
+            catalogPricing,
           },
         }
       );
