@@ -302,11 +302,6 @@ verify_jwt = false
 
 [functions.arena-suggest-experts]
 verify_jwt = false
-
-[functions.check-functions-health]
-verify_jwt = false
-
-[functions.commercial-challenge]
 verify_jwt = false
 
 [functions.generate-quote-email]
