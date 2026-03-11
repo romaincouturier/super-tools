@@ -2507,6 +2507,52 @@ const Parametres = () => {
 
                 <Separator />
 
+                {/* Mission email delays */}
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium">Délais des emails après mission</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Configurez les délais d'envoi des emails automatiques après la date de fin de mission. Envoyés à tous les contacts de la mission.
+                  </p>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="delay-mission-google-review">Avis Google</Label>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground">J +</span>
+                        <Input
+                          id="delay-mission-google-review"
+                          type="number"
+                          min="1"
+                          max="60"
+                          value={settings.delay_mission_google_review_days}
+                          onChange={(e) => updateSetting("delay_mission_google_review_days", e.target.value)}
+                          className="w-20"
+                        />
+                        <span className="text-sm text-muted-foreground">jours après fin mission</span>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="delay-mission-video-testimonial">Témoignage vidéo</Label>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground">J +</span>
+                        <Input
+                          id="delay-mission-video-testimonial"
+                          type="number"
+                          min="1"
+                          max="60"
+                          value={settings.delay_mission_video_testimonial_days}
+                          onChange={(e) => updateSetting("delay_mission_video_testimonial_days", e.target.value)}
+                          className="w-20"
+                        />
+                        <span className="text-sm text-muted-foreground">jours après l'avis Google</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
                 {/* Evaluation reminder delays */}
                 <div className="space-y-4">
                   <h3 className="text-sm font-medium">Relances pour collecte des évaluations</h3>
