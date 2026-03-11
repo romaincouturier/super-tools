@@ -9,12 +9,12 @@ import { processTemplate } from "../_shared/templates.ts";
  * Process Today Reminders
  *
  * Runs daily at 06:30 via cron job.
- * For each training starting today (non-permanent, i.e. start_date IS NOT NULL):
- *  - Sends a "C'est aujourd'hui !" email to all participants
+ * For each training that has a scheduled session TODAY (via training_schedules):
+ *  - Sends a reminder email to all participants
  *  - Adapts content to format: présentiel, classe virtuelle, e-learning
  *  - Uses tu/vous templates based on training setting
  *
- * Uses a tracking table column to prevent duplicate sends.
+ * Uses activity_logs to prevent duplicate sends per training per day.
  */
 
 const corsHeaders = {
@@ -33,10 +33,44 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const today = new Date().toISOString().slice(0, 10);
-    console.log(`[process-today-reminders] Checking trainings starting on ${today}`);
+    // Use Paris timezone for "today"
+    const now = new Date();
+    const today = now.toLocaleDateString("en-CA", { timeZone: "Europe/Paris" });
+    console.log(`[process-today-reminders] Checking sessions scheduled on ${today}`);
 
-    // Fetch all trainings starting today (non-permanent = start_date not null)
+    // Find all training_schedules for today → get distinct training IDs
+    const { data: todaySchedules, error: schedulesError } = await supabase
+      .from("training_schedules")
+      .select("training_id, start_time, end_time")
+      .eq("day_date", today)
+      .order("start_time");
+
+    if (schedulesError) {
+      console.error("[process-today-reminders] Error fetching schedules:", schedulesError);
+      throw schedulesError;
+    }
+
+    if (!todaySchedules || todaySchedules.length === 0) {
+      console.log("[process-today-reminders] No sessions scheduled today");
+      return new Response(
+        JSON.stringify({ success: true, message: "No sessions scheduled today" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Group schedules by training_id
+    const schedulesByTraining = new Map<string, Array<{ start_time: string; end_time: string }>>();
+    for (const s of todaySchedules) {
+      if (!schedulesByTraining.has(s.training_id)) {
+        schedulesByTraining.set(s.training_id, []);
+      }
+      schedulesByTraining.get(s.training_id)!.push({ start_time: s.start_time, end_time: s.end_time });
+    }
+
+    const trainingIds = Array.from(schedulesByTraining.keys());
+    console.log(`[process-today-reminders] Found ${trainingIds.length} training(s) with sessions today`);
+
+    // Fetch training details for all relevant trainings
     const { data: trainings, error: trainingsError } = await supabase
       .from("trainings")
       .select(`
@@ -48,8 +82,7 @@ serve(async (req) => {
         participants_formal_address,
         supports_url
       `)
-      .eq("start_date", today)
-      .not("start_date", "is", null);
+      .in("id", trainingIds);
 
     if (trainingsError) {
       console.error("[process-today-reminders] Error fetching trainings:", trainingsError);
@@ -57,14 +90,12 @@ serve(async (req) => {
     }
 
     if (!trainings || trainings.length === 0) {
-      console.log("[process-today-reminders] No trainings starting today");
+      console.log("[process-today-reminders] No matching trainings found");
       return new Response(
-        JSON.stringify({ success: true, message: "No trainings starting today" }),
+        JSON.stringify({ success: true, message: "No matching trainings" }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-
-    console.log(`[process-today-reminders] Found ${trainings.length} training(s) starting today`);
 
     // Fetch templates
     const { data: templates } = await supabase
@@ -85,16 +116,24 @@ serve(async (req) => {
     for (const training of trainings) {
       const trainingId = training.id;
 
-      // Fetch schedules for today to get times
-      const { data: schedules } = await supabase
-        .from("training_schedules")
-        .select("start_time, end_time")
-        .eq("training_id", trainingId)
-        .eq("day_date", today)
-        .order("start_time");
+      // Check if already sent today for this training
+      const { data: existingLog } = await supabase
+        .from("activity_logs")
+        .select("id")
+        .eq("action_type", "today_reminder_sent")
+        .eq("recipient_email", trainingId)
+        .gte("created_at", today + "T00:00:00")
+        .limit(1);
 
-      const scheduleText = (schedules || [])
-        .map((s: any) => `${s.start_time.slice(0, 5)} - ${s.end_time.slice(0, 5)}`)
+      if (existingLog && existingLog.length > 0) {
+        console.log(`[process-today-reminders] Already sent for training ${trainingId}, skipping`);
+        continue;
+      }
+
+      // Build schedule text from grouped data
+      const schedules = schedulesByTraining.get(trainingId) || [];
+      const scheduleText = schedules
+        .map((s) => `${s.start_time.slice(0, 5)} - ${s.end_time.slice(0, 5)}`)
         .join(" / ");
 
       // Determine format flags
@@ -114,7 +153,7 @@ serve(async (req) => {
           .lte("scheduled_at", today + "T23:59:59")
           .neq("status", "cancelled")
           .limit(1);
-        
+
         if (liveMeetings && liveMeetings.length > 0 && liveMeetings[0].meeting_url) {
           meetingUrl = liveMeetings[0].meeting_url;
         }
@@ -142,20 +181,6 @@ serve(async (req) => {
 
       if (!participants || participants.length === 0) {
         console.log(`[process-today-reminders] No participants for training ${trainingId}`);
-        continue;
-      }
-
-      // Check if today reminder already sent for this training
-      const { data: existingLog } = await supabase
-        .from("activity_logs")
-        .select("id")
-        .eq("action_type", "today_reminder_sent")
-        .eq("recipient_email", trainingId)
-        .gte("created_at", today + "T00:00:00")
-        .limit(1);
-
-      if (existingLog && existingLog.length > 0) {
-        console.log(`[process-today-reminders] Already sent for training ${trainingId}, skipping`);
         continue;
       }
 
@@ -215,6 +240,7 @@ serve(async (req) => {
             training_name: training.training_name,
             participants_notified: sentCount,
             format: format,
+            session_date: today,
           },
         });
       } catch (logErr) {
