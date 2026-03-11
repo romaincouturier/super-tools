@@ -20,7 +20,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
 import { cn } from "@/lib/utils";
-import { useEffect, useCallback, useState } from "react";
+import { useEffect, useCallback, useState, useRef } from "react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
@@ -41,6 +41,7 @@ const CrmDescriptionEditor = ({
   cardId,
 }: CrmDescriptionEditorProps) => {
   const [imageUploading, setImageUploading] = useState(false);
+  const timestampInsertedRef = useRef(false);
 
   const uploadImage = useCallback(
     async (file: File): Promise<string | null> => {
@@ -79,6 +80,7 @@ const CrmDescriptionEditor = ({
       Underline,
       Image.configure({
         inline: true,
+        allowBase64: true,
         HTMLAttributes: {
           class: "max-w-full rounded",
         },
@@ -88,7 +90,7 @@ const CrmDescriptionEditor = ({
     editorProps: {
       attributes: {
         class:
-          "prose prose-sm dark:prose-invert max-w-none focus:outline-none min-h-[180px] p-3 text-[11px] leading-relaxed",
+          "prose prose-sm dark:prose-invert max-w-none focus:outline-none min-h-[180px] p-3 text-[11px] leading-relaxed [&_ul>li]:list-disc [&_ol>li]:list-decimal marker:text-foreground",
       },
       // Convert emoji <img> tags (from email clients) back to their text characters
       transformPastedHTML(html: string) {
@@ -113,8 +115,10 @@ const CrmDescriptionEditor = ({
             setImageUploading(true);
             uploadImage(file).then((url) => {
               setImageUploading(false);
-              if (url && editor) {
-                editor.chain().focus().setImage({ src: url }).run();
+              if (url) {
+                const node = view.state.schema.nodes.image.create({ src: url });
+                const tr = view.state.tr.replaceSelectionWith(node);
+                view.dispatch(tr);
               }
             });
             return true;
@@ -125,6 +129,13 @@ const CrmDescriptionEditor = ({
     },
     onUpdate: ({ editor }) => {
       onChange(editor.getHTML());
+    },
+    onFocus: ({ editor }) => {
+      if (timestampInsertedRef.current) return;
+      timestampInsertedRef.current = true;
+      const now = format(new Date(), "EEEE d MMMM yyyy 'à' HH:mm", { locale: fr });
+      const stampHtml = `<p>--- ${now} ---</p><p></p>`;
+      editor.chain().focus("start").insertContent(stampHtml).run();
     },
   });
 

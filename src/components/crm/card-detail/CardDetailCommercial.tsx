@@ -11,9 +11,10 @@ import {
   Copy,
   ClipboardList,
   PlayCircle,
+  Trash2,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useQuotesByCard } from "@/hooks/useQuotes";
+import { useQuotesByCard, useDeleteQuote } from "@/hooks/useQuotes";
 import type { CardDetailState, CardDetailHandlers } from "./types";
 
 interface Props {
@@ -32,8 +33,9 @@ const CardDetailCommercial = ({ state, handlers }: Props) => {
 
   const { data: existingQuotes } = useQuotesByCard(card?.id);
   const draftQuotes = (existingQuotes || []).filter(q => q.status !== 'signed');
+  const deleteQuote = useDeleteQuote();
 
-  const stepLabels = ["Client", "Synthèse", "Déplacements", "Devis", "Loom", "Email"];
+  const stepLabels = ["Client", "Déplacements", "Devis", "Loom", "Synthèse", "Email"];
 
   return (
     <div className="space-y-4 mt-6 border-t pt-4">
@@ -108,15 +110,34 @@ const CardDetailCommercial = ({ state, handlers }: Props) => {
                   {q.client_company} — Étape : {stepLabels[(q as any).workflow_step ?? 0] || "Client"}
                 </p>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => navigate(`/devis/${card.id}?quoteId=${q.id}`)}
-                className="shrink-0 ml-2 gap-1.5"
-              >
-                <PlayCircle className="h-3.5 w-3.5" />
-                Reprendre
-              </Button>
+              <div className="flex items-center gap-1 shrink-0 ml-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate(`/devis/${card.id}?quoteId=${q.id}`)}
+                  className="gap-1.5"
+                >
+                  <PlayCircle className="h-3.5 w-3.5" />
+                  Reprendre
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+                  disabled={deleteQuote.isPending}
+                  onClick={() => {
+                    if (window.confirm(`Supprimer le devis ${q.quote_number} ?`)) {
+                      deleteQuote.mutate(q.id);
+                    }
+                  }}
+                >
+                  {deleteQuote.isPending ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-3.5 w-3.5" />
+                  )}
+                </Button>
+              </div>
             </div>
           ))}
         </div>

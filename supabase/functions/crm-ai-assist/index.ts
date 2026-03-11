@@ -9,7 +9,7 @@ import {
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
 
 interface CrmAiRequest {
-  action: "analyze_exchanges" | "generate_quote_description" | "improve_email_subject" | "improve_email_body" | "cleanup_dictation" | "suggest_next_action" | "find_website" | "improve_template";
+  action: "analyze_exchanges" | "generate_quote_description" | "improve_email_subject" | "improve_email_body" | "cleanup_dictation" | "suggest_next_action" | "find_website" | "improve_template" | "generate_loom_script";
   card_data: {
     title?: string;
     description?: string;
@@ -32,6 +32,11 @@ interface CrmAiRequest {
     // Rich context fields
     emails_sent?: Array<{ subject: string; body_html: string; sent_at: string; recipient_email: string }>;
     client_profile?: string;
+    // Loom script fields
+    synthesis?: string;
+    instructions?: string;
+    challenge?: string;
+    line_items?: Array<{ label?: string; description?: string; quantity?: number; unit_price?: number }>;
   };
 }
 
@@ -396,6 +401,50 @@ Règles :
         }
 
         const userPrompt = `Quelle est la meilleure prochaine action à effectuer pour faire avancer cette opportunité ?\n\n${nextActionContext}`;
+
+        result = await callAnthropic(systemPrompt, userPrompt);
+        break;
+      }
+
+      case "generate_loom_script": {
+        let scriptContext = `# Contexte de l'opportunité\n\n`;
+        if (card_data.company) scriptContext += `**Client :** ${card_data.company}\n`;
+        if (card_data.service_type) scriptContext += `**Type :** ${card_data.service_type === "formation" ? "Formation" : "Mission"}\n`;
+        if (card_data.description) scriptContext += `\n## Description / Notes\n${card_data.description}\n`;
+        if (card_data.synthesis) scriptContext += `\n## Synthèse\n${card_data.synthesis}\n`;
+        if (card_data.instructions) scriptContext += `\n## Instructions complémentaires\n${card_data.instructions}\n`;
+        if (card_data.challenge) scriptContext += `\n## Challenge commercial\n${card_data.challenge}\n`;
+        if (card_data.line_items && card_data.line_items.length > 0) {
+          scriptContext += `\n## Lignes du devis\n`;
+          card_data.line_items.forEach((item, i) => {
+            scriptContext += `${i + 1}. ${item.label || "Ligne"} — ${item.description || ""} (${item.quantity || 1} × ${item.unit_price || 0} €)\n`;
+          });
+        }
+
+        const systemPrompt = `Tu es un expert en communication vidéo pour SuperTilt, organisme de formation professionnelle certifié Qualiopi.
+
+Tu rédiges des trames de script pour des vidéos Loom accompagnant l'envoi de devis. Ces vidéos personnalisées permettent de se démarquer et d'expliquer le devis de vive voix.
+
+Le script doit être :
+- Structuré en sections claires avec des durées indicatives
+- Naturel et conversationnel (c'est une vidéo face caméra, pas un texte lu)
+- Personnalisé avec le nom de l'entreprise et les détails du projet
+- Orienté bénéfices client
+- D'une durée totale de 2-3 minutes
+- En français, tutoiement`;
+
+        const userPrompt = `Génère une trame de script pour une vidéo Loom d'accompagnement de devis à partir de ces informations :
+
+${scriptContext}
+
+Structure attendue :
+1. **Accroche** (~15s) — Salutation personnalisée et contexte rapide
+2. **Récap du besoin** (~30s) — Reformuler la demande pour montrer qu'on a bien compris
+3. **Présentation de la proposition** (~60s) — Expliquer les grandes lignes du devis, les choix faits et pourquoi
+4. **Points forts / différenciateurs** (~30s) — Ce qui fait la valeur ajoutée de cette proposition
+5. **Prochaines étapes** (~15s) — Appel à l'action clair
+
+Pour chaque section, écris des bullet points avec les idées clés à aborder (pas un texte mot à mot). Le formateur doit pouvoir improviser naturellement.`;
 
         result = await callAnthropic(systemPrompt, userPrompt);
         break;

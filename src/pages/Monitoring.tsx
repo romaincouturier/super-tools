@@ -1,9 +1,10 @@
-import { Database, Clock, Zap } from "lucide-react";
+import { Database, Clock, Zap, MousePointerClick } from "lucide-react";
 import ModuleLayout from "@/components/ModuleLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import DbSizeTab from "@/components/monitoring/DbSizeTab";
 import CronJobsTab from "@/components/monitoring/CronJobsTab";
 import EdgeFunctionsTab from "@/components/monitoring/EdgeFunctionsTab";
+import FeatureUsageTab from "@/components/monitoring/FeatureUsageTab";
 
 const Monitoring = () => {
   return (
@@ -34,6 +35,10 @@ const Monitoring = () => {
               <Zap className="h-4 w-4" />
               Edge Functions
             </TabsTrigger>
+            <TabsTrigger value="usage" className="gap-2">
+              <MousePointerClick className="h-4 w-4" />
+              Usage
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="database">
@@ -46,6 +51,10 @@ const Monitoring = () => {
 
           <TabsContent value="functions">
             <EdgeFunctionsTab />
+          </TabsContent>
+
+          <TabsContent value="usage">
+            <FeatureUsageTab />
           </TabsContent>
         </Tabs>
       </main>

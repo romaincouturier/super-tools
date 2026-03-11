@@ -31,11 +31,14 @@ import {
   ChevronUp,
   MapPin,
   Car,
+  CarTaxiFront,
   Train,
   Plane,
   HelpCircle,
   Loader2,
   Navigation,
+  Star,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -61,7 +64,7 @@ export interface TravelDestination {
   city: string;
   lat: number | null;
   lon: number | null;
-  transportMode: "train" | "car" | "plane" | "other";
+  transportMode: "train" | "car" | "plane" | "taxi" | "other";
   roundTrips: number;
   days: number;
   nights: number;
@@ -99,6 +102,32 @@ const TOLL_ESTIMATE_PER_KM = 0.09; // estimation autoroute France
 
 const STORAGE_KEY = "crm-travel-settings";
 const DESTINATIONS_STORAGE_KEY = "crm-travel-destinations";
+const FAVORITES_KEY = "crm-travel-favorites";
+
+interface FavoriteDestination {
+  city: string;
+  lat: number | null;
+  lon: number | null;
+  transportMode: TravelDestination["transportMode"];
+  roundTrips: number;
+  days: number;
+  nights: number;
+  ticketPriceRoundTrip: number;
+}
+
+function loadFavorites(): FavoriteDestination[] {
+  try {
+    const stored = localStorage.getItem(FAVORITES_KEY);
+    if (stored) return JSON.parse(stored);
+  } catch {}
+  return [];
+}
+
+function saveFavorites(favs: FavoriteDestination[]) {
+  try {
+    localStorage.setItem(FAVORITES_KEY, JSON.stringify(favs));
+  } catch {}
+}
 
 const DEFAULT_SETTINGS: TravelSettings = {
   vehicleHp: 5,
@@ -271,8 +300,7 @@ function calcDestinationCost(dest: TravelDestination, settings: TravelSettings) 
       loyaltyCost = settings.trainLoyaltyPerTrip * dest.roundTrips;
       break;
     case "plane":
-      transportCost = dest.ticketPriceRoundTrip * dest.roundTrips;
-      break;
+    case "taxi":
     case "other":
       transportCost = dest.ticketPriceRoundTrip * dest.roundTrips;
       break;
@@ -398,6 +426,8 @@ function TransportIcon({ mode }: { mode: TravelDestination["transportMode"] }) {
       return <Train className="h-3.5 w-3.5" />;
     case "plane":
       return <Plane className="h-3.5 w-3.5" />;
+    case "taxi":
+      return <CarTaxiFront className="h-3.5 w-3.5" />;
     default:
       return <Navigation className="h-3.5 w-3.5" />;
   }
@@ -417,6 +447,32 @@ const TravelExpenseCalculator = ({
   const [settings, setSettings] = useState<TravelSettings>(loadSettings);
   const [destinations, setDestinations] = useState<TravelDestination[]>([]);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [favorites, setFavorites] = useState<FavoriteDestination[]>(loadFavorites);
+
+  const addFavorite = (dest: TravelDestination) => {
+    if (!dest.city.trim()) return;
+    const fav: FavoriteDestination = {
+      city: dest.city,
+      lat: dest.lat,
+      lon: dest.lon,
+      transportMode: dest.transportMode,
+      roundTrips: dest.roundTrips,
+      days: dest.days,
+      nights: dest.nights,
+      ticketPriceRoundTrip: dest.ticketPriceRoundTrip,
+    };
+    const updated = [...favorites.filter((f) => f.city !== fav.city), fav];
+    setFavorites(updated);
+    saveFavorites(updated);
+  };
+
+  const removeFavorite = (city: string) => {
+    const updated = favorites.filter((f) => f.city !== city);
+    setFavorites(updated);
+    saveFavorites(updated);
+  };
+
+
 
   // Detect first use (no departure address → open settings)
   useEffect(() => {
@@ -487,6 +543,23 @@ const TravelExpenseCalculator = ({
     [settings.departureLat, settings.departureLon]
   );
 
+  const applyFavorite = useCallback((fav: FavoriteDestination) => {
+    const newDest: TravelDestination = {
+      ...emptyDestination(),
+      city: fav.city,
+      lat: fav.lat,
+      lon: fav.lon,
+      transportMode: fav.transportMode,
+      roundTrips: fav.roundTrips,
+      days: fav.days,
+      nights: fav.nights,
+      ticketPriceRoundTrip: fav.ticketPriceRoundTrip,
+    };
+    setDestinations((prev) => [...prev, newDest]);
+    if (fav.transportMode === "car" && fav.lat != null && fav.lon != null) {
+      autoFetchDistance(newDest.id, fav.lat, fav.lon);
+    }
+  }, [autoFetchDistance]);
   const handleCitySelect = (destId: string, name: string, lat: number, lon: number) => {
     const dest = destinations.find((d) => d.id === destId);
     updateDest(destId, { city: name, lat, lon });
@@ -646,6 +719,36 @@ const TravelExpenseCalculator = ({
           </CollapsibleContent>
         </Collapsible>
 
+        {/* Favorites */}
+        {favorites.length > 0 && (
+          <div className="space-y-1.5">
+            <div className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+              <Star className="h-3 w-3" />
+              Destinations favorites
+            </div>
+            <div className="flex gap-1.5 flex-wrap">
+              {favorites.map((fav) => (
+                <button
+                  key={fav.city}
+                  type="button"
+                  onClick={() => applyFavorite(fav)}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border bg-background text-xs hover:bg-accent transition-colors group"
+                >
+                  <TransportIcon mode={fav.transportMode} />
+                  {fav.city}
+                  <span
+                    role="button"
+                    onClick={(e) => { e.stopPropagation(); removeFavorite(fav.city); }}
+                    className="opacity-0 group-hover:opacity-100 hover:text-destructive transition-opacity"
+                  >
+                    <X className="h-3 w-3" />
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* ---- Destinations ---- */}
         <div className="space-y-3">
           <div className="text-xs font-medium text-muted-foreground">Destinations</div>
@@ -655,7 +758,7 @@ const TravelExpenseCalculator = ({
             return (
               <div key={dest.id} className="rounded-lg border p-3 space-y-2 bg-background">
                 {/* Row 1: city + mode + AR + days + nights */}
-                <div className="grid grid-cols-[1fr_120px_70px_70px_70px_32px] gap-2 items-end">
+                <div className="grid grid-cols-[1fr_120px_70px_70px_70px_68px] gap-2 items-end">
                   <div className="space-y-1">
                     <Label className="text-[10px] text-muted-foreground">
                       Destination {destinations.length > 1 ? `#${idx + 1}` : ""}
@@ -679,6 +782,7 @@ const TravelExpenseCalculator = ({
                         <SelectItem value="train"><span className="flex items-center gap-1.5"><Train className="h-3.5 w-3.5" /> Train</span></SelectItem>
                         <SelectItem value="car"><span className="flex items-center gap-1.5"><Car className="h-3.5 w-3.5" /> Voiture</span></SelectItem>
                         <SelectItem value="plane"><span className="flex items-center gap-1.5"><Plane className="h-3.5 w-3.5" /> Avion</span></SelectItem>
+                        <SelectItem value="taxi"><span className="flex items-center gap-1.5"><CarTaxiFront className="h-3.5 w-3.5" /> Taxi</span></SelectItem>
                         <SelectItem value="other"><span className="flex items-center gap-1.5"><Navigation className="h-3.5 w-3.5" /> Autre</span></SelectItem>
                       </SelectContent>
                     </Select>
@@ -710,15 +814,27 @@ const TravelExpenseCalculator = ({
                       className="h-8 text-sm text-right"
                     />
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                    onClick={() => removeDestination(dest.id)}
-                    disabled={destinations.length <= 1}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
+                  <div className="flex gap-0.5">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className={cn("h-8 w-8", favorites.some((f) => f.city === dest.city) ? "text-yellow-500" : "text-muted-foreground hover:text-yellow-500")}
+                      onClick={() => addFavorite(dest)}
+                      disabled={!dest.city.trim()}
+                      title="Ajouter aux favoris"
+                    >
+                      <Star className={cn("h-3.5 w-3.5", favorites.some((f) => f.city === dest.city) && "fill-current")} />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                      onClick={() => removeDestination(dest.id)}
+                      disabled={destinations.length <= 1}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
                 </div>
 
                 {/* Row 2: mode-specific fields */}
@@ -759,10 +875,10 @@ const TravelExpenseCalculator = ({
                     </>
                   )}
 
-                  {(dest.transportMode === "train" || dest.transportMode === "plane" || dest.transportMode === "other") && (
+                  {(dest.transportMode === "train" || dest.transportMode === "plane" || dest.transportMode === "taxi" || dest.transportMode === "other") && (
                     <div className="flex items-center gap-1.5">
                       <Label className="text-[10px] text-muted-foreground whitespace-nowrap">
-                        {dest.transportMode === "train" ? "Billet A/R (€)" : dest.transportMode === "plane" ? "Billet A/R (€)" : "Coût A/R (€)"}
+                        {dest.transportMode === "taxi" ? "Course A/R (€)" : dest.transportMode === "other" ? "Coût A/R (€)" : "Billet A/R (€)"}
                       </Label>
                       <Input
                         type="number" min="0"
