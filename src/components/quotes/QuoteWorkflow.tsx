@@ -317,6 +317,11 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
             onContinue={handleLoomContinue}
             onDraftChange={handleDraftLoom}
             initialLoomUrl={loomUrl}
+            crmCard={crmCard}
+            quote={quote}
+            synthesis={synthesis}
+            instructions={instructions}
+            challengeHtml={challengeHtml}
           />
         </>
       )}
