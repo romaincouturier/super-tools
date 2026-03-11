@@ -684,7 +684,7 @@ const Dashboard = () => {
 
           {/* Daily TODO + Calendar — right column */}
           <aside className="hidden lg:flex lg:flex-col w-80 shrink-0 gap-4 sticky top-6 self-start max-h-[calc(100vh-6rem)]">
-            <Card className="p-4 shrink-0 flex flex-col max-h-[40%] overflow-hidden">
+            <Card className="p-4 min-h-0 flex-1 flex flex-col overflow-hidden">
               <UpcomingCalendarPanel />
             </Card>
             <Card className="p-4 min-h-0 flex-1 flex flex-col overflow-hidden">

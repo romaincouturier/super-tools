@@ -178,20 +178,24 @@ const Support = () => {
 
   return (
     <ModuleLayout>
-      <div className="flex flex-col h-[calc(100vh-4rem)]">
+      <main className="max-w-[1600px] mx-auto p-4 sm:p-6 h-[calc(100vh-80px)] flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b">
-          <div className="flex items-center gap-3">
-            <LifeBuoy className="h-6 w-6 text-primary" />
-            <div>
-              <h1 className="text-xl font-bold">Support</h1>
-              <p className="text-sm text-muted-foreground">Bugs et demandes d'évolution</p>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 sm:mb-6">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-primary/10 hidden sm:block">
+                <LifeBuoy className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <h1 className="text-xl sm:text-2xl font-bold">Support</h1>
+                <p className="text-muted-foreground text-xs sm:text-sm hidden sm:block">Bugs et demandes d'évolution</p>
+              </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2">
             {/* Stats */}
-            <div className="hidden md:flex items-center gap-4 text-sm text-muted-foreground mr-4">
+            <div className="hidden md:flex items-center gap-4 text-sm text-muted-foreground mr-2">
               <span className="flex items-center gap-1"><AlertCircle className="h-3.5 w-3.5" />{stats.open} ouvert{stats.open > 1 ? "s" : ""}</span>
               <span className="flex items-center gap-1"><Bug className="h-3.5 w-3.5 text-red-500" />{stats.bugs}</span>
               <span className="flex items-center gap-1"><Lightbulb className="h-3.5 w-3.5 text-violet-500" />{stats.evolutions}</span>
@@ -279,7 +283,7 @@ const Support = () => {
         </div>
 
         {/* Kanban Board */}
-        <div className="flex-1 overflow-hidden px-4 py-3">
+        <div className="flex-1 overflow-hidden">
           <GenericKanbanBoard
             columns={SUPPORT_COLUMNS}
             cards={cards}
@@ -291,7 +295,7 @@ const Support = () => {
             columnClassName="min-w-[260px] max-w-[300px]"
           />
         </div>
-      </div>
+      </main>
 
       {/* Detail Sheet */}
       <Sheet open={!!detailTicket} onOpenChange={(open) => !open && setDetailTicket(null)}>
