@@ -1026,6 +1026,7 @@ Bonne préparation et bonne formation demain !`,
   live_reminder: {
     name: "Rappel de live collectif",
     timing: "during",
+    sendingInfo: "📤 Envoyé automatiquement aux participants le jour d'un live collectif à 07h00. Contient le lien de connexion",
     subject: {
       tu: "📺 Rappel : Live \"{{live_title}}\" aujourd'hui – {{training_name}}",
       vous: "📺 Rappel : Live \"{{live_title}}\" aujourd'hui – {{training_name}}",
