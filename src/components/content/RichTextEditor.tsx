@@ -17,6 +17,9 @@ import {
   ListOrdered,
   Undo,
   Redo,
+  Heading1,
+  Heading2,
+  Heading3,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
