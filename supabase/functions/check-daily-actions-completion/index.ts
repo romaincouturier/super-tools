@@ -151,6 +151,19 @@ serve(async (req) => {
           break;
         }
 
+        case "missions_activites_non_facturees": {
+          // Check if all billable activities for this mission are now billed
+          const { data: remaining } = await supabase
+            .from("mission_activities")
+            .select("id")
+            .eq("mission_id", action.entity_id)
+            .eq("is_billed", false)
+            .gt("billable_amount", 0)
+            .limit(1);
+          if (!remaining || remaining.length === 0) resolved = true;
+          break;
+        }
+
         case "devis_a_faire": {
           const c = cards.get(action.entity_id);
           if (c) {

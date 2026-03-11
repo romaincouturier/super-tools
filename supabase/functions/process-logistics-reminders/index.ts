@@ -336,6 +336,50 @@ serve(async (req) => {
     console.log(`[${VERSION}] Missions à facturer: ${missionAlerts.length}`);
 
     // ════════════════════════════════════════════
+    // 1c. ACTIVITÉS MISSION NON FACTURÉES
+    // ════════════════════════════════════════════
+    const { data: unbilledActivities } = await supabase
+      .from("mission_activities")
+      .select("id, mission_id, billable_amount")
+      .eq("is_billed", false)
+      .gt("billable_amount", 0);
+
+    interface UnbilledAlert {
+      assignedTo: string | null;
+      html: string;
+    }
+    const unbilledAlerts: UnbilledAlert[] = [];
+
+    if (unbilledActivities && unbilledActivities.length > 0) {
+      const byMission = new Map<string, any[]>();
+      for (const a of unbilledActivities) {
+        const list = byMission.get(a.mission_id) || [];
+        list.push(a);
+        byMission.set(a.mission_id, list);
+      }
+
+      const missionIds = [...byMission.keys()];
+      const { data: activityMissions } = await supabase
+        .from("missions")
+        .select("id, title, client_name, emoji, assigned_to")
+        .in("id", missionIds);
+
+      if (activityMissions) {
+        for (const m of activityMissions) {
+          const activities = byMission.get(m.id) || [];
+          const totalUnbilled = activities.reduce((sum: number, a: any) => sum + (Number(a.billable_amount) || 0), 0);
+          const label = m.client_name ? `${m.client_name} — ${m.title}` : m.title;
+          const emojiPrefix = m.emoji ? `${m.emoji} ` : "";
+          unbilledAlerts.push({
+            assignedTo: m.assigned_to,
+            html: `<li>${emojiPrefix}<a href="${appUrl}/missions/${m.id}" style="color: ${COLORS.primary}; text-decoration: underline;">${label}</a> — <strong>${activities.length} activité(s) non facturée(s)</strong> (${totalUnbilled.toLocaleString("fr-FR")} €)</li>`,
+          });
+        }
+      }
+    }
+    console.log(`[${VERSION}] Activités non facturées: ${unbilledAlerts.length}`);
+
+    // ════════════════════════════════════════════
     // 1b. MISSIONS SANS DATE DE DÉBUT
     // ════════════════════════════════════════════
     const { data: missionsNoStartDate } = await supabase
