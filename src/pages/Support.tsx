@@ -43,7 +43,6 @@ const Support = () => {
 
   // New ticket form state
   const [newType, setNewType] = useState<TicketType>("bug");
-  const [newTitle, setNewTitle] = useState("");
   const [newDescription, setNewDescription] = useState("");
   const [newPriority, setNewPriority] = useState<TicketPriority>("medium");
 
@@ -96,17 +95,17 @@ const Support = () => {
   };
 
   const handleCreate = async () => {
-    if (!newTitle.trim() || !newDescription.trim()) return;
+    if (!newDescription.trim()) return;
+    const autoTitle = newDescription.trim().split(/[.\n]/)[0].slice(0, 80).trim() || "Ticket sans titre";
     try {
       await createTicket.mutateAsync({
         type: newType,
-        title: newTitle.trim(),
+        title: autoTitle,
         description: newDescription.trim(),
         priority: newPriority,
         page_url: null,
       });
       setCreateOpen(false);
-      setNewTitle("");
       setNewDescription("");
       setNewPriority("medium");
       setNewType("bug");
@@ -253,12 +252,8 @@ const Support = () => {
                     </RadioGroup>
                   </div>
                   <div className="space-y-2">
-                    <Label>Titre *</Label>
-                    <Input value={newTitle} onChange={(e) => setNewTitle(e.target.value)} placeholder="Résumé du problème ou de la demande" />
-                  </div>
-                  <div className="space-y-2">
                     <Label>Description *</Label>
-                    <Textarea value={newDescription} onChange={(e) => setNewDescription(e.target.value)} rows={4} placeholder="Détails, étapes pour reproduire, contexte..." />
+                    <Textarea value={newDescription} onChange={(e) => setNewDescription(e.target.value)} rows={6} placeholder="Décrivez le bug ou l'évolution souhaitée..." />
                   </div>
                   <div className="space-y-2">
                     <Label>Priorité</Label>
@@ -272,7 +267,7 @@ const Support = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                  <Button onClick={handleCreate} disabled={createTicket.isPending || !newTitle.trim() || !newDescription.trim()} className="w-full">
+                  <Button onClick={handleCreate} disabled={createTicket.isPending || !newDescription.trim()} className="w-full">
                     {createTicket.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                     Créer le ticket
                   </Button>
