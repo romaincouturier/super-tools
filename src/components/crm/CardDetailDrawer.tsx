@@ -13,8 +13,9 @@ import {
   Trash2,
 } from "lucide-react";
 import DOMPurify from "dompurify";
+import { isWonColumnName, isLostColumnName } from "@/lib/crmColumnStatus";
 import EmojiPickerButton from "@/components/ui/emoji-picker-button";
-import confetti from "canvas-confetti";
+import { celebrateWin } from "@/lib/celebrateWin";
 import {
   CrmCard,
   CrmTag,
@@ -413,18 +414,6 @@ const CardDetailDrawer = ({
   }, [email, company]);
 
   // ═══ STATUS CHANGES ═══
-  const celebrateWin = () => {
-    const duration = 3000;
-    const end = Date.now() + duration;
-    const colors = ["#FFD700", "#FFA500", "#FF6347", "#32CD32", "#1E90FF", "#9370DB"];
-    const frame = () => {
-      confetti({ particleCount: 3, angle: 60, spread: 55, origin: { x: 0, y: 0.8 }, colors });
-      confetti({ particleCount: 3, angle: 120, spread: 55, origin: { x: 1, y: 0.8 }, colors });
-      if (Date.now() < end) requestAnimationFrame(frame);
-    };
-    confetti({ particleCount: 100, spread: 70, origin: { x: 0.5, y: 0.5 }, colors });
-    frame();
-  };
 
   const buildTrainingParams = (): URLSearchParams => {
     const params = new URLSearchParams();
@@ -497,11 +486,11 @@ const CardDetailDrawer = ({
   const handleColumnChange = async (newColumnId: string, columnName: string) => {
     if (!card || !user?.email) return;
     setColumnId(newColumnId);
-    const isWonColumn = columnName.toLowerCase().includes("gagné");
-    const isLostColumn = columnName.toLowerCase().includes("perdu");
+    const isWonColumn = isWonColumnName(columnName);
+    const isLostColumn = isLostColumnName(columnName);
     const currentColumn = allColumns.find(col => col.id === card.column_id);
-    const wasInWonColumn = currentColumn?.name.toLowerCase().includes("gagné") || false;
-    const wasInLostColumn = currentColumn?.name.toLowerCase().includes("perdu") || false;
+    const wasInWonColumn = currentColumn ? isWonColumnName(currentColumn.name) : false;
+    const wasInLostColumn = currentColumn ? isLostColumnName(currentColumn.name) : false;
     const movingToWon = isWonColumn && !wasInWonColumn;
     const movingToLost = isLostColumn && !wasInLostColumn;
     const leavingWonColumn = wasInWonColumn && !isWonColumn;

@@ -26,9 +26,10 @@ import AddColumnDialog from "@/components/shared/AddColumnDialog";
 import { CreateTrainingDialog } from "./CreateTrainingDialog";
 import { useNavigate } from "react-router-dom";
 import { isAfter, startOfDay } from "date-fns";
-import confetti from "canvas-confetti";
+import { celebrateWin } from "@/lib/celebrateWin";
 import { useKanbanDnd } from "@/hooks/useKanbanDnd";
 import { kanbanCollision } from "@/lib/kanbanCollision";
+import { isWonColumnName, isLostColumnName } from "@/lib/crmColumnStatus";
 
 interface CrmKanbanBoardProps {
   initialCardId?: string | null;
@@ -259,46 +260,6 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
 
   // Celebration confetti animation for won deals
   const confettiFrameRef = useRef<number | null>(null);
-  const celebrateWin = () => {
-    if (confettiFrameRef.current) cancelAnimationFrame(confettiFrameRef.current);
-
-    const duration = 3000;
-    const end = Date.now() + duration;
-    const colors = ["#FFD700", "#FFA500", "#FF6347", "#32CD32", "#1E90FF", "#9370DB"];
-
-    const frame = () => {
-      confetti({
-        particleCount: 3,
-        angle: 60,
-        spread: 55,
-        origin: { x: 0, y: 0.8 },
-        colors: colors,
-      });
-      confetti({
-        particleCount: 3,
-        angle: 120,
-        spread: 55,
-        origin: { x: 1, y: 0.8 },
-        colors: colors,
-      });
-
-      if (Date.now() < end) {
-        confettiFrameRef.current = requestAnimationFrame(frame);
-      } else {
-        confettiFrameRef.current = null;
-      }
-    };
-
-    // Initial burst
-    confetti({
-      particleCount: 100,
-      spread: 70,
-      origin: { x: 0.5, y: 0.5 },
-      colors: colors,
-    });
-
-    frame();
-  };
 
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
@@ -328,10 +289,10 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
     const oldColumn = boardData?.columns.find((col) => col.id === oldColumnId);
 
     // Check if moving to/from a "won" or "lost" column
-    const isWonColumn = targetColumn?.name.toLowerCase().includes("gagné") || false;
-    const wasInWonColumn = oldColumn?.name.toLowerCase().includes("gagné") || false;
-    const isLostColumn = targetColumn?.name.toLowerCase().includes("perdu") || false;
-    const wasInLostColumn = oldColumn?.name.toLowerCase().includes("perdu") || false;
+    const isWonColumn = targetColumn ? isWonColumnName(targetColumn.name) : false;
+    const wasInWonColumn = oldColumn ? isWonColumnName(oldColumn.name) : false;
+    const isLostColumn = targetColumn ? isLostColumnName(targetColumn.name) : false;
+    const wasInLostColumn = oldColumn ? isLostColumnName(oldColumn.name) : false;
 
     // Detect transitions
     const movingToWon = isWonColumn && !wasInWonColumn;
@@ -364,7 +325,7 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
       });
 
       // Celebrate with confetti!
-      celebrateWin();
+      celebrateWin(confettiFrameRef);
 
       // Check if card is a formation (or no type set) and prompt for training creation
       const cardServiceType = originalCard?.service_type;
