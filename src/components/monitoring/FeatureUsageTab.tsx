@@ -38,10 +38,8 @@ import { supabase } from "@/integrations/supabase/client";
 
 interface FeatureUsageRow {
   id: string;
-  user_id: string;
   feature_name: string;
   feature_category: string;
-  metadata: Record<string, unknown> | null;
   created_at: string;
 }
 
@@ -78,7 +76,7 @@ const FeatureUsageTab = () => {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("feature_usage")
-        .select("*")
+        .select("id, feature_name, feature_category, created_at")
         .gte("created_at", since)
         .order("created_at", { ascending: true });
       if (error) throw error;
