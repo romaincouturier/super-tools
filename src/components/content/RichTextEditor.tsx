@@ -68,7 +68,8 @@ const RichTextEditor = ({
     editorProps: {
       attributes: {
         class:
-          "prose prose-sm dark:prose-invert max-w-none focus:outline-none min-h-[200px] p-3",
+          `prose prose-sm dark:prose-invert max-w-none focus:outline-none p-3`,
+        style: `min-height: ${minHeight}`,
       },
     },
     onUpdate: ({ editor }) => {
