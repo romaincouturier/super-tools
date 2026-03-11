@@ -979,6 +979,7 @@ N'hésitez pas à me contacter si vous avez des questions.
   trainer_summary: {
     name: "Synthèse pré-formation (formateur)",
     timing: "before",
+    sendingInfo: "📤 Envoyé automatiquement au formateur J-1 avant la formation. Contient la synthèse IA des besoins des participants",
     delayKey: "delay_trainer_summary_days",
     subject: {
       tu: "☀️ Demain c'est le grand jour ! Synthèse pré-formation – {{training_name}}",
