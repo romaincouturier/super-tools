@@ -431,7 +431,7 @@ async function sendEmailWithResend(
   `;
 
   const htmlContent = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+    <div style="font-family: Arial, sans-serif; max-width: 600px; padding: 20px;">
       ${contentHtml}
       ${emailSignature || fallbackSignature}
     </div>
