@@ -867,6 +867,7 @@ Dans l'attente de votre retour, je reste à votre disposition pour toute questio
   mission_deliverables: {
     name: "Envoi des livrables de mission",
     timing: "manual",
+    sendingInfo: "✋ Envoyé manuellement depuis la fiche mission lors du partage des livrables au client",
     subject: {
       tu: "Vos livrables sont disponibles - {{mission_title}}",
       vous: "Vos livrables sont disponibles - {{mission_title}}",
