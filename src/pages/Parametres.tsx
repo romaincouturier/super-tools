@@ -940,6 +940,7 @@ Nous restons à votre disposition pour toute question.
   reminder: {
     name: "Rappel formation imminente",
     timing: "before",
+    sendingInfo: "📤 Envoyé automatiquement aux participants le jour de la formation à 07h00",
     delayKey: "delay_reminder_days",
     subject: {
       tu: "Rappel : Formation {{training_name}} – {{training_date}}",
