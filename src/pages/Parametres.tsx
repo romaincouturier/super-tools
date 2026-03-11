@@ -831,6 +831,7 @@ Bonne réception et à bientôt !`,
   accessibility_needs: {
     name: "Besoins d'accessibilité",
     timing: "manual",
+    sendingInfo: "📤 Envoyé automatiquement au formateur lorsqu'un participant signale un besoin spécifique dans le questionnaire de recueil des besoins",
     subject: {
       tu: "Tes besoins spécifiques pour la formation \"{{training_name}}\"",
       vous: "Vos besoins spécifiques pour la formation \"{{training_name}}\"",
