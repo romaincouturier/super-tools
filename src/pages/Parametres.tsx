@@ -245,6 +245,7 @@ Merci infiniment pour votre soutien et pour avoir participé à notre formation 
   video_testimonial: {
     name: "Demande de témoignage vidéo",
     timing: "after",
+    sendingInfo: "📤 Envoyé automatiquement au commanditaire, J+X jours ouvrables après la formation (configurable)",
     delayKey: "delay_video_testimonial_days",
     subject: {
       tu: "🎥 Partager ton expérience sur la formation \"{{training_name}}\"",
