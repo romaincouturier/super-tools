@@ -2891,6 +2891,51 @@ const Parametres = () => {
                       })}
                   </Accordion>
                 </div>
+
+                <Separator />
+
+                {/* Mission Emails */}
+                <div className="space-y-3">
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                    💼 Après une mission
+                  </h3>
+                  <Accordion type="single" collapsible className="w-full">
+                    {Object.entries(DEFAULT_TEMPLATES)
+                      .filter(([, t]) => t.timing === "mission_after")
+                      .map(([type, defaultTemplate]) => {
+                        const currentMode = activeMode[type] || "vous";
+                        const saveKey = `${type}_${currentMode}`;
+                        const isCustomized = templates[type]?.tu || templates[type]?.vous;
+                        
+                        const delayValue = defaultTemplate.delayKey ? (settings[defaultTemplate.delayKey] || null) : null;
+                        const timingLabel = delayValue ? `J+${delayValue}` : null;
+                        
+                        return (
+                          <AccordionItem key={type} value={type}>
+                            <AccordionTrigger className="text-left">
+                              <div className="flex items-center gap-3">
+                                <Mail className="h-4 w-4 text-muted-foreground" />
+                                <span>{defaultTemplate.name}</span>
+                                {timingLabel && (
+                                  <span className="text-xs bg-purple-500/10 text-purple-700 dark:text-purple-300 px-2 py-0.5 rounded font-medium">
+                                    {timingLabel}
+                                  </span>
+                                )}
+                                {isCustomized && (
+                                  <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
+                                    Personnalisé
+                                  </span>
+                                )}
+                              </div>
+                            </AccordionTrigger>
+                            <AccordionContent className="space-y-4 pt-4">
+                              {renderTemplateEditor(type, defaultTemplate, currentMode, saveKey)}
+                            </AccordionContent>
+                          </AccordionItem>
+                        );
+                      })}
+                  </Accordion>
+                </div>
               </CardContent>
             </Card>
 
