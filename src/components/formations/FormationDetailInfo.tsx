@@ -1,4 +1,7 @@
-import { Calendar, FileText, MapPin, Building, UserIcon, Clock, Copy, Check, Euro, Mail, ExternalLink } from "lucide-react";
+import { useState } from "react";
+import { Calendar, FileText, MapPin, Building, UserIcon, Clock, Copy, Check, Euro, Mail, ExternalLink, Truck, Loader2, CheckCircle2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { formatSentDateTime } from "@/lib/dateFormatters";
 import { User as UserIconLucide } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -40,7 +43,34 @@ const FormationDetailInfo = ({
   getFormatLabel,
   calculateTotalDuration,
   toast,
-}: Props) => (
+}: Props) => {
+  const [sendingLogistics, setSendingLogistics] = useState(false);
+
+  const handleSendLogisticsEmail = async () => {
+    setSendingLogistics(true);
+    try {
+      const { error } = await supabase.functions.invoke("send-logistics-requirements", {
+        body: { trainingId: training.id },
+      });
+      if (error) throw error;
+      toast({
+        title: "Email envoyé",
+        description: `Les besoins logistiques ont été envoyés à ${training.sponsor_email}.`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Erreur",
+        description: error.message || "Impossible d'envoyer l'email.",
+        variant: "destructive",
+      });
+    } finally {
+      setSendingLogistics(false);
+    }
+  };
+
+  const isPresentiel = training.format_formation !== "e_learning" && training.format_formation !== "classe_virtuelle";
+
+  return (
   <Card>
     <CardHeader>
       <CardTitle className="flex items-center gap-2">
@@ -138,6 +168,32 @@ const FormationDetailInfo = ({
                   </Button>
                 </div>
               )}
+              {/* Logistics email button - only for presentiel intra */}
+              {isPresentiel && training.sponsor_email && !isInterSession && (
+                <div className="flex items-center gap-2 pt-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 text-xs"
+                    onClick={handleSendLogisticsEmail}
+                    disabled={sendingLogistics}
+                  >
+                    {sendingLogistics ? (
+                      <Loader2 className="h-3 w-3 mr-1.5 animate-spin" />
+                    ) : (training as any).logistics_email_sent_at ? (
+                      <CheckCircle2 className="h-3 w-3 mr-1.5 text-primary" />
+                    ) : (
+                      <Truck className="h-3 w-3 mr-1.5" />
+                    )}
+                    {(training as any).logistics_email_sent_at ? "Renvoyer besoins logistiques" : "Envoyer besoins logistiques"}
+                  </Button>
+                  {(training as any).logistics_email_sent_at && (
+                    <span className="text-xs text-muted-foreground">
+                      Envoyé le {formatSentDateTime((training as any).logistics_email_sent_at)}
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </>
@@ -233,6 +289,7 @@ const FormationDetailInfo = ({
       )}
     </CardContent>
   </Card>
-);
+  );
+};
 
 export default FormationDetailInfo;
