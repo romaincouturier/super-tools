@@ -914,6 +914,7 @@ Règles :
         break;
       }
 
+      case "coaching_booking_invite":
       case "coaching_first_invite":
       case "coaching_periodic_reminder":
       case "coaching_final_reminder": {
