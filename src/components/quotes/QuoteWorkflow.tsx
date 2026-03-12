@@ -308,8 +308,20 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
         </>
       )}
 
-      {/* Step 3: Devis */}
-      {step === 3 && quote && (
+      {/* Step 3: Client */}
+      {step === 3 && (
+        <>
+          <BackButton onClick={handleBack} />
+          <Step0ClientValidation
+            crmCard={crmCard}
+            onValidate={handleClientValidated}
+            initialClient={clientData}
+          />
+        </>
+      )}
+
+      {/* Step 4: Devis */}
+      {step === 4 && quote && (
         <>
           <BackButton onClick={handleBack} />
           <Step3QuoteGeneration
@@ -319,18 +331,6 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
             travelTotal={travelTotal}
             crmCard={crmCard}
             onContinue={handleQuoteContinue}
-          />
-        </>
-      )}
-
-      {/* Step 4: Client */}
-      {step === 4 && (
-        <>
-          <BackButton onClick={handleBack} />
-          <Step0ClientValidation
-            crmCard={crmCard}
-            onValidate={handleClientValidated}
-            initialClient={clientData}
           />
         </>
       )}
