@@ -60,7 +60,7 @@ const EmojiPickerButton = ({
         </button>
       </PopoverTrigger>
       <PopoverContent
-        className="w-auto p-0 border-0 shadow-xl rounded-xl overflow-hidden"
+        className="w-auto p-0 border-0 shadow-xl rounded-xl overflow-clip"
         side="bottom"
         align="start"
         sideOffset={4}
