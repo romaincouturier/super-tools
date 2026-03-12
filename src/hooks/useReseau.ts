@@ -10,6 +10,8 @@ import type {
   GeneratedAction,
   CoolingContact,
   CoolingThresholds,
+  NetworkStats,
+  NetworkInteraction,
   WarmthLevel,
 } from "@/types/reseau";
 import { useMemo } from "react";
@@ -423,4 +425,118 @@ export const useCoolingContacts = (
 
     return cooling;
   }, [contacts, positioning]);
+};
+
+// ─── Interactions Query ───
+
+export const useNetworkInteractions = () => {
+  return useQuery({
+    queryKey: [INTERACTIONS_KEY],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Non authentifié");
+
+      const { data, error } = await (supabase as any)
+        .from("network_interactions")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data || []) as NetworkInteraction[];
+    },
+  });
+};
+
+// ─── Network Stats ───
+
+export const useNetworkStats = (
+  contacts: NetworkContact[],
+  actions: (NetworkAction & { contact: NetworkContact | null })[],
+  interactions: NetworkInteraction[],
+): NetworkStats => {
+  return useMemo(() => {
+    const now = new Date();
+    const d7ago = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const d30ago = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    // Warmth distribution
+    const warmthDistribution: Record<WarmthLevel, number> = { hot: 0, warm: 0, cold: 0 };
+    for (const c of contacts) warmthDistribution[c.warmth]++;
+    const total = contacts.length || 1;
+    const warmthPercent: Record<WarmthLevel, number> = {
+      hot: Math.round((warmthDistribution.hot / total) * 100),
+      warm: Math.round((warmthDistribution.warm / total) * 100),
+      cold: Math.round((warmthDistribution.cold / total) * 100),
+    };
+
+    // Actions stats
+    const actionsDone = actions.filter((a) => a.status === "done").length;
+    const actionsSkipped = actions.filter((a) => a.status === "skipped").length;
+    const actionsPending = actions.filter((a) => a.status === "pending").length;
+    const completedOrSkipped = actionsDone + actionsSkipped;
+    const completionRate = completedOrSkipped > 0 ? Math.round((actionsDone / completedOrSkipped) * 100) : 0;
+
+    // Interactions timeline
+    const interactionsLast7d = interactions.filter((i) => new Date(i.created_at) >= d7ago).length;
+    const interactionsLast30d = interactions.filter((i) => new Date(i.created_at) >= d30ago).length;
+
+    // Weekly activity (last 8 weeks)
+    const weeklyActivity: { week: string; count: number }[] = [];
+    for (let w = 7; w >= 0; w--) {
+      const weekStart = new Date(now.getTime() - (w * 7 + 6) * 24 * 60 * 60 * 1000);
+      const weekEnd = new Date(now.getTime() - w * 7 * 24 * 60 * 60 * 1000);
+      const count = interactions.filter((i) => {
+        const d = new Date(i.created_at);
+        return d >= weekStart && d < weekEnd;
+      }).length;
+      const label = `S-${w}`;
+      weeklyActivity.push({ week: w === 0 ? "Cette sem." : label, count });
+    }
+
+    // Average days since contact
+    let totalDays = 0;
+    let contactsNeverContacted = 0;
+    for (const c of contacts) {
+      if (c.last_contact_date) {
+        totalDays += Math.floor(
+          (now.getTime() - new Date(c.last_contact_date).getTime()) / (1000 * 60 * 60 * 24)
+        );
+      } else {
+        contactsNeverContacted++;
+        totalDays += Math.floor(
+          (now.getTime() - new Date(c.created_at).getTime()) / (1000 * 60 * 60 * 24)
+        );
+      }
+    }
+    const averageDaysSinceContact = contacts.length > 0 ? Math.round(totalDays / contacts.length) : 0;
+
+    // Network health score (0-100)
+    // Factors: hot%, completion rate, recent interactions, low cooling
+    const hotPercent = warmthPercent.hot;
+    const recentActivityScore = Math.min(interactionsLast7d * 20, 100);
+    const neverContactedPenalty = contacts.length > 0
+      ? Math.round((contactsNeverContacted / contacts.length) * 100)
+      : 0;
+    const networkHealthScore = Math.min(100, Math.max(0, Math.round(
+      (hotPercent * 0.3) + (completionRate * 0.3) + (recentActivityScore * 0.25) + ((100 - neverContactedPenalty) * 0.15)
+    )));
+
+    return {
+      totalContacts: contacts.length,
+      warmthDistribution,
+      warmthPercent,
+      totalActions: actions.length,
+      actionsDone,
+      actionsSkipped,
+      actionsPending,
+      completionRate,
+      totalInteractions: interactions.length,
+      interactionsLast7d,
+      interactionsLast30d,
+      weeklyActivity,
+      averageDaysSinceContact,
+      contactsNeverContacted,
+      networkHealthScore,
+    };
+  }, [contacts, actions, interactions]);
 };

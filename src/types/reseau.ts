@@ -96,3 +96,21 @@ export interface CoolingContact {
   threshold: number;
   isOverdue: boolean;
 }
+
+export interface NetworkStats {
+  totalContacts: number;
+  warmthDistribution: Record<WarmthLevel, number>;
+  warmthPercent: Record<WarmthLevel, number>;
+  totalActions: number;
+  actionsDone: number;
+  actionsSkipped: number;
+  actionsPending: number;
+  completionRate: number;
+  totalInteractions: number;
+  interactionsLast7d: number;
+  interactionsLast30d: number;
+  weeklyActivity: { week: string; count: number }[];
+  averageDaysSinceContact: number;
+  contactsNeverContacted: number;
+  networkHealthScore: number;
+}
