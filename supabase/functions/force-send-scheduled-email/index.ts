@@ -928,6 +928,29 @@ Règles :
           ? new Date(participant.coaching_deadline).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })
           : "";
 
+        // Guard: if coaching data is incomplete, alert the trainer instead of sending a broken email
+        if (coachingRemaining <= 0 || !coachingDeadline) {
+          const alertReasons: string[] = [];
+          if (coachingRemaining <= 0) alertReasons.push(`séances restantes = ${coachingRemaining} (total: ${coachingTotal}, complétées: ${coachingCompleted})`);
+          if (!coachingDeadline) alertReasons.push("date de validité du coaching absente");
+
+          console.warn(`[force-send] Coaching data incomplete for ${participant?.email}, sending alert to trainer instead. Reasons: ${alertReasons.join(", ")}`);
+
+          // Send alert to trainer/admin instead
+          recipientEmail = senderEmail;
+          subject = `⚠️ Alerte coaching – Données incomplètes pour ${firstName} ${participant?.last_name || ""}`;
+          htmlContent = `
+            <p>Bonjour,</p>
+            <p>Un email de coaching (<strong>${scheduledEmail.email_type}</strong>) était prévu pour <strong>${firstName} ${participant?.last_name || ""}</strong> (${participant?.email}) dans le cadre de la formation <strong>"${training.training_name}"</strong>, mais les données sont incomplètes :</p>
+            <ul>
+              ${alertReasons.map((r: string) => `<li>${r}</li>`).join("")}
+            </ul>
+            <p>Merci de vérifier et corriger les informations du participant avant de relancer l'envoi.</p>
+            ${signatureHtml}
+          `;
+          break;
+        }
+
         const coachingVars = {
           first_name: firstName,
           prenom: firstName,
