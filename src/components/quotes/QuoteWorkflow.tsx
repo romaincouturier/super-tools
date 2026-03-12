@@ -352,3 +352,17 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
     </div>
   );
 }
+
+function BackButton({ onClick }: { onClick: () => void }) {
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      onClick={onClick}
+      className="mb-4 gap-1.5 text-muted-foreground hover:text-foreground"
+    >
+      <ChevronLeft className="w-4 h-4" />
+      Étape précédente
+    </Button>
+  );
+}
