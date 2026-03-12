@@ -20,10 +20,11 @@ export default function LearnerAccess() {
     if (!email.trim()) return;
     setIsLoading(true);
     try {
-      const { error } = await supabase.functions.invoke("send-learner-magic-link", {
+      const { data, error } = await supabase.functions.invoke("send-learner-magic-link", {
         body: { email: email.trim().toLowerCase() },
       });
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
       setSent(true);
     } catch (err: any) {
       toast({ title: "Erreur", description: err.message, variant: "destructive" });
