@@ -26,35 +26,50 @@ export function useSignaturePad(options: UseSignaturePadOptions = {}) {
 
   // Initialize pad when canvas is available
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+    let rafId: number | null = null;
+    let initializedPad: SignaturePad | null = null;
 
-    const ratio = Math.max(window.devicePixelRatio || 1, 1);
-    canvas.width = canvas.offsetWidth * ratio;
-    canvas.height = canvas.offsetHeight * ratio;
-    const ctx = canvas.getContext("2d");
-    if (ctx) {
-      ctx.scale(ratio, ratio);
-    }
+    const initializePad = () => {
+      const canvas = canvasRef.current;
+      if (!canvas) {
+        // Canvas can be conditionally rendered (e.g. after loading state)
+        rafId = requestAnimationFrame(initializePad);
+        return;
+      }
 
-    const pad = new SignaturePad(canvas, {
-      backgroundColor: options.backgroundColor ?? "rgb(255, 255, 255)",
-      penColor: options.penColor ?? "rgb(0, 0, 0)",
-    });
+      const ratio = Math.max(window.devicePixelRatio || 1, 1);
+      canvas.width = canvas.offsetWidth * ratio;
+      canvas.height = canvas.offsetHeight * ratio;
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        ctx.scale(ratio, ratio);
+      }
 
-    if (options.onFirstStroke) {
-      pad.addEventListener("beginStroke", () => {
-        if (!hasTrackedFirstStroke.current) {
-          options.onFirstStroke?.();
-          hasTrackedFirstStroke.current = true;
-        }
+      const pad = new SignaturePad(canvas, {
+        backgroundColor: options.backgroundColor ?? "rgb(255, 255, 255)",
+        penColor: options.penColor ?? "rgb(0, 0, 0)",
       });
-    }
 
-    padRef.current = pad;
+      if (options.onFirstStroke) {
+        pad.addEventListener("beginStroke", () => {
+          if (!hasTrackedFirstStroke.current) {
+            options.onFirstStroke?.();
+            hasTrackedFirstStroke.current = true;
+          }
+        });
+      }
+
+      initializedPad = pad;
+      padRef.current = pad;
+    };
+
+    initializePad();
 
     return () => {
-      pad.off();
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+      }
+      (initializedPad ?? padRef.current)?.off();
       padRef.current = null;
     };
     // We intentionally only run this once on mount

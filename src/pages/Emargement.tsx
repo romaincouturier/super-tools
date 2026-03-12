@@ -322,7 +322,7 @@ const Emargement = () => {
               </Button>
               <Button
                 onClick={handleSubmit}
-                disabled={submitting || !consentGiven}
+                disabled={submitting}
                 className="flex-1"
               >
                 {submitting ? (
