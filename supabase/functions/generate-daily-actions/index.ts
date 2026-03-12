@@ -846,9 +846,18 @@ serve(async (req) => {
 
       if (userActions.length === 0) continue;
 
+      // Deduplicate by conflict key to avoid "cannot affect row a second time"
+      const seen = new Set<string>();
+      const dedupedActions = userActions.filter((a: any) => {
+        const key = `${a.category}|${a.entity_type}|${a.entity_id}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+
       const { error } = await supabase
         .from("daily_actions")
-        .upsert(userActions, { onConflict: "user_id,action_date,category,entity_type,entity_id" });
+        .upsert(dedupedActions, { onConflict: "user_id,action_date,category,entity_type,entity_id" });
 
       if (error) {
         console.error(`[${VERSION}] Error inserting for ${recipient.email}:`, error.message);
