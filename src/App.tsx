@@ -76,6 +76,7 @@ const AiTools = lazyWithRetry(() => import("./pages/AiTools"));
 const LmsCourses = lazyWithRetry(() => import("./pages/LmsCourses"));
 const LmsCourseBuilder = lazyWithRetry(() => import("./pages/LmsCourseBuilder"));
 const LmsCoursePlayer = lazyWithRetry(() => import("./pages/LmsCoursePlayer"));
+const Reseau = lazyWithRetry(() => import("./pages/Reseau"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -206,6 +207,8 @@ const App = () => (
               <Route path="/devis/:cardId" element={<QuoteWorkflowPage />} />
               {/* Support tickets Kanban */}
               <Route path="/support" element={<Support />} />
+              {/* Network module */}
+              <Route path="/reseau" element={<Reseau />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
