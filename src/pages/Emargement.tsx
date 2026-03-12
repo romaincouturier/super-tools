@@ -183,15 +183,19 @@ const Emargement = () => {
     if (!attendanceData?.schedule) {
       return attendanceData?.period === "AM" ? "9h00 - 12h30" : "14h00 - 17h30";
     }
-    
+
     const startTime = attendanceData.schedule.start_time.slice(0, 5).replace(":", "h");
     const endTime = attendanceData.schedule.end_time.slice(0, 5).replace(":", "h");
-    
-    if (attendanceData.period === "AM") {
-      return `${startTime} - 12h30`;
-    } else {
-      return `14h00 - ${endTime}`;
+
+    const [startH, startM] = attendanceData.schedule.start_time.split(":").map(Number);
+    const [endH, endM] = attendanceData.schedule.end_time.split(":").map(Number);
+    const sessionDurationHours = ((endH * 60 + endM) - (startH * 60 + startM)) / 60;
+
+    if (sessionDurationHours <= 4) {
+      return `${startTime} - ${endTime}`;
     }
+
+    return attendanceData.period === "AM" ? `${startTime} - 12h30` : `14h00 - ${endTime}`;
   };
 
   const getParticipantName = () => {
@@ -318,7 +322,7 @@ const Emargement = () => {
               </Button>
               <Button
                 onClick={handleSubmit}
-                disabled={submitting || !consentGiven}
+                disabled={submitting}
                 className="flex-1"
               >
                 {submitting ? (
