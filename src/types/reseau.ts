@@ -77,10 +77,6 @@ export interface GeneratedAction {
   message_draft: string;
 }
 
-export interface NetworkActionWithContact extends NetworkAction {
-  contact?: NetworkContact;
-}
-
 export interface NetworkInteraction {
   id: string;
   user_id: string;
