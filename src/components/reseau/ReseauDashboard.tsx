@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import PositioningCard from "./PositioningCard";
 import ContactsList from "./ContactsList";
+import WeeklyActions from "./WeeklyActions";
 import type { NetworkContact, UserPositioning } from "@/types/reseau";
 import type { WarmthLevel } from "@/types/reseau";
 
@@ -64,6 +65,8 @@ const ReseauDashboard = ({
           </CardContent>
         </Card>
       </div>
+
+      <WeeklyActions positioning={positioning} contacts={contacts} />
 
       <ContactsList
         contacts={contacts}

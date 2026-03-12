@@ -60,3 +60,17 @@ export interface NetworkAIResponse {
   };
   contacts?: ExtractedContact[];
 }
+
+export type ActionType = "linkedin_message" | "email" | "phone_call" | "coffee_invite" | "share_content";
+
+export interface GeneratedAction {
+  contact_id: string;
+  contact_name: string;
+  action_type: ActionType;
+  reason: string;
+  message_draft: string;
+}
+
+export interface NetworkActionWithContact extends NetworkAction {
+  contact?: NetworkContact;
+}
