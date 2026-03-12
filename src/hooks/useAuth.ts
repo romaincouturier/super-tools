@@ -6,10 +6,15 @@ import { User } from "@supabase/supabase-js";
 interface UseAuthOptions {
   redirectTo?: string;
   checkPasswordChange?: boolean;
+  disableRedirect?: boolean;
 }
 
 export function useAuth(options: UseAuthOptions = {}) {
-  const { redirectTo = "/auth", checkPasswordChange = true } = options;
+  const {
+    redirectTo = "/auth",
+    checkPasswordChange = true,
+    disableRedirect = false,
+  } = options;
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
@@ -48,7 +53,9 @@ export function useAuth(options: UseAuthOptions = {}) {
       if (!session?.user) {
         setUser(null);
         setLoading(false);
-        navigate(redirectTo);
+        if (!disableRedirect) {
+          navigate(redirectTo);
+        }
         return;
       }
 
@@ -77,7 +84,9 @@ export function useAuth(options: UseAuthOptions = {}) {
         console.error("[useAuth] getSession error:", error);
         if (mounted) {
           setLoading(false);
-          navigate(redirectTo);
+          if (!disableRedirect) {
+            navigate(redirectTo);
+          }
         }
       });
 
@@ -88,7 +97,9 @@ export function useAuth(options: UseAuthOptions = {}) {
         
         if (event === "SIGNED_OUT") {
           setUser(null);
-          navigate(redirectTo);
+          if (!disableRedirect) {
+            navigate(redirectTo);
+          }
           return;
         }
 
@@ -103,12 +114,14 @@ export function useAuth(options: UseAuthOptions = {}) {
       window.clearTimeout(timeout);
       subscription.unsubscribe();
     };
-  }, [navigate, redirectTo, checkPasswordChange, checkPasswordChangeRequired]);
+  }, [navigate, redirectTo, checkPasswordChange, checkPasswordChangeRequired, disableRedirect]);
 
   const logout = useCallback(async () => {
     await supabase.auth.signOut();
-    navigate(redirectTo);
-  }, [navigate, redirectTo]);
+    if (!disableRedirect) {
+      navigate(redirectTo);
+    }
+  }, [navigate, redirectTo, disableRedirect]);
 
   return {
     user,
@@ -116,3 +129,4 @@ export function useAuth(options: UseAuthOptions = {}) {
     logout,
   };
 }
+
