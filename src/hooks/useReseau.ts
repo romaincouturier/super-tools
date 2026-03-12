@@ -8,13 +8,19 @@ import type {
   ConversationPhase,
   NetworkAIResponse,
   GeneratedAction,
+  CoolingContact,
+  CoolingThresholds,
   WarmthLevel,
 } from "@/types/reseau";
+import { useMemo } from "react";
 
 const POSITIONING_KEY = "network-positioning";
 const CONTACTS_KEY = "network-contacts";
 const CONVERSATION_KEY = "network-conversation";
 const ACTIONS_KEY = "network-actions";
+const INTERACTIONS_KEY = "network-interactions";
+
+const DEFAULT_THRESHOLDS: CoolingThresholds = { hot: 14, warm: 30, cold: 60 };
 
 // ─── Positioning ───
 
@@ -244,7 +250,16 @@ export const useGenerateWeeklyActions = () => {
 export const useUpdateActionStatus = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, status, result }: { id: string; status: "done" | "skipped"; result?: string }) => {
+    mutationFn: async ({ id, status, result, contactId, actionType }: {
+      id: string;
+      status: "done" | "skipped";
+      result?: string;
+      contactId?: string;
+      actionType?: string;
+    }) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Non authentifié");
+
       const { error } = await (supabase as any)
         .from("network_actions")
         .update({
@@ -254,9 +269,23 @@ export const useUpdateActionStatus = () => {
         })
         .eq("id", id);
       if (error) throw error;
+
+      // Auto-log interaction when action is marked as done
+      if (status === "done" && contactId) {
+        await (supabase as any)
+          .from("network_interactions")
+          .insert({
+            user_id: user.id,
+            contact_id: contactId,
+            interaction_type: actionType || "other",
+            notes: `Action complétée${result ? `: ${result}` : ""}`,
+          });
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [ACTIONS_KEY] });
+      queryClient.invalidateQueries({ queryKey: [CONTACTS_KEY] });
+      queryClient.invalidateQueries({ queryKey: [INTERACTIONS_KEY] });
     },
   });
 };
@@ -318,4 +347,80 @@ export const useSendNetworkMessage = () => {
       queryClient.invalidateQueries({ queryKey: [CONVERSATION_KEY, variables.phase] });
     },
   });
+};
+
+// ─── Interactions ───
+
+export const useLogInteraction = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      contact_id: string;
+      interaction_type: string;
+      notes?: string;
+    }) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Non authentifié");
+
+      const { error } = await (supabase as any)
+        .from("network_interactions")
+        .insert({ user_id: user.id, ...input });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [CONTACTS_KEY] });
+      queryClient.invalidateQueries({ queryKey: [INTERACTIONS_KEY] });
+    },
+  });
+};
+
+// ─── Cooling Detection ───
+
+export const useCoolingContacts = (
+  contacts: NetworkContact[],
+  positioning: UserPositioning | null,
+) => {
+  return useMemo(() => {
+    const thresholds: CoolingThresholds = (positioning as any)?.cooling_thresholds || DEFAULT_THRESHOLDS;
+    const now = new Date();
+    const cooling: CoolingContact[] = [];
+
+    for (const contact of contacts) {
+      const threshold = thresholds[contact.warmth];
+      if (!contact.last_contact_date) {
+        // No interaction ever — use created_at
+        const daysSince = Math.floor(
+          (now.getTime() - new Date(contact.created_at).getTime()) / (1000 * 60 * 60 * 24)
+        );
+        if (daysSince >= threshold * 0.7) {
+          cooling.push({
+            contact,
+            daysSinceLastContact: daysSince,
+            threshold,
+            isOverdue: daysSince >= threshold,
+          });
+        }
+      } else {
+        const daysSince = Math.floor(
+          (now.getTime() - new Date(contact.last_contact_date).getTime()) / (1000 * 60 * 60 * 24)
+        );
+        if (daysSince >= threshold * 0.7) {
+          cooling.push({
+            contact,
+            daysSinceLastContact: daysSince,
+            threshold,
+            isOverdue: daysSince >= threshold,
+          });
+        }
+      }
+    }
+
+    // Sort: overdue first, then by days since last contact descending
+    cooling.sort((a, b) => {
+      if (a.isOverdue !== b.isOverdue) return a.isOverdue ? -1 : 1;
+      return b.daysSinceLastContact - a.daysSinceLastContact;
+    });
+
+    return cooling;
+  }, [contacts, positioning]);
 };

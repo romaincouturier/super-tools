@@ -4,6 +4,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import PositioningCard from "./PositioningCard";
 import ContactsList from "./ContactsList";
 import WeeklyActions from "./WeeklyActions";
+import CoolingAlerts from "./CoolingAlerts";
+import { useCoolingContacts } from "@/hooks/useReseau";
 import type { NetworkContact, UserPositioning } from "@/types/reseau";
 import type { WarmthLevel } from "@/types/reseau";
 
@@ -24,6 +26,7 @@ const ReseauDashboard = ({
   onDeleteContact,
   onStartCartography,
 }: ReseauDashboardProps) => {
+  const coolingContacts = useCoolingContacts(contacts, positioning);
   const hotCount = contacts.filter((c) => c.warmth === "hot").length;
   const warmCount = contacts.filter((c) => c.warmth === "warm").length;
   const coldCount = contacts.filter((c) => c.warmth === "cold").length;
@@ -65,6 +68,8 @@ const ReseauDashboard = ({
           </CardContent>
         </Card>
       </div>
+
+      <CoolingAlerts coolingContacts={coolingContacts} />
 
       <WeeklyActions positioning={positioning} contacts={contacts} />
 

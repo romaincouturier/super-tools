@@ -68,8 +68,13 @@ const WeeklyActions = ({ positioning, contacts }: WeeklyActionsProps) => {
     toast({ title: "Copié !" });
   };
 
-  const handleStatusUpdate = (id: string, status: "done" | "skipped") => {
-    updateStatus.mutate({ id, status });
+  const handleStatusUpdate = (action: NetworkAction & { contact: NetworkContact | null }, status: "done" | "skipped") => {
+    updateStatus.mutate({
+      id: action.id,
+      status,
+      contactId: action.contact_id,
+      actionType: action.action_type,
+    });
   };
 
   if (actionsLoading) {
@@ -114,8 +119,8 @@ const WeeklyActions = ({ positioning, contacts }: WeeklyActionsProps) => {
                 isExpanded={expandedId === action.id}
                 onToggle={() => setExpandedId(expandedId === action.id ? null : action.id)}
                 onCopy={handleCopy}
-                onDone={() => handleStatusUpdate(action.id, "done")}
-                onSkip={() => handleStatusUpdate(action.id, "skipped")}
+                onDone={() => handleStatusUpdate(action, "done")}
+                onSkip={() => handleStatusUpdate(action, "skipped")}
                 isPending={updateStatus.isPending}
               />
             ))}

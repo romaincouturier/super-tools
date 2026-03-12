@@ -74,3 +74,25 @@ export interface GeneratedAction {
 export interface NetworkActionWithContact extends NetworkAction {
   contact?: NetworkContact;
 }
+
+export interface NetworkInteraction {
+  id: string;
+  user_id: string;
+  contact_id: string;
+  interaction_type: string;
+  notes: string | null;
+  created_at: string;
+}
+
+export interface CoolingThresholds {
+  hot: number;
+  warm: number;
+  cold: number;
+}
+
+export interface CoolingContact {
+  contact: NetworkContact;
+  daysSinceLastContact: number;
+  threshold: number;
+  isOverdue: boolean;
+}

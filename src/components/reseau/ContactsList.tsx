@@ -112,11 +112,18 @@ const ContactsList = ({ contacts, onCreate, onDelete }: ContactsListProps) => {
                         {w.label}
                       </span>
                     </div>
-                    {contact.context && (
-                      <p className="text-xs text-muted-foreground truncate mt-0.5">
-                        {contact.context}
-                      </p>
-                    )}
+                    <div className="flex items-center gap-2 mt-0.5">
+                      {contact.context && (
+                        <span className="text-xs text-muted-foreground truncate">
+                          {contact.context}
+                        </span>
+                      )}
+                      {contact.last_contact_date && (
+                        <span className="text-xs text-muted-foreground">
+                          · Dernier contact : {new Date(contact.last_contact_date).toLocaleDateString("fr-FR")}
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <Button
                     variant="ghost"
