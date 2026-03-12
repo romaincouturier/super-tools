@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback, useRef } from "react";
 import { Loader2, LifeBuoy, Bug, Lightbulb, Plus, Search, X, AlertCircle, ClipboardCopy, ImagePlus, Sparkles } from "lucide-react";
+import PageHeader from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -213,146 +214,138 @@ const Support = () => {
 
   return (
     <ModuleLayout>
-      <main className="max-w-[1600px] mx-auto p-4 sm:p-6 h-[calc(100vh-80px)] flex flex-col">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 sm:mb-6">
-          <div className="flex items-center gap-3 sm:gap-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10 hidden sm:block">
-                <LifeBuoy className="h-6 w-6 text-primary" />
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 pt-6 h-[calc(100vh-80px)] flex flex-col">
+        <PageHeader
+          icon={LifeBuoy}
+          title="Support"
+          backTo="/dashboard"
+          actions={
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Stats */}
+              <div className="hidden md:flex items-center gap-4 text-sm text-muted-foreground mr-2">
+                <span className="flex items-center gap-1"><AlertCircle className="h-3.5 w-3.5" />{stats.open} ouvert{stats.open > 1 ? "s" : ""}</span>
+                <span className="flex items-center gap-1"><Bug className="h-3.5 w-3.5 text-red-500" />{stats.bugs}</span>
+                <span className="flex items-center gap-1"><Lightbulb className="h-3.5 w-3.5 text-violet-500" />{stats.evolutions}</span>
               </div>
-              <div>
-                <h1 className="text-xl sm:text-2xl font-bold">Support</h1>
-                <p className="text-muted-foreground text-xs sm:text-sm hidden sm:block">Bugs et demandes d'évolution</p>
+
+              {/* Search */}
+              <div className="relative w-56">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Rechercher..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-9 text-sm"
+                />
+                {search && (
+                  <button onClick={() => setSearch("")} className="absolute right-2.5 top-2.5">
+                    <X className="h-4 w-4 text-muted-foreground" />
+                  </button>
+                )}
               </div>
-            </div>
-          </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            {/* Stats */}
-            <div className="hidden md:flex items-center gap-4 text-sm text-muted-foreground mr-2">
-              <span className="flex items-center gap-1"><AlertCircle className="h-3.5 w-3.5" />{stats.open} ouvert{stats.open > 1 ? "s" : ""}</span>
-              <span className="flex items-center gap-1"><Bug className="h-3.5 w-3.5 text-red-500" />{stats.bugs}</span>
-              <span className="flex items-center gap-1"><Lightbulb className="h-3.5 w-3.5 text-violet-500" />{stats.evolutions}</span>
-            </div>
+              {/* Filter */}
+              <Select value={filterType} onValueChange={(v) => setFilterType(v as typeof filterType)}>
+                <SelectTrigger className="w-32 text-sm">
+                  <SelectValue placeholder="Tous" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tous</SelectItem>
+                  <SelectItem value="bug">Bugs</SelectItem>
+                  <SelectItem value="evolution">Évolutions</SelectItem>
+                </SelectContent>
+              </Select>
 
-            {/* Search */}
-            <div className="relative w-56">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Rechercher..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-9 text-sm"
-              />
-              {search && (
-                <button onClick={() => setSearch("")} className="absolute right-2.5 top-2.5">
-                  <X className="h-4 w-4 text-muted-foreground" />
-                </button>
-              )}
-            </div>
+              {/* Export new tickets */}
+              <Button size="sm" variant="outline" onClick={exportNewTickets} title="Copier les tickets nouveaux en texte">
+                <ClipboardCopy className="h-4 w-4 mr-1" />
+                Export nouveaux
+              </Button>
 
-            {/* Filter */}
-            <Select value={filterType} onValueChange={(v) => setFilterType(v as typeof filterType)}>
-              <SelectTrigger className="w-32 text-sm">
-                <SelectValue placeholder="Tous" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tous</SelectItem>
-                <SelectItem value="bug">Bugs</SelectItem>
-                <SelectItem value="evolution">Évolutions</SelectItem>
-              </SelectContent>
-            </Select>
-
-            {/* Export new tickets */}
-            <Button size="sm" variant="outline" onClick={exportNewTickets} title="Copier les tickets nouveaux en texte">
-              <ClipboardCopy className="h-4 w-4 mr-1" />
-              Export nouveaux
-            </Button>
-
-            {/* Create */}
-            <Dialog open={createOpen} onOpenChange={(open) => {
-              setCreateOpen(open);
-              if (!open) { setNewDescription(""); setNewFiles([]); }
-            }}>
-              <DialogTrigger asChild>
-                <Button size="sm"><Plus className="h-4 w-4 mr-1" />Nouvelle demande</Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Soumettre une demande</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>Décrivez votre problème ou votre idée *</Label>
-                    <Textarea
-                      value={newDescription}
-                      onChange={(e) => setNewDescription(e.target.value)}
-                      rows={6}
-                      placeholder="Décrivez ce qui ne fonctionne pas, ou l'amélioration que vous souhaitez..."
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Capture d'écran (optionnel)</Label>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => fileInputRef.current?.click()}
-                      >
-                        <ImagePlus className="h-4 w-4 mr-1" />
-                        Ajouter une image
-                      </Button>
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept="image/*"
-                        multiple
-                        className="hidden"
-                        onChange={handleFileChange}
+              {/* Create */}
+              <Dialog open={createOpen} onOpenChange={(open) => {
+                setCreateOpen(open);
+                if (!open) { setNewDescription(""); setNewFiles([]); }
+              }}>
+                <DialogTrigger asChild>
+                  <Button size="sm"><Plus className="h-4 w-4 mr-1" />Nouvelle demande</Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Soumettre une demande</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>Décrivez votre problème ou votre idée *</Label>
+                      <Textarea
+                        value={newDescription}
+                        onChange={(e) => setNewDescription(e.target.value)}
+                        rows={6}
+                        placeholder="Décrivez ce qui ne fonctionne pas, ou l'amélioration que vous souhaitez..."
                       />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Capture d'écran (optionnel)</Label>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => fileInputRef.current?.click()}
+                        >
+                          <ImagePlus className="h-4 w-4 mr-1" />
+                          Ajouter une image
+                        </Button>
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          className="hidden"
+                          onChange={handleFileChange}
+                        />
+                        {newFiles.length > 0 && (
+                          <span className="text-xs text-muted-foreground">
+                            {newFiles.length} fichier{newFiles.length > 1 ? "s" : ""}
+                          </span>
+                        )}
+                      </div>
                       {newFiles.length > 0 && (
-                        <span className="text-xs text-muted-foreground">
-                          {newFiles.length} fichier{newFiles.length > 1 ? "s" : ""}
-                        </span>
+                        <div className="flex flex-wrap gap-2">
+                          {newFiles.map((f, i) => (
+                            <Badge key={i} variant="secondary" className="text-xs gap-1">
+                              {f.name.length > 20 ? f.name.slice(0, 20) + "..." : f.name}
+                              <button onClick={() => setNewFiles((prev) => prev.filter((_, j) => j !== i))}>
+                                <X className="h-3 w-3" />
+                              </button>
+                            </Badge>
+                          ))}
+                        </div>
                       )}
                     </div>
-                    {newFiles.length > 0 && (
-                      <div className="flex flex-wrap gap-2">
-                        {newFiles.map((f, i) => (
-                          <Badge key={i} variant="secondary" className="text-xs gap-1">
-                            {f.name.length > 20 ? f.name.slice(0, 20) + "..." : f.name}
-                            <button onClick={() => setNewFiles((prev) => prev.filter((_, j) => j !== i))}>
-                              <X className="h-3 w-3" />
-                            </button>
-                          </Badge>
-                        ))}
-                      </div>
-                    )}
+                    <div className="rounded-lg bg-muted/50 border border-dashed p-3 text-xs text-muted-foreground flex items-start gap-2">
+                      <Sparkles className="h-4 w-4 shrink-0 mt-0.5 text-primary" />
+                      <span>L'IA va analyser votre demande pour la classifier automatiquement (bug ou évolution), définir sa priorité et structurer le ticket.</span>
+                    </div>
+                    <Button onClick={handleCreate} disabled={isSubmitting || !newDescription.trim()} className="w-full">
+                      {isSubmitting ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                          {analyzeTicket.isPending ? "Analyse IA en cours..." : "Création du ticket..."}
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="h-4 w-4 mr-2" />
+                          Soumettre la demande
+                        </>
+                      )}
+                    </Button>
                   </div>
-                  <div className="rounded-lg bg-muted/50 border border-dashed p-3 text-xs text-muted-foreground flex items-start gap-2">
-                    <Sparkles className="h-4 w-4 shrink-0 mt-0.5 text-primary" />
-                    <span>L'IA va analyser votre demande pour la classifier automatiquement (bug ou évolution), définir sa priorité et structurer le ticket.</span>
-                  </div>
-                  <Button onClick={handleCreate} disabled={isSubmitting || !newDescription.trim()} className="w-full">
-                    {isSubmitting ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                        {analyzeTicket.isPending ? "Analyse IA en cours..." : "Création du ticket..."}
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="h-4 w-4 mr-2" />
-                        Soumettre la demande
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </DialogContent>
-            </Dialog>
-          </div>
-        </div>
+                </DialogContent>
+              </Dialog>
+            </div>
+          }
+        />
 
         {/* Kanban Board */}
         <div className="flex-1 overflow-hidden">
@@ -367,7 +360,7 @@ const Support = () => {
             columnClassName="min-w-[260px] max-w-[300px]"
           />
         </div>
-      </main>
+      </div>
 
       {/* Detail Sheet */}
       <Sheet open={!!detailTicket} onOpenChange={(open) => !open && setDetailTicket(null)}>
