@@ -35,7 +35,7 @@ const CardDetailCommercial = ({ state, handlers }: Props) => {
   const draftQuotes = (existingQuotes || []).filter(q => q.status !== 'signed');
   const deleteQuote = useDeleteQuote();
 
-  const stepLabels = ["Client", "Déplacements", "Devis", "Loom", "Synthèse", "Email"];
+  const stepLabels = ["Synthèse", "Loom", "Déplacements", "Client", "Devis", "Email"];
 
   return (
     <div className="space-y-4 mt-6 border-t pt-4">

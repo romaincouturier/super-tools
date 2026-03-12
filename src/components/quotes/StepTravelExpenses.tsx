@@ -815,7 +815,7 @@ export default function StepTravelExpenses({
           size="lg"
           className="gap-2"
         >
-          Continuer
+          Continuer vers le client
           <ArrowRight className="w-4 h-4" />
         </Button>
       </div>
