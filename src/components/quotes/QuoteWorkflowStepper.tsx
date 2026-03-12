@@ -3,11 +3,11 @@ import { Check } from "lucide-react";
 import type { QuoteWorkflowStep } from "@/types/quotes";
 
 const STEPS: { label: string; description: string }[] = [
-  { label: "Client", description: "Validation SIREN" },
+  { label: "Synthèse", description: "Analyse IA + Challenge" },
+  { label: "Loom", description: "Vidéo (optionnel)" },
   { label: "Déplacements", description: "Frais de route" },
   { label: "Devis", description: "Génération PDF" },
-  { label: "Loom", description: "Vidéo (optionnel)" },
-  { label: "Synthèse", description: "Résumé + instructions" },
+  { label: "Client", description: "Validation SIREN" },
   { label: "Email", description: "Envoi final" },
 ];
 
