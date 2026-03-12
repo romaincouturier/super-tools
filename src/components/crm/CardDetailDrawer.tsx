@@ -548,9 +548,12 @@ const CardDetailDrawer = ({
       const hasTag = card.tags?.some((t) => t.id === tagId);
       if (hasTag) { await unassignTag.mutateAsync({ cardId: card.id, tagId, actorEmail: user.email }); }
       else { await assignTag.mutateAsync({ cardId: card.id, tagId, actorEmail: user.email }); }
-    } catch (e) {
+    } catch (e: any) {
       console.error("handleToggleTag error:", e);
-      toast({ title: "Erreur", description: "Impossible de modifier le tag.", variant: "destructive" });
+      const hasTag = card.tags?.some((t) => t.id === tagId);
+      const action = hasTag ? "retirer" : "affecter";
+      const detail = e?.message || e?.error_description || "";
+      toast({ title: "Erreur", description: `Impossible d'${action} le tag.${detail ? ` ${detail}` : ""}`, variant: "destructive" });
     }
   };
 
