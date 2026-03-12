@@ -28,16 +28,17 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
   const { data: existingQuote, isLoading: loadingQuote } = useQuote(existingQuoteId);
 
   // Determine initial step from existing quote
-  // Step order: 0 Client → 1 Déplacements → 2 Devis → 3 Loom → 4 Synthèse → 5 Email
+  // Step order: 0 Synthèse → 1 Loom → 2 Déplacements → 3 Devis → 4 Client → 5 Email
   const getInitialStep = (q: Quote | null | undefined): QuoteWorkflowStep => {
     if (!q) return 0;
     const saved = (q as any).workflow_step;
     if (typeof saved === "number" && saved >= 0 && saved <= 5) return saved as QuoteWorkflowStep;
     // Fallback: infer from data
     if (q.email_sent_at) return 5;
-    if (q.synthesis) return 4;
-    if (q.loom_url) return 3;
-    if (q.line_items?.length > 0) return 2;
+    if (q.client_siren) return 4;
+    if (q.line_items?.length > 0) return 3;
+    if ((q as any).travel_data?.total) return 2;
+    if (q.loom_url) return 1;
     return 0;
   };
 
