@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import type { SupportTicket, TicketStatus } from "@/types/support";
+import type { SupportTicket, TicketStatus, TicketAiAnalysis } from "@/types/support";
 
 export async function fetchSupportTickets(): Promise<SupportTicket[]> {
   const { data, error } = await (supabase as any)
@@ -10,11 +10,22 @@ export async function fetchSupportTickets(): Promise<SupportTicket[]> {
   return data || [];
 }
 
+export async function analyzeTicket(description: string): Promise<TicketAiAnalysis> {
+  const { data, error } = await supabase.functions.invoke("support-analyze-ticket", {
+    body: { description },
+  });
+  if (error) throw error;
+  return data.analysis as TicketAiAnalysis;
+}
+
 export async function createSupportTicket(
-  input: Pick<SupportTicket, "type" | "title" | "description" | "priority" | "page_url"> & { files?: File[] }
+  input: Pick<SupportTicket, "type" | "title" | "description" | "priority" | "page_url"> & {
+    files?: File[];
+    ai_analysis?: TicketAiAnalysis | null;
+  }
 ): Promise<SupportTicket> {
   const { data: { user } } = await supabase.auth.getUser();
-  const { files, ...ticketInput } = input;
+  const { files, ai_analysis, ...ticketInput } = input;
   const { data, error } = await (supabase as any)
     .from("support_tickets")
     .insert({
@@ -22,6 +33,7 @@ export async function createSupportTicket(
       ticket_number: "",
       submitted_by: user?.id || null,
       submitted_by_email: user?.email || null,
+      ai_analysis: ai_analysis || null,
     })
     .select()
     .single();

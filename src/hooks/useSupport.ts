@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchSupportTickets, createSupportTicket, updateSupportTicket, moveSupportTicket } from "@/services/support";
+import { fetchSupportTickets, createSupportTicket, updateSupportTicket, moveSupportTicket, analyzeTicket } from "@/services/support";
 import type { SupportTicket, TicketStatus } from "@/types/support";
 
 const QUERY_KEY = ["support-tickets"];
@@ -34,5 +34,11 @@ export function useMoveSupportTicket() {
     mutationFn: ({ id, status, position }: { id: string; status: TicketStatus; position: number }) =>
       moveSupportTicket(id, status, position),
     onSuccess: () => qc.invalidateQueries({ queryKey: QUERY_KEY }),
+  });
+}
+
+export function useAnalyzeTicket() {
+  return useMutation({
+    mutationFn: (description: string) => analyzeTicket(description),
   });
 }

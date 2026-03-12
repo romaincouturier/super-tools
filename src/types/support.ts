@@ -4,6 +4,27 @@ export type TicketType = "bug" | "evolution";
 export type TicketPriority = "low" | "medium" | "high" | "critical";
 export type TicketStatus = "nouveau" | "en_cours" | "en_attente" | "resolu" | "ferme";
 
+export interface BugAnalysis {
+  type: "bug";
+  title: string;
+  priority: TicketPriority;
+  constat: string;
+  reproduction: string;
+  situation_desiree: string;
+  procedure_test: string;
+}
+
+export interface EvolutionAnalysis {
+  type: "evolution";
+  title: string;
+  priority: TicketPriority;
+  user_stories: string;
+  criteres_acceptation: string;
+  impact_produit: string;
+}
+
+export type TicketAiAnalysis = BugAnalysis | EvolutionAnalysis;
+
 export interface SupportTicket {
   id: string;
   ticket_number: string;
@@ -19,6 +40,7 @@ export interface SupportTicket {
   submitted_by_email: string | null;
   assigned_to: string | null;
   resolution_notes: string | null;
+  ai_analysis: TicketAiAnalysis | null;
   created_at: string;
   updated_at: string;
   resolved_at: string | null;
