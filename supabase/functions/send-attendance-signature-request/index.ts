@@ -136,12 +136,23 @@ serve(async (req) => {
       year: "numeric",
     });
 
-    // Determine time range
+    // Determine time range based on actual schedule times
     let timeRange: string;
     if (schedule) {
       const startTime = schedule.start_time.slice(0, 5).replace(":", "h");
       const endTime = schedule.end_time.slice(0, 5).replace(":", "h");
-      timeRange = period === "AM" ? `${startTime} - 12h30` : `14h00 - ${endTime}`;
+      const startHour = parseInt(schedule.start_time.slice(0, 2));
+      const endHour = parseInt(schedule.end_time.slice(0, 2));
+      const endMin = parseInt(schedule.end_time.slice(3, 5));
+      const sessionDurationHours = ((endHour * 60 + endMin) - (startHour * 60 + parseInt(schedule.start_time.slice(3, 5)))) / 60;
+
+      if (sessionDurationHours <= 4) {
+        // Short session (half-day or less): use actual times for both periods
+        timeRange = `${startTime} - ${endTime}`;
+      } else {
+        // Full day: split AM/PM with actual boundaries
+        timeRange = period === "AM" ? `${startTime} - 12h30` : `14h00 - ${endTime}`;
+      }
     } else {
       timeRange = period === "AM" ? "9h00 - 12h30" : "14h00 - 17h30";
     }
