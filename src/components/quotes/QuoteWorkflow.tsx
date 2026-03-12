@@ -28,7 +28,7 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
   const { data: existingQuote, isLoading: loadingQuote } = useQuote(existingQuoteId);
 
   // Determine initial step from existing quote
-  // Step order: 0 Synthèse → 1 Loom → 2 Déplacements → 3 Devis → 4 Client → 5 Email
+  // Step order: 0 Synthèse → 1 Loom → 2 Déplacements → 3 Client → 4 Devis → 5 Email
   const getInitialStep = (q: Quote | null | undefined): QuoteWorkflowStep => {
     if (!q) return 0;
     const saved = (q as any).workflow_step;
@@ -169,7 +169,7 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
     setStep(2);
   };
 
-  // Step 2 → Travel complete, go to step 3 (Devis)
+  // Step 2 → Travel complete, go to step 3 (Client)
   const handleTravelContinue = async (total: number, destinations: TravelDestination[], settings: TravelSettings | null) => {
     setTravelTotal(total);
     setTravelDestinations(destinations);
@@ -180,18 +180,10 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
     setStep(3);
   };
 
-  // Step 3 → Quote complete, go to step 4 (Client)
-  const handleQuoteContinue = async (updatedQuote: Quote) => {
-    setQuote(updatedQuote);
-    completeStep(3);
-    saveWorkflowStep(updatedQuote.id, 4);
-    setStep(4);
-  };
-
-  // Step 4 → Client validated, create/update quote and go to step 5 (Email)
+  // Step 3 → Client validated, create/update quote and go to step 4 (Devis)
   const handleClientValidated = async (client: ClientData) => {
     setClientData(client);
-    completeStep(4);
+    completeStep(3);
 
     let currentQuote = quote;
     if (!currentQuote) {
@@ -226,7 +218,15 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
       });
     }
 
-    saveWorkflowStep(currentQuote!.id, 5);
+    saveWorkflowStep(currentQuote!.id, 4);
+    setStep(4);
+  };
+
+  // Step 4 → Quote complete, go to step 5 (Email)
+  const handleQuoteContinue = async (updatedQuote: Quote) => {
+    setQuote(updatedQuote);
+    completeStep(4);
+    saveWorkflowStep(updatedQuote.id, 5);
     setStep(5);
   };
 
@@ -308,8 +308,20 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
         </>
       )}
 
-      {/* Step 3: Devis */}
-      {step === 3 && quote && (
+      {/* Step 3: Client */}
+      {step === 3 && (
+        <>
+          <BackButton onClick={handleBack} />
+          <Step0ClientValidation
+            crmCard={crmCard}
+            onValidate={handleClientValidated}
+            initialClient={clientData}
+          />
+        </>
+      )}
+
+      {/* Step 4: Devis */}
+      {step === 4 && quote && (
         <>
           <BackButton onClick={handleBack} />
           <Step3QuoteGeneration
@@ -319,18 +331,6 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
             travelTotal={travelTotal}
             crmCard={crmCard}
             onContinue={handleQuoteContinue}
-          />
-        </>
-      )}
-
-      {/* Step 4: Client */}
-      {step === 4 && (
-        <>
-          <BackButton onClick={handleBack} />
-          <Step0ClientValidation
-            crmCard={crmCard}
-            onValidate={handleClientValidated}
-            initialClient={clientData}
           />
         </>
       )}

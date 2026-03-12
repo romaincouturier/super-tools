@@ -208,7 +208,7 @@ export default function Step4Loom({
           disabled={!!loomUrl.trim() && !isValidLoomUrl}
           size="lg"
         >
-          Continuer vers la synthèse
+          Continuer vers les déplacements
         </Button>
       </div>
     </div>

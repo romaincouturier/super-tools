@@ -444,7 +444,7 @@ export default function Step1Synthesis({
           disabled={!synthesis.trim() || isGenerating}
           size="lg"
         >
-          Continuer vers les frais de déplacement
+          Continuer vers la vidéo Loom
         </Button>
       </div>
     </div>

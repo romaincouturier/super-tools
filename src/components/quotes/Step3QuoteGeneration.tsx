@@ -786,7 +786,7 @@ export default function Step3QuoteGeneration({
           disabled={updateMutation.isPending || lines.length === 0}
           size="lg"
         >
-          Continuer
+          Continuer vers l'email
         </Button>
       </div>
     </div>

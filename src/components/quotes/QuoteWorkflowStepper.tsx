@@ -6,8 +6,8 @@ const STEPS: { label: string; description: string }[] = [
   { label: "Synthèse", description: "Analyse IA + Challenge" },
   { label: "Loom", description: "Vidéo (optionnel)" },
   { label: "Déplacements", description: "Frais de route" },
-  { label: "Devis", description: "Génération PDF" },
   { label: "Client", description: "Validation SIREN" },
+  { label: "Devis", description: "Génération PDF" },
   { label: "Email", description: "Envoi final" },
 ];
 
