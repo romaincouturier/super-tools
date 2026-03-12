@@ -9,15 +9,20 @@ import { sendEmail } from "../_shared/resend.ts";
  * Called daily at 7:00 AM by a cron job.
  * Sends a SINGLE digest email per user with all alerts, in this order:
  *   1. Factures à émettre (formations terminées sans facture)
- *   2. Missions à facturer
- *   3. Devis à faire (colonne contacté)
- *   4. Devis à relancer (devis envoyé)
- *   5. Opportunités à contacter (première colonne)
- *   6. Articles à relire
- *   7. CFP à soumettre (< 30 jours)
- *   8. Formations à traiter (conventions manquantes + signature en attente)
- *   9. Événements approchant (< 15 jours)
- *  10. Rappels CFP année suivante (10 mois après deadline)
+ *   2. Factures missions (missions à facturer)
+ *   3. Activités non facturées
+ *   4. Groupes privés e-learning
+ *   5. Initiatives OKR
+ *   6. Réservations à faire
+ *   7. Missions sans date de début
+ *   8. Devis à faire (colonne contacté)
+ *   9. Devis à relancer (devis envoyé)
+ *  10. Opportunités à contacter (première colonne)
+ *  11. Articles à relire
+ *  12. CFP à soumettre (< 30 jours)
+ *  13. Formations à traiter (conventions manquantes + signature en attente)
+ *  14. Événements approchant (< 15 jours)
+ *  15. Rappels CFP année suivante (10 mois après deadline)
  *
  * Admins see everything; non-admins see only their assigned trainings.
  */
@@ -260,7 +265,7 @@ serve(async (req) => {
           if (isInter && !t.restaurant_booked) items.push("🍽️ Restaurant");
           if (!t.room_rental_booked) items.push("🚪 Salle");
         }
-        if (!t.equipment_ready) items.push("📦 Matériel");
+        if (isPresentiel && !t.equipment_ready) items.push("📦 Matériel");
 
         if (items.length === 0) continue;
 
@@ -753,15 +758,54 @@ serve(async (req) => {
     const invoiceAlerts: TrainingAlert[] = [];
     const { data: pastTrainings } = await supabase
       .from("trainings")
-      .select("id, training_name, start_date, end_date, invoice_file_url, assigned_to, is_cancelled")
+      .select("id, training_name, start_date, end_date, invoice_file_url, assigned_to, format_formation, is_cancelled")
       .lt("start_date", today)
       .is("invoice_file_url", null)
       .or("is_cancelled.is.null,is_cancelled.eq.false");
 
     if (pastTrainings) {
+      // Fetch participants for these trainings to check payment modes
+      const pastTrainingIds = pastTrainings
+        .filter((t: any) => {
+          const endDate = t.end_date || t.start_date;
+          return new Date(endDate) < new Date(today);
+        })
+        .map((t: any) => t.id);
+
+      const participantsByTrainingInvoice = new Map<string, any[]>();
+      if (pastTrainingIds.length > 0) {
+        const { data: pts } = await supabase
+          .from("training_participants")
+          .select("training_id, payment_mode, invoice_file_url")
+          .in("training_id", pastTrainingIds);
+        if (pts) {
+          for (const p of pts) {
+            const list = participantsByTrainingInvoice.get(p.training_id) || [];
+            list.push(p);
+            participantsByTrainingInvoice.set(p.training_id, list);
+          }
+        }
+      }
+
       for (const t of pastTrainings) {
         const endDate = t.end_date || t.start_date;
         if (new Date(endDate) >= new Date(today)) continue;
+
+        // Skip if all participants paid online — no invoice needed
+        const participants = participantsByTrainingInvoice.get(t.id) || [];
+        if (participants.length > 0) {
+          const allPaidOnline = participants.every((p: any) => p.payment_mode === "online");
+          if (allPaidOnline) continue;
+
+          // For inter/e-learning: skip if all invoice-mode participants already have their invoice
+          const isInterOrElearning = ["inter-entreprises", "e_learning"].includes(t.format_formation);
+          if (isInterOrElearning) {
+            const invoiceParticipants = participants.filter((p: any) => p.payment_mode !== "online");
+            const allInvoiced = invoiceParticipants.length > 0 && invoiceParticipants.every((p: any) => p.invoice_file_url);
+            if (allInvoiced) continue;
+          }
+        }
+
         const daysAgo = Math.ceil((Date.now() - new Date(endDate).getTime()) / (1000 * 60 * 60 * 24));
         const formattedDate = new Date(endDate).toLocaleDateString("fr-FR", { day: "numeric", month: "long" });
         invoiceAlerts.push({
@@ -783,27 +827,7 @@ serve(async (req) => {
       const sections: string[] = [];
       let alertCount = 0;
 
-      // 0. E-learning groupes privés (en tête)
-      const userElearningAlerts = elearningGroupAlerts.filter((a) => userCanSee(recipient, a.assignedTo));
-      if (userElearningAlerts.length > 0) {
-        sections.push(sectionHtml("💬", "Groupes privés e-learning", COLORS.purple, userElearningAlerts.map((a) => a.html), userElearningAlerts.length));
-        alertCount += userElearningAlerts.length;
-      }
-
-      // 0b. OKR Initiatives actives
-      if (okrInitiativeAlerts.length > 0) {
-        sections.push(sectionHtml("🎯", "Initiatives OKR", COLORS.green, okrInitiativeAlerts.map((a) => a.html), okrInitiativeAlerts.length));
-        alertCount += okrInitiativeAlerts.length;
-      }
-
-      // 0c. Réservations hôtel/train
-      const userReservations = reservationAlerts.filter((a) => userCanSee(recipient, a.assignedTo));
-      if (userReservations.length > 0) {
-        sections.push(sectionHtml("🚄", "Réservations à faire", COLORS.blue, userReservations.map((a) => a.html), userReservations.length));
-        alertCount += userReservations.length;
-      }
-
-      // 1. Factures à émettre (formations terminées sans facture)
+      // 1. Factures à émettre (formations terminées sans facture) — EN TÊTE
       const userInvoiceAlerts = invoiceAlerts.filter(
         (a) => userCanSee(recipient, a.assignedTo)
       );
@@ -824,6 +848,26 @@ serve(async (req) => {
       if (userUnbilledAlerts.length > 0) {
         sections.push(sectionHtml("📋", "Activités non facturées", COLORS.amber, userUnbilledAlerts.map((a) => a.html), userUnbilledAlerts.length));
         alertCount += userUnbilledAlerts.length;
+      }
+
+      // 3. E-learning groupes privés
+      const userElearningAlerts = elearningGroupAlerts.filter((a) => userCanSee(recipient, a.assignedTo));
+      if (userElearningAlerts.length > 0) {
+        sections.push(sectionHtml("💬", "Groupes privés e-learning", COLORS.purple, userElearningAlerts.map((a) => a.html), userElearningAlerts.length));
+        alertCount += userElearningAlerts.length;
+      }
+
+      // 4. OKR Initiatives actives
+      if (okrInitiativeAlerts.length > 0) {
+        sections.push(sectionHtml("🎯", "Initiatives OKR", COLORS.green, okrInitiativeAlerts.map((a) => a.html), okrInitiativeAlerts.length));
+        alertCount += okrInitiativeAlerts.length;
+      }
+
+      // 5. Réservations hôtel/train
+      const userReservations = reservationAlerts.filter((a) => userCanSee(recipient, a.assignedTo));
+      if (userReservations.length > 0) {
+        sections.push(sectionHtml("🚄", "Réservations à faire", COLORS.blue, userReservations.map((a) => a.html), userReservations.length));
+        alertCount += userReservations.length;
       }
 
       // 2c. Missions sans date de début (filtered by assigned_to)
