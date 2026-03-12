@@ -26,6 +26,7 @@ import {
   LayoutGrid,
   BookOpen,
   Star,
+  LayoutDashboard,
 } from "lucide-react";
 import {
   DndContext,
@@ -45,6 +46,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import ModuleLayout from "@/components/ModuleLayout";
+import PageHeader from "@/components/PageHeader";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import {
   Tooltip,
@@ -643,7 +645,7 @@ const Dashboard = () => {
   return (
     <ModuleLayout>
       <div className="max-w-[1400px] mx-auto p-6">
-        <h1 className="text-2xl font-bold mb-6">Tableau de bord</h1>
+        <PageHeader icon={LayoutDashboard} title="Tableau de bord" />
         <div className="flex gap-6">
           {/* Module grid — left */}
           <section className="flex-1 min-w-0">

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 import { Loader2, Settings, Mail, RotateCcw, Sparkles, Cog, ExternalLink, Shield, Users, Key, Tag, Upload, FileText, Trash2, Check, Copy, Database, CreditCard } from "lucide-react";
+import PageHeader from "@/components/PageHeader";
 import { Separator } from "@/components/ui/separator";
 import ModuleLayout from "@/components/ModuleLayout";
 import { Button } from "@/components/ui/button";
@@ -1804,14 +1805,7 @@ const Parametres = () => {
     return (
       <ModuleLayout>
         <main className="max-w-6xl mx-auto p-6">
-          <div className="flex items-center gap-4 mb-6">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <Settings className="h-6 w-6 text-primary" />
-              </div>
-              <h1 className="text-2xl font-bold">Paramètres</h1>
-            </div>
-          </div>
+          <PageHeader icon={Settings} title="Paramètres" />
           <Card>
             <CardContent className="py-10 text-center">
               <Shield className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
@@ -1835,14 +1829,7 @@ const Parametres = () => {
       {/* Main content */}
       <main className="max-w-6xl mx-auto p-6">
         {/* Back button and title */}
-        <div className="flex items-center gap-4 mb-6">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-primary/10">
-              <Settings className="h-6 w-6 text-primary" />
-            </div>
-            <h1 className="text-2xl font-bold">Paramètres</h1>
-          </div>
-        </div>
+        <PageHeader icon={Settings} title="Paramètres" />
 
         <Tabs defaultValue="general" className="space-y-6">
           <TabsList className="flex flex-wrap h-auto gap-1">

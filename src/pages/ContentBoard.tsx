@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 import { Loader2, Newspaper, Eye, EyeOff } from "lucide-react";
+import PageHeader from "@/components/PageHeader";
 import ModuleLayout from "@/components/ModuleLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -72,41 +73,35 @@ const ContentBoard = () => {
   return (
     <ModuleLayout>
       <main className="flex-1 max-w-full mx-auto p-6 overflow-hidden">
-        <div className="flex items-center justify-between gap-4 mb-6">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-3">
-              <Newspaper className="h-8 w-8 text-primary" />
-              <div>
-                <h1 className="text-2xl font-bold">Gestion du contenu</h1>
-                <p className="text-muted-foreground">
-                  Tableau Kanban pour le marketing de contenu
-                </p>
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <Button
-              variant={showPublished ? "default" : "outline"}
-              size="sm"
-              onClick={() => setShowPublished(!showPublished)}
-              className="gap-2"
-            >
-              {showPublished ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-              {showPublished ? "Tout affiché" : "Publiés masqués"}
-            </Button>
-            <Button
-              variant={filterReview ? "default" : "outline"}
-              size="sm"
-              onClick={() => setFilterReview(!filterReview)}
-              className="gap-2"
-            >
-              <Eye className="h-4 w-4" />
-              En relecture
-              {filterReview && <Badge variant="secondary" className="ml-1 bg-background/20">Actif</Badge>}
-            </Button>
-            <NotificationBell />
-          </div>
-        </div>
+        <PageHeader
+          icon={Newspaper}
+          title="Gestion du contenu"
+          subtitle="Tableau Kanban pour le marketing de contenu"
+          actions={
+            <>
+              <Button
+                variant={showPublished ? "default" : "outline"}
+                size="sm"
+                onClick={() => setShowPublished(!showPublished)}
+                className="gap-2"
+              >
+                {showPublished ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                {showPublished ? "Tout affiché" : "Publiés masqués"}
+              </Button>
+              <Button
+                variant={filterReview ? "default" : "outline"}
+                size="sm"
+                onClick={() => setFilterReview(!filterReview)}
+                className="gap-2"
+              >
+                <Eye className="h-4 w-4" />
+                En relecture
+                {filterReview && <Badge variant="secondary" className="ml-1 bg-background/20">Actif</Badge>}
+              </Button>
+              <NotificationBell />
+            </>
+          }
+        />
 
         <ContentDashboard />
 

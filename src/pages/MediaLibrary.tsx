@@ -9,7 +9,8 @@ import MediaFilters from "@/components/media/MediaFilters";
 import MediaGrid from "@/components/media/MediaGrid";
 import MediaLightbox from "@/components/media/MediaLightbox";
 import MediaUploadDialog from "@/components/media/MediaUploadDialog";
-import { Loader2, ImageIcon, Video } from "lucide-react";
+import { Loader2, ImageIcon } from "lucide-react";
+import PageHeader from "@/components/PageHeader";
 
 // Fetch trainings for the upload dialog
 const useTrainingsList = () => {
@@ -159,25 +160,19 @@ const MediaLibrary = () => {
     <ModuleLayout>
       <main className="max-w-7xl mx-auto p-6 space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold">Médiathèque</h1>
-            <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
-              <span className="flex items-center gap-1">
-                <ImageIcon className="h-3.5 w-3.5" /> {imageCount} image{imageCount !== 1 ? "s" : ""}
-              </span>
-              <span className="flex items-center gap-1">
-                <Video className="h-3.5 w-3.5" /> {videoCount} vidéo{videoCount !== 1 ? "s" : ""}
-              </span>
-            </div>
-          </div>
-          <MediaUploadDialog
-            missions={missionOptions}
-            trainings={trainingOptions}
-            events={eventOptions}
-            crmCards={crmOptions}
-          />
-        </div>
+        <PageHeader
+          icon={ImageIcon}
+          title="Médiathèque"
+          subtitle={`${imageCount} image${imageCount !== 1 ? "s" : ""} · ${videoCount} vidéo${videoCount !== 1 ? "s" : ""}`}
+          actions={
+            <MediaUploadDialog
+              missions={missionOptions}
+              trainings={trainingOptions}
+              events={eventOptions}
+              crmCards={crmOptions}
+            />
+          }
+        />
 
         {/* Filters */}
         <MediaFilters

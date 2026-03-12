@@ -83,6 +83,7 @@ import { useOKRInsights } from "@/hooks/useOKRInsights";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BarChart3, ShieldAlert } from "lucide-react";
 import ModuleLayout from "@/components/ModuleLayout";
+import PageHeader from "@/components/PageHeader";
 
 const OKR = () => {
   const { toast } = useToast();
@@ -203,40 +204,34 @@ const OKR = () => {
     <ModuleLayout>
       <main className="max-w-[1600px] mx-auto p-6 space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <Target className="h-6 w-6 text-primary" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold">OKR</h1>
-                <p className="text-muted-foreground text-sm">Objectifs et Résultats Clés</p>
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <Select
-              value={selectedYear.toString()}
-              onValueChange={(v) => setSelectedYear(parseInt(v))}
-            >
-              <SelectTrigger className="w-[120px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {[currentYear - 1, currentYear, currentYear + 1].map((year) => (
-                  <SelectItem key={year} value={year.toString()}>
-                    {year}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button onClick={() => setShowCreateDialog(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Nouvel objectif
-            </Button>
-          </div>
-        </div>
+        <PageHeader
+          icon={Target}
+          title="OKR"
+          subtitle="Objectifs et Résultats Clés"
+          actions={
+            <>
+              <Select
+                value={selectedYear.toString()}
+                onValueChange={(v) => setSelectedYear(parseInt(v))}
+              >
+                <SelectTrigger className="w-[120px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {[currentYear - 1, currentYear, currentYear + 1].map((year) => (
+                    <SelectItem key={year} value={year.toString()}>
+                      {year}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button onClick={() => setShowCreateDialog(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Nouvel objectif
+              </Button>
+            </>
+          }
+        />
 
       {/* View Tabs */}
       <Tabs value={activeView} onValueChange={setActiveView}>

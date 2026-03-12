@@ -1,5 +1,6 @@
 import { Loader2, Star, BarChart3 } from "lucide-react";
 import ModuleLayout from "@/components/ModuleLayout";
+import PageHeader from "@/components/PageHeader";
 import WeeklyChart from "@/components/dashboard/WeeklyChart";
 import StatCard from "@/components/dashboard/StatCard";
 import TopImprovements from "@/components/dashboard/TopImprovements";
@@ -18,15 +19,7 @@ const Statistiques = () => {
   return (
     <ModuleLayout>
       <main className="max-w-[1600px] mx-auto p-6 space-y-6">
-        {/* Title */}
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-primary/10">
-              <BarChart3 className="h-6 w-6 text-primary" />
-            </div>
-            <h1 className="text-2xl font-bold">Statistiques</h1>
-          </div>
-        </div>
+        <PageHeader icon={BarChart3} title="Statistiques" />
 
         {isLoading ? (
           <div className="flex items-center justify-center py-12">

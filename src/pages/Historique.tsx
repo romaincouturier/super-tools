@@ -22,6 +22,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import PageHeader from "@/components/PageHeader";
 
 interface ActivityLog {
   id: string;
@@ -319,14 +320,10 @@ const Historique = () => {
     <ModuleLayout>
       {/* Main content */}
       <main className="max-w-6xl mx-auto p-6">
-        <div className="flex items-center gap-4 mb-6">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-full bg-primary/10 text-primary">
-              <History className="w-6 h-6" />
-            </div>
-            <h1 className="text-2xl font-bold">Historique des activités</h1>
-          </div>
-          <div className="ml-auto">
+        <PageHeader
+          icon={History}
+          title="Historique des activités"
+          actions={
             <Button
               variant="outline"
               size="sm"
@@ -336,8 +333,8 @@ const Historique = () => {
               <RefreshCw className={`w-4 h-4 mr-2 ${loadingLogs ? "animate-spin" : ""}`} />
               Actualiser
             </Button>
-          </div>
-        </div>
+          }
+        />
 
         {/* Search Filters */}
         <Card className="mb-6">

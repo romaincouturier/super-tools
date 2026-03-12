@@ -218,7 +218,7 @@ const Support = () => {
         <PageHeader
           icon={LifeBuoy}
           title="Support"
-          backTo="/dashboard"
+          subtitle="Bugs et demandes d'évolution"
           actions={
             <div className="flex flex-wrap items-center gap-2">
               {/* Stats */}

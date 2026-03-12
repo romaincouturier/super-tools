@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
 import { Loader2, Plus, Link2, Copy, Sparkles, FileDown, AlertCircle, Clock, CheckCircle2, MessageSquareWarning } from "lucide-react";
+import PageHeader from "@/components/PageHeader";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useModuleAccess } from "@/hooks/useModuleAccess";
@@ -261,24 +262,23 @@ const Reclamations = () => {
       <main className="container mx-auto px-4 py-6 max-w-6xl">
         <div className="flex flex-col gap-6">
           {/* Header */}
-          <div className="flex items-center justify-between flex-wrap gap-4">
-            <div className="flex items-center gap-3">
-              <MessageSquareWarning className="h-7 w-7 text-primary" />
-              <h1 className="text-2xl font-bold">Réclamations</h1>
-              <Badge variant="outline" className="text-xs">Indicateur 31</Badge>
-            </div>
-            <div className="flex gap-2 flex-wrap">
-              <Button variant="outline" size="sm" onClick={exportRegistre} disabled={reclamations.length === 0}>
-                <FileDown className="h-4 w-4 mr-1" /> Export registre
-              </Button>
-              <Button variant="outline" size="sm" onClick={generateLink} disabled={generatingLink}>
-                {generatingLink ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Link2 className="h-4 w-4 mr-1" />}
-                Générer un lien
-              </Button>
-              <Dialog open={newDialogOpen} onOpenChange={setNewDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button size="sm"><Plus className="h-4 w-4 mr-1" /> Nouvelle réclamation</Button>
-                </DialogTrigger>
+          <PageHeader
+            icon={MessageSquareWarning}
+            title="Réclamations"
+            actions={
+              <>
+                <Badge variant="outline" className="text-xs">Indicateur 31</Badge>
+                <Button variant="outline" size="sm" onClick={exportRegistre} disabled={reclamations.length === 0}>
+                  <FileDown className="h-4 w-4 mr-1" /> Export registre
+                </Button>
+                <Button variant="outline" size="sm" onClick={generateLink} disabled={generatingLink}>
+                  {generatingLink ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Link2 className="h-4 w-4 mr-1" />}
+                  Générer un lien
+                </Button>
+                <Dialog open={newDialogOpen} onOpenChange={setNewDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button size="sm"><Plus className="h-4 w-4 mr-1" /> Nouvelle réclamation</Button>
+                  </DialogTrigger>
                 <DialogContent className="max-w-lg">
                   <DialogHeader><DialogTitle>Nouvelle réclamation</DialogTitle></DialogHeader>
                   <div className="space-y-4">

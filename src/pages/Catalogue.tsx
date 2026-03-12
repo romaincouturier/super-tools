@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Plus, BookOpen, Search, X, ArrowUpDown, ArrowUp, ArrowDown, FileDown } from "lucide-react";
+import PageHeader from "@/components/PageHeader";
 import ModuleLayout from "@/components/ModuleLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -241,25 +242,17 @@ const Catalogue = () => {
 
       <main className="max-w-7xl mx-auto p-6">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <BookOpen className="h-6 w-6 text-primary" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold">Catalogue de formations</h1>
-                <p className="text-sm text-muted-foreground">
-                  {catalogEntries.length} formation{catalogEntries.length > 1 ? "s" : ""}
-                </p>
-              </div>
-            </div>
-          </div>
-          <Button onClick={handleCreate}>
-            <Plus className="h-4 w-4 mr-2" />
-            {!isMobile && "Nouvelle formation"}
-          </Button>
-        </div>
+        <PageHeader
+          icon={BookOpen}
+          title="Catalogue de formations"
+          subtitle={`${catalogEntries.length} formation${catalogEntries.length > 1 ? "s" : ""}`}
+          actions={
+            <Button onClick={handleCreate}>
+              <Plus className="h-4 w-4 mr-2" />
+              {!isMobile && "Nouvelle formation"}
+            </Button>
+          }
+        />
 
         {/* Search */}
         <Card>

@@ -41,6 +41,7 @@ import DOMPurify from "dompurify";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import PageHeader from "@/components/PageHeader";
 
 interface InboundEmail {
   id: string;
@@ -170,19 +171,11 @@ export default function InboundEmails() {
     <ModuleLayout>
       <main className="container mx-auto px-4 py-8">
         {/* Header */}
-        <div className="flex items-center gap-4 mb-6">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-primary/10">
-              <Inbox className="h-6 w-6 text-primary" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold">Emails reçus</h1>
-              <p className="text-sm text-muted-foreground">
-                Boîte de réception des emails entrants
-              </p>
-            </div>
-          </div>
-        </div>
+        <PageHeader
+          icon={Inbox}
+          title="Emails reçus"
+          subtitle="Boîte de réception des emails entrants"
+        />
 
         {/* Filters */}
         <div className="flex flex-wrap gap-4 mb-6">

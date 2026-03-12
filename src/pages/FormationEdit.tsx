@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
-import { Loader2, ArrowLeft, Calendar, Save, ExternalLink } from "lucide-react";
+import { Loader2, Calendar, Save, ExternalLink } from "lucide-react";
+import PageHeader from "@/components/PageHeader";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import ModuleLayout from "@/components/ModuleLayout";
@@ -453,47 +454,36 @@ const FormationEdit = () => {
 
       {/* Main content */}
       <main className="max-w-7xl mx-auto p-6">
-        {/* Sticky header with back button, title and action buttons */}
         <div className="sticky top-0 z-10 bg-background pb-4 -mx-6 px-6 pt-0">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => navigate(`/formations/${id}`)}
-              >
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-primary/10">
-                  <Calendar className="h-6 w-6 text-primary" />
-                </div>
-                <h1 className="text-2xl font-bold">Modifier la session</h1>
-              </div>
-            </div>
-            <div className="flex gap-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => navigate(`/formations/${id}`)}
-              >
-                Annuler
-              </Button>
-              <Button type="submit" form="formation-form" disabled={saving}>
-                {saving ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Enregistrement...
-                  </>
-                ) : (
-                  <>
-                    <Save className="mr-2 h-4 w-4" />
-                    Enregistrer
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
+          <PageHeader
+            icon={Calendar}
+            title="Modifier la session"
+            backTo="/formations"
+            actions={
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => navigate(`/formations/${id}`)}
+                >
+                  Annuler
+                </Button>
+                <Button type="submit" form="formation-form" disabled={saving}>
+                  {saving ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Enregistrement...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="mr-2 h-4 w-4" />
+                      Enregistrer
+                    </>
+                  )}
+                </Button>
+              </>
+            }
+          />
         </div>
 
         <form id="formation-form" onSubmit={handleSubmit} className="space-y-6">

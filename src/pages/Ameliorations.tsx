@@ -8,8 +8,10 @@ import {
   Plus,
   LayoutList,
   Columns3,
+  Lightbulb,
 } from "lucide-react";
 import ModuleLayout from "@/components/ModuleLayout";
+import PageHeader from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -103,37 +105,36 @@ const Ameliorations = () => {
   return (
     <ModuleLayout>
       <main className="max-w-6xl mx-auto p-6">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-4">
-            <h1 className="text-2xl font-bold">Améliorations</h1>
-          </div>
-          <div className="flex items-center gap-2">
-            {/* View toggle */}
-            <div className="flex border rounded-lg">
-              <Button
-                variant={viewMode === "list" ? "secondary" : "ghost"}
-                size="sm"
-                className="rounded-r-none"
-                onClick={() => toggleView("list")}
-              >
-                <LayoutList className="h-4 w-4" />
+        <PageHeader
+          icon={Lightbulb}
+          title="Améliorations"
+          actions={
+            <>
+              <div className="flex border rounded-lg">
+                <Button
+                  variant={viewMode === "list" ? "secondary" : "ghost"}
+                  size="sm"
+                  className="rounded-r-none"
+                  onClick={() => toggleView("list")}
+                >
+                  <LayoutList className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant={viewMode === "kanban" ? "secondary" : "ghost"}
+                  size="sm"
+                  className="rounded-l-none"
+                  onClick={() => toggleView("kanban")}
+                >
+                  <Columns3 className="h-4 w-4" />
+                </Button>
+              </div>
+              <Button onClick={() => { setEditingImprovement(null); setFormDialogOpen(true); }}>
+                <Plus className="h-4 w-4 mr-2" />
+                Ajouter
               </Button>
-              <Button
-                variant={viewMode === "kanban" ? "secondary" : "ghost"}
-                size="sm"
-                className="rounded-l-none"
-                onClick={() => toggleView("kanban")}
-              >
-                <Columns3 className="h-4 w-4" />
-              </Button>
-            </div>
-            <Button onClick={() => { setEditingImprovement(null); setFormDialogOpen(true); }}>
-              <Plus className="h-4 w-4 mr-2" />
-              Ajouter
-            </Button>
-          </div>
-        </div>
+            </>
+          }
+        />
 
         {/* Filters */}
         <div className="flex flex-wrap gap-4 mb-6">

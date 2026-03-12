@@ -1,5 +1,6 @@
 import { Database, Clock, Zap, MousePointerClick } from "lucide-react";
 import ModuleLayout from "@/components/ModuleLayout";
+import PageHeader from "@/components/PageHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import DbSizeTab from "@/components/monitoring/DbSizeTab";
 import CronJobsTab from "@/components/monitoring/CronJobsTab";
@@ -10,15 +11,7 @@ const Monitoring = () => {
   return (
     <ModuleLayout>
       <main className="max-w-6xl mx-auto p-6 space-y-6">
-        {/* Header */}
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-primary/10">
-              <Database className="h-6 w-6 text-primary" />
-            </div>
-            <h1 className="text-2xl font-bold">Monitoring</h1>
-          </div>
-        </div>
+        <PageHeader icon={Database} title="Monitoring" />
 
         {/* Tabs */}
         <Tabs defaultValue="database">
