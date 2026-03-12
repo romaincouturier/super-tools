@@ -21,7 +21,7 @@ import {
 import {
   BookOpen, CheckCircle2, Circle, ChevronRight, ChevronLeft,
   Play, FileText, HelpCircle, ClipboardList, Video, Lock,
-  Trophy, Clock, ArrowLeft,
+  Trophy, Clock,
 } from "lucide-react";
 import SupertiltLogo from "@/components/SupertiltLogo";
 import { useToast } from "@/hooks/use-toast";
