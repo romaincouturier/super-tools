@@ -12,7 +12,7 @@ import TrainerAdequacy from "@/components/formations/TrainerAdequacy";
 import TrainerEvaluationBlock from "@/components/formations/TrainerEvaluationBlock";
 import EntityMediaManager from "@/components/media/EntityMediaManager";
 import LiveMeetingsSection from "@/components/formations/LiveMeetingsSection";
-import CoachingSlotsSection from "@/components/formations/CoachingSlotsSection";
+
 import type { Training, Schedule, Participant } from "@/hooks/useFormationDetail";
 import type { FormationFormula } from "@/types/training";
 
@@ -68,11 +68,10 @@ const FormationDetailSections = ({
   toast,
 }: Props) => (
   <>
-    {/* Lives + Coaching */}
+    {/* Lives */}
     {availableFormulas.length >= 2 && (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <LiveMeetingsSection trainingId={training.id} />
-        <CoachingSlotsSection trainingId={training.id} participants={participants} />
       </div>
     )}
 
