@@ -174,9 +174,10 @@ serve(async (req) => {
         }
 
         const periodLabel = period === "AM" ? "Matin" : "Après-midi";
-        const timeRange = period === "AM"
-          ? `${startTimeDisplay} - 12h30`
-          : `14h00 - ${endTimeDisplay}`;
+        const sessionDurationHours = ((endHour * 60 + endMin) - (startHour * 60 + parseInt(schedule.start_time.slice(3, 5)))) / 60;
+        const timeRange = sessionDurationHours <= 4
+          ? `${startTimeDisplay} - ${endTimeDisplay}`
+          : (period === "AM" ? `${startTimeDisplay} - 12h30` : `14h00 - ${endTimeDisplay}`);
 
         // =============================================
         // 1. Send signature requests to all participants

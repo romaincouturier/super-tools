@@ -270,8 +270,7 @@ const FormationDetailInfo = ({
                 const duration = (() => {
                   const [startH, startM] = schedule.start_time.split(":").map(Number);
                   const [endH, endM] = schedule.end_time.split(":").map(Number);
-                  const hours = (endH * 60 + endM - startH * 60 - startM) / 60;
-                  return hours <= 4 ? 3.5 : 7;
+                  return (endH * 60 + endM - startH * 60 - startM) / 60;
                 })();
                 return (
                   <div key={schedule.id} className="flex items-center justify-between text-sm py-1.5 px-2 rounded bg-muted/50">
