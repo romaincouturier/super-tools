@@ -169,7 +169,7 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
     setStep(2);
   };
 
-  // Step 2 → Travel complete, go to step 3 (Devis)
+  // Step 2 → Travel complete, go to step 3 (Client)
   const handleTravelContinue = async (total: number, destinations: TravelDestination[], settings: TravelSettings | null) => {
     setTravelTotal(total);
     setTravelDestinations(destinations);
@@ -180,18 +180,10 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
     setStep(3);
   };
 
-  // Step 3 → Quote complete, go to step 4 (Client)
-  const handleQuoteContinue = async (updatedQuote: Quote) => {
-    setQuote(updatedQuote);
-    completeStep(3);
-    saveWorkflowStep(updatedQuote.id, 4);
-    setStep(4);
-  };
-
-  // Step 4 → Client validated, create/update quote and go to step 5 (Email)
+  // Step 3 → Client validated, create/update quote and go to step 4 (Devis)
   const handleClientValidated = async (client: ClientData) => {
     setClientData(client);
-    completeStep(4);
+    completeStep(3);
 
     let currentQuote = quote;
     if (!currentQuote) {
@@ -226,7 +218,15 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
       });
     }
 
-    saveWorkflowStep(currentQuote!.id, 5);
+    saveWorkflowStep(currentQuote!.id, 4);
+    setStep(4);
+  };
+
+  // Step 4 → Quote complete, go to step 5 (Email)
+  const handleQuoteContinue = async (updatedQuote: Quote) => {
+    setQuote(updatedQuote);
+    completeStep(4);
+    saveWorkflowStep(updatedQuote.id, 5);
     setStep(5);
   };
 
