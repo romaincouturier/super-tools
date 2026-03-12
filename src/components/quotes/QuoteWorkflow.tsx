@@ -152,10 +152,46 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
     }
   }, [quote]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Step 0 → Create quote and go to step 1 (Déplacements)
+  // Step 0 → Synthèse complete, go to step 1 (Loom)
+  const handleSynthesisValidated = async (s: string, i: string) => {
+    setSynthesis(s);
+    setInstructions(i);
+    completeStep(0);
+    saveWorkflowStep(quote?.id || "", 1, { synthesis: s, instructions: i });
+    setStep(1);
+  };
+
+  // Step 1 → Loom complete, go to step 2 (Déplacements)
+  const handleLoomContinue = async (url: string | null) => {
+    setLoomUrl(url);
+    completeStep(1);
+    saveWorkflowStep(quote?.id || "", 2, url ? { loom_url: url } : {});
+    setStep(2);
+  };
+
+  // Step 2 → Travel complete, go to step 3 (Devis)
+  const handleTravelContinue = async (total: number, destinations: TravelDestination[], settings: TravelSettings | null) => {
+    setTravelTotal(total);
+    setTravelDestinations(destinations);
+    setTravelSettings(settings);
+    completeStep(2);
+    const travelData = { total, destinations, settings };
+    saveWorkflowStep(quote?.id || "", 3, { travel_data: travelData });
+    setStep(3);
+  };
+
+  // Step 3 → Quote complete, go to step 4 (Client)
+  const handleQuoteContinue = async (updatedQuote: Quote) => {
+    setQuote(updatedQuote);
+    completeStep(3);
+    saveWorkflowStep(updatedQuote.id, 4);
+    setStep(4);
+  };
+
+  // Step 4 → Client validated, create/update quote and go to step 5 (Email)
   const handleClientValidated = async (client: ClientData) => {
     setClientData(client);
-    completeStep(0);
+    completeStep(4);
 
     let currentQuote = quote;
     if (!currentQuote) {
@@ -176,7 +212,6 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
         return;
       }
     } else {
-      // Update client info
       await updateMutation.mutateAsync({
         id: currentQuote.id,
         updates: {
@@ -191,55 +226,7 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
       });
     }
 
-    saveWorkflowStep(currentQuote!.id, 1);
-    setStep(1);
-  };
-
-  // Step 1 → Travel expenses, go to step 2 (Devis)
-  const handleTravelContinue = async (total: number, destinations: TravelDestination[], settings: TravelSettings | null) => {
-    setTravelTotal(total);
-    setTravelDestinations(destinations);
-    setTravelSettings(settings);
-    completeStep(1);
-
-    if (quote) {
-      const travelData = { total, destinations, settings };
-      await saveWorkflowStep(quote.id, 2, { travel_data: travelData });
-    }
-
-    setStep(2);
-  };
-
-  // Step 2 → Go to step 3 (Loom)
-  const handleQuoteContinue = async (updatedQuote: Quote) => {
-    setQuote(updatedQuote);
-    completeStep(2);
-    saveWorkflowStep(updatedQuote.id, 3);
-    setStep(3);
-  };
-
-  // Step 3 → Save loom, go to step 4 (Synthèse)
-  const handleLoomContinue = async (url: string | null) => {
-    setLoomUrl(url);
-    completeStep(3);
-
-    if (quote) {
-      await saveWorkflowStep(quote.id, 4, url ? { loom_url: url } : {});
-    }
-
-    setStep(4);
-  };
-
-  // Step 4 → Save synthesis + instructions, go to step 5 (Email)
-  const handleSynthesisValidated = async (s: string, i: string) => {
-    setSynthesis(s);
-    setInstructions(i);
-    completeStep(4);
-
-    if (quote) {
-      await saveWorkflowStep(quote.id, 5, { synthesis: s, instructions: i });
-    }
-
+    saveWorkflowStep(currentQuote!.id, 5);
     setStep(5);
   };
 
