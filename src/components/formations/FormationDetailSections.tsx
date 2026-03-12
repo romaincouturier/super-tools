@@ -12,7 +12,7 @@ import TrainerAdequacy from "@/components/formations/TrainerAdequacy";
 import TrainerEvaluationBlock from "@/components/formations/TrainerEvaluationBlock";
 import EntityMediaManager from "@/components/media/EntityMediaManager";
 import LiveMeetingsSection from "@/components/formations/LiveMeetingsSection";
-import CoachingSlotsSection from "@/components/formations/CoachingSlotsSection";
+
 import type { Training, Schedule, Participant } from "@/hooks/useFormationDetail";
 import type { FormationFormula } from "@/types/training";
 

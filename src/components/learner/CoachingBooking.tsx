@@ -142,9 +142,17 @@ export default function CoachingBooking({
       </CardHeader>
       <CardContent className="pt-4 space-y-3">
         {bookings.length === 0 && !showForm && (
-          <p className="text-sm text-muted-foreground text-center py-4">
-            Aucune séance de coaching programmée
-          </p>
+          <div className="text-center py-6 space-y-2">
+            <Video className="w-8 h-8 mx-auto text-muted-foreground/50" />
+            <p className="text-sm text-muted-foreground">
+              Vous n'avez pas encore de séance de coaching programmée.
+            </p>
+            {remainingSessions > 0 && (
+              <p className="text-xs text-muted-foreground">
+                Il vous reste <span className="font-medium text-foreground">{remainingSessions} séance{remainingSessions > 1 ? "s" : ""}</span> à réserver.
+              </p>
+            )}
+          </div>
         )}
 
         {bookings.map((b) => (
