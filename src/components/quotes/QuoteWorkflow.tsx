@@ -277,41 +277,22 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
         }}
       />
 
+      {/* Step 0: Synthèse */}
       {step === 0 && (
-        <Step0ClientValidation
+        <Step1Synthesis
           crmCard={crmCard}
-          onValidate={handleClientValidated}
-          initialClient={clientData}
+          clientCompany={clientData?.company || crmCard.company || ""}
+          onValidate={handleSynthesisValidated}
+          onDraftChange={handleDraftSynthesis}
+          onChallengeChange={handleChallengeChange}
+          initialSynthesis={synthesis}
+          initialInstructions={instructions}
+          initialChallengeHtml={challengeHtml}
         />
       )}
 
+      {/* Step 1: Loom */}
       {step === 1 && (
-        <>
-          <BackButton onClick={handleBack} />
-          <StepTravelExpenses
-            onContinue={handleTravelContinue}
-            initialTotal={travelTotal}
-            initialDestinations={travelDestinations}
-            initialSettings={travelSettings}
-          />
-        </>
-      )}
-
-      {step === 2 && quote && (
-        <>
-          <BackButton onClick={handleBack} />
-          <Step3QuoteGeneration
-            quote={quote}
-            synthesis={synthesis}
-            instructions={instructions}
-            travelTotal={travelTotal}
-            crmCard={crmCard}
-            onContinue={handleQuoteContinue}
-          />
-        </>
-      )}
-
-      {step === 3 && (
         <>
           <BackButton onClick={handleBack} />
           <Step4Loom
@@ -327,22 +308,47 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
         </>
       )}
 
-      {step === 4 && (
+      {/* Step 2: Déplacements */}
+      {step === 2 && (
         <>
           <BackButton onClick={handleBack} />
-          <Step1Synthesis
-            crmCard={crmCard}
-            clientCompany={clientData?.company || crmCard.company || ""}
-            onValidate={handleSynthesisValidated}
-            onDraftChange={handleDraftSynthesis}
-            onChallengeChange={handleChallengeChange}
-            initialSynthesis={synthesis}
-            initialInstructions={instructions}
-            initialChallengeHtml={challengeHtml}
+          <StepTravelExpenses
+            onContinue={handleTravelContinue}
+            initialTotal={travelTotal}
+            initialDestinations={travelDestinations}
+            initialSettings={travelSettings}
           />
         </>
       )}
 
+      {/* Step 3: Devis */}
+      {step === 3 && quote && (
+        <>
+          <BackButton onClick={handleBack} />
+          <Step3QuoteGeneration
+            quote={quote}
+            synthesis={synthesis}
+            instructions={instructions}
+            travelTotal={travelTotal}
+            crmCard={crmCard}
+            onContinue={handleQuoteContinue}
+          />
+        </>
+      )}
+
+      {/* Step 4: Client */}
+      {step === 4 && (
+        <>
+          <BackButton onClick={handleBack} />
+          <Step0ClientValidation
+            crmCard={crmCard}
+            onValidate={handleClientValidated}
+            initialClient={clientData}
+          />
+        </>
+      )}
+
+      {/* Step 5: Email */}
       {step === 5 && quote && (
         <>
           <BackButton onClick={handleBack} />
@@ -357,19 +363,5 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
         </>
       )}
     </div>
-  );
-}
-
-function BackButton({ onClick }: { onClick: () => void }) {
-  return (
-    <Button
-      variant="ghost"
-      size="sm"
-      onClick={onClick}
-      className="mb-4 gap-1.5 text-muted-foreground hover:text-foreground"
-    >
-      <ChevronLeft className="w-4 h-4" />
-      Étape précédente
-    </Button>
   );
 }
