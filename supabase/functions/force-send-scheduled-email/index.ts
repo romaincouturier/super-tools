@@ -945,10 +945,13 @@ Règles :
           htmlContent = coachingResolved.htmlContent;
         } else {
           subject = `Coaching individuel – ${training.training_name}`;
+          const deadlineLine = coachingDeadline
+            ? `<p>Ces séances sont valables jusqu'au <strong>${coachingDeadline}</strong>.</p>`
+            : "";
           htmlContent = `
             <p>${greeting}</p>
-            <p>${formalAddress ? "Vous bénéficiez" : "Tu bénéficies"} de <strong>${coachingRemaining} séance(s) de coaching</strong> dans le cadre de la formation "${training.training_name}".</p>
-            <p>Ces séances sont valables jusqu'au <strong>${coachingDeadline}</strong>.</p>
+            <p>${formalAddress ? "Vous bénéficiez" : "Tu bénéficies"} de <strong>${coachingTotal} séance(s) de coaching</strong> dans le cadre de la formation "${training.training_name}".</p>
+            ${deadlineLine}
             <p>Les instructions pour réserver sont disponibles dans ${formalAddress ? "votre" : "ton"} espace personnel de formation.</p>
             ${signatureHtml}
           `;
