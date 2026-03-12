@@ -45,6 +45,7 @@ import {
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
+import PageHeader from "@/components/PageHeader";
 
 interface NeedsSurvey {
   id: string;
@@ -250,39 +251,31 @@ const BesoinsParticipants = () => {
     <ModuleLayout>
       <main className="max-w-7xl mx-auto p-6">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <ClipboardList className="h-6 w-6 text-primary" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold">Besoins des participants</h1>
-                <p className="text-muted-foreground">
-                  Vue consolidée de tous les recueils de besoins
-                </p>
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              onClick={runAnalysis}
-              disabled={filteredSurveys.length === 0 || analysisLoading}
-            >
-              {analysisLoading ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Sparkles className="h-4 w-4 mr-2" />
-              )}
-              Analyser avec l'IA
-            </Button>
-            <Button variant="outline" onClick={() => setParticipantDrawerOpen(true)}>
-              <GraduationCap className="h-4 w-4 mr-2" />
-              Parcours apprenant
-            </Button>
-          </div>
-        </div>
+        <PageHeader
+          icon={ClipboardList}
+          title="Besoins des participants"
+          subtitle="Vue consolidée de tous les recueils de besoins"
+          actions={
+            <>
+              <Button
+                variant="outline"
+                onClick={runAnalysis}
+                disabled={filteredSurveys.length === 0 || analysisLoading}
+              >
+                {analysisLoading ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Sparkles className="h-4 w-4 mr-2" />
+                )}
+                Analyser avec l'IA
+              </Button>
+              <Button variant="outline" onClick={() => setParticipantDrawerOpen(true)}>
+                <GraduationCap className="h-4 w-4 mr-2" />
+                Parcours apprenant
+              </Button>
+            </>
+          }
+        />
 
         {/* Stats */}
         <Card className="mb-6">

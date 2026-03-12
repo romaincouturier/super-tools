@@ -2,11 +2,9 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { formatDateWithDayOfWeek } from "@/lib/dateFormatters";
 import {
-  ArrowLeft,
   CalendarDays,
   MapPin,
   Video,
-  Clock,
   Edit,
   Plus,
   Link2,
@@ -30,6 +28,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { CANCELLATION_REASONS, getCfpDaysLeft } from "@/types/events";
 import LogisticsBookingButtons from "@/components/shared/LogisticsBookingButtons";
 import ShareEventDialog from "@/components/events/ShareEventDialog";
+import PageHeader from "@/components/PageHeader";
 import ModuleLayout from "@/components/ModuleLayout";
 import PageLoading from "@/components/PageLoading";
 import PageNotFound from "@/components/PageNotFound";
@@ -222,41 +221,22 @@ const EventDetail = () => {
         )}
 
         {/* Header */}
-        <div className="flex items-start gap-4">
-          <Button variant="ghost" size="icon" className="shrink-0 mt-0.5" onClick={() => navigate("/events")}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div className="space-y-3">
-            <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <h1 className={`text-2xl font-bold ${event.status === "cancelled" ? "line-through text-muted-foreground" : ""}`}>
-                  {event.title}
-                </h1>
-                {event.event_type === "external" && (
-                  <Badge variant="outline" className="gap-1 text-blue-600 border-blue-300">
-                    <Globe className="h-3 w-3" />
-                    Externe
-                  </Badge>
-                )}
-                {event.status === "cancelled" && (
-                  <Badge variant="destructive">Annulé</Badge>
-                )}
-              </div>
-              <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
-                <span className="flex items-center gap-1">
-                  <CalendarDays className="h-3.5 w-3.5" />
-                  {formatDateWithDayOfWeek(event.event_date)}
-                </span>
-                {event.event_time && (
-                  <span className="flex items-center gap-1">
-                    <Clock className="h-3.5 w-3.5" />
-                    {event.event_time.slice(0, 5)}
-                  </span>
-                )}
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 flex-wrap">
+        <PageHeader
+          icon={CalendarDays}
+          title={event.title}
+          subtitle={`${formatDateWithDayOfWeek(event.event_date)}${event.event_time ? ` · ${event.event_time.slice(0, 5)}` : ""}`}
+          backTo="/events"
+          actions={
+            <>
+              {event.event_type === "external" && (
+                <Badge variant="outline" className="gap-1 text-blue-600 border-blue-300">
+                  <Globe className="h-3 w-3" />
+                  Externe
+                </Badge>
+              )}
+              {event.status === "cancelled" && (
+                <Badge variant="destructive">Annulé</Badge>
+              )}
               <ShareEventDialog event={event} />
               <Button variant="outline" size="sm" onClick={handleDuplicate}>
                 <Copy className="h-4 w-4 mr-1" />
@@ -312,9 +292,9 @@ const EventDetail = () => {
                   </Dialog>
                 </>
               )}
-            </div>
-          </div>
-        </div>
+            </>
+          }
+        />
 
         {/* Info card */}
         <Card>

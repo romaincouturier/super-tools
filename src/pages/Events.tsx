@@ -13,6 +13,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useEvents } from "@/hooks/useEvents";
+import PageHeader from "@/components/PageHeader";
 
 const Events = () => {
   const navigate = useNavigate();
@@ -56,20 +57,16 @@ const Events = () => {
     <ModuleLayout>
       <main className="max-w-6xl mx-auto p-4 sm:p-6">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
-          <div className="flex items-center gap-3 sm:gap-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10 hidden sm:block">
-                <CalendarDays className="h-6 w-6 text-primary" />
-              </div>
-              <h1 className="text-xl sm:text-2xl font-bold">Événements</h1>
-            </div>
-          </div>
-          <Button size="sm" onClick={() => navigate("/events/new")}>
-            <Plus className="h-4 w-4 sm:mr-2" />
-            <span className="hidden sm:inline">Nouvel événement</span>
-          </Button>
-        </div>
+        <PageHeader
+          icon={CalendarDays}
+          title="Événements"
+          actions={
+            <Button size="sm" onClick={() => navigate("/events/new")}>
+              <Plus className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Nouvel événement</span>
+            </Button>
+          }
+        />
 
         {/* Tabs + Search */}
         <Card>

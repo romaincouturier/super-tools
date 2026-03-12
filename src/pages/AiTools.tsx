@@ -16,6 +16,7 @@ import {
   ArrowRight, Download, Copy, Brain, Zap, MessageSquare,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import PageHeader from "@/components/PageHeader";
 
 interface ProgramModule {
   title: string;
@@ -200,10 +201,7 @@ export default function AiTools() {
   return (
     <ModuleLayout>
       <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2"><Brain className="w-6 h-6 text-primary" /> IA Augmentée</h1>
-          <p className="text-muted-foreground">Générez des programmes, quiz et analysez votre activité</p>
-        </div>
+        <PageHeader icon={Brain} title="IA Augmentée" subtitle="Générez des programmes, quiz et analysez votre activité" />
         <Tabs defaultValue="program" className="space-y-6">
          <TabsList className="grid w-full grid-cols-4">
            <TabsTrigger value="program" className="gap-2">

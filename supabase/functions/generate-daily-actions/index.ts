@@ -759,7 +759,7 @@ serve(async (req) => {
           if (isInter && !t.restaurant_booked) items.push("🍽️ Restaurant");
           if (!t.room_rental_booked) items.push("🚪 Salle");
         }
-        if (!t.equipment_ready) items.push("📦 Matériel");
+        if (isPresentiel && !t.equipment_ready) items.push("📦 Matériel");
 
         if (items.length === 0) continue;
 

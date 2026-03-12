@@ -27,6 +27,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsMobile } from "@/hooks/use-mobile";
+import PageHeader from "@/components/PageHeader";
 
 interface Training {
   id: string;
@@ -310,20 +311,16 @@ const Formations = () => {
       {/* Main content */}
       <main className="max-w-6xl mx-auto p-3 md:p-6">
         {/* Title */}
-        <div className="flex items-center justify-between mb-4 md:mb-6 gap-2">
-          <div className="flex items-center gap-2 md:gap-4 min-w-0">
-            <div className="flex items-center gap-2 md:gap-3 min-w-0">
-              <div className="p-2 rounded-lg bg-primary/10 shrink-0 hidden md:block">
-                <Calendar className="h-6 w-6 text-primary" />
-              </div>
-              <h1 className="text-lg md:text-2xl font-bold truncate">Formations</h1>
-            </div>
-          </div>
-          <Button size={isMobile ? "icon" : "default"} onClick={() => navigate("/formations/new")} className="shrink-0">
-            <Plus className="h-4 w-4 md:mr-2" />
-            <span className="hidden md:inline">Nouvelle session</span>
-          </Button>
-        </div>
+        <PageHeader
+          icon={Calendar}
+          title="Formations"
+          actions={
+            <Button size={isMobile ? "icon" : "default"} onClick={() => navigate("/formations/new")} className="shrink-0">
+              <Plus className="h-4 w-4 md:mr-2" />
+              <span className="hidden md:inline">Nouvelle session</span>
+            </Button>
+          }
+        />
 
         {/* Tabs and table */}
         <Card>

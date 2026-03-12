@@ -1,9 +1,11 @@
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import { FileText } from "lucide-react";
 import { useEffect, useState } from "react";
 import ModuleLayout from "@/components/ModuleLayout";
 import QuoteWorkflow from "@/components/quotes/QuoteWorkflow";
 import { Button } from "@/components/ui/button";
-import { Loader2, ArrowLeft } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import PageHeader from "@/components/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
 import type { CrmCard } from "@/types/crm";
 
@@ -44,23 +46,12 @@ export default function QuoteWorkflowPage() {
   return (
     <ModuleLayout>
       <div className="container max-w-5xl mx-auto py-8 px-4">
-        <div className="flex items-center gap-3 mb-6">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate(-1)}
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-          <div>
-            <h1 className="text-2xl font-bold">Création de devis</h1>
-            {crmCard && (
-              <p className="text-sm text-muted-foreground">
-                {crmCard.title} — {crmCard.company || "Client"}
-              </p>
-            )}
-          </div>
-        </div>
+        <PageHeader
+          icon={FileText}
+          title="Création de devis"
+          subtitle={crmCard ? `${crmCard.title} — ${crmCard.company || "Client"}` : undefined}
+          backTo="/crm"
+        />
 
         {loading && (
           <div className="flex items-center justify-center py-20">

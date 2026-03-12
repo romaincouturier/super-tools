@@ -20,10 +20,11 @@ import {
   LmsModule, LmsLesson,
 } from "@/hooks/useLms";
 import {
-  ArrowLeft, Plus, GripVertical, ChevronDown, ChevronRight,
+  Plus, GripVertical, ChevronDown, ChevronRight,
   FileText, Video, HelpCircle, ClipboardList, Trash2, Save,
   Eye, Users, Settings, BookOpen, Pencil,
 } from "lucide-react";
+import PageHeader from "@/components/PageHeader";
 import { useToast } from "@/hooks/use-toast";
 import LmsLessonEditor from "@/components/lms/LessonEditor";
 import LmsQuizBuilder from "@/components/lms/QuizBuilder";
@@ -225,23 +226,23 @@ export default function LmsCourseBuilder() {
   return (
     <ModuleLayout>
       <div className="container py-6 max-w-5xl space-y-6">
-        {/* Header */}
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/lms")}>
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-          <div className="flex-1">
-            <h1 className="text-2xl font-bold">{course.title}</h1>
-            <p className="text-sm text-muted-foreground">{course.description}</p>
-          </div>
-          <Badge variant="outline" className={course.status === "published" ? "bg-emerald-500/10 text-emerald-700" : ""}>
-            {course.status === "published" ? "Publié" : "Brouillon"}
-          </Badge>
-          <Button variant={course.status === "published" ? "outline" : "default"} onClick={togglePublish}>
-            <Eye className="w-4 h-4 mr-2" />
-            {course.status === "published" ? "Dépublier" : "Publier"}
-          </Button>
-        </div>
+        <PageHeader
+          icon={BookOpen}
+          title={course.title}
+          subtitle={course.description}
+          backTo="/lms"
+          actions={
+            <>
+              <Badge variant="outline" className={course.status === "published" ? "bg-emerald-500/10 text-emerald-700" : ""}>
+                {course.status === "published" ? "Publié" : "Brouillon"}
+              </Badge>
+              <Button variant={course.status === "published" ? "outline" : "default"} onClick={togglePublish}>
+                <Eye className="w-4 h-4 mr-2" />
+                {course.status === "published" ? "Dépublier" : "Publier"}
+              </Button>
+            </>
+          }
+        />
 
         {/* Tabs */}
         <Tabs value={tab} onValueChange={setTab}>

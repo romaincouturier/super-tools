@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, ArrowLeft, Mail, CheckCircle, AlertTriangle, Trash2, Eye } from "lucide-react";
+import { Loader2, Mail, CheckCircle, AlertTriangle, Trash2, Eye } from "lucide-react";
+import PageHeader from "@/components/PageHeader";
 import ModuleLayout from "@/components/ModuleLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -120,23 +121,13 @@ const FailedEmails = () => {
   return (
     <ModuleLayout>
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
-        <div className="flex items-center gap-4 mb-6">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <Mail className="h-6 w-6" />
-              Emails en erreur
-              {totalErrors > 0 && (
-                <Badge variant="destructive">{totalErrors}</Badge>
-              )}
-            </h1>
-            <p className="text-muted-foreground text-sm">
-              Visualisez les emails qui n'ont pas pu être envoyés
-            </p>
-          </div>
-        </div>
+        <PageHeader
+          icon={Mail}
+          title="Emails en erreur"
+          subtitle="Visualisez les emails qui n'ont pas pu être envoyés"
+          backTo="/formations"
+          actions={totalErrors > 0 ? <Badge variant="destructive">{totalErrors}</Badge> : undefined}
+        />
 
         {loading ? (
           <div className="flex justify-center py-12">

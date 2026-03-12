@@ -1,6 +1,5 @@
-import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Loader2, TrendingUp, TrendingDown, Target, DollarSign, BarChart3 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Loader2, TrendingUp, TrendingDown, Target, DollarSign, BarChart3 } from "lucide-react";
+import PageHeader from "@/components/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   BarChart,
@@ -21,7 +20,6 @@ import ModuleLayout from "@/components/ModuleLayout";
 const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8", "#82ca9d"];
 
 const CrmReports = () => {
-  const navigate = useNavigate();
   const { data: reports, isLoading } = useCrmReports();
 
   if (isLoading) {
@@ -53,21 +51,7 @@ const CrmReports = () => {
     <ModuleLayout>
 
       <main className="max-w-7xl mx-auto p-6 space-y-6">
-        {/* Header */}
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/crm")}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-primary/10">
-              <BarChart3 className="h-6 w-6 text-primary" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold">Reporting CRM</h1>
-              <p className="text-muted-foreground text-sm">Statistiques du pipeline commercial</p>
-            </div>
-          </div>
-        </div>
+        <PageHeader icon={BarChart3} title="Reporting CRM" subtitle="Statistiques du pipeline commercial" backTo="/crm" />
 
       {/* KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

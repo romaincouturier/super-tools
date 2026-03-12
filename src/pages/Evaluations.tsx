@@ -14,6 +14,7 @@ import {
   Trash2,
 } from "lucide-react";
 import ModuleLayout from "@/components/ModuleLayout";
+import PageHeader from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -369,9 +370,7 @@ const Evaluations = () => {
     <ModuleLayout>
       {/* Main content */}
       <main className="max-w-6xl mx-auto p-4 sm:p-6">
-        <div className="flex items-center gap-4 mb-6">
-          <h1 className="text-2xl font-bold">Évaluations</h1>
-        </div>
+        <PageHeader icon={Star} title="Évaluations" />
 
         {/* Filters and Actions */}
         <div className="flex flex-wrap gap-4 mb-6">
