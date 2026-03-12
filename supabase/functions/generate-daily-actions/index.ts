@@ -49,16 +49,9 @@ serve(async (req) => {
     const today = new Date().toISOString().split("T")[0];
     const todayDate = new Date(today);
 
-    // Check if already generated today
-    const { count } = await supabase
-      .from("daily_actions")
-      .select("id", { count: "exact", head: true })
-      .eq("action_date", today);
-
-    if (count && count > 0) {
-      console.log(`[${VERSION}] Actions already generated for ${today}, skipping`);
-      return createJsonResponse({ success: true, message: "Already generated", _version: VERSION });
-    }
+    // Note: idempotency is handled by the upsert's onConflict clause
+    // (user_id, action_date, category, entity_type, entity_id).
+    // We no longer skip entirely if some actions exist, to handle partial generation.
 
     // ── Fetch recipients ──
     const { data: allProfiles } = await supabase
@@ -853,9 +846,18 @@ serve(async (req) => {
 
       if (userActions.length === 0) continue;
 
+      // Deduplicate by conflict key to avoid "cannot affect row a second time"
+      const seen = new Set<string>();
+      const dedupedActions = userActions.filter((a: any) => {
+        const key = `${a.category}|${a.entity_type}|${a.entity_id}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+
       const { error } = await supabase
         .from("daily_actions")
-        .upsert(userActions, { onConflict: "user_id,action_date,category,entity_type,entity_id" });
+        .upsert(dedupedActions, { onConflict: "user_id,action_date,category,entity_type,entity_id" });
 
       if (error) {
         console.error(`[${VERSION}] Error inserting for ${recipient.email}:`, error.message);
