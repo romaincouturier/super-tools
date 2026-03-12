@@ -28,7 +28,7 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
   const { data: existingQuote, isLoading: loadingQuote } = useQuote(existingQuoteId);
 
   // Determine initial step from existing quote
-  // Step order: 0 Synthèse → 1 Loom → 2 Déplacements → 3 Devis → 4 Client → 5 Email
+  // Step order: 0 Synthèse → 1 Loom → 2 Déplacements → 3 Client → 4 Devis → 5 Email
   const getInitialStep = (q: Quote | null | undefined): QuoteWorkflowStep => {
     if (!q) return 0;
     const saved = (q as any).workflow_step;
