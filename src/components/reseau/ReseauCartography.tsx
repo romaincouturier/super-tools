@@ -11,9 +11,7 @@ import {
   useNetworkContacts,
   usePositioning,
 } from "@/hooks/useReseau";
-import type { ExtractedContact } from "@/types/reseau";
-
-const WARMTH_LABELS = { hot: "Chaud", warm: "Tiède", cold: "Froid" } as const;
+import { WARMTH_LABELS, type ExtractedContact } from "@/types/reseau";
 
 interface ReseauCartographyProps {
   onComplete: () => void;

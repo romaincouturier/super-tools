@@ -3,9 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useLogInteraction } from "@/hooks/useReseau";
-import type { CoolingContact } from "@/types/reseau";
-
-const WARMTH_LABELS = { hot: "Chaud", warm: "Tiède", cold: "Froid" } as const;
+import { WARMTH_LABELS, type CoolingContact } from "@/types/reseau";
 
 interface CoolingAlertsProps {
   coolingContacts: CoolingContact[];

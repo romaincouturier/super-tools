@@ -1,6 +1,12 @@
 export type WarmthLevel = "hot" | "warm" | "cold";
 export type ConversationPhase = "onboarding" | "cartography";
 
+export const WARMTH_LABELS: Record<WarmthLevel, string> = {
+  hot: "Chaud",
+  warm: "Tiède",
+  cold: "Froid",
+};
+
 export interface NetworkContact {
   id: string;
   user_id: string;
