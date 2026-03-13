@@ -221,6 +221,7 @@ const MicroDevis = () => {
     const pl = participants.split(/[,;\n]/).map(p => p.trim()).filter(p => p.length > 0);
     const ct = includeCadeau ? "Chaque participant(e) aura : 1 kit de facilitation graphique ainsi qu'un accès illimité et à vie au e-learning de 25h pour continuer sa formation en facilitation graphique" : "";
     const label = formulasHook.selectedFormula ? `${formationDemandee} — ${formulasHook.selectedFormula}` : formationDemandee;
+    const adresseCommanditaire = `${civiliteCommanditaire} ${nomCommanditaire}`.trim();
     return {
       requestPayload: { nomClient, adresseClient, codePostalClient, villeClient, pays: fp, emailCommanditaire, adresseCommanditaire, isAdministration: isAdministration === "oui", noteDevis, formationDemandee: label, dateFormation, lieu: fl, includeCadeau, fraisDossier: fraisDossier === "oui", prix: ep, dureeHeures: ed, programmeUrl: sc.programme_url, nbParticipants: np, participants },
       pdfMonkeyPayload: { client: { name: nomClient, address: adresseClient, zip: codePostalClient, city: villeClient, country: fp }, note: noteDevis || "", affiche_frais: fraisDossier === "oui" ? "Oui" : "Non", subrogation: "Oui / Non (2 versions)", cadeau: ct, items: [{ name: label, participant_name: pl.length > 0 ? pl : [`${adresseCommanditaire} ${emailCommanditaire}`], date: dateFormation, place: fl, duration: `${ed}h`, quantity: np, unit_price: ep }], admin_fee: fraisDossier === "oui" ? 150 : 0, is_administration: isAdministration === "oui" },
