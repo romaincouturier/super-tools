@@ -110,11 +110,30 @@ const FormationDetailSections = ({
         />
         <TrainingDocumentsSection trainingId={id} />
       </div>
-      <ScheduledEmailsSummary
-        trainingId={training.id}
-        participants={participants}
-        refreshTrigger={emailsRefreshTrigger}
-      />
+      <div className="space-y-6">
+        <EmailTimelineComputed
+          trainingId={training.id}
+          participants={participants}
+          refreshTrigger={emailsRefreshTrigger}
+          trainingStartDate={training.start_date}
+          trainingEndDate={training.end_date}
+          sessionType={training.session_type || null}
+          sessionFormat={training.session_format || null}
+          formatFormation={training.format_formation}
+          trainerName={training.trainer_name}
+          sponsorName={getSponsorName()}
+          sponsorEmail={training.sponsor_email}
+          thankYouSentAt={thankYouSentAt}
+          schedules={schedules}
+          hasCoaching={hasCoaching}
+          isElearning={isElearningSession}
+        />
+        <ScheduledEmailsSummary
+          trainingId={training.id}
+          participants={participants}
+          refreshTrigger={emailsRefreshTrigger}
+        />
+      </div>
     </div>
 
     {/* Scheduled Actions + Attendance */}
