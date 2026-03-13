@@ -316,6 +316,7 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
   // Step 5 → Done
   const handleSent = () => {
     completeStep(5);
+    clearSession(crmCard.id);
     toast.success("Devis envoyé avec succès !");
     navigate(`/crm/card/${crmCard.id}`);
   };
