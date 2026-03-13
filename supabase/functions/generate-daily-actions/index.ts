@@ -88,7 +88,37 @@ serve(async (req) => {
     const globalActions: ActionItem[] = [];
     const perUserActions: ActionItem[] = []; // actions with assignedTo
 
-    // 0. E-LEARNING EN COURS AVEC GROUPE PRIVÉ (priorité haute, en tête)
+    // 0. MISSIONS — ACTIONS À TRAITER (prochaine action due aujourd'hui ou en retard)
+    const { data: missionsWithActions } = await supabase
+      .from("missions")
+      .select("id, title, client_name, emoji, assigned_to, waiting_next_action_date, waiting_next_action_text")
+      .not("waiting_next_action_text", "is", null)
+      .lte("waiting_next_action_date", today)
+      .in("status", ["not_started", "in_progress", "pending"]);
+
+    if (missionsWithActions) {
+      for (const m of missionsWithActions) {
+        if (!m.waiting_next_action_text?.trim()) continue;
+        const label = m.client_name ? `${m.client_name} — ${m.title}` : m.title;
+        const emoji = m.emoji ? `${m.emoji} ` : "";
+        const isOverdue = m.waiting_next_action_date < today;
+        const dateLabel = m.waiting_next_action_date === today
+          ? "Aujourd'hui"
+          : `En retard (${new Date(m.waiting_next_action_date).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })})`;
+        perUserActions.push({
+          category: "missions_actions",
+          title: `${emoji}${label}`,
+          description: `${m.waiting_next_action_text}${isOverdue ? ` — ⚠️ ${dateLabel}` : ""}`,
+          link: `${appUrl}/missions/${m.id}`,
+          entity_type: "mission",
+          entity_id: m.id,
+          assignedTo: m.assigned_to,
+        });
+      }
+      console.log(`[${VERSION}] Missions actions à traiter: ${missionsWithActions.length}`);
+    }
+
+    // 0b. E-LEARNING EN COURS AVEC GROUPE PRIVÉ (priorité haute, en tête)
     const { data: activeElearnings } = await supabase
       .from("trainings")
       .select("id, training_name, start_date, end_date, private_group_url, assigned_to")
@@ -98,7 +128,6 @@ serve(async (req) => {
 
     if (activeElearnings) {
       for (const t of activeElearnings) {
-        // Only include if the training is still active (end_date is null or >= today)
         if (t.end_date && t.end_date < today) continue;
         if (!t.private_group_url?.trim()) continue;
 

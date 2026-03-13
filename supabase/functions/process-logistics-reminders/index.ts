@@ -128,8 +128,41 @@ serve(async (req) => {
 
     console.log(`[${VERSION}] Found ${recipients.length} recipient(s)`);
 
+    interface GenericAlert {
+      assignedTo: string | null;
+      html: string;
+    }
+
     // ════════════════════════════════════════════
-    // 0. E-LEARNING EN COURS AVEC GROUPE PRIVÉ
+    // 0. MISSIONS — ACTIONS À TRAITER
+    // ════════════════════════════════════════════
+    const { data: missionsWithActions } = await supabase
+      .from("missions")
+      .select("id, title, client_name, emoji, assigned_to, waiting_next_action_date, waiting_next_action_text")
+      .not("waiting_next_action_text", "is", null)
+      .lte("waiting_next_action_date", today)
+      .in("status", ["not_started", "in_progress", "pending"]);
+
+    const missionActionAlerts: GenericAlert[] = [];
+    if (missionsWithActions) {
+      for (const m of missionsWithActions) {
+        if (!m.waiting_next_action_text?.trim()) continue;
+        const label = m.client_name ? `${m.client_name} — ${m.title}` : m.title;
+        const emojiPrefix = m.emoji ? `${m.emoji} ` : "";
+        const isOverdue = m.waiting_next_action_date < today;
+        const overdueLabel = isOverdue
+          ? ` <span style="color: ${COLORS.red};">⚠️ En retard (${new Date(m.waiting_next_action_date).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })})</span>`
+          : "";
+        missionActionAlerts.push({
+          assignedTo: m.assigned_to,
+          html: `<li style="margin-bottom: 6px;">${emojiPrefix}<a href="${appUrl}/missions/${m.id}" style="color: ${COLORS.primary}; text-decoration: underline; font-weight: 600;">${label}</a> — ${m.waiting_next_action_text}${overdueLabel}</li>`,
+        });
+      }
+    }
+    console.log(`[${VERSION}] Missions actions à traiter: ${missionActionAlerts.length}`);
+
+    // ════════════════════════════════════════════
+    // 0a. E-LEARNING EN COURS AVEC GROUPE PRIVÉ
     // ════════════════════════════════════════════
     const { data: activeElearnings } = await supabase
       .from("trainings")
@@ -137,11 +170,6 @@ serve(async (req) => {
       .in("format_formation", ["e_learning"])
       .not("private_group_url", "is", null)
       .lte("start_date", today);
-
-    interface GenericAlert {
-      assignedTo: string | null;
-      html: string;
-    }
 
     const elearningGroupAlerts: GenericAlert[] = [];
     if (activeElearnings) {
@@ -834,7 +862,14 @@ serve(async (req) => {
       const sections: string[] = [];
       let alertCount = 0;
 
-      // 1. Factures à émettre (formations terminées sans facture) — EN TÊTE
+      // 0. Missions — Actions à traiter (EN TÊTE, priorité maximale)
+      const userMissionActions = missionActionAlerts.filter((a) => userCanSee(recipient, a.assignedTo));
+      if (userMissionActions.length > 0) {
+        sections.push(sectionHtml("🎯", "Missions — Actions à traiter", COLORS.primary, userMissionActions.map((a) => a.html), userMissionActions.length));
+        alertCount += userMissionActions.length;
+      }
+
+      // 1. Factures à émettre (formations terminées sans facture)
       const userInvoiceAlerts = invoiceAlerts.filter(
         (a) => userCanSee(recipient, a.assignedTo)
       );
