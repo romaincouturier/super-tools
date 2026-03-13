@@ -424,9 +424,10 @@ export default function StepTravelExpenses({
   const [favorites, setFavorites] = useState<FavoriteDestination[]>(loadFavorites);
 
   const addFavorite = (dest: TravelDestination) => {
-    if (!dest.city.trim()) return;
+    if (!dest.city || !dest.city.trim()) return;
+    const cityName = dest.city.trim();
     const fav: FavoriteDestination = {
-      city: dest.city,
+      city: cityName,
       lat: dest.lat,
       lon: dest.lon,
       transportMode: dest.transportMode,
@@ -435,9 +436,10 @@ export default function StepTravelExpenses({
       nights: dest.nights,
       ticketPriceRoundTrip: dest.ticketPriceRoundTrip,
     };
-    const updated = [...favorites.filter((f) => f.city !== fav.city), fav];
+    const updated = [...favorites.filter((f) => f.city !== cityName), fav];
     setFavorites(updated);
     saveFavorites(updated);
+    console.log("[StepTravel] Favorite added:", cityName, "Total favorites:", updated.length);
   };
 
   const removeFavorite = (city: string) => {
