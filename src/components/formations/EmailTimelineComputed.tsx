@@ -355,9 +355,10 @@ const EmailTimelineComputed = ({
     participants.forEach((p) => {
       const name = [p.first_name, p.last_name].filter(Boolean).join(" ") || p.email;
 
+      const evalCondition = postCondition ? postCondition + " • Annulé si éval soumise" : "Annulé si éval soumise";
       addPredicted("google_review", addDays(postRefDate, delaySettings.googleReview), name, "participant", "fin", postCondition, p.id);
-      addPredicted("evaluation_reminder_1", addDays(postRefDate, delaySettings.evalReminder1), name, "participant", "fin", postCondition + " • Annulé si éval soumise", p.id);
-      addPredicted("evaluation_reminder_2", addDays(postRefDate, delaySettings.evalReminder2), name, "participant", "fin", postCondition + " • Annulé si éval soumise", p.id);
+      addPredicted("evaluation_reminder_1", addDays(postRefDate, delaySettings.evalReminder1), name, "participant", "fin", evalCondition, p.id);
+      addPredicted("evaluation_reminder_2", addDays(postRefDate, delaySettings.evalReminder2), name, "participant", "fin", evalCondition, p.id);
       addPredicted("video_testimonial", addDays(postRefDate, delaySettings.videoTestimonial), name, "participant", "fin", postCondition, p.id);
       addPredicted("follow_up_news", addDays(postRefDate, delaySettings.followUpNews), name, "participant", "fin", postCondition, p.id);
     });
