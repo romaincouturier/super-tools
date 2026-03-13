@@ -252,7 +252,7 @@ const MicroDevis = () => {
       toast({ title: typeSubrogation === "les2" ? "Devis envoyés !" : "Devis envoyé !", description: typeSubrogation === "les2" ? `Les 2 devis ont été générés et envoyés à ${normalizedEmail}` : `Le devis a été généré et envoyé à ${normalizedEmail}` });
       if (searchParams.get("source") === "crm") { setTimeout(() => { window.close(); }, 1500); return; }
       setNomClient(""); setAdresseClient(""); setCodePostalClient(""); setVilleClient("");
-      setPays("france"); setPaysAutre(""); setEmailCommanditaire(""); setAdresseCommanditaire("");
+      setPays("france"); setPaysAutre(""); setEmailCommanditaire(""); setCiviliteCommanditaire(""); setNomCommanditaire("");
       setTypeDevis(""); setIsAdministration(""); setNoteDevis(""); setParticipants("");
       setFormationDemandee(configsHook.formationConfigs.find(f => f.is_default)?.formation_name || "");
       setDateFormation(""); setLieu(""); setLieuAutre(""); setIncludeCadeau(false); setFraisDossier("");
