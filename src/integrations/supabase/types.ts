@@ -3575,6 +3575,151 @@ export type Database = {
           },
         ]
       }
+      network_actions: {
+        Row: {
+          action_type: string
+          contact_id: string
+          created_at: string
+          done_at: string | null
+          id: string
+          message_draft: string | null
+          result: string | null
+          scheduled_week: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          action_type: string
+          contact_id: string
+          created_at?: string
+          done_at?: string | null
+          id?: string
+          message_draft?: string | null
+          result?: string | null
+          scheduled_week?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          action_type?: string
+          contact_id?: string
+          created_at?: string
+          done_at?: string | null
+          id?: string
+          message_draft?: string | null
+          result?: string | null
+          scheduled_week?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "network_actions_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "network_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      network_contacts: {
+        Row: {
+          context: string | null
+          created_at: string
+          id: string
+          last_contact_date: string | null
+          linkedin_url: string | null
+          name: string
+          notes: string | null
+          user_id: string
+          warmth: string
+        }
+        Insert: {
+          context?: string | null
+          created_at?: string
+          id?: string
+          last_contact_date?: string | null
+          linkedin_url?: string | null
+          name: string
+          notes?: string | null
+          user_id: string
+          warmth?: string
+        }
+        Update: {
+          context?: string | null
+          created_at?: string
+          id?: string
+          last_contact_date?: string | null
+          linkedin_url?: string | null
+          name?: string
+          notes?: string | null
+          user_id?: string
+          warmth?: string
+        }
+        Relationships: []
+      }
+      network_conversation: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          phase: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          phase: string
+          role: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          phase?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      network_interactions: {
+        Row: {
+          contact_id: string
+          created_at: string
+          id: string
+          interaction_type: string
+          notes: string | null
+          user_id: string
+        }
+        Insert: {
+          contact_id: string
+          created_at?: string
+          id?: string
+          interaction_type: string
+          notes?: string | null
+          user_id: string
+        }
+        Update: {
+          contact_id?: string
+          created_at?: string
+          id?: string
+          interaction_type?: string
+          notes?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "network_interactions_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "network_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       newsletter_cards: {
         Row: {
           card_id: string
@@ -6183,6 +6328,39 @@ export type Database = {
           granted_by?: string | null
           id?: string
           module?: Database["public"]["Enums"]["app_module"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_positioning: {
+        Row: {
+          cooling_thresholds: Json | null
+          id: string
+          key_skills: string[] | null
+          onboarding_completed_at: string | null
+          pitch_one_liner: string | null
+          target_client: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cooling_thresholds?: Json | null
+          id?: string
+          key_skills?: string[] | null
+          onboarding_completed_at?: string | null
+          pitch_one_liner?: string | null
+          target_client?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cooling_thresholds?: Json | null
+          id?: string
+          key_skills?: string[] | null
+          onboarding_completed_at?: string | null
+          pitch_one_liner?: string | null
+          target_client?: string | null
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
