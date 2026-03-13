@@ -862,7 +862,14 @@ serve(async (req) => {
       const sections: string[] = [];
       let alertCount = 0;
 
-      // 1. Factures à émettre (formations terminées sans facture) — EN TÊTE
+      // 0. Missions — Actions à traiter (EN TÊTE, priorité maximale)
+      const userMissionActions = missionActionAlerts.filter((a) => userCanSee(recipient, a.assignedTo));
+      if (userMissionActions.length > 0) {
+        sections.push(sectionHtml("🎯", "Missions — Actions à traiter", COLORS.primary, userMissionActions.map((a) => a.html), userMissionActions.length));
+        alertCount += userMissionActions.length;
+      }
+
+      // 1. Factures à émettre (formations terminées sans facture)
       const userInvoiceAlerts = invoiceAlerts.filter(
         (a) => userCanSee(recipient, a.assignedTo)
       );
