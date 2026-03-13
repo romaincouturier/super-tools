@@ -587,6 +587,11 @@ export default function StepTravelExpenses({
                     <CityAutocomplete
                       value={settings.departureAddress}
                       placeholder="Ex: Lyon, Bordeaux…"
+                      onInputChange={(name) => {
+                        updateSetting("departureAddress", name);
+                        updateSetting("departureLat", null);
+                        updateSetting("departureLon", null);
+                      }}
                       onSelect={(name, lat, lon) => {
                         updateSetting("departureAddress", name);
                         updateSetting("departureLat", lat);
