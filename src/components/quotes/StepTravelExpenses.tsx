@@ -697,6 +697,16 @@ export default function StepTravelExpenses({
                       <CityAutocomplete
                         value={dest.city}
                         placeholder="Ville de destination"
+                        onInputChange={(name) =>
+                          updateDest(dest.id, {
+                            city: name,
+                            lat: null,
+                            lon: null,
+                            distanceKm: 0,
+                            tollCostOneWay: 0,
+                            durationHours: 0,
+                          })
+                        }
                         onSelect={(name, lat, lon) => handleCitySelect(dest.id, name, lat, lon)}
                       />
                     </div>
