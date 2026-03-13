@@ -990,7 +990,7 @@ const DocumentsManager = ({
                 <Scroll className="h-4 w-4" />
                 Convention de formation
               </Label>
-              {formatFormation === "intra" && (
+              {!isInterEntreprise && formatFormation !== "e_learning" && formatFormation !== "inter" && (
                 <div className="flex items-center gap-0.5">
                   {!conventionFileUrl ? (
                     <Button
