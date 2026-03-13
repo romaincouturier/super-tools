@@ -304,7 +304,8 @@ const MicroDevis = () => {
                 villeClient={villeClient} setVilleClient={setVilleClient}
                 pays={pays} setPays={setPays} paysAutre={paysAutre} setPaysAutre={setPaysAutre}
                 emailCommanditaire={emailCommanditaire} setEmailCommanditaire={setEmailCommanditaire}
-                adresseCommanditaire={adresseCommanditaire} setAdresseCommanditaire={setAdresseCommanditaire}
+                civiliteCommanditaire={civiliteCommanditaire} setCiviliteCommanditaire={setCiviliteCommanditaire}
+                nomCommanditaire={nomCommanditaire} setNomCommanditaire={setNomCommanditaire}
               />
 
               <TypeDevisSection
