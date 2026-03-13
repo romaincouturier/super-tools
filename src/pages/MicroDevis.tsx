@@ -131,7 +131,12 @@ const MicroDevis = () => {
     const c = searchParams.get("crmCardId");
     if (n) setNomClient(n);
     if (e) setEmailCommanditaire(e);
-    if (a) setAdresseCommanditaire(a);
+    if (a) {
+      // Parse "Mme Dupont" or "M. Dupont" from CRM prefill
+      if (a.startsWith("Mme ")) { setCiviliteCommanditaire("Mme"); setNomCommanditaire(a.slice(4)); }
+      else if (a.startsWith("M. ")) { setCiviliteCommanditaire("M."); setNomCommanditaire(a.slice(3)); }
+      else { setNomCommanditaire(a); }
+    }
     if (c) setCrmCardId(c);
     setTypeDevis("formation");
     toast({ title: "Données préremplies", description: "Les informations de l'opportunité CRM ont été importées." });
