@@ -858,26 +858,9 @@ const DocumentsManager = ({
         setConventionFileUrl(data.pdfUrl);
         setLastGeneratedConventionFileName(data.fileName || null);
 
-        // Download with custom filename via blob
-        try {
-          const response = await fetch(data.pdfUrl);
-          const blob = await response.blob();
-          const url = window.URL.createObjectURL(blob);
-          const a = document.createElement("a");
-          a.href = url;
-          a.download = data.fileName || "Convention.pdf";
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          window.URL.revokeObjectURL(url);
-        } catch {
-          // Fallback to direct download
-          window.location.href = data.pdfUrl;
-        }
-
         toast({
           title: "Convention générée",
-          description: "La convention de formation a été générée et le téléchargement a démarré.",
+          description: "La convention de formation a été générée avec succès.",
         });
 
         onUpdate?.();
