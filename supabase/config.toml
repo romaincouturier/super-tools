@@ -333,3 +333,12 @@ verify_jwt = false
 
 [functions.transcribe-audio]
 verify_jwt = false
+
+[functions.commercial-challenge]
+verify_jwt = false
+
+[functions.send-logistics-requirements]
+verify_jwt = false
+
+[functions.support-analyze-ticket]
+verify_jwt = false
