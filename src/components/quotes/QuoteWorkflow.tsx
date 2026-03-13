@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,63 @@ import type { CrmCard } from "@/types/crm";
 import type { Quote, QuoteWorkflowStep } from "@/types/quotes";
 import type { TravelDestination, TravelSettings } from "@/components/crm/TravelExpenseCalculator";
 
+// ---------------------------------------------------------------------------
+// Session persistence helpers — survive tab switches & in-app navigation
+// ---------------------------------------------------------------------------
+
+interface WorkflowSessionState {
+  step: QuoteWorkflowStep;
+  completedSteps: number[];
+  synthesis: string;
+  instructions: string;
+  loomUrl: string | null;
+  challengeHtml: string;
+  travelTotal: number;
+  travelDestinations: TravelDestination[];
+  travelSettings: TravelSettings | null;
+  clientData: ClientData | null;
+  quoteId: string | null;
+  savedAt: number;
+}
+
+const SESSION_KEY_PREFIX = "quote-workflow-";
+const SESSION_TTL_MS = 4 * 60 * 60 * 1000; // 4 hours
+
+function getSessionKey(cardId: string) {
+  return `${SESSION_KEY_PREFIX}${cardId}`;
+}
+
+function loadSession(cardId: string): WorkflowSessionState | null {
+  try {
+    const raw = sessionStorage.getItem(getSessionKey(cardId));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as WorkflowSessionState;
+    if (Date.now() - parsed.savedAt > SESSION_TTL_MS) {
+      sessionStorage.removeItem(getSessionKey(cardId));
+      return null;
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function saveSession(cardId: string, state: WorkflowSessionState) {
+  try {
+    sessionStorage.setItem(getSessionKey(cardId), JSON.stringify({ ...state, savedAt: Date.now() }));
+  } catch {
+    // storage full — silently ignore
+  }
+}
+
+function clearSession(cardId: string) {
+  try {
+    sessionStorage.removeItem(getSessionKey(cardId));
+  } catch {}
+}
+
+// ---------------------------------------------------------------------------
+
 interface Props {
   crmCard: CrmCard;
   existingQuoteId?: string;
@@ -28,12 +85,10 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
   const { data: existingQuote, isLoading: loadingQuote } = useQuote(existingQuoteId);
 
   // Determine initial step from existing quote
-  // Step order: 0 Synthèse → 1 Loom → 2 Déplacements → 3 Client → 4 Devis → 5 Email
   const getInitialStep = (q: Quote | null | undefined): QuoteWorkflowStep => {
     if (!q) return 0;
     const saved = (q as any).workflow_step;
     if (typeof saved === "number" && saved >= 0 && saved <= 5) return saved as QuoteWorkflowStep;
-    // Fallback: infer from data
     if (q.email_sent_at) return 5;
     if (q.client_siren) return 4;
     if (q.line_items?.length > 0) return 3;
@@ -50,27 +105,52 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
     return completed;
   };
 
+  // Try to restore from session first, then from existing quote
+  const session = loadSession(crmCard.id);
+
   const [step, setStep] = useState<QuoteWorkflowStep>(
-    existingQuoteId ? getInitialStep(existingQuote) : 0
+    session?.step ?? (existingQuoteId ? getInitialStep(existingQuote) : 0)
   );
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(
-    existingQuoteId ? getInitialCompleted(existingQuote) : new Set()
+    session ? new Set(session.completedSteps) : (existingQuoteId ? getInitialCompleted(existingQuote) : new Set())
   );
-  const [clientData, setClientData] = useState<ClientData | null>(null);
-  const [synthesis, setSynthesis] = useState("");
-  const [instructions, setInstructions] = useState("");
+  const [clientData, setClientData] = useState<ClientData | null>(session?.clientData ?? null);
+  const [synthesis, setSynthesis] = useState(session?.synthesis ?? "");
+  const [instructions, setInstructions] = useState(session?.instructions ?? "");
   const [quote, setQuote] = useState<Quote | null>(null);
-  const [loomUrl, setLoomUrl] = useState<string | null>(null);
-  const [challengeHtml, setChallengeHtml] = useState("");
+  const [loomUrl, setLoomUrl] = useState<string | null>(session?.loomUrl ?? null);
+  const [challengeHtml, setChallengeHtml] = useState(session?.challengeHtml ?? "");
 
   // Travel state
-  const [travelTotal, setTravelTotal] = useState(0);
-  const [travelDestinations, setTravelDestinations] = useState<TravelDestination[]>([]);
-  const [travelSettings, setTravelSettings] = useState<TravelSettings | null>(null);
+  const [travelTotal, setTravelTotal] = useState(session?.travelTotal ?? 0);
+  const [travelDestinations, setTravelDestinations] = useState<TravelDestination[]>(session?.travelDestinations ?? []);
+  const [travelSettings, setTravelSettings] = useState<TravelSettings | null>(session?.travelSettings ?? null);
 
-  // Update state when existing quote loads
+  // Track if session was already restored from quote (to avoid overriding session data)
+  const restoredFromQuote = useRef(!!session);
+
+  // Auto-persist to sessionStorage on every state change
   useEffect(() => {
-    if (existingQuote && !quote) {
+    saveSession(crmCard.id, {
+      step,
+      completedSteps: Array.from(completedSteps),
+      synthesis,
+      instructions,
+      loomUrl,
+      challengeHtml,
+      travelTotal,
+      travelDestinations,
+      travelSettings,
+      clientData,
+      quoteId: quote?.id ?? session?.quoteId ?? null,
+      savedAt: Date.now(),
+    });
+  }, [step, completedSteps, synthesis, instructions, loomUrl, challengeHtml, travelTotal, travelDestinations, travelSettings, clientData, quote, crmCard.id]);
+
+  // Update state when existing quote loads (only if not already restored from session)
+  useEffect(() => {
+    if (existingQuote && !quote && !restoredFromQuote.current) {
+      restoredFromQuote.current = true;
       setQuote(existingQuote);
       if (existingQuote.synthesis) setSynthesis(existingQuote.synthesis);
       if (existingQuote.instructions) setInstructions(existingQuote.instructions);
@@ -100,6 +180,9 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
       const savedStep = getInitialStep(existingQuote);
       setStep(savedStep);
       setCompletedSteps(getInitialCompleted(existingQuote));
+    } else if (existingQuote && !quote) {
+      // Session was restored but we still need the quote object
+      setQuote(existingQuote);
     }
   }, [existingQuote]); // eslint-disable-line react-hooks/exhaustive-deps
 
