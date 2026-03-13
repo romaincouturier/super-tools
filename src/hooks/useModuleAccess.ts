@@ -21,7 +21,8 @@ export type AppModule =
   | "parametres"
   | "arena"
   | "reclamations"
-  | "support";
+  | "support"
+  | "reseau";
 
 export const ALL_MODULES: AppModule[] = [
   "micro_devis",
