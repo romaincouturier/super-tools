@@ -108,6 +108,9 @@ const FormationDetail = () => {
           setNotesChanged={fd.setNotesChanged}
           emailsRefreshTrigger={fd.emailsRefreshTrigger}
           id={fd.id!}
+          thankYouSentAt={fd.thankYouSentAt}
+          isElearningSession={fd.isElearningSession}
+          hasCoaching={fd.availableFormulas.some(f => f.coaching_sessions_count > 0)}
           getSponsorName={fd.getSponsorName}
           calculateTotalDuration={fd.calculateTotalDuration}
           fetchTrainingData={fd.fetchTrainingData}

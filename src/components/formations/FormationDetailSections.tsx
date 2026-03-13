@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import DocumentsManager from "@/components/formations/DocumentsManager";
 import TrainingDocumentsSection from "@/components/formations/TrainingDocumentsSection";
 import ScheduledEmailsSummary from "@/components/formations/ScheduledEmailsSummary";
+import EmailTimelineComputed from "@/components/formations/EmailTimelineComputed";
 import ScheduledActionsEditor, { ScheduledAction } from "@/components/formations/ScheduledActionsEditor";
 import AttendanceSignatureBlock from "@/components/formations/AttendanceSignatureBlock";
 import TrainerAdequacy from "@/components/formations/TrainerAdequacy";
@@ -33,6 +34,9 @@ interface Props {
   setNotesChanged: (v: boolean) => void;
   emailsRefreshTrigger: number;
   id: string;
+  thankYouSentAt: string | null;
+  isElearningSession: boolean;
+  hasCoaching: boolean;
   getSponsorName: () => string | null;
   calculateTotalDuration: () => number;
   fetchTrainingData: () => Promise<void>;
@@ -59,6 +63,9 @@ const FormationDetailSections = ({
   setNotesChanged,
   emailsRefreshTrigger,
   id,
+  thankYouSentAt,
+  isElearningSession,
+  hasCoaching,
   getSponsorName,
   calculateTotalDuration,
   fetchTrainingData,
@@ -103,11 +110,30 @@ const FormationDetailSections = ({
         />
         <TrainingDocumentsSection trainingId={id} />
       </div>
-      <ScheduledEmailsSummary
-        trainingId={training.id}
-        participants={participants}
-        refreshTrigger={emailsRefreshTrigger}
-      />
+      <div className="space-y-6">
+        <EmailTimelineComputed
+          trainingId={training.id}
+          participants={participants}
+          refreshTrigger={emailsRefreshTrigger}
+          trainingStartDate={training.start_date}
+          trainingEndDate={training.end_date}
+          sessionType={training.session_type || null}
+          sessionFormat={training.session_format || null}
+          formatFormation={training.format_formation}
+          trainerName={training.trainer_name}
+          sponsorName={getSponsorName()}
+          sponsorEmail={training.sponsor_email}
+          thankYouSentAt={thankYouSentAt}
+          schedules={schedules}
+          hasCoaching={hasCoaching}
+          isElearning={isElearningSession}
+        />
+        <ScheduledEmailsSummary
+          trainingId={training.id}
+          participants={participants}
+          refreshTrigger={emailsRefreshTrigger}
+        />
+      </div>
     </div>
 
     {/* Scheduled Actions + Attendance */}
