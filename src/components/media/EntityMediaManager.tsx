@@ -315,7 +315,7 @@ const EntityMediaManager = ({
                 )}
 
                 {/* Hover overlay */}
-                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
+                <div className="absolute inset-0 bg-black/60 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity flex items-center justify-center gap-1 z-10">
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
@@ -382,6 +382,14 @@ const EntityMediaManager = ({
           items={lightboxItems}
           onClose={() => setLightboxItem(null)}
           onNavigate={setLightboxItem}
+          onToggleDeliverable={(item) => {
+            toggleDeliverable.mutate({
+              id: item.id,
+              sourceType: item.source_type,
+              sourceId: item.source_id,
+              is_deliverable: !item.is_deliverable,
+            });
+          }}
         />
       )}
     </>

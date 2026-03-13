@@ -1,10 +1,11 @@
 import { MediaItem } from "@/hooks/useMedia";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { X, Briefcase, ChevronLeft, ChevronRight, Download, GraduationCap, CalendarDays, HandCoins } from "lucide-react";
+import { X, Briefcase, ChevronLeft, ChevronRight, Download, GraduationCap, CalendarDays, HandCoins, Package } from "lucide-react";
 import { toast } from "sonner";
 import { useEffect, useCallback } from "react";
 import { formatFileSize } from "@/lib/file-utils";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 const sourceIcon = (sourceType: string) => {
   switch (sourceType) {
@@ -20,9 +21,10 @@ interface MediaLightboxProps {
   items: MediaItem[];
   onClose: () => void;
   onNavigate: (item: MediaItem) => void;
+  onToggleDeliverable?: (item: MediaItem) => void;
 }
 
-const MediaLightbox = ({ item, items, onClose, onNavigate }: MediaLightboxProps) => {
+const MediaLightbox = ({ item, items, onClose, onNavigate, onToggleDeliverable }: MediaLightboxProps) => {
   const currentIndex = items.findIndex((i) => i.id === item.id);
   const hasPrev = currentIndex > 0;
   const hasNext = currentIndex < items.length - 1;
@@ -141,6 +143,23 @@ const MediaLightbox = ({ item, items, onClose, onNavigate }: MediaLightboxProps)
         <span className="text-white text-sm">{item.file_name}</span>
         {item.file_size && (
           <span className="text-white/60 text-sm">{formatFileSize(item.file_size)}</span>
+        )}
+        {onToggleDeliverable && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className={`h-7 w-7 ${item.is_deliverable ? "text-yellow-400 hover:bg-yellow-400/20" : "text-white hover:bg-white/20"}`}
+                onClick={(e) => { e.stopPropagation(); onToggleDeliverable(item); }}
+              >
+                <Package className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              {item.is_deliverable ? "Retirer des livrables" : "Marquer comme livrable"}
+            </TooltipContent>
+          </Tooltip>
         )}
         <Button
           variant="ghost"
