@@ -1,14 +1,11 @@
 import { useState, useRef } from "react";
-import { Bug, Lightbulb, Send, Loader2, CheckCircle2, Paperclip, X, ImageIcon, FileIcon } from "lucide-react";
+import { Send, Loader2, CheckCircle2, Paperclip, X, ImageIcon, FileIcon, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
-import { useCreateSupportTicket } from "@/hooks/useSupport";
-import type { TicketType } from "@/types/support";
+import { useCreateSupportTicket, useAnalyzeTicket } from "@/hooks/useSupport";
 
 const MAX_FILES = 5;
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
@@ -33,15 +30,15 @@ function formatFileSize(bytes: number) {
 export function ChatbotFeedbackTab() {
   const { toast } = useToast();
   const createTicket = useCreateSupportTicket();
+  const analyzeTicket = useAnalyzeTicket();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [type, setType] = useState<TicketType>("bug");
-  const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [submitted, setSubmitted] = useState(false);
 
   const currentUrl = typeof window !== "undefined" ? window.location.pathname : "";
+  const isSubmitting = analyzeTicket.isPending || createTicket.isPending;
 
   const addFiles = (newFiles: FileList | File[]) => {
     const toAdd: File[] = [];
@@ -71,29 +68,37 @@ export function ChatbotFeedbackTab() {
   };
 
   const handleSubmit = async () => {
-    if (!title.trim() || !description.trim()) {
-      toast({ title: "Champs requis", description: "Veuillez remplir le titre et la description.", variant: "destructive" });
+    if (!description.trim()) {
+      toast({ title: "Champ requis", description: "Veuillez décrire votre problème ou votre idée.", variant: "destructive" });
       return;
     }
 
     try {
+      // Step 1: AI analysis (same as Support page)
+      const analysis = await analyzeTicket.mutateAsync(description.trim());
+
+      // Step 2: Create ticket with AI-generated fields
       await createTicket.mutateAsync({
-        type,
-        title: title.trim(),
+        type: analysis.type,
+        title: analysis.title,
         description: description.trim(),
-        priority: "medium",
+        priority: analysis.priority,
         page_url: currentUrl || null,
+        ai_analysis: analysis,
         files: files.length > 0 ? files : undefined,
       });
+
       setSubmitted(true);
-    } catch (e: any) {
+      toast({
+        title: "Ticket créé",
+        description: `L'IA a classifié votre demande comme ${analysis.type === "bug" ? "un bug" : "une évolution"}.`,
+      });
+    } catch {
       toast({ title: "Erreur", description: "Impossible d'envoyer votre retour. Réessayez.", variant: "destructive" });
     }
   };
 
   const handleReset = () => {
-    setType("bug");
-    setTitle("");
     setDescription("");
     setFiles([]);
     setSubmitted(false);
@@ -108,7 +113,7 @@ export function ChatbotFeedbackTab() {
         <div>
           <p className="font-semibold text-foreground">Merci pour votre retour !</p>
           <p className="text-sm text-muted-foreground mt-1">
-            Votre {type === "bug" ? "signalement de bug" : "demande d'évolution"} a bien été enregistré(e).
+            Votre demande a été analysée par l'IA et enregistrée.
             Vous pouvez suivre son avancement dans le module Support.
           </p>
         </div>
@@ -123,56 +128,25 @@ export function ChatbotFeedbackTab() {
     <ScrollArea className="flex-1">
       <div className="p-4 space-y-4">
         <p className="text-sm text-muted-foreground">
-          Signalez un bug ou proposez une amélioration. Votre retour sera traité par l'équipe.
+          Décrivez votre problème ou votre idée. L'IA se charge de classifier et structurer votre demande.
         </p>
-
-        {/* Type */}
-        <div className="space-y-2">
-          <Label className="text-xs font-medium">Type de retour</Label>
-          <RadioGroup value={type} onValueChange={(v) => setType(v as TicketType)} className="flex gap-4">
-            <div className="flex items-center gap-2">
-              <RadioGroupItem value="bug" id="feedback-bug" />
-              <Label htmlFor="feedback-bug" className="font-normal cursor-pointer flex items-center gap-1.5 text-sm">
-                <Bug className="h-3.5 w-3.5 text-red-500" />Bug
-              </Label>
-            </div>
-            <div className="flex items-center gap-2">
-              <RadioGroupItem value="evolution" id="feedback-evo" />
-              <Label htmlFor="feedback-evo" className="font-normal cursor-pointer flex items-center gap-1.5 text-sm">
-                <Lightbulb className="h-3.5 w-3.5 text-violet-500" />Évolution
-              </Label>
-            </div>
-          </RadioGroup>
-        </div>
-
-        {/* Title */}
-        <div className="space-y-1.5">
-          <Label htmlFor="fb-title" className="text-xs font-medium">Titre *</Label>
-          <Input
-            id="fb-title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder={type === "bug" ? "Ex: Le formulaire se recharge tout seul" : "Ex: Ajouter un export PDF"}
-            className="text-sm"
-          />
-        </div>
 
         {/* Description */}
         <div className="space-y-1.5">
-          <Label htmlFor="fb-desc" className="text-xs font-medium">Description *</Label>
+          <Label htmlFor="fb-desc" className="text-xs font-medium">Décrivez votre problème ou votre idée *</Label>
           <Textarea
             id="fb-desc"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder={type === "bug" ? "Décrivez le problème : ce que vous faisiez, ce qui s'est passé, ce que vous attendiez..." : "Décrivez votre besoin et en quoi ça améliorerait votre utilisation..."}
-            rows={4}
+            placeholder="Décrivez ce qui ne fonctionne pas, ou l'amélioration que vous souhaitez..."
+            rows={6}
             className="text-sm"
           />
         </div>
 
         {/* File attachments */}
         <div className="space-y-2">
-          <Label className="text-xs font-medium">Pièces jointes</Label>
+          <Label className="text-xs font-medium">Capture d'écran (optionnel)</Label>
           <input
             ref={fileInputRef}
             type="file"
@@ -210,7 +184,7 @@ export function ChatbotFeedbackTab() {
                   {isImageType(file.type) ? (
                     <ImageIcon className="h-3.5 w-3.5 text-blue-500 shrink-0" />
                   ) : (
-                    <FileIcon className="h-3.5 w-3.5 text-gray-500 shrink-0" />
+                    <FileIcon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                   )}
                   <span className="truncate flex-1 text-xs">{file.name}</span>
                   <span className="text-[10px] text-muted-foreground shrink-0">
@@ -236,17 +210,29 @@ export function ChatbotFeedbackTab() {
           </p>
         )}
 
+        {/* AI info banner */}
+        <div className="rounded-lg bg-muted/50 border border-dashed p-3 text-xs text-muted-foreground flex items-start gap-2">
+          <Sparkles className="h-4 w-4 shrink-0 mt-0.5 text-primary" />
+          <span>L'IA va analyser votre demande pour la classifier automatiquement (bug ou évolution), définir sa priorité et structurer le ticket.</span>
+        </div>
+
         {/* Submit */}
         <Button
           onClick={handleSubmit}
-          disabled={createTicket.isPending || !title.trim() || !description.trim()}
+          disabled={isSubmitting || !description.trim()}
           className="w-full"
           size="sm"
         >
-          {createTicket.isPending ? (
-            <><Loader2 className="h-4 w-4 animate-spin mr-2" />Envoi...</>
+          {isSubmitting ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              {analyzeTicket.isPending ? "Analyse IA en cours..." : "Création du ticket..."}
+            </>
           ) : (
-            <><Send className="h-4 w-4 mr-2" />Envoyer</>
+            <>
+              <Sparkles className="h-4 w-4 mr-2" />
+              Soumettre la demande
+            </>
           )}
         </Button>
       </div>
