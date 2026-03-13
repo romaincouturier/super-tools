@@ -34,6 +34,9 @@ interface Props {
   setNotesChanged: (v: boolean) => void;
   emailsRefreshTrigger: number;
   id: string;
+  thankYouSentAt: string | null;
+  isElearningSession: boolean;
+  hasCoaching: boolean;
   getSponsorName: () => string | null;
   calculateTotalDuration: () => number;
   fetchTrainingData: () => Promise<void>;
