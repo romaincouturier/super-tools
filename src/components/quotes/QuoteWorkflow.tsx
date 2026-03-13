@@ -2,7 +2,8 @@ import { useState, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft } from "lucide-react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { ChevronLeft, PanelRightOpen, FileText, Save, Loader2 } from "lucide-react";
 import QuoteWorkflowStepper from "./QuoteWorkflowStepper";
 import Step0ClientValidation, { type ClientData } from "./Step0ClientValidation";
 import Step1Synthesis from "./Step1Synthesis";
@@ -14,7 +15,6 @@ import { useCreateQuote, useUpdateQuote, useQuote } from "@/hooks/useQuotes";
 import type { CrmCard } from "@/types/crm";
 import type { Quote, QuoteWorkflowStep } from "@/types/quotes";
 import type { TravelDestination, TravelSettings } from "@/components/crm/TravelExpenseCalculator";
-import { Loader2 } from "lucide-react";
 
 interface Props {
   crmCard: CrmCard;
@@ -252,8 +252,128 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
     );
   }
 
+  // Manual save handler
+  const [isSaving, setIsSaving] = useState(false);
+  const handleManualSave = async () => {
+    setIsSaving(true);
+    try {
+      if (quote) {
+        await updateMutation.mutateAsync({
+          id: quote.id,
+          updates: {
+            synthesis,
+            instructions,
+            loom_url: loomUrl || null,
+            workflow_step: step,
+            ...(challengeHtml ? { challenge_html: challengeHtml } as any : {}),
+            ...(travelDestinations.length > 0 ? { travel_data: { total: travelTotal, destinations: travelDestinations, settings: travelSettings } } : {}),
+            ...(clientData ? {
+              client_company: clientData.company,
+              client_address: clientData.address,
+              client_zip: clientData.zip,
+              client_city: clientData.city,
+              client_vat_number: clientData.vatNumber || null,
+              client_siren: clientData.siren || null,
+              client_email: clientData.email || null,
+            } : {}),
+          },
+        });
+        toast.success("Devis sauvegardé");
+      } else {
+        // Create a draft quote
+        const newQuote = await createMutation.mutateAsync({
+          crm_card_id: crmCard.id,
+          client_company: clientData?.company || crmCard.company || "",
+          client_address: clientData?.address || "",
+          client_zip: clientData?.zip || "",
+          client_city: clientData?.city || "",
+          client_vat_number: clientData?.vatNumber || null,
+          client_siren: clientData?.siren || null,
+          client_email: clientData?.email || null,
+        });
+        setQuote(newQuote);
+        // Save additional data
+        await updateMutation.mutateAsync({
+          id: newQuote.id,
+          updates: {
+            synthesis,
+            instructions,
+            loom_url: loomUrl || null,
+            workflow_step: step,
+            ...(challengeHtml ? { challenge_html: challengeHtml } as any : {}),
+          },
+        });
+        toast.success("Brouillon de devis créé");
+      }
+    } catch (e: any) {
+      toast.error("Erreur lors de la sauvegarde : " + (e.message || "Erreur inconnue"));
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
     <div>
+      {/* Global toolbar: sidebar toggle + save button */}
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          {crmCard.description_html && (
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5"
+                >
+                  <PanelRightOpen className="w-4 h-4" />
+                  Fiche opportunité
+                </Button>
+              </SheetTrigger>
+              <SheetContent className="w-[500px] sm:w-[700px] overflow-y-auto">
+                <SheetHeader>
+                  <SheetTitle className="flex items-center gap-2">
+                    <FileText className="w-5 h-5" />
+                    {crmCard.title}
+                  </SheetTitle>
+                </SheetHeader>
+                <div className="mt-4 space-y-4">
+                  <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
+                    {(clientData?.company || crmCard.company) && (
+                      <span className="bg-muted px-2 py-0.5 rounded">{clientData?.company || crmCard.company}</span>
+                    )}
+                    {crmCard.service_type && <span className="bg-muted px-2 py-0.5 rounded">{crmCard.service_type}</span>}
+                    {crmCard.estimated_value && <span className="bg-muted px-2 py-0.5 rounded">{crmCard.estimated_value} €</span>}
+                  </div>
+                  <div
+                    className="text-sm leading-relaxed [&_h1]:text-lg [&_h1]:font-bold [&_h1]:mt-4 [&_h1]:mb-2 [&_h2]:text-base [&_h2]:font-semibold [&_h2]:mt-3 [&_h2]:mb-1 [&_h3]:text-sm [&_h3]:font-semibold [&_h3]:mt-3 [&_h3]:mb-1 [&_p]:my-1.5 [&_ul]:my-1 [&_ul]:pl-5 [&_ul]:list-disc [&_ol]:my-1 [&_ol]:pl-5 [&_ol]:list-decimal [&_li]:my-0.5 [&_strong]:font-semibold [&_a]:text-primary [&_a]:underline"
+                    dangerouslySetInnerHTML={{ __html: crmCard.description_html }}
+                  />
+                  {synthesis && (
+                    <div className="border-t pt-4">
+                      <h3 className="font-semibold text-sm mb-2">Synthèse générée</h3>
+                      <div
+                        className="text-sm leading-relaxed [&_h3]:text-base [&_h3]:font-semibold [&_h3]:mt-4 [&_h3]:mb-1 [&_h3:first-child]:mt-0 [&_p]:my-1 [&_ul]:my-1 [&_ul]:pl-5 [&_ul]:list-disc [&_li]:my-0.5 [&_strong]:font-semibold"
+                        dangerouslySetInnerHTML={{ __html: synthesis }}
+                      />
+                    </div>
+                  )}
+                </div>
+              </SheetContent>
+            </Sheet>
+          )}
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-1.5"
+          onClick={handleManualSave}
+          disabled={isSaving}
+        >
+          {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+          Sauvegarder
+        </Button>
+      </div>
+
       <QuoteWorkflowStepper
         currentStep={step}
         completedSteps={completedSteps}

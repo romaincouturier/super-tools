@@ -26,6 +26,33 @@ function stripHtml(html: string): string {
   return div.textContent || div.innerText || "";
 }
 
+function cleanScriptOutput(raw: string): string {
+  // Strip markdown code fences
+  let cleaned = raw
+    .replace(/^```html?\s*\n?/i, "")
+    .replace(/\n?```\s*$/i, "")
+    .trim();
+
+  // If the output looks like markdown (has # headers, **bold**, etc.) convert to basic HTML
+  if (/^#{1,3}\s/m.test(cleaned) && !/<[a-z][\s\S]*>/i.test(cleaned)) {
+    cleaned = cleaned
+      .replace(/^### (.+)$/gm, "<h3>$1</h3>")
+      .replace(/^## (.+)$/gm, "<h2>$1</h2>")
+      .replace(/^# (.+)$/gm, "<h1>$1</h1>")
+      .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+      .replace(/\*(.+?)\*/g, "<em>$1</em>")
+      .replace(/^- (.+)$/gm, "<li>$1</li>")
+      .replace(/(<li>[\s\S]*?<\/li>)/g, "<ul>$1</ul>")
+      .replace(/<\/ul>\s*<ul>/g, "")
+      .replace(/\n{2,}/g, "</p><p>")
+      .replace(/^(?!<[a-z])/gm, (line) => line ? `<p>${line}</p>` : "")
+      .replace(/<p><(h[1-3]|ul|li|ol)>/g, "<$1>")
+      .replace(/<\/(h[1-3]|ul|li|ol)><\/p>/g, "</$1>");
+  }
+
+  return cleaned;
+}
+
 export default function Step4Loom({
   onContinue,
   onDraftChange,
@@ -77,7 +104,7 @@ export default function Step4Loom({
         },
       });
       if (error) throw error;
-      setScript(data.result);
+      setScript(cleanScriptOutput(data.result));
     } catch {
       setScript("Erreur lors de la génération du script. Veuillez réessayer.");
     } finally {
@@ -86,7 +113,7 @@ export default function Step4Loom({
   }, [crmCard, quote, synthesis, instructions, challengeHtml]);
 
   const copyScript = async () => {
-    if (script) await navigator.clipboard.writeText(script);
+    if (script) await navigator.clipboard.writeText(stripHtml(script));
   };
 
   return (
@@ -142,9 +169,10 @@ export default function Step4Loom({
                 </div>
               )}
               {script && !scriptLoading && (
-                <div className="p-4 rounded-lg border bg-muted/30 text-sm whitespace-pre-wrap leading-relaxed">
-                  {script}
-                </div>
+                <div
+                  className="p-4 rounded-lg border bg-muted/30 text-sm leading-relaxed [&_h1]:text-lg [&_h1]:font-bold [&_h1]:mt-4 [&_h1]:mb-2 [&_h2]:text-base [&_h2]:font-semibold [&_h2]:mt-3 [&_h2]:mb-1 [&_h3]:text-sm [&_h3]:font-semibold [&_h3]:mt-3 [&_h3]:mb-1 [&_p]:my-1.5 [&_ul]:my-1 [&_ul]:pl-5 [&_ul]:list-disc [&_ol]:my-1 [&_ol]:pl-5 [&_ol]:list-decimal [&_li]:my-0.5 [&_strong]:font-semibold"
+                  dangerouslySetInnerHTML={{ __html: script }}
+                />
               )}
             </div>
           )}
