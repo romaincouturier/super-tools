@@ -319,6 +319,12 @@ verify_jwt = false
 [functions.notify-session-full]
 verify_jwt = false
 
+[functions.network-ai-assistant]
+verify_jwt = false
+
+[functions.network-generate-actions]
+verify_jwt = false
+
 [functions.okr-ai-assistant]
 verify_jwt = false
 

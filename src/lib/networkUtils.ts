@@ -8,6 +8,9 @@ import type {
   WarmthLevel,
 } from "@/types/reseau";
 
+/** Alert when contact reaches 70% of warmth threshold */
+const COOLING_ALERT_RATIO = 0.7;
+
 const DEFAULT_THRESHOLDS: CoolingThresholds = { hot: 14, warm: 30, cold: 60 };
 
 export function computeCoolingContacts(
@@ -25,7 +28,7 @@ export function computeCoolingContacts(
     const daysSince = Math.floor(
       (now.getTime() - refDate.getTime()) / (1000 * 60 * 60 * 24)
     );
-    if (daysSince >= threshold * 0.7) {
+    if (daysSince >= threshold * COOLING_ALERT_RATIO) {
       cooling.push({
         contact,
         daysSinceLastContact: daysSince,

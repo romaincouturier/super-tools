@@ -68,13 +68,17 @@ const WeeklyActions = ({ positioning, contacts }: WeeklyActionsProps) => {
     toast({ title: "Copié !" });
   };
 
-  const handleStatusUpdate = (action: NetworkAction & { contact: NetworkContact | null }, status: "done" | "skipped") => {
-    updateStatus.mutate({
-      id: action.id,
-      status,
-      contactId: action.contact_id,
-      actionType: action.action_type,
-    });
+  const handleStatusUpdate = async (action: NetworkAction & { contact: NetworkContact | null }, status: "done" | "skipped") => {
+    try {
+      await updateStatus.mutateAsync({
+        id: action.id,
+        status,
+        contactId: action.contact_id,
+        actionType: action.action_type,
+      });
+    } catch {
+      toast({ title: "Erreur", description: "Impossible de mettre à jour l'action.", variant: "destructive" });
+    }
   };
 
   if (actionsLoading) {

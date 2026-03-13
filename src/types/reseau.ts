@@ -38,6 +38,7 @@ export interface UserPositioning {
   pitch_one_liner: string | null;
   key_skills: string[];
   target_client: string | null;
+  cooling_thresholds?: CoolingThresholds;
   onboarding_completed_at: string | null;
   updated_at: string;
 }

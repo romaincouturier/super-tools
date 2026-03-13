@@ -13,7 +13,7 @@ export const useCoolingContacts = (
   positioning: UserPositioning | null,
 ) => {
   return useMemo(() => {
-    const thresholds: CoolingThresholds = (positioning as any)?.cooling_thresholds || { hot: 14, warm: 30, cold: 60 };
+    const thresholds: CoolingThresholds = positioning?.cooling_thresholds || { hot: 14, warm: 30, cold: 60 };
     return computeCoolingContacts(contacts, thresholds);
   }, [contacts, positioning]);
 };
