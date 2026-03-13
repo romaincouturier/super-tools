@@ -818,14 +818,15 @@ const TravelExpenseCalculator = ({
                   </div>
                   <div className="flex gap-0.5">
                     <Button
+                      type="button"
                       variant="ghost"
                       size="icon"
-                      className={cn("h-8 w-8", favorites.some((f) => f.city === dest.city) ? "text-yellow-500" : "text-muted-foreground hover:text-yellow-500")}
-                      onClick={() => addFavorite(dest)}
-                      disabled={!dest.city.trim()}
+                      className={cn("h-8 w-8", favorites.some((f) => f.city === dest.city?.trim()) ? "text-yellow-500" : "text-muted-foreground hover:text-yellow-500")}
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); addFavorite(dest); }}
+                      disabled={!dest.city?.trim()}
                       title="Ajouter aux favoris"
                     >
-                      <Star className={cn("h-3.5 w-3.5", favorites.some((f) => f.city === dest.city) && "fill-current")} />
+                      <Star className={cn("h-3.5 w-3.5", favorites.some((f) => f.city === dest.city?.trim()) && "fill-current")} />
                     </Button>
                     <Button
                       variant="ghost"
