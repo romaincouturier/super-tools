@@ -203,34 +203,31 @@ const ScheduledEmailsSummary = ({ trainingId, participants, refreshTrigger }: Sc
   };
 
   const getEmailTypeLabel = (type: string) => {
-    switch (type) {
-      case "welcome":
-        return "Mail d'accueil";
-      case "needs_survey":
-        return "Recueil des besoins";
-      case "reminder":
-        return "Rappel logistique";
-      case "trainer_summary":
-        return "Synthèse formateur";
-      case "thank_you":
-        return "Remerciement";
-      case "google_review":
-        return "Avis Google";
-      case "video_testimonial":
-        return "Témoignage vidéo";
-      case "cold_evaluation":
-        return "Évaluation à froid commanditaire";
-      case "funder_reminder":
-        return "Rappel financeur";
-      case "evaluation_reminder_1":
-        return "Relance évaluation (1ère)";
-      case "evaluation_reminder_2":
-        return "Relance évaluation (2ème)";
-      case "follow_up_news":
-        return "Prise de nouvelles";
-      default:
-        return type;
-    }
+    const labels: Record<string, string> = {
+      welcome: "Mail d'accueil",
+      needs_survey: "Recueil des besoins",
+      needs_survey_reminder: "Relance recueil des besoins",
+      reminder: "Rappel logistique",
+      trainer_summary: "Synthèse formateur",
+      thank_you: "Remerciement",
+      google_review: "Avis Google",
+      video_testimonial: "Témoignage vidéo",
+      cold_evaluation: "Évaluation à froid commanditaire",
+      funder_reminder: "Rappel financeur",
+      evaluation_reminder_1: "Relance évaluation (1ère)",
+      evaluation_reminder_2: "Relance évaluation (2ème)",
+      follow_up_news: "Prise de nouvelles",
+      live_reminder: "Rappel live / visio",
+      coaching_first_invite: "Invitation coaching (J+1)",
+      coaching_periodic_reminder: "Rappel coaching périodique",
+      coaching_final_reminder: "Rappel coaching (dernier mois)",
+      booking_reminder: "Rappel réservation coaching",
+      next_inter_session_reminder: "Programmer prochaine session inter",
+      participant_list_reminder: "Rappel liste participants",
+      elearning_access: "Accès e-learning",
+      certificate: "Envoi certificat",
+    };
+    return labels[type] || type;
   };
 
   const getEmailSubject = (email: ScheduledEmail) => {
