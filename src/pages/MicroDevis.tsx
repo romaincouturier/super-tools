@@ -163,7 +163,13 @@ const MicroDevis = () => {
       setCodePostalClient(fd.codePostalClient || ""); setVilleClient(fd.villeClient || "");
       setPays(fd.pays === "France" ? "france" : "autre");
       if (fd.pays && fd.pays !== "France") setPaysAutre(fd.pays);
-      setEmailCommanditaire(fd.emailCommanditaire || ""); setAdresseCommanditaire(fd.adresseCommanditaire || "");
+      setEmailCommanditaire(fd.emailCommanditaire || "");
+      if (fd.adresseCommanditaire) {
+        const ac = fd.adresseCommanditaire;
+        if (ac.startsWith("Mme ")) { setCiviliteCommanditaire("Mme"); setNomCommanditaire(ac.slice(4)); }
+        else if (ac.startsWith("M. ")) { setCiviliteCommanditaire("M."); setNomCommanditaire(ac.slice(3)); }
+        else { setNomCommanditaire(ac); }
+      }
       setTypeDevis(fd.typeDevis || "formation"); setIsAdministration(fd.isAdministration ? "oui" : "non");
       setNoteDevis(fd.noteDevis || ""); setFormatFormation(fd.formatFormation || "inter");
       setFormationDemandee(fd.formationDemandee || ""); setFormationLibre(fd.formationLibre || "");
