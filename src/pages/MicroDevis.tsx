@@ -318,7 +318,7 @@ const MicroDevis = () => {
                 <FormationFormSection
                   formatFormation={formatFormation} setFormatFormation={setFormatFormation}
                   participants={participants} setParticipants={setParticipants}
-                  adresseCommanditaire={adresseCommanditaire} emailCommanditaire={emailCommanditaire}
+                  adresseCommanditaire={`${civiliteCommanditaire} ${nomCommanditaire}`.trim()} emailCommanditaire={emailCommanditaire}
                   countParticipants={countParticipants}
                   formationDemandee={formationDemandee} setFormationDemandee={setFormationDemandee}
                   formationConfigs={configsHook.formationConfigs} loadingConfigs={configsHook.loadingConfigs}
