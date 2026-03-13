@@ -38,7 +38,8 @@ const MicroDevis = () => {
   const [pays, setPays] = useState("france");
   const [paysAutre, setPaysAutre] = useState("");
   const [emailCommanditaire, setEmailCommanditaire] = useState("");
-  const [adresseCommanditaire, setAdresseCommanditaire] = useState("");
+  const [civiliteCommanditaire, setCiviliteCommanditaire] = useState<"M." | "Mme" | "">("");
+  const [nomCommanditaire, setNomCommanditaire] = useState("");
   const [typeDevis, setTypeDevis] = useState<"formation" | "jeu" | "">("");
   const [isAdministration, setIsAdministration] = useState<"oui" | "non" | "">("");
   const [noteDevis, setNoteDevis] = useState("");
@@ -130,7 +131,12 @@ const MicroDevis = () => {
     const c = searchParams.get("crmCardId");
     if (n) setNomClient(n);
     if (e) setEmailCommanditaire(e);
-    if (a) setAdresseCommanditaire(a);
+    if (a) {
+      // Parse "Mme Dupont" or "M. Dupont" from CRM prefill
+      if (a.startsWith("Mme ")) { setCiviliteCommanditaire("Mme"); setNomCommanditaire(a.slice(4)); }
+      else if (a.startsWith("M. ")) { setCiviliteCommanditaire("M."); setNomCommanditaire(a.slice(3)); }
+      else { setNomCommanditaire(a); }
+    }
     if (c) setCrmCardId(c);
     setTypeDevis("formation");
     toast({ title: "Données préremplies", description: "Les informations de l'opportunité CRM ont été importées." });
@@ -157,7 +163,13 @@ const MicroDevis = () => {
       setCodePostalClient(fd.codePostalClient || ""); setVilleClient(fd.villeClient || "");
       setPays(fd.pays === "France" ? "france" : "autre");
       if (fd.pays && fd.pays !== "France") setPaysAutre(fd.pays);
-      setEmailCommanditaire(fd.emailCommanditaire || ""); setAdresseCommanditaire(fd.adresseCommanditaire || "");
+      setEmailCommanditaire(fd.emailCommanditaire || "");
+      if (fd.adresseCommanditaire) {
+        const ac = fd.adresseCommanditaire;
+        if (ac.startsWith("Mme ")) { setCiviliteCommanditaire("Mme"); setNomCommanditaire(ac.slice(4)); }
+        else if (ac.startsWith("M. ")) { setCiviliteCommanditaire("M."); setNomCommanditaire(ac.slice(3)); }
+        else { setNomCommanditaire(ac); }
+      }
       setTypeDevis(fd.typeDevis || "formation"); setIsAdministration(fd.isAdministration ? "oui" : "non");
       setNoteDevis(fd.noteDevis || ""); setFormatFormation(fd.formatFormation || "inter");
       setFormationDemandee(fd.formationDemandee || ""); setFormationLibre(fd.formationLibre || "");
@@ -209,6 +221,7 @@ const MicroDevis = () => {
     const pl = participants.split(/[,;\n]/).map(p => p.trim()).filter(p => p.length > 0);
     const ct = includeCadeau ? "Chaque participant(e) aura : 1 kit de facilitation graphique ainsi qu'un accès illimité et à vie au e-learning de 25h pour continuer sa formation en facilitation graphique" : "";
     const label = formulasHook.selectedFormula ? `${formationDemandee} — ${formulasHook.selectedFormula}` : formationDemandee;
+    const adresseCommanditaire = `${civiliteCommanditaire} ${nomCommanditaire}`.trim();
     return {
       requestPayload: { nomClient, adresseClient, codePostalClient, villeClient, pays: fp, emailCommanditaire, adresseCommanditaire, isAdministration: isAdministration === "oui", noteDevis, formationDemandee: label, dateFormation, lieu: fl, includeCadeau, fraisDossier: fraisDossier === "oui", prix: ep, dureeHeures: ed, programmeUrl: sc.programme_url, nbParticipants: np, participants },
       pdfMonkeyPayload: { client: { name: nomClient, address: adresseClient, zip: codePostalClient, city: villeClient, country: fp }, note: noteDevis || "", affiche_frais: fraisDossier === "oui" ? "Oui" : "Non", subrogation: "Oui / Non (2 versions)", cadeau: ct, items: [{ name: label, participant_name: pl.length > 0 ? pl : [`${adresseCommanditaire} ${emailCommanditaire}`], date: dateFormation, place: fl, duration: `${ed}h`, quantity: np, unit_price: ep }], admin_fee: fraisDossier === "oui" ? 150 : 0, is_administration: isAdministration === "oui" },
@@ -233,13 +246,13 @@ const MicroDevis = () => {
       const ed = af?.duree_heures ?? sc.duree_heures;
       const label = formulasHook.selectedFormula ? `${formationDemandee} — ${formulasHook.selectedFormula}` : formationDemandee;
       const response = await supabase.functions.invoke("generate-micro-devis", {
-        body: { nomClient, adresseClient, codePostalClient, villeClient, pays: finalPays, emailCommanditaire: normalizedEmail, adresseCommanditaire, isAdministration: isAdministration === "oui", noteDevis, formationDemandee: label, dateFormation, lieu: finalLieu, includeCadeau, fraisDossier: fraisDossier === "oui", prix: ep, dureeHeures: ed, programmeUrl: sc.programme_url, nbParticipants: countParticipants(), participants, typeSubrogation, typeDevis, formatFormation, formationLibre, dateFormationLibre, lieuAutre, ...(crmCardId && { crmCardId, senderEmail: user?.email }) },
+        body: { nomClient, adresseClient, codePostalClient, villeClient, pays: finalPays, emailCommanditaire: normalizedEmail, adresseCommanditaire: `${civiliteCommanditaire} ${nomCommanditaire}`.trim(), isAdministration: isAdministration === "oui", noteDevis, formationDemandee: label, dateFormation, lieu: finalLieu, includeCadeau, fraisDossier: fraisDossier === "oui", prix: ep, dureeHeures: ed, programmeUrl: sc.programme_url, nbParticipants: countParticipants(), participants, typeSubrogation, typeDevis, formatFormation, formationLibre, dateFormationLibre, lieuAutre, ...(crmCardId && { crmCardId, senderEmail: user?.email }) },
       });
       if (response.error) throw new Error(response.error.message);
       toast({ title: typeSubrogation === "les2" ? "Devis envoyés !" : "Devis envoyé !", description: typeSubrogation === "les2" ? `Les 2 devis ont été générés et envoyés à ${normalizedEmail}` : `Le devis a été généré et envoyé à ${normalizedEmail}` });
       if (searchParams.get("source") === "crm") { setTimeout(() => { window.close(); }, 1500); return; }
       setNomClient(""); setAdresseClient(""); setCodePostalClient(""); setVilleClient("");
-      setPays("france"); setPaysAutre(""); setEmailCommanditaire(""); setAdresseCommanditaire("");
+      setPays("france"); setPaysAutre(""); setEmailCommanditaire(""); setCiviliteCommanditaire(""); setNomCommanditaire("");
       setTypeDevis(""); setIsAdministration(""); setNoteDevis(""); setParticipants("");
       setFormationDemandee(configsHook.formationConfigs.find(f => f.is_default)?.formation_name || "");
       setDateFormation(""); setLieu(""); setLieuAutre(""); setIncludeCadeau(false); setFraisDossier("");
@@ -291,7 +304,8 @@ const MicroDevis = () => {
                 villeClient={villeClient} setVilleClient={setVilleClient}
                 pays={pays} setPays={setPays} paysAutre={paysAutre} setPaysAutre={setPaysAutre}
                 emailCommanditaire={emailCommanditaire} setEmailCommanditaire={setEmailCommanditaire}
-                adresseCommanditaire={adresseCommanditaire} setAdresseCommanditaire={setAdresseCommanditaire}
+                civiliteCommanditaire={civiliteCommanditaire} setCiviliteCommanditaire={setCiviliteCommanditaire}
+                nomCommanditaire={nomCommanditaire} setNomCommanditaire={setNomCommanditaire}
               />
 
               <TypeDevisSection
@@ -304,7 +318,7 @@ const MicroDevis = () => {
                 <FormationFormSection
                   formatFormation={formatFormation} setFormatFormation={setFormatFormation}
                   participants={participants} setParticipants={setParticipants}
-                  adresseCommanditaire={adresseCommanditaire} emailCommanditaire={emailCommanditaire}
+                  adresseCommanditaire={`${civiliteCommanditaire} ${nomCommanditaire}`.trim()} emailCommanditaire={emailCommanditaire}
                   countParticipants={countParticipants}
                   formationDemandee={formationDemandee} setFormationDemandee={setFormationDemandee}
                   formationConfigs={configsHook.formationConfigs} loadingConfigs={configsHook.loadingConfigs}
