@@ -244,6 +244,14 @@ const tools: Tool[] = [
     path: "/support",
     module: "support",
   },
+  {
+    id: "reseau",
+    name: "Réseau",
+    description: "Positionnement & cartographie de votre réseau professionnel",
+    icon: <Users />,
+    path: "/reseau",
+    module: "reseau",
+  },
 ];
 
 // ---------- size helpers ----------
