@@ -27,6 +27,7 @@ import {
   BookOpen,
   Star,
   LayoutDashboard,
+  Users,
 } from "lucide-react";
 import {
   DndContext,
