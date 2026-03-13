@@ -330,11 +330,13 @@ function calcDestinationCost(dest: TravelDestination, settings: TravelSettings) 
 function CityAutocomplete({
   value,
   onSelect,
+  onInputChange,
   placeholder,
   className,
 }: {
   value: string;
   onSelect: (name: string, lat: number, lon: number) => void;
+  onInputChange?: (name: string) => void;
   placeholder?: string;
   className?: string;
 }) {
@@ -361,6 +363,7 @@ function CityAutocomplete({
 
   const handleChange = useCallback((text: string) => {
     setQuery(text);
+    onInputChange?.(text);
     if (debounceRef.current) clearTimeout(debounceRef.current);
     if (text.length < 2) {
       setResults([]);
@@ -374,7 +377,7 @@ function CityAutocomplete({
       setShowDropdown(r.length > 0);
       setIsLoading(false);
     }, 400);
-  }, []);
+  }, [onInputChange]);
 
   const handleSelect = (r: GeoResult) => {
     const shortName = r.display_name.split(",")[0].trim();
