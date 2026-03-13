@@ -25,8 +25,10 @@ interface ClientInfoSectionProps {
   setPaysAutre: (v: string) => void;
   emailCommanditaire: string;
   setEmailCommanditaire: (v: string) => void;
-  adresseCommanditaire: string;
-  setAdresseCommanditaire: (v: string) => void;
+  civiliteCommanditaire: "M." | "Mme" | "";
+  setCiviliteCommanditaire: (v: "M." | "Mme" | "") => void;
+  nomCommanditaire: string;
+  setNomCommanditaire: (v: string) => void;
 }
 
 export default function ClientInfoSection({
