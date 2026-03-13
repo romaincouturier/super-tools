@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import DocumentsManager from "@/components/formations/DocumentsManager";
 import TrainingDocumentsSection from "@/components/formations/TrainingDocumentsSection";
 import ScheduledEmailsSummary from "@/components/formations/ScheduledEmailsSummary";
+import EmailTimelineComputed from "@/components/formations/EmailTimelineComputed";
 import ScheduledActionsEditor, { ScheduledAction } from "@/components/formations/ScheduledActionsEditor";
 import AttendanceSignatureBlock from "@/components/formations/AttendanceSignatureBlock";
 import TrainerAdequacy from "@/components/formations/TrainerAdequacy";
