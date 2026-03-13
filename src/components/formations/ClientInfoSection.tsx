@@ -52,8 +52,10 @@ export default function ClientInfoSection({
   setPaysAutre,
   emailCommanditaire,
   setEmailCommanditaire,
-  adresseCommanditaire,
-  setAdresseCommanditaire,
+  civiliteCommanditaire,
+  setCiviliteCommanditaire,
+  nomCommanditaire,
+  setNomCommanditaire,
 }: ClientInfoSectionProps) {
   return (
     <div className="space-y-4">
