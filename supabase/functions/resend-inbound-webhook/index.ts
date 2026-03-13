@@ -450,27 +450,31 @@ serve(async (req) => {
   try {
     const payloadText = await req.text();
 
-    // Verify webhook signature if secret is configured
-    if (RESEND_WEBHOOK_SECRET) {
-      const isValid = await verifyWebhookSignature(
-        payloadText,
-        {
-          svixId: req.headers.get("svix-id"),
-          svixTimestamp: req.headers.get("svix-timestamp"),
-          svixSignature: req.headers.get("svix-signature"),
-        },
-        RESEND_WEBHOOK_SECRET
-      );
+    // Verify webhook signature — mandatory
+    if (!RESEND_WEBHOOK_SECRET) {
+      console.error("RESEND_WEBHOOK_SECRET not configured — rejecting request");
+      return new Response(JSON.stringify({ error: "Webhook not properly configured" }), {
+        status: 503,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
-      if (!isValid) {
-        console.error("Invalid webhook signature");
-        return new Response(JSON.stringify({ error: "Invalid signature" }), {
-          status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-    } else {
-      console.warn("RESEND_WEBHOOK_SECRET not configured - skipping signature verification");
+    const isValid = await verifyWebhookSignature(
+      payloadText,
+      {
+        svixId: req.headers.get("svix-id"),
+        svixTimestamp: req.headers.get("svix-timestamp"),
+        svixSignature: req.headers.get("svix-signature"),
+      },
+      RESEND_WEBHOOK_SECRET
+    );
+
+    if (!isValid) {
+      console.error("Invalid webhook signature");
+      return new Response(JSON.stringify({ error: "Invalid signature" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const payload: ResendInboundPayload = JSON.parse(payloadText);
