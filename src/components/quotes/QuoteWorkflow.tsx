@@ -327,6 +327,9 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
     }
   };
 
+  // Manual save handler
+  const [isSaving, setIsSaving] = useState(false);
+
   if (existingQuoteId && loadingQuote) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -335,8 +338,6 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
     );
   }
 
-  // Manual save handler
-  const [isSaving, setIsSaving] = useState(false);
   const handleManualSave = async () => {
     setIsSaving(true);
     try {
