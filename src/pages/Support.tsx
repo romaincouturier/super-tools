@@ -14,6 +14,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import ModuleLayout from "@/components/ModuleLayout";
 import GenericKanbanBoard from "@/components/shared/kanban/GenericKanbanBoard";
+import SupportTicketCard from "@/components/support/SupportTicketCard";
 import { useSupportTickets, useCreateSupportTicket, useUpdateSupportTicket, useMoveSupportTicket, useAnalyzeTicket } from "@/hooks/useSupport";
 import {
   SUPPORT_COLUMNS,
@@ -161,36 +162,9 @@ const Support = () => {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const renderCard = (card: SupportTicketCard) => {
-    const t = card.ticket;
-    const typeConf = TICKET_TYPE_CONFIG[t.type];
-    const prioConf = TICKET_PRIORITY_CONFIG[t.priority];
-
-    return (
-      <div
-        className="bg-background border rounded-lg p-3 shadow-sm hover:shadow-md transition-shadow cursor-pointer space-y-2"
-        onClick={() => setDetailTicket(t)}
-      >
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex items-center gap-1.5">
-            <Badge variant="outline" style={{ borderColor: typeConf.color, color: typeConf.color }} className="text-[10px] px-1.5 py-0">
-              {t.type === "bug" ? <Bug className="h-2.5 w-2.5 mr-0.5" /> : <Lightbulb className="h-2.5 w-2.5 mr-0.5" />}
-              {typeConf.label}
-            </Badge>
-            <Badge variant="outline" style={{ borderColor: prioConf.color, color: prioConf.color }} className="text-[10px] px-1.5 py-0">
-              {prioConf.label}
-            </Badge>
-          </div>
-          <span className="text-[10px] text-muted-foreground font-mono shrink-0">{t.ticket_number}</span>
-        </div>
-        <p className="text-sm font-medium leading-tight line-clamp-2">{t.title}</p>
-        <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-          <span>{t.submitted_by_email?.split("@")[0] || "—"}</span>
-          <span>{formatDistanceToNow(new Date(t.created_at), { addSuffix: true, locale: fr })}</span>
-        </div>
-      </div>
-    );
-  };
+  const renderCard = (card: SupportTicketCard, isDragging?: boolean) => (
+    <SupportTicketCard card={card} isDragging={isDragging} />
+  );
 
   const renderColumnHeader = (column: typeof SUPPORT_COLUMNS[0], columnCards: SupportTicketCard[]) => (
     <div className="flex items-center justify-between px-2 py-1">
@@ -353,6 +327,7 @@ const Support = () => {
             columns={SUPPORT_COLUMNS}
             cards={cards}
             loading={isLoading}
+            config={{ cardSortable: true }}
             renderCard={renderCard}
             renderColumnHeader={renderColumnHeader}
             onCardMove={handleCardMove}
