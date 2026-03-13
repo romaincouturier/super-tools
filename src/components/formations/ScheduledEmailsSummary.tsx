@@ -653,71 +653,160 @@ L'objectif est de renouer le contact de manière humaine et naturelle, sans ques
       <CollapsibleTrigger asChild>
         <Button variant="ghost" size="sm" className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground h-auto py-2 px-3">
           <Info className="h-4 w-4 flex-shrink-0" />
-          <span className="text-xs text-left">Comment fonctionne la programmation des emails ?</span>
+          <span className="text-xs text-left">📋 Récap complet de tous les emails automatisés</span>
           <ChevronDown className={`h-3 w-3 ml-auto transition-transform ${rulesExpanded ? "rotate-180" : ""}`} />
         </Button>
       </CollapsibleTrigger>
       <CollapsibleContent>
-        <div className="mt-2 p-3 bg-muted/50 rounded-lg text-xs text-muted-foreground space-y-3">
+        <div className="mt-2 p-3 bg-muted/50 rounded-lg text-xs text-muted-foreground space-y-4">
+
+          {/* ===== INSCRIPTION ===== */}
           <div>
-            <p className="font-medium text-foreground">🚀 Déclencheur initial :</p>
-            <p>La programmation des emails démarre automatiquement lors de l'<strong>ajout d'un participant</strong> à la formation.</p>
-          </div>
-          
-          <div>
-            <p className="font-medium text-foreground">📅 Règles à l'ajout d'un participant :</p>
+            <p className="font-medium text-foreground text-sm mb-1">📝 À l'inscription d'un participant</p>
             <ul className="space-y-1 list-none mt-1">
               <li className="flex items-start gap-2">
-                <span className="text-primary font-medium min-w-[70px]">J {">"} 7</span>
-                <span>→ Recueil des besoins programmé pour J-7</span>
+                <span className="text-primary font-medium min-w-[90px]">J {">"} 7</span>
+                <span>→ <strong>Recueil des besoins</strong> programmé pour J-7 + <strong>Mail d'accueil</strong> immédiat</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="text-primary font-medium min-w-[70px]">J-7 à J-2</span>
-                <span>→ Mail d'accueil envoyé immédiatement</span>
+                <span className="text-primary font-medium min-w-[90px]">J-7 à J-2</span>
+                <span>→ <strong>Mail d'accueil</strong> envoyé immédiatement (pas de recueil des besoins)</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="text-primary font-medium min-w-[70px]">J {"<"} 2</span>
+                <span className="text-primary font-medium min-w-[90px]">J {"<"} 2</span>
                 <span>→ Mode manuel (aucun envoi automatique)</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="text-muted-foreground min-w-[70px]">Passée</span>
-                <span>→ Aucun email programmé</span>
+                <span className="text-muted-foreground min-w-[90px]">E-learning</span>
+                <span>→ <strong>Accès e-learning</strong> + coupon WooCommerce envoyés à l'ajout</span>
               </li>
             </ul>
           </div>
-          
+
+          {/* ===== AVANT FORMATION ===== */}
           <div>
-            <p className="font-medium text-foreground">📋 Emails avant formation :</p>
+            <p className="font-medium text-foreground text-sm mb-1">📅 Avant la formation <span className="text-xs font-normal text-muted-foreground">(automatique, cron quotidien)</span></p>
             <ul className="space-y-1 list-none mt-1">
-              <li>• <strong>J-{delaySettings.delayLogisticReminder}</strong> : Rappel logistique (participants)</li>
-              <li>• <strong>J-{delaySettings.delayTrainerSummary}</strong> : Synthèse des besoins (formateur)</li>
+              <li className="flex items-start gap-2">
+                <span className="text-primary font-medium min-w-[90px]">J-7</span>
+                <span>→ <strong>Rappel liste participants</strong> au formateur (si liste incomplète)</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-primary font-medium min-w-[90px]">J-{delaySettings.delayLogisticReminder}</span>
+                <span>→ <strong>Rappel logistique</strong> aux participants (convocation, horaires, lieu)</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-primary font-medium min-w-[90px]">J-{delaySettings.delayTrainerSummary}</span>
+                <span>→ <strong>Synthèse des besoins</strong> au formateur</span>
+              </li>
             </ul>
           </div>
-          
+
+          {/* ===== PENDANT FORMATION ===== */}
           <div>
-            <p className="font-medium text-foreground">📨 Emails après formation :</p>
-            <p className="text-xs italic mb-1">Programmés lors de l'envoi du mail de remerciement</p>
-            <ul className="space-y-1 list-none">
-              <li>• <strong>J+{delaySettings.delayGoogleReview}</strong> : Demande d'avis Google</li>
-              <li>• <strong>J+{delaySettings.delayVideoTestimonial}</strong> : Demande de témoignage vidéo</li>
-              <li>• <strong>J+{delaySettings.delayColdEvaluation}</strong> : Évaluation à froid (commanditaire)</li>
-              <li>• <strong>J+{delaySettings.delayColdEvaluationFunder}</strong> : Rappel financeur (si différent)</li>
-              <li>• <strong>J+{delaySettings.delayFollowUpNews}</strong> : Prise de nouvelles informelle (IA)</li>
+            <p className="font-medium text-foreground text-sm mb-1">🎯 Pendant la formation <span className="text-xs font-normal text-muted-foreground">(temps réel, cron /15min)</span></p>
+            <ul className="space-y-1 list-none mt-1">
+              <li className="flex items-start gap-2">
+                <span className="text-primary font-medium min-w-[90px]">Début session</span>
+                <span>→ <strong>Émargement</strong> envoyé aux participants (matin + après-midi)</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-primary font-medium min-w-[90px]">Début session</span>
+                <span>→ <strong>Notification formateur</strong> (récap participants présents)</span>
+              </li>
             </ul>
           </div>
-          
+
+          {/* ===== LIVES / VISIOS ===== */}
           <div>
-            <p className="font-medium text-foreground">🔔 Relances d'évaluation :</p>
-            <p className="text-xs italic mb-1">Programmées lors de l'envoi du mail de remerciement</p>
-            <ul className="space-y-1 list-none">
-              <li>• <strong>J+{delaySettings.delayEvaluationReminder1}</strong> : 1ère relance évaluation</li>
-              <li>• <strong>J+{delaySettings.delayEvaluationReminder2}</strong> : 2ème relance évaluation</li>
+            <p className="font-medium text-foreground text-sm mb-1">📹 Lives / Visios programmées <span className="text-xs font-normal text-muted-foreground">(cron quotidien)</span></p>
+            <ul className="space-y-1 list-none mt-1">
+              <li className="flex items-start gap-2">
+                <span className="text-primary font-medium min-w-[90px]">J-1</span>
+                <span>→ <strong>Rappel live</strong> envoyé à chaque participant inscrit (avec lien visio)</span>
+              </li>
             </ul>
-            <p className="text-xs italic mt-1">⚡ Annulées automatiquement si l'évaluation est déjà soumise</p>
           </div>
-          
+
+          {/* ===== FIN DE FORMATION ===== */}
+          <div>
+            <p className="font-medium text-foreground text-sm mb-1">🎉 Fin de formation <span className="text-xs font-normal text-muted-foreground">(déclenché manuellement via "Envoyer remerciement")</span></p>
+            <ul className="space-y-1 list-none mt-1">
+              <li className="flex items-start gap-2">
+                <span className="text-primary font-medium min-w-[90px]">Immédiat</span>
+                <span>→ <strong>Mail de remerciement</strong> avec lien évaluation + supports</span>
+              </li>
+            </ul>
+            <p className="text-xs italic mt-1 mb-1 text-muted-foreground">↓ Les emails suivants sont programmés automatiquement à ce moment :</p>
+            <ul className="space-y-1 list-none">
+              <li className="flex items-start gap-2">
+                <span className="text-primary font-medium min-w-[90px]">J+{delaySettings.delayGoogleReview}</span>
+                <span>→ <strong>Avis Google</strong> (participant)</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-primary font-medium min-w-[90px]">J+{delaySettings.delayEvaluationReminder1}</span>
+                <span>→ <strong>1ère relance évaluation</strong> (annulée si déjà soumise)</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-primary font-medium min-w-[90px]">J+{delaySettings.delayVideoTestimonial}</span>
+                <span>→ <strong>Témoignage vidéo</strong> (participant)</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-primary font-medium min-w-[90px]">J+{delaySettings.delayEvaluationReminder2}</span>
+                <span>→ <strong>2ème relance évaluation</strong> (annulée si déjà soumise)</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-primary font-medium min-w-[90px]">J+{delaySettings.delayColdEvaluation}</span>
+                <span>→ <strong>Évaluation à froid</strong> (commanditaire / sponsor)</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-primary font-medium min-w-[90px]">J+{delaySettings.delayColdEvaluationFunder}</span>
+                <span>→ <strong>Rappel financeur</strong> (si différent du commanditaire)</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-primary font-medium min-w-[90px]">J+{delaySettings.delayFollowUpNews}</span>
+                <span>→ <strong>Prise de nouvelles</strong> personnalisée par IA (participant)</span>
+              </li>
+            </ul>
+          </div>
+
+          {/* ===== INTER-ENTREPRISE ONLY ===== */}
+          <div>
+            <p className="font-medium text-foreground text-sm mb-1">🏢 Inter-entreprise uniquement</p>
+            <ul className="space-y-1 list-none mt-1">
+              <li className="flex items-start gap-2">
+                <span className="text-primary font-medium min-w-[90px]">J+7</span>
+                <span>→ <strong>Prochaine session inter</strong> : email au formateur pour planifier la prochaine session</span>
+              </li>
+            </ul>
+          </div>
+
+          {/* ===== COACHING ===== */}
+          <div>
+            <p className="font-medium text-foreground text-sm mb-1">🧠 Coaching <span className="text-xs font-normal text-muted-foreground">(si formule avec sessions coaching, cron quotidien)</span></p>
+            <ul className="space-y-1 list-none mt-1">
+              <li className="flex items-start gap-2">
+                <span className="text-primary font-medium min-w-[90px]">J+1 (fin)</span>
+                <span>→ <strong>Invitation coaching</strong> initiale au participant</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-primary font-medium min-w-[90px]">Tous les 3 mois</span>
+                <span>→ <strong>Rappel périodique</strong> (tant que sessions non utilisées)</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-primary font-medium min-w-[90px]">M-1 (deadline)</span>
+                <span>→ <strong>Rappel final</strong> coaching (dernière chance avant expiration)</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-primary font-medium min-w-[90px]">J-1 (rdv)</span>
+                <span>→ <strong>Rappel réservation</strong> coaching (veille d'un créneau réservé)</span>
+              </li>
+            </ul>
+            <p className="text-xs italic mt-1">⚠️ Si quota = 0 ou deadline absente → alerte envoyée au formateur au lieu du participant</p>
+          </div>
+
           <p className="text-xs text-muted-foreground pt-1 italic border-t border-border mt-2 pt-2">
-            💡 Les délais sont configurables dans Paramètres {">"} Général. Tous les envois respectent les jours ouvrables définis.
+            💡 Les délais post-formation sont configurables dans Paramètres {">"} Général. Tous les envois respectent les jours ouvrables. Les emails tu/vous sont choisis automatiquement selon la préférence du participant.
           </p>
         </div>
       </CollapsibleContent>
