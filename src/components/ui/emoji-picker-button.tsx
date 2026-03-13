@@ -66,6 +66,7 @@ const EmojiPickerButton = ({
         sideOffset={4}
         onClick={(e) => e.stopPropagation()}
         onPointerDown={(e) => e.stopPropagation()}
+        onWheel={(e) => e.stopPropagation()}
       >
         <EmojiPicker
           onEmojiClick={handleEmojiClick}
