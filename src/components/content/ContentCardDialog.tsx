@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from "react";
-import { Upload, X, Plus, Maximize2, Minimize2, RefreshCw, FileText, Linkedin, Instagram, Loader2, Save, Mail, Check } from "lucide-react";
+import { Upload, X, Plus, Maximize2, Minimize2, RefreshCw, FileText, Linkedin, Instagram, Loader2, Save, Mail, Check, MessageSquare } from "lucide-react";
 import {
   Dialog,
   DialogContent,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -38,7 +39,7 @@ interface ContentCardDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   card: Card | null;
-  onSave: (card: Partial<Card>, options?: { newsletterId?: string }) => void;
+  onSave: (card: Partial<Card>, options?: { newsletterId?: string; initialComment?: string }) => void;
   onNewsletterChange?: () => void;
 }
 
@@ -64,6 +65,7 @@ const ContentCardDialog = ({
   const [attachingNewsletter, setAttachingNewsletter] = useState(false);
   const [autoSaving, setAutoSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [initialComment, setInitialComment] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Auto-save refs
@@ -86,6 +88,7 @@ const ContentCardDialog = ({
       setTags([]);
       setCardType("article");
       setEmoji(null);
+      setInitialComment("");
     }
     lastSavedHashRef.current = "";
     setLastSaved(null);
@@ -273,9 +276,13 @@ const ContentCardDialog = ({
       return;
     }
 
-    const options = !card && attachedNewsletterId && attachedNewsletterId !== "none"
-      ? { newsletterId: attachedNewsletterId }
-      : undefined;
+    const options: { newsletterId?: string; initialComment?: string } = {};
+    if (!card && attachedNewsletterId && attachedNewsletterId !== "none") {
+      options.newsletterId = attachedNewsletterId;
+    }
+    if (!card && initialComment.trim()) {
+      options.initialComment = initialComment.trim();
+    }
 
     onSave({
       title: title.trim(),
@@ -284,7 +291,7 @@ const ContentCardDialog = ({
       tags,
       card_type: cardType,
       emoji,
-    }, options);
+    }, Object.keys(options).length > 0 ? options : undefined);
   };
 
   // Flush auto-save and close
@@ -389,18 +396,29 @@ const ContentCardDialog = ({
           />
           <div className="flex items-center gap-1 shrink-0">
             {card ? (
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground px-2">
-                {autoSaving ? (
-                  <>
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                    Enregistrement...
-                  </>
-                ) : lastSaved ? (
-                  <>
-                    <Check className="h-3 w-3 text-green-600" />
-                    Sauvegardé
-                  </>
-                ) : null}
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs text-muted-foreground">
+                  {autoSaving ? (
+                    <span className="flex items-center gap-1">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      Enregistrement...
+                    </span>
+                  ) : lastSaved ? (
+                    <span className="flex items-center gap-1">
+                      <Check className="h-3 w-3 text-green-600" />
+                      Sauvegardé
+                    </span>
+                  ) : null}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleSave}
+                  className="gap-1.5 h-7"
+                >
+                  <Save className="h-3.5 w-3.5" />
+                  Enregistrer
+                </Button>
               </div>
             ) : (
               <Button
@@ -599,6 +617,22 @@ const ContentCardDialog = ({
               </div>
             </div>
 
+
+            {/* Commentaire initial (création uniquement) */}
+            {!card && (
+              <div className="space-y-2">
+                <Label className="flex items-center gap-1.5">
+                  <MessageSquare className="h-3.5 w-3.5" />
+                  Commentaire
+                </Label>
+                <Textarea
+                  value={initialComment}
+                  onChange={(e) => setInitialComment(e.target.value)}
+                  placeholder="Ajouter un commentaire à la carte..."
+                  rows={3}
+                />
+              </div>
+            )}
 
             {/* Section Relecture (flat, pour cartes existantes) */}
             {card && (

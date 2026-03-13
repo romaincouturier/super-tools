@@ -384,7 +384,7 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
     }
   };
 
-  const handleSaveCard = async (cardData: Partial<Card>, options?: { newsletterId?: string }) => {
+  const handleSaveCard = async (cardData: Partial<Card>, options?: { newsletterId?: string; initialComment?: string }) => {
     try {
       if (editingCard) {
         const { error } = await (supabase as any)
@@ -435,6 +435,21 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
             });
 
           onNewsletterChange?.();
+        }
+
+        // Create initial comment if provided
+        if (options?.initialComment && newCard) {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            await (supabase as any)
+              .from("content_comments")
+              .insert({
+                card_id: newCard.id,
+                author_id: user.id,
+                content: options.initialComment,
+                status: "pending",
+              });
+          }
         }
 
         toast.success("Carte créée");
