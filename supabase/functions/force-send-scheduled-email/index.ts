@@ -982,6 +982,69 @@ Règles :
         break;
       }
 
+      case "next_inter_session_reminder": {
+        // Send email to the trainer asking to plan the next inter-enterprise session
+        let trainerEmail: string | null = null;
+        let trainerFirstName = "";
+        if (training.trainer_id) {
+          const { data: trainerData } = await supabase
+            .from("trainers")
+            .select("email, first_name, last_name")
+            .eq("id", training.trainer_id)
+            .maybeSingle();
+          trainerEmail = trainerData?.email || null;
+          trainerFirstName = trainerData?.first_name || training.trainer_name || "";
+        }
+
+        if (!trainerEmail) {
+          // Fallback: mark as sent to avoid retries
+          await supabase.from("scheduled_emails").update({ status: "sent", sent_at: new Date().toISOString() }).eq("id", scheduledEmailId);
+          throw new Error("No trainer email found for next_inter_session_reminder");
+        }
+
+        recipientEmail = trainerEmail;
+
+        // Get catalog info for the training
+        let catalogName = training.training_name;
+        if (training.catalog_id) {
+          const { data: catalogData } = await supabase
+            .from("formation_configs")
+            .select("formation_name")
+            .eq("id", training.catalog_id)
+            .maybeSingle();
+          if (catalogData?.formation_name) {
+            catalogName = catalogData.formation_name;
+          }
+        }
+
+        const endDateFormatted = training.end_date
+          ? new Date(training.end_date).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })
+          : "récemment";
+
+        subject = `Programmer la prochaine session inter-entreprises : ${catalogName}`;
+        htmlContent = `
+          <p>Bonjour ${trainerFirstName},</p>
+          <p>La session inter-entreprises « <strong>${training.training_name}</strong> » s'est terminée le <strong>${endDateFormatted}</strong>.</p>
+          <p>Il est temps de programmer la <strong>prochaine session</strong> ! 🚀</p>
+          <div style="background-color: #f8f9fa; border-radius: 8px; padding: 16px; margin: 20px 0; border-left: 4px solid #e6bc00;">
+            <p style="margin: 0 0 8px 0;"><strong>Pour planifier la prochaine session :</strong></p>
+            <ul style="margin: 0; padding-left: 20px;">
+              <li>Définir les dates et horaires</li>
+              <li>Confirmer le lieu ou la visio</li>
+              <li>Ouvrir les inscriptions</li>
+            </ul>
+          </div>
+          <p>
+            <a href="${appUrl}/formations" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">
+              Voir les formations
+            </a>
+          </p>
+          <p>Merci pour ton implication !</p>
+          ${signatureHtml}
+        `;
+        break;
+      }
+
       default:
         throw new Error(`Unknown email type: ${scheduledEmail.email_type}`);
     }
