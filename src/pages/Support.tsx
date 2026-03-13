@@ -440,6 +440,10 @@ function AiAnalysisSection({ analysis }: { analysis: TicketAiAnalysis }) {
 function TicketDetail({ ticket, onUpdate }: { ticket: SupportTicket; onUpdate: (id: string, updates: Partial<SupportTicket>) => void }) {
   const typeConf = TICKET_TYPE_CONFIG[ticket.type];
   const [resolutionNotes, setResolutionNotes] = useState(ticket.resolution_notes || "");
+  const [title, setTitle] = useState(ticket.title);
+  const [type, setType] = useState<TicketType>(ticket.type);
+  const [assignedTo, setAssignedTo] = useState(ticket.assigned_to || "");
+  const [pageUrl, setPageUrl] = useState(ticket.page_url || "");
 
   return (
     <ScrollArea className="h-full">
@@ -451,33 +455,30 @@ function TicketDetail({ ticket, onUpdate }: { ticket: SupportTicket; onUpdate: (
           </Badge>
           <span className="text-sm font-mono text-muted-foreground">{ticket.ticket_number}</span>
         </div>
-        <SheetTitle className="text-left">{ticket.title}</SheetTitle>
+        <SheetTitle className="text-left sr-only">{ticket.title}</SheetTitle>
       </SheetHeader>
 
       <div className="space-y-6 pr-2">
-        {/* Description originale */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Description originale</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm whitespace-pre-wrap">{ticket.description}</p>
-          </CardContent>
-        </Card>
+        {/* Titre — éditable */}
+        <div className="space-y-1.5">
+          <Label className="text-xs text-muted-foreground">Titre</Label>
+          <Input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            onBlur={() => { if (title !== ticket.title && title.trim()) onUpdate(ticket.id, { title }); }}
+            className="text-sm font-medium"
+          />
+        </div>
 
-        {/* AI Analysis */}
-        {ticket.ai_analysis && <AiAnalysisSection analysis={ticket.ai_analysis} />}
-
-        {/* Metadata */}
-        <div className="grid grid-cols-2 gap-4">
+        {/* Type + Priorité + Statut */}
+        <div className="grid grid-cols-3 gap-3">
           <div className="space-y-1.5">
-            <Label className="text-xs text-muted-foreground">Statut</Label>
-            <Select value={ticket.status} onValueChange={(v) => onUpdate(ticket.id, { status: v as TicketStatus })}>
+            <Label className="text-xs text-muted-foreground">Type</Label>
+            <Select value={type} onValueChange={(v) => { const t = v as TicketType; setType(t); onUpdate(ticket.id, { type: t }); }}>
               <SelectTrigger className="text-sm"><SelectValue /></SelectTrigger>
               <SelectContent>
-                {SUPPORT_COLUMNS.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                ))}
+                <SelectItem value="bug">Bug</SelectItem>
+                <SelectItem value="evolution">Évolution</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -493,20 +494,72 @@ function TicketDetail({ ticket, onUpdate }: { ticket: SupportTicket; onUpdate: (
               </SelectContent>
             </Select>
           </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground">Statut</Label>
+            <Select value={ticket.status} onValueChange={(v) => onUpdate(ticket.id, { status: v as TicketStatus })}>
+              <SelectTrigger className="text-sm"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {SUPPORT_COLUMNS.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
-        {/* Info */}
+        {/* Assigné à */}
+        <div className="space-y-1.5">
+          <Label className="text-xs text-muted-foreground">Assigné à</Label>
+          <Input
+            value={assignedTo}
+            onChange={(e) => setAssignedTo(e.target.value)}
+            onBlur={() => { if (assignedTo !== (ticket.assigned_to || "")) onUpdate(ticket.id, { assigned_to: assignedTo || null }); }}
+            placeholder="Email ou nom de la personne"
+            className="text-sm"
+          />
+        </div>
+
+        {/* Page URL — éditable */}
+        <div className="space-y-1.5">
+          <Label className="text-xs text-muted-foreground">Page concernée</Label>
+          <Input
+            value={pageUrl}
+            onChange={(e) => setPageUrl(e.target.value)}
+            onBlur={() => { if (pageUrl !== (ticket.page_url || "")) onUpdate(ticket.id, { page_url: pageUrl || null }); }}
+            placeholder="/chemin/de/la/page"
+            className="text-sm font-mono"
+          />
+        </div>
+
+        {/* Screenshot */}
+        {ticket.screenshot_url && (
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground">Capture d'écran</Label>
+            <a href={ticket.screenshot_url} target="_blank" rel="noopener noreferrer">
+              <img src={ticket.screenshot_url} alt="Capture" className="rounded-md border max-h-48 object-contain" />
+            </a>
+          </div>
+        )}
+
+        {/* Description originale — lecture seule */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Description originale</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm whitespace-pre-wrap">{ticket.description}</p>
+          </CardContent>
+        </Card>
+
+        {/* AI Analysis */}
+        {ticket.ai_analysis && <AiAnalysisSection analysis={ticket.ai_analysis} />}
+
+        {/* Info read-only */}
         <div className="space-y-2 text-sm">
           <div className="flex justify-between">
             <span className="text-muted-foreground">Soumis par</span>
             <span>{ticket.submitted_by_email || "—"}</span>
           </div>
-          {ticket.page_url && (
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Page</span>
-              <span className="font-mono text-xs">{ticket.page_url}</span>
-            </div>
-          )}
           <div className="flex justify-between">
             <span className="text-muted-foreground">Créé</span>
             <span>{formatDistanceToNow(new Date(ticket.created_at), { addSuffix: true, locale: fr })}</span>
