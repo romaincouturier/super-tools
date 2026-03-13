@@ -225,6 +225,24 @@ export const useToggleMediaDeliverable = () => {
   });
 };
 
+// ── Rename media ─────────────────────────────────────────────────────
+export const useRenameMedia = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, file_name }: { id: string; file_name: string }) => {
+      const { error } = await (supabase as any)
+        .from("media")
+        .update({ file_name })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [MEDIA_LIBRARY_KEY] });
+      queryClient.invalidateQueries({ queryKey: [ENTITY_MEDIA_KEY] });
+    },
+  });
+};
+
 // ── Storage helpers ──────────────────────────────────────────────────
 const STORAGE_BUCKET = "media";
 

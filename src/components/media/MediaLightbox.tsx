@@ -1,7 +1,7 @@
-import { MediaItem } from "@/hooks/useMedia";
+import { MediaItem, useRenameMedia } from "@/hooks/useMedia";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { X, Briefcase, ChevronLeft, ChevronRight, Download, GraduationCap, CalendarDays, HandCoins, Package } from "lucide-react";
+import { X, Briefcase, ChevronLeft, ChevronRight, Download, Pencil, GraduationCap, CalendarDays, HandCoins, Package } from "lucide-react";
 import { toast } from "sonner";
 import { useEffect, useCallback } from "react";
 import { formatFileSize } from "@/lib/file-utils";
@@ -28,6 +28,23 @@ const MediaLightbox = ({ item, items, onClose, onNavigate, onToggleDeliverable }
   const currentIndex = items.findIndex((i) => i.id === item.id);
   const hasPrev = currentIndex > 0;
   const hasNext = currentIndex < items.length - 1;
+  const renameMedia = useRenameMedia();
+
+  const handleRename = () => {
+    const currentName = item.file_name;
+    const ext = currentName.includes(".") ? currentName.slice(currentName.lastIndexOf(".")) : "";
+    const nameWithoutExt = currentName.includes(".") ? currentName.slice(0, currentName.lastIndexOf(".")) : currentName;
+    const newName = window.prompt("Nouveau nom du fichier :", nameWithoutExt);
+    if (newName === null || newName.trim() === "" || newName.trim() === nameWithoutExt) return;
+    const finalName = newName.trim() + ext;
+    renameMedia.mutate(
+      { id: item.id, file_name: finalName },
+      {
+        onSuccess: () => toast.success(`Renommé en "${finalName}"`),
+        onError: () => toast.error("Erreur lors du renommage"),
+      }
+    );
+  };
 
   const downloadFile = async () => {
     try {
@@ -161,6 +178,15 @@ const MediaLightbox = ({ item, items, onClose, onNavigate, onToggleDeliverable }
             </TooltipContent>
           </Tooltip>
         )}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7 text-white hover:bg-white/20"
+          onClick={(e) => { e.stopPropagation(); handleRename(); }}
+          title="Renommer"
+        >
+          <Pencil className="h-4 w-4" />
+        </Button>
         <Button
           variant="ghost"
           size="icon"

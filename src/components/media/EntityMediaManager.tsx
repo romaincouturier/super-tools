@@ -5,6 +5,7 @@ import {
   useAddMedia,
   useDeleteMedia,
   useToggleMediaDeliverable,
+  useRenameMedia,
   uploadMediaFile,
   deleteMediaFile,
   MediaSourceType,
@@ -14,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { formatFileSize, downloadFile as downloadFileUtil } from "@/lib/file-utils";
-import { ImageIcon, Video, Plus, Loader2, Upload, Trash2, Play, Download, Package, DownloadCloud } from "lucide-react";
+import { ImageIcon, Video, Plus, Loader2, Upload, Trash2, Play, Download, Package, DownloadCloud, Pencil } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import MediaLightbox from "@/components/media/MediaLightbox";
 
@@ -48,6 +49,7 @@ const EntityMediaManager = ({
   const addMedia = useAddMedia();
   const deleteMutation = useDeleteMedia();
   const toggleDeliverable = useToggleMediaDeliverable();
+  const renameMedia = useRenameMedia();
 
   const [uploading, setUploading] = useState(false);
   const [downloading, setDownloading] = useState(false);
@@ -168,6 +170,23 @@ const EntityMediaManager = ({
     } finally {
       setDownloading(false);
     }
+  };
+
+  const handleRename = (e: React.MouseEvent, item: MediaItem) => {
+    e.stopPropagation();
+    const currentName = item.file_name;
+    const ext = currentName.includes(".") ? currentName.slice(currentName.lastIndexOf(".")) : "";
+    const nameWithoutExt = currentName.includes(".") ? currentName.slice(0, currentName.lastIndexOf(".")) : currentName;
+    const newName = window.prompt("Nouveau nom du fichier :", nameWithoutExt);
+    if (newName === null || newName.trim() === "" || newName.trim() === nameWithoutExt) return;
+    const finalName = newName.trim() + ext;
+    renameMedia.mutate(
+      { id: item.id, file_name: finalName },
+      {
+        onSuccess: () => toast.success(`Renommé en "${finalName}"`),
+        onError: () => toast.error("Erreur lors du renommage"),
+      }
+    );
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -338,6 +357,19 @@ const EntityMediaManager = ({
                     <TooltipContent>
                       {item.is_deliverable ? "Retirer des livrables" : "Marquer comme livrable"}
                     </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="secondary"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={(e) => handleRename(e, item)}
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Renommer</TooltipContent>
                   </Tooltip>
                   <Button
                     variant="secondary"
