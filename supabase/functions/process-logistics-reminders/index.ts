@@ -626,24 +626,31 @@ serve(async (req) => {
     console.log(`[${VERSION}] Conventions non générées: ${conventionNotGenAlerts.length}, non signées: ${conventionNotSignedAlerts.length}`);
 
     // ════════════════════════════════════════════
-    // 6. ARTICLES À RELIRE
+    // 6. ARTICLES EN RELECTURE (column-based assignment)
     // ════════════════════════════════════════════
-    const { data: pendingReviews } = await supabase
-      .from("content_reviews")
-      .select("id, card_id, reviewer_email, status, created_at, content_cards(title)")
-      .in("status", ["pending", "in_review"])
-      .order("created_at", { ascending: true });
+    const REVIEW_COLUMN_ASSIGNMENTS: Record<string, string> = {
+      "290ab277-6f1a-48b4-8641-d8b033d667de": "romain@supertilt.fr",    // Relecture en cours Romain
+      "2ea6b47e-9d87-41d7-9eaa-95f57ba379da": "emmanuelle@supertilt.fr", // Relecture en cours Manue
+    };
+    const REVIEW_COLUMN_IDS = Object.keys(REVIEW_COLUMN_ASSIGNMENTS);
 
-    const reviewsByReviewerEmail = new Map<string, any[]>();
-    if (pendingReviews) {
-      for (const review of pendingReviews) {
-        const email = review.reviewer_email || "";
-        const list = reviewsByReviewerEmail.get(email) || [];
-        list.push(review);
-        reviewsByReviewerEmail.set(email, list);
+    const { data: cardsInReviewColumns } = await supabase
+      .from("content_cards")
+      .select("id, title, column_id, created_at, content_columns:column_id(name)")
+      .in("column_id", REVIEW_COLUMN_IDS);
+
+    // Group cards by assigned email
+    const reviewCardsByEmail = new Map<string, any[]>();
+    if (cardsInReviewColumns) {
+      for (const card of cardsInReviewColumns) {
+        const email = REVIEW_COLUMN_ASSIGNMENTS[card.column_id];
+        if (!email) continue;
+        const list = reviewCardsByEmail.get(email) || [];
+        list.push(card);
+        reviewCardsByEmail.set(email, list);
       }
     }
-    console.log(`[${VERSION}] Articles à relire: ${pendingReviews?.length || 0}`);
+    console.log(`[${VERSION}] Articles en relecture: ${cardsInReviewColumns?.length || 0}`);
 
     // ════════════════════════════════════════════
     // 7. ÉVÉNEMENTS APPROCHANT (< 15 jours)
@@ -899,32 +906,32 @@ serve(async (req) => {
         alertCount += userOpportunites.length;
       }
 
-      // 6. Articles à relire
-      const userReviews = reviewsByReviewerEmail.get(recipient.email);
-      if (recipient.isAdmin && pendingReviews && pendingReviews.length > 0) {
+      // 6. Articles en relecture (column-based)
+      const userReviewCards = reviewCardsByEmail.get(recipient.email);
+      if (recipient.isAdmin && cardsInReviewColumns && cardsInReviewColumns.length > 0) {
         const reviewItems: string[] = [];
-        for (const [reviewer, reviews] of reviewsByReviewerEmail) {
+        for (const [email, cards] of reviewCardsByEmail) {
           reviewItems.push(
-            `<li style="margin-bottom: 6px;"><strong>${reviewer}</strong> :`
+            `<li style="margin-bottom: 6px;"><strong>${email}</strong> :`
           );
-          for (const r of reviews) {
-            const cardTitle = (r as any).content_cards?.title || "Sans titre";
-            const daysAgo = Math.ceil((Date.now() - new Date(r.created_at).getTime()) / (1000 * 60 * 60 * 24));
+          for (const card of cards) {
+            const columnName = (card as any).content_columns?.name || "";
+            const daysAgo = Math.ceil((Date.now() - new Date(card.created_at).getTime()) / (1000 * 60 * 60 * 24));
             reviewItems.push(
-              `<li style="margin-left: 16px;"><a href="${appUrl}/contenu?card=${r.card_id}" style="color: ${COLORS.primary}; text-decoration: underline;">${cardTitle}</a> (${daysAgo}j)</li>`
+              `<li style="margin-left: 16px;"><a href="${appUrl}/contenu?card=${card.id}" style="color: ${COLORS.primary}; text-decoration: underline;">${card.title}</a> — ${columnName} (${daysAgo}j)</li>`
             );
           }
         }
-        sections.push(sectionHtml("📋", "Articles à relire", COLORS.purple, reviewItems, pendingReviews.length));
-        alertCount += pendingReviews.length;
-      } else if (userReviews && userReviews.length > 0) {
-        const items = userReviews.map((r: any) => {
-          const cardTitle = r.content_cards?.title || "Sans titre";
-          const daysAgo = Math.ceil((Date.now() - new Date(r.created_at).getTime()) / (1000 * 60 * 60 * 24));
-          return `<li><a href="${appUrl}/contenu?card=${r.card_id}" style="color: ${COLORS.primary}; text-decoration: underline;">${cardTitle}</a> — En attente depuis ${daysAgo}j</li>`;
+        sections.push(sectionHtml("📋", "Articles en relecture", COLORS.purple, reviewItems, cardsInReviewColumns.length));
+        alertCount += cardsInReviewColumns.length;
+      } else if (userReviewCards && userReviewCards.length > 0) {
+        const items = userReviewCards.map((card: any) => {
+          const columnName = card.content_columns?.name || "";
+          const daysAgo = Math.ceil((Date.now() - new Date(card.created_at).getTime()) / (1000 * 60 * 60 * 24));
+          return `<li><a href="${appUrl}/contenu?card=${card.id}" style="color: ${COLORS.primary}; text-decoration: underline;">${card.title}</a> — ${columnName} (${daysAgo}j)</li>`;
         });
-        sections.push(sectionHtml("📋", "Articles à relire", COLORS.purple, items, userReviews.length));
-        alertCount += userReviews.length;
+        sections.push(sectionHtml("📋", "Articles en relecture", COLORS.purple, items, userReviewCards.length));
+        alertCount += userReviewCards.length;
       }
 
       // 7. CFP à soumettre (filtered by assigned_to)
