@@ -396,33 +396,41 @@ serve(async (req) => {
       }
     }
 
-    // 6. ARTICLES À RELIRE (exclude cards in "terminé" column)
-    const { data: pendingReviews } = await supabase
-      .from("content_reviews")
-      .select("id, card_id, reviewer_email, status, content_cards(title, column_id, content_columns:column_id(name))")
-      .in("status", ["pending", "in_review"]);
+    // 6. ARTICLES EN RELECTURE (only cards in "Relecture" columns, assigned to the column owner)
+    // Column-to-user mapping for review assignments
+    const REVIEW_COLUMN_ASSIGNMENTS: Record<string, string> = {
+      // column_id → user_id
+      "290ab277-6f1a-48b4-8641-d8b033d667de": "81d0328b-7651-4deb-95c0-c7ac81eb952e", // Relecture en cours Romain → Romain
+      "2ea6b47e-9d87-41d7-9eaa-95f57ba379da": "c894a7ec-4680-4a9e-bed7-4aad7af12909", // Relecture en cours Manue → Emmanuelle
+    };
+    const REVIEW_COLUMN_IDS = Object.keys(REVIEW_COLUMN_ASSIGNMENTS);
 
-    if (pendingReviews) {
-      for (const r of pendingReviews) {
-        const card = (r as any).content_cards;
-        const columnName = card?.content_columns?.name?.toLowerCase() || "";
-        // Skip cards in "terminé" or "publié" columns
-        if (columnName.includes("termin") || columnName.includes("publi")) continue;
+    // Fetch cards in review columns directly
+    const { data: cardsInReview } = await supabase
+      .from("content_cards")
+      .select("id, title, column_id, content_columns:column_id(name)")
+      .in("column_id", REVIEW_COLUMN_IDS);
 
-        const cardTitle = card?.title || "Sans titre";
-        const statusLabel = r.status === "in_review" ? "Relecture en cours" : "En attente de relecture";
-        globalActions.push({
+    if (cardsInReview) {
+      for (const card of cardsInReview) {
+        const columnName = (card as any).content_columns?.name || "";
+        const assignedUserId = REVIEW_COLUMN_ASSIGNMENTS[card.column_id];
+        if (!assignedUserId) continue;
+
+        perUserActions.push({
           category: "articles_relire",
-          title: cardTitle,
-          description: `${statusLabel} (${r.reviewer_email})`,
-          link: `${appUrl}/contenu?card=${r.card_id}`,
-          entity_type: "content_review",
-          entity_id: r.id,
+          title: card.title,
+          description: `En relecture — ${columnName}`,
+          link: `${appUrl}/contenu?card=${card.id}`,
+          entity_type: "content_card",
+          entity_id: card.id,
+          assignedTo: assignedUserId,
         });
       }
+      console.log(`[${VERSION}] Articles en relecture: ${cardsInReview.length}`);
     }
 
-    // 6bis. COMMENTAIRES CONTENUS NON RÉSOLUS (pour auteurs et utilisateurs mentionnés)
+    // 6bis. COMMENTAIRES CONTENUS NON RÉSOLUS (only for cards in review columns)
     const { data: unresolvedComments } = await supabase
       .from("review_comments")
       .select("id, card_id, author_id, content, mentioned_user_ids, assigned_to, content_cards:card_id(title, column_id, content_columns:column_id(name))")
@@ -432,14 +440,17 @@ serve(async (req) => {
     if (unresolvedComments) {
       for (const c of unresolvedComments as any[]) {
         const card = c.content_cards;
-        const columnName = card?.content_columns?.name?.toLowerCase() || "";
-        if (columnName.includes("termin") || columnName.includes("publi")) continue;
+        if (!card?.column_id) continue;
+        // Only include comments on cards in review columns
+        const assignedUserId = REVIEW_COLUMN_ASSIGNMENTS[card.column_id];
+        if (!assignedUserId) continue;
 
         const cardTitle = card?.title || "Sans titre";
         const preview = c.content?.length > 60 ? c.content.slice(0, 60) + "…" : c.content;
 
-        // Collect target users: author + mentioned + assigned
+        // Collect target users: column owner + author + mentioned + assigned
         const targetUserIds = new Set<string>();
+        targetUserIds.add(assignedUserId); // Always notify the column owner
         if (c.author_id) targetUserIds.add(c.author_id);
         if (c.assigned_to) targetUserIds.add(c.assigned_to);
         if (c.mentioned_user_ids && Array.isArray(c.mentioned_user_ids)) {
@@ -458,7 +469,7 @@ serve(async (req) => {
           });
         }
       }
-      console.log(`[${VERSION}] Commentaires contenus non résolus: ${unresolvedComments.length}`);
+      console.log(`[${VERSION}] Commentaires contenus non résolus (en relecture): ${unresolvedComments.filter((c: any) => REVIEW_COLUMN_IDS.includes(c.content_cards?.column_id)).length}`);
     }
 
     // 6b. ARTICLES BLOQUÉS (cards in waiting/blocked columns, no review filter)
