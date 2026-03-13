@@ -93,7 +93,11 @@ export default function GenericKanbanColumn<
             items={cards.map((c) => c.id)}
             strategy={verticalListSortingStrategy}
           >
-            {cards.map((card) => renderCard(card))}
+            {cards.map((card) => (
+              <SortableCardWrapper key={card.id} id={card.id}>
+                {renderCard(card)}
+              </SortableCardWrapper>
+            ))}
           </SortableContext>
         ) : (
           cards.map((card) => renderCard(card))
