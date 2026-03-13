@@ -828,7 +828,7 @@ const DocumentsManager = ({
 
   // Generate Convention de Formation (for intra)
   const handleGenerateConvention = async () => {
-    if (isInterEntreprise || formatFormation === "e_learning") {
+    if (isInterEntreprise || formatFormation === "e_learning" || formatFormation === "inter") {
       toast({
         title: "Non disponible",
         description: "Pour les formations inter-entreprises et e-learning, la convention se génère par participant.",
