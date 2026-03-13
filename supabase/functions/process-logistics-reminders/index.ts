@@ -626,24 +626,31 @@ serve(async (req) => {
     console.log(`[${VERSION}] Conventions non générées: ${conventionNotGenAlerts.length}, non signées: ${conventionNotSignedAlerts.length}`);
 
     // ════════════════════════════════════════════
-    // 6. ARTICLES À RELIRE
+    // 6. ARTICLES EN RELECTURE (column-based assignment)
     // ════════════════════════════════════════════
-    const { data: pendingReviews } = await supabase
-      .from("content_reviews")
-      .select("id, card_id, reviewer_email, status, created_at, content_cards(title)")
-      .in("status", ["pending", "in_review"])
-      .order("created_at", { ascending: true });
+    const REVIEW_COLUMN_ASSIGNMENTS: Record<string, string> = {
+      "290ab277-6f1a-48b4-8641-d8b033d667de": "romain@supertilt.fr",    // Relecture en cours Romain
+      "2ea6b47e-9d87-41d7-9eaa-95f57ba379da": "emmanuelle@supertilt.fr", // Relecture en cours Manue
+    };
+    const REVIEW_COLUMN_IDS = Object.keys(REVIEW_COLUMN_ASSIGNMENTS);
 
-    const reviewsByReviewerEmail = new Map<string, any[]>();
-    if (pendingReviews) {
-      for (const review of pendingReviews) {
-        const email = review.reviewer_email || "";
-        const list = reviewsByReviewerEmail.get(email) || [];
-        list.push(review);
-        reviewsByReviewerEmail.set(email, list);
+    const { data: cardsInReviewColumns } = await supabase
+      .from("content_cards")
+      .select("id, title, column_id, created_at, content_columns:column_id(name)")
+      .in("column_id", REVIEW_COLUMN_IDS);
+
+    // Group cards by assigned email
+    const reviewCardsByEmail = new Map<string, any[]>();
+    if (cardsInReviewColumns) {
+      for (const card of cardsInReviewColumns) {
+        const email = REVIEW_COLUMN_ASSIGNMENTS[card.column_id];
+        if (!email) continue;
+        const list = reviewCardsByEmail.get(email) || [];
+        list.push(card);
+        reviewCardsByEmail.set(email, list);
       }
     }
-    console.log(`[${VERSION}] Articles à relire: ${pendingReviews?.length || 0}`);
+    console.log(`[${VERSION}] Articles en relecture: ${cardsInReviewColumns?.length || 0}`);
 
     // ════════════════════════════════════════════
     // 7. ÉVÉNEMENTS APPROCHANT (< 15 jours)
