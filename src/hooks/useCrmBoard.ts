@@ -375,7 +375,7 @@ export const useDeleteTag = () =>
 
 export const useAssignTag = () =>
   useCrmMutation(async ({ cardId, tagId, actorEmail }: { cardId: string; tagId: string; actorEmail: string }) => {
-    const { error } = await supabase.from("crm_card_tags").insert({ card_id: cardId, tag_id: tagId });
+    const { error } = await supabase.from("crm_card_tags").upsert({ card_id: cardId, tag_id: tagId }, { onConflict: "card_id,tag_id", ignoreDuplicates: true });
     if (error) throw error;
     const { data: tag } = await supabase.from("crm_tags").select("name").eq("id", tagId).single();
     await logActivity(cardId, "tag_added", actorEmail, null, tag?.name);
