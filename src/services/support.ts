@@ -59,7 +59,7 @@ export async function createSupportTicket(
 
 export async function updateSupportTicket(
   id: string,
-  updates: Partial<Pick<SupportTicket, "status" | "priority" | "assigned_to" | "resolution_notes" | "position">>
+  updates: Partial<Pick<SupportTicket, "title" | "type" | "status" | "priority" | "assigned_to" | "resolution_notes" | "position" | "page_url">>
 ): Promise<SupportTicket> {
   const payload: Record<string, unknown> = { ...updates };
   if (updates.status === "resolu" || updates.status === "ferme") {
