@@ -63,6 +63,7 @@ export function replaceVariables(
 
 /**
  * Convert plain text to HTML paragraphs
+ * Also converts markdown bold **text** to <strong>text>
  *
  * @param text - Plain text with newlines
  * @returns HTML with <p> tags
@@ -70,7 +71,10 @@ export function replaceVariables(
 export function textToHtml(text: string): string {
   if (!text) return "";
 
-  return text
+  // Convert markdown bold **text** to <strong>text</strong>
+  let processed = text.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+
+  return processed
     .split(/\n\n+/)
     .map((paragraph) => {
       const lines = paragraph.split(/\n/).map((line) => escapeHtml(line.trim()));
