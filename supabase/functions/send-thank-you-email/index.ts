@@ -564,6 +564,43 @@ serve(async (req) => {
     }
 
     // ========================================
+    // NEXT INTER SESSION REMINDER (J+7 for inter-enterprise only)
+    // ========================================
+    if (isInterEntreprise) {
+      try {
+        const { data: existingInterReminder } = await supabase
+          .from("scheduled_emails")
+          .select("id")
+          .eq("training_id", trainingId)
+          .eq("email_type", "next_inter_session_reminder")
+          .maybeSingle();
+
+        if (!existingInterReminder) {
+          const interReminderDate = addWorkingDays(referenceDate, 7, workingDays);
+          const { error: interReminderError } = await supabase
+            .from("scheduled_emails")
+            .insert({
+              training_id: trainingId,
+              participant_id: null,
+              email_type: "next_inter_session_reminder",
+              scheduled_for: interReminderDate.toISOString(),
+              status: "pending",
+            });
+
+          if (interReminderError) {
+            console.error("Error scheduling next inter session reminder:", interReminderError);
+          } else {
+            console.log(`Scheduled next_inter_session_reminder for training ${trainingId} at ${interReminderDate.toISOString()}`);
+          }
+        } else {
+          console.log("Next inter session reminder already scheduled for training", trainingId);
+        }
+      } catch (interReminderErr) {
+        console.warn("Next inter session reminder scheduling failed (non-blocking):", interReminderErr);
+      }
+    }
+
+    // ========================================
     // TRAINER EVALUATION: Create record + send email to trainer
     // ========================================
     try {
