@@ -330,11 +330,13 @@ function calcDestinationCost(dest: TravelDestination, settings: TravelSettings) 
 function CityAutocomplete({
   value,
   onSelect,
+  onInputChange,
   placeholder,
   className,
 }: {
   value: string;
   onSelect: (name: string, lat: number, lon: number) => void;
+  onInputChange?: (name: string) => void;
   placeholder?: string;
   className?: string;
 }) {
@@ -361,6 +363,7 @@ function CityAutocomplete({
 
   const handleChange = useCallback((text: string) => {
     setQuery(text);
+    onInputChange?.(text);
     if (debounceRef.current) clearTimeout(debounceRef.current);
     if (text.length < 2) {
       setResults([]);
@@ -374,7 +377,7 @@ function CityAutocomplete({
       setShowDropdown(r.length > 0);
       setIsLoading(false);
     }, 400);
-  }, []);
+  }, [onInputChange]);
 
   const handleSelect = (r: GeoResult) => {
     const shortName = r.display_name.split(",")[0].trim();
@@ -628,6 +631,11 @@ const TravelExpenseCalculator = ({
                   <CityAutocomplete
                     value={settings.departureAddress}
                     placeholder="Ex: Lyon, Bordeaux…"
+                    onInputChange={(name) => {
+                      updateSetting("departureAddress", name);
+                      updateSetting("departureLat", null);
+                      updateSetting("departureLon", null);
+                    }}
                     onSelect={(name, lat, lon) => {
                       updateSetting("departureAddress", name);
                       updateSetting("departureLat", lat);
@@ -768,6 +776,16 @@ const TravelExpenseCalculator = ({
                     <CityAutocomplete
                       value={dest.city}
                       placeholder="Ville de destination"
+                      onInputChange={(name) =>
+                        updateDest(dest.id, {
+                          city: name,
+                          lat: null,
+                          lon: null,
+                          distanceKm: 0,
+                          tollCostOneWay: 0,
+                          durationHours: 0,
+                        })
+                      }
                       onSelect={(name, lat, lon) => handleCitySelect(dest.id, name, lat, lon)}
                     />
                   </div>
