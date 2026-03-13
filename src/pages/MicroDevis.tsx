@@ -38,7 +38,8 @@ const MicroDevis = () => {
   const [pays, setPays] = useState("france");
   const [paysAutre, setPaysAutre] = useState("");
   const [emailCommanditaire, setEmailCommanditaire] = useState("");
-  const [adresseCommanditaire, setAdresseCommanditaire] = useState("");
+  const [civiliteCommanditaire, setCiviliteCommanditaire] = useState<"M." | "Mme" | "">("");
+  const [nomCommanditaire, setNomCommanditaire] = useState("");
   const [typeDevis, setTypeDevis] = useState<"formation" | "jeu" | "">("");
   const [isAdministration, setIsAdministration] = useState<"oui" | "non" | "">("");
   const [noteDevis, setNoteDevis] = useState("");
