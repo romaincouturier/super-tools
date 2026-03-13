@@ -424,9 +424,10 @@ export default function StepTravelExpenses({
   const [favorites, setFavorites] = useState<FavoriteDestination[]>(loadFavorites);
 
   const addFavorite = (dest: TravelDestination) => {
-    if (!dest.city.trim()) return;
+    if (!dest.city || !dest.city.trim()) return;
+    const cityName = dest.city.trim();
     const fav: FavoriteDestination = {
-      city: dest.city,
+      city: cityName,
       lat: dest.lat,
       lon: dest.lon,
       transportMode: dest.transportMode,
@@ -435,9 +436,10 @@ export default function StepTravelExpenses({
       nights: dest.nights,
       ticketPriceRoundTrip: dest.ticketPriceRoundTrip,
     };
-    const updated = [...favorites.filter((f) => f.city !== fav.city), fav];
+    const updated = [...favorites.filter((f) => f.city !== cityName), fav];
     setFavorites(updated);
     saveFavorites(updated);
+    console.log("[StepTravel] Favorite added:", cityName, "Total favorites:", updated.length);
   };
 
   const removeFavorite = (city: string) => {
@@ -722,14 +724,15 @@ export default function StepTravelExpenses({
                     </div>
                     <div className="flex gap-0.5">
                       <Button
+                        type="button"
                         variant="ghost"
                         size="icon"
-                        className={cn("h-8 w-8", favorites.some((f) => f.city === dest.city) ? "text-yellow-500" : "text-muted-foreground hover:text-yellow-500")}
-                        onClick={() => addFavorite(dest)}
-                        disabled={!dest.city.trim()}
+                        className={cn("h-8 w-8", favorites.some((f) => f.city === dest.city?.trim()) ? "text-yellow-500" : "text-muted-foreground hover:text-yellow-500")}
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); addFavorite(dest); }}
+                        disabled={!dest.city?.trim()}
                         title="Ajouter aux favoris"
                       >
-                        <Star className={cn("h-3.5 w-3.5", favorites.some((f) => f.city === dest.city) && "fill-current")} />
+                        <Star className={cn("h-3.5 w-3.5", favorites.some((f) => f.city === dest.city?.trim()) && "fill-current")} />
                       </Button>
                       <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => removeDestination(dest.id)} disabled={destinations.length <= 1}>
                         <Trash2 className="h-3.5 w-3.5" />
