@@ -6,6 +6,7 @@ import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable"
 import { GripVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { KanbanColumnDef, KanbanCardDef } from "@/types/kanban";
+import SortableCardWrapper from "./SortableCardWrapper";
 
 interface GenericKanbanColumnProps<
   TCard extends KanbanCardDef,
