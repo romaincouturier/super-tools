@@ -69,6 +69,7 @@ export const MODULE_LABELS: Record<AppModule, string> = {
   arena: "AI Arena",
   reclamations: "Réclamations",
   support: "Support",
+  reseau: "Réseau",
 };
 
 export function useModuleAccess() {
