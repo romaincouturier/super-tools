@@ -15,15 +15,19 @@ CREATE TABLE IF NOT EXISTS network_interactions (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_network_interactions_contact ON network_interactions (contact_id, created_at DESC);
-CREATE INDEX idx_network_interactions_user ON network_interactions (user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_network_interactions_contact ON network_interactions (contact_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_network_interactions_user ON network_interactions (user_id, created_at DESC);
 
 ALTER TABLE network_interactions ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can manage own interactions"
-  ON network_interactions FOR ALL
-  USING (auth.uid() = user_id)
-  WITH CHECK (auth.uid() = user_id);
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'network_interactions' AND policyname = 'Users can manage own interactions') THEN
+    CREATE POLICY "Users can manage own interactions"
+      ON network_interactions FOR ALL
+      USING (auth.uid() = user_id)
+      WITH CHECK (auth.uid() = user_id);
+  END IF;
+END $$;
 
 -- Function to auto-update last_contact_date on network_contacts when an interaction is logged
 CREATE OR REPLACE FUNCTION update_contact_last_interaction()
@@ -36,6 +40,8 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+-- Drop and recreate trigger to be idempotent
+DROP TRIGGER IF EXISTS trg_update_contact_last_interaction ON network_interactions;
 CREATE TRIGGER trg_update_contact_last_interaction
   AFTER INSERT ON network_interactions
   FOR EACH ROW

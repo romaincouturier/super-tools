@@ -13,15 +13,19 @@ CREATE TABLE IF NOT EXISTS network_contacts (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_network_contacts_user ON network_contacts (user_id);
-CREATE INDEX idx_network_contacts_warmth ON network_contacts (user_id, warmth);
+CREATE INDEX IF NOT EXISTS idx_network_contacts_user ON network_contacts (user_id);
+CREATE INDEX IF NOT EXISTS idx_network_contacts_warmth ON network_contacts (user_id, warmth);
 
 ALTER TABLE network_contacts ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can manage own contacts"
-  ON network_contacts FOR ALL
-  USING (auth.uid() = user_id)
-  WITH CHECK (auth.uid() = user_id);
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'network_contacts' AND policyname = 'Users can manage own contacts') THEN
+    CREATE POLICY "Users can manage own contacts"
+      ON network_contacts FOR ALL
+      USING (auth.uid() = user_id)
+      WITH CHECK (auth.uid() = user_id);
+  END IF;
+END $$;
 
 -- Network actions (prepared for v0.2)
 CREATE TABLE IF NOT EXISTS network_actions (
@@ -37,15 +41,19 @@ CREATE TABLE IF NOT EXISTS network_actions (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_network_actions_user ON network_actions (user_id);
-CREATE INDEX idx_network_actions_contact ON network_actions (contact_id);
+CREATE INDEX IF NOT EXISTS idx_network_actions_user ON network_actions (user_id);
+CREATE INDEX IF NOT EXISTS idx_network_actions_contact ON network_actions (contact_id);
 
 ALTER TABLE network_actions ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can manage own actions"
-  ON network_actions FOR ALL
-  USING (auth.uid() = user_id)
-  WITH CHECK (auth.uid() = user_id);
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'network_actions' AND policyname = 'Users can manage own actions') THEN
+    CREATE POLICY "Users can manage own actions"
+      ON network_actions FOR ALL
+      USING (auth.uid() = user_id)
+      WITH CHECK (auth.uid() = user_id);
+  END IF;
+END $$;
 
 -- User positioning (pitch, skills, target client)
 CREATE TABLE IF NOT EXISTS user_positioning (
@@ -59,14 +67,18 @@ CREATE TABLE IF NOT EXISTS user_positioning (
   UNIQUE (user_id)
 );
 
-CREATE INDEX idx_user_positioning_user ON user_positioning (user_id);
+CREATE INDEX IF NOT EXISTS idx_user_positioning_user ON user_positioning (user_id);
 
 ALTER TABLE user_positioning ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can manage own positioning"
-  ON user_positioning FOR ALL
-  USING (auth.uid() = user_id)
-  WITH CHECK (auth.uid() = user_id);
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'user_positioning' AND policyname = 'Users can manage own positioning') THEN
+    CREATE POLICY "Users can manage own positioning"
+      ON user_positioning FOR ALL
+      USING (auth.uid() = user_id)
+      WITH CHECK (auth.uid() = user_id);
+  END IF;
+END $$;
 
 -- Network conversation history (onboarding + cartography phases)
 CREATE TABLE IF NOT EXISTS network_conversation (
@@ -78,11 +90,15 @@ CREATE TABLE IF NOT EXISTS network_conversation (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_network_conversation_user_phase ON network_conversation (user_id, phase, created_at);
+CREATE INDEX IF NOT EXISTS idx_network_conversation_user_phase ON network_conversation (user_id, phase, created_at);
 
 ALTER TABLE network_conversation ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can manage own conversations"
-  ON network_conversation FOR ALL
-  USING (auth.uid() = user_id)
-  WITH CHECK (auth.uid() = user_id);
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'network_conversation' AND policyname = 'Users can manage own conversations') THEN
+    CREATE POLICY "Users can manage own conversations"
+      ON network_conversation FOR ALL
+      USING (auth.uid() = user_id)
+      WITH CHECK (auth.uid() = user_id);
+  END IF;
+END $$;
