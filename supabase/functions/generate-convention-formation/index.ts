@@ -204,8 +204,8 @@ serve(async (req: Request): Promise<Response> => {
     }
 
     // Determine if this is intra (global convention) or inter/e-learning (per participant)
-    const isIntra = training.format_formation === "intra";
-    const isIndividualConvention = !isIntra; // inter-entreprises or e_learning
+    const isIntra = training.format_formation === "intra" || training.format_formation === "classe_virtuelle";
+    const isIndividualConvention = training.format_formation === "inter" || training.format_formation === "e_learning";
 
     // Check max_participants is set (only required for intra conventions)
     const maxParticipants: number = training.max_participants || 0;
