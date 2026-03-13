@@ -158,33 +158,33 @@ const EmailTimelineComputed = ({
   }, [refreshTrigger]);
 
   const fetchData = async () => {
-    const [emailsRes, settingsRes, livesRes] = await Promise.all([
-      supabase
-        .from("scheduled_emails")
-        .select("*")
-        .eq("training_id", trainingId)
-        .order("scheduled_for", { ascending: true }),
-      supabase
-        .from("app_settings")
-        .select("setting_key, setting_value")
-        .in("setting_key", [
-          "delay_logistic_reminder_days",
-          "delay_trainer_summary_days",
-          "delay_google_review_days",
-          "delay_video_testimonial_days",
-          "delay_cold_evaluation_days",
-          "delay_cold_evaluation_funder_days",
-          "delay_evaluation_reminder_1_days",
-          "delay_evaluation_reminder_2_days",
-          "delay_follow_up_news_days",
-          "delay_needs_survey_days",
-        ]),
-      supabase
-        .from("training_lives")
-        .select("*")
-        .eq("training_id", trainingId)
-        .order("live_date", { ascending: true }),
-    ]);
+    const emailsRes = await supabase
+      .from("scheduled_emails")
+      .select("*")
+      .eq("training_id", trainingId)
+      .order("scheduled_for", { ascending: true });
+
+    const settingsRes = await supabase
+      .from("app_settings")
+      .select("setting_key, setting_value")
+      .in("setting_key", [
+        "delay_logistic_reminder_days",
+        "delay_trainer_summary_days",
+        "delay_google_review_days",
+        "delay_video_testimonial_days",
+        "delay_cold_evaluation_days",
+        "delay_cold_evaluation_funder_days",
+        "delay_evaluation_reminder_1_days",
+        "delay_evaluation_reminder_2_days",
+        "delay_follow_up_news_days",
+        "delay_needs_survey_days",
+      ]);
+
+    const livesRes = await supabase
+      .from("training_live_meetings" as any)
+      .select("*")
+      .eq("training_id", trainingId)
+      .order("live_date", { ascending: true });
 
     if (emailsRes.data) setDbEmails(emailsRes.data);
     if (livesRes.data) setLiveMeetings(livesRes.data);
