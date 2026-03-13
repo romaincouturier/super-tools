@@ -760,14 +760,10 @@ const FormationCreate = () => {
                 )}
               </div>}
 
-              {/* Sold price HT - hidden for permanent */}
-              {!isPermanent && (
+              {/* Sold price HT - hidden for permanent and inter (inter uses participant-level pricing) */}
+              {!isPermanent && !isInter && (
               <div className="space-y-2">
-                <Label htmlFor="soldPriceHt">
-                  {isInter
-                    ? "Prix HT par participant (€)"
-                    : "Prix HT global (€)"}
-                </Label>
+                <Label htmlFor="soldPriceHt">Prix HT global (€)</Label>
                 <Input
                   id="soldPriceHt"
                   type="number"
@@ -775,12 +771,10 @@ const FormationCreate = () => {
                   step="0.01"
                   value={soldPriceHt}
                   onChange={(e) => setSoldPriceHt(e.target.value)}
-                  placeholder={isInter ? "Ex: 1250" : "Ex: 3500"}
+                  placeholder="Ex: 3500"
                 />
                 <p className="text-xs text-muted-foreground">
-                  {isInter
-                    ? "Prix par participant, utilisé dans les conventions individuelles"
-                    : "Montant total HT, utilisé dans la convention de formation"}
+                  Montant total HT, utilisé dans la convention de formation
                 </p>
               </div>
               )}

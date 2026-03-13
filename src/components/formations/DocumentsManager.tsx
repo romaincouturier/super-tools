@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Upload, FileText, Trash2, Loader2, Send, Receipt, ClipboardList, Mail, Link, Heart, CheckCircle, FileDown, Scroll, PenLine, Shield, ChevronDown, ChevronUp, Eye, BellRing, Award } from "lucide-react";
+import { Upload, FileText, Trash2, Loader2, Send, Receipt, ClipboardList, Mail, Link, Heart, CheckCircle, FileDown, Scroll, PenLine, Shield, ChevronDown, ChevronUp, Eye, BellRing, Award, RotateCw, Download } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -991,20 +991,69 @@ const DocumentsManager = ({
                 Convention de formation
               </Label>
               {formatFormation === "intra" && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleGenerateConvention}
-                  disabled={generatingConvention}
-                >
-                  {generatingConvention ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                <div className="flex items-center gap-0.5">
+                  {!conventionFileUrl ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleGenerateConvention}
+                      disabled={generatingConvention}
+                    >
+                      {generatingConvention ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <FileDown className="h-4 w-4 mr-2" />
+                      )}
+                      Générer
+                    </Button>
                   ) : (
-                    <FileDown className="h-4 w-4 mr-2" />
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button type="button" variant="outline" size="sm" disabled={generatingConvention || sendingConvention}>
+                          {generatingConvention || sendingConvention ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          ) : (
+                            <Scroll className="h-4 w-4 mr-2" />
+                          )}
+                          Convention
+                          <ChevronDown className="h-3 w-3 ml-1" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem asChild>
+                          <a href={conventionFileUrl} target="_blank" rel="noopener noreferrer">
+                            <Download className="h-4 w-4 mr-2" />Télécharger
+                          </a>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={handleGenerateConvention} disabled={generatingConvention}>
+                          <RotateCw className="h-4 w-4 mr-2" />Regénérer
+                        </DropdownMenuItem>
+                        {sponsorEmail && (
+                          <DropdownMenuItem onClick={handleSendConvention} disabled={sendingConvention}>
+                            <Send className="h-4 w-4 mr-2" />Envoyer
+                          </DropdownMenuItem>
+                        )}
+                        {conventionSentAt && conventionSignatureStatus?.status !== "signed" && signedConventionUrls.length === 0 && (
+                          <DropdownMenuItem onClick={handleSendConventionReminder} disabled={sendingConventionReminder}>
+                            {sendingConventionReminder ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <BellRing className="h-4 w-4 mr-2" />}
+                            Relancer convention
+                          </DropdownMenuItem>
+                        )}
+                        {conventionSignatureStatus?.status !== "signed" && (
+                          <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem asChild>
+                              <Label htmlFor="signed-convention-upload" className="cursor-pointer flex items-center">
+                                <Upload className="h-4 w-4 mr-2" />Uploader signée
+                              </Label>
+                            </DropdownMenuItem>
+                          </>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   )}
-                  {conventionFileUrl ? "Regénérer" : "Générer"}
-                </Button>
+                </div>
               )}
             </div>
             {conventionFileUrl && (
@@ -1017,25 +1066,8 @@ const DocumentsManager = ({
                     rel="noopener noreferrer"
                     className="text-sm text-foreground hover:underline flex-1 truncate"
                   >
-                    Convention générée - Cliquer pour télécharger
+                    Convention générée
                   </a>
-                  {sponsorEmail && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={handleSendConvention}
-                      disabled={sendingConvention}
-                      className="shrink-0"
-                    >
-                      {sendingConvention ? (
-                        <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                      ) : (
-                        <Send className="h-4 w-4 mr-1" />
-                      )}
-                      Envoyer
-                    </Button>
-                  )}
                 </div>
 
                 {/* Online signature option */}
@@ -1064,24 +1096,6 @@ const DocumentsManager = ({
                     <PenLine className="h-3 w-3 text-primary" />
                     Lien de signature en ligne envoyé
                   </span>
-                )}
-
-                {/* Convention reminder button - show when sent but not signed */}
-                {conventionSentAt && conventionSignatureStatus?.status !== "signed" && signedConventionUrls.length === 0 && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={handleSendConventionReminder}
-                    disabled={sendingConventionReminder}
-                    className="w-fit"
-                  >
-                    {sendingConventionReminder ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <BellRing className="h-4 w-4 mr-2" />
-                    )}
-                    Relancer pour la convention signée
-                  </Button>
                 )}
 
                 {/* Convention signature status + audit panel */}
@@ -1229,38 +1243,18 @@ const DocumentsManager = ({
                   </div>
                 )}
 
-                {/* Upload signed convention (manual) - only if not signed online */}
+                {/* Upload signed convention (manual) - hidden input, triggered from dropdown */}
                 {conventionSignatureStatus?.status !== "signed" && (
                   <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="file"
-                        accept=".pdf,image/*"
-                        multiple
-                        onChange={handleSignedConventionUpload}
-                        disabled={uploadingSignedConvention}
-                        className="hidden"
-                        id="signed-convention-upload"
-                      />
-                      <Label htmlFor="signed-convention-upload" className="cursor-pointer">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          disabled={uploadingSignedConvention}
-                          asChild
-                        >
-                          <span>
-                            {uploadingSignedConvention ? (
-                              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                            ) : (
-                              <Upload className="h-4 w-4 mr-1" />
-                            )}
-                            Uploader la convention signée
-                          </span>
-                        </Button>
-                      </Label>
-                    </div>
+                    <input
+                      type="file"
+                      accept=".pdf,image/*"
+                      multiple
+                      onChange={handleSignedConventionUpload}
+                      disabled={uploadingSignedConvention}
+                      className="hidden"
+                      id="signed-convention-upload"
+                    />
 
                     {signedConventionUrls.length > 0 && (
                       <div className="space-y-1">

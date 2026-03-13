@@ -19,6 +19,7 @@ import {
   Sparkles,
   MessageSquareWarning,
   LifeBuoy,
+  Users,
   type LucideIcon,
 } from "lucide-react";
 
@@ -49,4 +50,5 @@ export const MODULE_ICONS: Record<string, ModuleIconInfo> = {
   arena: { icon: Sparkles, label: "AI Arena", path: "/arena" },
   reclamations: { icon: MessageSquareWarning, label: "Réclamations", path: "/reclamations" },
   support: { icon: LifeBuoy, label: "Support", path: "/support" },
+  reseau: { icon: Users, label: "Réseau", path: "/reseau" },
 };

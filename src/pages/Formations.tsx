@@ -37,6 +37,8 @@ interface Training {
   location: string;
   client_name: string;
   created_at: string;
+  session_type: string | null;
+  session_format: string | null;
   participant_count?: number;
 }
 
@@ -68,6 +70,8 @@ const Formations = () => {
   const [participantsByTraining, setParticipantsByTraining] = useState<Map<string, ParticipantSearchData[]>>(new Map());
   const [filter, setFilter] = useState<"upcoming" | "ongoing" | "past" | "permanent">("upcoming");
   const [searchQuery, setSearchQuery] = useState("");
+  const [filterSessionType, setFilterSessionType] = useState<string>("all");
+  const [filterSessionFormat, setFilterSessionFormat] = useState<string>("all");
 
   // Sorting state (for past trainings only)
   const [sortField, setSortField] = useState<SortField>("date");
@@ -130,13 +134,19 @@ const Formations = () => {
     setDataLoading(false);
   };
 
-  // Search helper: does a training match the query?
-  const matchesSearch = useMemo(() => {
+  // Filter helper: does a training match search + dropdown filters?
+  const matchesFilters = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
-    if (!q) return () => true;
 
     return (t: Training) => {
-      // Match on training title or client name
+      // Session type filter
+      if (filterSessionType !== "all" && t.session_type !== filterSessionType) return false;
+
+      // Session format filter
+      if (filterSessionFormat !== "all" && t.session_format !== filterSessionFormat) return false;
+
+      // Text search
+      if (!q) return true;
       if (t.training_name.toLowerCase().includes(q)) return true;
       if (t.client_name.toLowerCase().includes(q)) return true;
 
@@ -168,7 +178,7 @@ const Formations = () => {
         return haystack.includes(q);
       });
     };
-  }, [searchQuery, participantsByTraining]);
+  }, [searchQuery, filterSessionType, filterSessionFormat, participantsByTraining]);
 
   // Filter trainings
   const isPermanent = (t: Training) => !t.start_date;
@@ -191,14 +201,14 @@ const Formations = () => {
     trainings.filter((t) => {
       if (!t.start_date) return false; // Permanent → not "upcoming"
       const startDate = parseISO(t.start_date);
-      return (isFuture(startDate) && !isToday(startDate)) && matchesSearch(t);
+      return (isFuture(startDate) && !isToday(startDate)) && matchesFilters(t);
     }),
-    [trainings, matchesSearch]
+    [trainings, matchesFilters]
   );
 
   const ongoingTrainings = useMemo(() =>
-    trainings.filter((t) => isOngoing(t) && matchesSearch(t)),
-    [trainings, matchesSearch]
+    trainings.filter((t) => isOngoing(t) && matchesFilters(t)),
+    [trainings, matchesFilters]
   );
 
   const pastTrainings = useMemo(() =>
@@ -207,14 +217,14 @@ const Formations = () => {
       if (isOngoing(t)) return false;
       const startDate = parseISO(t.start_date);
       if (isFuture(startDate) && !isToday(startDate)) return false;
-      return matchesSearch(t);
+      return matchesFilters(t);
     }),
-    [trainings, matchesSearch]
+    [trainings, matchesFilters]
   );
 
   const permanentTrainings = useMemo(() =>
-    trainings.filter((t) => isPermanent(t) && matchesSearch(t)),
-    [trainings, matchesSearch]
+    trainings.filter((t) => isPermanent(t) && matchesFilters(t)),
+    [trainings, matchesFilters]
   );
 
   // Check if a training has pending actions
@@ -260,7 +270,7 @@ const Formations = () => {
   // Reset to page 1 when filter/sort/pageSize/search changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [sortField, sortOrder, pageSize, searchQuery]);
+  }, [sortField, sortOrder, pageSize, searchQuery, filterSessionType, filterSessionFormat]);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -365,23 +375,48 @@ const Formations = () => {
                 )}
               </div>
 
-              {/* Search input - full width on mobile */}
-              <div className="relative">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder={isMobile ? "Rechercher…" : "Rechercher participant, commanditaire, formation…"}
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 h-8 w-full md:w-[340px]"
-                />
-                {searchQuery && (
-                  <button
-                    onClick={() => setSearchQuery("")}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                )}
+              {/* Search + filters */}
+              <div className="flex flex-col md:flex-row gap-2">
+                <div className="relative flex-1 md:flex-none">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder={isMobile ? "Rechercher…" : "Rechercher participant, commanditaire, formation…"}
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9 h-8 w-full md:w-[340px]"
+                  />
+                  {searchQuery && (
+                    <button
+                      onClick={() => setSearchQuery("")}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  <Select value={filterSessionType} onValueChange={setFilterSessionType}>
+                    <SelectTrigger className="h-8 w-[130px] text-xs">
+                      <SelectValue placeholder="Type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Tous types</SelectItem>
+                      <SelectItem value="intra">Intra</SelectItem>
+                      <SelectItem value="inter">Inter</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={filterSessionFormat} onValueChange={setFilterSessionFormat}>
+                    <SelectTrigger className="h-8 w-[180px] text-xs">
+                      <SelectValue placeholder="Format" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Tous formats</SelectItem>
+                      <SelectItem value="presentiel">Présentiel</SelectItem>
+                      <SelectItem value="distanciel_synchrone">Distanciel synchrone</SelectItem>
+                      <SelectItem value="distanciel_asynchrone">Distanciel asynchrone</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
           </CardHeader>
