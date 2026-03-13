@@ -135,11 +135,33 @@ export default function ClientInfoSection({
           <Input id="emailCommanditaire" type="email" placeholder="email@exemple.com" value={emailCommanditaire} onChange={(e) => setEmailCommanditaire(e.target.value)} required />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="adresseCommanditaire">
+          <Label>
             Comment s'adresser au commanditaire *
-            <span className="text-muted-foreground font-normal text-sm ml-1">(Ex : Mme Poilvert)</span>
           </Label>
-          <Input id="adresseCommanditaire" placeholder="Mme Dupont" value={adresseCommanditaire} onChange={(e) => setAdresseCommanditaire(e.target.value)} required />
+          <div className="flex gap-3 items-center">
+            <RadioGroup
+              value={civiliteCommanditaire}
+              onValueChange={(v) => setCiviliteCommanditaire(v as "M." | "Mme")}
+              className="flex gap-3"
+            >
+              <div className="flex items-center space-x-1.5">
+                <RadioGroupItem value="M." id="civilite-m" />
+                <Label htmlFor="civilite-m" className="font-normal cursor-pointer">M.</Label>
+              </div>
+              <div className="flex items-center space-x-1.5">
+                <RadioGroupItem value="Mme" id="civilite-mme" />
+                <Label htmlFor="civilite-mme" className="font-normal cursor-pointer">Mme</Label>
+              </div>
+            </RadioGroup>
+            <Input
+              id="nomCommanditaire"
+              placeholder="Nom du commanditaire"
+              value={nomCommanditaire}
+              onChange={(e) => setNomCommanditaire(e.target.value)}
+              required
+              className="flex-1"
+            />
+          </div>
         </div>
       </div>
     </div>
