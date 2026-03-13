@@ -382,6 +382,14 @@ const EntityMediaManager = ({
           items={lightboxItems}
           onClose={() => setLightboxItem(null)}
           onNavigate={setLightboxItem}
+          onToggleDeliverable={(item) => {
+            toggleDeliverable.mutate({
+              id: item.id,
+              sourceType: item.source_type,
+              sourceId: item.source_id,
+              is_deliverable: !item.is_deliverable,
+            });
+          }}
         />
       )}
     </>
