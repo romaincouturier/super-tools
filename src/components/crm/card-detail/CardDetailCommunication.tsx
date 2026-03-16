@@ -222,7 +222,7 @@ const CardDetailCommunication = ({ state, handlers, details, emailFileInputRef, 
               if (card) {
                 supabase
                   .from("crm_cards")
-                  .update({ gender } as any)
+                  .update({ gender } as Record<string, string>)
                   .eq("id", card.id)
                   .then(() => queryClient.invalidateQueries({ queryKey: ["crm-cards"] }));
               }

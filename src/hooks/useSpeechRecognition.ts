@@ -66,7 +66,7 @@ export function useSpeechRecognition(lang: string = "fr-FR", continuous: boolean
         }
       };
 
-      recognition.onerror = (e: any) => {
+      recognition.onerror = (e: { error: string }) => {
         const errorType = e?.error || "unknown";
         console.error("[SpeechRecognition] error:", errorType, e);
 

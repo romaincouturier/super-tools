@@ -3,7 +3,7 @@ import { sanitizeFileName } from "@/lib/file-utils";
 import type { SupportTicket, TicketStatus, TicketAiAnalysis } from "@/types/support";
 
 export async function fetchSupportTickets(): Promise<SupportTicket[]> {
-  const { data, error } = await (supabase as any)
+  const { data, error } = await (supabase as unknown as { from: (table: string) => ReturnType<typeof supabase.from> })
     .from("support_tickets")
     .select("*")
     .order("created_at", { ascending: false });
@@ -27,7 +27,7 @@ export async function createSupportTicket(
 ): Promise<SupportTicket> {
   const { data: { user } } = await supabase.auth.getUser();
   const { files, ai_analysis, ...ticketInput } = input;
-  const { data, error } = await (supabase as any)
+  const { data, error } = await (supabase as unknown as { from: (table: string) => ReturnType<typeof supabase.from> })
     .from("support_tickets")
     .insert({
       ...ticketInput,
@@ -45,7 +45,7 @@ export async function createSupportTicket(
     for (const file of files) {
       const filePath = `${data.id}/${Date.now()}_${sanitizeFileName(file.name)}`;
       await supabase.storage.from("support-attachments").upload(filePath, file);
-      await (supabase as any).from("support_ticket_attachments").insert({
+      await (supabase as unknown as { from: (table: string) => ReturnType<typeof supabase.from> }).from("support_ticket_attachments").insert({
         ticket_id: data.id,
         file_name: file.name,
         file_path: filePath,
@@ -70,7 +70,7 @@ export async function updateSupportTicket(
   updates: Partial<Pick<SupportTicket, "title" | "type" | "status" | "priority" | "assigned_to" | "resolution_notes" | "position" | "page_url">>
 ): Promise<SupportTicket> {
   const payload = withResolvedAt({ ...updates }, updates.status);
-  const { data, error } = await (supabase as any)
+  const { data, error } = await (supabase as unknown as { from: (table: string) => ReturnType<typeof supabase.from> })
     .from("support_tickets")
     .update(payload)
     .eq("id", id)
@@ -86,7 +86,7 @@ export async function moveSupportTicket(
   newPosition: number
 ): Promise<void> {
   const payload = withResolvedAt({ status: newStatus, position: newPosition }, newStatus);
-  const { error } = await (supabase as any)
+  const { error } = await (supabase as unknown as { from: (table: string) => ReturnType<typeof supabase.from> })
     .from("support_tickets")
     .update(payload)
     .eq("id", id);

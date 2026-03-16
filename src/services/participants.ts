@@ -293,7 +293,7 @@ export async function fetchConventionSignature(
 export async function fetchParticipantFiles(
   participantId: string,
 ): Promise<ParticipantFile[]> {
-  const { data, error } = await (supabase as any)
+  const { data, error } = await (supabase as unknown as { from: (table: string) => ReturnType<typeof supabase.from> })
     .from("participant_files")
     .select("id, file_url, file_name, uploaded_at")
     .eq("participant_id", participantId)
@@ -307,7 +307,7 @@ export async function fetchParticipantFiles(
 export async function fetchCouponCode(
   participantId: string,
 ): Promise<string | null> {
-  const { data } = await (supabase as any)
+  const { data } = await (supabase as unknown as { from: (table: string) => ReturnType<typeof supabase.from> })
     .from("woocommerce_coupons")
     .select("coupon_code")
     .eq("participant_id", participantId)
@@ -337,7 +337,7 @@ export async function uploadParticipantFile(
     data: { publicUrl },
   } = supabase.storage.from("training-documents").getPublicUrl(path);
 
-  const { data: insertedFile, error: insertErr } = await (supabase as any)
+  const { data: insertedFile, error: insertErr } = await (supabase as unknown as { from: (table: string) => ReturnType<typeof supabase.from> })
     .from("participant_files")
     .insert({
       participant_id: participantId,
@@ -360,7 +360,7 @@ export async function deleteParticipantFile(
     await supabase.storage.from("training-documents").remove([urlParts[1]]);
   }
 
-  await (supabase as any)
+  await (supabase as unknown as { from: (table: string) => ReturnType<typeof supabase.from> })
     .from("participant_files")
     .delete()
     .eq("id", fileToDelete.id);
