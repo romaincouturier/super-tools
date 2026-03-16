@@ -854,12 +854,24 @@ serve(async (req) => {
     // This ensures removed/reassigned actions don't linger
     // ══════════════════════════════════
     for (const recipient of recipients) {
+      // Delete non-completed actions (will be regenerated)
       await supabase
         .from("daily_actions")
         .delete()
         .eq("user_id", recipient.userId)
         .eq("action_date", today)
         .eq("is_completed", false);
+
+      // Also delete completed review actions that may have been wrongly assigned
+      // (e.g. admin previously got another user's review cards)
+      // These are strictly user-scoped and should not persist if reassigned
+      await supabase
+        .from("daily_actions")
+        .delete()
+        .eq("user_id", recipient.userId)
+        .eq("action_date", today)
+        .in("category", ["articles_relire", "commentaires_contenu"])
+        .eq("is_completed", true);
     }
 
     // ══════════════════════════════════
