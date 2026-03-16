@@ -10,6 +10,8 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { X } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 interface DetailDrawerProps {
@@ -39,7 +41,18 @@ const DetailDrawer = ({
       <SheetHeader className={headerClassName}>
         <SheetTitle className="flex items-center justify-between gap-2">
           <span className="truncate flex-1">{title}</span>
-          {actions && <div className="flex items-center gap-1">{actions}</div>}
+          <div className="flex items-center gap-1">
+            {actions}
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => onOpenChange(false)}
+              title="Fermer"
+              className="shrink-0"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
         </SheetTitle>
       </SheetHeader>
       {children}

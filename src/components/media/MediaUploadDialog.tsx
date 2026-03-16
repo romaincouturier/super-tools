@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import { toast } from "sonner";
 import { Mission } from "@/types/missions";
 import { useAddMedia, uploadMediaFile, MediaSourceType } from "@/hooks/useMedia";
+import { MAX_UPLOAD_SIZE_BYTES } from "@/lib/file-utils";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
@@ -72,7 +73,7 @@ const MediaUploadDialog = ({ missions, trainings = [], events = [], crmCards = [
       return;
     }
 
-    const oversized = validFiles.filter((f) => f.size > 50 * 1024 * 1024);
+    const oversized = validFiles.filter((f) => f.size > MAX_UPLOAD_SIZE_BYTES);
     if (oversized.length > 0) {
       toast.error("Les fichiers ne doivent pas dépasser 50 Mo");
       return;

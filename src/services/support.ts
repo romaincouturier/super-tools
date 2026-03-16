@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { sanitizeFileName } from "@/lib/file-utils";
 import type { SupportTicket, TicketStatus, TicketAiAnalysis } from "@/types/support";
 
 export async function fetchSupportTickets(): Promise<SupportTicket[]> {
@@ -42,7 +43,7 @@ export async function createSupportTicket(
   // Upload attachments if any
   if (files && files.length > 0) {
     for (const file of files) {
-      const filePath = `${data.id}/${Date.now()}_${file.name}`;
+      const filePath = `${data.id}/${Date.now()}_${sanitizeFileName(file.name)}`;
       await supabase.storage.from("support-attachments").upload(filePath, file);
       await (supabase as any).from("support_ticket_attachments").insert({
         ticket_id: data.id,
@@ -57,14 +58,18 @@ export async function createSupportTicket(
   return data;
 }
 
+function withResolvedAt(payload: Record<string, unknown>, status?: string): Record<string, unknown> {
+  if (status === "resolu" || status === "ferme") {
+    return { ...payload, resolved_at: new Date().toISOString() };
+  }
+  return payload;
+}
+
 export async function updateSupportTicket(
   id: string,
-  updates: Partial<Pick<SupportTicket, "status" | "priority" | "assigned_to" | "resolution_notes" | "position">>
+  updates: Partial<Pick<SupportTicket, "title" | "type" | "status" | "priority" | "assigned_to" | "resolution_notes" | "position" | "page_url">>
 ): Promise<SupportTicket> {
-  const payload: Record<string, unknown> = { ...updates };
-  if (updates.status === "resolu" || updates.status === "ferme") {
-    payload.resolved_at = new Date().toISOString();
-  }
+  const payload = withResolvedAt({ ...updates }, updates.status);
   const { data, error } = await (supabase as any)
     .from("support_tickets")
     .update(payload)
@@ -80,10 +85,7 @@ export async function moveSupportTicket(
   newStatus: TicketStatus,
   newPosition: number
 ): Promise<void> {
-  const payload: Record<string, unknown> = { status: newStatus, position: newPosition };
-  if (newStatus === "resolu" || newStatus === "ferme") {
-    payload.resolved_at = new Date().toISOString();
-  }
+  const payload = withResolvedAt({ status: newStatus, position: newPosition }, newStatus);
   const { error } = await (supabase as any)
     .from("support_tickets")
     .update(payload)

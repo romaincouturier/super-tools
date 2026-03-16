@@ -1,5 +1,6 @@
 import {
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   KeyboardSensor,
   useSensor,
   useSensors,
@@ -11,8 +12,12 @@ interface UseKanbanDndOptions {
 }
 
 export function useKanbanDnd({ enableKeyboard = false }: UseKanbanDndOptions = {}) {
-  const pointerSensor = useSensor(PointerSensor, {
+  const mouseSensor = useSensor(MouseSensor, {
     activationConstraint: { distance: 8 },
+  });
+
+  const touchSensor = useSensor(TouchSensor, {
+    activationConstraint: { delay: 250, tolerance: 5 },
   });
 
   const keyboardSensor = useSensor(KeyboardSensor, {
@@ -20,7 +25,8 @@ export function useKanbanDnd({ enableKeyboard = false }: UseKanbanDndOptions = {
   });
 
   const sensors = useSensors(
-    pointerSensor,
+    mouseSensor,
+    touchSensor,
     ...(enableKeyboard ? [keyboardSensor] : []),
   );
 

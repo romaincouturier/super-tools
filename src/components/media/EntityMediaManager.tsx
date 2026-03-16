@@ -5,6 +5,7 @@ import {
   useAddMedia,
   useDeleteMedia,
   useToggleMediaDeliverable,
+  useRenameMedia,
   uploadMediaFile,
   deleteMediaFile,
   MediaSourceType,
@@ -13,8 +14,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { formatFileSize, downloadFile as downloadFileUtil } from "@/lib/file-utils";
-import { ImageIcon, Video, Plus, Loader2, Upload, Trash2, Play, Download, Package, DownloadCloud } from "lucide-react";
+import { downloadFile as downloadFileUtil, promptRenameFile, MAX_UPLOAD_SIZE_BYTES } from "@/lib/file-utils";
+import { ImageIcon, Video, Plus, Loader2, Upload, Trash2, Play, Download, Package, DownloadCloud, Pencil } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import MediaLightbox from "@/components/media/MediaLightbox";
 
@@ -48,6 +49,7 @@ const EntityMediaManager = ({
   const addMedia = useAddMedia();
   const deleteMutation = useDeleteMedia();
   const toggleDeliverable = useToggleMediaDeliverable();
+  const renameMedia = useRenameMedia();
 
   const [uploading, setUploading] = useState(false);
   const [downloading, setDownloading] = useState(false);
@@ -55,9 +57,19 @@ const EntityMediaManager = ({
   const [lightboxItem, setLightboxItem] = useState<MediaItem | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Filter out video_link for display count purposes
+  // Filter out video_link for display/download purposes
+  const downloadableMedia = media.filter((m) => m.file_type !== "video_link");
   const imageItems = media.filter((m) => m.file_type === "image");
   const videoItems = media.filter((m) => m.file_type === "video");
+
+  const handleToggleDeliverable = (item: MediaItem) => {
+    toggleDeliverable.mutate({
+      id: item.id,
+      sourceType: item.source_type,
+      sourceId: item.source_id,
+      is_deliverable: !item.is_deliverable,
+    });
+  };
 
   const uploadFiles = useCallback(async (files: FileList | File[]) => {
     const fileArray = Array.from(files);
@@ -68,7 +80,7 @@ const EntityMediaManager = ({
       return;
     }
 
-    const oversized = validFiles.filter((f) => f.size > 50 * 1024 * 1024);
+    const oversized = validFiles.filter((f) => f.size > MAX_UPLOAD_SIZE_BYTES);
     if (oversized.length > 0) {
       toast.error("Les fichiers ne doivent pas dépasser 50 Mo");
       return;
@@ -144,13 +156,12 @@ const EntityMediaManager = ({
   };
 
   const handleDownloadAll = async () => {
-    const downloadable = media.filter((m) => m.file_type !== "video_link");
-    if (downloadable.length === 0) return;
+    if (downloadableMedia.length === 0) return;
 
     setDownloading(true);
     let successCount = 0;
     try {
-      for (const item of downloadable) {
+      for (const item of downloadableMedia) {
         try {
           await downloadFileUtil(item.file_url, item.file_name);
           successCount++;
@@ -168,6 +179,19 @@ const EntityMediaManager = ({
     } finally {
       setDownloading(false);
     }
+  };
+
+  const handleRename = (e: React.MouseEvent, item: MediaItem) => {
+    e.stopPropagation();
+    const finalName = promptRenameFile(item.file_name);
+    if (!finalName) return;
+    renameMedia.mutate(
+      { id: item.id, file_name: finalName },
+      {
+        onSuccess: () => toast.success(`Renommé en "${finalName}"`),
+        onError: () => toast.error("Erreur lors du renommage"),
+      }
+    );
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -208,7 +232,7 @@ const EntityMediaManager = ({
   }, [handlePaste, enablePaste]);
 
   // Items suitable for lightbox (exclude video_link)
-  const lightboxItems = media.filter((m) => m.file_type !== "video_link");
+  const lightboxItems = downloadableMedia;
 
   if (isLoading) {
     return (
@@ -287,7 +311,7 @@ const EntityMediaManager = ({
               )}
             </div>
 
-            {[...media].filter((m) => m.file_type !== "video_link").sort((a, b) => (b.is_deliverable ? 1 : 0) - (a.is_deliverable ? 1 : 0)).map((item) => (
+            {[...downloadableMedia].sort((a, b) => (b.is_deliverable ? 1 : 0) - (a.is_deliverable ? 1 : 0)).map((item) => (
               <div
                 key={item.id}
                 className="group relative aspect-square rounded-lg overflow-hidden border bg-muted cursor-pointer"
@@ -324,12 +348,7 @@ const EntityMediaManager = ({
                         className="h-7 w-7"
                         onClick={(e) => {
                           e.stopPropagation();
-                          toggleDeliverable.mutate({
-                            id: item.id,
-                            sourceType: item.source_type,
-                            sourceId: item.source_id,
-                            is_deliverable: !item.is_deliverable,
-                          });
+                          handleToggleDeliverable(item);
                         }}
                       >
                         <Package className="h-3.5 w-3.5" />
@@ -338,6 +357,19 @@ const EntityMediaManager = ({
                     <TooltipContent>
                       {item.is_deliverable ? "Retirer des livrables" : "Marquer comme livrable"}
                     </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="secondary"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={(e) => handleRename(e, item)}
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Renommer</TooltipContent>
                   </Tooltip>
                   <Button
                     variant="secondary"
@@ -382,14 +414,7 @@ const EntityMediaManager = ({
           items={lightboxItems}
           onClose={() => setLightboxItem(null)}
           onNavigate={setLightboxItem}
-          onToggleDeliverable={(item) => {
-            toggleDeliverable.mutate({
-              id: item.id,
-              sourceType: item.source_type,
-              sourceId: item.source_id,
-              is_deliverable: !item.is_deliverable,
-            });
-          }}
+          onToggleDeliverable={handleToggleDeliverable}
         />
       )}
     </>
@@ -413,7 +438,7 @@ const EntityMediaManager = ({
               </span>
             )}
           </CardTitle>
-          {media.filter((m) => m.file_type !== "video_link").length > 0 && (
+          {downloadableMedia.length > 0 && (
             <Button
               size="sm"
               variant="outline"

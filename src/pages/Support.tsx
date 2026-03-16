@@ -4,33 +4,26 @@ import PageHeader from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import ModuleLayout from "@/components/ModuleLayout";
 import GenericKanbanBoard from "@/components/shared/kanban/GenericKanbanBoard";
+import SupportTicketCard from "@/components/support/SupportTicketCard";
+import TicketDetail from "@/components/support/TicketDetail";
 import { useSupportTickets, useCreateSupportTicket, useUpdateSupportTicket, useMoveSupportTicket, useAnalyzeTicket } from "@/hooks/useSupport";
 import {
   SUPPORT_COLUMNS,
-  TICKET_TYPE_CONFIG,
   TICKET_PRIORITY_CONFIG,
   type SupportTicket,
   type SupportTicketCard,
   type TicketType,
-  type TicketPriority,
   type TicketStatus,
-  type TicketAiAnalysis,
-  type BugAnalysis,
-  type EvolutionAnalysis,
 } from "@/types/support";
 import type { KanbanDropResult } from "@/types/kanban";
-import { formatDistanceToNow } from "date-fns";
-import { fr } from "date-fns/locale";
 
 const Support = () => {
   const { toast } = useToast();
@@ -133,7 +126,7 @@ const Support = () => {
     }
   };
 
-  const exportNewTickets = useCallback(() => {
+  const exportNewTickets = useCallback(async () => {
     if (!tickets) return;
     const newTickets = tickets.filter((t) => t.status === "nouveau");
     if (newTickets.length === 0) {
@@ -148,8 +141,12 @@ const Support = () => {
       })
       .join("\n\n---\n\n");
     const header = `# Tickets nouveaux (${newTickets.length})\n\n`;
-    navigator.clipboard.writeText(header + text);
-    toast({ title: "Copié !", description: `${newTickets.length} ticket${newTickets.length > 1 ? "s" : ""} copié${newTickets.length > 1 ? "s" : ""} dans le presse-papier.` });
+    try {
+      await navigator.clipboard.writeText(header + text);
+      toast({ title: "Copié !", description: `${newTickets.length} ticket${newTickets.length > 1 ? "s" : ""} copié${newTickets.length > 1 ? "s" : ""} dans le presse-papier.` });
+    } catch {
+      toast({ title: "Erreur", description: "Impossible de copier dans le presse-papier.", variant: "destructive" });
+    }
   }, [tickets, toast]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -161,36 +158,9 @@ const Support = () => {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const renderCard = (card: SupportTicketCard) => {
-    const t = card.ticket;
-    const typeConf = TICKET_TYPE_CONFIG[t.type];
-    const prioConf = TICKET_PRIORITY_CONFIG[t.priority];
-
-    return (
-      <div
-        className="bg-background border rounded-lg p-3 shadow-sm hover:shadow-md transition-shadow cursor-pointer space-y-2"
-        onClick={() => setDetailTicket(t)}
-      >
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex items-center gap-1.5">
-            <Badge variant="outline" style={{ borderColor: typeConf.color, color: typeConf.color }} className="text-[10px] px-1.5 py-0">
-              {t.type === "bug" ? <Bug className="h-2.5 w-2.5 mr-0.5" /> : <Lightbulb className="h-2.5 w-2.5 mr-0.5" />}
-              {typeConf.label}
-            </Badge>
-            <Badge variant="outline" style={{ borderColor: prioConf.color, color: prioConf.color }} className="text-[10px] px-1.5 py-0">
-              {prioConf.label}
-            </Badge>
-          </div>
-          <span className="text-[10px] text-muted-foreground font-mono shrink-0">{t.ticket_number}</span>
-        </div>
-        <p className="text-sm font-medium leading-tight line-clamp-2">{t.title}</p>
-        <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-          <span>{t.submitted_by_email?.split("@")[0] || "—"}</span>
-          <span>{formatDistanceToNow(new Date(t.created_at), { addSuffix: true, locale: fr })}</span>
-        </div>
-      </div>
-    );
-  };
+  const renderCard = (card: SupportTicketCard, isDragging?: boolean) => (
+    <SupportTicketCard card={card} isDragging={isDragging} />
+  );
 
   const renderColumnHeader = (column: typeof SUPPORT_COLUMNS[0], columnCards: SupportTicketCard[]) => (
     <div className="flex items-center justify-between px-2 py-1">
@@ -353,6 +323,7 @@ const Support = () => {
             columns={SUPPORT_COLUMNS}
             cards={cards}
             loading={isLoading}
+            config={{ cardSortable: true }}
             renderCard={renderCard}
             renderColumnHeader={renderColumnHeader}
             onCardMove={handleCardMove}
@@ -376,224 +347,5 @@ const Support = () => {
     </ModuleLayout>
   );
 };
-
-function AiAnalysisSection({ analysis }: { analysis: TicketAiAnalysis }) {
-  if (analysis.type === "bug") {
-    const bug = analysis as BugAnalysis;
-    return (
-      <Card className="border-red-200 bg-red-50/30">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-primary" />
-            Analyse IA — Bug
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3 text-sm">
-          <div>
-            <Label className="text-xs text-muted-foreground font-semibold">Constat</Label>
-            <p className="whitespace-pre-wrap mt-0.5">{bug.constat}</p>
-          </div>
-          <div>
-            <Label className="text-xs text-muted-foreground font-semibold">Procédure de reproduction</Label>
-            <p className="whitespace-pre-wrap mt-0.5">{bug.reproduction}</p>
-          </div>
-          <div>
-            <Label className="text-xs text-muted-foreground font-semibold">Situation désirée</Label>
-            <p className="whitespace-pre-wrap mt-0.5">{bug.situation_desiree}</p>
-          </div>
-          <div>
-            <Label className="text-xs text-muted-foreground font-semibold">Procédure de test</Label>
-            <p className="whitespace-pre-wrap mt-0.5">{bug.procedure_test}</p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  const evo = analysis as EvolutionAnalysis;
-  return (
-    <Card className="border-violet-200 bg-violet-50/30">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sm flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-primary" />
-          Analyse IA — Évolution
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-3 text-sm">
-        <div>
-          <Label className="text-xs text-muted-foreground font-semibold">User stories</Label>
-          <p className="whitespace-pre-wrap mt-0.5">{evo.user_stories}</p>
-        </div>
-        <div>
-          <Label className="text-xs text-muted-foreground font-semibold">Critères d'acceptation</Label>
-          <p className="whitespace-pre-wrap mt-0.5">{evo.criteres_acceptation}</p>
-        </div>
-        <div>
-          <Label className="text-xs text-muted-foreground font-semibold">Impact produit</Label>
-          <p className="whitespace-pre-wrap mt-0.5">{evo.impact_produit}</p>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function TicketDetail({ ticket, onUpdate }: { ticket: SupportTicket; onUpdate: (id: string, updates: Partial<SupportTicket>) => void }) {
-  const typeConf = TICKET_TYPE_CONFIG[ticket.type];
-  const [resolutionNotes, setResolutionNotes] = useState(ticket.resolution_notes || "");
-  const [title, setTitle] = useState(ticket.title);
-  const [type, setType] = useState<TicketType>(ticket.type);
-  const [assignedTo, setAssignedTo] = useState(ticket.assigned_to || "");
-  const [pageUrl, setPageUrl] = useState(ticket.page_url || "");
-
-  return (
-    <ScrollArea className="h-full">
-      <SheetHeader className="mb-6">
-        <div className="flex items-center gap-2 mb-2">
-          <Badge variant="outline" style={{ borderColor: typeConf.color, color: typeConf.color }}>
-            {ticket.type === "bug" ? <Bug className="h-3 w-3 mr-1" /> : <Lightbulb className="h-3 w-3 mr-1" />}
-            {typeConf.label}
-          </Badge>
-          <span className="text-sm font-mono text-muted-foreground">{ticket.ticket_number}</span>
-        </div>
-        <SheetTitle className="text-left sr-only">{ticket.title}</SheetTitle>
-      </SheetHeader>
-
-      <div className="space-y-6 pr-2">
-        {/* Titre — éditable */}
-        <div className="space-y-1.5">
-          <Label className="text-xs text-muted-foreground">Titre</Label>
-          <Input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            onBlur={() => { if (title !== ticket.title && title.trim()) onUpdate(ticket.id, { title }); }}
-            className="text-sm font-medium"
-          />
-        </div>
-
-        {/* Type + Priorité + Statut */}
-        <div className="grid grid-cols-3 gap-3">
-          <div className="space-y-1.5">
-            <Label className="text-xs text-muted-foreground">Type</Label>
-            <Select value={type} onValueChange={(v) => { const t = v as TicketType; setType(t); onUpdate(ticket.id, { type: t }); }}>
-              <SelectTrigger className="text-sm"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="bug">Bug</SelectItem>
-                <SelectItem value="evolution">Évolution</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs text-muted-foreground">Priorité</Label>
-            <Select value={ticket.priority} onValueChange={(v) => onUpdate(ticket.id, { priority: v as TicketPriority })}>
-              <SelectTrigger className="text-sm"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="low">Basse</SelectItem>
-                <SelectItem value="medium">Moyenne</SelectItem>
-                <SelectItem value="high">Haute</SelectItem>
-                <SelectItem value="critical">Critique</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs text-muted-foreground">Statut</Label>
-            <Select value={ticket.status} onValueChange={(v) => onUpdate(ticket.id, { status: v as TicketStatus })}>
-              <SelectTrigger className="text-sm"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {SUPPORT_COLUMNS.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        {/* Assigné à */}
-        <div className="space-y-1.5">
-          <Label className="text-xs text-muted-foreground">Assigné à</Label>
-          <Input
-            value={assignedTo}
-            onChange={(e) => setAssignedTo(e.target.value)}
-            onBlur={() => { if (assignedTo !== (ticket.assigned_to || "")) onUpdate(ticket.id, { assigned_to: assignedTo || null }); }}
-            placeholder="Email ou nom de la personne"
-            className="text-sm"
-          />
-        </div>
-
-        {/* Page URL — éditable */}
-        <div className="space-y-1.5">
-          <Label className="text-xs text-muted-foreground">Page concernée</Label>
-          <Input
-            value={pageUrl}
-            onChange={(e) => setPageUrl(e.target.value)}
-            onBlur={() => { if (pageUrl !== (ticket.page_url || "")) onUpdate(ticket.id, { page_url: pageUrl || null }); }}
-            placeholder="/chemin/de/la/page"
-            className="text-sm font-mono"
-          />
-        </div>
-
-        {/* Screenshot */}
-        {ticket.screenshot_url && (
-          <div className="space-y-1.5">
-            <Label className="text-xs text-muted-foreground">Capture d'écran</Label>
-            <a href={ticket.screenshot_url} target="_blank" rel="noopener noreferrer">
-              <img src={ticket.screenshot_url} alt="Capture" className="rounded-md border max-h-48 object-contain" />
-            </a>
-          </div>
-        )}
-
-        {/* Description originale — lecture seule */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Description originale</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm whitespace-pre-wrap">{ticket.description}</p>
-          </CardContent>
-        </Card>
-
-        {/* AI Analysis */}
-        {ticket.ai_analysis && <AiAnalysisSection analysis={ticket.ai_analysis} />}
-
-        {/* Info read-only */}
-        <div className="space-y-2 text-sm">
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Soumis par</span>
-            <span>{ticket.submitted_by_email || "—"}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Créé</span>
-            <span>{formatDistanceToNow(new Date(ticket.created_at), { addSuffix: true, locale: fr })}</span>
-          </div>
-          {ticket.resolved_at && (
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Résolu</span>
-              <span>{formatDistanceToNow(new Date(ticket.resolved_at), { addSuffix: true, locale: fr })}</span>
-            </div>
-          )}
-        </div>
-
-        {/* Resolution notes */}
-        <div className="space-y-2">
-          <Label className="text-sm">Notes de résolution</Label>
-          <Textarea
-            value={resolutionNotes}
-            onChange={(e) => setResolutionNotes(e.target.value)}
-            placeholder="Explication de la résolution, lien vers le fix..."
-            rows={3}
-            className="text-sm"
-          />
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => onUpdate(ticket.id, { resolution_notes: resolutionNotes })}
-            disabled={resolutionNotes === (ticket.resolution_notes || "")}
-          >
-            Sauvegarder les notes
-          </Button>
-        </div>
-      </div>
-    </ScrollArea>
-  );
-}
 
 export default Support;

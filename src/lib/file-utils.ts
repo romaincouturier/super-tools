@@ -82,6 +82,21 @@ export function buildStoragePath(entityType: string, entityId: string, fileName:
   return `${entityType}/${entityId}/${Date.now()}_${sanitizeFileName(fileName)}`;
 }
 
+/** Maximum upload file size in bytes (50 MB). */
+export const MAX_UPLOAD_SIZE_BYTES = 50 * 1024 * 1024;
+
+/**
+ * Prompt the user for a new file name (preserving extension) and return the
+ * result. Returns `null` if the user cancelled or the name didn't change.
+ */
+export function promptRenameFile(currentName: string): string | null {
+  const ext = currentName.includes(".") ? currentName.slice(currentName.lastIndexOf(".")) : "";
+  const nameWithoutExt = currentName.includes(".") ? currentName.slice(0, currentName.lastIndexOf(".")) : currentName;
+  const newName = window.prompt("Nouveau nom du fichier :", nameWithoutExt);
+  if (newName === null || newName.trim() === "" || newName.trim() === nameWithoutExt) return null;
+  return newName.trim() + ext;
+}
+
 /**
  * Extract the storage file path from a public URL, given the bucket name.
  * Returns null if the bucket marker is not found in the URL.

@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, QueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { sanitizeFileName, resolveContentType } from "@/lib/file-utils";
 
@@ -138,6 +138,16 @@ export const useEntityMedia = (sourceType: MediaSourceType, sourceId: string | u
   });
 };
 
+/** Invalidate both media caches. If source info is provided, also targets the entity-specific cache. */
+function invalidateMediaCaches(qc: QueryClient, sourceType?: MediaSourceType, sourceId?: string) {
+  qc.invalidateQueries({ queryKey: [MEDIA_LIBRARY_KEY] });
+  if (sourceType && sourceId) {
+    qc.invalidateQueries({ queryKey: [ENTITY_MEDIA_KEY, sourceType, sourceId] });
+  } else {
+    qc.invalidateQueries({ queryKey: [ENTITY_MEDIA_KEY] });
+  }
+}
+
 // ── Add media ────────────────────────────────────────────────────────
 export const useAddMedia = () => {
   const queryClient = useQueryClient();
@@ -163,8 +173,7 @@ export const useAddMedia = () => {
       return data;
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: [ENTITY_MEDIA_KEY, variables.source_type, variables.source_id] });
-      queryClient.invalidateQueries({ queryKey: [MEDIA_LIBRARY_KEY] });
+      invalidateMediaCaches(queryClient, variables.source_type, variables.source_id);
     },
   });
 };
@@ -182,8 +191,7 @@ export const useDeleteMedia = () => {
       return { sourceType, sourceId };
     },
     onSuccess: ({ sourceType, sourceId }) => {
-      queryClient.invalidateQueries({ queryKey: [ENTITY_MEDIA_KEY, sourceType, sourceId] });
-      queryClient.invalidateQueries({ queryKey: [MEDIA_LIBRARY_KEY] });
+      invalidateMediaCaches(queryClient, sourceType, sourceId);
     },
   });
 };
@@ -200,8 +208,7 @@ export const useUpdateMediaTags = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [MEDIA_LIBRARY_KEY] });
-      queryClient.invalidateQueries({ queryKey: [ENTITY_MEDIA_KEY] });
+      invalidateMediaCaches(queryClient);
     },
   });
 };
@@ -219,8 +226,24 @@ export const useToggleMediaDeliverable = () => {
       return { sourceType, sourceId };
     },
     onSuccess: ({ sourceType, sourceId }) => {
-      queryClient.invalidateQueries({ queryKey: [ENTITY_MEDIA_KEY, sourceType, sourceId] });
-      queryClient.invalidateQueries({ queryKey: [MEDIA_LIBRARY_KEY] });
+      invalidateMediaCaches(queryClient, sourceType, sourceId);
+    },
+  });
+};
+
+// ── Rename media ─────────────────────────────────────────────────────
+export const useRenameMedia = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, file_name }: { id: string; file_name: string }) => {
+      const { error } = await (supabase as any)
+        .from("media")
+        .update({ file_name })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      invalidateMediaCaches(queryClient);
     },
   });
 };

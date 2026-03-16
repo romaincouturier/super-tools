@@ -33,12 +33,14 @@ interface CategoryConfig {
 
 // Display order for categories (matches daily digest email order)
 const CATEGORY_ORDER = [
+  "missions_actions",
   "formations_facture",
   "missions_a_facturer",
   "missions_activites_non_facturees",
   "elearning_groupe",
   "okr_initiatives",
   "reservations_mission",
+  "reservations_formation",
   "reservations_evenement",
   "cfp_soumettre",
   "missions_sans_date",
@@ -54,9 +56,11 @@ const CATEGORY_ORDER = [
 ];
 
 const CATEGORIES: Record<string, CategoryConfig> = {
+  missions_actions: { label: "Missions — Actions à traiter", emoji: "⚡", color: "text-orange-600" },
   elearning_groupe: { label: "Groupes privés e-learning", emoji: "💬", color: "text-indigo-600" },
   okr_initiatives: { label: "Initiatives OKR", emoji: "🎯", color: "text-emerald-600" },
   reservations_mission: { label: "Réservations à faire", emoji: "🚄", color: "text-sky-600" },
+  reservations_formation: { label: "Réservations formations", emoji: "🎓", color: "text-sky-600" },
   reservations_evenement: { label: "Réservations événements", emoji: "📅", color: "text-amber-600" },
   formations_facture: { label: "Factures à émettre", emoji: "🧾", color: "text-red-600" },
   missions_a_facturer: { label: "Factures missions", emoji: "💰", color: "text-green-600" },
