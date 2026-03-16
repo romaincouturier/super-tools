@@ -292,11 +292,11 @@ export function useFormationDetail() {
       setThankYouSentAt(new Date().toISOString());
       setShowThankYouPreview(false);
       setEmailsRefreshTrigger((prev) => prev + 1);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Send error:", error);
       toast({
         title: "Erreur d'envoi",
-        description: error.message || "Impossible d'envoyer le mail de remerciement.",
+        description: error instanceof Error ? error.message : "Impossible d'envoyer le mail de remerciement.",
         variant: "destructive",
       });
     } finally {
@@ -386,7 +386,7 @@ export function useFormationDetail() {
     try {
       const { error } = await supabase
         .from("trainings")
-        .update({ notes: notes.trim() || null } as any)
+        .update({ notes: notes.trim() || null })
         .eq("id", id);
       if (error) throw error;
       setNotesChanged(false);

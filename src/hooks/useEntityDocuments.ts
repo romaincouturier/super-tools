@@ -61,9 +61,9 @@ export const useEntityDocuments = (entityType: DocumentEntityType, entityId: str
 
       if (error) throw error;
 
-      return (data || []).map((row: any): EntityDocument => ({
+      return (data || []).map((row): EntityDocument => ({
         id: row.id,
-        entity_id: row[config.foreignKey],
+        entity_id: (row as Record<string, unknown>)[config.foreignKey] as string,
         file_name: row.file_name,
         file_url: row.file_url,
         file_size: row.file_size,

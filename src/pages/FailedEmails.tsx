@@ -58,10 +58,10 @@ const FailedEmails = () => {
   const fetchFailedEmails = async () => {
     setLoading(true);
     try {
-      const { data, error } = await (supabase
-        .from("failed_emails" as any)
+      const { data, error } = await (supabase as unknown as { from: (table: string) => ReturnType<typeof supabase.from> })
+        .from("failed_emails")
         .select("*")
-        .order("created_at", { ascending: false }) as any);
+        .order("created_at", { ascending: false });
 
       if (error) throw error;
       setFailedEmails(data || []);
@@ -89,18 +89,18 @@ const FailedEmails = () => {
 
   const handleDelete = async (failedEmailId: string) => {
     try {
-      const { error } = await (supabase
-        .from("failed_emails" as any)
+      const { error } = await (supabase as unknown as { from: (table: string) => ReturnType<typeof supabase.from> })
+        .from("failed_emails")
         .delete()
-        .eq("id", failedEmailId) as any);
+        .eq("id", failedEmailId);
 
       if (error) throw error;
       setFailedEmails((prev) => prev.filter((e) => e.id !== failedEmailId));
       toast({ title: "Email supprimé" });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Erreur",
-        description: "Impossible de supprimer.",
+        description: error instanceof Error ? error.message : "Erreur inconnue",
         variant: "destructive",
       });
     }

@@ -201,9 +201,10 @@ export function useAddParticipant({
         onScheduledEmailsRefresh();
       }
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       // Handle duplicate participant
-      if (error?.code === "23505") {
+      const err = error as { code?: string; message?: string };
+      if (err?.code === "23505") {
         toast({
           title: "Participant déjà inscrit",
           description: "Un participant avec cet email est déjà inscrit à cette formation.",
@@ -213,7 +214,7 @@ export function useAddParticipant({
         console.error("Error adding participant:", error);
         toast({
           title: "Erreur",
-          description: error.message || "Une erreur est survenue.",
+          description: error instanceof Error ? error.message : "Une erreur est survenue.",
           variant: "destructive",
         });
       }
