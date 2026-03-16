@@ -184,7 +184,7 @@ const CardDetailDrawer = ({
       setAcquisitionSource(card.acquisition_source ?? null);
       setNextActionText(card.next_action_text || "");
       setNextActionDone(card.next_action_done || false);
-      setNextActionType((card as any).next_action_type || "other");
+      setNextActionType(card.next_action_type || "other");
       setLocalBriefQuestions(card.brief_questions || []);
       const hasDescription = !!(card.description_html && card.description_html.replace(/<[^>]*>/g, "").trim());
       setBriefExpanded(!hasDescription);
@@ -215,7 +215,7 @@ const CardDetailDrawer = ({
       setFieldSaving(true);
       setFieldSaved(false);
       try {
-        await updateCard.mutateAsync({ id: card.id, updates: updates as any, actorEmail: user.email!, oldCard: card });
+        await updateCard.mutateAsync({ id: card.id, updates: updates as Record<string, unknown>, actorEmail: user.email!, oldCard: card });
         setFieldSaved(true);
         setTimeout(() => setFieldSaved(false), 2000);
       } catch (error) {
@@ -497,7 +497,7 @@ const CardDetailDrawer = ({
     const leavingWonColumn = wasInWonColumn && !isWonColumn;
     const leavingLostColumn = wasInLostColumn && !isLostColumn;
     if (movingToLost && salesStatus !== "LOST") { setPendingLossColumnId(newColumnId); setPendingLossStatus(true); setShowLossReasonDialog(true); return; }
-    const updates: Record<string, any> = { column_id: newColumnId };
+    const updates: Record<string, unknown> = { column_id: newColumnId };
     if (isWonColumn) { updates.sales_status = "WON"; setSalesStatus("WON"); } else if (leavingWonColumn) { updates.sales_status = "OPEN"; setSalesStatus("OPEN"); }
     if (leavingLostColumn) { updates.sales_status = "OPEN"; updates.lost_at = null; updates.loss_reason = null; updates.loss_reason_detail = null; setSalesStatus("OPEN"); }
     await updateCard.mutateAsync({ id: card.id, updates, actorEmail: user.email, oldCard: card });

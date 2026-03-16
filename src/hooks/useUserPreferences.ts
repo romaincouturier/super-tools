@@ -34,8 +34,7 @@ export function useUserPreference<T>(key: string, defaultValue: T): UserPreferen
           return;
         }
 
-        // Use any to bypass TypeScript issues with generated types
-        const { data, error: fetchError } = await (supabase as any)
+        const { data, error: fetchError } = await supabase
           .from("user_preferences")
           .select("preference_value")
           .eq("user_id", session.session.user.id)
@@ -80,8 +79,7 @@ export function useUserPreference<T>(key: string, defaultValue: T): UserPreferen
         throw new Error("User not authenticated");
       }
 
-      // Use any to bypass TypeScript issues with generated types
-      const { error: upsertError } = await (supabase as any)
+      const { error: upsertError } = await supabase
         .from("user_preferences")
         .upsert(
           {

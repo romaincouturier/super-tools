@@ -67,9 +67,9 @@ export function useVoiceDictation({
           } else {
             toast.info("Aucune parole détectée");
           }
-        } catch (err: any) {
+        } catch (err: unknown) {
           console.error("Transcription error:", err);
-          toast.error("Erreur de transcription : " + (err.message || "inconnue"));
+          toast.error("Erreur de transcription : " + (err instanceof Error ? err.message : "inconnue"));
         } finally {
           setIsTranscribing(false);
         }
