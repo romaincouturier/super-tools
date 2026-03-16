@@ -50,7 +50,7 @@ const PostEvaluationEmailManager = () => {
     ]);
 
     if (!emailsResult.error) {
-      setEmails((emailsResult.data || []).map((e: any) => ({
+      setEmails((emailsResult.data || []).map((e) => ({
         id: e.id,
         catalog_id: e.catalog_id,
         subject: e.subject,

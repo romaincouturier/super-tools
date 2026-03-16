@@ -11,7 +11,7 @@ export const useNetworkContacts = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Non authentifié");
 
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("network_contacts")
         .select("*")
         .eq("user_id", user.id)
@@ -35,7 +35,7 @@ export const useCreateContact = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Non authentifié");
 
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("network_contacts")
         .insert({ user_id: user.id, ...input })
         .select()
@@ -53,7 +53,7 @@ export const useDeleteContact = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("network_contacts")
         .delete()
         .eq("id", id);

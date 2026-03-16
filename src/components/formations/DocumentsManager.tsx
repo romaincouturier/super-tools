@@ -261,7 +261,7 @@ const DocumentsManager = ({
 
       if (!error && data) {
         const urls = data
-          .map((e: any) => e.certificate_url as string)
+          .map((e) => e.certificate_url as string)
           .filter(Boolean);
         setCertificateUrls(urls);
       }

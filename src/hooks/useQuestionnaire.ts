@@ -114,7 +114,7 @@ export function useQuestionnaire() {
     return [questionnaire.prenom, questionnaire.nom].filter(Boolean).join(" ").trim();
   }, [questionnaire]);
 
-  const isInterEntreprises = (training as any)?.session_type === "inter" || training?.format_formation === "inter-entreprises";
+  const isInterEntreprises = (training as TrainingRecord & { session_type?: string })?.session_type === "inter" || training?.format_formation === "inter-entreprises";
 
   // Sync refs immediately on state change (not via useEffect which is async)
   const setQuestionnaireAndRef: typeof setQuestionnaire = (action) => {
@@ -191,11 +191,12 @@ export function useQuestionnaire() {
           await insertEvent(qTyped.id, "opened", { source: "public_link" });
         } catch (trackingErr) { console.warn("First open tracking failed (non-blocking):", trackingErr); }
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error("Failed to load questionnaire", e);
       const errorMsg = "Impossible d'ouvrir ce questionnaire (lien invalide, expiré, ou accès refusé).";
       setError(errorMsg);
-      supabase.functions.invoke("alert-form-error", { body: { formType: "besoins", token, errorMessage: e?.message || e?.code || errorMsg, userAgent: navigator.userAgent, url: window.location.href } }).catch(() => {});
+      const errDetail = e instanceof Error ? e.message : typeof e === "object" && e !== null && "code" in e ? String((e as { code: unknown }).code) : errorMsg;
+      supabase.functions.invoke("alert-form-error", { body: { formType: "besoins", token, errorMessage: errDetail, userAgent: navigator.userAgent, url: window.location.href } }).catch(() => {});
     } finally { setLoading(false); initialLoadCompleteRef.current = true; }
   };
 
@@ -220,7 +221,7 @@ export function useQuestionnaire() {
       if (saveStatusTimerRef.current) window.clearTimeout(saveStatusTimerRef.current);
       saveStatusTimerRef.current = window.setTimeout(() => setSaveStatus("idle"), 3000);
       if (!opts?.silent) toast({ title: "Sauvegardé", description: "Vos réponses ont été enregistrées." });
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error("Autosave failed", e);
       setSaveStatus("error");
       try { localStorage.setItem(`questionnaire_draft_${cq.id}`, JSON.stringify({ ...buildDraftPayload(cq, cpv), _savedAt: nowIso })); }
@@ -245,12 +246,12 @@ export function useQuestionnaire() {
       await saveDraft({ silent: true, force: true });
       const nowIso = new Date().toISOString();
       const needsPrerequisEmail = hasUnvalidatedPrerequisites();
-      const { error: upErr } = await (supabase.rpc as any)("update_questionnaire_by_token", {
+      const { error: upErr } = await supabase.rpc("update_questionnaire_by_token", {
         p_token: token!, p_data: { etat: "complete", date_soumission: nowIso, date_consentement_rgpd: questionnaire.date_consentement_rgpd || nowIso, necessite_validation_formateur: needsPrerequisEmail },
       });
       if (upErr) throw upErr;
 
-      try { await (supabase.rpc as any)("update_participant_after_questionnaire", { p_token: token!, p_company: questionnaire.societe || null }); }
+      try { await supabase.rpc("update_participant_after_questionnaire", { p_token: token!, p_company: questionnaire.societe || null }); }
       catch (participantErr) { console.warn("Failed to update participant", participantErr); }
 
       await insertEvent(questionnaire.id, "submitted", { source: "public_link" });
@@ -271,7 +272,7 @@ export function useQuestionnaire() {
       dirtyRef.current = false;
       toast({ title: "Merci !", description: "Votre questionnaire a bien été envoyé." });
       setQuestionnaireAndRef((prev) => prev ? { ...prev, etat: "complete", date_soumission: nowIso } : prev);
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error("Submit failed", e);
       toast({ title: "Erreur", description: "Impossible de soumettre le questionnaire. Réessayez.", variant: "destructive" });
     } finally { setSubmitting(false); }
@@ -279,7 +280,7 @@ export function useQuestionnaire() {
 
   useEffect(() => {
     fetchData();
-    (supabase.rpc as any)("get_public_contact").then(({ data }: any) => {
+    supabase.rpc("get_public_contact").then(({ data }) => {
       if (data && data.length > 0) { setContactEmail(data[0].email || ""); setContactName(data[0].name || ""); }
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps

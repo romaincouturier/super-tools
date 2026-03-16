@@ -17,7 +17,7 @@ export const useNetworkConversation = (phase: ConversationPhase) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Non authentifié");
 
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("network_conversation")
         .select("*")
         .eq("user_id", user.id)
@@ -48,12 +48,12 @@ export const useSendNetworkMessage = () => {
       if (!user) throw new Error("Non authentifié");
 
       // Save user message
-      await (supabase as any)
+      await supabase
         .from("network_conversation")
         .insert({ user_id: user.id, role: "user", content, phase });
 
       // Get full conversation history
-      const { data: history } = await (supabase as any)
+      const { data: history } = await supabase
         .from("network_conversation")
         .select("role, content")
         .eq("user_id", user.id)
@@ -74,7 +74,7 @@ export const useSendNetworkMessage = () => {
       const aiResponse = data as NetworkAIResponse;
 
       // Save assistant message
-      await (supabase as any)
+      await supabase
         .from("network_conversation")
         .insert({ user_id: user.id, role: "assistant", content: aiResponse.reply, phase });
 

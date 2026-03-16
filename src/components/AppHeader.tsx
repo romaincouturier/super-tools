@@ -43,7 +43,7 @@ const AppHeader = () => {
         .eq("status", "failed");
 
       const { count: failedCount } = await (supabase
-        .from("failed_emails" as any)
+        .from("failed_emails")
         .select("*", { count: "exact", head: true })
         .eq("status", "failed") as any);
 

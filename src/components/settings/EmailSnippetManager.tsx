@@ -53,7 +53,7 @@ const EmailSnippetManager = () => {
 
   const loadSnippets = async () => {
     setLoading(true);
-    const { data, error } = await (supabase as any)
+    const { data, error } = await supabase
       .from("email_snippets")
       .select("*")
       .order("category")
@@ -99,7 +99,7 @@ const EmailSnippetManager = () => {
     };
 
     if (editingSnippet) {
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("email_snippets")
         .update(payload)
         .eq("id", editingSnippet.id);
@@ -111,7 +111,7 @@ const EmailSnippetManager = () => {
       }
     } else {
       const maxPosition = snippets.length > 0 ? Math.max(...snippets.map(s => s.position || 0)) : 0;
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("email_snippets")
         .insert({ ...payload, position: maxPosition + 1 });
 
@@ -130,7 +130,7 @@ const EmailSnippetManager = () => {
 
   const handleDelete = async () => {
     if (!deleteId) return;
-    const { error } = await (supabase as any)
+    const { error } = await supabase
       .from("email_snippets")
       .delete()
       .eq("id", deleteId);

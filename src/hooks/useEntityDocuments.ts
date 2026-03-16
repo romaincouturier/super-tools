@@ -53,7 +53,7 @@ export const useEntityDocuments = (entityType: DocumentEntityType, entityId: str
     queryKey: [config.queryKey, entityId],
     enabled: !!entityId,
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from(config.table)
         .select("*")
         .eq(config.foreignKey, entityId)
@@ -90,7 +90,7 @@ export const useAddEntityDocument = (entityType: DocumentEntityType) => {
     }) => {
       const { data: session } = await supabase.auth.getSession();
       const userId = session.session?.user?.id;
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from(config.table)
         .insert({
           [config.foreignKey]: input.entityId,
@@ -120,7 +120,7 @@ export const useDeleteEntityDocument = (entityType: DocumentEntityType) => {
 
   return useMutation({
     mutationFn: async ({ id, entityId }: { id: string; entityId: string }) => {
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from(config.table)
         .delete()
         .eq("id", id);
@@ -143,7 +143,7 @@ export const useToggleDocumentDeliverable = (entityType: DocumentEntityType) => 
 
   return useMutation({
     mutationFn: async ({ id, entityId, is_deliverable }: { id: string; entityId: string; is_deliverable: boolean }) => {
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from(config.table)
         .update({ is_deliverable })
         .eq("id", id);

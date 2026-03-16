@@ -1,23 +1,20 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { capitalizeName } from "@/lib/stringUtils";
 import type { FormationFormula } from "@/types/training";
 import {
   updateParticipant,
   updateParticipantEvaluation,
-  fetchConventionSignature,
-  fetchParticipantFiles,
-  fetchExistingFinanceurs,
-  fetchCouponCode,
-  uploadParticipantFile,
-  deleteParticipantFile,
-  uploadSignedConvention,
-  deleteSignedConvention,
 } from "@/services/participants";
-import type {
-  ParticipantFile,
-  ConventionSignatureStatus,
-} from "@/services/participants";
+
+import { useAutoSaveForm } from "@/hooks/useAutoSaveForm";
+import type { AutoSaveFormValues } from "@/hooks/useAutoSaveForm";
+import { useParticipantForm } from "@/hooks/participants/useParticipantForm";
+import { useSponsorInfo } from "@/hooks/participants/useSponsorInfo";
+import { useFinanceurInfo } from "@/hooks/participants/useFinanceurInfo";
+import { usePaymentInfo } from "@/hooks/participants/usePaymentInfo";
+import { useParticipantFiles } from "@/hooks/participants/useParticipantFiles";
+import { useParticipantConvention } from "@/hooks/participants/useParticipantConvention";
 
 export interface Participant {
   id: string;
@@ -54,6 +51,25 @@ export interface UseEditParticipantOptions {
   onParticipantUpdated: () => void;
 }
 
+interface FormValues {
+  firstName: string;
+  lastName: string;
+  email: string;
+  company: string;
+  sponsorFirstName: string;
+  sponsorLastName: string;
+  sponsorEmail: string;
+  financeurSameAsSponsor: boolean;
+  financeurName: string;
+  financeurUrl: string;
+  paymentMode: string;
+  soldPriceHt: string;
+  elearningDuration: string;
+  notes: string;
+  formula: string;
+  coachingSessionsTotal: string;
+}
+
 export function useEditParticipant({
   participant,
   trainingId,
@@ -66,35 +82,10 @@ export function useEditParticipant({
 }: UseEditParticipantOptions) {
   const { toast } = useToast();
 
-  // --- Form state ---
+  // --- Dialog state ---
   const [open, setOpen] = useState(false);
-  const [autoSaving, setAutoSaving] = useState(false);
-  const [lastSaved, setLastSaved] = useState<Date | null>(null);
-  const [firstName, setFirstName] = useState(participant.first_name || "");
-  const [lastName, setLastName] = useState(participant.last_name || "");
-  const [email, setEmail] = useState(participant.email);
-  const [company, setCompany] = useState(participant.company || "");
-  const [sponsorFirstName, setSponsorFirstName] = useState(participant.sponsor_first_name || "");
-  const [sponsorLastName, setSponsorLastName] = useState(participant.sponsor_last_name || "");
-  const [sponsorEmail, setSponsorEmail] = useState(participant.sponsor_email || "");
-  const [financeurSameAsSponsor, setFinanceurSameAsSponsor] = useState(
-    participant.financeur_same_as_sponsor ?? true,
-  );
-  const [financeurName, setFinanceurName] = useState(participant.financeur_name || "");
-  const [financeurUrl, setFinanceurUrl] = useState(participant.financeur_url || "");
-  const [paymentMode, setPaymentMode] = useState<"online" | "invoice">(
-    (participant.payment_mode as "online" | "invoice") || "invoice",
-  );
-  const [soldPriceHt, setSoldPriceHt] = useState(
-    participant.sold_price_ht != null ? String(participant.sold_price_ht) : "",
-  );
-  const [elearningDuration, setElearningDuration] = useState(
-    participant.elearning_duration != null
-      ? String(participant.elearning_duration)
-      : trainingElearningDuration != null
-        ? String(trainingElearningDuration)
-        : "",
-  );
+
+  // --- Notes & formula (small enough to keep here) ---
   const [notes, setNotes] = useState(participant.notes || "");
   const [formula, setFormula] = useState(participant.formula || "");
   const [coachingSessionsTotal, setCoachingSessionsTotal] = useState(
@@ -103,68 +94,46 @@ export function useEditParticipant({
       : "0",
   );
 
-  // --- Async data state ---
-  const [financeurPopoverOpen, setFinanceurPopoverOpen] = useState(false);
-  const [existingFinanceurs, setExistingFinanceurs] = useState<string[]>([]);
-  const [signedConventionUrl, setSignedConventionUrl] = useState(
-    participant.signed_convention_url || null,
-  );
-  const [uploadingConvention, setUploadingConvention] = useState(false);
-  const [conventionSignature, setConventionSignature] =
-    useState<ConventionSignatureStatus | null>(null);
-  const [participantFiles, setParticipantFiles] = useState<ParticipantFile[]>(
-    [],
-  );
-  const [uploadingFile, setUploadingFile] = useState(false);
-  const [couponCode, setCouponCode] = useState<string | null>(null);
+  // --- Sub-hooks ---
+  const participantForm = useParticipantForm({ participant });
+  const sponsorInfo = useSponsorInfo({ participant });
+  const financeurInfo = useFinanceurInfo({ participant, open, isInterEntreprise });
+  const paymentInfo = usePaymentInfo({
+    participant,
+    open,
+    formatFormation,
+    trainingElearningDuration,
+  });
+  const filesHook = useParticipantFiles({
+    participantId: participant.id,
+    trainingId,
+    open,
+    isInterEntreprise,
+  });
+  const conventionHook = useParticipantConvention({
+    participantId: participant.id,
+    trainingId,
+    open,
+    isInterEntreprise,
+    sponsorEmail: participant.sponsor_email,
+    initialSignedConventionUrl: participant.signed_convention_url || null,
+    onParticipantUpdated,
+  });
 
-  // --- Auto-save refs ---
-  const saveTimerRef = useRef<ReturnType<typeof setTimeout>>();
-  const lastSavedHashRef = useRef("");
-  const formValuesRef = useRef<Record<string, unknown>>({});
-
-  // Always keep latest values in ref
-  formValuesRef.current = {
-    firstName,
-    lastName,
-    email,
-    company,
-    sponsorFirstName,
-    sponsorLastName,
-    sponsorEmail,
-    financeurSameAsSponsor,
-    financeurName,
-    financeurUrl,
-    paymentMode,
-    soldPriceHt,
-    elearningDuration,
-    notes,
-    formula,
-    coachingSessionsTotal,
-  };
-
-  const formHash = JSON.stringify(formValuesRef.current);
+  // --- Reset local fields when participant changes ---
+  useEffect(() => {
+    setNotes(participant.notes || "");
+    setFormula(participant.formula || "");
+    setCoachingSessionsTotal(
+      participant.coaching_sessions_total != null
+        ? String(participant.coaching_sessions_total)
+        : "0",
+    );
+  }, [participant]);
 
   // --- Build update data from form values ---
   const buildUpdateData = useCallback(
-    (v: {
-      firstName: string;
-      lastName: string;
-      email: string;
-      company: string;
-      sponsorFirstName: string;
-      sponsorLastName: string;
-      sponsorEmail: string;
-      financeurSameAsSponsor: boolean;
-      financeurName: string;
-      financeurUrl: string;
-      paymentMode: string;
-      soldPriceHt: string;
-      elearningDuration: string;
-      notes: string;
-      formula: string;
-      coachingSessionsTotal: string;
-    }): Record<string, unknown> => {
+    (v: FormValues): Record<string, unknown> => {
       const updateData: Record<string, unknown> = {
         first_name: capitalizeName(v.firstName) || null,
         last_name: capitalizeName(v.lastName) || null,
@@ -210,270 +179,82 @@ export function useEditParticipant({
     [isInterEntreprise, formatFormation, availableFormulas.length, formulaAllowsCoaching],
   );
 
-  // --- Auto-save effect ---
-  useEffect(() => {
-    if (!open) return;
-    if (formHash === lastSavedHashRef.current) return;
+  // --- Compose form values for auto-save tracking ---
+  const formValues: AutoSaveFormValues = {
+    firstName: participantForm.firstName,
+    lastName: participantForm.lastName,
+    email: participantForm.email,
+    company: participantForm.company,
+    sponsorFirstName: sponsorInfo.sponsorFirstName,
+    sponsorLastName: sponsorInfo.sponsorLastName,
+    sponsorEmail: sponsorInfo.sponsorEmail,
+    financeurSameAsSponsor: financeurInfo.financeurSameAsSponsor,
+    financeurName: financeurInfo.financeurName,
+    financeurUrl: financeurInfo.financeurUrl,
+    paymentMode: paymentInfo.paymentMode,
+    soldPriceHt: paymentInfo.soldPriceHt,
+    elearningDuration: paymentInfo.elearningDuration,
+    notes,
+    formula,
+    coachingSessionsTotal,
+  };
 
-    if (!lastSavedHashRef.current) {
-      lastSavedHashRef.current = formHash;
-      return;
-    }
+  // --- Auto-save callback ---
+  const handleAutoSave = useCallback(
+    async (values: AutoSaveFormValues): Promise<boolean> => {
+      const v = values as unknown as FormValues;
+      if (!v.email.trim()) return false;
 
-    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      const updateData = buildUpdateData(v);
 
-    saveTimerRef.current = setTimeout(async () => {
-      const v = formValuesRef.current as Parameters<typeof buildUpdateData>[0];
-      if (!v.email.trim()) return;
+      const { error } = await updateParticipant(participant.id, updateData);
 
-      setAutoSaving(true);
-      try {
-        const updateData = buildUpdateData(v);
-
-        const { error } = await updateParticipant(participant.id, updateData);
-
-        if (error) {
-          if (error.code === "23505") {
-            toast({
-              title: "Email en double",
-              description:
-                "Un autre participant avec cet email est déjà inscrit à cette formation.",
-              variant: "destructive",
-            });
-          } else {
-            throw error;
-          }
-          return;
-        }
-
-        await updateParticipantEvaluation(participant.id, {
-          email: v.email.trim().toLowerCase(),
-          first_name: capitalizeName(v.firstName) || null,
-          last_name: capitalizeName(v.lastName) || null,
-          company: v.company.trim() || null,
-        });
-
-        lastSavedHashRef.current = formHash;
-        setLastSaved(new Date());
-        onParticipantUpdated();
-      } catch (error) {
-        console.error("Auto-save error:", error);
-      } finally {
-        setAutoSaving(false);
-      }
-    }, 800);
-
-    return () => {
-      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [formHash, open]);
-
-  // --- Reset form values when participant changes ---
-  useEffect(() => {
-    setFirstName(participant.first_name || "");
-    setLastName(participant.last_name || "");
-    setEmail(participant.email);
-    setCompany(participant.company || "");
-    setSponsorFirstName(participant.sponsor_first_name || "");
-    setSponsorLastName(participant.sponsor_last_name || "");
-    setSponsorEmail(participant.sponsor_email || "");
-    setFinanceurSameAsSponsor(participant.financeur_same_as_sponsor ?? true);
-    setFinanceurName(participant.financeur_name || "");
-    setFinanceurUrl(participant.financeur_url || "");
-    setPaymentMode(
-      (participant.payment_mode as "online" | "invoice") || "invoice",
-    );
-    setSoldPriceHt(
-      participant.sold_price_ht != null
-        ? String(participant.sold_price_ht)
-        : "",
-    );
-    setElearningDuration(
-      participant.elearning_duration != null
-        ? String(participant.elearning_duration)
-        : trainingElearningDuration != null
-          ? String(trainingElearningDuration)
-          : "",
-    );
-    setSignedConventionUrl(participant.signed_convention_url || null);
-    setNotes(participant.notes || "");
-    setFormula(participant.formula || "");
-    setCoachingSessionsTotal(
-      participant.coaching_sessions_total != null
-        ? String(participant.coaching_sessions_total)
-        : "0",
-    );
-    lastSavedHashRef.current = "";
-    setLastSaved(null);
-  }, [participant, trainingElearningDuration]);
-
-  // --- Fetch convention signature ---
-  useEffect(() => {
-    if (!open || !isInterEntreprise || !participant.sponsor_email) return;
-
-    fetchConventionSignature(trainingId, participant.sponsor_email).then(
-      (data) => {
-        if (data) setConventionSignature(data);
-      },
-    );
-  }, [open, isInterEntreprise, trainingId, participant.sponsor_email]);
-
-  // --- Fetch participant files ---
-  useEffect(() => {
-    if (!open || !isInterEntreprise) return;
-
-    fetchParticipantFiles(participant.id).then(setParticipantFiles);
-  }, [open, isInterEntreprise, participant.id]);
-
-  // --- Fetch existing financeurs ---
-  useEffect(() => {
-    if (!open || !isInterEntreprise) return;
-
-    fetchExistingFinanceurs().then(setExistingFinanceurs);
-  }, [open, isInterEntreprise]);
-
-  // --- Fetch WooCommerce coupon ---
-  useEffect(() => {
-    if (!open || formatFormation !== "e_learning") return;
-
-    fetchCouponCode(participant.id).then(setCouponCode);
-  }, [open, formatFormation, participant.id]);
-
-  // --- File upload handler ---
-  const handleFileUpload = useCallback(
-    async (e: React.ChangeEvent<HTMLInputElement>) => {
-      const files = e.target.files;
-      if (!files || files.length === 0) return;
-
-      setUploadingFile(true);
-      const uploadedFiles: ParticipantFile[] = [];
-      let errorCount = 0;
-
-      try {
-        for (const file of Array.from(files)) {
-          try {
-            const uploaded = await uploadParticipantFile(
-              trainingId,
-              participant.id,
-              file,
-            );
-            uploadedFiles.push(uploaded);
-          } catch (err) {
-            console.error(`File upload error for ${file.name}:`, err);
-            errorCount++;
-          }
-        }
-
-        if (uploadedFiles.length > 0) {
-          setParticipantFiles((prev) => [...uploadedFiles, ...prev]);
+      if (error) {
+        if (error.code === "23505") {
           toast({
-            title: `${uploadedFiles.length} fichier${uploadedFiles.length > 1 ? "s" : ""} ajouté${uploadedFiles.length > 1 ? "s" : ""}`,
-            ...(errorCount > 0 && {
-              description: `${errorCount} fichier${errorCount > 1 ? "s" : ""} en erreur.`,
-              variant: "destructive" as const,
-            }),
-          });
-        } else if (errorCount > 0) {
-          toast({
-            title: "Erreur d'upload",
-            description: "Aucun fichier n'a pu être uploadé.",
+            title: "Email en double",
+            description:
+              "Un autre participant avec cet email est d\u00e9j\u00e0 inscrit \u00e0 cette formation.",
             variant: "destructive",
           });
+        } else {
+          throw error;
         }
-      } finally {
-        setUploadingFile(false);
-        e.target.value = "";
+        return false;
       }
-    },
-    [trainingId, participant.id, toast],
-  );
 
-  // --- File delete handler ---
-  const handleDeleteFile = useCallback(
-    async (fileToDelete: ParticipantFile) => {
-      try {
-        await deleteParticipantFile(fileToDelete);
-        setParticipantFiles((prev) =>
-          prev.filter((f) => f.id !== fileToDelete.id),
-        );
-        toast({ title: "Fichier supprimé" });
-      } catch (err) {
-        console.error("Delete file error:", err);
-        toast({
-          title: "Erreur",
-          description: "Impossible de supprimer le fichier.",
-          variant: "destructive",
-        });
-      }
-    },
-    [toast],
-  );
-
-  // --- Convention upload handler ---
-  const handleConventionUpload = useCallback(
-    async (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (!file) return;
-      if (!file.type.includes("pdf")) {
-        toast({
-          title: "Format non supporté",
-          description: "Seuls les fichiers PDF sont acceptés.",
-          variant: "destructive",
-        });
-        return;
-      }
-      setUploadingConvention(true);
-      try {
-        const publicUrl = await uploadSignedConvention(
-          trainingId,
-          participant.id,
-          file,
-        );
-        setSignedConventionUrl(publicUrl);
-        onParticipantUpdated();
-        toast({ title: "Convention uploadée" });
-      } catch (err) {
-        console.error(err);
-        toast({
-          title: "Erreur d'upload",
-          description:
-            err instanceof Error ? err.message : "Erreur.",
-          variant: "destructive",
-        });
-      } finally {
-        setUploadingConvention(false);
-      }
-    },
-    [trainingId, participant.id, onParticipantUpdated, toast],
-  );
-
-  // --- Convention delete handler ---
-  const handleConventionDelete = useCallback(async () => {
-    if (!signedConventionUrl) return;
-    try {
-      await deleteSignedConvention(participant.id, signedConventionUrl);
-      setSignedConventionUrl(null);
-      onParticipantUpdated();
-      toast({ title: "Convention supprimée" });
-    } catch (err) {
-      console.error(err);
-      toast({
-        title: "Erreur",
-        description: "Impossible de supprimer.",
-        variant: "destructive",
+      await updateParticipantEvaluation(participant.id, {
+        email: v.email.trim().toLowerCase(),
+        first_name: capitalizeName(v.firstName) || null,
+        last_name: capitalizeName(v.lastName) || null,
+        company: v.company.trim() || null,
       });
-    }
-  }, [signedConventionUrl, participant.id, onParticipantUpdated, toast]);
+
+      onParticipantUpdated();
+      return true;
+    },
+    [buildUpdateData, participant.id, toast, onParticipantUpdated],
+  );
+
+  const autoSave = useAutoSaveForm({
+    open,
+    formValues,
+    debounceMs: 800,
+    onSave: handleAutoSave,
+  });
+
+  // --- Reset auto-save tracking when participant changes ---
+  useEffect(() => {
+    autoSave.resetTracking();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [participant, trainingElearningDuration]);
 
   // --- Flush pending auto-save and close ---
   const handleClose = useCallback(() => {
-    if (saveTimerRef.current) {
-      clearTimeout(saveTimerRef.current);
-      if (formHash !== lastSavedHashRef.current && email.trim()) {
-        const v = formValuesRef.current as Parameters<
-          typeof buildUpdateData
-        >[0];
+    const pending = autoSave.flushAndGetPending();
+    if (pending) {
+      const v = pending as unknown as FormValues;
+      if (v.email.trim()) {
         const updateData = buildUpdateData(v);
         updateParticipant(participant.id, updateData).then(
           () => onParticipantUpdated(),
@@ -483,7 +264,7 @@ export function useEditParticipant({
     }
     setOpen(false);
     onParticipantUpdated();
-  }, [formHash, email, participant.id, buildUpdateData, onParticipantUpdated]);
+  }, [autoSave, buildUpdateData, participant.id, onParticipantUpdated]);
 
   return {
     // Dialog
@@ -492,45 +273,45 @@ export function useEditParticipant({
     handleClose,
 
     // Auto-save status
-    autoSaving,
-    lastSaved,
+    autoSaving: autoSave.autoSaving,
+    lastSaved: autoSave.lastSaved,
 
     // Participant form fields
-    firstName,
-    setFirstName,
-    lastName,
-    setLastName,
-    email,
-    setEmail,
-    company,
-    setCompany,
+    firstName: participantForm.firstName,
+    setFirstName: participantForm.setFirstName,
+    lastName: participantForm.lastName,
+    setLastName: participantForm.setLastName,
+    email: participantForm.email,
+    setEmail: participantForm.setEmail,
+    company: participantForm.company,
+    setCompany: participantForm.setCompany,
 
     // Sponsor fields
-    sponsorFirstName,
-    setSponsorFirstName,
-    sponsorLastName,
-    setSponsorLastName,
-    sponsorEmail,
-    setSponsorEmail,
+    sponsorFirstName: sponsorInfo.sponsorFirstName,
+    setSponsorFirstName: sponsorInfo.setSponsorFirstName,
+    sponsorLastName: sponsorInfo.sponsorLastName,
+    setSponsorLastName: sponsorInfo.setSponsorLastName,
+    sponsorEmail: sponsorInfo.sponsorEmail,
+    setSponsorEmail: sponsorInfo.setSponsorEmail,
 
     // Financeur fields
-    financeurSameAsSponsor,
-    setFinanceurSameAsSponsor,
-    financeurName,
-    setFinanceurName,
-    financeurUrl,
-    setFinanceurUrl,
-    financeurPopoverOpen,
-    setFinanceurPopoverOpen,
-    existingFinanceurs,
+    financeurSameAsSponsor: financeurInfo.financeurSameAsSponsor,
+    setFinanceurSameAsSponsor: financeurInfo.setFinanceurSameAsSponsor,
+    financeurName: financeurInfo.financeurName,
+    setFinanceurName: financeurInfo.setFinanceurName,
+    financeurUrl: financeurInfo.financeurUrl,
+    setFinanceurUrl: financeurInfo.setFinanceurUrl,
+    financeurPopoverOpen: financeurInfo.financeurPopoverOpen,
+    setFinanceurPopoverOpen: financeurInfo.setFinanceurPopoverOpen,
+    existingFinanceurs: financeurInfo.existingFinanceurs,
 
     // Payment & pricing
-    paymentMode,
-    setPaymentMode,
-    soldPriceHt,
-    setSoldPriceHt,
-    elearningDuration,
-    setElearningDuration,
+    paymentMode: paymentInfo.paymentMode,
+    setPaymentMode: paymentInfo.setPaymentMode,
+    soldPriceHt: paymentInfo.soldPriceHt,
+    setSoldPriceHt: paymentInfo.setSoldPriceHt,
+    elearningDuration: paymentInfo.elearningDuration,
+    setElearningDuration: paymentInfo.setElearningDuration,
 
     // Notes
     notes,
@@ -543,19 +324,19 @@ export function useEditParticipant({
     setCoachingSessionsTotal,
 
     // Convention
-    signedConventionUrl,
-    uploadingConvention,
-    conventionSignature,
-    handleConventionUpload,
-    handleConventionDelete,
+    signedConventionUrl: conventionHook.signedConventionUrl,
+    uploadingConvention: conventionHook.uploadingConvention,
+    conventionSignature: conventionHook.conventionSignature,
+    handleConventionUpload: conventionHook.handleConventionUpload,
+    handleConventionDelete: conventionHook.handleConventionDelete,
 
     // Files
-    participantFiles,
-    uploadingFile,
-    handleFileUpload,
-    handleDeleteFile,
+    participantFiles: filesHook.participantFiles,
+    uploadingFile: filesHook.uploadingFile,
+    handleFileUpload: filesHook.handleFileUpload,
+    handleDeleteFile: filesHook.handleDeleteFile,
 
     // Coupon
-    couponCode,
+    couponCode: paymentInfo.couponCode,
   };
 }

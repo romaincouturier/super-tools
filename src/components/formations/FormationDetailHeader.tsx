@@ -43,7 +43,7 @@ interface Props {
   isInterSession: boolean;
   formatDateWithSchedule: (s: string | null, e: string | null, sch: Schedule[]) => string;
   navigate: (path: string) => void;
-  toast: (opts: any) => void;
+  toast: (opts) => void;
   setMapDialogOpen: (v: boolean) => void;
   setDuplicateDialogOpen: (v: boolean) => void;
   requiredEquipment?: string | null;

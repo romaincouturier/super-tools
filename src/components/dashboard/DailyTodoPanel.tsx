@@ -127,7 +127,7 @@ const DailyTodoPanel = () => {
           onClick={autoDetect}
           className="mt-2 text-xs text-primary hover:underline inline-flex items-center gap-1"
         >
-          <RefreshCw className="h-3 w-3" /> Rafra&icirc;chir
+          <RefreshCw className="h-3 w-3" /> Rafraîchir
         </button>
       </Card>
     );
@@ -151,7 +151,7 @@ const DailyTodoPanel = () => {
                 />
               </button>
             </TooltipTrigger>
-            <TooltipContent>V&eacute;rifier les actions r&eacute;solues</TooltipContent>
+            <TooltipContent>Vérifier les actions résolues</TooltipContent>
           </Tooltip>
         </TooltipProvider>
       </div>
@@ -234,7 +234,7 @@ const DailyTodoPanel = () => {
                           )}
                           {action.auto_completed && action.is_completed && (
                             <span className="text-[10px] text-green-600 font-medium">
-                              Auto-d&eacute;tect&eacute;
+                              Auto-détecté
                             </span>
                           )}
                         </div>
@@ -283,7 +283,7 @@ function AnalyticsSection({
         className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors w-full"
       >
         <TrendingUp className="h-4 w-4" />
-        Classement des th&egrave;mes
+        Classement des thèmes
         {showAnalytics ? (
           <ChevronDown className="h-3.5 w-3.5 ml-auto" />
         ) : (
@@ -326,7 +326,7 @@ function AnalyticsSection({
             );
           })}
           <p className="text-[10px] text-muted-foreground text-center mt-1">
-            Temps moyen de r&eacute;solution (30 derniers jours)
+            Temps moyen de résolution (30 derniers jours)
           </p>
         </div>
       )}

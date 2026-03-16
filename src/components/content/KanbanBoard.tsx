@@ -146,13 +146,13 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
           .select("card_id, status")
           .order("created_at", { ascending: false }),
         (async () => {
-          const { data: sentNl } = await (supabase as any)
+          const { data: sentNl } = await supabase
             .from("newsletters")
             .select("id")
             .eq("status", "sent");
           if (!sentNl || sentNl.length === 0) return { data: [] };
-          const nlIds = sentNl.map((n: any) => n.id);
-          const { data: nlCards } = await (supabase as any)
+          const nlIds = sentNl.map((n) => n.id);
+          const { data: nlCards } = await supabase
             .from("newsletter_cards")
             .select("card_id")
             .in("newsletter_id", nlIds);
@@ -160,12 +160,12 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
         })(),
         // Fetch all newsletter attachments with newsletter title
         (async () => {
-          const { data: nlCards } = await (supabase as any)
+          const { data: nlCards } = await supabase
             .from("newsletter_cards")
             .select("card_id, newsletter_id");
           if (!nlCards || nlCards.length === 0) return new Map<string, string>();
-          const nlIds = [...new Set(nlCards.map((nc: any) => nc.newsletter_id))];
-          const { data: newsletters } = await (supabase as any)
+          const nlIds = [...new Set(nlCards.map((nc) => nc.newsletter_id))];
+          const { data: newsletters } = await supabase
             .from("newsletters")
             .select("id, title, scheduled_date")
             .in("id", nlIds);
@@ -200,7 +200,7 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
       setCardIdsInReview(reviewCardIds);
 
       const sentNlCardIds = new Set<string>(
-        (sentNewslettersRes.data || []).map((nc: any) => nc.card_id)
+        (sentNewslettersRes.data || []).map((nc) => nc.card_id)
       );
       setCardIdsInSentNewsletter(sentNlCardIds);
 
@@ -387,7 +387,7 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
   const handleSaveCard = async (cardData: Partial<Card>, options?: { newsletterId?: string; initialComment?: string }) => {
     try {
       if (editingCard) {
-        const { error } = await (supabase as any)
+        const { error } = await supabase
           .from("content_cards")
           .update({
             title: cardData.title,
@@ -403,7 +403,7 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
         toast.success("Carte mise à jour");
       } else if (newCardColumnId) {
         const columnCards = cards.filter((c) => c.column_id === newCardColumnId);
-        const { data: newCard, error } = await (supabase as any).from("content_cards").insert({
+        const { data: newCard, error } = await supabase.from("content_cards").insert({
           column_id: newCardColumnId,
           title: cardData.title || "Nouvelle carte",
           description: cardData.description,
@@ -417,7 +417,7 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
         if (error) throw error;
 
         if (options?.newsletterId && newCard) {
-          const { data: existing } = await (supabase as any)
+          const { data: existing } = await supabase
             .from("newsletter_cards")
             .select("display_order")
             .eq("newsletter_id", options.newsletterId)
@@ -426,7 +426,7 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
 
           const nextOrder = (existing?.[0]?.display_order ?? -1) + 1;
 
-          await (supabase as any)
+          await supabase
             .from("newsletter_cards")
             .insert({
               newsletter_id: options.newsletterId,
@@ -441,7 +441,7 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
         if (options?.initialComment && newCard) {
           const { data: { user } } = await supabase.auth.getUser();
           if (user) {
-            await (supabase as any)
+            await supabase
               .from("content_comments")
               .insert({
                 card_id: newCard.id,
@@ -482,7 +482,7 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
 
   const handleCardEmojiChange = async (cardId: string, emoji: string | null) => {
     try {
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("content_cards")
         .update({ emoji })
         .eq("id", cardId);

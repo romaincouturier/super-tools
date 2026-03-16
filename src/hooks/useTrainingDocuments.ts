@@ -21,7 +21,7 @@ export const useTrainingDocuments = (trainingId: string) => {
     queryKey: [TRAINING_DOCUMENTS_KEY, trainingId],
     enabled: !!trainingId,
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("training_documents")
         .select("*")
         .eq("training_id", trainingId)
@@ -45,7 +45,7 @@ export const useAddTrainingDocument = () => {
     }) => {
       const { data: session } = await supabase.auth.getSession();
       const userId = session.session?.user?.id;
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("training_documents")
         .insert({ ...input, uploaded_by: userId })
         .select()
@@ -72,7 +72,7 @@ export const useDeleteTrainingDocument = () => {
       id: string;
       trainingId: string;
     }) => {
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("training_documents")
         .delete()
         .eq("id", id);

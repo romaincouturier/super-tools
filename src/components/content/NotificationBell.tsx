@@ -54,7 +54,7 @@ const NotificationBell = () => {
 
   const fetchNotifications = async () => {
     try {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("content_notifications")
         .select("*")
         .order("created_at", { ascending: false })

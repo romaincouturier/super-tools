@@ -247,7 +247,7 @@ const CommentThread = ({ cardId, cardTitle, reviewIds, onCommentAdded }: Comment
         mentioned_user_ids: mentionedIds.length > 0 ? mentionedIds : [],
       };
 
-      const { error } = await (supabase as any).from("review_comments").insert(insertData);
+      const { error } = await supabase.from("review_comments").insert(insertData);
       if (error) throw error;
 
       // Send notification to assigned person
@@ -260,7 +260,7 @@ const CommentThread = ({ cardId, cardTitle, reviewIds, onCommentAdded }: Comment
         const authorName = authorProfile?.first_name ? `${authorProfile.first_name} ${authorProfile.last_name || ""}`.trim() : "Quelqu'un";
         const preview = newComment.trim().split(/\s+/).slice(0, 10).join(" ");
 
-        await (supabase as any).from("content_notifications").insert({
+        await supabase.from("content_notifications").insert({
           user_id: assignedTo,
           type: "comment_added",
           reference_id: cardId,
@@ -282,7 +282,7 @@ const CommentThread = ({ cardId, cardTitle, reviewIds, onCommentAdded }: Comment
 
         for (const mention of pendingMentions) {
           if (mention.userId === userId) continue;
-          await (supabase as any).from("content_notifications").insert({
+          await supabase.from("content_notifications").insert({
             user_id: mention.userId,
             type: "comment_added",
             reference_id: cardId,
@@ -327,7 +327,7 @@ const CommentThread = ({ cardId, cardTitle, reviewIds, onCommentAdded }: Comment
       const userId = sessionData.session?.user?.id;
       if (!userId) { toast.error("Connectez-vous"); return; }
 
-      const { error } = await (supabase as any).from("review_comments").insert({
+      const { error } = await supabase.from("review_comments").insert({
         card_id: cardId,
         author_id: userId,
         content: replyText.trim(),

@@ -141,7 +141,7 @@ export default function Step5Email({
 
       // Log email in CRM card history (crm_card_emails)
       const senderEmail = settings?.company_email || "";
-      await (supabase as any).from("crm_card_emails").insert({
+      await supabase.from("crm_card_emails").insert({
         card_id: quote.crm_card_id,
         sender_email: senderEmail,
         recipient_email: to,
@@ -155,7 +155,7 @@ export default function Step5Email({
       // Log activity in CRM activity log
       const { data: { user } } = await supabase.auth.getUser();
       const actorEmail = user?.email || senderEmail;
-      await (supabase as any).from("crm_activity_log").insert({
+      await supabase.from("crm_activity_log").insert({
         card_id: quote.crm_card_id,
         action_type: "email_sent",
         new_value: `Devis ${quote.quote_number} envoyé à ${to}`,
@@ -164,25 +164,25 @@ export default function Step5Email({
 
       // Auto-move CRM card to "Devis envoyé" column (same as MicroDevis)
       try {
-        const { data: columns } = await (supabase as any)
+        const { data: columns } = await supabase
           .from("crm_columns")
           .select("id, name")
           .ilike("name", "%devis envoy%")
           .limit(1);
         const devisColumn = columns?.[0];
         if (devisColumn) {
-          const { data: card } = await (supabase as any)
+          const { data: card } = await supabase
             .from("crm_cards")
             .select("column_id")
             .eq("id", quote.crm_card_id)
             .single();
           if (card && card.column_id !== devisColumn.id) {
             const oldColumnId = card.column_id;
-            await (supabase as any)
+            await supabase
               .from("crm_cards")
               .update({ column_id: devisColumn.id })
               .eq("id", quote.crm_card_id);
-            await (supabase as any).from("crm_activity_log").insert({
+            await supabase.from("crm_activity_log").insert({
               card_id: quote.crm_card_id,
               action_type: "card_moved",
               old_value: oldColumnId,
@@ -200,7 +200,7 @@ export default function Step5Email({
           const day = followUpDate.getDay();
           if (day !== 0 && day !== 6) daysAdded++;
         }
-        await (supabase as any)
+        await supabase
           .from("crm_cards")
           .update({
             status_operational: "WAITING",

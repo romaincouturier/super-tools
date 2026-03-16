@@ -1,7 +1,7 @@
 import { lazy } from "react";
 import type { ComponentType } from "react";
 
-type LazyFactory<T extends ComponentType<any>> = () => Promise<{ default: T }>;
+type LazyFactory<T extends ComponentType<Record<string, unknown>>> = () => Promise<{ default: T }>;
 
 const LAZY_RELOAD_FLAG = "__st_lazy_chunk_reload_attempted";
 
@@ -9,7 +9,7 @@ const LAZY_RELOAD_FLAG = "__st_lazy_chunk_reload_attempted";
  * Helps recover from transient chunk-load failures (e.g. after a new deploy while
  * a tab is still open) by retrying the dynamic import.
  */
-export function lazyWithRetry<T extends ComponentType<any>>(
+export function lazyWithRetry<T extends ComponentType<Record<string, unknown>>>(
   factory: LazyFactory<T>,
   options?: {
     retries?: number;

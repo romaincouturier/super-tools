@@ -36,7 +36,7 @@ const SupertiltLinkCombobox = ({ value, onChange }: SupertiltLinkComboboxProps) 
   }, [value]);
 
   const fetchLinks = async () => {
-    const { data, error } = await (supabase as any)
+    const { data, error } = await supabase
       .from("trainings")
       .select("supertilt_link")
       .not("supertilt_link", "is", null)
@@ -45,7 +45,7 @@ const SupertiltLinkCombobox = ({ value, onChange }: SupertiltLinkComboboxProps) 
 
     if (!error && data) {
       // Deduplicate and keep unique links
-      const unique = Array.from(new Set(data.map((d: any) => String(d.supertilt_link)))) as string[];
+      const unique = Array.from(new Set(data.map((d) => String(d.supertilt_link)))) as string[];
       setLinks(unique);
     }
   };

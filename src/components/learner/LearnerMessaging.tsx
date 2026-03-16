@@ -35,7 +35,7 @@ export default function LearnerMessaging({ trainingId, participantId, learnerEma
   // Load messages
   useEffect(() => {
     const load = async () => {
-      const { data } = await (supabase as any)
+      const { data } = await supabase
         .from("learner_messages")
         .select("*")
         .eq("training_id", trainingId)
@@ -79,7 +79,7 @@ export default function LearnerMessaging({ trainingId, participantId, learnerEma
       (m) => !m.is_read && m.sender_role !== (isInstructor ? "instructor" : "learner")
     );
     if (unread.length > 0) {
-      (supabase as any)
+      supabase
         .from("learner_messages")
         .update({ is_read: true })
         .in("id", unread.map((m) => m.id))
@@ -92,7 +92,7 @@ export default function LearnerMessaging({ trainingId, participantId, learnerEma
     const senderRole = isInstructor ? "instructor" : "learner";
     const senderEmail = isInstructor ? "formateur" : learnerEmail;
 
-    await (supabase as any).from("learner_messages").insert({
+    await (supabase as unknown as { from: (table: string) => ReturnType<typeof supabase.from> }).from("learner_messages").insert({
       training_id: trainingId,
       participant_id: participantId,
       sender_email: senderEmail,

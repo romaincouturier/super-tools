@@ -167,7 +167,7 @@ export default function Step3QuoteGeneration({
       );
       if (error) throw error;
       if (data?.lines?.length > 0) {
-        let generatedLines = data.lines.map((l: any) => ({
+        let generatedLines = data.lines.map((l) => ({
           id: uuid(),
           product: l.product || "",
           description: l.description || "",
@@ -183,7 +183,7 @@ export default function Step3QuoteGeneration({
         }));
 
         // Add travel expenses line if not already included
-        if (travelTotal > 0 && !generatedLines.some((l: any) => l.product?.toLowerCase().includes("déplacement"))) {
+        if (travelTotal > 0 && !generatedLines.some((l) => l.product?.toLowerCase().includes("déplacement"))) {
           generatedLines.push({
             id: uuid(),
             product: "Frais de déplacement",

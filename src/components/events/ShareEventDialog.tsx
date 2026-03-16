@@ -110,7 +110,7 @@ const ShareEventDialog = ({ event }: ShareEventDialogProps) => {
       const userId = session?.user?.id;
       const recipientName = getDisplayName(selectedProfile) !== selectedProfile.email
         ? getDisplayName(selectedProfile) : null;
-      await (supabase as any).from("event_shares").upsert({
+      await supabase.from("event_shares").upsert({
         event_id: event.id,
         recipient_email: selectedProfile.email,
         recipient_name: recipientName,

@@ -10,9 +10,11 @@ import type {
   UpdateQuoteSettingsInput,
 } from "@/types/quotes";
 
-const db = () => supabase as any;
+// Cast to access tables not present in the generated Database schema.
+// The generated types don't cover all tables, so we bypass strict table-name checking.
+const db = (): typeof supabase => supabase as unknown as typeof supabase;
 
-function throwIfError<T>(result: { data: T; error: any }): T {
+function throwIfError<T>(result: { data: T; error: { message: string } | null }): T {
   if (result.error) throw result.error;
   return result.data;
 }

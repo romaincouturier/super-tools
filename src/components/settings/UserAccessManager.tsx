@@ -52,7 +52,7 @@ export default function UserAccessManager() {
         .select("user_id, email, display_name, first_name, last_name");
 
       const profileMap = new Map<string, { email: string; first_name: string | null; last_name: string | null }>();
-      (profilesData as any[] || []).forEach((p: any) => {
+      ((profilesData || []) as Record<string, unknown>[]).forEach((p) => {
         profileMap.set(p.user_id, { 
           email: p.email, 
           first_name: p.first_name,
@@ -101,7 +101,7 @@ export default function UserAccessManager() {
     setUpdating(`${userId}-${module}`);
     try {
       if (currentlyHasAccess) {
-        const { error } = await (supabase as any)
+        const { error } = await supabase
           .from("user_module_access")
           .delete()
           .eq("user_id", userId)
@@ -110,7 +110,7 @@ export default function UserAccessManager() {
         if (error) throw error;
       } else {
         const { data: { user } } = await supabase.auth.getUser();
-        const { error } = await (supabase as any)
+        const { error } = await supabase
           .from("user_module_access")
           .insert({
             user_id: userId,
@@ -155,7 +155,7 @@ export default function UserAccessManager() {
 
   const saveCommManager = async (userId: string) => {
     try {
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("app_settings")
         .upsert({ setting_key: "communication_manager_user_id", setting_value: userId, updated_at: new Date().toISOString() }, { onConflict: "setting_key" });
       if (error) throw error;

@@ -110,7 +110,7 @@ const ReviewPanel = ({ cardId, cardTitle }: ReviewPanelProps) => {
       // Send notification
       const review = reviews.find((r) => r.id === reviewId);
       if (review) {
-        await (supabase as any).from("content_notifications").insert({
+        await supabase.from("content_notifications").insert({
           user_id: review.reviewer_id,
           type: "review_requested",
           reference_id: reviewId,
@@ -151,7 +151,7 @@ const ReviewPanel = ({ cardId, cardTitle }: ReviewPanelProps) => {
       // Notify reviewer that the review is closed
       const review = reviews.find((r) => r.id === reviewId);
       if (review) {
-        await (supabase as any).from("content_notifications").insert({
+        await supabase.from("content_notifications").insert({
           user_id: review.reviewer_id,
           type: "review_status_changed",
           reference_id: reviewId,

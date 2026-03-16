@@ -26,7 +26,7 @@ interface Props {
   setCopiedLocation: (v: boolean) => void;
   getFormatLabel: () => string | null;
   calculateTotalDuration: () => number;
-  toast: (opts: any) => void;
+  toast: (opts) => void;
 }
 
 const FormationDetailInfo = ({

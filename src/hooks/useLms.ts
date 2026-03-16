@@ -85,7 +85,7 @@ export interface LmsQuizAttempt {
   max_score: number | null;
   percentage: number | null;
   passed: boolean | null;
-  answers: any[];
+  answers: Record<string, unknown>[];
   started_at: string;
   completed_at: string | null;
   time_spent_seconds: number | null;

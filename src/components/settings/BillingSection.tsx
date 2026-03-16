@@ -64,7 +64,7 @@ export default function BillingSection() {
     ]);
 
     if (plansRes.data) {
-      setPlans(plansRes.data.map((p: any) => ({
+      setPlans(plansRes.data.map((p) => ({
         ...p,
         features: Array.isArray(p.features) ? p.features : [],
       })));

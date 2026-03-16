@@ -16,7 +16,7 @@ export const useLogInteraction = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Non authentifié");
 
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("network_interactions")
         .insert({ user_id: user.id, ...input });
       if (error) throw error;
@@ -35,7 +35,7 @@ export const useNetworkInteractions = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Non authentifié");
 
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("network_interactions")
         .select("*")
         .eq("user_id", user.id)

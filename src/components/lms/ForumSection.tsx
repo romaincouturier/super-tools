@@ -74,7 +74,7 @@ export default function LmsForumSection({ courseId }: Props) {
           </CardContent>
         </Card>
       ) : (
-        forums.map((forum: any) => (
+        forums.map((forum) => (
           <Card
             key={forum.id}
             className="cursor-pointer hover:bg-accent/50 transition-colors"

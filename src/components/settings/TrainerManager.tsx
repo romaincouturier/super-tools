@@ -100,14 +100,14 @@ export default function TrainerManager() {
 
   const fetchTrainers = async () => {
     try {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("trainers")
         .select("*")
         .order("is_default", { ascending: false })
         .order("last_name");
 
       if (error) throw error;
-      setTrainers((data || []).map((t: any) => ({
+      setTrainers((data || []).map((t) => ({
         ...t,
         competences: t.competences || [],
         formations_suivies: t.formations_suivies || [],
@@ -125,7 +125,7 @@ export default function TrainerManager() {
   };
 
   const fetchDocuments = async (trainerId: string) => {
-    const { data } = await (supabase as any)
+    const { data } = await supabase
       .from("trainer_documents")
       .select("*")
       .eq("trainer_id", trainerId)
@@ -218,7 +218,7 @@ export default function TrainerManager() {
         .from("training-documents")
         .getPublicUrl(filePath);
 
-      await (supabase as any).from("trainer_documents").insert({
+      await supabase.from("trainer_documents").insert({
         trainer_id: editingTrainer.id,
         file_name: file.name,
         file_url: urlData.publicUrl,
@@ -238,7 +238,7 @@ export default function TrainerManager() {
   };
 
   const handleDeleteDocument = async (docId: string) => {
-    await (supabase as any).from("trainer_documents").delete().eq("id", docId);
+    await supabase.from("trainer_documents").delete().eq("id", docId);
     if (editingTrainer) await fetchDocuments(editingTrainer.id);
     toast({ title: "Document supprimé" });
   };
@@ -298,14 +298,14 @@ export default function TrainerManager() {
       };
 
       if (editingTrainer) {
-        const { error } = await (supabase as any)
+        const { error } = await supabase
           .from("trainers")
           .update(trainerData)
           .eq("id", editingTrainer.id);
         if (error) throw error;
         toast({ title: "Formateur modifié" });
       } else {
-        const { error } = await (supabase as any).from("trainers").insert(trainerData);
+        const { error } = await supabase.from("trainers").insert(trainerData);
         if (error) throw error;
         toast({ title: "Formateur ajouté" });
       }

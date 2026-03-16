@@ -100,7 +100,7 @@ const ReviewRequestDialog = ({
       if (error) throw error;
 
       // Create notification
-      await (supabase as any).from("content_notifications").insert({
+      await supabase.from("content_notifications").insert({
         user_id: reviewerId,
         type: "review_requested",
         reference_id: cardId,

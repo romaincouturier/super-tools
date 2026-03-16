@@ -218,7 +218,7 @@ const ParticipantList = ({
   // Fetch all evaluations (certificates + status) for all participants
   useEffect(() => {
     const fetchEvaluations = async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("training_evaluations")
         .select(`
           id, participant_id, certificate_url, etat, date_soumission,
@@ -244,14 +244,14 @@ const ParticipantList = ({
   // Fetch attendance signatures to block deletion for participants who signed
   useEffect(() => {
     const fetchAttendanceSignatures = async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("attendance_signatures")
         .select("participant_id")
         .eq("training_id", trainingId)
         .not("signed_at", "is", null);
 
       if (!error && data) {
-        const ids = new Set<string>(data.map((r: any) => r.participant_id));
+        const ids = new Set<string>(data.map((r) => r.participant_id));
         setParticipantsWithSignatures(ids);
       }
     };
@@ -269,7 +269,7 @@ const ParticipantList = ({
       
       if (sponsorEmails.length === 0) return;
 
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("convention_signatures")
         .select("recipient_email, status, signed_at")
         .eq("training_id", trainingId)
@@ -734,7 +734,7 @@ const ParticipantList = ({
     const current = participant.coaching_sessions_completed || 0;
     const total = participant.coaching_sessions_total || 0;
     const newCompleted = current < total ? current + 1 : current - 1;
-    const { error } = await (supabase as any)
+    const { error } = await supabase
       .from("training_participants")
       .update({ coaching_sessions_completed: Math.max(0, newCompleted) })
       .eq("id", participant.id);
@@ -744,7 +744,7 @@ const ParticipantList = ({
   const handleUncheckCoachingSession = async (participant: Participant) => {
     const current = participant.coaching_sessions_completed || 0;
     if (current <= 0) return;
-    const { error } = await (supabase as any)
+    const { error } = await supabase
       .from("training_participants")
       .update({ coaching_sessions_completed: current - 1 })
       .eq("id", participant.id);

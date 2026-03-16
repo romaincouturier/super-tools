@@ -43,7 +43,7 @@ interface Props {
   handleSaveActions: (actions: ScheduledAction[]) => Promise<void>;
   handleToggleActionComplete: (actionId: string, completed: boolean) => Promise<void>;
   handleSaveNotes: () => Promise<void>;
-  toast: (opts: any) => void;
+  toast: (opts) => void;
 }
 
 const FormationDetailSections = ({

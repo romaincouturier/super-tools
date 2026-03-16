@@ -63,7 +63,7 @@ export default function TrainerAdequacy({ trainingId, trainerName }: TrainerAdeq
       let trainerData: TrainerData | null = null;
 
       if (trainerId) {
-        const { data } = await (supabase as any)
+        const { data } = await supabase
           .from("trainers")
           .select("id, first_name, last_name, competences")
           .eq("id", trainerId)
@@ -75,7 +75,7 @@ export default function TrainerAdequacy({ trainingId, trainerName }: TrainerAdeq
         // Fallback: match by name
         const parts = training.trainer_name.trim().split(/\s+/);
         if (parts.length >= 2) {
-          const { data } = await (supabase as any)
+          const { data } = await supabase
             .from("trainers")
             .select("id, first_name, last_name, competences")
             .ilike("last_name", parts[parts.length - 1])
@@ -94,7 +94,7 @@ export default function TrainerAdequacy({ trainingId, trainerName }: TrainerAdeq
         });
 
         // Fetch adequacy record
-        const { data: adequacyData } = await (supabase as any)
+        const { data: adequacyData } = await supabase
           .from("trainer_training_adequacy")
           .select("*")
           .eq("training_id", trainingId)
@@ -124,7 +124,7 @@ export default function TrainerAdequacy({ trainingId, trainerName }: TrainerAdeq
 
     setSaving(true);
     try {
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("trainer_training_adequacy")
         .upsert({
           trainer_id: trainer.id,

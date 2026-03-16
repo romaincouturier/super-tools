@@ -127,7 +127,7 @@ const ContentCardDialog = ({
 
       setAutoSaving(true);
       try {
-        const { error } = await (supabase as any)
+        const { error } = await supabase
           .from("content_cards")
           .update({
             title: v.title.trim(),
@@ -166,7 +166,7 @@ const ContentCardDialog = ({
 
     const fetchNewsletters = async () => {
       try {
-        const { data } = await (supabase as any)
+        const { data } = await supabase
           .from("newsletters")
           .select("id, title, scheduled_date")
           .eq("status", "draft")
@@ -183,7 +183,7 @@ const ContentCardDialog = ({
         return;
       }
       try {
-        const { data } = await (supabase as any)
+        const { data } = await supabase
           .from("newsletter_cards")
           .select("newsletter_id")
           .eq("card_id", card.id)
@@ -301,7 +301,7 @@ const ContentCardDialog = ({
         clearTimeout(saveTimerRef.current);
         const v = formValuesRef.current as any;
         if (v.title.trim() && formHash !== lastSavedHashRef.current) {
-          (supabase as any)
+          supabase
             .from("content_cards")
             .update({
               title: v.title.trim(),
@@ -327,7 +327,7 @@ const ContentCardDialog = ({
     try {
       // Remove existing attachment
       if (attachedNewsletterId) {
-        await (supabase as any)
+        await supabase
           .from("newsletter_cards")
           .delete()
           .eq("card_id", card.id)
@@ -340,7 +340,7 @@ const ContentCardDialog = ({
         onNewsletterChange?.();
       } else {
         // Get max display_order for this newsletter
-        const { data: existing } = await (supabase as any)
+        const { data: existing } = await supabase
           .from("newsletter_cards")
           .select("display_order")
           .eq("newsletter_id", newsletterId)
@@ -349,7 +349,7 @@ const ContentCardDialog = ({
 
         const nextOrder = (existing?.[0]?.display_order ?? -1) + 1;
 
-        const { error } = await (supabase as any)
+        const { error } = await supabase
           .from("newsletter_cards")
           .insert({
             newsletter_id: newsletterId,

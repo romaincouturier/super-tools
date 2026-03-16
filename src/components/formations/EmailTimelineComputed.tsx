@@ -181,7 +181,7 @@ const EmailTimelineComputed = ({
       ]);
 
     const livesRes = await supabase
-      .from("training_live_meetings" as any)
+      .from("training_live_meetings")
       .select("*")
       .eq("training_id", trainingId)
       .order("live_date", { ascending: true });
@@ -333,7 +333,7 @@ const EmailTimelineComputed = ({
     }
 
     // --- LIVES ---
-    liveMeetings.forEach((live: any) => {
+    liveMeetings.forEach((live) => {
       if (!live.live_date) return;
       const liveDate = parseISO(live.live_date);
       const reminderDate = addDays(liveDate, -1);
