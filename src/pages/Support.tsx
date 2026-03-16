@@ -159,7 +159,7 @@ const Support = () => {
   };
 
   const renderCard = (card: SupportTicketCard, isDragging?: boolean) => (
-    <SupportTicketCard card={card} isDragging={isDragging} />
+    <SupportTicketCardComponent card={card} isDragging={isDragging} />
   );
 
   const renderColumnHeader = (column: typeof SUPPORT_COLUMNS[0], columnCards: SupportTicketCard[]) => (
