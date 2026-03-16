@@ -82,7 +82,7 @@ export default function Onboarding() {
       });
 
       // Update profile table
-      await (supabase.rpc as any)("upsert_profile", {
+      await (supabase.rpc as unknown as (fn: string, params: Record<string, unknown>) => Promise<{ error: Error | null }>)("upsert_profile", {
         p_user_id: user.id,
         p_email: user.email,
         p_display_name: displayName,
@@ -91,8 +91,8 @@ export default function Onboarding() {
       markComplete(0);
       setCurrentStep(1);
       toast({ title: "Profil enregistré ✓" });
-    } catch (e: any) {
-      toast({ title: "Erreur", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Erreur", description: e instanceof Error ? e.message : "Erreur inconnue", variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
@@ -120,8 +120,8 @@ export default function Onboarding() {
       markComplete(1);
       setCurrentStep(2);
       toast({ title: "Formation créée ✓" });
-    } catch (e: any) {
-      toast({ title: "Erreur", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Erreur", description: e instanceof Error ? e.message : "Erreur inconnue", variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
@@ -140,8 +140,8 @@ export default function Onboarding() {
       markComplete(2);
       setCurrentStep(3);
       toast({ title: `${valid.length} participant(s) enregistré(s) ✓` });
-    } catch (e: any) {
-      toast({ title: "Erreur", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Erreur", description: e instanceof Error ? e.message : "Erreur inconnue", variant: "destructive" });
     } finally {
       setIsLoading(false);
     }

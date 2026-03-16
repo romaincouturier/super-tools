@@ -105,9 +105,9 @@ const EntityDocumentsManager = ({
     } finally {
       setDownloadingId(null);
     }
-  };
+  }, []);
 
-  const handleDelete = async (docId: string, fileUrl: string, fileName: string) => {
+  const handleDelete = useCallback(async (docId: string, fileUrl: string, fileName: string) => {
     if (!confirm(`Supprimer le document "${fileName}" ?`)) return;
 
     setDeletingId(docId);
@@ -123,7 +123,7 @@ const EntityDocumentsManager = ({
     } finally {
       setDeletingId(null);
     }
-  };
+  }, [entityType, deleteDocument, entityId]);
 
   const content = (
     <>
