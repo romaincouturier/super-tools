@@ -37,7 +37,7 @@ interface NeedsSurvey {
   contraintes: string | null;
   objectif_prioritaire: string | null;
   autres_commentaires: string | null;
-  prerequis_data: any;
+  prerequis_data: Record<string, unknown> | null;
 }
 
 interface EvaluationData {
@@ -47,7 +47,7 @@ interface EvaluationData {
   appreciation_generale: number | null;
   recommandation: string | null;
   message_recommandation: string | null;
-  objectifs_evaluation: any;
+  objectifs_evaluation: Record<string, unknown> | null;
   objectif_prioritaire: string | null;
   delai_application: string | null;
   freins_application: string | null;

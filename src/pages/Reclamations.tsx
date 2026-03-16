@@ -101,7 +101,7 @@ const Reclamations = () => {
       console.error("Error fetching reclamations:", error);
       toast({ title: "Erreur", description: "Impossible de charger les réclamations.", variant: "destructive" });
     } else {
-      setReclamations((data as any[]) || []);
+      setReclamations((data as unknown as Reclamation[]) || []);
     }
     setLoading(false);
   };
@@ -135,7 +135,7 @@ const Reclamations = () => {
         token,
         status: "draft",
         created_by: user?.id,
-      } as any);
+      } as Record<string, unknown>);
 
       if (error) throw error;
 
@@ -171,7 +171,7 @@ const Reclamations = () => {
         status: "open",
         date_reclamation: new Date().toISOString().split("T")[0],
         created_by: user?.id,
-      } as any);
+      } as Record<string, unknown>);
 
       if (error) throw error;
 
@@ -195,7 +195,7 @@ const Reclamations = () => {
   const updateReclamation = async (id: string, updates: Partial<Reclamation>) => {
     const { error } = await supabase
       .from("reclamations")
-      .update(updates as any)
+      .update(updates as Record<string, unknown>)
       .eq("id", id);
 
     if (error) {
@@ -468,16 +468,16 @@ const Reclamations = () => {
                 <Separator />
 
                 {/* Attendu / Constaté (Indicateur 30) */}
-                {(selectedRec as any).attendu_initial && (
+                {selectedRec.attendu_initial && (
                   <div>
                     <Label className="text-muted-foreground">Attendu initial</Label>
-                    <p className="text-sm mt-1 whitespace-pre-wrap">{(selectedRec as any).attendu_initial}</p>
+                    <p className="text-sm mt-1 whitespace-pre-wrap">{selectedRec.attendu_initial}</p>
                   </div>
                 )}
-                {(selectedRec as any).resultat_constate && (
+                {selectedRec.resultat_constate && (
                   <div>
                     <Label className="text-muted-foreground">Résultat constaté</Label>
-                    <p className="text-sm mt-1 whitespace-pre-wrap">{(selectedRec as any).resultat_constate}</p>
+                    <p className="text-sm mt-1 whitespace-pre-wrap">{selectedRec.resultat_constate}</p>
                   </div>
                 )}
 
