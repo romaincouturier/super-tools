@@ -941,25 +941,9 @@ serve(async (req) => {
         alertCount += userOpportunites.length;
       }
 
-      // 6. Articles en relecture (column-based)
+      // 6. Articles en relecture (column-based) — only show cards assigned to THIS recipient
       const userReviewCards = reviewCardsByEmail.get(recipient.email);
-      if (recipient.isAdmin && cardsInReviewColumns && cardsInReviewColumns.length > 0) {
-        const reviewItems: string[] = [];
-        for (const [email, cards] of reviewCardsByEmail) {
-          reviewItems.push(
-            `<li style="margin-bottom: 6px;"><strong>${email}</strong> :`
-          );
-          for (const card of cards) {
-            const columnName = (card as any).content_columns?.name || "";
-            const daysAgo = Math.ceil((Date.now() - new Date(card.created_at).getTime()) / (1000 * 60 * 60 * 24));
-            reviewItems.push(
-              `<li style="margin-left: 16px;"><a href="${appUrl}/contenu?card=${card.id}" style="color: ${COLORS.primary}; text-decoration: underline;">${card.title}</a> — ${columnName} (${daysAgo}j)</li>`
-            );
-          }
-        }
-        sections.push(sectionHtml("📋", "Articles en relecture", COLORS.purple, reviewItems, cardsInReviewColumns.length));
-        alertCount += cardsInReviewColumns.length;
-      } else if (userReviewCards && userReviewCards.length > 0) {
+      if (userReviewCards && userReviewCards.length > 0) {
         const items = userReviewCards.map((card: any) => {
           const columnName = card.content_columns?.name || "";
           const daysAgo = Math.ceil((Date.now() - new Date(card.created_at).getTime()) / (1000 * 60 * 60 * 24));
