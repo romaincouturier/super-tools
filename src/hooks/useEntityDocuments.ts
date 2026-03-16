@@ -24,7 +24,7 @@ export interface EntityDocument {
 // ── Config per entity type ───────────────────────────────────────────
 
 interface EntityDocumentConfig {
-  table: string;
+  table: "mission_documents" | "training_documents";
   foreignKey: string;
   bucket: string;
   queryKey: string;
