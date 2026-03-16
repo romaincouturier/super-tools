@@ -87,7 +87,7 @@ export default function GenericKanbanColumn<
       )}
     >
       {renderHeader?.(column, cards, dragHandle)}
-      <div className="flex-1 overflow-y-auto space-y-1.5 min-h-[100px] p-2 transition-colors">
+      <div className="flex-1 overflow-y-auto space-y-1.5 min-h-[100px] p-2 transition-colors touch-manipulation">
         {sortable ? (
           <SortableContext
             items={cards.map((c) => c.id)}
