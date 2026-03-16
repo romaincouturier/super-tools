@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { sanitizeFileName } from "@/lib/file-utils";
 import type { SupportTicket, TicketStatus, TicketAiAnalysis } from "@/types/support";
 
 export async function fetchSupportTickets(): Promise<SupportTicket[]> {
@@ -42,7 +43,7 @@ export async function createSupportTicket(
   // Upload attachments if any
   if (files && files.length > 0) {
     for (const file of files) {
-      const filePath = `${data.id}/${Date.now()}_${file.name}`;
+      const filePath = `${data.id}/${Date.now()}_${sanitizeFileName(file.name)}`;
       await supabase.storage.from("support-attachments").upload(filePath, file);
       await (supabase as any).from("support_ticket_attachments").insert({
         ticket_id: data.id,
