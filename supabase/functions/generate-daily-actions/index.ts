@@ -446,8 +446,6 @@ serve(async (req) => {
         const assignedUserId = REVIEW_COLUMN_ASSIGNMENTS[card.column_id];
         if (!assignedUserId) continue;
 
-        console.log(`[${VERSION}] Review card "${card.title}" (col=${card.column_id}) → assignedTo=${assignedUserId}`);
-
         perUserActions.push({
           category: "articles_relire",
           title: card.title,
