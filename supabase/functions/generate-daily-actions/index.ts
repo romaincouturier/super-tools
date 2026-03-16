@@ -14,7 +14,7 @@ import {
  * as process-logistics-reminders. Idempotent: skips if actions already exist for today.
  */
 
-const VERSION = "generate-daily-actions@1.0.0";
+const VERSION = "generate-daily-actions@1.1.0";
 
 interface Recipient {
   userId: string;
@@ -848,6 +848,31 @@ serve(async (req) => {
     }
 
     // ══════════════════════════════════
+    // Delete existing actions for today before re-inserting (clean slate)
+    // This ensures removed/reassigned actions don't linger
+    // ══════════════════════════════════
+    for (const recipient of recipients) {
+      // Delete non-completed actions (will be regenerated)
+      await supabase
+        .from("daily_actions")
+        .delete()
+        .eq("user_id", recipient.userId)
+        .eq("action_date", today)
+        .eq("is_completed", false);
+
+      // Also delete completed review actions that may have been wrongly assigned
+      // (e.g. admin previously got another user's review cards)
+      // These are strictly user-scoped and should not persist if reassigned
+      await supabase
+        .from("daily_actions")
+        .delete()
+        .eq("user_id", recipient.userId)
+        .eq("action_date", today)
+        .in("category", ["articles_relire", "commentaires_contenu"])
+        .eq("is_completed", true);
+    }
+
+    // ══════════════════════════════════
     // Insert actions per user
     // ══════════════════════════════════
     let totalInserted = 0;
@@ -875,7 +900,6 @@ serve(async (req) => {
       for (const action of perUserActions) {
         const isStrictlyAssigned = STRICT_ASSIGNED_CATEGORIES.includes(action.category);
         if (isStrictlyAssigned) {
-          // Only show if explicitly assigned to this user
           if (action.assignedTo !== recipient.userId) continue;
         } else {
           if (!recipient.isAdmin && (!action.assignedTo || action.assignedTo !== recipient.userId)) continue;
@@ -891,6 +915,7 @@ serve(async (req) => {
           entity_id: action.entity_id,
         });
       }
+      
 
       if (userActions.length === 0) continue;
 
