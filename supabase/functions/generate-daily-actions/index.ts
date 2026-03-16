@@ -898,7 +898,6 @@ serve(async (req) => {
       // Exception: review-related categories are strictly assigned (admin should NOT see others' reviews)
       const STRICT_ASSIGNED_CATEGORIES = ["articles_relire", "commentaires_contenu"];
       let skippedReview = 0;
-      let includedReview = 0;
       for (const action of perUserActions) {
         const isStrictlyAssigned = STRICT_ASSIGNED_CATEGORIES.includes(action.category);
         if (isStrictlyAssigned) {
