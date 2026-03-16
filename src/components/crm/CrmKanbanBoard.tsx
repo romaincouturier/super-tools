@@ -11,7 +11,7 @@ import {
   SortableContext,
   horizontalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { Plus, Loader2, Search, X, Building, User, Tag, GraduationCap, Briefcase, Filter } from "lucide-react";
+import { Plus, Loader2, Search, X, Building, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";

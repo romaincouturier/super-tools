@@ -14,7 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { formatFileSize, downloadFile as downloadFileUtil } from "@/lib/file-utils";
+import { downloadFile as downloadFileUtil } from "@/lib/file-utils";
 import { ImageIcon, Video, Plus, Loader2, Upload, Trash2, Play, Download, Package, DownloadCloud, Pencil } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import MediaLightbox from "@/components/media/MediaLightbox";
