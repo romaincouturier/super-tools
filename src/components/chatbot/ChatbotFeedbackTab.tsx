@@ -8,7 +8,6 @@ import { useToast } from "@/hooks/use-toast";
 import { useCreateSupportTicket, useAnalyzeTicket } from "@/hooks/useSupport";
 
 const MAX_FILES = 5;
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ACCEPTED_TYPES = [
   "image/jpeg", "image/png", "image/gif", "image/webp",
   "application/pdf",
@@ -45,10 +44,6 @@ export function ChatbotFeedbackTab() {
     for (const file of Array.from(newFiles)) {
       if (!ACCEPTED_TYPES.includes(file.type)) {
         toast({ title: "Type non supporté", description: `"${file.name}" n'est pas un format accepté.`, variant: "destructive" });
-        continue;
-      }
-      if (file.size > MAX_FILE_SIZE) {
-        toast({ title: "Fichier trop volumineux", description: `"${file.name}" dépasse 10 Mo.`, variant: "destructive" });
         continue;
       }
       toAdd.push(file);
@@ -170,7 +165,7 @@ export function ChatbotFeedbackTab() {
             Ajouter des fichiers
           </Button>
           <p className="text-[11px] text-muted-foreground">
-            Images, PDF, Word, Excel — max 10 Mo/fichier, {MAX_FILES} fichiers max
+            Images, PDF, Word, Excel — {MAX_FILES} fichiers max
           </p>
 
           {/* File list */}

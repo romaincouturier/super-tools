@@ -137,15 +137,7 @@ const ProgramSelector = ({
       return;
     }
 
-    // Validate file size (max 10MB)
-    if (file.size > 10 * 1024 * 1024) {
-      toast({
-        title: "Fichier trop volumineux",
-        description: "Le fichier ne doit pas dépasser 10 Mo.",
-        variant: "destructive",
-      });
-      return;
-    }
+
 
     setUploading(true);
 
@@ -328,7 +320,7 @@ const ProgramSelector = ({
                     <Upload className="h-8 w-8 text-muted-foreground" />
                   )}
                   <span className="text-sm text-muted-foreground">
-                    {uploading ? "Upload en cours..." : "Cliquez pour uploader un PDF (max 10 Mo)"}
+                    {uploading ? "Upload en cours..." : "Cliquez pour uploader un PDF"}
                   </span>
                 </Label>
               </div>

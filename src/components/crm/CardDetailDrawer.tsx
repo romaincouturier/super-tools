@@ -583,7 +583,6 @@ const CardDetailDrawer = ({
     const files = e.target.files;
     if (!files) return;
     Array.from(files).forEach((file) => {
-      if (file.size > 10 * 1024 * 1024) { toast({ title: "Fichier trop volumineux", description: `"${file.name}" dépasse 10 Mo.`, variant: "destructive" }); return; }
       const reader = new FileReader();
       reader.onload = () => { const base64 = (reader.result as string).split(",")[1]; setEmailAttachments((prev) => [...prev, { filename: file.name, content: base64 }]); };
       reader.readAsDataURL(file);

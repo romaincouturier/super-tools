@@ -28,8 +28,6 @@ interface EntityDocumentsManagerProps {
   entityId: string;
   /** Card or bare (for embedding in tabs) */
   variant?: "card" | "bare";
-  /** Maximum file size in bytes (default 20 MB) */
-  maxFileSize?: number;
   /** Accepted MIME types (default: all) */
   accept?: string;
   /** Custom title */
@@ -40,7 +38,6 @@ const EntityDocumentsManager = ({
   entityType,
   entityId,
   variant = "card",
-  maxFileSize = 20 * 1024 * 1024,
   accept,
   title = "Documents",
 }: EntityDocumentsManagerProps) => {
@@ -67,13 +64,6 @@ const EntityDocumentsManager = ({
 
     try {
       for (const file of Array.from(files)) {
-        if (file.size > maxFileSize) {
-          toast.error("Fichier trop volumineux", {
-            description: `${file.name} dépasse la limite de ${formatFileSize(maxFileSize)}.`,
-          });
-          continue;
-        }
-
         try {
           const fileUrl = await uploadEntityDocument(file, entityType, entityId);
           await addDocument.mutateAsync({
@@ -167,7 +157,7 @@ const EntityDocumentsManager = ({
                 Cliquez pour ajouter des documents
               </p>
               <p className="text-xs text-muted-foreground">
-                Plusieurs fichiers à la fois{maxFileSize < Infinity ? ` — max ${formatFileSize(maxFileSize)} par fichier` : ""}
+                Plusieurs fichiers à la fois
               </p>
             </div>
           )}

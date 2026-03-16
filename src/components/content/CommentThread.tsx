@@ -167,7 +167,6 @@ const CommentThread = ({ cardId, cardTitle, reviewIds, onCommentAdded }: Comment
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) { toast.error("L'image ne doit pas dépasser 5 Mo"); return; }
       setImageFile(file);
       const reader = new FileReader();
       reader.onloadend = () => setImagePreview(reader.result as string);
@@ -183,7 +182,6 @@ const CommentThread = ({ cardId, cardTitle, reviewIds, onCommentAdded }: Comment
         e.preventDefault();
         const file = item.getAsFile();
         if (file) {
-          if (file.size > 5 * 1024 * 1024) { toast.error("Max 5 Mo"); return; }
           setImageFile(file);
           const reader = new FileReader();
           reader.onloadend = () => setImagePreview(reader.result as string);

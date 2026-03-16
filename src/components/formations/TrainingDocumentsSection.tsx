@@ -16,8 +16,6 @@ import {
   deleteTrainingDocumentFile,
 } from "@/hooks/useTrainingDocuments";
 
-const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20 Mo
-
 interface TrainingDocumentsSectionProps {
   trainingId: string;
 }
@@ -38,13 +36,6 @@ const TrainingDocumentsSection = ({ trainingId }: TrainingDocumentsSectionProps)
 
     // Reset input so the same file can be selected again
     if (fileInputRef.current) fileInputRef.current.value = "";
-
-    if (file.size > MAX_FILE_SIZE) {
-      toast.error("Fichier trop volumineux", {
-        description: `La taille maximale est de 20 Mo. Ce fichier fait ${formatFileSize(file.size)}.`,
-      });
-      return;
-    }
 
     setUploading(true);
     try {

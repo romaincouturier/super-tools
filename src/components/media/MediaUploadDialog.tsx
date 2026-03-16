@@ -2,7 +2,6 @@ import { useState, useRef } from "react";
 import { toast } from "sonner";
 import { Mission } from "@/types/missions";
 import { useAddMedia, uploadMediaFile, MediaSourceType } from "@/hooks/useMedia";
-import { MAX_UPLOAD_SIZE_BYTES } from "@/lib/file-utils";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
@@ -70,12 +69,6 @@ const MediaUploadDialog = ({ missions, trainings = [], events = [], crmCards = [
 
     if (validFiles.length === 0) {
       toast.error("Seules les images et vidéos sont acceptées");
-      return;
-    }
-
-    const oversized = validFiles.filter((f) => f.size > MAX_UPLOAD_SIZE_BYTES);
-    if (oversized.length > 0) {
-      toast.error("Les fichiers ne doivent pas dépasser 50 Mo");
       return;
     }
 
@@ -238,7 +231,7 @@ const MediaUploadDialog = ({ missions, trainings = [], events = [], crmCards = [
                   Glissez vos fichiers ici, ou cliquez pour sélectionner
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Images et vidéos — max 50 Mo par fichier
+                  Images et vidéos
                 </p>
               </div>
             )}
