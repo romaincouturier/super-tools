@@ -14,7 +14,7 @@ import {
  * as process-logistics-reminders. Idempotent: skips if actions already exist for today.
  */
 
-const VERSION = "generate-daily-actions@1.0.0";
+const VERSION = "generate-daily-actions@1.1.0";
 
 interface Recipient {
   userId: string;
