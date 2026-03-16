@@ -167,7 +167,7 @@ const EntityDocumentsManager = ({
                 Cliquez pour ajouter des documents
               </p>
               <p className="text-xs text-muted-foreground">
-                Plusieurs fichiers à la fois — max {formatFileSize(maxFileSize)} par fichier
+                Plusieurs fichiers à la fois{maxFileSize < Infinity ? ` — max ${formatFileSize(maxFileSize)} par fichier` : ""}
               </p>
             </div>
           )}
