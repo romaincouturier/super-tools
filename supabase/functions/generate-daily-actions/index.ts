@@ -887,11 +887,17 @@ serve(async (req) => {
       // Per-user actions: only if admin or assigned (unassigned items only visible to admins)
       // Exception: review-related categories are strictly assigned (admin should NOT see others' reviews)
       const STRICT_ASSIGNED_CATEGORIES = ["articles_relire", "commentaires_contenu"];
+      let skippedReview = 0;
+      let includedReview = 0;
       for (const action of perUserActions) {
         const isStrictlyAssigned = STRICT_ASSIGNED_CATEGORIES.includes(action.category);
         if (isStrictlyAssigned) {
           // Only show if explicitly assigned to this user
-          if (action.assignedTo !== recipient.userId) continue;
+          if (action.assignedTo !== recipient.userId) {
+            skippedReview++;
+            continue;
+          }
+          includedReview++;
         } else {
           if (!recipient.isAdmin && (!action.assignedTo || action.assignedTo !== recipient.userId)) continue;
         }
