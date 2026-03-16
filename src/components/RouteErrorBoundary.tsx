@@ -43,7 +43,7 @@ export class RouteErrorBoundary extends React.Component<Props, State> {
           </div>
           {import.meta.env.DEV && this.state.error ? (
             <pre className="text-xs whitespace-pre-wrap text-muted-foreground">
-              {String((this.state.error as any)?.message ?? this.state.error)}
+              {String(this.state.error instanceof Error ? this.state.error.message : this.state.error)}
             </pre>
           ) : null}
         </div>

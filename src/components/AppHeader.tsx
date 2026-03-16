@@ -45,7 +45,7 @@ const AppHeader = () => {
       const { count: failedCount } = await (supabase
         .from("failed_emails")
         .select("*", { count: "exact", head: true })
-        .eq("status", "failed") as any);
+        .eq("status", "failed"));
 
       setFailedEmailCount((scheduledCount || 0) + (failedCount || 0));
     };

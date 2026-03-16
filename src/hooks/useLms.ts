@@ -349,7 +349,7 @@ export function useCreateCourse() {
     mutationFn: async (input: Partial<LmsCourse>) => {
       const { data, error } = await supabase
         .from("lms_courses")
-        .insert(input as any)
+        .insert(input as LmsCourseInsert)
         .select()
         .single();
       if (error) throw error;
@@ -368,7 +368,7 @@ export function useUpdateCourse() {
     mutationFn: async ({ id, ...input }: Partial<LmsCourse> & { id: string }) => {
       const { data, error } = await supabase
         .from("lms_courses")
-        .update({ ...input, updated_at: new Date().toISOString() } as any)
+        .update({ ...input, updated_at: new Date().toISOString() } as LmsCourseUpdate)
         .eq("id", id)
         .select()
         .single();
@@ -404,7 +404,7 @@ export function useCreateModule() {
     mutationFn: async (input: Partial<LmsModule> & { course_id: string; title: string }) => {
       const { data, error } = await supabase
         .from("lms_modules")
-        .insert(input as any)
+        .insert(input as LmsModuleInsert)
         .select()
         .single();
       if (error) throw error;
@@ -422,7 +422,7 @@ export function useUpdateModule() {
     mutationFn: async ({ id, ...input }: Partial<LmsModule> & { id: string }) => {
       const { data, error } = await supabase
         .from("lms_modules")
-        .update({ ...input, updated_at: new Date().toISOString() } as any)
+        .update({ ...input, updated_at: new Date().toISOString() } as LmsModuleUpdate)
         .eq("id", id)
         .select()
         .single();
@@ -455,7 +455,7 @@ export function useCreateLesson() {
     mutationFn: async (input: Partial<LmsLesson> & { module_id: string; title: string }) => {
       const { data, error } = await supabase
         .from("lms_lessons")
-        .insert(input as any)
+        .insert(input as LmsLessonInsert)
         .select()
         .single();
       if (error) throw error;
@@ -474,7 +474,7 @@ export function useUpdateLesson() {
     mutationFn: async ({ id, ...input }: Partial<LmsLesson> & { id: string }) => {
       const { data, error } = await supabase
         .from("lms_lessons")
-        .update({ ...input, updated_at: new Date().toISOString() } as any)
+        .update({ ...input, updated_at: new Date().toISOString() } as LmsLessonUpdate)
         .eq("id", id)
         .select()
         .single();
@@ -509,7 +509,7 @@ export function useCreateQuiz() {
     mutationFn: async (input: Partial<LmsQuiz> & { course_id: string; title: string }) => {
       const { data, error } = await supabase
         .from("lms_quizzes")
-        .insert(input as any)
+        .insert(input as LmsQuizInsert)
         .select()
         .single();
       if (error) throw error;
@@ -527,7 +527,7 @@ export function useCreateQuizQuestion() {
     mutationFn: async (input: Partial<LmsQuizQuestion> & { quiz_id: string }) => {
       const { data, error } = await supabase
         .from("lms_quiz_questions")
-        .insert(input as any)
+        .insert(input as LmsQuizQuestionInsert)
         .select()
         .single();
       if (error) throw error;
@@ -546,7 +546,7 @@ export function useSubmitQuizAttempt() {
     mutationFn: async (input: Partial<LmsQuizAttempt> & { quiz_id: string; learner_email: string }) => {
       const { data, error } = await supabase
         .from("lms_quiz_attempts")
-        .insert(input as any)
+        .insert(input as LmsQuizAttemptInsert)
         .select()
         .single();
       if (error) throw error;
@@ -573,7 +573,7 @@ export function useMarkLessonComplete() {
             status: "completed",
             completed_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
-          } as any,
+          } as LmsProgressInsert,
           { onConflict: "lesson_id,learner_email" }
         )
         .select()
@@ -594,7 +594,7 @@ export function useEnrollLearner() {
     mutationFn: async (input: { course_id: string; learner_email: string }) => {
       const { data, error } = await supabase
         .from("lms_enrollments")
-        .upsert(input as any, { onConflict: "course_id,learner_email" })
+        .upsert(input as LmsEnrollmentInsert, { onConflict: "course_id,learner_email" })
         .select()
         .single();
       if (error) throw error;
@@ -629,7 +629,7 @@ export function useSubmitAssignment() {
     mutationFn: async (input: { lesson_id: string; learner_email: string; comment?: string; file_url?: string; file_name?: string; file_size?: number }) => {
       const { data, error } = await supabase
         .from("lms_assignment_submissions")
-        .insert(input as any)
+        .insert(input as LmsAssignmentSubmissionInsert)
         .select()
         .single();
       if (error) throw error;
@@ -667,7 +667,7 @@ export interface LmsBadge {
   badge_name: string;
   badge_icon: string;
   awarded_at: string;
-  metadata: any;
+  metadata: Record<string, unknown> | null;
 }
 
 export function useLearnerBadges(email: string | undefined) {
@@ -676,7 +676,7 @@ export function useLearnerBadges(email: string | undefined) {
     enabled: !!email,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("lms_badge_awards" as any)
+        .from("lms_badge_awards")
         .select("*")
         .eq("learner_email", email!)
         .order("awarded_at", { ascending: false });
@@ -716,7 +716,7 @@ export function useCreateForumPost() {
     mutationFn: async (input: Partial<LmsForumPost> & { forum_id: string; author_email: string; content_html: string }) => {
       const { data, error } = await supabase
         .from("lms_forum_posts")
-        .insert(input as any)
+        .insert(input as LmsForumPostInsert)
         .select()
         .single();
       if (error) throw error;
