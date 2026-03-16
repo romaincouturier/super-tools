@@ -2,7 +2,7 @@
  * Reusable document manager for any entity (missions, trainings, etc.).
  * Handles upload, download, delete with consistent UI.
  */
-import { useRef, useState } from "react";
+import { useRef, useState, useCallback } from "react";
 import { FileText, Upload, Download, Trash2, Loader2, Package } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -93,7 +93,7 @@ const EntityDocumentsManager = ({
     }
   };
 
-  const handleDownload = async (docId: string, fileUrl: string, fileName: string) => {
+  const handleDownload = useCallback(async (docId: string, fileUrl: string, fileName: string) => {
     setDownloadingId(docId);
     try {
       await downloadFile(fileUrl, fileName);

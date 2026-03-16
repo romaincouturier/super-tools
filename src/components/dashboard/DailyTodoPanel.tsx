@@ -84,16 +84,16 @@ const DailyTodoPanel = () => {
   );
   const [showAnalytics, setShowAnalytics] = useState(false);
 
-  const toggleCategory = (category: string) => {
+  const toggleCategory = useCallback((category: string) => {
     setCollapsedCategories((prev) => {
       const next = new Set(prev);
       if (next.has(category)) next.delete(category);
       else next.add(category);
       return next;
     });
-  };
+  }, []);
 
-  const handleNavigate = (link: string) => {
+  const handleNavigate = useCallback((link: string) => {
     if (link.startsWith("http")) {
       window.open(link, "_blank", "noopener,noreferrer");
     } else {
@@ -104,7 +104,7 @@ const DailyTodoPanel = () => {
         navigate(link);
       }
     }
-  };
+  }, [navigate]);
 
   const grouped = groupActionsByCategory(actions);
 

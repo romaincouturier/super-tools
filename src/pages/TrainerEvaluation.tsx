@@ -74,7 +74,7 @@ const TrainerEvaluation = () => {
         if (prevEvals && Array.isArray(prevEvals) && prevEvals.length > 0) {
           const extract = (field: string) => {
             const values = prevEvals
-              .map((e: any) => e[field]?.trim())
+              .map((e) => (e[field as keyof typeof e] as string | null)?.trim())
               .filter((v: string | undefined): v is string => !!v);
             return [...new Set(values)];
           };
