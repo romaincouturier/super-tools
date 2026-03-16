@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { X, Briefcase, ChevronLeft, ChevronRight, Download, Pencil, GraduationCap, CalendarDays, HandCoins, Package } from "lucide-react";
 import { toast } from "sonner";
 import { useEffect, useCallback } from "react";
-import { formatFileSize } from "@/lib/file-utils";
+import { formatFileSize, downloadFile as downloadFileUtil, promptRenameFile } from "@/lib/file-utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 const sourceIcon = (sourceType: string) => {
@@ -31,12 +31,8 @@ const MediaLightbox = ({ item, items, onClose, onNavigate, onToggleDeliverable }
   const renameMedia = useRenameMedia();
 
   const handleRename = () => {
-    const currentName = item.file_name;
-    const ext = currentName.includes(".") ? currentName.slice(currentName.lastIndexOf(".")) : "";
-    const nameWithoutExt = currentName.includes(".") ? currentName.slice(0, currentName.lastIndexOf(".")) : currentName;
-    const newName = window.prompt("Nouveau nom du fichier :", nameWithoutExt);
-    if (newName === null || newName.trim() === "" || newName.trim() === nameWithoutExt) return;
-    const finalName = newName.trim() + ext;
+    const finalName = promptRenameFile(item.file_name);
+    if (!finalName) return;
     renameMedia.mutate(
       { id: item.id, file_name: finalName },
       {
@@ -46,18 +42,9 @@ const MediaLightbox = ({ item, items, onClose, onNavigate, onToggleDeliverable }
     );
   };
 
-  const downloadFile = async () => {
+  const handleDownload = async () => {
     try {
-      const response = await fetch(item.file_url);
-      const blob = await response.blob();
-      const blobUrl = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = blobUrl;
-      a.download = item.file_name;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(blobUrl);
+      await downloadFileUtil(item.file_url, item.file_name);
     } catch {
       toast.error("Erreur lors du téléchargement");
     }
@@ -191,7 +178,7 @@ const MediaLightbox = ({ item, items, onClose, onNavigate, onToggleDeliverable }
           variant="ghost"
           size="icon"
           className="h-7 w-7 text-white hover:bg-white/20"
-          onClick={(e) => { e.stopPropagation(); downloadFile(); }}
+          onClick={(e) => { e.stopPropagation(); handleDownload(); }}
         >
           <Download className="h-4 w-4" />
         </Button>

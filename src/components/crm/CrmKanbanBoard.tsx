@@ -534,46 +534,23 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
 
       {/* Filter buttons */}
       <div className="flex items-center gap-1 border rounded-lg p-1">
-        <Button
-          variant={filterMode === "all" ? "default" : "ghost"}
-          size="sm"
-          className="h-7 text-xs"
-          onClick={() => setFilterMode("all")}
-        >
-          Tout
-        </Button>
-        <Button
-          variant={filterMode === "en_cours" ? "default" : "ghost"}
-          size="sm"
-          className="h-7 text-xs"
-          onClick={() => setFilterMode("en_cours")}
-        >
-          En cours
-        </Button>
-        <Button
-          variant={filterMode === "gagne" ? "default" : "ghost"}
-          size="sm"
-          className="h-7 text-xs"
-          onClick={() => setFilterMode("gagne")}
-        >
-          Gagné
-        </Button>
-        <Button
-          variant={filterMode === "perdu" ? "default" : "ghost"}
-          size="sm"
-          className="h-7 text-xs"
-          onClick={() => setFilterMode("perdu")}
-        >
-          Perdu
-        </Button>
-        <Button
-          variant={filterMode === "a_venir" ? "default" : "ghost"}
-          size="sm"
-          className="h-7 text-xs"
-          onClick={() => setFilterMode("a_venir")}
-        >
-          À venir
-        </Button>
+        {([
+          { key: "all", label: "Tout" },
+          { key: "en_cours", label: "En cours" },
+          { key: "gagne", label: "Gagné" },
+          { key: "perdu", label: "Perdu" },
+          { key: "a_venir", label: "À venir" },
+        ] as const).map(({ key, label }) => (
+          <Button
+            key={key}
+            variant={filterMode === key ? "default" : "ghost"}
+            size="sm"
+            className="h-7 text-xs"
+            onClick={() => setFilterMode(key)}
+          >
+            {label}
+          </Button>
+        ))}
       </div>
       </div>
 
