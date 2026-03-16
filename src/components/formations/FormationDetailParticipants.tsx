@@ -116,7 +116,7 @@ const FormationDetailParticipants = ({
                 formatFormation={training.format_formation}
                 isInterEntreprise={isInterSession}
                 availableFormulas={availableFormulas}
-                trainingFormulaId={(training as any).formula_id ?? undefined}
+                trainingFormulaId={(training as unknown as { formula_id?: string | null }).formula_id ?? undefined}
                 onParticipantAdded={fetchParticipants}
                 onScheduledEmailsRefresh={() => setEmailsRefreshTrigger(prev => prev + 1)}
                 initialFirstName={addParticipantData?.firstName}

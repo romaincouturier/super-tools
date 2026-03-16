@@ -170,7 +170,7 @@ const FormationDetailSections = ({
     {/* Trainer Adequacy + Evaluation */}
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
       <TrainerAdequacy trainingId={training.id} trainerName={training.trainer_name} />
-      <TrainerEvaluationBlock trainingId={training.id} trainerName={training.trainer_name} trainerId={(training as any).trainer_id} />
+      <TrainerEvaluationBlock trainingId={training.id} trainerName={training.trainer_name} trainerId={(training as unknown as { trainer_id?: string | null }).trainer_id} />
     </div>
 
     {/* Photos & Videos */}

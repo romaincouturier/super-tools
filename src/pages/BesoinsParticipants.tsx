@@ -179,7 +179,7 @@ const BesoinsParticipants = () => {
       }
     }
 
-    const transformed = allData.map((item: any) => ({
+    const transformed = allData.map((item: Record<string, unknown>) => ({
       ...item,
       training: item.trainings,
     }));
@@ -218,9 +218,9 @@ const BesoinsParticipants = () => {
       if (error) throw new Error(error.message);
       if (data?.error) throw new Error(data.error);
       setAnalysisResult(data.analysis);
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error("Analysis error:", e);
-      toast({ title: "Erreur", description: e.message || "Impossible de générer l'analyse.", variant: "destructive" });
+      toast({ title: "Erreur", description: e instanceof Error ? e.message : "Erreur inconnue", variant: "destructive" });
       setAnalysisOpen(false);
     } finally {
       setAnalysisLoading(false);
