@@ -1,14 +1,12 @@
 import { useState } from "react";
-import { Upload, Loader2, Send, CheckCircle, FileDown, Scroll, PenLine, Shield, ChevronDown, ChevronUp, Trash2, BellRing, RotateCw, Download } from "lucide-react";
-import { format, parseISO } from "date-fns";
-import { fr } from "date-fns/locale";
+import { Upload, Loader2, Send, CheckCircle, FileDown, Scroll, PenLine, Trash2, BellRing, RotateCw, Download, Shield, ChevronDown, ChevronUp } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { formatSentDateTime, formatDateTimeSeconds } from "@/lib/dateFormatters";
+import { formatSentDateTime } from "@/lib/dateFormatters";
 import { sanitizeFileName } from "@/lib/file-utils";
 import {
   DropdownMenu,
@@ -18,7 +16,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-import type { ConventionSignatureStatus, VerificationResult } from "./types";
+import type { ConventionSignatureStatus } from "./types";
+import ConventionAuditPanel from "./ConventionAuditPanel";
 
 interface ConventionSectionProps {
   trainingId: string;
@@ -39,20 +38,6 @@ interface ConventionSectionProps {
   setSignedConventionUrls: (urls: string[]) => void;
   onUpdate?: () => void;
 }
-
-const journeyEventLabels: Record<string, string> = {
-  page_loaded: "Page ouverte",
-  first_link_opened: "Premier accès au lien",
-  link_reopened: "Lien réouvert",
-  pdf_consulted: "PDF consulté",
-  signer_name_entered: "Nom saisi",
-  signature_drawing_started: "Début de signature",
-  signature_cleared: "Signature effacée",
-  consent_checkbox_checked: "Consentement coché",
-  consent_checkbox_unchecked: "Consentement décoché",
-  submit_button_clicked: "Bouton signer cliqué",
-  signature_submitted_server: "Signature enregistrée (serveur)",
-};
 
 const ConventionSection = ({
   trainingId,
@@ -80,46 +65,9 @@ const ConventionSection = ({
   const [uploadingSignedConvention, setUploadingSignedConvention] = useState(false);
   const [sendingConventionReminder, setSendingConventionReminder] = useState(false);
   const [showAuditPanel, setShowAuditPanel] = useState(false);
-  const [verificationResult, setVerificationResult] = useState<VerificationResult | null>(null);
-  const [verifying, setVerifying] = useState(false);
   const { toast } = useToast();
 
   const formatSentDate = formatSentDateTime;
-  const formatFullDate = formatDateTimeSeconds;
-
-  const handleVerifySignature = async () => {
-    setVerifying(true);
-    try {
-      const { data: sigData } = await supabase
-        .from("convention_signatures")
-        .select("id")
-        .eq("training_id", trainingId)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (!sigData) {
-        toast({ title: "Erreur", description: "Aucune signature trouvée", variant: "destructive" });
-        return;
-      }
-
-      const response = await supabase.functions.invoke("verify-convention-signature", {
-        body: { signatureId: sigData.id },
-      });
-
-      if (response.error) {
-        throw new Error(response.error instanceof Error ? response.error.message : "Erreur inconnue");
-      }
-
-      setVerificationResult(response.data as VerificationResult);
-      toast({ title: "Vérification terminée", description: `Résultat : ${(response.data as VerificationResult).summary?.overall || "OK"}` });
-    } catch (error: unknown) {
-      console.error("Verification error:", error);
-      toast({ title: "Erreur de vérification", description: error instanceof Error ? error.message : "Erreur inconnue", variant: "destructive" });
-    } finally {
-      setVerifying(false);
-    }
-  };
 
   const handleSignedConventionUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -261,27 +209,19 @@ const ConventionSection = ({
 
     try {
       const { data, error } = await supabase.functions.invoke("generate-convention-formation", {
-        body: {
-          trainingId,
-          subrogation: false,
-        },
+        body: { trainingId, subrogation: false },
       });
 
       if (error) throw error;
-
-      if (data?.error) {
-        throw new Error(data.error as string);
-      }
+      if (data?.error) throw new Error(data.error as string);
 
       if (data?.pdfUrl) {
         setConventionFileUrl(data.pdfUrl as string);
         setLastGeneratedConventionFileName((data.fileName as string) || null);
-
         toast({
           title: "Convention générée",
           description: "La convention de formation a été générée avec succès.",
         });
-
         onUpdate?.();
       }
     } catch (error: unknown) {
@@ -361,29 +301,15 @@ const ConventionSection = ({
         {!isInterEntreprise && formatFormation !== "e_learning" && formatFormation !== "inter" && (
           <div className="flex items-center gap-0.5">
             {!conventionFileUrl ? (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleGenerateConvention}
-                disabled={generatingConvention}
-              >
-                {generatingConvention ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <FileDown className="h-4 w-4 mr-2" />
-                )}
+              <Button type="button" variant="outline" size="sm" onClick={handleGenerateConvention} disabled={generatingConvention}>
+                {generatingConvention ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <FileDown className="h-4 w-4 mr-2" />}
                 Générer
               </Button>
             ) : (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button type="button" variant="outline" size="sm" disabled={generatingConvention || sendingConvention}>
-                    {generatingConvention || sendingConvention ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <Scroll className="h-4 w-4 mr-2" />
-                    )}
+                    {generatingConvention || sendingConvention ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Scroll className="h-4 w-4 mr-2" />}
                     Convention
                     <ChevronDown className="h-3 w-3 ml-1" />
                   </Button>
@@ -428,24 +354,14 @@ const ConventionSection = ({
         <div className="space-y-2">
           <div className="flex items-center gap-2 p-2 bg-muted/50 border border-border rounded-md">
             <CheckCircle className="h-4 w-4 text-primary" />
-            <a
-              href={conventionFileUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm text-foreground hover:underline flex-1 truncate"
-            >
+            <a href={conventionFileUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-foreground hover:underline flex-1 truncate">
               Convention générée
             </a>
           </div>
 
-          {/* Online signature option */}
           {sponsorEmail && (
             <div className="flex items-center space-x-2 pl-1">
-              <Checkbox
-                id="enableOnlineSignature"
-                checked={enableOnlineSignature}
-                onCheckedChange={(checked) => setEnableOnlineSignature(checked === true)}
-              />
+              <Checkbox id="enableOnlineSignature" checked={enableOnlineSignature} onCheckedChange={(checked) => setEnableOnlineSignature(checked === true)} />
               <Label htmlFor="enableOnlineSignature" className="text-xs text-muted-foreground cursor-pointer flex items-center gap-1">
                 <PenLine className="h-3 w-3" />
                 Proposer la signature en ligne (en plus du PDF joint)
@@ -466,24 +382,17 @@ const ConventionSection = ({
             </span>
           )}
 
-          {/* Convention signature status + audit panel */}
           {conventionSignatureStatus?.status === "signed" && (
             <div className="space-y-2">
               <div className="flex items-center gap-2 p-2 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-md">
                 <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400 shrink-0" />
                 <div className="flex-1">
-                  <span className="text-sm font-medium text-green-700 dark:text-green-300">
-                    Convention signée en ligne
-                  </span>
+                  <span className="text-sm font-medium text-green-700 dark:text-green-300">Convention signée en ligne</span>
                   {conventionSignatureStatus.signer_name && (
-                    <span className="text-xs text-green-600 dark:text-green-400 ml-1">
-                      par {conventionSignatureStatus.signer_name}
-                    </span>
+                    <span className="text-xs text-green-600 dark:text-green-400 ml-1">par {conventionSignatureStatus.signer_name}</span>
                   )}
                   {conventionSignatureStatus.signed_at && (
-                    <span className="text-xs text-green-600 dark:text-green-400 ml-1">
-                      le {formatSentDate(conventionSignatureStatus.signed_at)}
-                    </span>
+                    <span className="text-xs text-green-600 dark:text-green-400 ml-1">le {formatSentDate(conventionSignatureStatus.signed_at)}</span>
                   )}
                 </div>
                 {conventionSignatureStatus.signed_pdf_url && (
@@ -493,125 +402,19 @@ const ConventionSection = ({
                     </Button>
                   </a>
                 )}
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 text-xs gap-1"
-                  onClick={() => setShowAuditPanel(!showAuditPanel)}
-                >
+                <Button type="button" variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={() => setShowAuditPanel(!showAuditPanel)}>
                   <Shield className="h-3 w-3" />
                   Preuve
                   {showAuditPanel ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
                 </Button>
               </div>
 
-              {/* Audit / Proof Panel */}
               {showAuditPanel && (
-                <div className="p-3 bg-muted/30 border border-border rounded-md space-y-3 text-xs">
-                  <div className="flex items-center justify-between">
-                    <span className="font-semibold text-sm">Dossier de preuve</span>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="h-7 text-xs gap-1"
-                      onClick={handleVerifySignature}
-                      disabled={verifying}
-                    >
-                      {verifying ? <Loader2 className="h-3 w-3 animate-spin" /> : <Shield className="h-3 w-3" />}
-                      Vérifier l&apos;intégrité
-                    </Button>
-                  </div>
-
-                  {/* Signer info */}
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-                    <span className="text-muted-foreground">Signataire</span>
-                    <span className="font-medium">{conventionSignatureStatus.signer_name || "—"}</span>
-                    {conventionSignatureStatus.signer_function && (
-                      <>
-                        <span className="text-muted-foreground">Fonction</span>
-                        <span>{conventionSignatureStatus.signer_function}</span>
-                      </>
-                    )}
-                    <span className="text-muted-foreground">Date de signature</span>
-                    <span>{conventionSignatureStatus.signed_at ? formatFullDate(conventionSignatureStatus.signed_at) : "—"}</span>
-                    <span className="text-muted-foreground">Adresse IP</span>
-                    <span className="font-mono">{conventionSignatureStatus.ip_address || "—"}</span>
-                    <span className="text-muted-foreground">Consentement donné</span>
-                    <span>{conventionSignatureStatus.consent_timestamp ? formatFullDate(conventionSignatureStatus.consent_timestamp) : "—"}</span>
-                  </div>
-
-                  {/* Hashes */}
-                  <div className="space-y-1">
-                    <span className="font-semibold">Empreintes numériques</span>
-                    <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-                      <span className="text-muted-foreground">Signature (SHA-256)</span>
-                      <span className="font-mono truncate" title={conventionSignatureStatus.signature_hash || undefined}>
-                        {conventionSignatureStatus.signature_hash ? conventionSignatureStatus.signature_hash.substring(0, 24) + "..." : "—"}
-                      </span>
-                      <span className="text-muted-foreground">Document PDF</span>
-                      <span className="font-mono truncate" title={conventionSignatureStatus.pdf_hash || undefined}>
-                        {conventionSignatureStatus.pdf_hash ? conventionSignatureStatus.pdf_hash.substring(0, 24) + "..." : "—"}
-                      </span>
-                      <span className="text-muted-foreground">Dossier de preuve</span>
-                      <span className="font-mono truncate" title={conventionSignatureStatus.proof_hash || undefined}>
-                        {conventionSignatureStatus.proof_hash ? conventionSignatureStatus.proof_hash.substring(0, 24) + "..." : "—"}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Journey timeline */}
-                  {conventionSignatureStatus.journey_events && conventionSignatureStatus.journey_events.length > 0 && (
-                    <div className="space-y-1">
-                      <span className="font-semibold">Parcours du signataire ({conventionSignatureStatus.journey_events.length} événements)</span>
-                      <div className="max-h-40 overflow-y-auto space-y-0.5">
-                        {conventionSignatureStatus.journey_events.map((evt, i) => (
-                          <div key={i} className="flex items-center gap-2 py-0.5">
-                            <span className="text-muted-foreground font-mono w-32 shrink-0">
-                              {format(parseISO(evt.timestamp), "HH:mm:ss", { locale: fr })}
-                            </span>
-                            <span>{journeyEventLabels[evt.event] || evt.event}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Verification results */}
-                  {verificationResult && (
-                    <div className="space-y-2 border-t pt-2">
-                      <div className="flex items-center justify-between">
-                        <span className="font-semibold">Résultat de vérification</span>
-                        <span className={`font-semibold ${
-                          verificationResult.summary.overall === "CONFORME" ? "text-green-600" :
-                          verificationResult.summary.overall === "NON CONFORME" ? "text-red-600" :
-                          "text-yellow-600"
-                        }`}>
-                          {verificationResult.summary.overall}
-                        </span>
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {verificationResult.summary.conforme}/{verificationResult.summary.total_checks} conformes
-                        {verificationResult.summary.non_conforme > 0 && `, ${verificationResult.summary.non_conforme} non conformes`}
-                        {verificationResult.summary.partiel_ou_absent > 0 && `, ${verificationResult.summary.partiel_ou_absent} partiels`}
-                      </div>
-                      <div className="space-y-0.5">
-                        {Object.entries(verificationResult.checks).map(([key, check]) => (
-                          <div key={key} className="flex items-start gap-2">
-                            <span className="shrink-0">{check.status.split(" ")[0]}</span>
-                            <span className="text-muted-foreground">{check.detail}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
+                <ConventionAuditPanel trainingId={trainingId} conventionSignatureStatus={conventionSignatureStatus} />
               )}
             </div>
           )}
 
-          {/* Upload signed convention (manual) - hidden input, triggered from dropdown */}
           {conventionSignatureStatus?.status !== "signed" && (
             <div className="space-y-2">
               <input
@@ -623,7 +426,6 @@ const ConventionSection = ({
                 className="hidden"
                 id="signed-convention-upload"
               />
-
               {signedConventionUrls.length > 0 && (
                 <div className="space-y-1">
                   {signedConventionUrls.map((url, index) => {
@@ -631,21 +433,10 @@ const ConventionSection = ({
                     return (
                       <div key={index} className="flex items-center gap-2 p-1.5 bg-muted/50 border border-border rounded text-xs">
                         <CheckCircle className="h-3 w-3 text-green-600 shrink-0" />
-                        <a
-                          href={url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-foreground hover:underline flex-1 truncate"
-                        >
+                        <a href={url} target="_blank" rel="noopener noreferrer" className="text-foreground hover:underline flex-1 truncate">
                           {fileName}
                         </a>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="h-5 w-5 shrink-0"
-                          onClick={() => handleDeleteSignedConvention(url)}
-                        >
+                        <Button type="button" variant="ghost" size="icon" className="h-5 w-5 shrink-0" onClick={() => handleDeleteSignedConvention(url)}>
                           <Trash2 className="h-3 w-3 text-destructive" />
                         </Button>
                       </div>
