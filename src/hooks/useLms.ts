@@ -1,6 +1,22 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import type { Database } from "@/integrations/supabase/types";
+
+type Tables = Database["public"]["Tables"];
+type LmsCourseInsert = Tables["lms_courses"]["Insert"];
+type LmsCourseUpdate = Tables["lms_courses"]["Update"];
+type LmsModuleInsert = Tables["lms_modules"]["Insert"];
+type LmsModuleUpdate = Tables["lms_modules"]["Update"];
+type LmsLessonInsert = Tables["lms_lessons"]["Insert"];
+type LmsLessonUpdate = Tables["lms_lessons"]["Update"];
+type LmsQuizInsert = Tables["lms_quizzes"]["Insert"];
+type LmsQuizQuestionInsert = Tables["lms_quiz_questions"]["Insert"];
+type LmsQuizAttemptInsert = Tables["lms_quiz_attempts"]["Insert"];
+type LmsProgressInsert = Tables["lms_progress"]["Insert"];
+type LmsEnrollmentInsert = Tables["lms_enrollments"]["Insert"];
+type LmsAssignmentSubmissionInsert = Tables["lms_assignment_submissions"]["Insert"];
+type LmsForumPostInsert = Tables["lms_forum_posts"]["Insert"];
 
 // ---- Types ----
 export interface LmsCourse {
@@ -249,9 +265,10 @@ export function useQuizQuestions(quizId: string | undefined) {
         .eq("quiz_id", quizId!)
         .order("position");
       if (error) throw error;
-      return (data ?? []).map((q: any) => ({
+      return (data ?? []).map((q) => ({
         ...q,
-        options: typeof q.options === "string" ? JSON.parse(q.options) : q.options ?? [],
+        points: q.points ?? 0,
+        options: (typeof q.options === "string" ? JSON.parse(q.options) : q.options ?? []) as LmsQuizQuestion["options"],
       })) as LmsQuizQuestion[];
     },
   });
@@ -301,7 +318,7 @@ export function useCourseForums(courseId: string | undefined) {
         .select("*")
         .eq("course_id", courseId!);
       if (error) throw error;
-      return data as any[];
+      return data as { id: string; course_id: string; title: string; description: string | null; is_locked: boolean | null; created_at: string }[];
     },
   });
 }
