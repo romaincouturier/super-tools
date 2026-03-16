@@ -72,7 +72,7 @@ interface NeedsSurvey {
   lecture_programme: string | null;
   prerequis_validation: string | null;
   prerequis_details: string | null;
-  modalites_preferences: any | null;
+  modalites_preferences: Record<string, unknown> | null;
   training: {
     training_name: string;
     start_date: string;
@@ -121,7 +121,7 @@ const BesoinsParticipants = () => {
   }, [navigate]);
 
   const fetchSurveys = async () => {
-    const allData: any[] = [];
+    const allData: Record<string, unknown>[] = [];
     let offset = 0;
     const batchSize = 1000;
     let hasMore = true;
