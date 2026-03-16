@@ -32,7 +32,7 @@ const useCrmCardsList = () => {
   return useQuery({
     queryKey: ["crm-cards-list"],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await (supabase as unknown as { from: (table: string) => ReturnType<typeof supabase.from> })
         .from("crm_cards")
         .select("id, title, emoji")
         .order("updated_at", { ascending: false });

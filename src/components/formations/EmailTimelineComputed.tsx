@@ -130,7 +130,7 @@ const EmailTimelineComputed = ({
   hasCoaching,
   isElearning,
 }: EmailTimelineProps) => {
-  const [dbEmails, setDbEmails] = useState<any[]>([]);
+  const [dbEmails, setDbEmails] = useState<Record<string, unknown>[]>([]);
   const [loading, setLoading] = useState(true);
   const [delaySettings, setDelaySettings] = useState({
     logistic: 3,
@@ -145,7 +145,7 @@ const EmailTimelineComputed = ({
     needsSurvey: 7,
   });
   const [expandedPhases, setExpandedPhases] = useState<Set<string>>(new Set(["inscription", "avant", "fin"]));
-  const [liveMeetings, setLiveMeetings] = useState<any[]>([]);
+  const [liveMeetings, setLiveMeetings] = useState<Record<string, unknown>[]>([]);
 
   useEffect(() => {
     fetchData();

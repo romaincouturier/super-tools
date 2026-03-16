@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import DetailDrawer from "@/components/shared/DetailDrawer";
 import { supabase } from "@/integrations/supabase/client";
+import { crmAiAssist } from "@/services/crmAiAssist";
 import { Button } from "@/components/ui/button";
 import {
   Loader2,
@@ -305,9 +306,8 @@ const CardDetailDrawer = ({
     setAiAnalyzing(true);
     setAiAnalysis(null);
     try {
-      const { data, error } = await supabase.functions.invoke("crm-ai-assist", { body: { action: "analyze_exchanges", card_data: buildCardDataForAi() } });
-      if (error) throw error;
-      setAiAnalysis(data.result);
+      const result = await crmAiAssist("analyze_exchanges", buildCardDataForAi());
+      setAiAnalysis(result);
     } catch { setAiAnalysis("Erreur lors de l'analyse. Veuillez réessayer."); }
     finally { setAiAnalyzing(false); }
   };
@@ -317,9 +317,8 @@ const CardDetailDrawer = ({
     setQuoteGenerating(true);
     setQuoteDescription(null);
     try {
-      const { data, error } = await supabase.functions.invoke("crm-ai-assist", { body: { action: "generate_quote_description", card_data: buildCardDataForAi() } });
-      if (error) throw error;
-      setQuoteDescription(data.result);
+      const result = await crmAiAssist("generate_quote_description", buildCardDataForAi());
+      setQuoteDescription(result);
     } catch { setQuoteDescription("Erreur lors de la génération. Veuillez réessayer."); }
     finally { setQuoteGenerating(false); }
   };
@@ -329,9 +328,8 @@ const CardDetailDrawer = ({
     setImprovingSubject(true);
     setEmailSubjectBeforeAi(emailSubject);
     try {
-      const { data, error } = await supabase.functions.invoke("crm-ai-assist", { body: { action: "improve_email_subject", card_data: { ...buildCardDataForAi(), subject: emailSubject } } });
-      if (error) throw error;
-      setEmailSubject(data.result);
+      const result = await crmAiAssist("improve_email_subject", { ...buildCardDataForAi(), subject: emailSubject });
+      setEmailSubject(result);
     } catch { setEmailSubjectBeforeAi(null); }
     finally { setImprovingSubject(false); }
   };
@@ -341,9 +339,8 @@ const CardDetailDrawer = ({
     setImprovingBody(true);
     setEmailBodyBeforeAi(emailBody);
     try {
-      const { data, error } = await supabase.functions.invoke("crm-ai-assist", { body: { action: "improve_email_body", card_data: { ...buildCardDataForAi(), body: emailBody, subject: emailSubject } } });
-      if (error) throw error;
-      setEmailBody(data.result);
+      const result = await crmAiAssist("improve_email_body", { ...buildCardDataForAi(), body: emailBody, subject: emailSubject });
+      setEmailBody(result);
     } catch { setEmailBodyBeforeAi(null); }
     finally { setImprovingBody(false); }
   };
