@@ -653,7 +653,7 @@ describe("useUpdateCrmTemplate (hook)", () => {
         expect(updates).toEqual({ subject: "New Subject" });
         return { eq: mockEq };
       }),
-    } as any);
+    } as unknown as ReturnType<typeof mockFrom>);
 
     useUpdateCrmTemplate();
     const mutationFn = capturedMutationConfig!.mutationFn as (input: unknown) => Promise<unknown>;

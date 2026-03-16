@@ -28,7 +28,7 @@ export default function LmsForumSection({ courseId }: Props) {
     if (!newTitle.trim()) return;
     const { error } = await supabase
       .from("lms_forums")
-      .insert({ course_id: courseId, title: newTitle } as any);
+      .insert({ course_id: courseId, title: newTitle });
     if (error) {
       toast({ title: "Erreur", description: (error instanceof Error ? error.message : "Erreur inconnue"), variant: "destructive" });
       return;

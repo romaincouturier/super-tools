@@ -144,7 +144,7 @@ const Evaluation = () => {
         const nowIso = new Date().toISOString();
         await rpc.updateEvaluationByToken(token, { date_premiere_ouverture: nowIso });
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error("Failed to load evaluation", e);
       const errorMsg = "Impossible d'ouvrir cette évaluation (lien invalide, expiré, ou accès refusé).";
       setError(errorMsg);
@@ -153,7 +153,7 @@ const Evaluation = () => {
         body: {
           formType: "evaluation",
           token,
-          errorMessage: e?.message || e?.code || errorMsg,
+          errorMessage: e instanceof Error ? e.message : errorMsg,
           userAgent: navigator.userAgent,
           url: window.location.href,
         },
@@ -234,12 +234,12 @@ const Evaluation = () => {
       setEvaluation((prev) =>
         prev ? { ...prev, etat: "soumis", date_soumission: nowIso } : prev
       );
-    } catch (e: any) {
-      const errorDetail = e?.message || e?.code || JSON.stringify(e);
+    } catch (e: unknown) {
+      const errorDetail = e instanceof Error ? e.message : "Erreur inconnue";
       console.error("Submit failed — detail:", errorDetail, "full:", e);
       toast({
         title: "Erreur",
-        description: `Impossible de soumettre l'évaluation. ${errorDetail ? `(${errorDetail})` : ""} Réessayez.`,
+        description: `Impossible de soumettre l'évaluation. (${errorDetail}) Réessayez.`,
         variant: "destructive",
       });
     } finally {

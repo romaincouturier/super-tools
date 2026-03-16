@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Plus, Loader2, Settings2, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
@@ -331,7 +331,7 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
     }
   };
 
-  const handleColumnReorder = async (columnIds: string[]) => {
+  const handleColumnReorder = useCallback(async (columnIds: string[]) => {
     const newColumns = columnIds
       .map((id, idx) => {
         const col = columns.find((c) => c.id === id);
@@ -355,11 +355,11 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
       toast.error("Erreur lors du réordonnancement des colonnes");
       fetchData();
     }
-  };
+  }, [columns]);
 
   // --- Card actions ---
 
-  const handleCardMove = async ({ card, targetColumnId, newPosition }: { card: ContentKanbanCard; sourceColumnId: string; targetColumnId: string; newPosition: number }) => {
+  const handleCardMove = useCallback(async ({ card, targetColumnId, newPosition }: { card: ContentKanbanCard; sourceColumnId: string; targetColumnId: string; newPosition: number }) => {
     // Optimistic update
     setCards((prev) =>
       prev.map((c) =>
@@ -382,7 +382,7 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
       toast.error("Erreur lors du déplacement de la carte");
       fetchData();
     }
-  };
+  }, []);
 
   const handleSaveCard = async (cardData: Partial<Card>, options?: { newsletterId?: string; initialComment?: string }) => {
     try {
@@ -463,7 +463,7 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
     setNewCardColumnId(null);
   };
 
-  const handleDeleteCard = async (cardId: string) => {
+  const handleDeleteCard = useCallback(async (cardId: string) => {
     try {
       const { error } = await supabase
         .from("content_cards")
@@ -478,9 +478,9 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
       console.error("Error deleting card:", error);
       toast.error("Erreur lors de la suppression");
     }
-  };
+  }, []);
 
-  const handleCardEmojiChange = async (cardId: string, emoji: string | null) => {
+  const handleCardEmojiChange = useCallback(async (cardId: string, emoji: string | null) => {
     try {
       const { error } = await supabase
         .from("content_cards")
@@ -496,7 +496,7 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
       console.error("Error updating emoji:", error);
       toast.error("Erreur lors de la mise à jour de l'emoji");
     }
-  };
+  }, []);
 
   if (loading) {
     return (

@@ -71,7 +71,7 @@ export default function BillingSection() {
     }
 
     if (subRes.data) {
-      setSubscription(subRes.data as any);
+      setSubscription(subRes.data as unknown as typeof subscription);
     }
 
     // Get current org plan

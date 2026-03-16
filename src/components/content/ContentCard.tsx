@@ -1,3 +1,4 @@
+import React from "react";
 import { MoreHorizontal, Pencil, Trash2, Eye, Mail } from "lucide-react";
 import type { ContentTypeColors } from "./KanbanBoard";
 import { Button } from "@/components/ui/button";
@@ -157,4 +158,4 @@ const ContentCard = ({ card, isDragging: isDraggingProp, typeColors, onEdit, onD
   );
 };
 
-export default ContentCard;
+export default React.memo(ContentCard);

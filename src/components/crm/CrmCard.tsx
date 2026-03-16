@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { GraduationCap, Briefcase, Building } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -202,4 +202,4 @@ const CrmCardComponent = ({ card, isDragging: isDraggingProp, onClick, serviceTy
   );
 };
 
-export default CrmCardComponent;
+export default React.memo(CrmCardComponent);

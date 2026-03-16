@@ -52,9 +52,9 @@ export default function UserAccessManager() {
         .select("user_id, email, display_name, first_name, last_name");
 
       const profileMap = new Map<string, { email: string; first_name: string | null; last_name: string | null }>();
-      ((profilesData || []) as Record<string, unknown>[]).forEach((p) => {
-        profileMap.set(p.user_id, { 
-          email: p.email, 
+      (profilesData || []).forEach((p) => {
+        profileMap.set(p.user_id, {
+          email: p.email,
           first_name: p.first_name,
           last_name: p.last_name,
         });

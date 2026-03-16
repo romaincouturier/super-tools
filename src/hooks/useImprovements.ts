@@ -1,6 +1,9 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import type { Database } from "@/integrations/supabase/types";
+
+type ImprovementInsert = Database["public"]["Tables"]["improvements"]["Insert"];
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -229,7 +232,7 @@ export function useImprovements() {
         if (error) throw error;
         toast({ title: "Amélioration modifiée" });
       } else {
-        const { error } = await supabase.from("improvements").insert(cleaned as typeof record);
+        const { error } = await supabase.from("improvements").insert(cleaned as ImprovementInsert);
         if (error) throw error;
         toast({ title: "Amélioration ajoutée" });
       }

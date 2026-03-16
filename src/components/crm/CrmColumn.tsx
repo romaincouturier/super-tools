@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { MoreVertical, Pencil, Archive } from "lucide-react";
@@ -140,4 +140,4 @@ const CrmColumn = ({ column, cards, onCardClick, serviceTypeColors }: CrmColumnP
   );
 };
 
-export default CrmColumn;
+export default React.memo(CrmColumn);

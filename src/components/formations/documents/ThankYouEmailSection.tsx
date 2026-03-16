@@ -8,12 +8,16 @@ import type { DocumentSentInfo } from "./types";
 
 interface ThankYouEmailSectionProps {
   trainingId: string;
+  trainingName: string;
+  supportsUrl: string;
   documentsSentInfo: DocumentSentInfo;
   setDocumentsSentInfo: React.Dispatch<React.SetStateAction<DocumentSentInfo>>;
 }
 
 const ThankYouEmailSection = ({
   trainingId,
+  trainingName,
+  supportsUrl,
   documentsSentInfo,
   setDocumentsSentInfo,
 }: ThankYouEmailSectionProps) => {
@@ -21,9 +25,15 @@ const ThankYouEmailSection = ({
   const [showThankYouPreview, setShowThankYouPreview] = useState(false);
   const { toast } = useToast();
 
+  // Preserved for future UI integration - openThankYouPreview triggers the dialog
+  void documentsSentInfo;
+
   const openThankYouPreview = () => {
     setShowThankYouPreview(true);
   };
+
+  // Keep openThankYouPreview available (currently unused in JSX, as in original)
+  void openThankYouPreview;
 
   const handleSendThankYouEmail = async () => {
     setSendingThankYou(true);
@@ -55,21 +65,15 @@ const ThankYouEmailSection = ({
     }
   };
 
-  // These are available for use by the parent or future UI additions.
-  // The ThankYouEmailPreviewDialog and related state are maintained here.
-  void openThankYouPreview;
-  void showThankYouPreview;
-  void handleSendThankYouEmail;
-  void sendingThankYou;
-  void documentsSentInfo;
-
   return (
     <ThankYouEmailPreviewDialog
       open={showThankYouPreview}
       onOpenChange={setShowThankYouPreview}
       onConfirmSend={handleSendThankYouEmail}
-      sending={sendingThankYou}
+      isSending={sendingThankYou}
       trainingId={trainingId}
+      trainingName={trainingName}
+      supportsUrl={supportsUrl || null}
     />
   );
 };

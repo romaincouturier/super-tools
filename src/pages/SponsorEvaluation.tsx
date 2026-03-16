@@ -131,7 +131,7 @@ const SponsorEvaluation = () => {
       if (!evTyped.date_premiere_ouverture) {
         await rpc.updateSponsorEvaluationByToken(token!, { date_premiere_ouverture: new Date().toISOString() });
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error("Failed to load sponsor evaluation", e);
       setError("Impossible d'ouvrir cette évaluation (lien invalide, expiré, ou accès refusé).");
     } finally {
@@ -192,11 +192,11 @@ const SponsorEvaluation = () => {
       setRecord((prev) =>
         prev ? { ...prev, etat: "soumis", date_soumission: nowIso } : prev
       );
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error("Submit failed", e);
       toast({
         title: "Erreur",
-        description: "Impossible de soumettre l'évaluation. Réessayez.",
+        description: e instanceof Error ? e.message : "Erreur inconnue",
         variant: "destructive",
       });
     } finally {

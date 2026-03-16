@@ -118,7 +118,7 @@ export default function LearnerMessaging({ trainingId, participantId, learnerEma
           )}
         </div>
       </CardHeader>
-      <ScrollArea className="flex-1 p-3" ref={scrollRef as any}>
+      <ScrollArea className="flex-1 p-3" ref={scrollRef as React.RefObject<HTMLDivElement>}>
         <div className="space-y-3">
           {loading && <p className="text-sm text-muted-foreground text-center py-4">Chargement...</p>}
           {!loading && messages.length === 0 && (

@@ -299,7 +299,7 @@ const ContentCardDialog = ({
     if (!isOpen && card) {
       if (saveTimerRef.current) {
         clearTimeout(saveTimerRef.current);
-        const v = formValuesRef.current as any;
+        const v = formValuesRef.current as { title: string; description: string; image_url: string | null; tags: string[]; card_type: string; emoji: string | null };
         if (v.title.trim() && formHash !== lastSavedHashRef.current) {
           supabase
             .from("content_cards")

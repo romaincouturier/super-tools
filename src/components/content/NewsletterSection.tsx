@@ -182,8 +182,8 @@ const NewsletterSection = ({ onCardClick, refreshKey }: NewsletterSectionProps) 
         setNewsletterCards(
           (data || []).map((nc) => ({
             ...nc,
-            card_title: (cardMap.get(nc.card_id) as any)?.title || "Sans titre",
-            card_type: (cardMap.get(nc.card_id) as any)?.card_type || "article",
+            card_title: cardMap.get(nc.card_id)?.title || "Sans titre",
+            card_type: cardMap.get(nc.card_id)?.card_type || "article",
             pending_comments: pendingMap.get(nc.card_id) || 0,
           }))
         );
@@ -325,8 +325,8 @@ const NewsletterSection = ({ onCardClick, refreshKey }: NewsletterSectionProps) 
           ...prev,
           [newsletterId]: (data || []).map((nc) => ({
             ...nc,
-            card_title: (cardMap.get(nc.card_id) as any)?.title || "Sans titre",
-            card_type: (cardMap.get(nc.card_id) as any)?.card_type || "article",
+            card_title: cardMap.get(nc.card_id)?.title || "Sans titre",
+            card_type: cardMap.get(nc.card_id)?.card_type || "article",
           })),
         }));
       } else {

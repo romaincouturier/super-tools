@@ -1,3 +1,4 @@
+import React from "react";
 import { Loader2, Send, RefreshCw, Receipt, Scroll, Award, Download, Forward, UserCheck, RotateCw, FileSignature, BellRing, Trash2, ClipboardCheck, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -294,4 +295,4 @@ const ParticipantActions = ({
   );
 };
 
-export default ParticipantActions;
+export default React.memo(ParticipantActions);

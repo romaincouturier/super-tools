@@ -118,7 +118,7 @@ const CommentThread = ({ cardId, cardTitle, reviewIds, onCommentAdded }: Comment
 
       if (error) throw error;
 
-      const rawComments = (data || []) as any[];
+      const rawComments = (data || []) as Record<string, unknown>[];
       const authorIds = [...new Set(rawComments.map((c) => c.author_id).concat(rawComments.map((c) => c.assigned_to).filter(Boolean)))];
 
       let profileMap: Record<string, string> = {};
@@ -212,7 +212,7 @@ const CommentThread = ({ cardId, cardTitle, reviewIds, onCommentAdded }: Comment
         { body: { originalFileName: file.name, mimeType: file.type, reviewId: cardId, fileBase64 } }
       );
       if (error) throw error;
-      return (uploadData as any)?.publicUrl || null;
+      return (uploadData as Record<string, unknown> | null)?.publicUrl as string || null;
     } catch (error: unknown) {
       console.error("Upload error:", error);
       toast.error("Erreur lors de l'upload");
@@ -235,7 +235,7 @@ const CommentThread = ({ cardId, cardTitle, reviewIds, onCommentAdded }: Comment
       }
 
       const mentionedIds = pendingMentions.map((m) => m.userId).filter((id) => id !== userId);
-      const insertData: Record<string, any> = {
+      const insertData: Record<string, unknown> = {
         card_id: cardId,
         author_id: userId,
         content: newComment.trim(),
