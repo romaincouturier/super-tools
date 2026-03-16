@@ -352,11 +352,8 @@ const CardDetailDrawer = ({
     if (!card) return;
     setNextActionSuggesting(true);
     try {
-      const { data, error } = await supabase.functions.invoke("crm-ai-assist", {
-        body: { action: "suggest_next_action", card_data: { ...buildCardDataForAi(), confidence_score: confidenceScore, current_next_action: nextActionText, days_in_pipeline: card.created_at ? Math.floor((Date.now() - new Date(card.created_at).getTime()) / (1000 * 60 * 60 * 24)) : null, activities: details?.activity?.slice(0, 10) || [] } },
-      });
-      if (error) throw error;
-      setScheduledText(data.result);
+      const result = await crmAiAssist("suggest_next_action", { ...buildCardDataForAi(), confidence_score: confidenceScore, current_next_action: nextActionText, days_in_pipeline: card.created_at ? Math.floor((Date.now() - new Date(card.created_at).getTime()) / (1000 * 60 * 60 * 24)) : null, activities: details?.activity?.slice(0, 10) || [] });
+      setScheduledText(result);
       setShowSchedulePopover(true);
     } catch { toast({ title: "Erreur", description: "Impossible de générer une suggestion.", variant: "destructive" }); }
     finally { setNextActionSuggesting(false); }
@@ -403,9 +400,9 @@ const CardDetailDrawer = ({
     const timer = setTimeout(async () => {
       try {
         const emailDomain = email.includes("@") ? email.split("@")[1]?.trim() : "";
-        const { data, error } = await supabase.functions.invoke("crm-ai-assist", { body: { action: "find_website", card_data: { company, context: emailDomain } } });
+        const result = await crmAiAssist("find_website", { company, context: emailDomain });
         if (controller.signal.aborted) return;
-        if (!error && data?.result) { websiteLookedUpRef.current = true; setWebsiteUrl(data.result); }
+        if (result) { websiteLookedUpRef.current = true; setWebsiteUrl(result); }
       } catch { /* best-effort */ }
     }, 1500);
     return () => { clearTimeout(timer); controller.abort(); };
@@ -610,8 +607,8 @@ const CardDetailDrawer = ({
       await queryClient.invalidateQueries({ queryKey: ["crm-board", "card-details", card.id] });
       if (templateSnapshot) {
         try {
-          const { data, error } = await supabase.functions.invoke("crm-ai-assist", { body: { action: "improve_template", card_data: { subject: templateSnapshot.subject, body: templateSnapshot.html_content, context: `Objet envoyé : ${sentSubject}\n\nContenu envoyé :\n${sentBody}` } } });
-          if (!error && data?.result) { try { const improved = JSON.parse(data.result); if (improved.subject && improved.html_content) { await updateTemplate.mutateAsync({ id: templateSnapshot.id, updates: { subject: improved.subject, html_content: improved.html_content } }); } } catch { /* skip */ } }
+          const result = await crmAiAssist("improve_template", { subject: templateSnapshot.subject, body: templateSnapshot.html_content, context: `Objet envoyé : ${sentSubject}\n\nContenu envoyé :\n${sentBody}` });
+          if (result) { try { const improved = JSON.parse(result); if (improved.subject && improved.html_content) { await updateTemplate.mutateAsync({ id: templateSnapshot.id, updates: { subject: improved.subject, html_content: improved.html_content } }); } } catch { /* skip */ } }
         } catch { /* best-effort */ }
       }
     } finally {
