@@ -54,12 +54,12 @@ export default function TrainerAdequacy({ trainingId, trainerName }: TrainerAdeq
 
       if (!training) return;
 
-      if ((training as any).objectives) {
-        setTrainingObjectives((training as any).objectives);
+      if ((training as unknown as { objectives?: string[] | null }).objectives) {
+        setTrainingObjectives((training as unknown as { objectives?: string[] | null }).objectives);
       }
 
       // Find the trainer by trainer_id or by name match
-      let trainerId = (training as any).trainer_id;
+      let trainerId = (training as unknown as { trainer_id?: string | null }).trainer_id;
       let trainerData: TrainerData | null = null;
 
       if (trainerId) {

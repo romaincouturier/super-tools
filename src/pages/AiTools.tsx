@@ -85,7 +85,13 @@ export default function AiTools() {
   const [coachingParticipant, setCoachingParticipant] = useState("");
   const [coachingTraining, setCoachingTraining] = useState("");
   const [generatingCoachingSummary, setGeneratingCoachingSummary] = useState(false);
-  const [coachingSummary, setCoachingSummary] = useState<any>(null);
+  const [coachingSummary, setCoachingSummary] = useState<{
+    summary?: string;
+    key_insights?: string[];
+    action_items?: { action: string; deadline_suggestion?: string; priority?: string }[];
+    next_session_suggestions?: string[];
+    [key: string]: unknown;
+  } | null>(null);
 
   const handleGenerateProgram = async () => {
     if (!programTitle.trim()) {
@@ -102,8 +108,8 @@ export default function AiTools() {
       if (data?.error) throw new Error(data.error);
       setGeneratedProgram(data.program);
       toast({ title: "Programme généré ✨" });
-    } catch (e: any) {
-      toast({ title: "Erreur", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Erreur", description: e instanceof Error ? e.message : "Erreur inconnue", variant: "destructive" });
     } finally {
       setGeneratingProgram(false);
     }
@@ -125,8 +131,8 @@ export default function AiTools() {
       if (data?.error) throw new Error(data.error);
       setGeneratedQuiz(data.quiz);
       toast({ title: "Quiz généré ✨" });
-    } catch (e: any) {
-      toast({ title: "Erreur", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Erreur", description: e instanceof Error ? e.message : "Erreur inconnue", variant: "destructive" });
     } finally {
       setGeneratingQuiz(false);
     }
@@ -144,8 +150,8 @@ export default function AiTools() {
       if (data?.error) throw new Error(data.error);
       setHealthReport(data.report);
       toast({ title: "Analyse terminée ✨" });
-    } catch (e: any) {
-      toast({ title: "Erreur", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Erreur", description: e instanceof Error ? e.message : "Erreur inconnue", variant: "destructive" });
     } finally {
       setLoadingHealth(false);
     }
@@ -166,8 +172,8 @@ export default function AiTools() {
       if (data?.error) throw new Error(data.error);
       setCoachingSummary(data);
       toast({ title: "Résumé généré ✨" });
-    } catch (e: any) {
-      toast({ title: "Erreur", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Erreur", description: e instanceof Error ? e.message : "Erreur inconnue", variant: "destructive" });
     } finally {
       setGeneratingCoachingSummary(false);
     }
@@ -471,7 +477,7 @@ export default function AiTools() {
                   <div>
                     <h4 className="text-sm font-medium mb-2">Actions à mener</h4>
                     <div className="space-y-2">
-                      {coachingSummary.action_items.map((item: any, i: number) => (
+                      {coachingSummary.action_items.map((item, i) => (
                         <div key={i} className="flex items-start gap-2 p-2 rounded border">
                           <ArrowRight className="w-4 h-4 mt-0.5 text-primary shrink-0" />
                           <div>

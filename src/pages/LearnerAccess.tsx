@@ -26,8 +26,8 @@ export default function LearnerAccess() {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       setSent(true);
-    } catch (err: any) {
-      toast({ title: "Erreur", description: err.message, variant: "destructive" });
+    } catch (err: unknown) {
+      toast({ title: "Erreur", description: err instanceof Error ? err.message : "Erreur inconnue", variant: "destructive" });
     } finally {
       setIsLoading(false);
     }

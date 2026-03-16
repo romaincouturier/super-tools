@@ -55,9 +55,10 @@ export default function Signup() {
         title: "Inscription réussie !",
         description: "Vérifiez votre email pour confirmer votre compte.",
       });
-    } catch (error: any) {
-      let message = error.message;
-      if (error.message.includes("User already registered")) message = "Cet email est déjà utilisé";
+    } catch (error: unknown) {
+      const errMsg = error instanceof Error ? error.message : "Erreur inconnue";
+      let message = errMsg;
+      if (errMsg.includes("User already registered")) message = "Cet email est déjà utilisé";
       toast({ title: "Erreur", description: message, variant: "destructive" });
     } finally {
       setIsLoading(false);

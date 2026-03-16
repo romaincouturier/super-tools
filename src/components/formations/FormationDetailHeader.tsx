@@ -43,7 +43,7 @@ interface Props {
   isInterSession: boolean;
   formatDateWithSchedule: (s: string | null, e: string | null, sch: Schedule[]) => string;
   navigate: (path: string) => void;
-  toast: (opts) => void;
+  toast: (opts: { title?: string; description?: string; variant?: "default" | "destructive" }) => void;
   setMapDialogOpen: (v: boolean) => void;
   setDuplicateDialogOpen: (v: boolean) => void;
   requiredEquipment?: string | null;
@@ -108,7 +108,7 @@ const FormationDetailHeader = ({
         is_cancelled: true,
         cancellation_reason: cancellationReason,
         cancelled_at: new Date().toISOString(),
-      } as any)
+      })
       .eq("id", training.id);
     if (!error) {
       setTraining({ ...training, is_cancelled: true, cancellation_reason: cancellationReason, cancelled_at: new Date().toISOString() });
@@ -126,7 +126,7 @@ const FormationDetailHeader = ({
         is_cancelled: false,
         cancellation_reason: null,
         cancelled_at: null,
-      } as any)
+      })
       .eq("id", training.id);
     if (!error) {
       setTraining({ ...training, is_cancelled: false, cancellation_reason: null, cancelled_at: null });
@@ -216,7 +216,7 @@ const FormationDetailHeader = ({
               {requiredEquipment && (
                 <DropdownMenuItem onClick={async () => {
                   const newValue = !training.equipment_ready;
-                  const { error } = await supabase.from("trainings").update({ equipment_ready: newValue } as any).eq("id", training.id);
+                  const { error } = await supabase.from("trainings").update({ equipment_ready: newValue }).eq("id", training.id);
                   if (!error) {
                     setTraining({ ...training, equipment_ready: newValue });
                     toast({ title: newValue ? "Matériel prêt ✓" : "Matériel non prêt" });
@@ -300,7 +300,7 @@ const FormationDetailHeader = ({
                 checked={training.room_rental_booked}
                 onCheckedChange={async (checked) => {
                   const newValue = checked === true;
-                  const { error } = await supabase.from("trainings").update({ room_rental_booked: newValue } as any).eq("id", training.id);
+                  const { error } = await supabase.from("trainings").update({ room_rental_booked: newValue }).eq("id", training.id);
                   if (!error) {
                     setTraining({ ...training, room_rental_booked: newValue });
                     toast({ title: newValue ? "Salle réservée" : "Réservation salle annulée", description: newValue ? "La location de salle a été marquée comme effectuée." : "Le statut de location a été réinitialisé." });
@@ -325,7 +325,7 @@ const FormationDetailHeader = ({
                 checked={training.equipment_ready}
                 onCheckedChange={async (checked) => {
                   const newValue = checked === true;
-                  const { error } = await supabase.from("trainings").update({ equipment_ready: newValue } as any).eq("id", training.id);
+                  const { error } = await supabase.from("trainings").update({ equipment_ready: newValue }).eq("id", training.id);
                   if (!error) {
                     setTraining({ ...training, equipment_ready: newValue });
                     toast({

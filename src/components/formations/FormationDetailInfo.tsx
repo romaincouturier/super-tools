@@ -26,7 +26,7 @@ interface Props {
   setCopiedLocation: (v: boolean) => void;
   getFormatLabel: () => string | null;
   calculateTotalDuration: () => number;
-  toast: (opts) => void;
+  toast: (opts: { title?: string; description?: string; variant?: "default" | "destructive" }) => void;
 }
 
 const FormationDetailInfo = ({
@@ -180,16 +180,16 @@ const FormationDetailInfo = ({
                   >
                     {sendingLogistics ? (
                       <Loader2 className="h-3 w-3 mr-1.5 animate-spin" />
-                    ) : (training as any).logistics_email_sent_at ? (
+                    ) : (training as unknown as { logistics_email_sent_at?: string | null }).logistics_email_sent_at ? (
                       <CheckCircle2 className="h-3 w-3 mr-1.5 text-primary" />
                     ) : (
                       <Truck className="h-3 w-3 mr-1.5" />
                     )}
-                    {(training as any).logistics_email_sent_at ? "Renvoyer besoins logistiques" : "Envoyer besoins logistiques"}
+                    {(training as unknown as { logistics_email_sent_at?: string | null }).logistics_email_sent_at ? "Renvoyer besoins logistiques" : "Envoyer besoins logistiques"}
                   </Button>
-                  {(training as any).logistics_email_sent_at && (
+                  {(training as unknown as { logistics_email_sent_at?: string | null }).logistics_email_sent_at && (
                     <span className="text-xs text-muted-foreground">
-                      Envoyé le {formatSentDateTime((training as any).logistics_email_sent_at)}
+                      Envoyé le {formatSentDateTime((training as unknown as { logistics_email_sent_at?: string | null }).logistics_email_sent_at)}
                     </span>
                   )}
                 </div>
@@ -212,12 +212,12 @@ const FormationDetailInfo = ({
       )}
 
       {/* Private group URL */}
-      {(training as any).private_group_url && (
+      {(training as unknown as { private_group_url?: string | null }).private_group_url && (
         <>
           <Separator />
           <div className="flex items-center gap-2">
             <a
-              href={(training as any).private_group_url}
+              href={(training as unknown as { private_group_url?: string | null }).private_group_url}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1.5 text-sm text-primary hover:underline"

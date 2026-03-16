@@ -4,7 +4,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import DocumentsManager from "@/components/formations/DocumentsManager";
-import TrainingDocumentsSection from "@/components/formations/TrainingDocumentsSection";
+import EntityDocumentsManager from "@/components/shared/EntityDocumentsManager";
 import ScheduledEmailsSummary from "@/components/formations/ScheduledEmailsSummary";
 import EmailTimelineComputed from "@/components/formations/EmailTimelineComputed";
 import ScheduledActionsEditor, { ScheduledAction } from "@/components/formations/ScheduledActionsEditor";
@@ -108,7 +108,7 @@ const FormationDetailSections = ({
           signedConventionUrls={training.signed_convention_urls || []}
           onUpdate={fetchTrainingData}
         />
-        <TrainingDocumentsSection trainingId={id} />
+        <EntityDocumentsManager entityType="training" entityId={id} title="Documents joints" />
       </div>
       <div className="space-y-6">
         <EmailTimelineComputed

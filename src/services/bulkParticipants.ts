@@ -5,6 +5,7 @@ import { subtractWorkingDays, fetchWorkingDays, fetchNeedsSurveyDelay, scheduleT
 import { format, parseISO } from "date-fns";
 import { getErrorMessage } from "@/lib/error-utils";
 import type { ParsedParticipant } from "@/hooks/useParticipantParser";
+import { sendParticipantWelcomeEmail, generateWoocommerceCoupon, sendElearningAccess } from "@/services/participants";
 
 interface InsertedParticipant {
   id: string;
@@ -84,12 +85,7 @@ export async function sendWelcomeEmailsToBatch(
 ): Promise<void> {
   for (const participant of participants) {
     try {
-      await supabase.functions.invoke("send-welcome-email", {
-        body: {
-          participantId: participant.id,
-          trainingId,
-        },
-      });
+      await sendParticipantWelcomeEmail(participant.id, trainingId);
       await new Promise((resolve) => setTimeout(resolve, 500));
     } catch (error: unknown) {
       console.error("Failed to send welcome email to:", participant.email, getErrorMessage(error));
@@ -105,26 +101,15 @@ export async function sendElearningAccessToBatch(
     try {
       let couponCode: string | undefined;
       try {
-        const { data: couponData } = await supabase.functions.invoke("generate-woocommerce-coupon", {
-          body: {
-            participantId: participant.id,
-            trainingId,
-          },
-        });
-        if (couponData?.coupon_code) {
-          couponCode = couponData.coupon_code;
+        const result = await generateWoocommerceCoupon(participant.id, trainingId);
+        if (result.couponCode) {
+          couponCode = result.couponCode;
         }
       } catch (error: unknown) {
         console.error("Failed to generate coupon for:", participant.email, getErrorMessage(error));
       }
 
-      await supabase.functions.invoke("send-elearning-access", {
-        body: {
-          participantId: participant.id,
-          trainingId,
-          couponCode,
-        },
-      });
+      await sendElearningAccess(participant.id, trainingId, couponCode);
       await new Promise((resolve) => setTimeout(resolve, 500));
     } catch (error: unknown) {
       console.error("Failed to send e-learning access email to:", participant.email, getErrorMessage(error));
