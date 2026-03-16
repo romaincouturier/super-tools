@@ -141,16 +141,16 @@ const FormationEdit = () => {
       setSoldPriceHt(training.sold_price_ht != null ? String(training.sold_price_ht) : "");
       setMaxParticipants(training.max_participants != null ? String(training.max_participants) : "");
       // Load session_type/session_format with fallback from legacy format_formation
-      if ((training as any).session_type) {
-        setSessionType((training as any).session_type);
+      if ((training as unknown as { session_type?: string }).session_type) {
+        setSessionType((training as unknown as { session_type?: string }).session_type);
       } else {
         // Derive from legacy format_formation
         const ff = training.format_formation;
         if (ff === "inter-entreprises" || ff === "e_learning") setSessionType("inter");
         else if (ff) setSessionType("intra");
       }
-      if ((training as any).session_format) {
-        setSessionFormat((training as any).session_format);
+      if ((training as unknown as { session_format?: string }).session_format) {
+        setSessionFormat((training as unknown as { session_format?: string }).session_format);
       } else {
         const ff = training.format_formation;
         if (ff === "e_learning") setSessionFormat("distanciel_asynchrone");
@@ -161,21 +161,21 @@ const FormationEdit = () => {
       setObjectives(training.objectives || []);
       setProgramFileUrl(training.program_file_url || "");
       setSupertiltLink(training.supertilt_link || "");
-      setPrivateGroupUrl((training as any).private_group_url || "");
+      setPrivateGroupUrl((training as unknown as { private_group_url?: string }).private_group_url || "");
       setSponsorFirstName(training.sponsor_first_name || "");
       setSponsorLastName(training.sponsor_last_name || "");
       setSponsorEmail(training.sponsor_email || "");
       setSponsorFormalAddress(training.sponsor_formal_address ?? true);
       setTrainerId(training.trainer_id || null);
-      setAssignedTo((training as any).assigned_to || null);
+      setAssignedTo((training as unknown as { assigned_to?: string | null }).assigned_to || null);
       setFinanceurSameAsSponsor(training.financeur_same_as_sponsor ?? true);
       setFinanceurName(training.financeur_name || "");
       setFinanceurUrl(training.financeur_url || "");
-      setTrainingNotes((training as any).notes || "");
-      setCatalogId((training as any).catalog_id || null);
+      setTrainingNotes((training as unknown as { notes?: string }).notes || "");
+      setCatalogId((training as unknown as { catalog_id?: string | null }).catalog_id || null);
 
       // For e-learning (distanciel asynchrone), load start/end dates directly (no schedules)
-      const loadedIsElearning = (training as any).session_format === "distanciel_asynchrone" || training.format_formation === "e_learning";
+      const loadedIsElearning = (training as unknown as { session_format?: string }).session_format === "distanciel_asynchrone" || training.format_formation === "e_learning";
       if (loadedIsElearning) {
         if (training.start_date) setElearningStartDate(parseISO(training.start_date));
         if (training.end_date) {
@@ -222,11 +222,11 @@ const FormationEdit = () => {
       setDataLoaded(true);
 
       // Fetch formulas if linked to catalog
-      if ((training as any).catalog_id) {
+      if ((training as unknown as { catalog_id?: string | null }).catalog_id) {
         const { data: formulas } = await supabase
           .from("formation_formulas")
           .select("id")
-          .eq("formation_config_id", (training as any).catalog_id);
+          .eq("formation_config_id", (training as unknown as { catalog_id?: string | null }).catalog_id);
         setHasFormulas((formulas?.length ?? 0) > 0);
       }
 
@@ -241,11 +241,11 @@ const FormationEdit = () => {
       }
       
       setLoading(false);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error fetching training:", error);
       toast({
         title: "Erreur",
-        description: "Impossible de charger la formation.",
+        description: error instanceof Error ? error.message : "Erreur inconnue",
         variant: "destructive",
       });
       navigate("/formations");
@@ -384,7 +384,7 @@ const FormationEdit = () => {
           elearning_duration: isElearning && elearningDuration ? parseFloat(elearningDuration) : null,
           catalog_id: catalogId || null,
           notes: trainingNotes.trim() || null,
-        } as any)
+        } as Record<string, unknown>)
         .eq("id", id);
 
       if (trainingError) throw trainingError;
@@ -429,11 +429,11 @@ const FormationEdit = () => {
       });
 
       navigate(`/formations/${id}`);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error updating training:", error);
       toast({
         title: "Erreur",
-        description: error.message || "Une erreur est survenue lors de la modification.",
+        description: error instanceof Error ? error.message : "Erreur inconnue",
         variant: "destructive",
       });
     } finally {

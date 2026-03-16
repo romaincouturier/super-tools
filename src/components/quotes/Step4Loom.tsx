@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Video, ExternalLink, SkipForward, FileText, Loader2, Copy, RefreshCw } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { crmAiAssist } from "@/services/crmAiAssist";
 import type { CrmCard } from "@/types/crm";
 import type { Quote } from "@/types/quotes";
 
@@ -89,22 +89,16 @@ export default function Step4Loom({
       const challenge = challengeHtml ? stripHtml(challengeHtml) : "";
       const company = quote?.client_company || crmCard.company || "";
 
-      const { data, error } = await supabase.functions.invoke("crm-ai-assist", {
-        body: {
-          action: "generate_loom_script",
-          card_data: {
-            company,
-            description,
-            synthesis: synthesis || "",
-            instructions: instructions || "",
-            challenge,
-            service_type: crmCard.service_type || "",
-            line_items: quote?.line_items || [],
-          },
-        },
+      const result = await crmAiAssist("generate_loom_script", {
+        company,
+        description,
+        synthesis: synthesis || "",
+        instructions: instructions || "",
+        challenge,
+        service_type: crmCard.service_type || "",
+        line_items: quote?.line_items || [],
       });
-      if (error) throw error;
-      setScript(cleanScriptOutput(data.result));
+      setScript(cleanScriptOutput(result));
     } catch {
       setScript("Erreur lors de la génération du script. Veuillez réessayer.");
     } finally {

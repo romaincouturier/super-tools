@@ -1,7 +1,7 @@
 import { useState } from "react";
 
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { sendThankYouEmail } from "@/services/emailSender";
 import ThankYouEmailPreviewDialog from "@/components/formations/ThankYouEmailPreviewDialog";
 
 import type { DocumentSentInfo } from "./types";
@@ -39,15 +39,11 @@ const ThankYouEmailSection = ({
     setSendingThankYou(true);
 
     try {
-      const { error, data } = await supabase.functions.invoke("send-thank-you-email", {
-        body: { trainingId },
-      });
-
-      if (error) throw error;
+      const data = await sendThankYouEmail(trainingId);
 
       toast({
         title: "Email de remerciement envoyé",
-        description: `Le mail a été envoyé à ${(data as { recipientCount: number }).recipientCount} participant(s).`,
+        description: `Le mail a été envoyé à ${data.recipientCount} participant(s).`,
       });
 
       setDocumentsSentInfo(prev => ({ ...prev, thankYou: new Date().toISOString() }));

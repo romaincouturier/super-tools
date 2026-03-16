@@ -247,7 +247,7 @@ export default function AttendanceSheetGenerator({
 
         xPos += firstNameColWidth;
         // Truncate company name if too long
-        const companyText = (participant as any).company || "";
+        const companyText = (participant as unknown as { company?: string }).company || "";
         const truncatedCompany = companyText.length > 15 ? companyText.substring(0, 14) + "…" : companyText;
         doc.text(truncatedCompany, xPos + 2, yPos + 8);
         doc.line(xPos + companyColWidth, yPos, xPos + companyColWidth, yPos + rowHeight);

@@ -155,9 +155,10 @@ const ProgramSelector = ({
 
       if (signedError) throw signedError;
 
-      const path = (signedData as any)?.path as string | undefined;
-      const token = (signedData as any)?.token as string | undefined;
-      const publicUrl = (signedData as any)?.publicUrl as string | undefined;
+      const signedResult = signedData as unknown as { path?: string; token?: string; publicUrl?: string } | null;
+      const path = signedResult?.path;
+      const token = signedResult?.token;
+      const publicUrl = signedResult?.publicUrl;
 
       if (!path || !token || !publicUrl) {
         console.error("[ProgramSelector] Invalid signed upload response:", signedData);

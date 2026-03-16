@@ -42,7 +42,7 @@ export async function fetchUpcomingTrainings(
   fromDate: string,
   toDate: string
 ): Promise<TrainingRow[]> {
-  const result = await (supabase as any)
+  const result = await (supabase as unknown as { from: (table: string) => ReturnType<typeof supabase.from> })
     .from("trainings")
     .select("id, training_name, start_date, end_date, location")
     .or("is_cancelled.is.null,is_cancelled.eq.false")
@@ -57,7 +57,7 @@ export async function fetchUpcomingEvents(
   fromDate: string,
   toDate: string
 ): Promise<EventRow[]> {
-  const result = await (supabase as any)
+  const result = await (supabase as unknown as { from: (table: string) => ReturnType<typeof supabase.from> })
     .from("events")
     .select("id, title, event_date, location, status")
     .eq("status", "active")
@@ -72,7 +72,7 @@ export async function fetchUpcomingLiveMeetings(
   fromDate: string,
   toDate: string
 ): Promise<LiveMeetingRow[]> {
-  const result = await (supabase as any)
+  const result = await (supabase as unknown as { from: (table: string) => ReturnType<typeof supabase.from> })
     .from("training_live_meetings")
     .select("id, training_id, title, scheduled_at, duration_minutes, status")
     .eq("status", "scheduled")

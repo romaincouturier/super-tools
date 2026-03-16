@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ComponentType } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import ModuleLayout from "@/components/ModuleLayout";
 import { Button } from "@/components/ui/button";
@@ -31,7 +31,7 @@ import LmsQuizBuilder from "@/components/lms/QuizBuilder";
 import LmsForumSection from "@/components/lms/ForumSection";
 import LmsEnrollmentManager from "@/components/lms/EnrollmentManager";
 
-const lessonTypeIcons: Record<string, React.ComponentType<{ className?: string }>> = {
+const lessonTypeIcons: Record<string, ComponentType<{ className?: string }>> = {
   text: FileText,
   video: Video,
   quiz: HelpCircle,

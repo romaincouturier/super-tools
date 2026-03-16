@@ -147,8 +147,8 @@ const OKR = () => {
       toast({ title: "Objectif créé" });
       setShowCreateDialog(false);
       resetForm();
-    } catch (error: any) {
-      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+    } catch (error: unknown) {
+      toast({ title: "Erreur", description: error instanceof Error ? error.message : "Erreur inconnue", variant: "destructive" });
     }
   };
 
@@ -158,8 +158,8 @@ const OKR = () => {
         id: objective.id,
         isFavorite: !objective.is_favorite,
       });
-    } catch (error: any) {
-      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+    } catch (error: unknown) {
+      toast({ title: "Erreur", description: error instanceof Error ? error.message : "Erreur inconnue", variant: "destructive" });
     }
   };
 
@@ -169,8 +169,8 @@ const OKR = () => {
     try {
       await deleteObjective.mutateAsync(objective.id);
       toast({ title: "Objectif supprimé" });
-    } catch (error: any) {
-      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+    } catch (error: unknown) {
+      toast({ title: "Erreur", description: error instanceof Error ? error.message : "Erreur inconnue", variant: "destructive" });
     }
   };
 

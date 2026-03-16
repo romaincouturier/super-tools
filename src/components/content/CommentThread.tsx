@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { notifyContentUser } from "@/services/contentNotifications";
 import {
   Send, Loader2, MessageSquare, Check, X, Pencil, Image,
   FileText, Palette, Trash2, Copy, Mic, MicOff, Reply, CheckCheck,
@@ -282,15 +283,15 @@ const CommentThread = ({ cardId, cardTitle, reviewIds, onCommentAdded }: Comment
 
         for (const mention of pendingMentions) {
           if (mention.userId === userId) continue;
-          await supabase.from("content_notifications").insert({
-            user_id: mention.userId,
-            type: "comment_added",
-            reference_id: cardId,
-            card_id: cardId,
-            message: `${authorName} : ${newComment.trim().split(/\s+/).slice(0, 10).join(" ")}`,
-          });
-          await supabase.functions.invoke("send-content-notification", {
-            body: {
+          await notifyContentUser(
+            {
+              userId: mention.userId,
+              notificationType: "comment_added",
+              referenceId: cardId,
+              cardId,
+              message: `${authorName} : ${newComment.trim().split(/\s+/).slice(0, 10).join(" ")}`,
+            },
+            {
               type: "mention",
               recipientEmail: mention.email,
               cardTitle: cardTitle || "un contenu",
@@ -298,7 +299,7 @@ const CommentThread = ({ cardId, cardTitle, reviewIds, onCommentAdded }: Comment
               authorName,
               commentText: newComment.trim(),
             },
-          });
+          );
         }
       }
 

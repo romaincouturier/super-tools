@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { sendThankYouEmail } from "@/services/emailSender";
 import { User } from "@supabase/supabase-js";
 import type { FormationFormula } from "@/types/training";
 import { format, parseISO } from "date-fns";
@@ -281,10 +282,7 @@ export function useFormationDetail() {
   const handleSendThankYouEmail = async () => {
     setSendingThankYou(true);
     try {
-      const { error, data } = await supabase.functions.invoke("send-thank-you-email", {
-        body: { trainingId: id },
-      });
-      if (error) throw error;
+      const data = await sendThankYouEmail(id!);
       toast({
         title: "Email de remerciement envoyé",
         description: `Le mail a été envoyé à ${data.recipientCount} participant(s). Les emails post-formation ont été programmés automatiquement.`,

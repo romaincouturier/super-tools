@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { notifyContentUser } from "@/services/contentNotifications";
 import {
   Dialog,
   DialogContent,
@@ -99,28 +100,22 @@ const ReviewRequestDialog = ({
 
       if (error) throw error;
 
-      // Create notification
-      await supabase.from("content_notifications").insert({
-        user_id: reviewerId,
-        type: "review_requested",
-        reference_id: cardId,
-        card_id: cardId,
-        message: `Nouvelle demande de relecture : ${cardTitle}`,
-      });
-
-      // Send email notification
-      try {
-        await supabase.functions.invoke("send-content-notification", {
-          body: {
-            type: "review_requested",
-            recipientEmail: selectedUser,
-            cardTitle,
-            cardId,
-          },
-        });
-      } catch (emailError) {
-        console.error("Error sending notification email:", emailError);
-      }
+      // Create notification + send email
+      await notifyContentUser(
+        {
+          userId: reviewerId,
+          notificationType: "review_requested",
+          referenceId: cardId,
+          cardId,
+          message: `Nouvelle demande de relecture : ${cardTitle}`,
+        },
+        {
+          type: "review_requested",
+          recipientEmail: selectedUser,
+          cardTitle,
+          cardId,
+        },
+      );
 
       toast.success("Relecteur associé");
       onOpenChange(false);

@@ -24,6 +24,7 @@ import { useEffect, useCallback, useState, useMemo, useRef } from "react";
 import { useEmailSnippets, EmailSnippet } from "@/hooks/useEmailSnippets";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { supabase } from "@/integrations/supabase/client";
+import { crmAiAssist } from "@/services/crmAiAssist";
 import { Loader2 } from "lucide-react";
 import { Extension } from "@tiptap/core";
 import { Plugin, PluginKey } from "@tiptap/pm/state";
@@ -397,11 +398,9 @@ const EmailEditor = ({
                     if (currentHtml && currentHtml !== "<p></p>") {
                       setIsCleaningUp(true);
                       try {
-                        const { data, error } = await supabase.functions.invoke("crm-ai-assist", {
-                          body: { action: "cleanup_dictation", card_data: { body: currentHtml } },
-                        });
-                        if (!error && data?.result) {
-                          editor.commands.setContent(data.result, { emitUpdate: true });
+                        const result = await crmAiAssist("cleanup_dictation", { body: currentHtml });
+                        if (result) {
+                          editor.commands.setContent(result, { emitUpdate: true });
                         }
                       } catch {
                         // Silently fail - raw dictation is still usable

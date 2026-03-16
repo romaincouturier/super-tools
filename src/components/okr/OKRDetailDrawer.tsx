@@ -977,7 +977,7 @@ const CheckInDialog = ({ open, onOpenChange, objective }: CheckInDialogProps) =>
 };
 
 // Participant Row
-const ParticipantRow = ({ participant, objectiveId }: { participant: any; objectiveId: string }) => {
+const ParticipantRow = ({ participant, objectiveId }: { participant: OKRParticipant; objectiveId: string }) => {
   const { toast } = useToast();
   const removeParticipant = useRemoveOKRParticipant();
 
