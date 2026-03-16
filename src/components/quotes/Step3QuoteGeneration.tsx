@@ -233,7 +233,7 @@ export default function Step3QuoteGeneration({
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const updateLine = (id: string, field: keyof QuoteLineItem, value: any) => {
+  const updateLine = (id: string, field: keyof QuoteLineItem, value: string | number) => {
     setLines((prev) =>
       prev.map((l) => {
         if (l.id !== id) return l;

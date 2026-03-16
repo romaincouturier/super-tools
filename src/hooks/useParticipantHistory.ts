@@ -84,20 +84,20 @@ export function useParticipantHistory() {
         .eq("email", email)
         .order("added_at", { ascending: false });
 
-      const trainings: ParticipantTraining[] = (allParticipations || []).map((p: any) => ({
-        training_id: p.trainings?.id || p.training_id,
-        training_name: p.trainings?.training_name || "—",
-        start_date: p.trainings?.start_date || null,
-        end_date: p.trainings?.end_date || null,
+      const trainings: ParticipantTraining[] = (allParticipations || []).map((p) => ({
+        training_id: (p.trainings as { id: string; training_name: string; start_date: string | null; end_date: string | null } | null)?.id || p.training_id,
+        training_name: (p.trainings as { training_name: string } | null)?.training_name || "—",
+        start_date: (p.trainings as { start_date: string | null } | null)?.start_date || null,
+        end_date: (p.trainings as { end_date: string | null } | null)?.end_date || null,
         first_name: p.first_name,
         last_name: p.last_name,
         company: p.company,
         added_at: p.added_at,
         needs_survey_status: p.needs_survey_status,
         needs_survey_sent_at: p.needs_survey_sent_at,
-        elearning_duration: p.elearning_duration,
-        convention_file_url: p.convention_file_url,
-        signed_convention_url: p.signed_convention_url,
+        elearning_duration: p.elearning_duration ?? null,
+        convention_file_url: p.convention_file_url ?? null,
+        signed_convention_url: p.signed_convention_url ?? null,
         invoice_file_url: p.invoice_file_url,
       }));
 
@@ -106,15 +106,15 @@ export function useParticipantHistory() {
       let evaluations: ParticipantEvaluation[] = [];
 
       if (trainingIds.length > 0) {
-        const { data: evalData } = await (supabase as any)
+        const { data: evalData } = await supabase
           .from("training_evaluations")
           .select("*, trainings(training_name)")
           .eq("email", email)
           .in("training_id", trainingIds);
 
-        evaluations = (evalData || []).map((e: any) => ({
+        evaluations = (evalData || []).map((e) => ({
           training_id: e.training_id,
-          training_name: e.trainings?.training_name || "—",
+          training_name: (e.trainings as { training_name: string } | null)?.training_name || "—",
           appreciation_generale: e.appreciation_generale,
           commentaire_general: e.commentaire_general,
           date_soumission: e.date_soumission,

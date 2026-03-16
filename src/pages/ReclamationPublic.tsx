@@ -51,7 +51,7 @@ const ReclamationPublic = () => {
           return;
         }
 
-        const rec = data as any;
+        const rec = data;
         setReclamationId(rec.id);
 
         if (rec.description && rec.status !== "draft") {

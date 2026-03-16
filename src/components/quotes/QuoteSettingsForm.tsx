@@ -20,7 +20,7 @@ export default function QuoteSettingsForm() {
     if (settings) setForm(settings);
   }, [settings]);
 
-  const set = (key: keyof QuoteSettings, value: any) =>
+  const set = (key: keyof QuoteSettings, value: QuoteSettings[keyof QuoteSettings]) =>
     setForm((prev) => ({ ...prev, [key]: value }));
 
   const handleSave = async () => {
