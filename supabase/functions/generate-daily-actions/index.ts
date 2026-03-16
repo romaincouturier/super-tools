@@ -912,6 +912,7 @@ serve(async (req) => {
           entity_id: action.entity_id,
         });
       }
+      console.log(`[${VERSION}] User ${recipient.email}: review included=${includedReview}, skipped=${skippedReview}, total perUser actions for this user=${userActions.length - globalActions.length}`);
 
       if (userActions.length === 0) continue;
 
