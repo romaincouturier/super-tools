@@ -398,7 +398,6 @@ const MissionDetailDrawer = ({
               entityId={mission.id}
               variant="bare"
               title="Documents contractuels"
-              maxFileSize={Infinity}
             />
           </TabsContent>
 
