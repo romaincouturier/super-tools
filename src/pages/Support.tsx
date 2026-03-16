@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import ModuleLayout from "@/components/ModuleLayout";
 import GenericKanbanBoard from "@/components/shared/kanban/GenericKanbanBoard";
-import SupportTicketCard from "@/components/support/SupportTicketCard";
+import SupportTicketCardComponent from "@/components/support/SupportTicketCard";
 import TicketDetail from "@/components/support/TicketDetail";
 import { useSupportTickets, useCreateSupportTicket, useUpdateSupportTicket, useMoveSupportTicket, useAnalyzeTicket } from "@/hooks/useSupport";
 import {
@@ -159,7 +159,7 @@ const Support = () => {
   };
 
   const renderCard = (card: SupportTicketCard, isDragging?: boolean) => (
-    <SupportTicketCard card={card} isDragging={isDragging} />
+    <SupportTicketCardComponent card={card} isDragging={isDragging} />
   );
 
   const renderColumnHeader = (column: typeof SUPPORT_COLUMNS[0], columnCards: SupportTicketCard[]) => (
