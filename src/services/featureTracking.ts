@@ -26,7 +26,7 @@ async function flush() {
 
   const batch = queue.splice(0);
   try {
-    await (supabase as any).from("feature_usage").insert(batch);
+    await (supabase as unknown as { from: (table: string) => ReturnType<typeof supabase.from> }).from("feature_usage").insert(batch);
   } catch {
     // Re-queue on failure so events aren't lost
     queue.unshift(...batch);

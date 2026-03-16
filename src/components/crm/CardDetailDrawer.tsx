@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import DetailDrawer from "@/components/shared/DetailDrawer";
 import { supabase } from "@/integrations/supabase/client";
+import { crmAiAssist } from "@/services/crmAiAssist";
 import { Button } from "@/components/ui/button";
 import {
   Loader2,
@@ -184,7 +185,7 @@ const CardDetailDrawer = ({
       setAcquisitionSource(card.acquisition_source ?? null);
       setNextActionText(card.next_action_text || "");
       setNextActionDone(card.next_action_done || false);
-      setNextActionType((card as any).next_action_type || "other");
+      setNextActionType(card.next_action_type || "other");
       setLocalBriefQuestions(card.brief_questions || []);
       const hasDescription = !!(card.description_html && card.description_html.replace(/<[^>]*>/g, "").trim());
       setBriefExpanded(!hasDescription);
@@ -215,7 +216,7 @@ const CardDetailDrawer = ({
       setFieldSaving(true);
       setFieldSaved(false);
       try {
-        await updateCard.mutateAsync({ id: card.id, updates: updates as any, actorEmail: user.email!, oldCard: card });
+        await updateCard.mutateAsync({ id: card.id, updates: updates as Record<string, unknown>, actorEmail: user.email!, oldCard: card });
         setFieldSaved(true);
         setTimeout(() => setFieldSaved(false), 2000);
       } catch (error) {
@@ -305,9 +306,8 @@ const CardDetailDrawer = ({
     setAiAnalyzing(true);
     setAiAnalysis(null);
     try {
-      const { data, error } = await supabase.functions.invoke("crm-ai-assist", { body: { action: "analyze_exchanges", card_data: buildCardDataForAi() } });
-      if (error) throw error;
-      setAiAnalysis(data.result);
+      const result = await crmAiAssist("analyze_exchanges", buildCardDataForAi());
+      setAiAnalysis(result);
     } catch { setAiAnalysis("Erreur lors de l'analyse. Veuillez réessayer."); }
     finally { setAiAnalyzing(false); }
   };
@@ -317,9 +317,8 @@ const CardDetailDrawer = ({
     setQuoteGenerating(true);
     setQuoteDescription(null);
     try {
-      const { data, error } = await supabase.functions.invoke("crm-ai-assist", { body: { action: "generate_quote_description", card_data: buildCardDataForAi() } });
-      if (error) throw error;
-      setQuoteDescription(data.result);
+      const result = await crmAiAssist("generate_quote_description", buildCardDataForAi());
+      setQuoteDescription(result);
     } catch { setQuoteDescription("Erreur lors de la génération. Veuillez réessayer."); }
     finally { setQuoteGenerating(false); }
   };
@@ -329,9 +328,8 @@ const CardDetailDrawer = ({
     setImprovingSubject(true);
     setEmailSubjectBeforeAi(emailSubject);
     try {
-      const { data, error } = await supabase.functions.invoke("crm-ai-assist", { body: { action: "improve_email_subject", card_data: { ...buildCardDataForAi(), subject: emailSubject } } });
-      if (error) throw error;
-      setEmailSubject(data.result);
+      const result = await crmAiAssist("improve_email_subject", { ...buildCardDataForAi(), subject: emailSubject });
+      setEmailSubject(result);
     } catch { setEmailSubjectBeforeAi(null); }
     finally { setImprovingSubject(false); }
   };
@@ -341,9 +339,8 @@ const CardDetailDrawer = ({
     setImprovingBody(true);
     setEmailBodyBeforeAi(emailBody);
     try {
-      const { data, error } = await supabase.functions.invoke("crm-ai-assist", { body: { action: "improve_email_body", card_data: { ...buildCardDataForAi(), body: emailBody, subject: emailSubject } } });
-      if (error) throw error;
-      setEmailBody(data.result);
+      const result = await crmAiAssist("improve_email_body", { ...buildCardDataForAi(), body: emailBody, subject: emailSubject });
+      setEmailBody(result);
     } catch { setEmailBodyBeforeAi(null); }
     finally { setImprovingBody(false); }
   };
@@ -355,11 +352,8 @@ const CardDetailDrawer = ({
     if (!card) return;
     setNextActionSuggesting(true);
     try {
-      const { data, error } = await supabase.functions.invoke("crm-ai-assist", {
-        body: { action: "suggest_next_action", card_data: { ...buildCardDataForAi(), confidence_score: confidenceScore, current_next_action: nextActionText, days_in_pipeline: card.created_at ? Math.floor((Date.now() - new Date(card.created_at).getTime()) / (1000 * 60 * 60 * 24)) : null, activities: details?.activity?.slice(0, 10) || [] } },
-      });
-      if (error) throw error;
-      setScheduledText(data.result);
+      const result = await crmAiAssist("suggest_next_action", { ...buildCardDataForAi(), confidence_score: confidenceScore, current_next_action: nextActionText, days_in_pipeline: card.created_at ? Math.floor((Date.now() - new Date(card.created_at).getTime()) / (1000 * 60 * 60 * 24)) : null, activities: details?.activity?.slice(0, 10) || [] });
+      setScheduledText(result);
       setShowSchedulePopover(true);
     } catch { toast({ title: "Erreur", description: "Impossible de générer une suggestion.", variant: "destructive" }); }
     finally { setNextActionSuggesting(false); }
@@ -406,9 +400,9 @@ const CardDetailDrawer = ({
     const timer = setTimeout(async () => {
       try {
         const emailDomain = email.includes("@") ? email.split("@")[1]?.trim() : "";
-        const { data, error } = await supabase.functions.invoke("crm-ai-assist", { body: { action: "find_website", card_data: { company, context: emailDomain } } });
+        const result = await crmAiAssist("find_website", { company, context: emailDomain });
         if (controller.signal.aborted) return;
-        if (!error && data?.result) { websiteLookedUpRef.current = true; setWebsiteUrl(data.result); }
+        if (result) { websiteLookedUpRef.current = true; setWebsiteUrl(result); }
       } catch { /* best-effort */ }
     }, 1500);
     return () => { clearTimeout(timer); controller.abort(); };
@@ -497,7 +491,7 @@ const CardDetailDrawer = ({
     const leavingWonColumn = wasInWonColumn && !isWonColumn;
     const leavingLostColumn = wasInLostColumn && !isLostColumn;
     if (movingToLost && salesStatus !== "LOST") { setPendingLossColumnId(newColumnId); setPendingLossStatus(true); setShowLossReasonDialog(true); return; }
-    const updates: Record<string, any> = { column_id: newColumnId };
+    const updates: Record<string, unknown> = { column_id: newColumnId };
     if (isWonColumn) { updates.sales_status = "WON"; setSalesStatus("WON"); } else if (leavingWonColumn) { updates.sales_status = "OPEN"; setSalesStatus("OPEN"); }
     if (leavingLostColumn) { updates.sales_status = "OPEN"; updates.lost_at = null; updates.loss_reason = null; updates.loss_reason_detail = null; setSalesStatus("OPEN"); }
     await updateCard.mutateAsync({ id: card.id, updates, actorEmail: user.email, oldCard: card });
@@ -548,7 +542,7 @@ const CardDetailDrawer = ({
       const hasTag = card.tags?.some((t) => t.id === tagId);
       if (hasTag) { await unassignTag.mutateAsync({ cardId: card.id, tagId, actorEmail: user.email }); }
       else { await assignTag.mutateAsync({ cardId: card.id, tagId, actorEmail: user.email }); }
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error("handleToggleTag error:", e);
       const hasTag = card.tags?.some((t) => t.id === tagId);
       const action = hasTag ? "retirer" : "affecter";
@@ -583,7 +577,6 @@ const CardDetailDrawer = ({
     const files = e.target.files;
     if (!files) return;
     Array.from(files).forEach((file) => {
-      if (file.size > 10 * 1024 * 1024) { toast({ title: "Fichier trop volumineux", description: `"${file.name}" dépasse 10 Mo.`, variant: "destructive" }); return; }
       const reader = new FileReader();
       reader.onload = () => { const base64 = (reader.result as string).split(",")[1]; setEmailAttachments((prev) => [...prev, { filename: file.name, content: base64 }]); };
       reader.readAsDataURL(file);
@@ -614,8 +607,8 @@ const CardDetailDrawer = ({
       await queryClient.invalidateQueries({ queryKey: ["crm-board", "card-details", card.id] });
       if (templateSnapshot) {
         try {
-          const { data, error } = await supabase.functions.invoke("crm-ai-assist", { body: { action: "improve_template", card_data: { subject: templateSnapshot.subject, body: templateSnapshot.html_content, context: `Objet envoyé : ${sentSubject}\n\nContenu envoyé :\n${sentBody}` } } });
-          if (!error && data?.result) { try { const improved = JSON.parse(data.result); if (improved.subject && improved.html_content) { await updateTemplate.mutateAsync({ id: templateSnapshot.id, updates: { subject: improved.subject, html_content: improved.html_content } }); } } catch { /* skip */ } }
+          const result = await crmAiAssist("improve_template", { subject: templateSnapshot.subject, body: templateSnapshot.html_content, context: `Objet envoyé : ${sentSubject}\n\nContenu envoyé :\n${sentBody}` });
+          if (result) { try { const improved = JSON.parse(result); if (improved.subject && improved.html_content) { await updateTemplate.mutateAsync({ id: templateSnapshot.id, updates: { subject: improved.subject, html_content: improved.html_content } }); } } catch { /* skip */ } }
         } catch { /* best-effort */ }
       }
     } finally {

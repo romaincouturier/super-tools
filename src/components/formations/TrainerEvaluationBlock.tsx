@@ -36,7 +36,7 @@ const TrainerEvaluationBlock = ({ trainingId, trainerName, trainerId }: Props) =
   const { toast } = useToast();
 
   const fetchEvaluation = async () => {
-    const { data } = await (supabase as any)
+    const { data } = await supabase
       .from("trainer_evaluations")
       .select("*")
       .eq("training_id", trainingId)
@@ -61,7 +61,7 @@ const TrainerEvaluationBlock = ({ trainingId, trainerName, trainerId }: Props) =
     try {
       const token = uuidv4();
       const { data: { user } } = await supabase.auth.getUser();
-      const { error } = await (supabase as any).from("trainer_evaluations").insert({
+      const { error } = await supabase.from("trainer_evaluations").insert({
         training_id: trainingId,
         trainer_name: trainerName,
         trainer_email: trainerEmail || null,
@@ -127,7 +127,7 @@ const TrainerEvaluationBlock = ({ trainingId, trainerName, trainerId }: Props) =
       if (error) throw error;
 
       // Update status
-      await (supabase as any)
+      await supabase
         .from("trainer_evaluations")
         .update({ status: "envoye", email_sent_at: new Date().toISOString(), trainer_email: email })
         .eq("id", evaluation.id);

@@ -167,7 +167,7 @@ export default function Step3QuoteGeneration({
       );
       if (error) throw error;
       if (data?.lines?.length > 0) {
-        let generatedLines = data.lines.map((l: any) => ({
+        let generatedLines = data.lines.map((l) => ({
           id: uuid(),
           product: l.product || "",
           description: l.description || "",
@@ -183,7 +183,7 @@ export default function Step3QuoteGeneration({
         }));
 
         // Add travel expenses line if not already included
-        if (travelTotal > 0 && !generatedLines.some((l: any) => l.product?.toLowerCase().includes("déplacement"))) {
+        if (travelTotal > 0 && !generatedLines.some((l) => l.product?.toLowerCase().includes("déplacement"))) {
           generatedLines.push({
             id: uuid(),
             product: "Frais de déplacement",
@@ -202,7 +202,7 @@ export default function Step3QuoteGeneration({
           setSaleType(data.sale_type_suggestion);
         }
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error("Line generation error:", e);
       const fallbackLines: QuoteLineItem[] = [emptyLine(defaultVat, defaultUnit)];
       // Always add travel line on error fallback
@@ -233,7 +233,7 @@ export default function Step3QuoteGeneration({
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const updateLine = (id: string, field: keyof QuoteLineItem, value: any) => {
+  const updateLine = (id: string, field: keyof QuoteLineItem, value: string | number) => {
     setLines((prev) =>
       prev.map((l) => {
         if (l.id !== id) return l;
@@ -362,7 +362,7 @@ export default function Step3QuoteGeneration({
       for (const col of cols) {
         const align = col.header === "Désignation" ? "left" : "right";
         const textX = align === "left" ? col.x + 3 : col.x + col.w - 3;
-        doc.text(col.header, textX, y + 5.5, { align } as any);
+        doc.text(col.header, textX, y + 5.5, { align } as { align: "left" | "right" });
       }
       y += 8;
 
@@ -498,9 +498,9 @@ export default function Step3QuoteGeneration({
 
       doc.save(`${updated.quote_number}.pdf`);
       toast.success("PDF téléchargé");
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error("PDF generation error:", e);
-      toast.error("Erreur lors de la génération du PDF : " + (e.message || "inconnue"));
+      toast.error("Erreur lors de la génération du PDF : " + (e instanceof Error ? e.message : "inconnue"));
     }
     onContinue(updated);
   };

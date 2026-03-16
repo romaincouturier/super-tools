@@ -266,11 +266,11 @@ const DuplicateTrainingDialog = ({
 
       onOpenChange(false);
       navigate(`/formations/${newTraining.id}`);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error duplicating training:", error);
       toast({
         title: "Erreur",
-        description: error.message || "Une erreur est survenue lors de la duplication.",
+        description: error instanceof Error ? error.message : "Une erreur est survenue lors de la duplication.",
         variant: "destructive",
       });
     } finally {

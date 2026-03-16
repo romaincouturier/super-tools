@@ -27,7 +27,7 @@ export default function QuoteWorkflowPage() {
 
     (async () => {
       try {
-        const { data, error: fetchError } = await (supabase as any)
+        const { data, error: fetchError } = await (supabase as unknown as { from: (table: string) => ReturnType<typeof supabase.from> })
           .from("crm_cards")
           .select("*")
           .eq("id", cardId)
@@ -35,8 +35,8 @@ export default function QuoteWorkflowPage() {
 
         if (fetchError) throw fetchError;
         setCrmCard(data as CrmCard);
-      } catch (e: any) {
-        setError(e.message || "Opportunité introuvable.");
+      } catch (e: unknown) {
+        setError(e instanceof Error ? e.message : "Erreur inconnue");
       } finally {
         setLoading(false);
       }

@@ -296,10 +296,10 @@ const PageEditor = ({
         body: { action: "summarize_page", mission_id: missionId, page_id: page.id },
       });
 
-      if (response.error) throw new Error(response.error.message);
+      if (response.error) throw new Error(response.(error instanceof Error ? error.message : "Erreur inconnue"));
       setAiSummary(response.data.result);
-    } catch (error: any) {
-      toast({ title: "Erreur", description: error.message || "Impossible de générer le résumé", variant: "destructive" });
+    } catch (error: unknown) {
+      toast({ title: "Erreur", description: error instanceof Error ? error.message : "Impossible de générer le résumé", variant: "destructive" });
     } finally {
       setAiSummaryLoading(false);
     }
@@ -745,8 +745,8 @@ const MissionPages = ({ mission, initialActivityPageRequest, onActivityPageCreat
         activity_id: activityId || undefined,
       });
       setSelectedPage(newPage);
-    } catch (error: any) {
-      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+    } catch (error: unknown) {
+      toast({ title: "Erreur", description: (error instanceof Error ? error.message : "Erreur inconnue"), variant: "destructive" });
     }
   };
 
@@ -760,8 +760,8 @@ const MissionPages = ({ mission, initialActivityPageRequest, onActivityPageCreat
       });
       setSelectedPage(newPage);
       toast({ title: "Page créée à partir du modèle" });
-    } catch (error: any) {
-      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+    } catch (error: unknown) {
+      toast({ title: "Erreur", description: (error instanceof Error ? error.message : "Erreur inconnue"), variant: "destructive" });
     }
   };
 
@@ -780,8 +780,8 @@ const MissionPages = ({ mission, initialActivityPageRequest, onActivityPageCreat
         setSelectedPage(remaining[0] || null);
       }
       toast({ title: "Page supprimée" });
-    } catch (error: any) {
-      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+    } catch (error: unknown) {
+      toast({ title: "Erreur", description: (error instanceof Error ? error.message : "Erreur inconnue"), variant: "destructive" });
     }
   };
 

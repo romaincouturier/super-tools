@@ -14,7 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { downloadFile as downloadFileUtil, promptRenameFile, MAX_UPLOAD_SIZE_BYTES } from "@/lib/file-utils";
+import { downloadFile as downloadFileUtil, promptRenameFile } from "@/lib/file-utils";
 import { ImageIcon, Video, Plus, Loader2, Upload, Trash2, Play, Download, Package, DownloadCloud, Pencil } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import MediaLightbox from "@/components/media/MediaLightbox";
@@ -77,12 +77,6 @@ const EntityMediaManager = ({
 
     if (validFiles.length === 0) {
       toast.error("Seules les images et vidéos sont acceptées");
-      return;
-    }
-
-    const oversized = validFiles.filter((f) => f.size > MAX_UPLOAD_SIZE_BYTES);
-    if (oversized.length > 0) {
-      toast.error("Les fichiers ne doivent pas dépasser 50 Mo");
       return;
     }
 
@@ -283,7 +277,7 @@ const EntityMediaManager = ({
                   : "Glissez vos photos et vidéos ici, ou cliquez pour sélectionner"}
               </p>
               <p className="text-xs text-muted-foreground">
-                Plusieurs fichiers à la fois — max 50 Mo par fichier
+                Plusieurs fichiers à la fois
               </p>
             </div>
           )}

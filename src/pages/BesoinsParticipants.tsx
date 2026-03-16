@@ -72,7 +72,7 @@ interface NeedsSurvey {
   lecture_programme: string | null;
   prerequis_validation: string | null;
   prerequis_details: string | null;
-  modalites_preferences: any | null;
+  modalites_preferences: Record<string, unknown> | null;
   training: {
     training_name: string;
     start_date: string;
@@ -121,7 +121,7 @@ const BesoinsParticipants = () => {
   }, [navigate]);
 
   const fetchSurveys = async () => {
-    const allData: any[] = [];
+    const allData: Record<string, unknown>[] = [];
     let offset = 0;
     const batchSize = 1000;
     let hasMore = true;
@@ -179,7 +179,7 @@ const BesoinsParticipants = () => {
       }
     }
 
-    const transformed = allData.map((item: any) => ({
+    const transformed = allData.map((item: Record<string, unknown>) => ({
       ...item,
       training: item.trainings,
     }));
@@ -218,9 +218,9 @@ const BesoinsParticipants = () => {
       if (error) throw new Error(error.message);
       if (data?.error) throw new Error(data.error);
       setAnalysisResult(data.analysis);
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error("Analysis error:", e);
-      toast({ title: "Erreur", description: e.message || "Impossible de générer l'analyse.", variant: "destructive" });
+      toast({ title: "Erreur", description: e instanceof Error ? e.message : "Erreur inconnue", variant: "destructive" });
       setAnalysisOpen(false);
     } finally {
       setAnalysisLoading(false);

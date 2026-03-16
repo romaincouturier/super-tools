@@ -58,10 +58,10 @@ const OKRAICheckInDraft = ({ objectiveId, year, onDraftReady }: OKRAICheckInDraf
       });
 
       toast({ title: "Brouillon IA généré", description: "Les valeurs ont été pré-remplies" });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Erreur",
-        description: error.message || "Impossible de générer le brouillon",
+        description: error instanceof Error ? error.message : "Impossible de générer le brouillon",
         variant: "destructive",
       });
     } finally {

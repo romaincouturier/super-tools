@@ -30,7 +30,7 @@ export const useOKRObjectives = (filters?: { status?: string; year?: number }) =
   return useQuery({
     queryKey: [OKR_OBJECTIVES_KEY, filters],
     queryFn: async () => {
-      let query = (supabase as any)
+      let query = supabase
         .from("okr_objectives")
         .select("*")
         .order("position", { ascending: true });
@@ -55,7 +55,7 @@ export const useOKRObjective = (objectiveId: string | null) => {
     queryFn: async () => {
       if (!objectiveId) return null;
 
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("okr_objectives")
         .select("*")
         .eq("id", objectiveId)
@@ -72,7 +72,7 @@ export const useOKRFavorites = () => {
   return useQuery({
     queryKey: [OKR_FAVORITES_KEY],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("okr_objectives")
         .select(`
           *,
@@ -99,7 +99,7 @@ export const useCreateOKRObjective = () => {
   return useMutation({
     mutationFn: async (input: CreateOKRObjectiveInput) => {
       // Get max position
-      const { data: existing } = await (supabase as any)
+      const { data: existing } = await supabase
         .from("okr_objectives")
         .select("position")
         .order("position", { ascending: false })
@@ -107,7 +107,7 @@ export const useCreateOKRObjective = () => {
 
       const maxPosition = existing?.[0]?.position ?? -1;
 
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("okr_objectives")
         .insert({
           ...input,
@@ -130,7 +130,7 @@ export const useUpdateOKRObjective = () => {
 
   return useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: UpdateOKRObjectiveInput }) => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("okr_objectives")
         .update(updates)
         .eq("id", id)
@@ -152,7 +152,7 @@ export const useDeleteOKRObjective = () => {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("okr_objectives")
         .delete()
         .eq("id", id);
@@ -171,7 +171,7 @@ export const useToggleOKRFavorite = () => {
 
   return useMutation({
     mutationFn: async ({ id, isFavorite }: { id: string; isFavorite: boolean }) => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("okr_objectives")
         .update({ is_favorite: isFavorite })
         .eq("id", id)
@@ -198,7 +198,7 @@ export const useOKRKeyResults = (objectiveId: string | null) => {
     queryFn: async () => {
       if (!objectiveId) return [];
 
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("okr_key_results")
         .select("*")
         .eq("objective_id", objectiveId)
@@ -216,7 +216,7 @@ export const useCreateOKRKeyResult = () => {
 
   return useMutation({
     mutationFn: async (input: CreateOKRKeyResultInput) => {
-      const { data: existing } = await (supabase as any)
+      const { data: existing } = await supabase
         .from("okr_key_results")
         .select("position")
         .eq("objective_id", input.objective_id)
@@ -225,7 +225,7 @@ export const useCreateOKRKeyResult = () => {
 
       const maxPosition = existing?.[0]?.position ?? -1;
 
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("okr_key_results")
         .insert({
           ...input,
@@ -250,7 +250,7 @@ export const useUpdateOKRKeyResult = () => {
 
   return useMutation({
     mutationFn: async ({ id, objectiveId, updates }: { id: string; objectiveId: string; updates: UpdateOKRKeyResultInput }) => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("okr_key_results")
         .update(updates)
         .eq("id", id)
@@ -273,7 +273,7 @@ export const useDeleteOKRKeyResult = () => {
 
   return useMutation({
     mutationFn: async ({ id, objectiveId }: { id: string; objectiveId: string }) => {
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("okr_key_results")
         .delete()
         .eq("id", id);
@@ -299,7 +299,7 @@ export const useOKRInitiatives = (keyResultId: string | null) => {
     queryFn: async () => {
       if (!keyResultId) return [];
 
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("okr_initiatives")
         .select("*")
         .eq("key_result_id", keyResultId)
@@ -317,7 +317,7 @@ export const useCreateOKRInitiative = () => {
 
   return useMutation({
     mutationFn: async (input: CreateOKRInitiativeInput) => {
-      const { data: existing } = await (supabase as any)
+      const { data: existing } = await supabase
         .from("okr_initiatives")
         .select("position")
         .eq("key_result_id", input.key_result_id)
@@ -326,7 +326,7 @@ export const useCreateOKRInitiative = () => {
 
       const maxPosition = existing?.[0]?.position ?? -1;
 
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("okr_initiatives")
         .insert({
           ...input,
@@ -351,7 +351,7 @@ export const useUpdateOKRInitiative = () => {
 
   return useMutation({
     mutationFn: async ({ id, keyResultId, updates }: { id: string; keyResultId: string; updates: UpdateOKRInitiativeInput }) => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("okr_initiatives")
         .update(updates)
         .eq("id", id)
@@ -374,7 +374,7 @@ export const useDeleteOKRInitiative = () => {
 
   return useMutation({
     mutationFn: async ({ id, keyResultId }: { id: string; keyResultId: string }) => {
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("okr_initiatives")
         .delete()
         .eq("id", id);
@@ -400,7 +400,7 @@ export const useOKRParticipants = (objectiveId: string | null) => {
     queryFn: async () => {
       if (!objectiveId) return [];
 
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("okr_participants")
         .select("*")
         .eq("objective_id", objectiveId)
@@ -418,7 +418,7 @@ export const useAddOKRParticipant = () => {
 
   return useMutation({
     mutationFn: async (input: { objective_id: string; email: string; name?: string; role?: string }) => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("okr_participants")
         .insert(input)
         .select()
@@ -438,7 +438,7 @@ export const useRemoveOKRParticipant = () => {
 
   return useMutation({
     mutationFn: async ({ id, objectiveId }: { id: string; objectiveId: string }) => {
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("okr_participants")
         .delete()
         .eq("id", id);
@@ -462,7 +462,7 @@ export const useOKRCheckIns = (objectiveId: string | null) => {
     queryFn: async () => {
       if (!objectiveId) return [];
 
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("okr_check_ins")
         .select("*")
         .eq("objective_id", objectiveId)
@@ -481,13 +481,13 @@ export const useCreateOKRCheckIn = () => {
   return useMutation({
     mutationFn: async (input: CreateOKRCheckInInput) => {
       // Get current objective state
-      const { data: objective } = await (supabase as any)
+      const { data: objective } = await supabase
         .from("okr_objectives")
         .select("progress_percentage, confidence_level")
         .eq("id", input.objective_id)
         .single();
 
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("okr_check_ins")
         .insert({
           ...input,
@@ -500,7 +500,7 @@ export const useCreateOKRCheckIn = () => {
       if (error) throw error;
 
       // Update objective with new progress and confidence
-      await (supabase as any)
+      await supabase
         .from("okr_objectives")
         .update({
           progress_percentage: input.new_progress,
@@ -528,7 +528,7 @@ export const useOKRStatistics = (year?: number) => {
     queryFn: async () => {
       const targetYear = year || new Date().getFullYear();
 
-      const { data: objectives, error } = await (supabase as any)
+      const { data: objectives, error } = await supabase
         .from("okr_objectives")
         .select(`
           id,
@@ -548,19 +548,19 @@ export const useOKRStatistics = (year?: number) => {
 
       const stats = {
         totalObjectives: objectives?.length || 0,
-        activeObjectives: objectives?.filter((o: any) => o.status === "active").length || 0,
-        completedObjectives: objectives?.filter((o: any) => o.status === "completed").length || 0,
+        activeObjectives: objectives?.filter((o) => o.status === "active").length || 0,
+        completedObjectives: objectives?.filter((o) => o.status === "completed").length || 0,
         avgProgress: objectives?.length
-          ? Math.round(objectives.reduce((sum: number, o: any) => sum + o.progress_percentage, 0) / objectives.length)
+          ? Math.round(objectives.reduce((sum: number, o) => sum + (o.progress_percentage ?? 0), 0) / objectives.length)
           : 0,
         avgConfidence: objectives?.length
-          ? Math.round(objectives.reduce((sum: number, o: any) => sum + o.confidence_level, 0) / objectives.length)
+          ? Math.round(objectives.reduce((sum: number, o) => sum + (o.confidence_level ?? 0), 0) / objectives.length)
           : 0,
         byQuarter: {} as Record<string, { count: number; avgProgress: number }>,
       };
 
       // Calculate by quarter
-      objectives?.forEach((o: any) => {
+      objectives?.forEach((o) => {
         if (!stats.byQuarter[o.time_target]) {
           stats.byQuarter[o.time_target] = { count: 0, avgProgress: 0 };
         }

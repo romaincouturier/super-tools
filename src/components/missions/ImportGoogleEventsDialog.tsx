@@ -93,10 +93,10 @@ const ImportGoogleEventsDialog = ({
       if (data.error) throw new Error(data.error);
 
       setEvents(data.events || []);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Erreur",
-        description: error.message || "Impossible de récupérer les événements",
+        description: error instanceof Error ? error.message : "Impossible de récupérer les événements",
         variant: "destructive",
       });
     } finally {
@@ -161,10 +161,10 @@ const ImportGoogleEventsDialog = ({
         title: `${imported} activité${imported > 1 ? "s" : ""} importée${imported > 1 ? "s" : ""}`,
       });
       onOpenChange(false);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Erreur",
-        description: error.message,
+        description: (error instanceof Error ? error.message : "Erreur inconnue"),
         variant: "destructive",
       });
     } finally {

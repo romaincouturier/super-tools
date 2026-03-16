@@ -23,7 +23,7 @@ interface Props {
   autoAddParticipantOpen: boolean;
   setAutoAddParticipantOpen: (v: boolean) => void;
   addParticipantData: { firstName?: string; lastName?: string; email?: string; company?: string; soldPriceHt?: string } | null;
-  setAddParticipantData: (v: any) => void;
+  setAddParticipantData: (v: { firstName?: string; lastName?: string; email?: string; company?: string; soldPriceHt?: string } | null) => void;
   showThankYouPreview: boolean;
   setShowThankYouPreview: (v: boolean) => void;
   sendingThankYou: boolean;
@@ -33,7 +33,7 @@ interface Props {
   schedules: { id: string; day_date: string; start_time: string; end_time: string }[];
   calculateTotalDuration: () => number;
   fetchParticipants: () => Promise<void>;
-  toast: (opts: any) => void;
+  toast: (opts: { title?: string; description?: string; variant?: "default" | "destructive" }) => void;
 }
 
 const FormationDetailParticipants = ({
@@ -116,7 +116,7 @@ const FormationDetailParticipants = ({
                 formatFormation={training.format_formation}
                 isInterEntreprise={isInterSession}
                 availableFormulas={availableFormulas}
-                trainingFormulaId={(training as any).formula_id ?? undefined}
+                trainingFormulaId={(training as unknown as { formula_id?: string | null }).formula_id ?? undefined}
                 onParticipantAdded={fetchParticipants}
                 onScheduledEmailsRefresh={() => setEmailsRefreshTrigger(prev => prev + 1)}
                 initialFirstName={addParticipantData?.firstName}

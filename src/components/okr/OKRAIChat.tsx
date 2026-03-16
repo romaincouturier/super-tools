@@ -101,10 +101,10 @@ const OKRAIChat = ({ year, objectiveId }: OKRAIChatProps) => {
         ...prev,
         { role: "assistant", content: data.answer, mode: data.mode },
       ]);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Erreur IA",
-        description: error.message || "Impossible de contacter l'assistant",
+        description: error instanceof Error ? error.message : "Impossible de contacter l'assistant",
         variant: "destructive",
       });
       setMessages((prev) => [

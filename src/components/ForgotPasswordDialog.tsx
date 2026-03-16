@@ -44,7 +44,7 @@ const ForgotPasswordDialog = () => {
 
       setEmail("");
       setIsOpen(false);
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Always show success message for security (don't reveal if email exists)
       toast({
         title: "Email envoyé",

@@ -86,7 +86,7 @@ export default function LearnerPortal() {
     try {
       const { data: result, error } = await supabase.rpc("validate_learner_token", { p_token: token });
       if (error) throw error;
-      const parsed = result as any;
+      const parsed = result as unknown as { status: string; email: string };
       if (parsed.status === "invalid") {
         setError("Ce lien n'est plus valide. Veuillez en demander un nouveau.");
         setLoading(false);
@@ -101,8 +101,8 @@ export default function LearnerPortal() {
       // Remove token from URL
       window.history.replaceState({}, "", "/espace-apprenant");
       loadData(parsed.email);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Erreur inconnue");
       setLoading(false);
     }
   };
@@ -111,9 +111,9 @@ export default function LearnerPortal() {
     try {
       const { data: result, error } = await supabase.rpc("get_learner_portal_data", { p_email: email });
       if (error) throw error;
-      setData(result as any);
-    } catch (err: any) {
-      setError(err.message);
+      setData(result as unknown as LearnerData);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Erreur inconnue");
     } finally {
       setLoading(false);
     }

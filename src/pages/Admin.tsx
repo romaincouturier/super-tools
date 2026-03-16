@@ -88,7 +88,7 @@ export default function Admin() {
         const [members, trainings, participants, missions] = await Promise.all([
           supabase.from("org_members").select("*", { count: "exact", head: true }).eq("org_id", org.id),
           supabase.from("trainings").select("*", { count: "exact", head: true }).eq("org_id", org.id),
-          supabase.from("training_participants").select("*", { count: "exact", head: true }) as any,
+          supabase.from("training_participants").select("*", { count: "exact", head: true }),
           supabase.from("missions").select("*", { count: "exact", head: true }).eq("org_id", org.id),
         ]);
         stats[org.id] = {
@@ -108,7 +108,7 @@ export default function Admin() {
     if (plansRes.data) {
       setBillingPlans(plansRes.data as unknown as BillingPlan[]);
       const ids: Record<string, string> = {};
-      plansRes.data.forEach((p: any) => {
+      plansRes.data.forEach((p: { id: string; stripe_price_id?: string | null }) => {
         ids[p.id] = p.stripe_price_id || "";
       });
       setEditedPriceIds(ids);

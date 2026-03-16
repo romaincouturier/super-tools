@@ -87,9 +87,9 @@ const CronJobsTab = () => {
   const { data: cronData, isLoading } = useQuery({
     queryKey: ["cron-status"],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("get_cron_status" as any);
+      const { data, error } = await supabase.rpc("get_cron_status");
       if (error) throw error;
-      return (data as any) as { jobs: CronJob[] };
+      return data as unknown as { jobs: CronJob[] };
     },
     refetchInterval: 30000,
   });

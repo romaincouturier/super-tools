@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { notifyContentUser } from "@/services/contentNotifications";
 import {
   Send, Loader2, MessageSquare, Check, X, Pencil, Image,
   FileText, Palette, Trash2, Copy, Mic, MicOff, Reply, CheckCheck,
@@ -118,7 +119,7 @@ const CommentThread = ({ cardId, cardTitle, reviewIds, onCommentAdded }: Comment
 
       if (error) throw error;
 
-      const rawComments = (data || []) as any[];
+      const rawComments = (data || []) as Record<string, unknown>[];
       const authorIds = [...new Set(rawComments.map((c) => c.author_id).concat(rawComments.map((c) => c.assigned_to).filter(Boolean)))];
 
       let profileMap: Record<string, string> = {};
@@ -167,7 +168,6 @@ const CommentThread = ({ cardId, cardTitle, reviewIds, onCommentAdded }: Comment
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) { toast.error("L'image ne doit pas dépasser 5 Mo"); return; }
       setImageFile(file);
       const reader = new FileReader();
       reader.onloadend = () => setImagePreview(reader.result as string);
@@ -183,7 +183,6 @@ const CommentThread = ({ cardId, cardTitle, reviewIds, onCommentAdded }: Comment
         e.preventDefault();
         const file = item.getAsFile();
         if (file) {
-          if (file.size > 5 * 1024 * 1024) { toast.error("Max 5 Mo"); return; }
           setImageFile(file);
           const reader = new FileReader();
           reader.onloadend = () => setImagePreview(reader.result as string);
@@ -214,8 +213,8 @@ const CommentThread = ({ cardId, cardTitle, reviewIds, onCommentAdded }: Comment
         { body: { originalFileName: file.name, mimeType: file.type, reviewId: cardId, fileBase64 } }
       );
       if (error) throw error;
-      return (uploadData as any)?.publicUrl || null;
-    } catch (error: any) {
+      return (uploadData as Record<string, unknown> | null)?.publicUrl as string || null;
+    } catch (error: unknown) {
       console.error("Upload error:", error);
       toast.error("Erreur lors de l'upload");
       return null;
@@ -237,7 +236,7 @@ const CommentThread = ({ cardId, cardTitle, reviewIds, onCommentAdded }: Comment
       }
 
       const mentionedIds = pendingMentions.map((m) => m.userId).filter((id) => id !== userId);
-      const insertData: Record<string, any> = {
+      const insertData: Record<string, unknown> = {
         card_id: cardId,
         author_id: userId,
         content: newComment.trim(),
@@ -249,7 +248,7 @@ const CommentThread = ({ cardId, cardTitle, reviewIds, onCommentAdded }: Comment
         mentioned_user_ids: mentionedIds.length > 0 ? mentionedIds : [],
       };
 
-      const { error } = await (supabase as any).from("review_comments").insert(insertData);
+      const { error } = await supabase.from("review_comments").insert(insertData);
       if (error) throw error;
 
       // Send notification to assigned person
@@ -262,7 +261,7 @@ const CommentThread = ({ cardId, cardTitle, reviewIds, onCommentAdded }: Comment
         const authorName = authorProfile?.first_name ? `${authorProfile.first_name} ${authorProfile.last_name || ""}`.trim() : "Quelqu'un";
         const preview = newComment.trim().split(/\s+/).slice(0, 10).join(" ");
 
-        await (supabase as any).from("content_notifications").insert({
+        await supabase.from("content_notifications").insert({
           user_id: assignedTo,
           type: "comment_added",
           reference_id: cardId,
@@ -284,15 +283,15 @@ const CommentThread = ({ cardId, cardTitle, reviewIds, onCommentAdded }: Comment
 
         for (const mention of pendingMentions) {
           if (mention.userId === userId) continue;
-          await (supabase as any).from("content_notifications").insert({
-            user_id: mention.userId,
-            type: "comment_added",
-            reference_id: cardId,
-            card_id: cardId,
-            message: `${authorName} : ${newComment.trim().split(/\s+/).slice(0, 10).join(" ")}`,
-          });
-          await supabase.functions.invoke("send-content-notification", {
-            body: {
+          await notifyContentUser(
+            {
+              userId: mention.userId,
+              notificationType: "comment_added",
+              referenceId: cardId,
+              cardId,
+              message: `${authorName} : ${newComment.trim().split(/\s+/).slice(0, 10).join(" ")}`,
+            },
+            {
               type: "mention",
               recipientEmail: mention.email,
               cardTitle: cardTitle || "un contenu",
@@ -300,7 +299,7 @@ const CommentThread = ({ cardId, cardTitle, reviewIds, onCommentAdded }: Comment
               authorName,
               commentText: newComment.trim(),
             },
-          });
+          );
         }
       }
 
@@ -329,7 +328,7 @@ const CommentThread = ({ cardId, cardTitle, reviewIds, onCommentAdded }: Comment
       const userId = sessionData.session?.user?.id;
       if (!userId) { toast.error("Connectez-vous"); return; }
 
-      const { error } = await (supabase as any).from("review_comments").insert({
+      const { error } = await supabase.from("review_comments").insert({
         card_id: cardId,
         author_id: userId,
         content: replyText.trim(),

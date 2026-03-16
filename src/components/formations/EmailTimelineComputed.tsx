@@ -130,7 +130,7 @@ const EmailTimelineComputed = ({
   hasCoaching,
   isElearning,
 }: EmailTimelineProps) => {
-  const [dbEmails, setDbEmails] = useState<any[]>([]);
+  const [dbEmails, setDbEmails] = useState<Record<string, unknown>[]>([]);
   const [loading, setLoading] = useState(true);
   const [delaySettings, setDelaySettings] = useState({
     logistic: 3,
@@ -145,7 +145,7 @@ const EmailTimelineComputed = ({
     needsSurvey: 7,
   });
   const [expandedPhases, setExpandedPhases] = useState<Set<string>>(new Set(["inscription", "avant", "fin"]));
-  const [liveMeetings, setLiveMeetings] = useState<any[]>([]);
+  const [liveMeetings, setLiveMeetings] = useState<Record<string, unknown>[]>([]);
 
   useEffect(() => {
     fetchData();
@@ -181,7 +181,7 @@ const EmailTimelineComputed = ({
       ]);
 
     const livesRes = await supabase
-      .from("training_live_meetings" as any)
+      .from("training_live_meetings")
       .select("*")
       .eq("training_id", trainingId)
       .order("live_date", { ascending: true });
@@ -333,7 +333,7 @@ const EmailTimelineComputed = ({
     }
 
     // --- LIVES ---
-    liveMeetings.forEach((live: any) => {
+    liveMeetings.forEach((live) => {
       if (!live.live_date) return;
       const liveDate = parseISO(live.live_date);
       const reminderDate = addDays(liveDate, -1);

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import { rpc } from "@/lib/supabase-rpc";
+import { rpc, type TrainerEvaluationByToken } from "@/lib/supabase-rpc";
 import { Loader2, CheckCircle2, Star, CalendarDays, MapPin, Users, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -14,7 +14,7 @@ const TrainerEvaluation = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [evaluation, setEvaluation] = useState<any>(null);
+  const [evaluation, setEvaluation] = useState<TrainerEvaluationByToken | null>(null);
   const [trainingName, setTrainingName] = useState("");
   const [trainingDetails, setTrainingDetails] = useState<{
     startDate?: string; endDate?: string; location?: string;
@@ -74,7 +74,7 @@ const TrainerEvaluation = () => {
         if (prevEvals && Array.isArray(prevEvals) && prevEvals.length > 0) {
           const extract = (field: string) => {
             const values = prevEvals
-              .map((e: any) => e[field]?.trim())
+              .map((e) => (e[field as keyof typeof e] as string | null)?.trim())
               .filter((v: string | undefined): v is string => !!v);
             return [...new Set(values)];
           };

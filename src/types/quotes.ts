@@ -152,7 +152,7 @@ export interface UpdateQuoteInput {
   client_siren?: string | null;
   client_email?: string | null;
   // Travel & workflow
-  travel_data?: any;
+  travel_data?: Record<string, unknown>;
   workflow_step?: number;
   challenge_html?: string | null;
 }

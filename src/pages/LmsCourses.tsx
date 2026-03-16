@@ -44,7 +44,7 @@ export default function LmsCourses() {
 
   const handleCreate = async () => {
     if (!form.title.trim()) return;
-    await createCourse.mutateAsync(form as any);
+    await createCourse.mutateAsync(form as Record<string, unknown>);
     setForm({ title: "", description: "", difficulty_level: "beginner" });
     setOpen(false);
   };

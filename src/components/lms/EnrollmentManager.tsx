@@ -74,7 +74,7 @@ export default function LmsEnrollmentManager({ courseId }: Props) {
         </Card>
       ) : (
         <div className="space-y-2">
-          {enrollments.map((e: any) => (
+          {enrollments.map((e) => (
             <Card key={e.id}>
               <CardContent className="flex items-center gap-4 py-3">
                 <div className="flex-1">

@@ -4,7 +4,7 @@ import { toast } from "sonner";
 const CHUNK_RELOAD_FLAG = "__st_chunk_reload_attempted";
 
 function isChunkLoadError(reason: unknown) {
-  const message = String((reason as any)?.message ?? reason ?? "");
+  const message = String((reason instanceof Error ? reason.message : reason) ?? "");
   return message.includes("Failed to fetch dynamically imported module");
 }
 

@@ -8,9 +8,10 @@ import type { MissionActivity, MissionPage, MissionPageTemplate } from "@/hooks/
 
 // ── Helpers ──────────────────────────────────────────────────────────
 
-const db = () => supabase as any;
+// The generated Database type doesn't cover all tables; bypass table-name checking.
+const db = () => supabase as unknown as { from: (table: string) => ReturnType<typeof supabase.from> };
 
-function throwIfError<T>(result: { data: T; error: any }): T {
+function throwIfError<T>(result: { data: T; error: { message: string } | null }): T {
   if (result.error) throw result.error;
   return result.data;
 }
@@ -30,7 +31,7 @@ export async function searchMissions(term: string): Promise<Pick<Mission, "id" |
     .or(`title.ilike.%${term}%,client_name.ilike.%${term}%,client_contact.ilike.%${term}%`)
     .order("created_at", { ascending: false })
     .limit(10);
-  return (throwIfError(result) || []) as any[];
+  return (throwIfError(result) || []) as Pick<Mission, "id" | "title" | "client_name" | "client_contact" | "status" | "start_date" | "end_date">[];
 }
 
 export async function createMission(input: CreateMissionInput): Promise<Mission> {

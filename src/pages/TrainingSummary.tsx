@@ -51,6 +51,7 @@ interface Training {
   objectives: string[] | null;
   prerequisites: string[] | null;
   format_formation: string | null;
+  session_format: string | null;
 }
 
 interface Schedule {
@@ -151,8 +152,8 @@ const TrainingSummary = () => {
       location.includes("teams") ||
       location.includes("meet") ||
       training.format_formation === "classe_virtuelle" ||
-      (training as any).session_format === "distanciel_synchrone" ||
-      (training as any).session_format === "distanciel_asynchrone"
+      training.session_format === "distanciel_synchrone" ||
+      training.session_format === "distanciel_asynchrone"
     );
   };
 
@@ -430,11 +431,11 @@ END:VCALENDAR`;
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Calendar className="h-5 w-5 text-primary" />
-              {(training.format_formation === "e_learning" || (training as any).session_format === "distanciel_asynchrone") ? "Période de formation" : "Dates et horaires"}
+              {(training.format_formation === "e_learning" || training.session_format === "distanciel_asynchrone") ? "Période de formation" : "Dates et horaires"}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {(training.format_formation === "e_learning" || (training as any).session_format === "distanciel_asynchrone") ? (
+            {(training.format_formation === "e_learning" || training.session_format === "distanciel_asynchrone") ? (
               <div className="space-y-3">
                 <div className="p-3 bg-muted/50 rounded-lg">
                   <p className="font-medium">

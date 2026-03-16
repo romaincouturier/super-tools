@@ -229,7 +229,7 @@ export async function exportAttendancePdf({
     // Full session view
     for (const [slotKey, slotSignatures] of sortedSlots) {
       const [date, period] = slotKey.split("-");
-      const signedCount = slotSignatures.filter((s: any) => s.signed_at).length;
+      const signedCount = slotSignatures.filter((s) => s.signed_at).length;
       const trainerSig = trainerSigMap.get(slotKey);
 
       const estimatedHeight = 8 + (slotSignatures.length * 18) + 25;

@@ -90,9 +90,9 @@ export default function CoachingBooking({
       participant_id: participantId,
       requested_date: requestedDate,
       learner_notes: notes || null,
-    } as any);
+    });
     if (error) {
-      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+      toast({ title: "Erreur", description: (error instanceof Error ? error.message : "Erreur inconnue"), variant: "destructive" });
     } else {
       toast({ title: "Demande envoyée !" });
       setShowForm(false);
@@ -110,7 +110,7 @@ export default function CoachingBooking({
         status,
         ...(status === "confirmed" ? { confirmed_at: new Date().toISOString() } : {}),
         updated_at: new Date().toISOString(),
-      } as any)
+      })
       .eq("id", bookingId);
     loadBookings();
     toast({ title: `Séance ${status === "confirmed" ? "confirmée" : "annulée"}` });

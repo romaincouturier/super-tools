@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Loader2, Send, Mail, Users, TestTube } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { sendThankYouEmail } from "@/services/emailSender";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -146,14 +147,7 @@ const ThankYouEmailPreviewDialog = ({
 
     setIsSendingTest(true);
     try {
-      const { error } = await supabase.functions.invoke("send-thank-you-email", {
-        body: { 
-          trainingId,
-          testEmail,
-        },
-      });
-
-      if (error) throw error;
+      await sendThankYouEmail(trainingId, testEmail);
 
       toast.success(`Email de test envoyé à ${testEmail}`);
     } catch (error) {

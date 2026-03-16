@@ -146,7 +146,7 @@ const Auth = () => {
       } else {
         // Only admin can create accounts via signup form
         // Other users are created via onboarding process
-        const { data: isAllowed } = await (supabase.rpc as any)("is_signup_allowed", { p_email: email });
+        const { data: isAllowed } = await (supabase.rpc as unknown as (fn: string, params: Record<string, unknown>) => Promise<{ data: boolean | null }>)("is_signup_allowed", { p_email: email });
         if (!isAllowed) {
           toast({
             title: "Inscription non autorisée",
@@ -183,13 +183,14 @@ const Auth = () => {
         });
         setIsLogin(true);
       }
-    } catch (error: any) {
-      let message = error.message;
-      if (error.message.includes("Invalid login credentials")) {
+    } catch (error: unknown) {
+      const errMsg = error instanceof Error ? error.message : "Erreur inconnue";
+      let message = errMsg;
+      if (errMsg.includes("Invalid login credentials")) {
         message = "Email ou mot de passe incorrect";
-      } else if (error.message.includes("User already registered")) {
+      } else if (errMsg.includes("User already registered")) {
         message = "Cet email est déjà utilisé";
-      } else if (error.message.includes("Password should be at least")) {
+      } else if (errMsg.includes("Password should be at least")) {
         message = "Le mot de passe doit contenir au moins 6 caractères";
       }
       toast({

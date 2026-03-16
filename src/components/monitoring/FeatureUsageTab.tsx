@@ -74,7 +74,7 @@ const FeatureUsageTab = () => {
   const { data: rows = [] } = useQuery({
     queryKey: ["feature-usage", period],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("feature_usage")
         .select("id, feature_name, feature_category, created_at")
         .gte("created_at", since)

@@ -60,7 +60,7 @@ export default function CoachCommercialSettings({ open, onOpenChange }: CoachCom
   // --- Load ambition for a given year ---
   const loadAmbition = useCallback(async (year: number) => {
     setAmbitionLoading(true);
-    const { data } = await (supabase as any)
+    const { data } = await supabase
       .from("commercial_coach_contexts")
       .select("*")
       .eq("context_type", "ambition")
@@ -73,7 +73,7 @@ export default function CoachCommercialSettings({ open, onOpenChange }: CoachCom
   // --- Load acquisition for a given year ---
   const loadAcquisition = useCallback(async (year: number) => {
     setAcquisitionLoading(true);
-    const { data } = await (supabase as any)
+    const { data } = await supabase
       .from("commercial_coach_contexts")
       .select("*")
       .eq("context_type", "acquisition_structure")
@@ -85,14 +85,14 @@ export default function CoachCommercialSettings({ open, onOpenChange }: CoachCom
 
   // --- Load all history ---
   const loadHistory = useCallback(async () => {
-    const { data: ambitions } = await (supabase as any)
+    const { data: ambitions } = await supabase
       .from("commercial_coach_contexts")
       .select("*")
       .eq("context_type", "ambition")
       .order("year", { ascending: false });
     setAmbitionHistory(ambitions || []);
 
-    const { data: acquisitions } = await (supabase as any)
+    const { data: acquisitions } = await supabase
       .from("commercial_coach_contexts")
       .select("*")
       .eq("context_type", "acquisition_structure")
@@ -103,7 +103,7 @@ export default function CoachCommercialSettings({ open, onOpenChange }: CoachCom
   // --- Load revenue targets ---
   const loadRevenueTargets = useCallback(async () => {
     setRevenueLoading(true);
-    const { data } = await (supabase as any)
+    const { data } = await supabase
       .from("crm_revenue_targets")
       .select("*")
       .order("period_start", { ascending: false });
@@ -125,7 +125,7 @@ export default function CoachCommercialSettings({ open, onOpenChange }: CoachCom
   const saveAmbition = async () => {
     setAmbitionSaving(true);
     const { data: { session } } = await supabase.auth.getSession();
-    const { error } = await (supabase as any)
+    const { error } = await supabase
       .from("commercial_coach_contexts")
       .upsert(
         {
@@ -138,7 +138,7 @@ export default function CoachCommercialSettings({ open, onOpenChange }: CoachCom
         { onConflict: "context_type,year" }
       );
     if (error) {
-      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+      toast({ title: "Erreur", description: (error instanceof Error ? error.message : "Erreur inconnue"), variant: "destructive" });
     } else {
       toast({ title: "Ambition sauvegardée" });
       loadHistory();
@@ -150,7 +150,7 @@ export default function CoachCommercialSettings({ open, onOpenChange }: CoachCom
   const saveAcquisition = async () => {
     setAcquisitionSaving(true);
     const { data: { session } } = await supabase.auth.getSession();
-    const { error } = await (supabase as any)
+    const { error } = await supabase
       .from("commercial_coach_contexts")
       .upsert(
         {
@@ -163,7 +163,7 @@ export default function CoachCommercialSettings({ open, onOpenChange }: CoachCom
         { onConflict: "context_type,year" }
       );
     if (error) {
-      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+      toast({ title: "Erreur", description: (error instanceof Error ? error.message : "Erreur inconnue"), variant: "destructive" });
     } else {
       toast({ title: "Structure d'acquisition sauvegardée" });
       loadHistory();
@@ -176,7 +176,7 @@ export default function CoachCommercialSettings({ open, onOpenChange }: CoachCom
     if (!newTargetStart || !newTargetAmount) return;
     setAddingTarget(true);
     const { data: { session } } = await supabase.auth.getSession();
-    const { error } = await (supabase as any)
+    const { error } = await supabase
       .from("crm_revenue_targets")
       .insert({
         period_type: newTargetType,
@@ -185,7 +185,7 @@ export default function CoachCommercialSettings({ open, onOpenChange }: CoachCom
         created_by: session?.user?.id || null,
       });
     if (error) {
-      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+      toast({ title: "Erreur", description: (error instanceof Error ? error.message : "Erreur inconnue"), variant: "destructive" });
     } else {
       toast({ title: "Objectif ajouté" });
       setShowAddTarget(false);
@@ -198,12 +198,12 @@ export default function CoachCommercialSettings({ open, onOpenChange }: CoachCom
 
   // --- Delete revenue target ---
   const deleteRevenueTarget = async (id: string) => {
-    const { error } = await (supabase as any)
+    const { error } = await supabase
       .from("crm_revenue_targets")
       .delete()
       .eq("id", id);
     if (error) {
-      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+      toast({ title: "Erreur", description: (error instanceof Error ? error.message : "Erreur inconnue"), variant: "destructive" });
     } else {
       toast({ title: "Objectif supprimé" });
       loadRevenueTargets();

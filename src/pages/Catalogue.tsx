@@ -79,7 +79,7 @@ const Catalogue = () => {
 
       const countMap: Record<string, number> = {};
       const lastDateMap: Record<string, string> = {};
-      trainings?.forEach((t: any) => {
+      trainings?.forEach((t: { catalog_id: string | null; start_date: string | null; end_date: string | null }) => {
         if (t.catalog_id) {
           countMap[t.catalog_id] = (countMap[t.catalog_id] || 0) + 1;
           const effectiveEnd = t.end_date || t.start_date;
@@ -98,7 +98,7 @@ const Catalogue = () => {
         .order("display_order", { ascending: true });
 
       const formulaMap: Record<string, string[]> = {};
-      formulas?.forEach((f: any) => {
+      formulas?.forEach((f: { formation_config_id: string | null; name: string }) => {
         if (f.formation_config_id) {
           if (!formulaMap[f.formation_config_id]) formulaMap[f.formation_config_id] = [];
           formulaMap[f.formation_config_id].push(f.name);
@@ -106,18 +106,18 @@ const Catalogue = () => {
       });
 
       setCatalogEntries(
-        (entries || []).map((e: any) => ({
+        (entries || []).map((e: { id: string; formation_name: string; duree_heures: number | null; description?: string }) => ({
           ...e,
           training_count: countMap[e.id] || 0,
           formula_names: formulaMap[e.id] || [],
           last_session_date: lastDateMap[e.id] || null,
         }))
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error fetching catalog:", error);
       toast({
         title: "Erreur",
-        description: "Impossible de charger le catalogue.",
+        description: error instanceof Error ? error.message : "Erreur inconnue",
         variant: "destructive",
       });
     } finally {
@@ -203,11 +203,11 @@ const Catalogue = () => {
       setDialogOpen(false);
       setEditingEntry(null);
       fetchCatalog();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error deleting catalog entry:", error);
       toast({
         title: "Erreur",
-        description: error.message || "Impossible de supprimer cette entrée.",
+        description: error instanceof Error ? error.message : "Erreur inconnue",
         variant: "destructive",
       });
     }

@@ -65,7 +65,7 @@ export default function LmsQuizBuilder({ lesson, courseId }: Props) {
       correct_answer: newQ.question_type === "open" || newQ.question_type === "fill_blank"
         ? newQ.correct_answer
         : null,
-    } as any);
+    });
     setNewQ({
       question_type: "mcq",
       question_text: "",

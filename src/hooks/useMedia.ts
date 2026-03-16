@@ -34,65 +34,65 @@ export const useMediaLibrary = () => {
     queryKey: [MEDIA_LIBRARY_KEY],
     queryFn: async () => {
       // Fetch all media
-      const { data: mediaRows, error } = await (supabase as any)
+      const { data: mediaRows, error } = await supabase
         .from("media")
         .select("*")
         .order("created_at", { ascending: false });
 
       if (error) throw error;
 
-      const rows = (mediaRows || []) as any[];
+      const rows = mediaRows || [];
 
       // Collect source ids per type for batch label lookup
-      const missionIds = [...new Set(rows.filter((r: any) => r.source_type === "mission").map((r: any) => r.source_id))];
-      const eventIds = [...new Set(rows.filter((r: any) => r.source_type === "event").map((r: any) => r.source_id))];
-      const trainingIds = [...new Set(rows.filter((r: any) => r.source_type === "training").map((r: any) => r.source_id))];
-      const crmIds = [...new Set(rows.filter((r: any) => r.source_type === "crm").map((r: any) => r.source_id))];
+      const missionIds = [...new Set(rows.filter((r) => r.source_type === "mission").map((r) => r.source_id))];
+      const eventIds = [...new Set(rows.filter((r) => r.source_type === "event").map((r) => r.source_id))];
+      const trainingIds = [...new Set(rows.filter((r) => r.source_type === "training").map((r) => r.source_id))];
+      const crmIds = [...new Set(rows.filter((r) => r.source_type === "crm").map((r) => r.source_id))];
 
       // Fetch labels
       const labelMap: Record<string, { label: string; emoji: string | null; color: string | null; tags: string[] }> = {};
 
       if (missionIds.length > 0) {
-        const { data } = await (supabase as any)
+        const { data } = await supabase
           .from("missions")
           .select("id, title, emoji, color, tags")
           .in("id", missionIds);
-        (data || []).forEach((m: any) => {
-          labelMap[m.id] = { label: m.title, emoji: m.emoji, color: m.color, tags: m.tags || [] };
+        (data || []).forEach((m) => {
+          labelMap[m.id] = { label: m.title, emoji: m.emoji ?? null, color: m.color, tags: m.tags || [] };
         });
       }
 
       if (eventIds.length > 0) {
-        const { data } = await (supabase as any)
+        const { data } = await supabase
           .from("events")
           .select("id, title")
           .in("id", eventIds);
-        (data || []).forEach((e: any) => {
+        (data || []).forEach((e) => {
           labelMap[e.id] = { label: e.title, emoji: null, color: null, tags: ["événement"] };
         });
       }
 
       if (trainingIds.length > 0) {
-        const { data } = await (supabase as any)
+        const { data } = await supabase
           .from("trainings")
           .select("id, training_name")
           .in("id", trainingIds);
-        (data || []).forEach((t: any) => {
+        (data || []).forEach((t) => {
           labelMap[t.id] = { label: t.training_name, emoji: null, color: null, tags: ["formation"] };
         });
       }
 
       if (crmIds.length > 0) {
-        const { data } = await (supabase as any)
+        const { data } = await supabase
           .from("crm_cards")
           .select("id, title, emoji")
           .in("id", crmIds);
-        (data || []).forEach((c: any) => {
-          labelMap[c.id] = { label: c.title, emoji: c.emoji, color: null, tags: ["opportunité"] };
+        (data || []).forEach((c) => {
+          labelMap[c.id] = { label: c.title, emoji: c.emoji ?? null, color: null, tags: ["opportunité"] };
         });
       }
 
-      return rows.map((row: any): MediaItem => {
+      return rows.map((row): MediaItem => {
         const info = labelMap[row.source_id] || { label: "Inconnu", emoji: null, color: null, tags: [] };
         return {
           id: row.id,
@@ -124,7 +124,7 @@ export const useEntityMedia = (sourceType: MediaSourceType, sourceId: string | u
     queryKey: [ENTITY_MEDIA_KEY, sourceType, sourceId],
     enabled: !!sourceId,
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("media")
         .select("*")
         .eq("source_type", sourceType)
@@ -164,7 +164,7 @@ export const useAddMedia = () => {
     }) => {
       const { data: session } = await supabase.auth.getSession();
       const userId = session.session?.user?.id;
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("media")
         .insert({ ...input, created_by: userId })
         .select()
@@ -183,7 +183,7 @@ export const useDeleteMedia = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, sourceType, sourceId }: { id: string; sourceType: MediaSourceType; sourceId: string }) => {
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("media")
         .delete()
         .eq("id", id);
@@ -201,7 +201,7 @@ export const useUpdateMediaTags = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, tags }: { id: string; tags: string[] }) => {
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("media")
         .update({ tags })
         .eq("id", id);
@@ -218,7 +218,7 @@ export const useToggleMediaDeliverable = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, sourceType, sourceId, is_deliverable }: { id: string; sourceType: MediaSourceType; sourceId: string; is_deliverable: boolean }) => {
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("media")
         .update({ is_deliverable })
         .eq("id", id);
@@ -236,7 +236,7 @@ export const useRenameMedia = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, file_name }: { id: string; file_name: string }) => {
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("media")
         .update({ file_name })
         .eq("id", id);

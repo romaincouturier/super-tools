@@ -152,9 +152,9 @@ const Formations = () => {
 
       // Match on training-level sponsor
       const tSponsor = [
-        (t as any).sponsor_first_name,
-        (t as any).sponsor_last_name,
-        (t as any).sponsor_email,
+        (t as unknown as { sponsor_first_name?: string }).sponsor_first_name,
+        (t as unknown as { sponsor_last_name?: string }).sponsor_last_name,
+        (t as unknown as { sponsor_email?: string }).sponsor_email,
       ]
         .filter(Boolean)
         .join(" ")

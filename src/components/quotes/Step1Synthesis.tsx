@@ -74,13 +74,13 @@ export default function Step1Synthesis({
     setIsGenerating(true);
     try {
       const [commentsRes, emailsRes] = await Promise.all([
-        (supabase as any)
+        supabase
           .from("crm_comments")
           .select("content, created_at")
           .eq("card_id", crmCard.id)
           .eq("is_deleted", false)
           .order("created_at", { ascending: true }),
-        (supabase as any)
+        supabase
           .from("crm_card_emails")
           .select("subject, body_html, sent_at")
           .eq("card_id", crmCard.id)
@@ -102,12 +102,12 @@ export default function Step1Synthesis({
         descriptionText ? `\nDescription complète :\n${descriptionText}` : "",
         comments.length > 0
           ? `\nNotes internes (${comments.length}) :\n${comments
-              .map((c: any) => `[${c.created_at?.substring(0, 10) || ""}] ${c.content}`)
+              .map((c) => `[${c.created_at?.substring(0, 10) || ""}] ${c.content}`)
               .join("\n")}`
           : "",
         emails.length > 0
           ? `\nHistorique email (${emails.length}) :\n${emails
-              .map((e: any) => {
+              .map((e) => {
                 const bodyText = e.body_html
                   ? e.body_html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim()
                   : "";
@@ -128,7 +128,7 @@ export default function Step1Synthesis({
       const cleaned = cleanHtmlOutput(data.synthesis || "");
       setSynthesis(cleaned);
       setGenerated(true);
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error("Synthesis generation error:", e);
       setSynthesis(
         `<h3>Contexte client</h3><p>${clientCompany}</p><h3>Besoins identifiés</h3><p>${crmCard.title}</p><h3>Périmètre pressenti</h3><p>À compléter</p><h3>Points d'attention</h3><p>À compléter</p>`
@@ -169,9 +169,9 @@ export default function Step1Synthesis({
       setChallengeHtml(cleaned);
       setChallengeDone(true);
       onChallengeChange?.(cleaned);
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error("Challenge error:", e);
-      toast.error("Erreur lors du challenge commercial : " + (e.message || "Erreur inconnue"));
+      toast.error("Erreur lors du challenge commercial : " + (e instanceof Error ? e.message : "Erreur inconnue"));
     } finally {
       setIsChallenging(false);
     }

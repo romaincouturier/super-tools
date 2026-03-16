@@ -382,11 +382,11 @@ const FormationCreate = () => {
       });
 
       navigate(`/formations/${training.id}`);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error creating training:", error);
       toast({
         title: "Erreur",
-        description: error.message || "Une erreur est survenue lors de la création.",
+        description: error instanceof Error ? error.message : "Erreur inconnue",
         variant: "destructive",
       });
     } finally {

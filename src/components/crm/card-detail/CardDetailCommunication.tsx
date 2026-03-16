@@ -222,7 +222,7 @@ const CardDetailCommunication = ({ state, handlers, details, emailFileInputRef, 
               if (card) {
                 supabase
                   .from("crm_cards")
-                  .update({ gender } as any)
+                  .update({ gender } as Record<string, string>)
                   .eq("id", card.id)
                   .then(() => queryClient.invalidateQueries({ queryKey: ["crm-cards"] }));
               }
@@ -326,7 +326,7 @@ const CardDetailCommunication = ({ state, handlers, details, emailFileInputRef, 
                   onClick={async () => {
                     if (!card || !user?.email || !emailTo.trim() || !emailSubject.trim()) return;
                     try {
-                      await (supabase as any).from("crm_scheduled_emails").insert({
+                      await (supabase as unknown as { from: (table: string) => ReturnType<typeof supabase.from> }).from("crm_scheduled_emails").insert({
                         card_id: card.id,
                         recipient_email: emailTo.trim(),
                         subject: emailSubject.trim(),

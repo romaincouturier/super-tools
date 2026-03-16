@@ -4,7 +4,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import DocumentsManager from "@/components/formations/DocumentsManager";
-import TrainingDocumentsSection from "@/components/formations/TrainingDocumentsSection";
+import EntityDocumentsManager from "@/components/shared/EntityDocumentsManager";
 import ScheduledEmailsSummary from "@/components/formations/ScheduledEmailsSummary";
 import EmailTimelineComputed from "@/components/formations/EmailTimelineComputed";
 import ScheduledActionsEditor, { ScheduledAction } from "@/components/formations/ScheduledActionsEditor";
@@ -43,7 +43,7 @@ interface Props {
   handleSaveActions: (actions: ScheduledAction[]) => Promise<void>;
   handleToggleActionComplete: (actionId: string, completed: boolean) => Promise<void>;
   handleSaveNotes: () => Promise<void>;
-  toast: (opts: any) => void;
+  toast: (opts: { title?: string; description?: string; variant?: "default" | "destructive" }) => void;
 }
 
 const FormationDetailSections = ({
@@ -108,7 +108,7 @@ const FormationDetailSections = ({
           signedConventionUrls={training.signed_convention_urls || []}
           onUpdate={fetchTrainingData}
         />
-        <TrainingDocumentsSection trainingId={id} />
+        <EntityDocumentsManager entityType="training" entityId={id} title="Documents joints" />
       </div>
       <div className="space-y-6">
         <EmailTimelineComputed
@@ -170,7 +170,7 @@ const FormationDetailSections = ({
     {/* Trainer Adequacy + Evaluation */}
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
       <TrainerAdequacy trainingId={training.id} trainerName={training.trainer_name} />
-      <TrainerEvaluationBlock trainingId={training.id} trainerName={training.trainer_name} trainerId={(training as any).trainer_id} />
+      <TrainerEvaluationBlock trainingId={training.id} trainerName={training.trainer_name} trainerId={(training as unknown as { trainer_id?: string | null }).trainer_id} />
     </div>
 
     {/* Photos & Videos */}
@@ -190,18 +190,18 @@ const FormationDetailSections = ({
         <CardContent className="space-y-3">
           <Textarea
             placeholder="Retour du financeur (OPCO, France Travail…) sur cette formation..."
-            value={(training as any).funder_appreciation || ""}
-            onChange={(e) => setTraining({ ...training, funder_appreciation: e.target.value } as any)}
+            value={(training as unknown as { funder_appreciation?: string | null }).funder_appreciation || ""}
+            onChange={(e) => setTraining({ ...training, funder_appreciation: e.target.value } as Training)}
             onBlur={async () => {
-              const val = ((training as any).funder_appreciation || "").trim();
-              await supabase.from("trainings").update({ funder_appreciation: val || null, funder_appreciation_date: val ? new Date().toISOString().split("T")[0] : null } as any).eq("id", training.id);
+              const val = ((training as unknown as { funder_appreciation?: string | null }).funder_appreciation || "").trim();
+              await supabase.from("trainings").update({ funder_appreciation: val || null, funder_appreciation_date: val ? new Date().toISOString().split("T")[0] : null }).eq("id", training.id);
             }}
             className="min-h-[80px] resize-y"
           />
-          {(training as any).funder_appreciation_date && (
+          {(training as unknown as { funder_appreciation_date?: string | null }).funder_appreciation_date && (
             <p className="text-xs text-muted-foreground flex items-center gap-1">
               <CheckCircle2 className="h-3 w-3 text-primary" />
-              Renseigné le {new Date((training as any).funder_appreciation_date).toLocaleDateString("fr-FR")}
+              Renseigné le {new Date((training as unknown as { funder_appreciation_date?: string }).funder_appreciation_date!).toLocaleDateString("fr-FR")}
             </p>
           )}
         </CardContent>

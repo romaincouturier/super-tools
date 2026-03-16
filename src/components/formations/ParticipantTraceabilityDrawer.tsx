@@ -37,7 +37,7 @@ interface NeedsSurvey {
   contraintes: string | null;
   objectif_prioritaire: string | null;
   autres_commentaires: string | null;
-  prerequis_data: any;
+  prerequis_data: Record<string, unknown> | null;
 }
 
 interface EvaluationData {
@@ -47,7 +47,7 @@ interface EvaluationData {
   appreciation_generale: number | null;
   recommandation: string | null;
   message_recommandation: string | null;
-  objectifs_evaluation: any;
+  objectifs_evaluation: Record<string, unknown> | null;
   objectif_prioritaire: string | null;
   delai_application: string | null;
   freins_application: string | null;
@@ -102,14 +102,14 @@ const ParticipantTraceabilityDrawer = ({
 
     const fetchAll = async () => {
       // Fetch sent emails for this participant (by participant_id OR email+training)
-      const emailsPromise = (supabase as any)
+      const emailsPromise = supabase
         .from("sent_emails_log")
         .select("id, subject, html_content, email_type, sent_at, cc_emails, resend_email_id")
         .or(`participant_id.eq.${participantId},and(recipient_email.ilike.%${participantEmail}%,training_id.eq.${trainingId})`)
         .order("sent_at", { ascending: false });
 
       // Fetch needs survey
-      const surveyPromise = (supabase as any)
+      const surveyPromise = supabase
         .from("questionnaire_besoins")
         .select("id, etat, created_at, submitted_at, attentes, experience, contraintes, objectif_prioritaire, autres_commentaires, prerequis_data")
         .eq("participant_id", participantId)
@@ -117,7 +117,7 @@ const ParticipantTraceabilityDrawer = ({
         .maybeSingle();
 
       // Fetch evaluation
-      const evalPromise = (supabase as any)
+      const evalPromise = supabase
         .from("training_evaluations")
         .select(`
           id, etat, date_soumission, appreciation_generale, recommandation,

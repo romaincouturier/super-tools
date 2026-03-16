@@ -50,7 +50,7 @@ const PostEvaluationEmailManager = () => {
     ]);
 
     if (!emailsResult.error) {
-      setEmails((emailsResult.data || []).map((e: any) => ({
+      setEmails((emailsResult.data || []).map((e) => ({
         id: e.id,
         catalog_id: e.catalog_id,
         subject: e.subject,
@@ -103,7 +103,7 @@ const PostEvaluationEmailManager = () => {
     if (email.id.startsWith("new-")) {
       const { data, error } = await supabase.from("post_evaluation_emails").insert(payload).select().single();
       if (error) {
-        toast({ title: "Erreur", description: error.message, variant: "destructive" });
+        toast({ title: "Erreur", description: (error instanceof Error ? error.message : "Erreur inconnue"), variant: "destructive" });
       } else {
         setEmails(prev => prev.map(e => e.id === email.id ? {
           id: data.id,
@@ -118,7 +118,7 @@ const PostEvaluationEmailManager = () => {
     } else {
       const { error } = await supabase.from("post_evaluation_emails").update(payload).eq("id", email.id);
       if (error) {
-        toast({ title: "Erreur", description: error.message, variant: "destructive" });
+        toast({ title: "Erreur", description: (error instanceof Error ? error.message : "Erreur inconnue"), variant: "destructive" });
       } else {
         const catName = catalogEntries.find(c => c.id === email.catalog_id)?.formation_name || "";
         toast({ title: "Sauvegardé", description: `Email post-évaluation pour "${catName}" mis à jour.` });
@@ -150,7 +150,7 @@ const PostEvaluationEmailManager = () => {
 
     const { error } = await supabase.from("post_evaluation_emails").delete().eq("id", id);
     if (error) {
-      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+      toast({ title: "Erreur", description: (error instanceof Error ? error.message : "Erreur inconnue"), variant: "destructive" });
     } else {
       setEmails(prev => prev.filter(e => e.id !== id));
       toast({ title: "Supprimé", description: "Email post-évaluation supprimé." });

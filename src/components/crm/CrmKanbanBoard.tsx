@@ -415,9 +415,9 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
     setShowAddColumn(false);
   };
 
-  const handleCardClick = (card: CrmCard) => {
+  const handleCardClick = useCallback((card: CrmCard) => {
     setSelectedCard(card);
-  };
+  }, []);
 
   if (isLoading) {
     return (

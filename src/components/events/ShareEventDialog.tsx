@@ -103,14 +103,14 @@ const ShareEventDialog = ({ event }: ShareEventDialogProps) => {
       });
 
       if (response.error) {
-        throw new Error(response.error.message || "Erreur d'envoi");
+        throw new Error(response.error instanceof Error ? error.message : "Erreur d'envoi");
       }
 
       // Record the share in event_shares table (upsert to avoid duplicates)
       const userId = session?.user?.id;
       const recipientName = getDisplayName(selectedProfile) !== selectedProfile.email
         ? getDisplayName(selectedProfile) : null;
-      await (supabase as any).from("event_shares").upsert({
+      await supabase.from("event_shares").upsert({
         event_id: event.id,
         recipient_email: selectedProfile.email,
         recipient_name: recipientName,
@@ -124,11 +124,11 @@ const ShareEventDialog = ({ event }: ShareEventDialogProps) => {
 
       setSelectedProfile(null);
       setOpen(false);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Share error:", err);
       toast({
         title: "Erreur d'envoi",
-        description: err.message || "Impossible d'envoyer l'email.",
+        description: err instanceof Error ? err.message : "Impossible d'envoyer l'email.",
         variant: "destructive",
       });
     } finally {

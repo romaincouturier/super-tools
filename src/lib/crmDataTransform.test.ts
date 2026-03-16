@@ -22,7 +22,7 @@ describe("mapColumns", () => {
 
   it("handles null/empty data", () => {
     expect(mapColumns([])).toEqual([]);
-    expect(mapColumns(null as any)).toEqual([]);
+    expect(mapColumns(null as never)).toEqual([]);
   });
 });
 
@@ -38,7 +38,7 @@ describe("mapTags", () => {
 
   it("handles empty data", () => {
     expect(mapTags([])).toEqual([]);
-    expect(mapTags(null as any)).toEqual([]);
+    expect(mapTags(null as never)).toEqual([]);
   });
 });
 
@@ -71,7 +71,7 @@ describe("mapCards", () => {
 
   it("returns empty array for empty data", () => {
     expect(mapCards([], [], tags)).toEqual([]);
-    expect(mapCards(null as any, [], tags)).toEqual([]);
+    expect(mapCards(null as never, [], tags)).toEqual([]);
   });
 
   it("handles card with no tags", () => {
@@ -105,7 +105,7 @@ describe("mapAttachments", () => {
 
   it("handles empty data", () => {
     expect(mapAttachments([])).toEqual([]);
-    expect(mapAttachments(null as any)).toEqual([]);
+    expect(mapAttachments(null as never)).toEqual([]);
   });
 });
 
@@ -120,7 +120,7 @@ describe("mapComments", () => {
   });
 
   it("handles empty data", () => {
-    expect(mapComments(null as any)).toEqual([]);
+    expect(mapComments(null as never)).toEqual([]);
   });
 });
 

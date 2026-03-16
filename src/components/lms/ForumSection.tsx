@@ -28,9 +28,9 @@ export default function LmsForumSection({ courseId }: Props) {
     if (!newTitle.trim()) return;
     const { error } = await supabase
       .from("lms_forums")
-      .insert({ course_id: courseId, title: newTitle } as any);
+      .insert({ course_id: courseId, title: newTitle });
     if (error) {
-      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+      toast({ title: "Erreur", description: (error instanceof Error ? error.message : "Erreur inconnue"), variant: "destructive" });
       return;
     }
     setNewTitle("");
@@ -74,7 +74,7 @@ export default function LmsForumSection({ courseId }: Props) {
           </CardContent>
         </Card>
       ) : (
-        forums.map((forum: any) => (
+        forums.map((forum) => (
           <Card
             key={forum.id}
             className="cursor-pointer hover:bg-accent/50 transition-colors"

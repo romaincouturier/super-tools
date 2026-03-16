@@ -49,9 +49,9 @@ const NeedsSurveySummaryDialog = ({
       }
 
       setSummary(data.summary);
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error("Error generating summary:", e);
-      const errorMessage = e.message || "Impossible de générer la synthèse.";
+      const errorMessage = e instanceof Error ? e.message : "Impossible de générer la synthèse.";
       setError(errorMessage);
       toast({
         title: "Erreur",

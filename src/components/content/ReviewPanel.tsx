@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { notifyContentUser } from "@/services/contentNotifications";
 import { Plus, Loader2, CheckCircle2, Clock, MessageSquare, Bell, XCircle, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -107,25 +108,23 @@ const ReviewPanel = ({ cardId, cardTitle }: ReviewPanelProps) => {
 
       if (error) throw error;
 
-      // Send notification
+      // Send notification + email
       const review = reviews.find((r) => r.id === reviewId);
       if (review) {
-        await (supabase as any).from("content_notifications").insert({
-          user_id: review.reviewer_id,
-          type: "review_requested",
-          reference_id: reviewId,
-          card_id: cardId,
-          message: `Rappel : Une relecture vous attend pour "${cardTitle}"`,
-        });
-
-        // Optionally trigger email via edge function
-        await supabase.functions.invoke("send-content-notification", {
-          body: {
+        await notifyContentUser(
+          {
+            userId: review.reviewer_id,
+            notificationType: "review_requested",
+            referenceId: reviewId,
+            cardId,
+            message: `Rappel : Une relecture vous attend pour "${cardTitle}"`,
+          },
+          {
             type: "review_reminder",
             recipientEmail: reviewerEmail,
             cardTitle,
           },
-        });
+        );
       }
 
       toast.success("Rappel envoyé");
@@ -151,7 +150,7 @@ const ReviewPanel = ({ cardId, cardTitle }: ReviewPanelProps) => {
       // Notify reviewer that the review is closed
       const review = reviews.find((r) => r.id === reviewId);
       if (review) {
-        await (supabase as any).from("content_notifications").insert({
+        await supabase.from("content_notifications").insert({
           user_id: review.reviewer_id,
           type: "review_status_changed",
           reference_id: reviewId,

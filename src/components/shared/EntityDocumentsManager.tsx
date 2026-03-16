@@ -2,7 +2,7 @@
  * Reusable document manager for any entity (missions, trainings, etc.).
  * Handles upload, download, delete with consistent UI.
  */
-import { useRef, useState } from "react";
+import { useRef, useState, useCallback } from "react";
 import { FileText, Upload, Download, Trash2, Loader2, Package } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -28,8 +28,6 @@ interface EntityDocumentsManagerProps {
   entityId: string;
   /** Card or bare (for embedding in tabs) */
   variant?: "card" | "bare";
-  /** Maximum file size in bytes (default 20 MB) */
-  maxFileSize?: number;
   /** Accepted MIME types (default: all) */
   accept?: string;
   /** Custom title */
@@ -40,7 +38,6 @@ const EntityDocumentsManager = ({
   entityType,
   entityId,
   variant = "card",
-  maxFileSize = 20 * 1024 * 1024,
   accept,
   title = "Documents",
 }: EntityDocumentsManagerProps) => {
@@ -67,13 +64,6 @@ const EntityDocumentsManager = ({
 
     try {
       for (const file of Array.from(files)) {
-        if (file.size > maxFileSize) {
-          toast.error("Fichier trop volumineux", {
-            description: `${file.name} dépasse la limite de ${formatFileSize(maxFileSize)}.`,
-          });
-          continue;
-        }
-
         try {
           const fileUrl = await uploadEntityDocument(file, entityType, entityId);
           await addDocument.mutateAsync({
@@ -83,10 +73,10 @@ const EntityDocumentsManager = ({
             file_size: file.size,
           });
           successCount++;
-        } catch (err: any) {
+        } catch (err: unknown) {
           console.error("[EntityDocumentsManager] Upload error:", err);
           toast.error(`Erreur lors de l'upload de ${file.name}`, {
-            description: err.message,
+            description: (err instanceof Error ? err.message : "Erreur inconnue"),
           });
         }
       }
@@ -103,21 +93,21 @@ const EntityDocumentsManager = ({
     }
   };
 
-  const handleDownload = async (docId: string, fileUrl: string, fileName: string) => {
+  const handleDownload = useCallback(async (docId: string, fileUrl: string, fileName: string) => {
     setDownloadingId(docId);
     try {
       await downloadFile(fileUrl, fileName);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Download error:", err);
       toast.error("Erreur de téléchargement", {
-        description: err.message || "Impossible de télécharger le document.",
+        description: err instanceof Error ? err.message : "Impossible de télécharger le document.",
       });
     } finally {
       setDownloadingId(null);
     }
-  };
+  }, []);
 
-  const handleDelete = async (docId: string, fileUrl: string, fileName: string) => {
+  const handleDelete = useCallback(async (docId: string, fileUrl: string, fileName: string) => {
     if (!confirm(`Supprimer le document "${fileName}" ?`)) return;
 
     setDeletingId(docId);
@@ -125,15 +115,15 @@ const EntityDocumentsManager = ({
       await deleteEntityDocumentFile(fileUrl, entityType);
       await deleteDocument.mutateAsync({ id: docId, entityId });
       toast.success("Document supprimé", { description: fileName });
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Delete error:", err);
       toast.error("Erreur de suppression", {
-        description: err.message || "Impossible de supprimer le document.",
+        description: err instanceof Error ? err.message : "Impossible de supprimer le document.",
       });
     } finally {
       setDeletingId(null);
     }
-  };
+  }, [entityType, deleteDocument, entityId]);
 
   const content = (
     <>
@@ -167,7 +157,7 @@ const EntityDocumentsManager = ({
                 Cliquez pour ajouter des documents
               </p>
               <p className="text-xs text-muted-foreground">
-                Plusieurs fichiers à la fois{maxFileSize < Infinity ? ` — max ${formatFileSize(maxFileSize)} par fichier` : ""}
+                Plusieurs fichiers à la fois
               </p>
             </div>
           )}

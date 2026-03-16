@@ -104,7 +104,7 @@ const NewsletterSection = ({ onCardClick, refreshKey }: NewsletterSectionProps) 
 
   const fetchNewsletters = useCallback(async () => {
     try {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("newsletters")
         .select("*")
         .order("scheduled_date", { ascending: true });
@@ -132,7 +132,7 @@ const NewsletterSection = ({ onCardClick, refreshKey }: NewsletterSectionProps) 
 
   const fetchNewsletterCards = async (newsletterId: string) => {
     try {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("newsletter_cards")
         .select("*")
         .eq("newsletter_id", newsletterId)
@@ -141,15 +141,15 @@ const NewsletterSection = ({ onCardClick, refreshKey }: NewsletterSectionProps) 
       if (error) throw error;
 
       // Fetch card titles and pending comment counts
-      const cardIds = (data || []).map((nc: any) => nc.card_id);
+      const cardIds = (data || []).map((nc) => nc.card_id);
       if (cardIds.length > 0) {
-        const { data: cardsData } = await (supabase as any)
+        const { data: cardsData } = await supabase
           .from("content_cards")
           .select("id, title, card_type")
           .in("id", cardIds);
 
         const cardMap = new Map(
-          (cardsData || []).map((c: any) => [c.id, { title: c.title, card_type: c.card_type }])
+          (cardsData || []).map((c) => [c.id, { title: c.title, card_type: c.card_type }])
         );
 
         // Fetch pending comments per card
@@ -161,10 +161,10 @@ const NewsletterSection = ({ onCardClick, refreshKey }: NewsletterSectionProps) 
             .in("card_id", cardIds);
 
           if (reviews && reviews.length > 0) {
-            const reviewIds = reviews.map((r: any) => r.id);
-            const reviewToCard = new Map(reviews.map((r: any) => [r.id, r.card_id]));
+            const reviewIds = reviews.map((r) => r.id);
+            const reviewToCard = new Map(reviews.map((r) => [r.id, r.card_id]));
 
-            const { data: pendingComments } = await (supabase as any)
+            const { data: pendingComments } = await supabase
               .from("review_comments")
               .select("review_id")
               .eq("status", "pending")
@@ -180,10 +180,10 @@ const NewsletterSection = ({ onCardClick, refreshKey }: NewsletterSectionProps) 
         }
 
         setNewsletterCards(
-          (data || []).map((nc: any) => ({
+          (data || []).map((nc) => ({
             ...nc,
-            card_title: (cardMap.get(nc.card_id) as any)?.title || "Sans titre",
-            card_type: (cardMap.get(nc.card_id) as any)?.card_type || "article",
+            card_title: cardMap.get(nc.card_id)?.title || "Sans titre",
+            card_type: cardMap.get(nc.card_id)?.card_type || "article",
             pending_comments: pendingMap.get(nc.card_id) || 0,
           }))
         );
@@ -207,7 +207,7 @@ const NewsletterSection = ({ onCardClick, refreshKey }: NewsletterSectionProps) 
 
     setCreating(true);
     try {
-      const { error } = await (supabase as any).from("newsletters").insert({
+      const { error } = await supabase.from("newsletters").insert({
         title: newTitle.trim() || null,
         scheduled_date: newDate,
         status: "draft",
@@ -233,7 +233,7 @@ const NewsletterSection = ({ onCardClick, refreshKey }: NewsletterSectionProps) 
 
     setSending(true);
     try {
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("newsletters")
         .update({
           status: "sent",
@@ -302,7 +302,7 @@ const NewsletterSection = ({ onCardClick, refreshKey }: NewsletterSectionProps) 
 
   const fetchNewsletterCardsForHistory = async (newsletterId: string) => {
     try {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("newsletter_cards")
         .select("*")
         .eq("newsletter_id", newsletterId)
@@ -310,23 +310,23 @@ const NewsletterSection = ({ onCardClick, refreshKey }: NewsletterSectionProps) 
 
       if (error) throw error;
 
-      const cardIds = (data || []).map((nc: any) => nc.card_id);
+      const cardIds = (data || []).map((nc) => nc.card_id);
       if (cardIds.length > 0) {
-        const { data: cardsData } = await (supabase as any)
+        const { data: cardsData } = await supabase
           .from("content_cards")
           .select("id, title, card_type")
           .in("id", cardIds);
 
         const cardMap = new Map(
-          (cardsData || []).map((c: any) => [c.id, { title: c.title, card_type: c.card_type }])
+          (cardsData || []).map((c) => [c.id, { title: c.title, card_type: c.card_type }])
         );
 
         setHistoryCards((prev) => ({
           ...prev,
-          [newsletterId]: (data || []).map((nc: any) => ({
+          [newsletterId]: (data || []).map((nc) => ({
             ...nc,
-            card_title: (cardMap.get(nc.card_id) as any)?.title || "Sans titre",
-            card_type: (cardMap.get(nc.card_id) as any)?.card_type || "article",
+            card_title: cardMap.get(nc.card_id)?.title || "Sans titre",
+            card_type: cardMap.get(nc.card_id)?.card_type || "article",
           })),
         }));
       } else {
@@ -339,7 +339,7 @@ const NewsletterSection = ({ onCardClick, refreshKey }: NewsletterSectionProps) 
 
   const handleRemoveCard = async (newsletterCardId: string) => {
     try {
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("newsletter_cards")
         .delete()
         .eq("id", newsletterCardId);

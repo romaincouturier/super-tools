@@ -39,7 +39,7 @@ const MissionActionsManager = ({ missionId }: MissionActionsManagerProps) => {
   const { toast } = useToast();
 
   const fetchActions = async () => {
-    const { data } = await (supabase as any)
+    const { data } = await supabase
       .from("mission_actions")
       .select("*")
       .eq("mission_id", missionId)
@@ -55,14 +55,14 @@ const MissionActionsManager = ({ missionId }: MissionActionsManagerProps) => {
   const handleAdd = async () => {
     if (!newTitle.trim()) return;
     const maxPos = actions.length > 0 ? Math.max(...actions.map((a) => a.position)) + 1 : 0;
-    const { error } = await (supabase as any).from("mission_actions").insert({
+    const { error } = await supabase.from("mission_actions").insert({
       mission_id: missionId,
       title: newTitle.trim(),
       status: "todo",
       position: maxPos,
     });
     if (error) {
-      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+      toast({ title: "Erreur", description: (error instanceof Error ? error.message : "Erreur inconnue"), variant: "destructive" });
       return;
     }
     setNewTitle("");
@@ -73,7 +73,7 @@ const MissionActionsManager = ({ missionId }: MissionActionsManagerProps) => {
     const order = ["todo", "in_progress", "done"];
     const nextIndex = (order.indexOf(action.status) + 1) % order.length;
     const nextStatus = order[nextIndex];
-    await (supabase as any)
+    await supabase
       .from("mission_actions")
       .update({ status: nextStatus })
       .eq("id", action.id);
@@ -81,7 +81,7 @@ const MissionActionsManager = ({ missionId }: MissionActionsManagerProps) => {
   };
 
   const handleDelete = async (id: string) => {
-    await (supabase as any).from("mission_actions").delete().eq("id", id);
+    await supabase.from("mission_actions").delete().eq("id", id);
     fetchActions();
   };
 

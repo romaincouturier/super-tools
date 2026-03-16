@@ -69,7 +69,7 @@ const EventEdit = () => {
         cfpDeadline: event.cfp_deadline || "",
         eventUrl: event.event_url || "",
         cfpUrl: event.cfp_url || "",
-        privateGroupUrl: (event as any).private_group_url || "",
+        privateGroupUrl: (event as unknown as { private_group_url?: string }).private_group_url || "",
       };
       setValues(mapped);
       setAssignedTo(event.assigned_to || null);
@@ -92,7 +92,7 @@ const EventEdit = () => {
   // Fetch shares count
   useEffect(() => {
     if (!id) return;
-    (supabase as any)
+    (supabase as unknown as { from: (table: string) => ReturnType<typeof supabase.from> })
       .from("event_shares")
       .select("id", { count: "exact", head: true })
       .eq("event_id", id)
@@ -182,11 +182,11 @@ const EventEdit = () => {
         title: "Relance envoyée",
         description: `${sharesCount} personne(s) notifiée(s) des modifications.`,
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Notify error:", err);
       toast({
         title: "Erreur d'envoi",
-        description: "Les modifications sont sauvegardées mais la notification a échoué.",
+        description: err instanceof Error ? err.message : "Erreur inconnue",
         variant: "destructive",
       });
     } finally {

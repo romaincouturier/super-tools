@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ComponentType } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import ModuleLayout from "@/components/ModuleLayout";
 import { Button } from "@/components/ui/button";
@@ -31,7 +31,7 @@ import LmsQuizBuilder from "@/components/lms/QuizBuilder";
 import LmsForumSection from "@/components/lms/ForumSection";
 import LmsEnrollmentManager from "@/components/lms/EnrollmentManager";
 
-const lessonTypeIcons: Record<string, any> = {
+const lessonTypeIcons: Record<string, ComponentType<{ className?: string }>> = {
   text: FileText,
   video: Video,
   quiz: HelpCircle,
@@ -287,7 +287,7 @@ export default function LmsCourseBuilder() {
   );
 }
 
-function CourseSettings({ course }: { course: any }) {
+function CourseSettings({ course }: { course: { id: string; title: string; description: string | null; difficulty_level: string | null; estimated_duration_minutes: number } }) {
   const updateCourse = useUpdateCourse();
   const [form, setForm] = useState({
     title: course.title,

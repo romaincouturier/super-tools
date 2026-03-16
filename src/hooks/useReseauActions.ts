@@ -18,7 +18,7 @@ export const useNetworkActions = (week?: string) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Non authentifié");
 
-      let query = (supabase as any)
+      let query = supabase
         .from("network_actions")
         .select("*, contact:network_contacts(*)")
         .eq("user_id", user.id)
@@ -67,7 +67,7 @@ export const useGenerateWeeklyActions = () => {
           status: "pending" as const,
         }));
 
-        await (supabase as any).from("network_actions").insert(rows);
+        await supabase.from("network_actions").insert(rows);
       }
 
       return generated;
@@ -91,7 +91,7 @@ export const useUpdateActionStatus = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Non authentifié");
 
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("network_actions")
         .update({
           status,
@@ -103,7 +103,7 @@ export const useUpdateActionStatus = () => {
 
       // Auto-log interaction when action is marked as done
       if (status === "done" && contactId) {
-        await (supabase as any)
+        await supabase
           .from("network_interactions")
           .insert({
             user_id: user.id,

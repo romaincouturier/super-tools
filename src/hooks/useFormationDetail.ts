@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { sendThankYouEmail } from "@/services/emailSender";
 import { User } from "@supabase/supabase-js";
 import type { FormationFormula } from "@/types/training";
 import { format, parseISO } from "date-fns";
@@ -192,31 +193,31 @@ export function useFormationDetail() {
     setNotes(trainingData.notes || "");
     setNotesChanged(false);
 
-    if ((trainingData as any).catalog_id) {
+    if (trainingData.catalog_id) {
       const [{ data: formulasData }, { data: catalogData }] = await Promise.all([
         supabase
           .from("formation_formulas")
           .select("*")
-          .eq("formation_config_id", (trainingData as any).catalog_id)
+          .eq("formation_config_id", trainingData.catalog_id)
           .order("display_order"),
         supabase
           .from("formation_configs")
           .select("required_equipment")
-          .eq("id", (trainingData as any).catalog_id)
+          .eq("id", trainingData.catalog_id)
           .maybeSingle(),
       ]);
       setAvailableFormulas((formulasData as FormationFormula[]) || []);
-      setCatalogRequiredEquipment((catalogData as any)?.required_equipment || null);
+      setCatalogRequiredEquipment(catalogData?.required_equipment || null);
     } else {
       setAvailableFormulas([]);
       setCatalogRequiredEquipment(null);
     }
 
-    if ((trainingData as any).assigned_to) {
+    if (trainingData.assigned_to) {
       const { data: assignedProfile } = await supabase
         .from("profiles")
         .select("first_name, last_name, email")
-        .eq("user_id", (trainingData as any).assigned_to)
+        .eq("user_id", trainingData.assigned_to)
         .maybeSingle();
       if (assignedProfile) {
         const name = [assignedProfile.first_name, assignedProfile.last_name].filter(Boolean).join(" ");
@@ -268,8 +269,8 @@ export function useFormationDetail() {
         .order("created_at", { ascending: false })
         .limit(20);
       if (data) {
-        const match = data.find((log: any) => {
-          const details = (log as any).details as { training_id?: string } | null;
+        const match = data.find((log) => {
+          const details = log.details as { training_id?: string } | null;
           return details?.training_id === id;
         });
         if (match) setThankYouSentAt(match.created_at);
@@ -281,10 +282,7 @@ export function useFormationDetail() {
   const handleSendThankYouEmail = async () => {
     setSendingThankYou(true);
     try {
-      const { error, data } = await supabase.functions.invoke("send-thank-you-email", {
-        body: { trainingId: id },
-      });
-      if (error) throw error;
+      const data = await sendThankYouEmail(id!);
       toast({
         title: "Email de remerciement envoyé",
         description: `Le mail a été envoyé à ${data.recipientCount} participant(s). Les emails post-formation ont été programmés automatiquement.`,
@@ -292,11 +290,11 @@ export function useFormationDetail() {
       setThankYouSentAt(new Date().toISOString());
       setShowThankYouPreview(false);
       setEmailsRefreshTrigger((prev) => prev + 1);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Send error:", error);
       toast({
         title: "Erreur d'envoi",
-        description: error.message || "Impossible d'envoyer le mail de remerciement.",
+        description: error instanceof Error ? error.message : "Impossible d'envoyer le mail de remerciement.",
         variant: "destructive",
       });
     } finally {
@@ -386,7 +384,7 @@ export function useFormationDetail() {
     try {
       const { error } = await supabase
         .from("trainings")
-        .update({ notes: notes.trim() || null } as any)
+        .update({ notes: notes.trim() || null })
         .eq("id", id);
       if (error) throw error;
       setNotesChanged(false);

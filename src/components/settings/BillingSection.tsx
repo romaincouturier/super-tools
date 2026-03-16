@@ -64,14 +64,14 @@ export default function BillingSection() {
     ]);
 
     if (plansRes.data) {
-      setPlans(plansRes.data.map((p: any) => ({
+      setPlans(plansRes.data.map((p) => ({
         ...p,
         features: Array.isArray(p.features) ? p.features : [],
       })));
     }
 
     if (subRes.data) {
-      setSubscription(subRes.data as any);
+      setSubscription(subRes.data as unknown as typeof subscription);
     }
 
     // Get current org plan
@@ -108,8 +108,8 @@ export default function BillingSection() {
       if (data?.url) {
         window.location.href = data.url;
       }
-    } catch (err: any) {
-      toast.error(err.message || "Erreur lors de la création du paiement");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Erreur lors de la création du paiement");
     } finally {
       setCheckoutLoading(null);
     }
@@ -126,8 +126,8 @@ export default function BillingSection() {
       if (data?.url) {
         window.location.href = data.url;
       }
-    } catch (err: any) {
-      toast.error(err.message || "Erreur");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Erreur");
     } finally {
       setPortalLoading(false);
     }

@@ -317,7 +317,7 @@ function QuizPlayer({ quizId, learnerEmail, onComplete }: { quizId: string; lear
   const handleSubmit = async () => {
     let score = 0;
     const maxScore = questions.reduce((sum, q) => sum + q.points, 0);
-    const answerDetails: any[] = [];
+    const answerDetails: { question_id: string; answer: string; is_correct: boolean; points_earned: number }[] = [];
 
     for (const q of questions) {
       const userAnswer = answers[q.id] || "";
@@ -484,8 +484,8 @@ function AssignmentSubmitter({ lessonId, learnerEmail }: { lessonId: string; lea
       setComment("");
       setFile(null);
       toast({ title: "Devoir soumis !" });
-    } catch (err: any) {
-      toast({ title: "Erreur", description: err.message, variant: "destructive" });
+    } catch (err: unknown) {
+      toast({ title: "Erreur", description: err instanceof Error ? err.message : "Erreur inconnue", variant: "destructive" });
     } finally {
       setUploading(false);
     }

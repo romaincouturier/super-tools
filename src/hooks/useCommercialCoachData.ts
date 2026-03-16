@@ -68,7 +68,7 @@ export function useCommercialCoachData() {
         commentsRes, emailsRes, evalRes, sponsorEvalRes, missionActivitiesRes, activityLogRes,
       ] =
         await Promise.all([
-          (supabase as any)
+          supabase
             .from("okr_objectives")
             .select(`*, okr_key_results ( id, title, description, target_value, current_value, unit, progress_percentage, confidence_level )`)
             .in("status", ["active", "draft"])
@@ -79,7 +79,7 @@ export function useCommercialCoachData() {
             .eq("is_archived", false)
             .order("position", { ascending: true }),
           supabase.from("crm_cards").select("*").order("position", { ascending: true }),
-          (supabase as unknown as { from: (t: string) => { select: (c: string) => { order: (c: string, o: { ascending: boolean }) => Promise<{ data: unknown[] | null; error: Error | null }> } } })
+          supabase
             .from("missions")
             .select("*")
             .order("position", { ascending: true }),
@@ -92,23 +92,23 @@ export function useCommercialCoachData() {
             .from("formation_configs")
             .select("formation_name, prix, duree_heures")
             .order("display_order", { ascending: true }),
-          (supabase as any)
+          supabase
             .from("crm_revenue_targets")
             .select("*")
             .order("period_start", { ascending: true }),
-          (supabase as any)
+          supabase
             .from("commercial_coach_contexts")
             .select("*")
             .eq("year", new Date().getFullYear())
             .order("context_type", { ascending: true }),
-          (supabase as any)
+          supabase
             .from("crm_comments")
             .select("card_id, author_email, content, created_at")
             .eq("is_deleted", false)
             .gte("created_at", new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString())
             .order("created_at", { ascending: false })
             .limit(100),
-          (supabase as any)
+          supabase
             .from("crm_card_emails")
             .select("card_id, sender_email, recipient_email, subject, sent_at")
             .gte("sent_at", new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString())
@@ -120,19 +120,19 @@ export function useCommercialCoachData() {
             .eq("etat", "soumis")
             .order("date_soumission", { ascending: false })
             .limit(100),
-          (supabase as any)
+          supabase
             .from("sponsor_cold_evaluations")
             .select("satisfaction_globale, recommandation, message_recommandation, points_forts, axes_amelioration, impact_competences, objectifs_atteints, sponsor_name, company, trainings!inner(training_name)")
             .eq("etat", "soumis")
             .order("date_soumission", { ascending: false })
             .limit(50),
-          (supabase as any)
+          supabase
             .from("mission_activities")
             .select("description, activity_date, duration, duration_type, billable_amount, is_billed, missions!inner(title)")
             .gte("activity_date", new Date(Date.now() - 180 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10))
             .order("activity_date", { ascending: false })
             .limit(100),
-          (supabase as any)
+          supabase
             .from("crm_activity_log")
             .select("card_id, action_type, old_value, new_value, created_at")
             .gte("created_at", new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString())
@@ -163,7 +163,7 @@ export function useCommercialCoachData() {
       if (okrRes.error) errors.push(`OKR: ${okrRes.error.message}`);
       if (columnsRes.error) errors.push(`CRM colonnes: ${columnsRes.error.message}`);
       if (cardsRes.error) errors.push(`CRM cartes: ${cardsRes.error.message}`);
-      if (missionsRes.error) errors.push(`Missions: ${(missionsRes.error as Error).message}`);
+      if (missionsRes.error) errors.push(`Missions: ${missionsRes.error.message}`);
       if (trainingsRes.error) errors.push(`Formations: ${trainingsRes.error.message}`);
       if (catalogueRes.error) errors.push(`Catalogue: ${catalogueRes.error.message}`);
       if (revenueTargetsRes.error) console.warn("Revenue targets fetch error:", revenueTargetsRes.error.message);
@@ -192,7 +192,7 @@ export function useCommercialCoachData() {
 
       const commentsData = (commentsRes?.data || []) as { card_id: string; author_email: string; content: string; created_at: string }[];
       const emailsData = (emailsRes?.data || []) as { card_id: string; sender_email: string; recipient_email: string; subject: string; sent_at: string }[];
-      const evalData = ((evalRes?.data || []) as any[]).map((e: any) => ({
+      const evalData = (evalRes?.data || []).map((e) => ({
         training_name: e.trainings?.training_name || "Inconnue",
         appreciation_generale: e.appreciation_generale,
         recommandation: e.recommandation,
@@ -200,7 +200,7 @@ export function useCommercialCoachData() {
         amelioration_suggeree: e.amelioration_suggeree,
         company: e.company,
       }));
-      const sponsorEvalData = ((sponsorEvalRes?.data || []) as any[]).map((e: any) => ({
+      const sponsorEvalData = (sponsorEvalRes?.data || []).map((e) => ({
         training_name: e.trainings?.training_name || "Inconnue",
         sponsor_name: e.sponsor_name,
         company: e.company,
@@ -212,7 +212,7 @@ export function useCommercialCoachData() {
         impact_competences: e.impact_competences,
         objectifs_atteints: e.objectifs_atteints,
       }));
-      const missionActivitiesData = ((missionActivitiesRes?.data || []) as any[]).map((a: any) => ({
+      const missionActivitiesData = (missionActivitiesRes?.data || []).map((a) => ({
         mission_title: a.missions?.title || "Inconnue",
         description: a.description,
         activity_date: a.activity_date,

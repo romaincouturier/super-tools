@@ -57,7 +57,7 @@ const DbSizeTab = () => {
   const { data: snapshots = [] } = useQuery({
     queryKey: ["db-size-snapshots"],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("db_size_snapshots")
         .select("*")
         .order("created_at", { ascending: true });

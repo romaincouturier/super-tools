@@ -137,15 +137,7 @@ const ProgramSelector = ({
       return;
     }
 
-    // Validate file size (max 10MB)
-    if (file.size > 10 * 1024 * 1024) {
-      toast({
-        title: "Fichier trop volumineux",
-        description: "Le fichier ne doit pas dépasser 10 Mo.",
-        variant: "destructive",
-      });
-      return;
-    }
+
 
     setUploading(true);
 
@@ -163,9 +155,10 @@ const ProgramSelector = ({
 
       if (signedError) throw signedError;
 
-      const path = (signedData as any)?.path as string | undefined;
-      const token = (signedData as any)?.token as string | undefined;
-      const publicUrl = (signedData as any)?.publicUrl as string | undefined;
+      const signedResult = signedData as unknown as { path?: string; token?: string; publicUrl?: string } | null;
+      const path = signedResult?.path;
+      const token = signedResult?.token;
+      const publicUrl = signedResult?.publicUrl;
 
       if (!path || !token || !publicUrl) {
         console.error("[ProgramSelector] Invalid signed upload response:", signedData);
@@ -209,11 +202,11 @@ const ProgramSelector = ({
       if (onPrerequisitesExtracted) {
         await extractPrerequisitesFromPdf(publicUrl);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Upload error:", error);
       toast({
         title: "Erreur d'upload",
-        description: error.message || "Une erreur est survenue lors de l'upload.",
+        description: error instanceof Error ? error.message : "Une erreur est survenue lors de l'upload.",
         variant: "destructive",
       });
     } finally {
@@ -266,11 +259,11 @@ const ProgramSelector = ({
         title: "Programme supprimé",
         description: "Le fichier a été retiré de votre bibliothèque.",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Delete error:", error);
       toast({
         title: "Erreur de suppression",
-        description: error.message || "Une erreur est survenue lors de la suppression.",
+        description: error instanceof Error ? error.message : "Une erreur est survenue lors de la suppression.",
         variant: "destructive",
       });
     } finally {
@@ -328,7 +321,7 @@ const ProgramSelector = ({
                     <Upload className="h-8 w-8 text-muted-foreground" />
                   )}
                   <span className="text-sm text-muted-foreground">
-                    {uploading ? "Upload en cours..." : "Cliquez pour uploader un PDF (max 10 Mo)"}
+                    {uploading ? "Upload en cours..." : "Cliquez pour uploader un PDF"}
                   </span>
                 </Label>
               </div>

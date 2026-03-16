@@ -250,8 +250,8 @@ describe("fmtEuro", () => {
 
 describe("hasAnyProvider", () => {
   it("retourne toujours true (Claude server-side)", () => {
-    expect(hasAnyProvider({} as any)).toBe(true);
-    expect(hasAnyProvider({ openai: "key" } as any)).toBe(true);
+    expect(hasAnyProvider({})).toBe(true);
+    expect(hasAnyProvider({ openai: "key" })).toBe(true);
   });
 });
 

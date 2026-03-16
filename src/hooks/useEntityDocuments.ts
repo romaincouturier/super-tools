@@ -24,7 +24,7 @@ export interface EntityDocument {
 // ── Config per entity type ───────────────────────────────────────────
 
 interface EntityDocumentConfig {
-  table: string;
+  table: "mission_documents" | "training_documents";
   foreignKey: string;
   bucket: string;
   queryKey: string;
@@ -53,7 +53,7 @@ export const useEntityDocuments = (entityType: DocumentEntityType, entityId: str
     queryKey: [config.queryKey, entityId],
     enabled: !!entityId,
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from(config.table)
         .select("*")
         .eq(config.foreignKey, entityId)
@@ -61,9 +61,9 @@ export const useEntityDocuments = (entityType: DocumentEntityType, entityId: str
 
       if (error) throw error;
 
-      return (data || []).map((row: any): EntityDocument => ({
+      return (data || []).map((row): EntityDocument => ({
         id: row.id,
-        entity_id: row[config.foreignKey],
+        entity_id: (row as Record<string, unknown>)[config.foreignKey] as string,
         file_name: row.file_name,
         file_url: row.file_url,
         file_size: row.file_size,
@@ -90,7 +90,7 @@ export const useAddEntityDocument = (entityType: DocumentEntityType) => {
     }) => {
       const { data: session } = await supabase.auth.getSession();
       const userId = session.session?.user?.id;
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from(config.table)
         .insert({
           [config.foreignKey]: input.entityId,
@@ -120,7 +120,7 @@ export const useDeleteEntityDocument = (entityType: DocumentEntityType) => {
 
   return useMutation({
     mutationFn: async ({ id, entityId }: { id: string; entityId: string }) => {
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from(config.table)
         .delete()
         .eq("id", id);
@@ -143,7 +143,7 @@ export const useToggleDocumentDeliverable = (entityType: DocumentEntityType) => 
 
   return useMutation({
     mutationFn: async ({ id, entityId, is_deliverable }: { id: string; entityId: string; is_deliverable: boolean }) => {
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from(config.table)
         .update({ is_deliverable })
         .eq("id", id);

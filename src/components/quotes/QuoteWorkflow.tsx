@@ -87,12 +87,12 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
   // Determine initial step from existing quote
   const getInitialStep = (q: Quote | null | undefined): QuoteWorkflowStep => {
     if (!q) return 0;
-    const saved = (q as any).workflow_step;
+    const saved = (q as unknown as { workflow_step?: number }).workflow_step;
     if (typeof saved === "number" && saved >= 0 && saved <= 5) return saved as QuoteWorkflowStep;
     if (q.email_sent_at) return 5;
     if (q.client_siren) return 4;
     if (q.line_items?.length > 0) return 3;
-    if ((q as any).travel_data?.total) return 2;
+    if ((q as unknown as { travel_data?: { total?: number } }).travel_data?.total) return 2;
     if (q.loom_url) return 1;
     return 0;
   };
@@ -155,10 +155,10 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
       if (existingQuote.synthesis) setSynthesis(existingQuote.synthesis);
       if (existingQuote.instructions) setInstructions(existingQuote.instructions);
       if (existingQuote.loom_url) setLoomUrl(existingQuote.loom_url);
-      if ((existingQuote as any).challenge_html) setChallengeHtml((existingQuote as any).challenge_html);
+      if ((existingQuote as unknown as { challenge_html?: string }).challenge_html) setChallengeHtml((existingQuote as unknown as { challenge_html?: string }).challenge_html);
       
       // Restore travel data
-      const td = (existingQuote as any).travel_data;
+      const td = (existingQuote as unknown as { travel_data?: { total?: number; destinations?: string[]; settings?: Record<string, unknown> | null } }).travel_data;
       if (td) {
         setTravelTotal(td.total || 0);
         setTravelDestinations(td.destinations || []);
@@ -192,7 +192,7 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
   );
 
   // Save workflow step to DB
-  const saveWorkflowStep = async (quoteId: string, stepNum: number, extraUpdates?: Record<string, any>) => {
+  const saveWorkflowStep = async (quoteId: string, stepNum: number, extraUpdates?: Record<string, unknown>) => {
     try {
       await updateMutation.mutateAsync({
         id: quoteId,
@@ -230,7 +230,7 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
     if (quote) {
       updateMutation.mutate({
         id: quote.id,
-        updates: { challenge_html: html } as any,
+        updates: { challenge_html: html },
       });
     }
   }, [quote]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -282,8 +282,8 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
           client_email: client.email || null,
         });
         setQuote(currentQuote);
-      } catch (e: any) {
-        toast.error("Erreur lors de la création du devis : " + e.message);
+      } catch (e: unknown) {
+        toast.error("Erreur lors de la création du devis : " + (e instanceof Error ? e.message : "Erreur inconnue"));
         return;
       }
     } else {
@@ -350,7 +350,7 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
             instructions,
             loom_url: loomUrl || null,
             workflow_step: step,
-            ...(challengeHtml ? { challenge_html: challengeHtml } as any : {}),
+            ...(challengeHtml ? { challenge_html: challengeHtml } : {}),
             ...(travelDestinations.length > 0 ? { travel_data: { total: travelTotal, destinations: travelDestinations, settings: travelSettings } } : {}),
             ...(clientData ? {
               client_company: clientData.company,
@@ -385,13 +385,13 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
             instructions,
             loom_url: loomUrl || null,
             workflow_step: step,
-            ...(challengeHtml ? { challenge_html: challengeHtml } as any : {}),
+            ...(challengeHtml ? { challenge_html: challengeHtml } : {}),
           },
         });
         toast.success("Brouillon de devis créé");
       }
-    } catch (e: any) {
-      toast.error("Erreur lors de la sauvegarde : " + (e.message || "Erreur inconnue"));
+    } catch (e: unknown) {
+      toast.error("Erreur lors de la sauvegarde : " + (e instanceof Error ? e.message : "Erreur inconnue"));
     } finally {
       setIsSaving(false);
     }

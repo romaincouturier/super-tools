@@ -197,8 +197,8 @@ const CoachingSlotsSection = ({ trainingId, participants }: CoachingSlotsSection
       setDialogOpen(false);
       resetForm();
       fetchSlots();
-    } catch (error: any) {
-      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+    } catch (error: unknown) {
+      toast({ title: "Erreur", description: (error instanceof Error ? error.message : "Erreur inconnue"), variant: "destructive" });
     } finally {
       setSaving(false);
     }
@@ -214,7 +214,7 @@ const CoachingSlotsSection = ({ trainingId, participants }: CoachingSlotsSection
 
     const { error } = await supabase.from("training_coaching_slots").delete().eq("id", id);
     if (error) {
-      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+      toast({ title: "Erreur", description: (error instanceof Error ? error.message : "Erreur inconnue"), variant: "destructive" });
     } else {
       toast({ title: "Créneau supprimé" });
       fetchSlots();

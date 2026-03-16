@@ -270,8 +270,8 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
         setDureeHeures(String(entry.duree_heures || ""));
         setProgrammeUrl(entry.programme_url || "");
         setSupportsUrl(entry.supports_url || "");
-        setSupertiltLink((entry as any).supertilt_link || "");
-        setRequiredEquipment((entry as any).required_equipment || "");
+        setSupertiltLink((entry as unknown as { supertilt_link?: string | null }).supertilt_link || "");
+        setRequiredEquipment((entry as unknown as { required_equipment?: string | null }).required_equipment || "");
         setObjectives(entry.objectives || []);
         setPrerequisites(entry.prerequisites || []);
         setElearningDuration(entry.elearning_duration ? String(entry.elearning_duration) : "");
@@ -396,11 +396,11 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
       });
 
       onClose(true);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error creating catalog entry:", error);
       toast({
         title: "Erreur",
-        description: error.message || "Impossible de créer.",
+        description: error instanceof Error ? error.message : "Impossible de créer.",
         variant: "destructive",
       });
     } finally {

@@ -11,7 +11,7 @@ export const usePositioning = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Non authentifié");
 
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("user_positioning")
         .select("*")
         .eq("user_id", user.id)
@@ -33,7 +33,7 @@ export const useUpsertPositioning = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Non authentifié");
 
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("user_positioning")
         .upsert(
           {

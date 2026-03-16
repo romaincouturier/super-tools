@@ -24,7 +24,7 @@ export const useOKRInsights = (year: number) => {
     queryKey: ["okr-insights", year],
     queryFn: async (): Promise<OKRInsightsData> => {
       // Fetch all objectives for the year
-      const { data: objectives, error: objError } = await (supabase as any)
+      const { data: objectives, error: objError } = await supabase
         .from("okr_objectives")
         .select("*")
         .eq("target_year", year)
@@ -37,7 +37,7 @@ export const useOKRInsights = (year: number) => {
 
       // Fetch all key results for these objectives
       const { data: allKRs, error: krError } = objectiveIds.length
-        ? await (supabase as any)
+        ? await supabase
             .from("okr_key_results")
             .select("*")
             .in("objective_id", objectiveIds)
@@ -56,7 +56,7 @@ export const useOKRInsights = (year: number) => {
 
       // Fetch all check-ins for these objectives
       const { data: allCheckIns, error: ciError } = objectiveIds.length
-        ? await (supabase as any)
+        ? await supabase
             .from("okr_check_ins")
             .select("*")
             .in("objective_id", objectiveIds)

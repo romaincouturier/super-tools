@@ -4,9 +4,10 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 
-const db = () => supabase as any;
+// The generated Database type doesn't cover all tables; bypass table-name checking.
+const db = () => supabase as unknown as { from: (table: string) => ReturnType<typeof supabase.from> };
 
-function throwIfError<T>(result: { data: T; error: any }): T {
+function throwIfError<T>(result: { data: T; error: { message: string } | null }): T {
   if (result.error) throw result.error;
   return result.data;
 }

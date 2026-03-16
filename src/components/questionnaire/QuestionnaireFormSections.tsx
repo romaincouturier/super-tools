@@ -37,7 +37,7 @@ const QuestionnaireFormSections = ({
   markDirty, hasUnvalidatedPrerequisites,
   submitting, submit, saveDraft, saving,
 }: Props) => {
-  const updateField = (field: keyof QuestionnaireRecord, value: any) => {
+  const updateField = (field: keyof QuestionnaireRecord, value: QuestionnaireRecord[keyof QuestionnaireRecord]) => {
     markDirty();
     setQuestionnaire((p) => (p ? { ...p, [field]: value } : p));
   };
