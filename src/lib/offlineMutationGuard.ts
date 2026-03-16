@@ -1,4 +1,11 @@
-import { toast } from "@/hooks/use-toast";
+type ToastFn = (opts: { title: string; description: string; variant: string }) => void;
+
+let _toast: ToastFn | null = null;
+
+/** Register the toast function at app init (avoids lib → hooks circular dep). */
+export function registerToast(fn: ToastFn) {
+  _toast = fn;
+}
 
 /**
  * Wraps a mutation function to prevent execution when offline.
@@ -9,7 +16,7 @@ export function offlineGuard<T extends (...args: unknown[]) => Promise<unknown>>
 ): T {
   return ((...args: unknown[]) => {
     if (!navigator.onLine) {
-      toast({
+      _toast?.({
         title: "Action impossible",
         description: "Vous êtes hors ligne. Reconnectez-vous pour effectuer cette action.",
         variant: "destructive",
