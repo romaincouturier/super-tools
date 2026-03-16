@@ -71,6 +71,16 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
     }
   }, [initialCardId, boardData?.cards, initialCardOpened]);
 
+  // Keep selectedCard in sync with latest board data (e.g. after tag assignment)
+  useEffect(() => {
+    if (selectedCard && boardData?.cards) {
+      const fresh = boardData.cards.find((c) => c.id === selectedCard.id);
+      if (fresh && fresh !== selectedCard) {
+        setSelectedCard(fresh);
+      }
+    }
+  }, [boardData?.cards]);
+
   // Search state
   const [searchQuery, setSearchQuery] = useState("");
   const [showSearchResults, setShowSearchResults] = useState(false);
