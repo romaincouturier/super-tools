@@ -282,8 +282,8 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
           client_email: client.email || null,
         });
         setQuote(currentQuote);
-      } catch (e: any) {
-        toast.error("Erreur lors de la création du devis : " + e.message);
+      } catch (e: unknown) {
+        toast.error("Erreur lors de la création du devis : " + (e instanceof Error ? e.message : "Erreur inconnue"));
         return;
       }
     } else {
@@ -390,8 +390,8 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
         });
         toast.success("Brouillon de devis créé");
       }
-    } catch (e: any) {
-      toast.error("Erreur lors de la sauvegarde : " + (e.message || "Erreur inconnue"));
+    } catch (e: unknown) {
+      toast.error("Erreur lors de la sauvegarde : " + (e instanceof Error ? e.message : "Erreur inconnue"));
     } finally {
       setIsSaving(false);
     }

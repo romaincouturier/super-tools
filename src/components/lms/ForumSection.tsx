@@ -30,7 +30,7 @@ export default function LmsForumSection({ courseId }: Props) {
       .from("lms_forums")
       .insert({ course_id: courseId, title: newTitle } as any);
     if (error) {
-      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+      toast({ title: "Erreur", description: (error instanceof Error ? error.message : "Erreur inconnue"), variant: "destructive" });
       return;
     }
     setNewTitle("");

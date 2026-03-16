@@ -394,11 +394,11 @@ const BulkAddParticipantsDialog = ({
       setBulkText("");
       setOpen(false);
       onParticipantsAdded();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error adding participants:", error);
       toast({
         title: "Erreur",
-        description: error.message || "Une erreur est survenue.",
+        description: error instanceof Error ? error.message : "Une erreur est survenue.",
         variant: "destructive",
       });
     } finally {

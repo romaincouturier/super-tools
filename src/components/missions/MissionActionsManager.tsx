@@ -62,7 +62,7 @@ const MissionActionsManager = ({ missionId }: MissionActionsManagerProps) => {
       position: maxPos,
     });
     if (error) {
-      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+      toast({ title: "Erreur", description: (error instanceof Error ? error.message : "Erreur inconnue"), variant: "destructive" });
       return;
     }
     setNewTitle("");

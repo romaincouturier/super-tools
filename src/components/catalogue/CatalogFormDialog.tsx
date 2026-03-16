@@ -396,11 +396,11 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
       });
 
       onClose(true);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error creating catalog entry:", error);
       toast({
         title: "Erreur",
-        description: error.message || "Impossible de créer.",
+        description: error instanceof Error ? error.message : "Impossible de créer.",
         variant: "destructive",
       });
     } finally {

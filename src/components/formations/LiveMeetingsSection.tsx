@@ -217,8 +217,8 @@ const LiveMeetingsSection = ({ trainingId }: LiveMeetingsSectionProps) => {
       setDialogOpen(false);
       resetForm();
       fetchMeetings();
-    } catch (error: any) {
-      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+    } catch (error: unknown) {
+      toast({ title: "Erreur", description: (error instanceof Error ? error.message : "Erreur inconnue"), variant: "destructive" });
     } finally {
       setSaving(false);
     }
@@ -235,7 +235,7 @@ const LiveMeetingsSection = ({ trainingId }: LiveMeetingsSectionProps) => {
 
     const { error } = await supabase.from("training_live_meetings").delete().eq("id", meetingId);
     if (error) {
-      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+      toast({ title: "Erreur", description: (error instanceof Error ? error.message : "Erreur inconnue"), variant: "destructive" });
     } else {
       toast({ title: "Live supprimé" });
       fetchMeetings();
@@ -271,8 +271,8 @@ const LiveMeetingsSection = ({ trainingId }: LiveMeetingsSectionProps) => {
       setNotesSaved(true);
       setTimeout(() => setNotesSaved(false), 2000);
       fetchMeetings();
-    } catch (error: any) {
-      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+    } catch (error: unknown) {
+      toast({ title: "Erreur", description: (error instanceof Error ? error.message : "Erreur inconnue"), variant: "destructive" });
     } finally {
       setSavingNotes(false);
     }

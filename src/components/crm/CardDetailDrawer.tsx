@@ -548,7 +548,7 @@ const CardDetailDrawer = ({
       const hasTag = card.tags?.some((t) => t.id === tagId);
       if (hasTag) { await unassignTag.mutateAsync({ cardId: card.id, tagId, actorEmail: user.email }); }
       else { await assignTag.mutateAsync({ cardId: card.id, tagId, actorEmail: user.email }); }
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error("handleToggleTag error:", e);
       const hasTag = card.tags?.some((t) => t.id === tagId);
       const action = hasTag ? "retirer" : "affecter";

@@ -1,4 +1,7 @@
 import { addDays, subDays } from "date-fns";
+import type { supabase } from "@/integrations/supabase/client";
+
+type SupabaseLike = typeof supabase;
 
 /**
  * Calculates a target date by subtracting working days from a given date.
@@ -55,7 +58,7 @@ export function addWorkingDays(
 /**
  * Fetches working days configuration from app_settings
  */
-export async function fetchWorkingDays(supabase: any): Promise<boolean[]> {
+export async function fetchWorkingDays(supabase: SupabaseLike): Promise<boolean[]> {
   const defaultWorkingDays = [false, true, true, true, true, true, false];
   
   try {
@@ -81,7 +84,7 @@ export async function fetchWorkingDays(supabase: any): Promise<boolean[]> {
 /**
  * Fetches the delay for needs survey from app_settings
  */
-export async function fetchNeedsSurveyDelay(supabase: any): Promise<number> {
+export async function fetchNeedsSurveyDelay(supabase: SupabaseLike): Promise<number> {
   try {
     const { data } = await supabase
       .from("app_settings")
@@ -102,7 +105,7 @@ export async function fetchNeedsSurveyDelay(supabase: any): Promise<number> {
 /**
  * Fetches the delay for trainer summary from app_settings
  */
-export async function fetchTrainerSummaryDelay(supabase: any): Promise<number> {
+export async function fetchTrainerSummaryDelay(supabase: SupabaseLike): Promise<number> {
   try {
     const { data } = await supabase
       .from("app_settings")
@@ -125,7 +128,7 @@ export async function fetchTrainerSummaryDelay(supabase: any): Promise<number> {
  * Should be called after adding participants.
  */
 export async function scheduleTrainerSummaryIfNeeded(
-  supabase: any,
+  supabase: SupabaseLike,
   trainingId: string,
   trainingStartDate: string
 ): Promise<void> {

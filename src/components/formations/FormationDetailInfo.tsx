@@ -57,10 +57,10 @@ const FormationDetailInfo = ({
         title: "Email envoyé",
         description: `Les besoins logistiques ont été envoyés à ${training.sponsor_email}.`,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Erreur",
-        description: error.message || "Impossible d'envoyer l'email.",
+        description: error instanceof Error ? error.message : "Impossible d'envoyer l'email.",
         variant: "destructive",
       });
     } finally {

@@ -128,7 +128,7 @@ export default function Step1Synthesis({
       const cleaned = cleanHtmlOutput(data.synthesis || "");
       setSynthesis(cleaned);
       setGenerated(true);
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error("Synthesis generation error:", e);
       setSynthesis(
         `<h3>Contexte client</h3><p>${clientCompany}</p><h3>Besoins identifiés</h3><p>${crmCard.title}</p><h3>Périmètre pressenti</h3><p>À compléter</p><h3>Points d'attention</h3><p>À compléter</p>`
@@ -169,9 +169,9 @@ export default function Step1Synthesis({
       setChallengeHtml(cleaned);
       setChallengeDone(true);
       onChallengeChange?.(cleaned);
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error("Challenge error:", e);
-      toast.error("Erreur lors du challenge commercial : " + (e.message || "Erreur inconnue"));
+      toast.error("Erreur lors du challenge commercial : " + (e instanceof Error ? e.message : "Erreur inconnue"));
     } finally {
       setIsChallenging(false);
     }

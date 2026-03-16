@@ -92,7 +92,7 @@ export default function CoachingBooking({
       learner_notes: notes || null,
     } as any);
     if (error) {
-      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+      toast({ title: "Erreur", description: (error instanceof Error ? error.message : "Erreur inconnue"), variant: "destructive" });
     } else {
       toast({ title: "Demande envoyée !" });
       setShowForm(false);

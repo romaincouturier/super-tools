@@ -530,7 +530,7 @@ L'objectif est de renouer le contact de manière humaine et naturelle, sans ques
 
       await refreshEmails();
       setEmailToDelete(null);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error deleting email:", error);
       toast({
         title: "Erreur",
@@ -558,11 +558,11 @@ L'objectif est de renouer le contact de manière humaine et naturelle, sans ques
 
       await refreshEmails();
       setSelectedEmail(null);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error force sending email:", error);
       toast({
         title: "Erreur",
-        description: error.message || "Impossible d'envoyer l'email.",
+        description: error instanceof Error ? error.message : "Impossible d'envoyer l'email.",
         variant: "destructive",
       });
     } finally {

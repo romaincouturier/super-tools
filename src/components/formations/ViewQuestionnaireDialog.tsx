@@ -125,7 +125,7 @@ const ViewQuestionnaireDialog = ({ participantId, participantName, trainingId }:
       }
 
       setQuestionnaire(data as QuestionnaireData);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error fetching questionnaire:", error);
       toast({
         title: "Erreur",

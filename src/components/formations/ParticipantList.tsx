@@ -321,7 +321,7 @@ const ParticipantList = ({
       } else {
         throw new Error(`Erreur ${response.status}`);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error downloading convention:", error);
       toast({
         title: "Erreur de téléchargement",
@@ -357,11 +357,11 @@ const ParticipantList = ({
         title: "Certificat envoyé",
         description: `Le certificat a été envoyé à ${recipientEmail}.`,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error sending certificate:", error);
       toast({
         title: "Erreur",
-        description: error.message || "Impossible d'envoyer le certificat.",
+        description: error instanceof Error ? error.message : "Impossible d'envoyer le certificat.",
         variant: "destructive",
       });
     } finally {
@@ -438,11 +438,11 @@ const ParticipantList = ({
 
       // Refresh certificates list
       onParticipantUpdated();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error generating certificate:", error);
       toast({
         title: "Erreur",
-        description: error.message || "Impossible de générer l'attestation.",
+        description: error instanceof Error ? error.message : "Impossible de générer l'attestation.",
         variant: "destructive",
       });
     } finally {
@@ -487,11 +487,11 @@ const ParticipantList = ({
       });
 
       onParticipantUpdated();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error deleting participant:", error);
       toast({
         title: "Erreur",
-        description: error.message || "Impossible de supprimer le participant.",
+        description: error instanceof Error ? error.message : "Impossible de supprimer le participant.",
         variant: "destructive",
       });
     } finally {
@@ -514,11 +514,11 @@ const ParticipantList = ({
       });
 
       onParticipantUpdated();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error sending survey:", error);
       toast({
         title: "Erreur",
-        description: error.message || "Impossible d'envoyer le questionnaire.",
+        description: error instanceof Error ? error.message : "Impossible d'envoyer le questionnaire.",
         variant: "destructive",
       });
     } finally {
@@ -541,11 +541,11 @@ const ParticipantList = ({
       });
 
       onParticipantUpdated();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error sending reminder:", error);
       toast({
         title: "Erreur",
-        description: error.message || "Impossible d'envoyer la relance.",
+        description: error instanceof Error ? error.message : "Impossible d'envoyer la relance.",
         variant: "destructive",
       });
     } finally {
@@ -598,11 +598,11 @@ const ParticipantList = ({
               title: "Convention générée et envoyée",
               description: `La convention pour ${participant.first_name || participant.email} a été envoyée à ${participant.sponsor_email}.`,
             });
-          } catch (sendErr: any) {
+          } catch (sendErr: unknown) {
             console.error("Error sending convention:", sendErr);
             toast({
               title: "Convention générée",
-              description: `Convention générée mais erreur à l'envoi : ${sendErr.message || "erreur inconnue"}`,
+              description: `Convention générée mais erreur à l'envoi : ${sendErr instanceof Error ? sendErr.message : "erreur inconnue"}`,
               variant: "destructive",
             });
           }
@@ -616,11 +616,11 @@ const ParticipantList = ({
 
       // Refresh participant data so convention URL is reflected in UI
       onParticipantUpdated();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error generating convention:", error);
       toast({
         title: "Erreur",
-        description: error.message || "Impossible de générer la convention.",
+        description: error instanceof Error ? error.message : "Impossible de générer la convention.",
         variant: "destructive",
       });
     } finally {
@@ -641,11 +641,11 @@ const ParticipantList = ({
         title: "Relance envoyée",
         description: `Une relance convention a été envoyée pour ${participant.first_name || participant.email}.`,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error sending convention reminder:", error);
       toast({
         title: "Erreur",
-        description: error.message || "Impossible d'envoyer la relance convention.",
+        description: error instanceof Error ? error.message : "Impossible d'envoyer la relance convention.",
         variant: "destructive",
       });
     } finally {

@@ -76,10 +76,10 @@ const UserMenu = ({ user, onLogout }: UserMenuProps) => {
       setIsPasswordDialogOpen(false);
       setNewPassword("");
       setConfirmPassword("");
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Erreur",
-        description: error.message || "Une erreur est survenue",
+        description: error instanceof Error ? error.message : "Une erreur est survenue",
         variant: "destructive",
       });
     } finally {

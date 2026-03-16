@@ -40,8 +40,8 @@ export default function LmsLessonEditor({ lesson }: Props) {
       const url = await uploadLmsVideo(file, lesson.id);
       setForm((f) => ({ ...f, video_url: url }));
       toast({ title: `Vidéo uploadée (${formatFileSize(file.size)})` });
-    } catch (err: any) {
-      toast({ title: "Erreur d'upload", description: err.message, variant: "destructive" });
+    } catch (err: unknown) {
+      toast({ title: "Erreur d'upload", description: (err instanceof Error ? err.message : "Erreur inconnue"), variant: "destructive" });
     } finally {
       setUploading(false);
     }

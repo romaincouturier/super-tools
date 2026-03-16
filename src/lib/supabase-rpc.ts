@@ -14,13 +14,15 @@ import { supabase } from "@/integrations/supabase/client";
 
 type RpcResult<T> = { data: T | null; error: Error | null };
 
+type RpcFn = (fn: string, params: Record<string, unknown>) => Promise<{ data: unknown; error: Error | null }>;
+
 async function call<T>(fnName: string, params: Record<string, unknown>): Promise<RpcResult<T>> {
-  const { data, error } = await (supabase.rpc as any)(fnName, params);
+  const { data, error } = await (supabase.rpc as unknown as RpcFn)(fnName, params);
   return { data: data as T | null, error };
 }
 
 async function callVoid(fnName: string, params: Record<string, unknown>): Promise<{ error: Error | null }> {
-  const { error } = await (supabase.rpc as any)(fnName, params);
+  const { error } = await (supabase.rpc as unknown as RpcFn)(fnName, params);
   return { error };
 }
 
@@ -296,7 +298,7 @@ export const rpc = {
 
   // --- Questionnaire ---
   getQuestionnaireByToken: (token: string) =>
-    call<any[]>("get_questionnaire_by_token", { p_token: token }),
+    call<Record<string, unknown>[]>("get_questionnaire_by_token", { p_token: token }),
 
   updateQuestionnaireByToken: (token: string, data: Record<string, unknown>) =>
     callVoid("update_questionnaire_by_token", { p_token: token, p_data: data }),
@@ -313,7 +315,7 @@ export const rpc = {
 
   // --- Evaluation ---
   getEvaluationByToken: (token: string) =>
-    call<any[]>("get_evaluation_by_token", { p_token: token }),
+    call<Record<string, unknown>[]>("get_evaluation_by_token", { p_token: token }),
 
   updateEvaluationByToken: (token: string, data: Record<string, unknown>) =>
     callVoid("update_evaluation_by_token", { p_token: token, p_data: data }),
@@ -340,7 +342,7 @@ export const rpc = {
 
   // --- Stakeholder appreciation ---
   getStakeholderAppreciationByToken: (token: string) =>
-    call<any>("get_stakeholder_appreciation_by_token", { p_token: token }),
+    call<Record<string, unknown>>("get_stakeholder_appreciation_by_token", { p_token: token }),
 
   updateStakeholderAppreciationByToken: (token: string, data: Record<string, unknown>) =>
     callVoid("update_stakeholder_appreciation_by_token", { p_token: token, p_data: data }),

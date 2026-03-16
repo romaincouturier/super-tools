@@ -138,7 +138,7 @@ export default function CoachCommercialSettings({ open, onOpenChange }: CoachCom
         { onConflict: "context_type,year" }
       );
     if (error) {
-      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+      toast({ title: "Erreur", description: (error instanceof Error ? error.message : "Erreur inconnue"), variant: "destructive" });
     } else {
       toast({ title: "Ambition sauvegardée" });
       loadHistory();
@@ -163,7 +163,7 @@ export default function CoachCommercialSettings({ open, onOpenChange }: CoachCom
         { onConflict: "context_type,year" }
       );
     if (error) {
-      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+      toast({ title: "Erreur", description: (error instanceof Error ? error.message : "Erreur inconnue"), variant: "destructive" });
     } else {
       toast({ title: "Structure d'acquisition sauvegardée" });
       loadHistory();
@@ -185,7 +185,7 @@ export default function CoachCommercialSettings({ open, onOpenChange }: CoachCom
         created_by: session?.user?.id || null,
       });
     if (error) {
-      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+      toast({ title: "Erreur", description: (error instanceof Error ? error.message : "Erreur inconnue"), variant: "destructive" });
     } else {
       toast({ title: "Objectif ajouté" });
       setShowAddTarget(false);
@@ -203,7 +203,7 @@ export default function CoachCommercialSettings({ open, onOpenChange }: CoachCom
       .delete()
       .eq("id", id);
     if (error) {
-      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+      toast({ title: "Erreur", description: (error instanceof Error ? error.message : "Erreur inconnue"), variant: "destructive" });
     } else {
       toast({ title: "Objectif supprimé" });
       loadRevenueTargets();

@@ -73,10 +73,10 @@ const EntityDocumentsManager = ({
             file_size: file.size,
           });
           successCount++;
-        } catch (err: any) {
+        } catch (err: unknown) {
           console.error("[EntityDocumentsManager] Upload error:", err);
           toast.error(`Erreur lors de l'upload de ${file.name}`, {
-            description: err.message,
+            description: (err instanceof Error ? err.message : "Erreur inconnue"),
           });
         }
       }
@@ -97,10 +97,10 @@ const EntityDocumentsManager = ({
     setDownloadingId(docId);
     try {
       await downloadFile(fileUrl, fileName);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Download error:", err);
       toast.error("Erreur de téléchargement", {
-        description: err.message || "Impossible de télécharger le document.",
+        description: err instanceof Error ? err.message : "Impossible de télécharger le document.",
       });
     } finally {
       setDownloadingId(null);
@@ -115,10 +115,10 @@ const EntityDocumentsManager = ({
       await deleteEntityDocumentFile(fileUrl, entityType);
       await deleteDocument.mutateAsync({ id: docId, entityId });
       toast.success("Document supprimé", { description: fileName });
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Delete error:", err);
       toast.error("Erreur de suppression", {
-        description: err.message || "Impossible de supprimer le document.",
+        description: err instanceof Error ? err.message : "Impossible de supprimer le document.",
       });
     } finally {
       setDeletingId(null);

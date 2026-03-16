@@ -91,8 +91,8 @@ const PageTemplateManager = () => {
       }
       setShowEditor(false);
       resetForm();
-    } catch (err: any) {
-      toast({ title: "Erreur", description: err.message, variant: "destructive" });
+    } catch (err: unknown) {
+      toast({ title: "Erreur", description: (err instanceof Error ? err.message : "Erreur inconnue"), variant: "destructive" });
     }
   };
 
@@ -101,8 +101,8 @@ const PageTemplateManager = () => {
     try {
       await deleteTemplate.mutateAsync(t.id);
       toast({ title: "Modèle supprimé" });
-    } catch (err: any) {
-      toast({ title: "Erreur", description: err.message, variant: "destructive" });
+    } catch (err: unknown) {
+      toast({ title: "Erreur", description: (err instanceof Error ? err.message : "Erreur inconnue"), variant: "destructive" });
     }
   };
 

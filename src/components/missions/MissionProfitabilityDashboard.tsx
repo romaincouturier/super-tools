@@ -82,8 +82,8 @@ const MissionProfitabilityDashboard = () => {
       await saveSettings(localSettings);
       toast({ title: "Paramètres sauvegardés" });
       setShowSettings(false);
-    } catch (error: any) {
-      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+    } catch (error: unknown) {
+      toast({ title: "Erreur", description: (error instanceof Error ? error.message : "Erreur inconnue"), variant: "destructive" });
     }
   };
 

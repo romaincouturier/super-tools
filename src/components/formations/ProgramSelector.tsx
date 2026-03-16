@@ -201,11 +201,11 @@ const ProgramSelector = ({
       if (onPrerequisitesExtracted) {
         await extractPrerequisitesFromPdf(publicUrl);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Upload error:", error);
       toast({
         title: "Erreur d'upload",
-        description: error.message || "Une erreur est survenue lors de l'upload.",
+        description: error instanceof Error ? error.message : "Une erreur est survenue lors de l'upload.",
         variant: "destructive",
       });
     } finally {
@@ -258,11 +258,11 @@ const ProgramSelector = ({
         title: "Programme supprimé",
         description: "Le fichier a été retiré de votre bibliothèque.",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Delete error:", error);
       toast({
         title: "Erreur de suppression",
-        description: error.message || "Une erreur est survenue lors de la suppression.",
+        description: error instanceof Error ? error.message : "Une erreur est survenue lors de la suppression.",
         variant: "destructive",
       });
     } finally {

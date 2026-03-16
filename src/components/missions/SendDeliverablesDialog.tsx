@@ -147,10 +147,10 @@ const SendDeliverablesDialog = ({
         description: `${recipients.length} email(s) de livraison envoyé(s) avec succès.`,
       });
       onOpenChange(false);
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast({
         title: "Erreur d'envoi",
-        description: err.message || "Impossible d'envoyer les emails",
+        description: err instanceof Error ? err.message : "Impossible d'envoyer les emails",
         variant: "destructive",
       });
     } finally {

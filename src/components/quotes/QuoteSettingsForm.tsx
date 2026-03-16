@@ -28,8 +28,8 @@ export default function QuoteSettingsForm() {
       const { id, created_at, updated_at, ...updates } = form as QuoteSettings;
       await updateMutation.mutateAsync(updates);
       toast.success("Paramètres du module devis enregistrés");
-    } catch (e: any) {
-      toast.error(e.message || "Erreur lors de la sauvegarde");
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Erreur lors de la sauvegarde");
     }
   };
 

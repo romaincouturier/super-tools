@@ -311,7 +311,7 @@ const DocumentsManager = ({
       });
 
       if (response.error) {
-        throw new Error(response.error.message);
+        throw new Error(response.(error instanceof Error ? error.message : "Erreur inconnue"));
       }
 
       setVerificationResult(response.data as VerificationResult);
@@ -380,11 +380,11 @@ const DocumentsManager = ({
           description: `${newUrls.length} fichier(s) ajouté(s).`,
         });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Upload error:", error);
       toast({
         title: "Erreur d'upload",
-        description: error.message || "Une erreur est survenue.",
+        description: error instanceof Error ? error.message : "Une erreur est survenue.",
         variant: "destructive",
       });
     } finally {
@@ -416,11 +416,11 @@ const DocumentsManager = ({
         title: "Fichier supprimé",
         description: "La convention signée a été retirée.",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Delete error:", error);
       toast({
         title: "Erreur",
-        description: error.message || "Impossible de supprimer le fichier.",
+        description: error instanceof Error ? error.message : "Impossible de supprimer le fichier.",
         variant: "destructive",
       });
     }
@@ -439,11 +439,11 @@ const DocumentsManager = ({
         title: "Relance envoyée",
         description: `Une relance convention a été envoyée à ${sponsorEmail}.`,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error sending convention reminder:", error);
       toast({
         title: "Erreur",
-        description: error.message || "Impossible d'envoyer la relance.",
+        description: error instanceof Error ? error.message : "Impossible d'envoyer la relance.",
         variant: "destructive",
       });
     } finally {
@@ -497,11 +497,11 @@ const DocumentsManager = ({
         title: "Facture uploadée",
         description: "La facture a été ajoutée à la formation.",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Upload error:", error);
       toast({
         title: "Erreur d'upload",
-        description: error.message || "Une erreur est survenue.",
+        description: error instanceof Error ? error.message : "Une erreur est survenue.",
         variant: "destructive",
       });
     } finally {
@@ -582,11 +582,11 @@ const DocumentsManager = ({
         title: validFiles.length > 1 ? "Feuilles d'émargement uploadées" : "Feuille d'émargement uploadée",
         description: `${validFiles.length} document(s) ajouté(s) à la formation.`,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Upload error:", error);
       toast({
         title: "Erreur d'upload",
-        description: error.message || "Une erreur est survenue.",
+        description: error instanceof Error ? error.message : "Une erreur est survenue.",
         variant: "destructive",
       });
     } finally {
@@ -622,7 +622,7 @@ const DocumentsManager = ({
         title: "Facture supprimée",
         description: "La facture a été retirée de la formation.",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Delete error:", error);
       toast({
         title: "Erreur",
@@ -658,7 +658,7 @@ const DocumentsManager = ({
         title: "Feuille supprimée",
         description: "Le document a été retiré de la formation.",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Delete error:", error);
       toast({
         title: "Erreur",
@@ -686,7 +686,7 @@ const DocumentsManager = ({
         title: "Lien enregistré",
         description: "Le lien vers les supports a été mis à jour.",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Save error:", error);
       toast({
         title: "Erreur",
@@ -779,11 +779,11 @@ const DocumentsManager = ({
       setCcEmail("");
       setPendingDocumentType(null);
       setSendToSponsorWithOptions(false);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Send error:", error);
       toast({
         title: "Erreur d'envoi",
-        description: error.message || "Impossible d'envoyer les documents.",
+        description: error instanceof Error ? error.message : "Impossible d'envoyer les documents.",
         variant: "destructive",
       });
     } finally {
@@ -814,11 +814,11 @@ const DocumentsManager = ({
       setDocumentsSentInfo(prev => ({ ...prev, thankYou: new Date().toISOString() }));
       
       setShowThankYouPreview(false);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Send error:", error);
       toast({
         title: "Erreur d'envoi",
-        description: error.message || "Impossible d'envoyer le mail de remerciement.",
+        description: error instanceof Error ? error.message : "Impossible d'envoyer le mail de remerciement.",
         variant: "destructive",
       });
     } finally {
@@ -865,11 +865,11 @@ const DocumentsManager = ({
 
         onUpdate?.();
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Convention generation error:", error);
       toast({
         title: "Erreur",
-        description: error.message || "Impossible de générer la convention.",
+        description: error instanceof Error ? error.message : "Impossible de générer la convention.",
         variant: "destructive",
       });
     } finally {
@@ -921,11 +921,11 @@ const DocumentsManager = ({
           ? `Convention envoyée à ${sponsorEmail} avec lien de signature en ligne.`
           : `La convention a été envoyée à ${sponsorEmail}.`,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Send convention error:", error);
       toast({
         title: "Erreur d'envoi",
-        description: error.message || "Impossible d'envoyer la convention.",
+        description: error instanceof Error ? error.message : "Impossible d'envoyer la convention.",
         variant: "destructive",
       });
     } finally {

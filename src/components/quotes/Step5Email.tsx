@@ -56,7 +56,7 @@ export default function Step5Email({
       if (error) throw error;
       if (data?.subject) setSubject(data.subject);
       if (data?.body) setBody(data.body);
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error("Email generation error:", e);
       // Fallback template
       setBody(
@@ -100,8 +100,8 @@ export default function Step5Email({
       });
 
       toast.success(`Email de test envoyé à ${user.email}`);
-    } catch (e: any) {
-      toast.error(e.message || "Erreur lors de l'envoi du test");
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Erreur lors de l'envoi du test");
     } finally {
       setIsTestSending(false);
     }
@@ -214,8 +214,8 @@ export default function Step5Email({
 
       toast.success(`Devis envoyé à ${to}`);
       onSent();
-    } catch (e: any) {
-      toast.error(e.message || "Erreur lors de l'envoi");
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Erreur lors de l'envoi");
     } finally {
       setIsSending(false);
     }

@@ -108,8 +108,8 @@ export default function BillingSection() {
       if (data?.url) {
         window.location.href = data.url;
       }
-    } catch (err: any) {
-      toast.error(err.message || "Erreur lors de la création du paiement");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Erreur lors de la création du paiement");
     } finally {
       setCheckoutLoading(null);
     }
@@ -126,8 +126,8 @@ export default function BillingSection() {
       if (data?.url) {
         window.location.href = data.url;
       }
-    } catch (err: any) {
-      toast.error(err.message || "Erreur");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Erreur");
     } finally {
       setPortalLoading(false);
     }

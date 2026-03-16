@@ -213,7 +213,7 @@ const CommentThread = ({ cardId, cardTitle, reviewIds, onCommentAdded }: Comment
       );
       if (error) throw error;
       return (uploadData as any)?.publicUrl || null;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Upload error:", error);
       toast.error("Erreur lors de l'upload");
       return null;

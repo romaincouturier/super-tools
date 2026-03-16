@@ -202,7 +202,7 @@ export default function Step3QuoteGeneration({
           setSaleType(data.sale_type_suggestion);
         }
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error("Line generation error:", e);
       const fallbackLines: QuoteLineItem[] = [emptyLine(defaultVat, defaultUnit)];
       // Always add travel line on error fallback
@@ -498,9 +498,9 @@ export default function Step3QuoteGeneration({
 
       doc.save(`${updated.quote_number}.pdf`);
       toast.success("PDF téléchargé");
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error("PDF generation error:", e);
-      toast.error("Erreur lors de la génération du PDF : " + (e.message || "inconnue"));
+      toast.error("Erreur lors de la génération du PDF : " + (e instanceof Error ? e.message : "inconnue"));
     }
     onContinue(updated);
   };
