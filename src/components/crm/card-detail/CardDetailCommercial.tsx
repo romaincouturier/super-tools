@@ -107,7 +107,7 @@ const CardDetailCommercial = ({ state, handlers }: Props) => {
               <div className="min-w-0">
                 <p className="text-sm font-medium truncate">{q.quote_number}</p>
                 <p className="text-xs text-muted-foreground">
-                  {q.client_company} — Étape : {stepLabels[(q as any).workflow_step ?? 0] || "Client"}
+                  {q.client_company} — Étape : {stepLabels[(q as unknown as { workflow_step?: number }).workflow_step ?? 0] || "Client"}
                 </p>
               </div>
               <div className="flex items-center gap-1 shrink-0 ml-2">

@@ -163,7 +163,7 @@ export function useCommercialCoachData() {
       if (okrRes.error) errors.push(`OKR: ${okrRes.error.message}`);
       if (columnsRes.error) errors.push(`CRM colonnes: ${columnsRes.error.message}`);
       if (cardsRes.error) errors.push(`CRM cartes: ${cardsRes.error.message}`);
-      if (missionsRes.error) errors.push(`Missions: ${(missionsRes.error as Error).message}`);
+      if (missionsRes.error) errors.push(`Missions: ${missionsRes.error.message}`);
       if (trainingsRes.error) errors.push(`Formations: ${trainingsRes.error.message}`);
       if (catalogueRes.error) errors.push(`Catalogue: ${catalogueRes.error.message}`);
       if (revenueTargetsRes.error) console.warn("Revenue targets fetch error:", revenueTargetsRes.error.message);

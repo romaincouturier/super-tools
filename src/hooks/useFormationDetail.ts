@@ -192,31 +192,31 @@ export function useFormationDetail() {
     setNotes(trainingData.notes || "");
     setNotesChanged(false);
 
-    if ((trainingData as any).catalog_id) {
+    if (trainingData.catalog_id) {
       const [{ data: formulasData }, { data: catalogData }] = await Promise.all([
         supabase
           .from("formation_formulas")
           .select("*")
-          .eq("formation_config_id", (trainingData as any).catalog_id)
+          .eq("formation_config_id", trainingData.catalog_id)
           .order("display_order"),
         supabase
           .from("formation_configs")
           .select("required_equipment")
-          .eq("id", (trainingData as any).catalog_id)
+          .eq("id", trainingData.catalog_id)
           .maybeSingle(),
       ]);
       setAvailableFormulas((formulasData as FormationFormula[]) || []);
-      setCatalogRequiredEquipment((catalogData as any)?.required_equipment || null);
+      setCatalogRequiredEquipment(catalogData?.required_equipment || null);
     } else {
       setAvailableFormulas([]);
       setCatalogRequiredEquipment(null);
     }
 
-    if ((trainingData as any).assigned_to) {
+    if (trainingData.assigned_to) {
       const { data: assignedProfile } = await supabase
         .from("profiles")
         .select("first_name, last_name, email")
-        .eq("user_id", (trainingData as any).assigned_to)
+        .eq("user_id", trainingData.assigned_to)
         .maybeSingle();
       if (assignedProfile) {
         const name = [assignedProfile.first_name, assignedProfile.last_name].filter(Boolean).join(" ");
@@ -268,8 +268,8 @@ export function useFormationDetail() {
         .order("created_at", { ascending: false })
         .limit(20);
       if (data) {
-        const match = data.find((log: any) => {
-          const details = (log as any).details as { training_id?: string } | null;
+        const match = data.find((log) => {
+          const details = log.details as { training_id?: string } | null;
           return details?.training_id === id;
         });
         if (match) setThankYouSentAt(match.created_at);

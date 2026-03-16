@@ -44,7 +44,7 @@ const FailedEmails = () => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [failedEmails, setFailedEmails] = useState<FailedEmail[]>([]);
-  const [scheduledFailed, setScheduledFailed] = useState<any[]>([]);
+  const [scheduledFailed, setScheduledFailed] = useState<Record<string, unknown>[]>([]);
   const [previewEmail, setPreviewEmail] = useState<FailedEmail | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
