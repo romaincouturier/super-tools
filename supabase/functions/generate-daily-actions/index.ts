@@ -848,6 +848,19 @@ serve(async (req) => {
     }
 
     // ══════════════════════════════════
+    // Delete existing actions for today before re-inserting (clean slate)
+    // This ensures removed/reassigned actions don't linger
+    // ══════════════════════════════════
+    for (const recipient of recipients) {
+      await supabase
+        .from("daily_actions")
+        .delete()
+        .eq("user_id", recipient.userId)
+        .eq("action_date", today)
+        .eq("is_completed", false);
+    }
+
+    // ══════════════════════════════════
     // Insert actions per user
     // ══════════════════════════════════
     let totalInserted = 0;
