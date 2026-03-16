@@ -190,18 +190,18 @@ const FormationDetailSections = ({
         <CardContent className="space-y-3">
           <Textarea
             placeholder="Retour du financeur (OPCO, France Travail…) sur cette formation..."
-            value={(training as any).funder_appreciation || ""}
-            onChange={(e) => setTraining({ ...training, funder_appreciation: e.target.value } as any)}
+            value={(training as unknown as { funder_appreciation?: string | null }).funder_appreciation || ""}
+            onChange={(e) => setTraining({ ...training, funder_appreciation: e.target.value } as Training)}
             onBlur={async () => {
-              const val = ((training as any).funder_appreciation || "").trim();
-              await supabase.from("trainings").update({ funder_appreciation: val || null, funder_appreciation_date: val ? new Date().toISOString().split("T")[0] : null } as any).eq("id", training.id);
+              const val = ((training as unknown as { funder_appreciation?: string | null }).funder_appreciation || "").trim();
+              await supabase.from("trainings").update({ funder_appreciation: val || null, funder_appreciation_date: val ? new Date().toISOString().split("T")[0] : null }).eq("id", training.id);
             }}
             className="min-h-[80px] resize-y"
           />
-          {(training as any).funder_appreciation_date && (
+          {(training as unknown as { funder_appreciation_date?: string | null }).funder_appreciation_date && (
             <p className="text-xs text-muted-foreground flex items-center gap-1">
               <CheckCircle2 className="h-3 w-3 text-primary" />
-              Renseigné le {new Date((training as any).funder_appreciation_date).toLocaleDateString("fr-FR")}
+              Renseigné le {new Date((training as unknown as { funder_appreciation_date?: string }).funder_appreciation_date!).toLocaleDateString("fr-FR")}
             </p>
           )}
         </CardContent>
