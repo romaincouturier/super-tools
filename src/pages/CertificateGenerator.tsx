@@ -282,12 +282,13 @@ const Index = () => {
         setParticipants("");
         setEmailCommanditaire("");
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error:", error);
-      addLog("Système", "error", error.message || "Une erreur est survenue", "error");
+      const errMsg = error instanceof Error ? error.message : "Erreur inconnue";
+      addLog("Système", "error", errMsg, "error");
       toast({
         title: "Erreur",
-        description: error.message || "Une erreur est survenue lors de la génération",
+        description: errMsg,
         variant: "destructive",
       });
     } finally {

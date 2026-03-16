@@ -362,7 +362,7 @@ export default function Step3QuoteGeneration({
       for (const col of cols) {
         const align = col.header === "Désignation" ? "left" : "right";
         const textX = align === "left" ? col.x + 3 : col.x + col.w - 3;
-        doc.text(col.header, textX, y + 5.5, { align } as any);
+        doc.text(col.header, textX, y + 5.5, { align } as { align: "left" | "right" });
       }
       y += 8;
 

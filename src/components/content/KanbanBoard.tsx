@@ -218,7 +218,7 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
           tags: Array.isArray(c.tags) ? (c.tags as string[]) : [],
           review_status: cardReviewStatus.get(c.id) || "none",
           card_type: (c.card_type as ContentCardType) || "article",
-          emoji: (c as any).emoji || null,
+          emoji: (c as unknown as { emoji?: string | null }).emoji || null,
           newsletter_name: cardNewsletterMap.get(c.id) || null,
         }))
       );

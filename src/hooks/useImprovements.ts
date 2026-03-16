@@ -229,7 +229,7 @@ export function useImprovements() {
         if (error) throw error;
         toast({ title: "Amélioration modifiée" });
       } else {
-        const { error } = await supabase.from("improvements").insert(cleaned as any);
+        const { error } = await supabase.from("improvements").insert(cleaned as typeof record);
         if (error) throw error;
         toast({ title: "Amélioration ajoutée" });
       }
@@ -241,21 +241,21 @@ export function useImprovements() {
   // ── Notes ────────────────────────────────────────────────────────────────
 
   const fetchNotes = useCallback(async (improvementId: string) => {
-    const { data } = await (supabase as any)
-      .from("improvement_notes")
+    const { data } = await (supabase.from as (table: string) => ReturnType<typeof supabase.from>)("improvement_notes")
       .select("*")
-      .eq("improvement_id", improvementId)
+      .eq("improvement_id" as never, improvementId)
       .order("created_at", { ascending: false });
-    return (data || []) as ImprovementNote[];
+    return (data || []) as unknown as ImprovementNote[];
   }, []);
 
   const addNote = useCallback(
     async (improvementId: string, content: string, userId?: string) => {
-      const { error } = await (supabase as any).from("improvement_notes").insert({
-        improvement_id: improvementId,
-        content: content.trim(),
-        created_by: userId,
-      });
+      const { error } = await (supabase.from as (table: string) => ReturnType<typeof supabase.from>)("improvement_notes")
+        .insert({
+          improvement_id: improvementId,
+          content: content.trim(),
+          created_by: userId,
+        } as never);
       if (error) {
         toast({ title: "Erreur", description: "Impossible d'ajouter la note", variant: "destructive" });
         return;
