@@ -58,7 +58,7 @@ const MissionsKanbanBoard = ({ prefillFromCrm, onPrefillConsumed, openMissionId 
     if (openMissionId && data?.length) {
       const mission = data.find((m) => m.id === openMissionId);
       if (mission) {
-        setSelectedMission(mission);
+        setSelectedMission((prev) => prev?.id === mission.id ? prev : mission);
       }
     }
   }, [openMissionId, data]);

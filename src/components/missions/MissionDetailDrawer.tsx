@@ -116,7 +116,8 @@ const MissionDetailDrawer = ({
   const [scheduledText, setScheduledText] = useState("");
   const [showScheduleForm, setShowScheduleForm] = useState(false);
 
-  // Initialize form when mission changes
+  // Initialize form when a different mission is opened
+  const missionId = mission?.id;
   useEffect(() => {
     if (mission) {
       skipNextSaveRef.current = true;
@@ -141,7 +142,8 @@ const MissionDetailDrawer = ({
       setScheduledText(mission.waiting_next_action_text || "");
       setShowScheduleForm(false);
     }
-  }, [mission]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [missionId]);
 
   // Flush any pending save immediately
   const flushSave = useCallback(() => {
