@@ -147,14 +147,7 @@ const ThankYouEmailPreviewDialog = ({
 
     setIsSendingTest(true);
     try {
-      const { error } = await supabase.functions.invoke("send-thank-you-email", {
-        body: { 
-          trainingId,
-          testEmail,
-        },
-      });
-
-      if (error) throw error;
+      await sendThankYouEmail(trainingId, testEmail);
 
       toast.success(`Email de test envoyé à ${testEmail}`);
     } catch (error) {

@@ -27,29 +27,3 @@ export async function sendThankYouEmail(
 
   return data as SendThankYouEmailResult;
 }
-
-// ── Training documents delivery ─────────────────────────────────────
-
-export interface SendTrainingDocumentsInput {
-  trainingId: string;
-  trainingName: string;
-  startDate: string | null;
-  endDate: string | null;
-  recipientEmail: string;
-  recipientName: string | null;
-  recipientFirstName: string | null;
-  formalAddress: boolean;
-}
-
-/**
- * Invoke the send-training-documents edge function.
- */
-export async function sendTrainingDocuments(
-  input: SendTrainingDocumentsInput,
-): Promise<void> {
-  const { error } = await supabase.functions.invoke("send-training-documents", {
-    body: input,
-  });
-
-  if (error) throw error;
-}
