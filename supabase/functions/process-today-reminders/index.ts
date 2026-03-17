@@ -80,7 +80,8 @@ serve(async (req) => {
         location,
         format_formation,
         participants_formal_address,
-        supports_url
+        supports_url,
+        trainer_id
       `)
       .in("id", trainingIds);
 
