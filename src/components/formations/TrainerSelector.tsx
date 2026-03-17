@@ -48,7 +48,7 @@ export default function TrainerSelector({
 
       if (error) throw error;
 
-      setTrainers(data || []);
+      setTrainers((data || []) as any);
 
       // Auto-select default trainer if no value set
       if (!value && data && data.length > 0) {
