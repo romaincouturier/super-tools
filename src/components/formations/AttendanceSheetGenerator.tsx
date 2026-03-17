@@ -123,7 +123,7 @@ export default function AttendanceSheetGenerator({
       });
 
       const pageWidth = doc.internal.pageSize.getWidth();
-      const pageHeight = doc.internal.pageSize.getHeight();
+      const _pageHeight = doc.internal.pageSize.getHeight();
       const margin = 15;
 
       // Load images
