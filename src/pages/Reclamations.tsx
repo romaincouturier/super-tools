@@ -135,7 +135,7 @@ const Reclamations = () => {
         token,
         status: "draft",
         created_by: user?.id,
-      } as Record<string, unknown>);
+      } as any);
 
       if (error) throw error;
 
