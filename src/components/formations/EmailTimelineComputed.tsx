@@ -117,7 +117,7 @@ const EmailTimelineComputed = ({
   trainingStartDate,
   trainingEndDate,
   sessionType,
-  sessionFormat,
+  sessionFormat: _sessionFormat,
   formatFormation,
   trainerName,
   sponsorName,
