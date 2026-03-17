@@ -97,7 +97,7 @@ export default function CoachCommercialSettings({ open, onOpenChange }: CoachCom
       .select("*")
       .eq("context_type", "acquisition_structure")
       .order("year", { ascending: false });
-    setAcquisitionHistory(acquisitions || []);
+    setAcquisitionHistory((acquisitions || []) as any);
   }, []);
 
   // --- Load revenue targets ---
