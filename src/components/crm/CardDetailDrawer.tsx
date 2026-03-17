@@ -40,7 +40,7 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { useCrmEmailTemplates, useUpdateCrmTemplate } from "@/hooks/useCrmEmailTemplates";
 import { useToast } from "@/hooks/use-toast";
-import { addDays, isAfter, startOfDay } from "date-fns";
+import { isAfter, startOfDay } from "date-fns";
 import { PricingLine } from "./MacroPricingDialog";
 
 // Sub-components
