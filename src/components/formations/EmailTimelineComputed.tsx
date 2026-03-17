@@ -9,12 +9,9 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import {
-  Tooltip,
-  TooltipContent,
   TooltipProvider,
-  TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Mail, Clock, CheckCircle, AlertCircle, Calendar, ChevronDown, Users, User, Zap, Ghost } from "lucide-react";
+import { Clock, CheckCircle, AlertCircle, Calendar, ChevronDown, Users, User, Zap, Ghost } from "lucide-react";
 import { format, parseISO, addDays, isBefore, isAfter, differenceInDays } from "date-fns";
 import { fr } from "date-fns/locale";
 
