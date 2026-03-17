@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { notifyContentUser } from "@/services/contentNotifications";
 import {
-  Send, Loader2, MessageSquare, Check, X, Pencil, Image,
+  Send, Loader2, MessageSquare, X, Pencil, Image,
   FileText, Palette, Trash2, Copy, Mic, MicOff, Reply, CheckCheck,
   ChevronDown, ChevronRight, UserPlus
 } from "lucide-react";
