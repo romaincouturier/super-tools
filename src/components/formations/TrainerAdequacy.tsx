@@ -81,7 +81,7 @@ export default function TrainerAdequacy({ trainingId, trainerName }: TrainerAdeq
             .ilike("last_name", parts[parts.length - 1])
             .limit(1);
           if (data && data.length > 0) {
-            trainerData = data[0];
+            trainerData = { ...data[0], competences: data[0].competences || [] };
             trainerId = data[0].id;
           }
         }
