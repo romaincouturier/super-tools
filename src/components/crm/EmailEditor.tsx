@@ -23,7 +23,7 @@ import { cn } from "@/lib/utils";
 import { useEffect, useCallback, useState, useMemo, useRef } from "react";
 import { useEmailSnippets, EmailSnippet } from "@/hooks/useEmailSnippets";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
-import { supabase } from "@/integrations/supabase/client";
+// supabase imported via hooks
 import { crmAiAssist } from "@/services/crmAiAssist";
 import { Loader2 } from "lucide-react";
 import { Extension } from "@tiptap/core";
