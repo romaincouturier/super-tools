@@ -83,7 +83,7 @@ const MissionDetailDrawer = ({
         body: { action: "summarize_mission", mission_id: mission.id },
       });
 
-      if (response.error) throw new Error(response.(error instanceof Error ? error.message : "Erreur inconnue"));
+      if (response.error) throw new Error(response.error instanceof Error ? response.error.message : "Erreur inconnue");
       setAiSummary(response.data.result);
     } catch (error: unknown) {
       toast({ title: "Erreur", description: error instanceof Error ? error.message : "Impossible de générer le résumé", variant: "destructive" });

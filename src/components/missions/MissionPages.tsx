@@ -296,7 +296,7 @@ const PageEditor = ({
         body: { action: "summarize_page", mission_id: missionId, page_id: page.id },
       });
 
-      if (response.error) throw new Error(response.(error instanceof Error ? error.message : "Erreur inconnue"));
+      if (response.error) throw new Error(response.error instanceof Error ? response.error.message : "Erreur inconnue");
       setAiSummary(response.data.result);
     } catch (error: unknown) {
       toast({ title: "Erreur", description: error instanceof Error ? error.message : "Impossible de générer le résumé", variant: "destructive" });
