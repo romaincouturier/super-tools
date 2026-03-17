@@ -1,5 +1,5 @@
 import React from "react";
-import { MoreHorizontal, Pencil, Trash2, Eye, Mail } from "lucide-react";
+import { MoreHorizontal, Pencil, Trash2, Eye } from "lucide-react";
 import type { ContentTypeColors } from "./KanbanBoard";
 import { Button } from "@/components/ui/button";
 import {
