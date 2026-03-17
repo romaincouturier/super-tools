@@ -264,12 +264,12 @@ export function useFormationDetail() {
     const fetchThankYouSentDate = async () => {
       const { data } = await supabase
         .from("activity_logs")
-        .select("created_at")
+        .select("created_at, details")
         .eq("action_type", "thank_you_email_sent")
         .order("created_at", { ascending: false })
         .limit(20);
       if (data) {
-        const match = data.find((log) => {
+        const match = data.find((log: any) => {
           const details = log.details as { training_id?: string } | null;
           return details?.training_id === id;
         });

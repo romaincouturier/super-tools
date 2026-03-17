@@ -458,15 +458,15 @@ export default function AiTools() {
                 {coachingSummary.mood && (
                   <div>
                     <h4 className="text-sm font-medium mb-1">Dynamique perçue</h4>
-                    <p className="text-sm text-muted-foreground">{coachingSummary.mood}</p>
+                    <p className="text-sm text-muted-foreground">{String(coachingSummary.mood)}</p>
                   </div>
                 )}
 
-                {(coachingSummary.key_topics as any)?.length > 0 && (
+                {(coachingSummary.key_topics as any[])?.length > 0 && (
                   <div>
                     <h4 className="text-sm font-medium mb-2">Sujets clés</h4>
                     <div className="flex flex-wrap gap-2">
-                      {coachingSummary.key_topics.map((t: string, i: number) => (
+                      {(coachingSummary.key_topics as any[]).map((t: string, i: number) => (
                         <Badge key={i} variant="secondary">{t}</Badge>
                       ))}
                     </div>

@@ -53,8 +53,8 @@ export const useEntityDocuments = (entityType: DocumentEntityType, entityId: str
     queryKey: [config.queryKey, entityId],
     enabled: !!entityId,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from(config.table)
+      const { data, error } = await (supabase
+        .from(config.table) as any)
         .select("*")
         .eq(config.foreignKey as any, entityId)
         .order("created_at", { ascending: false });
