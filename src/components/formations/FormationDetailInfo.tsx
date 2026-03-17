@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Calendar, FileText, MapPin, Building, UserIcon, Clock, Copy, Check, Euro, Mail, ExternalLink, Truck, Loader2, CheckCircle2 } from "lucide-react";
+import { Calendar, FileText, MapPin, Building, Clock, Copy, Check, Euro, Mail, ExternalLink, Truck, Loader2, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatSentDateTime } from "@/lib/dateFormatters";
 import { User as UserIconLucide } from "lucide-react";
