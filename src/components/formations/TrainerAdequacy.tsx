@@ -68,7 +68,7 @@ export default function TrainerAdequacy({ trainingId, trainerName }: TrainerAdeq
           .select("id, first_name, last_name, competences")
           .eq("id", trainerId)
           .single();
-        trainerData = data;
+        trainerData = data ? { ...data, competences: data.competences || [] } : null;
       }
 
       if (!trainerData && training.trainer_name) {
