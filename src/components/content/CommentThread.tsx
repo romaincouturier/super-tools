@@ -59,7 +59,7 @@ const commentTypeConfig = {
   forme: { label: "Forme", icon: Palette, className: "bg-cyan-100 text-cyan-800" },
 };
 
-const CommentThread = ({ cardId, cardTitle, reviewIds, onCommentAdded }: CommentThreadProps) => {
+const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdded }: CommentThreadProps) => {
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
