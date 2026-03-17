@@ -105,7 +105,7 @@ const CardDetailDialogs = (props: Props) => {
         .gte("start_date", today)
         .order("start_date", { ascending: true })
         .limit(50);
-      if (!error && data) setInterTrainings(data);
+      if (!error && data) setInterTrainings(data as any);
       setInterTrainingsLoading(false);
     };
     fetchInterTrainings();

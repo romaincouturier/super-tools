@@ -171,7 +171,7 @@ const NewsletterSection = ({ onCardClick, refreshKey }: NewsletterSectionProps) 
               .in("review_id", reviewIds);
 
             for (const pc of pendingComments || []) {
-              const cid = reviewToCard.get(pc.review_id);
+              const cid = reviewToCard.get(pc.review_id as string);
               if (cid) pendingMap.set(cid, (pendingMap.get(cid) || 0) + 1);
             }
           }

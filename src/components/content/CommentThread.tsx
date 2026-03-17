@@ -248,7 +248,7 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
         mentioned_user_ids: mentionedIds.length > 0 ? mentionedIds : [],
       };
 
-      const { error } = await supabase.from("review_comments").insert(insertData);
+      const { error } = await supabase.from("review_comments").insert(insertData as any);
       if (error) throw error;
 
       // Send notification to assigned person

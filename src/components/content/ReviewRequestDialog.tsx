@@ -103,7 +103,7 @@ const ReviewRequestDialog = ({
       // Create notification + send email
       await notifyContentUser(
         {
-          userId: reviewerId,
+          userId: reviewerId!,
           notificationType: "review_requested",
           referenceId: cardId,
           cardId,

@@ -708,8 +708,8 @@ const CardDetailDrawer = ({
           <CardDetailContact state={state} handlers={handlers} />
           <CardDetailQualification state={state} handlers={handlers} />
           <CardDetailCommercial state={state} handlers={handlers} />
-          <CardDetailCommunication state={state} handlers={handlers} details={details} emailFileInputRef={emailFileInputRef} selectedTemplateRef={selectedTemplateRef} />
-          <CardDetailTabs state={state} handlers={handlers} details={details} detailsLoading={detailsLoading} />
+          <CardDetailCommunication state={state} handlers={handlers} details={details ?? undefined} emailFileInputRef={emailFileInputRef} selectedTemplateRef={selectedTemplateRef} />
+          <CardDetailTabs state={state} handlers={handlers} details={details ?? undefined} detailsLoading={detailsLoading} />
 
           {/* Delete section */}
           <div className="mt-8 pt-4 border-t border-destructive/20">

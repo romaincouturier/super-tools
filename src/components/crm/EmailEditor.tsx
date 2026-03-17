@@ -48,7 +48,7 @@ interface EmailEditorProps {
 const EmailEditor = ({
   content,
   onChange,
-  placeholder = "Corps du message...",
+  placeholder: _placeholder = "Corps du message...",
   className,
   variables,
   onGenderSelect,

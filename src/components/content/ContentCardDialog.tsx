@@ -306,14 +306,13 @@ const ContentCardDialog = ({
             .update({
               title: v.title.trim(),
               description: v.description || null,
-              image_url: v.imageUrl || null,
+              image_url: v.image_url || null,
               tags: v.tags,
-              card_type: v.cardType || "article",
+              card_type: v.card_type || "article",
               emoji: v.emoji ?? null,
             })
             .eq("id", card.id)
-            .then(() => {})
-            .catch(console.error);
+            .then(() => {});
         }
       }
     }

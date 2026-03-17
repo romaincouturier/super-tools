@@ -37,7 +37,7 @@ interface RichTextEditorProps {
 const RichTextEditor = ({
   content,
   onChange,
-  placeholder = "Écrivez ici...",
+  placeholder: _placeholder = "Écrivez ici...",
   className,
   minHeight = "200px",
 }: RichTextEditorProps) => {

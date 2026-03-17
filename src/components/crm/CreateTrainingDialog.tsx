@@ -65,7 +65,7 @@ export function CreateTrainingDialog({
         .limit(100);
 
       if (!error && data) {
-        setTrainings(data);
+        setTrainings(data as any);
       }
       setLoadingTrainings(false);
     };

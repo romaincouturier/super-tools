@@ -224,7 +224,7 @@ export default function CoachCommercialSettings({ open, onOpenChange }: CoachCom
     return `Année ${d.getFullYear()}`;
   };
 
-  const yearOptions = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i);
+  const _yearOptions = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i);
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
