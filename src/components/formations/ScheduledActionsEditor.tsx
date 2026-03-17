@@ -153,7 +153,7 @@ const ScheduledActionsEditor = ({ actions, onActionsChange, onSave, saving, onTo
           </p>
         )}
 
-        {unsavedActions.map((action, index) => (
+        {unsavedActions.map((action, _index) => (
           <div
             key={action.id}
             className="border rounded-lg p-4 space-y-3 bg-primary/5 border-primary/20"
