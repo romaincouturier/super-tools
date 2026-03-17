@@ -116,10 +116,6 @@ describe("No inline date formatting in migrated files", () => {
       file: "src/pages/TrainingSummary.tsx",
       reason: "Uses inline format(parseISO, 'd MMM') in calendar URL construction (ICS, Google, Outlook, Yahoo)",
     },
-    {
-      file: "src/components/formations/DocumentsManager.tsx",
-      reason: "Uses inline format(parseISO, 'HH:mm:ss') for signature journey event timestamps (time-only)",
-    },
   ];
 
   // Inline function definitions (should have been replaced by imports)
