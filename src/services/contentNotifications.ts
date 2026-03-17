@@ -32,7 +32,7 @@ export async function notifyContentUser(
 ): Promise<void> {
   await supabase.from("content_notifications").insert({
     user_id: notification.userId,
-    type: notification.notificationType,
+    type: notification.notificationType as any,
     reference_id: notification.referenceId,
     card_id: notification.cardId,
     message: notification.message,

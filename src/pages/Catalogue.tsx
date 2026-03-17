@@ -106,12 +106,12 @@ const Catalogue = () => {
       });
 
       setCatalogEntries(
-        (entries || []).map((e: { id: string; formation_name: string; duree_heures: number | null; description?: string }) => ({
+        (entries || []).map((e: any) => ({
           ...e,
           training_count: countMap[e.id] || 0,
           formula_names: formulaMap[e.id] || [],
           last_session_date: lastDateMap[e.id] || null,
-        }))
+        })) as CatalogEntry[]
       );
     } catch (error: unknown) {
       console.error("Error fetching catalog:", error);

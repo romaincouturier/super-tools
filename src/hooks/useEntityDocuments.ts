@@ -53,17 +53,17 @@ export const useEntityDocuments = (entityType: DocumentEntityType, entityId: str
     queryKey: [config.queryKey, entityId],
     enabled: !!entityId,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from(config.table)
+      const { data, error } = await (supabase
+        .from(config.table) as any)
         .select("*")
-        .eq(config.foreignKey, entityId)
+        .eq(config.foreignKey as any, entityId)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
 
-      return (data || []).map((row): EntityDocument => ({
+      return (data || []).map((row: any): EntityDocument => ({
         id: row.id,
-        entity_id: (row as Record<string, unknown>)[config.foreignKey] as string,
+        entity_id: row[config.foreignKey] as string,
         file_name: row.file_name,
         file_url: row.file_url,
         file_size: row.file_size,
@@ -98,7 +98,7 @@ export const useAddEntityDocument = (entityType: DocumentEntityType) => {
           file_url: input.file_url,
           file_size: input.file_size,
           uploaded_by: userId,
-        })
+        } as any)
         .select()
         .single();
       if (error) throw error;

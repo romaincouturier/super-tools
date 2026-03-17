@@ -92,17 +92,17 @@ export const useMediaLibrary = () => {
         });
       }
 
-      return rows.map((row): MediaItem => {
+      return rows.map((row: any): MediaItem => {
         const info = labelMap[row.source_id] || { label: "Inconnu", emoji: null, color: null, tags: [] };
         return {
           id: row.id,
           file_url: row.file_url,
           file_name: row.file_name,
-          file_type: row.file_type,
+          file_type: row.file_type as MediaItem["file_type"],
           mime_type: row.mime_type,
           file_size: row.file_size,
           position: row.position,
-          source_type: row.source_type,
+          source_type: row.source_type as MediaSourceType,
           source_id: row.source_id,
           created_at: row.created_at,
           created_by: row.created_by,
@@ -133,7 +133,7 @@ export const useEntityMedia = (sourceType: MediaSourceType, sourceId: string | u
 
       if (error) throw error;
 
-      return (data || []) as MediaItem[];
+      return (data || []) as unknown as MediaItem[];
     },
   });
 };

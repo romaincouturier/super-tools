@@ -116,7 +116,7 @@ export function useParticipantHistory() {
           training_id: e.training_id,
           training_name: (e.trainings as { training_name: string } | null)?.training_name || "—",
           appreciation_generale: e.appreciation_generale,
-          commentaire_general: e.commentaire_general,
+          commentaire_general: (e as any).commentaire_general,
           date_soumission: e.date_soumission,
           certificate_url: e.certificate_url,
         }));

@@ -85,7 +85,7 @@ export function useUserPreference<T>(key: string, defaultValue: T): UserPreferen
           {
             user_id: session.session.user.id,
             preference_key: key,
-            preference_value: newValue,
+            preference_value: newValue as any,
           },
           {
             onConflict: "user_id,preference_key",
