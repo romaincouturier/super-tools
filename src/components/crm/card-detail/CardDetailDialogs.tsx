@@ -74,7 +74,7 @@ const CardDetailDialogs = (props: Props) => {
     showLossReasonDialog, onLossReasonConfirm, onLossReasonCancel,
     showPricingDialog, setShowPricingDialog, pricingLines, setPricingLines,
     pricingTravelTotal, setPricingTravelTotal, setEstimatedValue,
-    showCreateTrainingDialog, setShowCreateTrainingDialog, pendingTrainingParams,
+    showCreateTrainingDialog, setShowCreateTrainingDialog, pendingTrainingParams: _pendingTrainingParams,
     handleConfirmCreateTraining,
     showWinChoiceDialog, setShowWinChoiceDialog, handleConfirmCreateMission,
     onOpenChange,
