@@ -8,7 +8,7 @@ import {
   ExternalLink,
   FileText,
   X,
-  Copy,
+  
   ClipboardList,
   PlayCircle,
   Trash2,
