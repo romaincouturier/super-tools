@@ -62,7 +62,7 @@ const EventCreate = () => {
         assigned_to: null,
         cancellation_reason: null,
         ...(isInternalVisio && values.privateGroupUrl.trim() ? { private_group_url: values.privateGroupUrl.trim() } : {}),
-      } as Record<string, unknown>);
+      } as any);
       toast({ title: "Événement créé" });
       navigate(`/events/${event.id}`);
     } catch (error) {

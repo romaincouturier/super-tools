@@ -184,7 +184,7 @@ const BesoinsParticipants = () => {
       training: item.trainings,
     }));
 
-    setSurveys(transformed);
+    setSurveys(transformed as any);
   };
 
   const handleLogout = async () => {

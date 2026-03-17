@@ -133,7 +133,7 @@ export const useEntityMedia = (sourceType: MediaSourceType, sourceId: string | u
 
       if (error) throw error;
 
-      return (data || []) as MediaItem[];
+      return (data || []) as unknown as MediaItem[];
     },
   });
 };

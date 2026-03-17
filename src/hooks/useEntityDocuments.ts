@@ -98,7 +98,7 @@ export const useAddEntityDocument = (entityType: DocumentEntityType) => {
           file_url: input.file_url,
           file_size: input.file_size,
           uploaded_by: userId,
-        })
+        } as any)
         .select()
         .single();
       if (error) throw error;

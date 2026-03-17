@@ -171,7 +171,7 @@ const Reclamations = () => {
         status: "open",
         date_reclamation: new Date().toISOString().split("T")[0],
         created_by: user?.id,
-      } as Record<string, unknown>);
+      } as any);
 
       if (error) throw error;
 

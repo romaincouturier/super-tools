@@ -105,7 +105,7 @@ export default function UserAccessManager() {
           .from("user_module_access")
           .delete()
           .eq("user_id", userId)
-          .eq("module", module);
+          .eq("module", module as any);
 
         if (error) throw error;
       } else {
@@ -114,9 +114,9 @@ export default function UserAccessManager() {
           .from("user_module_access")
           .insert({
             user_id: userId,
-            module,
+            module: module as any,
             granted_by: user?.id,
-          });
+          } as any);
 
         if (error) throw error;
       }

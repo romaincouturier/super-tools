@@ -462,7 +462,7 @@ export default function AiTools() {
                   </div>
                 )}
 
-                {coachingSummary.key_topics?.length > 0 && (
+                {(coachingSummary.key_topics as any)?.length > 0 && (
                   <div>
                     <h4 className="text-sm font-medium mb-2">Sujets clés</h4>
                     <div className="flex flex-wrap gap-2">

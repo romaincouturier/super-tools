@@ -17,7 +17,7 @@ export const usePositioning = () => {
         .eq("user_id", user.id)
         .maybeSingle();
       if (error) throw error;
-      return data as UserPositioning | null;
+      return data as unknown as UserPositioning | null;
     },
   });
 };
@@ -47,7 +47,7 @@ export const useUpsertPositioning = () => {
         .select()
         .single();
       if (error) throw error;
-      return data as UserPositioning;
+      return data as unknown as UserPositioning;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [POSITIONING_KEY] });
