@@ -98,15 +98,28 @@ serve(async (req) => {
       );
     }
 
-    // Fetch templates
+    // Fetch templates (participant + trainer)
     const { data: templates } = await supabase
       .from("email_templates")
       .select("template_type, subject, html_content")
-      .in("template_type", ["today_reminder_tu", "today_reminder_vous"]);
+      .in("template_type", ["today_reminder_tu", "today_reminder_vous", "trainer_today_reminder"]);
 
     const templateMap: Record<string, { subject: string; html_content: string }> = {};
     for (const t of templates || []) {
       templateMap[t.template_type] = { subject: t.subject, html_content: t.html_content };
+    }
+
+    // Build trainer lookup for all trainings that have a trainer_id
+    const trainerIds = [...new Set(trainings.filter((t: any) => t.trainer_id).map((t: any) => t.trainer_id))];
+    const trainerMap: Record<string, { first_name: string; email: string }> = {};
+    if (trainerIds.length > 0) {
+      const { data: trainerRows } = await supabase
+        .from("trainers")
+        .select("id, first_name, email")
+        .in("id", trainerIds);
+      for (const tr of trainerRows || []) {
+        trainerMap[tr.id] = { first_name: tr.first_name || "", email: tr.email || "" };
+      }
     }
 
     const bccList = await getBccList();
