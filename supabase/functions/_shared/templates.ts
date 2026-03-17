@@ -28,11 +28,16 @@ export function processTemplate(
   let result = template;
 
   // Process conditional blocks: {{#var}}content{{/var}}
+  // Loop to handle nested conditionals (inner blocks revealed after outer ones are resolved)
   const conditionalRegex = /\{\{#(\w+)\}\}([\s\S]*?)\{\{\/\1\}\}/g;
-  result = result.replace(conditionalRegex, (_match, varName, content) => {
-    const value = variables[varName];
-    return value ? content : "";
-  });
+  let previousResult = "";
+  while (previousResult !== result) {
+    previousResult = result;
+    result = result.replace(conditionalRegex, (_match, varName, content) => {
+      const value = variables[varName];
+      return value ? content : "";
+    });
+  }
 
   // Process simple variables: {{var}}
   const variableRegex = /\{\{(\w+)\}\}/g;
