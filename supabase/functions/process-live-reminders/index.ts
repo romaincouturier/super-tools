@@ -75,15 +75,28 @@ serve(async (req) => {
 
     console.log(`[process-live-reminders] Found ${liveMeetings.length} live(s) today`);
 
-    // Fetch templates
+    // Fetch templates (participant + trainer)
     const { data: templates } = await supabase
       .from("email_templates")
       .select("template_type, subject, html_content")
-      .in("template_type", ["live_reminder_tu", "live_reminder_vous"]);
+      .in("template_type", ["live_reminder_tu", "live_reminder_vous", "trainer_live_reminder"]);
 
     const templateMap: Record<string, { subject: string; html_content: string }> = {};
     for (const t of templates || []) {
       templateMap[t.template_type] = { subject: t.subject, html_content: t.html_content };
+    }
+
+    // Build trainer lookup
+    const trainerIds = [...new Set(liveMeetings.map((l: any) => (l.trainings as any)?.trainer_id).filter(Boolean))];
+    const trainerMap: Record<string, { first_name: string; email: string }> = {};
+    if (trainerIds.length > 0) {
+      const { data: trainerRows } = await supabase
+        .from("trainers")
+        .select("id, first_name, email")
+        .in("id", trainerIds);
+      for (const tr of trainerRows || []) {
+        trainerMap[tr.id] = { first_name: tr.first_name || "", email: tr.email || "" };
+      }
     }
 
     const bccList = await getBccList();
