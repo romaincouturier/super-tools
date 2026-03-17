@@ -80,7 +80,8 @@ serve(async (req) => {
         location,
         format_formation,
         participants_formal_address,
-        supports_url
+        supports_url,
+        trainer_id
       `)
       .in("id", trainingIds);
 
@@ -97,15 +98,28 @@ serve(async (req) => {
       );
     }
 
-    // Fetch templates
+    // Fetch templates (participant + trainer)
     const { data: templates } = await supabase
       .from("email_templates")
       .select("template_type, subject, html_content")
-      .in("template_type", ["today_reminder_tu", "today_reminder_vous"]);
+      .in("template_type", ["today_reminder_tu", "today_reminder_vous", "trainer_today_reminder"]);
 
     const templateMap: Record<string, { subject: string; html_content: string }> = {};
     for (const t of templates || []) {
       templateMap[t.template_type] = { subject: t.subject, html_content: t.html_content };
+    }
+
+    // Build trainer lookup for all trainings that have a trainer_id
+    const trainerIds = [...new Set(trainings.filter((t: any) => t.trainer_id).map((t: any) => t.trainer_id))];
+    const trainerMap: Record<string, { first_name: string; email: string }> = {};
+    if (trainerIds.length > 0) {
+      const { data: trainerRows } = await supabase
+        .from("trainers")
+        .select("id, first_name, email")
+        .in("id", trainerIds);
+      for (const tr of trainerRows || []) {
+        trainerMap[tr.id] = { first_name: tr.first_name || "", email: tr.email || "" };
+      }
     }
 
     const bccList = await getBccList();
@@ -243,7 +257,76 @@ serve(async (req) => {
 
       totalSent += sentCount;
 
-      // Log to prevent duplicates
+      // ── Trainer reminder ──────────────────────────────────────────
+      const trainerTemplate = templateMap["trainer_today_reminder"];
+      const trainer = training.trainer_id ? trainerMap[training.trainer_id] : null;
+
+      if (trainerTemplate && trainer?.email) {
+        // Check if trainer reminder already sent
+        const { data: trainerLog } = await supabase
+          .from("activity_logs")
+          .select("id")
+          .eq("action_type", "trainer_today_reminder_sent")
+          .eq("recipient_email", trainer.email)
+          .gte("created_at", today + "T00:00:00")
+          .limit(1);
+
+        if (!trainerLog || trainerLog.length === 0) {
+          // Determine if attendance signatures exist for this training (= attendance is applicable)
+          const { count: attendanceCount } = await supabase
+            .from("attendance_signatures")
+            .select("id", { count: "exact", head: true })
+            .eq("training_id", trainingId);
+
+          const hasAttendance = (attendanceCount || 0) > 0;
+
+          const trainerVars: Record<string, string | null | undefined> = {
+            trainer_first_name: trainer.first_name || "",
+            training_name: training.training_name,
+            schedule: scheduleText || "Horaires à confirmer",
+            meeting_url: meetingUrl || undefined,
+            has_attendance: hasAttendance ? "1" : undefined,
+          };
+
+          const trainerSubject = processTemplate(trainerTemplate.subject, trainerVars, false);
+          const trainerBody = processTemplate(trainerTemplate.html_content, trainerVars, false);
+          const trainerHtml = trainerBody
+            .split(/\n\n+/)
+            .filter((p: string) => p.trim() !== "")
+            .map((p: string) => `<p>${p.replace(/\n/g, "<br>")}</p>`)
+            .join("") + "\n" + signatureHtml;
+
+          const trainerResult = await sendEmail({
+            to: trainer.email,
+            bcc: bccList,
+            subject: trainerSubject,
+            html: trainerHtml,
+            _trainingId: trainingId,
+            _emailType: "trainer_today_reminder",
+          });
+
+          if (trainerResult.success) {
+            totalSent++;
+            console.log(`[process-today-reminders] Trainer reminder sent to ${trainer.email}`);
+          }
+
+          try {
+            await supabase.from("activity_logs").insert({
+              action_type: "trainer_today_reminder_sent",
+              recipient_email: trainer.email,
+              details: {
+                training_id: trainingId,
+                training_name: training.training_name,
+                session_date: today,
+              },
+            });
+          } catch (logErr) {
+            console.warn("[process-today-reminders] Failed to log trainer reminder:", logErr);
+          }
+        }
+      }
+
+      // Log participant reminder to prevent duplicates
       try {
         await supabase.from("activity_logs").insert({
           action_type: "today_reminder_sent",

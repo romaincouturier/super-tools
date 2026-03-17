@@ -52,7 +52,8 @@ serve(async (req) => {
         trainings!inner (
           id,
           training_name,
-          participants_formal_address
+          participants_formal_address,
+          trainer_id
         )
       `)
       .gte("scheduled_at", parisDate + "T00:00:00+00:00")
@@ -74,15 +75,28 @@ serve(async (req) => {
 
     console.log(`[process-live-reminders] Found ${liveMeetings.length} live(s) today`);
 
-    // Fetch templates
+    // Fetch templates (participant + trainer)
     const { data: templates } = await supabase
       .from("email_templates")
       .select("template_type, subject, html_content")
-      .in("template_type", ["live_reminder_tu", "live_reminder_vous"]);
+      .in("template_type", ["live_reminder_tu", "live_reminder_vous", "trainer_live_reminder"]);
 
     const templateMap: Record<string, { subject: string; html_content: string }> = {};
     for (const t of templates || []) {
       templateMap[t.template_type] = { subject: t.subject, html_content: t.html_content };
+    }
+
+    // Build trainer lookup
+    const trainerIds = [...new Set(liveMeetings.map((l: any) => (l.trainings as any)?.trainer_id).filter(Boolean))];
+    const trainerMap: Record<string, { first_name: string; email: string }> = {};
+    if (trainerIds.length > 0) {
+      const { data: trainerRows } = await supabase
+        .from("trainers")
+        .select("id, first_name, email")
+        .in("id", trainerIds);
+      for (const tr of trainerRows || []) {
+        trainerMap[tr.id] = { first_name: tr.first_name || "", email: tr.email || "" };
+      }
     }
 
     const bccList = await getBccList();
@@ -230,7 +244,78 @@ serve(async (req) => {
 
       totalSent += sentCount;
 
-      // Log to prevent duplicates
+      // ── Trainer reminder for this live ─────────────────────────────
+      const trainerTemplate = templateMap["trainer_live_reminder"];
+      const trainer = training.trainer_id ? trainerMap[training.trainer_id] : null;
+
+      if (trainerTemplate && trainer?.email) {
+        const { data: trainerLog } = await supabase
+          .from("activity_logs")
+          .select("id")
+          .eq("action_type", "trainer_live_reminder_sent")
+          .eq("recipient_email", `${trainer.email}:${liveId}`)
+          .limit(1);
+
+        if (!trainerLog || trainerLog.length === 0) {
+          // Check if attendance signatures exist for this training
+          const { count: attendanceCount } = await supabase
+            .from("attendance_signatures")
+            .select("id", { count: "exact", head: true })
+            .eq("training_id", trainingId);
+
+          const hasAttendance = (attendanceCount || 0) > 0;
+
+          const trainerVars: Record<string, string | null | undefined> = {
+            trainer_first_name: trainer.first_name || "",
+            training_name: training.training_name,
+            live_title: liveTitle,
+            live_date: liveDate,
+            live_time: liveTime,
+            meeting_url: liveMeetingUrl || undefined,
+            has_attendance: hasAttendance ? "1" : undefined,
+          };
+
+          const trainerSubject = processTemplate(trainerTemplate.subject, trainerVars, false);
+          const trainerBody = processTemplate(trainerTemplate.html_content, trainerVars, false);
+          const trainerHtml = trainerBody
+            .split(/\n\n+/)
+            .filter((p: string) => p.trim() !== "")
+            .map((p: string) => `<p>${p.replace(/\n/g, "<br>")}</p>`)
+            .join("") + "\n" + signatureHtml;
+
+          await new Promise(resolve => setTimeout(resolve, 400));
+
+          const trainerResult = await sendEmail({
+            to: trainer.email,
+            bcc: bccList,
+            subject: trainerSubject,
+            html: trainerHtml,
+            _trainingId: trainingId,
+            _emailType: "trainer_live_reminder",
+          });
+
+          if (trainerResult.success) {
+            totalSent++;
+            console.log(`[process-live-reminders] Trainer reminder sent to ${trainer.email}`);
+          }
+
+          try {
+            await supabase.from("activity_logs").insert({
+              action_type: "trainer_live_reminder_sent",
+              recipient_email: `${trainer.email}:${liveId}`,
+              details: {
+                training_id: trainingId,
+                training_name: training.training_name,
+                live_title: liveTitle,
+              },
+            });
+          } catch (logErr) {
+            console.warn("[process-live-reminders] Failed to log trainer reminder:", logErr);
+          }
+        }
+      }
+
+      // Log participant reminder to prevent duplicates
       try {
         await supabase.from("activity_logs").insert({
           action_type: "live_reminder_sent",
