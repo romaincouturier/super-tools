@@ -8,7 +8,7 @@ import {
   ExternalLink,
   FileText,
   X,
-  Copy,
+  
   ClipboardList,
   PlayCircle,
   Trash2,
@@ -26,7 +26,7 @@ const CardDetailCommercial = ({ state, handlers }: Props) => {
   const navigate = useNavigate();
   const {
     card, serviceType, company, email, firstName, lastName,
-    estimatedValue, quoteUrl, setQuoteUrl, descriptionHtml,
+    estimatedValue: _estimatedValue, quoteUrl, setQuoteUrl, descriptionHtml,
     aiAnalyzing, aiAnalysis, setAiAnalysis,
     quoteGenerating, quoteDescription, setQuoteDescription,
   } = state;

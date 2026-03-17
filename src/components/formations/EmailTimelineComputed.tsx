@@ -9,13 +9,10 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import {
-  Tooltip,
-  TooltipContent,
   TooltipProvider,
-  TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Mail, Clock, CheckCircle, AlertCircle, Calendar, ChevronDown, Users, User, Zap, Ghost } from "lucide-react";
-import { format, parseISO, addDays, isBefore, isAfter, differenceInDays } from "date-fns";
+import { Clock, CheckCircle, AlertCircle, Calendar, ChevronDown, Users, User, Zap, Ghost } from "lucide-react";
+import { format, parseISO, addDays, isAfter, differenceInDays } from "date-fns";
 import { fr } from "date-fns/locale";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -120,7 +117,7 @@ const EmailTimelineComputed = ({
   trainingStartDate,
   trainingEndDate,
   sessionType,
-  sessionFormat,
+  sessionFormat: _sessionFormat,
   formatFormation,
   trainerName,
   sponsorName,
@@ -247,19 +244,19 @@ const EmailTimelineComputed = ({
         recipientType = "sponsor";
       }
 
-      const phase = getPhaseForType(e.email_type);
+      const phase = getPhaseForType(e.email_type as string);
       items.push({
-        id: e.id,
-        emailType: e.email_type,
-        label: EMAIL_TYPE_LABELS[e.email_type] || e.email_type,
-        scheduledDate: parseISO(e.scheduled_for),
+        id: e.id as string,
+        emailType: e.email_type as string,
+        label: EMAIL_TYPE_LABELS[e.email_type as string] || (e.email_type as string),
+        scheduledDate: parseISO(e.scheduled_for as string),
         recipientLabel,
         recipientType,
         phase,
         source: "db",
         status: e.sent_at || e.status === "sent" ? "sent" : e.status === "error" ? "error" : "pending",
-        participantId: e.participant_id,
-        dbId: e.id,
+        participantId: e.participant_id as string | null | undefined,
+        dbId: e.id as string | undefined,
       });
     });
 
@@ -335,7 +332,7 @@ const EmailTimelineComputed = ({
     // --- LIVES ---
     liveMeetings.forEach((live) => {
       if (!live.live_date) return;
-      const liveDate = parseISO(live.live_date);
+      const liveDate = parseISO(live.live_date as string);
       const reminderDate = addDays(liveDate, -1);
       if (isAfter(reminderDate, now)) {
         participants.forEach((p) => {

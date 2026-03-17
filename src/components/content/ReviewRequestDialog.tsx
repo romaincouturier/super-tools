@@ -92,18 +92,18 @@ const ReviewRequestDialog = ({
 
       const { error } = await supabase.from("content_reviews").insert({
         card_id: cardId,
-        reviewer_id: reviewerId,
+        reviewer_id: reviewerId!,
         reviewer_email: selectedUser,
         external_url: null,
         created_by: currentUserId,
-      });
+      } as any);
 
       if (error) throw error;
 
       // Create notification + send email
       await notifyContentUser(
         {
-          userId: reviewerId,
+          userId: reviewerId!,
           notificationType: "review_requested",
           referenceId: cardId,
           cardId,

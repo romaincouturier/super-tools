@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { notifyContentUser } from "@/services/contentNotifications";
 import {
-  Send, Loader2, MessageSquare, Check, X, Pencil, Image,
+  Send, Loader2, MessageSquare, X, Pencil, Image,
   FileText, Palette, Trash2, Copy, Mic, MicOff, Reply, CheckCheck,
   ChevronDown, ChevronRight, UserPlus
 } from "lucide-react";
@@ -59,7 +59,7 @@ const commentTypeConfig = {
   forme: { label: "Forme", icon: Palette, className: "bg-cyan-100 text-cyan-800" },
 };
 
-const CommentThread = ({ cardId, cardTitle, reviewIds, onCommentAdded }: CommentThreadProps) => {
+const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdded }: CommentThreadProps) => {
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
@@ -127,14 +127,14 @@ const CommentThread = ({ cardId, cardTitle, reviewIds, onCommentAdded }: Comment
         const { data: profs } = await supabase
           .from("profiles")
           .select("user_id, first_name, last_name, email")
-          .in("user_id", authorIds);
+          .in("user_id", authorIds as string[]);
 
         if (profs) {
           for (const p of profs) {
             const fullName = p.first_name && p.last_name
               ? `${p.first_name} ${p.last_name}`
               : p.email || undefined;
-            if (fullName) profileMap[p.user_id] = fullName;
+            if (fullName) profileMap[p.user_id as string] = fullName;
           }
         }
       }
@@ -142,8 +142,8 @@ const CommentThread = ({ cardId, cardTitle, reviewIds, onCommentAdded }: Comment
       setComments(
         rawComments.map((c) => ({
           ...c,
-          author_email: profileMap[c.author_id] || c.author_email,
-          assigned_name: c.assigned_to ? profileMap[c.assigned_to] || undefined : undefined,
+          author_email: profileMap[c.author_id as string] || c.author_email,
+          assigned_name: c.assigned_to ? profileMap[c.assigned_to as string] || undefined : undefined,
         })) as Comment[]
       );
     } catch (error) {
@@ -248,7 +248,7 @@ const CommentThread = ({ cardId, cardTitle, reviewIds, onCommentAdded }: Comment
         mentioned_user_ids: mentionedIds.length > 0 ? mentionedIds : [],
       };
 
-      const { error } = await supabase.from("review_comments").insert(insertData);
+      const { error } = await supabase.from("review_comments").insert(insertData as any);
       if (error) throw error;
 
       // Send notification to assigned person

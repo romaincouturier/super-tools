@@ -27,7 +27,7 @@ interface NewOpportunityDialogProps {
 export function NewOpportunityDialog({ open, onOpenChange, userEmail }: NewOpportunityDialogProps) {
   const [step, setStep] = useState<"input" | "review">("input");
   const [rawInput, setRawInput] = useState("");
-  const [extraction, setExtraction] = useState<OpportunityExtraction | null>(null);
+  const [_extraction, setExtraction] = useState<OpportunityExtraction | null>(null);
   const [editedExtraction, setEditedExtraction] = useState<OpportunityExtraction | null>(null);
   const [estimatedValue, setEstimatedValue] = useState("");
   const [valueEstimation, setValueEstimation] = useState<{ value: number; source: string; count: number } | null>(null);

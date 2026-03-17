@@ -90,14 +90,14 @@ export default function CoachCommercialSettings({ open, onOpenChange }: CoachCom
       .select("*")
       .eq("context_type", "ambition")
       .order("year", { ascending: false });
-    setAmbitionHistory(ambitions || []);
+    setAmbitionHistory((ambitions || []) as any);
 
     const { data: acquisitions } = await supabase
       .from("commercial_coach_contexts")
       .select("*")
       .eq("context_type", "acquisition_structure")
       .order("year", { ascending: false });
-    setAcquisitionHistory(acquisitions || []);
+    setAcquisitionHistory((acquisitions || []) as any);
   }, []);
 
   // --- Load revenue targets ---
@@ -224,7 +224,7 @@ export default function CoachCommercialSettings({ open, onOpenChange }: CoachCom
     return `Année ${d.getFullYear()}`;
   };
 
-  const yearOptions = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i);
+  // yearOptions available if needed
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>

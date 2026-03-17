@@ -1,4 +1,4 @@
-import { Loader2 } from "lucide-react";
+// ReviewSection
 import CommentThread from "./CommentThread";
 
 interface ReviewSectionProps {

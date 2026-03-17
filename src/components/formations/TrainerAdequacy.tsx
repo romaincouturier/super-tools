@@ -55,7 +55,7 @@ export default function TrainerAdequacy({ trainingId, trainerName }: TrainerAdeq
       if (!training) return;
 
       if ((training as unknown as { objectives?: string[] | null }).objectives) {
-        setTrainingObjectives((training as unknown as { objectives?: string[] | null }).objectives);
+        setTrainingObjectives(((training as any).objectives || []).join(", "));
       }
 
       // Find the trainer by trainer_id or by name match
@@ -68,7 +68,7 @@ export default function TrainerAdequacy({ trainingId, trainerName }: TrainerAdeq
           .select("id, first_name, last_name, competences")
           .eq("id", trainerId)
           .single();
-        trainerData = data;
+        trainerData = data ? { ...data, competences: data.competences || [] } : null;
       }
 
       if (!trainerData && training.trainer_name) {
@@ -81,7 +81,7 @@ export default function TrainerAdequacy({ trainingId, trainerName }: TrainerAdeq
             .ilike("last_name", parts[parts.length - 1])
             .limit(1);
           if (data && data.length > 0) {
-            trainerData = data[0];
+            trainerData = { ...data[0], competences: data[0].competences || [] };
             trainerId = data[0].id;
           }
         }
@@ -98,7 +98,7 @@ export default function TrainerAdequacy({ trainingId, trainerName }: TrainerAdeq
           .from("trainer_training_adequacy")
           .select("*")
           .eq("training_id", trainingId)
-          .eq("trainer_id", trainerId)
+          .eq("trainer_id", trainerId!)
           .limit(1);
 
         if (adequacyData && adequacyData.length > 0) {

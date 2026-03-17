@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Send, Loader2, CheckCircle2, Paperclip, X, ImageIcon, FileIcon, Sparkles } from "lucide-react";
+import { Loader2, CheckCircle2, Paperclip, X, ImageIcon, FileIcon, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";

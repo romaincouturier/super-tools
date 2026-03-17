@@ -502,9 +502,9 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
                             {[card.first_name, card.last_name].filter(Boolean).join(" ")}
                           </span>
                         )}
-                        {card.estimated_value > 0 && (
+                        {(card.estimated_value ?? 0) > 0 && (
                           <span className="font-semibold text-green-700">
-                            {card.estimated_value.toLocaleString("fr-FR")} €
+                            {(card.estimated_value ?? 0).toLocaleString("fr-FR")} €
                           </span>
                         )}
                       </div>

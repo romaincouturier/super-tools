@@ -14,7 +14,7 @@ interface AgentCardProps {
 
 export default function AgentCard({
   agent,
-  index,
+  index: _index,
   onUpdate,
   onRemove,
   canRemove,

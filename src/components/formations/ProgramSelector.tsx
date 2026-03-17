@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Upload, FileText, Check, Loader2, Sparkles, Trash2 } from "lucide-react";
+import { Upload, FileText, Check, Loader2, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -44,7 +44,7 @@ const ProgramSelector = ({
 }: ProgramSelectorProps) => {
   const [programFiles, setProgramFiles] = useState<ProgramFile[]>([]);
   const [uploading, setUploading] = useState(false);
-  const [extractingPrerequisites, setExtractingPrerequisites] = useState(false);
+  const [_extractingPrerequisites, setExtractingPrerequisites] = useState(false);
   const [loadingFiles, setLoadingFiles] = useState(true);
   const [deletingFileId, setDeletingFileId] = useState<string | null>(null);
   const [sessionUserId, setSessionUserId] = useState<string | null>(null);

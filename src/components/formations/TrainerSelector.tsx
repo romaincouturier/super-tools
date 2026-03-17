@@ -48,13 +48,13 @@ export default function TrainerSelector({
 
       if (error) throw error;
 
-      setTrainers(data || []);
+      setTrainers((data || []) as any);
 
       // Auto-select default trainer if no value set
       if (!value && data && data.length > 0) {
         const defaultTrainer = data.find((t) => t.is_default) || data[0];
         onChange(defaultTrainer.id);
-        onTrainerSelect?.(defaultTrainer);
+        onTrainerSelect?.(defaultTrainer as any);
       }
     } catch (error) {
       console.error("Error fetching trainers:", error);

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Calendar, FileText, MapPin, Building, UserIcon, Clock, Copy, Check, Euro, Mail, ExternalLink, Truck, Loader2, CheckCircle2 } from "lucide-react";
+import { Calendar, FileText, MapPin, Building, Clock, Copy, Check, Euro, Mail, ExternalLink, Truck, Loader2, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatSentDateTime } from "@/lib/dateFormatters";
 import { User as UserIconLucide } from "lucide-react";
@@ -189,7 +189,7 @@ const FormationDetailInfo = ({
                   </Button>
                   {(training as unknown as { logistics_email_sent_at?: string | null }).logistics_email_sent_at && (
                     <span className="text-xs text-muted-foreground">
-                      Envoyé le {formatSentDateTime((training as unknown as { logistics_email_sent_at?: string | null }).logistics_email_sent_at)}
+                      Envoyé le {formatSentDateTime((training as any).logistics_email_sent_at ?? "")}
                     </span>
                   )}
                 </div>
@@ -217,7 +217,7 @@ const FormationDetailInfo = ({
           <Separator />
           <div className="flex items-center gap-2">
             <a
-              href={(training as unknown as { private_group_url?: string | null }).private_group_url}
+              href={(training as unknown as { private_group_url?: string | null }).private_group_url ?? undefined}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1.5 text-sm text-primary hover:underline"

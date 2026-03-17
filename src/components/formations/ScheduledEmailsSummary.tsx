@@ -130,7 +130,7 @@ const ScheduledEmailsSummary = ({ trainingId, participants, refreshTrigger }: Sc
         .single();
 
       if (trainingData) {
-        setTraining(trainingData);
+        setTraining(trainingData as any);
       }
 
       // Fetch schedules

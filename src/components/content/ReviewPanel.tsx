@@ -228,7 +228,7 @@ const ReviewPanel = ({ cardId, cardTitle }: ReviewPanelProps) => {
             const Icon = config.icon;
             const canSendReminder = isAuthor(review) && review.status === "pending";
             const canClose = isAuthor(review) && review.status !== "approved";
-            const hasComments = review.status === "in_review";
+            // hasComments check available if needed
 
             return (
               <div

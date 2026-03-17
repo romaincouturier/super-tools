@@ -1,5 +1,5 @@
 import React from "react";
-import { MoreHorizontal, Pencil, Trash2, Eye, Mail } from "lucide-react";
+import { MoreHorizontal, Pencil, Trash2, Eye } from "lucide-react";
 import type { ContentTypeColors } from "./KanbanBoard";
 import { Button } from "@/components/ui/button";
 import {
@@ -39,7 +39,7 @@ const getTagColor = (tag: string) => {
 
 const ContentCard = ({ card, isDragging: isDraggingProp, typeColors, onEdit, onDelete, onView, onEmojiChange }: ContentCardProps) => {
   const { ref, style, attributes, listeners, isDragging } = useSortableCard(card.id, isDraggingProp);
-  const borderColor = typeColors?.[card.card_type] || (card.card_type === "post" ? "#a855f7" : "#3b82f6");
+  const borderColor = typeColors ? (typeColors as any)[card.card_type] || "#3b82f6" : (card.card_type === "post" ? "#a855f7" : "#3b82f6");
 
   const handleCardClick = (e: React.MouseEvent) => {
     const target = e.target as HTMLElement;

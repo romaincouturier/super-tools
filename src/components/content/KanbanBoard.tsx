@@ -441,7 +441,7 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
         if (options?.initialComment && newCard) {
           const { data: { user } } = await supabase.auth.getUser();
           if (user) {
-            await supabase
+            await (supabase as any)
               .from("content_comments")
               .insert({
                 card_id: newCard.id,

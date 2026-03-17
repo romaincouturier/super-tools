@@ -74,7 +74,7 @@ const CardDetailDialogs = (props: Props) => {
     showLossReasonDialog, onLossReasonConfirm, onLossReasonCancel,
     showPricingDialog, setShowPricingDialog, pricingLines, setPricingLines,
     pricingTravelTotal, setPricingTravelTotal, setEstimatedValue,
-    showCreateTrainingDialog, setShowCreateTrainingDialog, pendingTrainingParams,
+    showCreateTrainingDialog, setShowCreateTrainingDialog, pendingTrainingParams: _pendingTrainingParams,
     handleConfirmCreateTraining,
     showWinChoiceDialog, setShowWinChoiceDialog, handleConfirmCreateMission,
     onOpenChange,
@@ -105,7 +105,7 @@ const CardDetailDialogs = (props: Props) => {
         .gte("start_date", today)
         .order("start_date", { ascending: true })
         .limit(50);
-      if (!error && data) setInterTrainings(data);
+      if (!error && data) setInterTrainings(data as any);
       setInterTrainingsLoading(false);
     };
     fetchInterTrainings();

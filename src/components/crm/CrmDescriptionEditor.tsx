@@ -36,7 +36,7 @@ interface CrmDescriptionEditorProps {
 const CrmDescriptionEditor = ({
   content,
   onChange,
-  placeholder = "Notez ici tous les échanges, informations et détails importants...",
+  placeholder: _placeholder = "Notez ici tous les échanges, informations et détails importants...",
   className,
   cardId,
 }: CrmDescriptionEditorProps) => {

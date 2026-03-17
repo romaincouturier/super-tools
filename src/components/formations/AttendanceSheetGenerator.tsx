@@ -123,7 +123,7 @@ export default function AttendanceSheetGenerator({
       });
 
       const pageWidth = doc.internal.pageSize.getWidth();
-      const pageHeight = doc.internal.pageSize.getHeight();
+      const _pageHeight = doc.internal.pageSize.getHeight();
       const margin = 15;
 
       // Load images
@@ -183,7 +183,7 @@ export default function AttendanceSheetGenerator({
       yPos += 12;
 
       const halfDayColumns = generateHalfDayColumns();
-      const colCount = 3 + halfDayColumns.length; // Nom, Prénom, Société, + half-days
+      const _colCount = 3 + halfDayColumns.length; // Nom, Prénom, Société, + half-days
 
       const tableWidth = pageWidth - 2 * margin;
       const nameColWidth = 35;

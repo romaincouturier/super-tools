@@ -46,7 +46,7 @@ const ShareEventDialog = ({ event }: ShareEventDialogProps) => {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [selectedProfile, setSelectedProfile] = useState<Profile | null>(null);
   const [sending, setSending] = useState(false);
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [_currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   useEffect(() => {
     if (open) {
@@ -103,7 +103,7 @@ const ShareEventDialog = ({ event }: ShareEventDialogProps) => {
       });
 
       if (response.error) {
-        throw new Error(response.error instanceof Error ? error.message : "Erreur d'envoi");
+        throw new Error(response.error instanceof Error ? response.error.message : "Erreur d'envoi");
       }
 
       // Record the share in event_shares table (upsert to avoid duplicates)

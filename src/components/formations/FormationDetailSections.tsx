@@ -67,7 +67,7 @@ const FormationDetailSections = ({
   isElearningSession,
   hasCoaching,
   getSponsorName,
-  calculateTotalDuration,
+  calculateTotalDuration: _calculateTotalDuration,
   fetchTrainingData,
   handleSaveActions,
   handleToggleActionComplete,

@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import DetailDrawer from "@/components/shared/DetailDrawer";
-import { supabase } from "@/integrations/supabase/client";
+// supabase imported via hooks
 import { crmAiAssist } from "@/services/crmAiAssist";
 import { Button } from "@/components/ui/button";
 import {
@@ -40,7 +40,7 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { useCrmEmailTemplates, useUpdateCrmTemplate } from "@/hooks/useCrmEmailTemplates";
 import { useToast } from "@/hooks/use-toast";
-import { addDays, isAfter, startOfDay } from "date-fns";
+import { isAfter, startOfDay } from "date-fns";
 import { PricingLine } from "./MacroPricingDialog";
 
 // Sub-components
@@ -83,7 +83,7 @@ const CardDetailDrawer = ({
   const addComment = useAddComment();
   const addAttachment = useAddAttachment();
   const sendEmail = useSendEmail();
-  const { data: crmEmailTemplates } = useCrmEmailTemplates();
+  const { data: _crmEmailTemplates } = useCrmEmailTemplates();
   const updateTemplate = useUpdateCrmTemplate();
 
   // ═══ STATE ═══
@@ -107,7 +107,7 @@ const CardDetailDrawer = ({
   const [confidenceScore, setConfidenceScore] = useState<number | null>(null);
   const [acquisitionSource, setAcquisitionSource] = useState<AcquisitionSource | null>(null);
   const [showLossReasonDialog, setShowLossReasonDialog] = useState(false);
-  const [pendingLossStatus, setPendingLossStatus] = useState(false);
+  const [_pendingLossStatus, setPendingLossStatus] = useState(false);
   const [pendingLossColumnId, setPendingLossColumnId] = useState<string | null>(null);
   const [nextActionSuggesting, setNextActionSuggesting] = useState(false);
   const [scheduledDate, setScheduledDate] = useState("");
@@ -546,7 +546,7 @@ const CardDetailDrawer = ({
       console.error("handleToggleTag error:", e);
       const hasTag = card.tags?.some((t) => t.id === tagId);
       const action = hasTag ? "retirer" : "affecter";
-      const detail = e?.message || e?.error_description || "";
+      const detail = (e as any)?.message || (e as any)?.error_description || "";
       toast({ title: "Erreur", description: `Impossible d'${action} le tag.${detail ? ` ${detail}` : ""}`, variant: "destructive" });
     }
   };
@@ -708,8 +708,8 @@ const CardDetailDrawer = ({
           <CardDetailContact state={state} handlers={handlers} />
           <CardDetailQualification state={state} handlers={handlers} />
           <CardDetailCommercial state={state} handlers={handlers} />
-          <CardDetailCommunication state={state} handlers={handlers} details={details} emailFileInputRef={emailFileInputRef} selectedTemplateRef={selectedTemplateRef} />
-          <CardDetailTabs state={state} handlers={handlers} details={details} detailsLoading={detailsLoading} />
+          <CardDetailCommunication state={state} handlers={handlers} details={details ?? undefined} emailFileInputRef={emailFileInputRef} selectedTemplateRef={selectedTemplateRef} />
+          <CardDetailTabs state={state} handlers={handlers} details={details ?? undefined} detailsLoading={detailsLoading} />
 
           {/* Delete section */}
           <div className="mt-8 pt-4 border-t border-destructive/20">
