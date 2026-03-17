@@ -90,7 +90,7 @@ export default function CoachCommercialSettings({ open, onOpenChange }: CoachCom
       .select("*")
       .eq("context_type", "ambition")
       .order("year", { ascending: false });
-    setAmbitionHistory(ambitions || []);
+    setAmbitionHistory((ambitions || []) as any);
 
     const { data: acquisitions } = await supabase
       .from("commercial_coach_contexts")
