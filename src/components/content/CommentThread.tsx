@@ -134,7 +134,7 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
             const fullName = p.first_name && p.last_name
               ? `${p.first_name} ${p.last_name}`
               : p.email || undefined;
-            if (fullName) profileMap[p.user_id] = fullName;
+            if (fullName) profileMap[p.user_id as string] = fullName;
           }
         }
       }
