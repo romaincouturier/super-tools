@@ -107,7 +107,7 @@ export default function TrainerManager() {
         .order("last_name");
 
       if (error) throw error;
-      setTrainers((data || []).map((t) => ({
+      setTrainers((data || []).map((t: any) => ({
         ...t,
         competences: t.competences || [],
         formations_suivies: t.formations_suivies || [],
