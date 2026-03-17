@@ -244,19 +244,19 @@ const EmailTimelineComputed = ({
         recipientType = "sponsor";
       }
 
-      const phase = getPhaseForType(e.email_type);
+      const phase = getPhaseForType(e.email_type as string);
       items.push({
-        id: e.id,
-        emailType: e.email_type,
-        label: EMAIL_TYPE_LABELS[e.email_type] || e.email_type,
-        scheduledDate: parseISO(e.scheduled_for),
+        id: e.id as string,
+        emailType: e.email_type as string,
+        label: EMAIL_TYPE_LABELS[e.email_type as string] || (e.email_type as string),
+        scheduledDate: parseISO(e.scheduled_for as string),
         recipientLabel,
         recipientType,
         phase,
         source: "db",
         status: e.sent_at || e.status === "sent" ? "sent" : e.status === "error" ? "error" : "pending",
-        participantId: e.participant_id,
-        dbId: e.id,
+        participantId: e.participant_id as string | null | undefined,
+        dbId: e.id as string | undefined,
       });
     });
 
