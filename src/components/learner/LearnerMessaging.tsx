@@ -35,7 +35,7 @@ export default function LearnerMessaging({ trainingId, participantId, learnerEma
   // Load messages
   useEffect(() => {
     const load = async () => {
-      const { data } = await supabase
+      const { data } = await (supabase as any)
         .from("learner_messages")
         .select("*")
         .eq("training_id", trainingId)
