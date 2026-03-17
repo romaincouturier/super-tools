@@ -546,7 +546,7 @@ const CardDetailDrawer = ({
       console.error("handleToggleTag error:", e);
       const hasTag = card.tags?.some((t) => t.id === tagId);
       const action = hasTag ? "retirer" : "affecter";
-      const detail = e?.message || e?.error_description || "";
+      const detail = (e as any)?.message || (e as any)?.error_description || "";
       toast({ title: "Erreur", description: `Impossible d'${action} le tag.${detail ? ` ${detail}` : ""}`, variant: "destructive" });
     }
   };
