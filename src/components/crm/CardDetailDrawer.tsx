@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import DetailDrawer from "@/components/shared/DetailDrawer";
-import { supabase } from "@/integrations/supabase/client";
+// supabase imported via hooks
 import { crmAiAssist } from "@/services/crmAiAssist";
 import { Button } from "@/components/ui/button";
 import {
