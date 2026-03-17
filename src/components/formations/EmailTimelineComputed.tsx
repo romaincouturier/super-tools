@@ -12,7 +12,7 @@ import {
   TooltipProvider,
 } from "@/components/ui/tooltip";
 import { Clock, CheckCircle, AlertCircle, Calendar, ChevronDown, Users, User, Zap, Ghost } from "lucide-react";
-import { format, parseISO, addDays, isBefore, isAfter, differenceInDays } from "date-fns";
+import { format, parseISO, addDays, isAfter, differenceInDays } from "date-fns";
 import { fr } from "date-fns/locale";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
