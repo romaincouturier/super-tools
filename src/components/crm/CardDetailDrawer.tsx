@@ -83,7 +83,7 @@ const CardDetailDrawer = ({
   const addComment = useAddComment();
   const addAttachment = useAddAttachment();
   const sendEmail = useSendEmail();
-  const { data: crmEmailTemplates } = useCrmEmailTemplates();
+  const { data: _crmEmailTemplates } = useCrmEmailTemplates();
   const updateTemplate = useUpdateCrmTemplate();
 
   // ═══ STATE ═══
