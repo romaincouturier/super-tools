@@ -37,7 +37,7 @@ interface Props {
 const CardDetailToolbar = ({ state, handlers, updatePending }: Props) => {
   const { trackFeature } = useFeatureTracking();
   const {
-    card, allColumns, columnId, estimatedValue, setEstimatedValue,
+    card: _card, allColumns, columnId, estimatedValue, setEstimatedValue,
     confidenceScore, setConfidenceScore, salesStatus, setShowPricingDialog,
     nextActionSuggesting, setShowSchedulePopover,
   } = state;

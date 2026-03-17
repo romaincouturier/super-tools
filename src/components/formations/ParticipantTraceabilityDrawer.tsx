@@ -138,8 +138,8 @@ const ParticipantTraceabilityDrawer = ({
       ]);
 
       setEmails(emailsRes.data || []);
-      setNeedsSurvey(surveyRes.data || null);
-      setEvaluation(evalRes.data || null);
+      setNeedsSurvey((surveyRes.data || null) as any);
+      setEvaluation((evalRes.data || null) as any);
       setLoading(false);
     };
 

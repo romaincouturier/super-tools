@@ -208,7 +208,7 @@ const ScheduledActionsEditor = ({ actions, onActionsChange, onSave, saving, onTo
                     <CalendarComponent
                       mode="single"
                       selected={action.dueDate}
-                      onSelect={(date) => updateAction(action.id, "dueDate", date)}
+                      onSelect={(date) => updateAction(action.id, "dueDate", date as any)}
                       initialFocus
                       className="pointer-events-auto"
                     />

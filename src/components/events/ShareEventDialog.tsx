@@ -103,7 +103,7 @@ const ShareEventDialog = ({ event }: ShareEventDialogProps) => {
       });
 
       if (response.error) {
-        throw new Error(response.error instanceof Error ? error.message : "Erreur d'envoi");
+        throw new Error(response.error instanceof Error ? response.error.message : "Erreur d'envoi");
       }
 
       // Record the share in event_shares table (upsert to avoid duplicates)

@@ -217,7 +217,7 @@ const FormationDetailInfo = ({
           <Separator />
           <div className="flex items-center gap-2">
             <a
-              href={(training as unknown as { private_group_url?: string | null }).private_group_url}
+              href={(training as unknown as { private_group_url?: string | null }).private_group_url ?? undefined}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1.5 text-sm text-primary hover:underline"

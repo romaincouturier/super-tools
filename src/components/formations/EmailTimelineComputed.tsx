@@ -332,7 +332,7 @@ const EmailTimelineComputed = ({
     // --- LIVES ---
     liveMeetings.forEach((live) => {
       if (!live.live_date) return;
-      const liveDate = parseISO(live.live_date);
+      const liveDate = parseISO(live.live_date as string);
       const reminderDate = addDays(liveDate, -1);
       if (isAfter(reminderDate, now)) {
         participants.forEach((p) => {

@@ -142,8 +142,8 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
       setComments(
         rawComments.map((c) => ({
           ...c,
-          author_email: profileMap[c.author_id] || c.author_email,
-          assigned_name: c.assigned_to ? profileMap[c.assigned_to] || undefined : undefined,
+          author_email: profileMap[c.author_id as string] || c.author_email,
+          assigned_name: c.assigned_to ? profileMap[c.assigned_to as string] || undefined : undefined,
         })) as Comment[]
       );
     } catch (error) {

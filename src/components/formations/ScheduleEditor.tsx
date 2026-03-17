@@ -120,7 +120,7 @@ const ScheduleEditor = ({ schedules, onSchedulesChange }: ScheduleEditorProps) =
     if (schedules.length <= 1) return;
 
     const firstSchedule = schedules[0];
-    const newSchedules = schedules.map((schedule, index) => ({
+    const newSchedules = schedules.map((schedule, _index) => ({
       ...schedule,
       start_time: firstSchedule.start_time,
       end_time: firstSchedule.end_time,

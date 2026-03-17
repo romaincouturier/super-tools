@@ -14,7 +14,6 @@ import {
   Check,
   Briefcase,
   X,
-  Search,
   ChevronDown,
   ChevronUp,
 } from "lucide-react";

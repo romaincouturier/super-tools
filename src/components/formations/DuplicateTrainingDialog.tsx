@@ -240,7 +240,7 @@ const DuplicateTrainingDialog = ({
         if (livesToInsert.length > 0) {
           const { error: livesError } = await supabase
             .from("training_live_meetings")
-            .insert(livesToInsert);
+            .insert(livesToInsert as any);
           if (livesError) throw livesError;
         }
       }
