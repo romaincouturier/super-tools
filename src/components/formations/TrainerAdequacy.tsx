@@ -98,7 +98,7 @@ export default function TrainerAdequacy({ trainingId, trainerName }: TrainerAdeq
           .from("trainer_training_adequacy")
           .select("*")
           .eq("training_id", trainingId)
-          .eq("trainer_id", trainerId)
+          .eq("trainer_id", trainerId!)
           .limit(1);
 
         if (adequacyData && adequacyData.length > 0) {

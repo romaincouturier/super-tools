@@ -54,7 +54,7 @@ const ParticipantDialogs = ({
           }}
           trainingId={trainingId}
           trainingName={trainingName}
-          startDate={trainingStartDate}
+          startDate={trainingStartDate || ""}
           endDate={trainingEndDate}
           attendanceSheetsUrls={attendanceSheetsUrls}
           onUpdate={onParticipantUpdated}

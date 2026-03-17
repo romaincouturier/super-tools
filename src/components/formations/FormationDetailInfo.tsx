@@ -189,7 +189,7 @@ const FormationDetailInfo = ({
                   </Button>
                   {(training as unknown as { logistics_email_sent_at?: string | null }).logistics_email_sent_at && (
                     <span className="text-xs text-muted-foreground">
-                      Envoyé le {formatSentDateTime((training as unknown as { logistics_email_sent_at?: string | null }).logistics_email_sent_at ?? undefined)}
+                      Envoyé le {formatSentDateTime((training as any).logistics_email_sent_at ?? "")}
                     </span>
                   )}
                 </div>

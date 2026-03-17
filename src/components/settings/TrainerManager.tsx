@@ -300,12 +300,12 @@ export default function TrainerManager() {
       if (editingTrainer) {
         const { error } = await supabase
           .from("trainers")
-          .update(trainerData)
+          .update(trainerData as any)
           .eq("id", editingTrainer.id);
         if (error) throw error;
         toast({ title: "Formateur modifié" });
       } else {
-        const { error } = await supabase.from("trainers").insert(trainerData);
+        const { error } = await supabase.from("trainers").insert(trainerData as any);
         if (error) throw error;
         toast({ title: "Formateur ajouté" });
       }

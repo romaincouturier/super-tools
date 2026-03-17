@@ -82,7 +82,7 @@ export default function BillingSection() {
         .select("plan")
         .eq("id", orgData)
         .single();
-      if (org) setCurrentOrgPlan(org.plan);
+      if (org) setCurrentOrgPlan(org.plan || "");
     }
 
     setLoading(false);

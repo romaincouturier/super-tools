@@ -155,14 +155,14 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
       if (existingQuote.synthesis) setSynthesis(existingQuote.synthesis);
       if (existingQuote.instructions) setInstructions(existingQuote.instructions);
       if (existingQuote.loom_url) setLoomUrl(existingQuote.loom_url);
-      if ((existingQuote as unknown as { challenge_html?: string }).challenge_html) setChallengeHtml((existingQuote as unknown as { challenge_html?: string }).challenge_html);
+      if ((existingQuote as any).challenge_html) setChallengeHtml((existingQuote as any).challenge_html);
       
       // Restore travel data
-      const td = (existingQuote as unknown as { travel_data?: { total?: number; destinations?: string[]; settings?: Record<string, unknown> | null } }).travel_data;
+      const td = (existingQuote as any).travel_data;
       if (td) {
         setTravelTotal(td.total || 0);
-        setTravelDestinations(td.destinations || []);
-        setTravelSettings(td.settings || null);
+        setTravelDestinations((td.destinations || []) as any);
+        setTravelSettings((td.settings || null) as any);
       }
 
       // Restore client data from quote
