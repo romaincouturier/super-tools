@@ -127,7 +127,7 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
         const { data: profs } = await supabase
           .from("profiles")
           .select("user_id, first_name, last_name, email")
-          .in("user_id", authorIds);
+          .in("user_id", authorIds as string[]);
 
         if (profs) {
           for (const p of profs) {
