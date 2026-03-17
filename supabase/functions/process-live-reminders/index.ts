@@ -52,7 +52,8 @@ serve(async (req) => {
         trainings!inner (
           id,
           training_name,
-          participants_formal_address
+          participants_formal_address,
+          trainer_id
         )
       `)
       .gte("scheduled_at", parisDate + "T00:00:00+00:00")
