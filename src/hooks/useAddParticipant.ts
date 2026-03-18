@@ -105,7 +105,7 @@ export function useAddParticipant({
         } else if (status === "programme" && trainingStartDate) {
           // Training is >7 days away: schedule for J-7 working days
           try {
-            await scheduleWelcomeEmail(insertedParticipant.id, trainingId, trainingStartDate);
+            await scheduleWelcomeEmail(trainingId, insertedParticipant.id, trainingStartDate);
           } catch (scheduleError) {
             console.error("Failed to schedule welcome email:", scheduleError);
           }
