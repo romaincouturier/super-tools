@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useVoiceDictation } from "@/hooks/useVoiceDictation";
 import { toast } from "sonner";
 import type { CrmCard } from "@/types/crm";
+import { htmlToPlainText, cleanHtmlOutput } from "@/lib/htmlUtils";
 
 interface Props {
   crmCard: CrmCard;
@@ -18,19 +19,6 @@ interface Props {
   initialSynthesis?: string;
   initialInstructions?: string;
   initialChallengeHtml?: string;
-}
-
-function htmlToPlainText(html: string): string {
-  const div = document.createElement("div");
-  div.innerHTML = html;
-  return div.textContent || div.innerText || "";
-}
-
-function cleanHtmlOutput(raw: string): string {
-  return raw
-    .replace(/^```html?\s*\n?/i, "")
-    .replace(/\n?```\s*$/i, "")
-    .trim();
 }
 
 export default function Step1Synthesis({

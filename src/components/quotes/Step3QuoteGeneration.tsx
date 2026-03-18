@@ -28,6 +28,7 @@ import { useQuoteSettings, useUpdateQuote } from "@/hooks/useQuotes";
 import type { Quote, QuoteLineItem } from "@/types/quotes";
 import type { CrmCard } from "@/types/crm";
 import { v4 as uuid } from "uuid";
+import { htmlToPlainText, cleanHtmlOutput } from "@/lib/htmlUtils";
 
 interface Props {
   quote: Quote;
@@ -54,17 +55,18 @@ function emptyLine(vatRate: number, defaultUnit = "jour"): QuoteLineItem {
   };
 }
 
-function htmlToPlainText(html: string): string {
-  const div = document.createElement("div");
-  div.innerHTML = html;
-  return div.textContent || div.innerText || "";
-}
-
-function cleanHtmlOutput(raw: string): string {
-  return raw
-    .replace(/^```html?\s*\n?/i, "")
-    .replace(/\n?```\s*$/i, "")
-    .trim();
+function createTravelLine(travelTotal: number, defaultVat: number): QuoteLineItem {
+  return {
+    id: uuid(),
+    product: "Frais de déplacement",
+    description: "Frais de transport, hébergement et restauration",
+    quantity: 1,
+    unit: "forfait",
+    unit_price_ht: Math.round(travelTotal * 100) / 100,
+    vat_rate: defaultVat,
+    total_ht: Math.round(travelTotal * 100) / 100,
+    total_ttc: Math.round(travelTotal * (1 + defaultVat / 100) * 100) / 100,
+  };
 }
 
 export default function Step3QuoteGeneration({
@@ -206,17 +208,7 @@ export default function Step3QuoteGeneration({
 
         // Add travel expenses line if not already included
         if (travelTotal > 0 && !generatedLines.some((l) => l.product?.toLowerCase().includes("déplacement"))) {
-          generatedLines.push({
-            id: uuid(),
-            product: "Frais de déplacement",
-            description: "Frais de transport, hébergement et restauration",
-            quantity: 1,
-            unit: "forfait",
-            unit_price_ht: Math.round(travelTotal * 100) / 100,
-            vat_rate: defaultVat,
-            total_ht: Math.round(travelTotal * 100) / 100,
-            total_ttc: Math.round(travelTotal * (1 + defaultVat / 100) * 100) / 100,
-          });
+          generatedLines.push(createTravelLine(travelTotal, defaultVat));
         }
 
         setLines(generatedLines);
@@ -229,17 +221,7 @@ export default function Step3QuoteGeneration({
       const fallbackLines: QuoteLineItem[] = [emptyLine(defaultVat, defaultUnit)];
       // Always add travel line on error fallback
       if (travelTotal > 0) {
-        fallbackLines.push({
-          id: uuid(),
-          product: "Frais de déplacement",
-          description: "Frais de transport, hébergement et restauration",
-          quantity: 1,
-          unit: "forfait",
-          unit_price_ht: Math.round(travelTotal * 100) / 100,
-          vat_rate: defaultVat,
-          total_ht: Math.round(travelTotal * 100) / 100,
-          total_ttc: Math.round(travelTotal * (1 + defaultVat / 100) * 100) / 100,
-        });
+        fallbackLines.push(createTravelLine(travelTotal, defaultVat));
       }
       if (lines.length === 0) {
         setLines(fallbackLines);
