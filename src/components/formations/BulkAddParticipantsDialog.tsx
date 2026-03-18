@@ -49,10 +49,17 @@ const BulkAddParticipantsDialog = ({
     try {
       const { data, status, sendWelcomeNow, duplicateWarning } = await insertParticipantsWithQuestionnaires(parsedParticipants, trainingId, trainingStartDate);
       if (duplicateWarning) toast({ title: "Doublons détectés", description: "Certains participants étaient déjà inscrits et ont été ignorés.", variant: "default" });
-      if (sendWelcomeNow && data && data.length > 0 && formatFormation !== "e_learning") await sendWelcomeEmailsToBatch(data, trainingId);
+      if (data && data.length > 0 && formatFormation !== "e_learning") {
+        if (sendWelcomeNow) {
+          await sendWelcomeEmailsToBatch(data, trainingId);
+        } else if (status === "programme" && trainingStartDate) {
+          await scheduleWelcomeEmailsBatch(data, trainingId, trainingStartDate);
+        }
+      }
       if (formatFormation === "e_learning" && data && data.length > 0) await sendElearningAccessToBatch(data, trainingId);
       let needsSurveySkipped = false;
-      if (status === "programme" && data && data.length > 0 && trainingStartDate && formatFormation !== "e_learning") {
+      const trainingInFuture = status !== "non_envoye";
+      if (trainingInFuture && data && data.length > 0 && trainingStartDate && formatFormation !== "e_learning") {
         needsSurveySkipped = await scheduleNeedsSurveyEmails(data, trainingId, trainingStartDate);
       }
       if (trainingStartDate && status !== "non_envoye") await scheduleTrainerSummaryIfNeeded(supabase, trainingId, trainingStartDate);
