@@ -201,6 +201,8 @@ export function useAddParticipant({
           "Mail de convocation envoyé. ⚠️ Le recueil des besoins n'a pas été programmé car la date d'envoi est dépassée.";
       } else if (result.sendWelcomeNow) {
         statusMessage = "Mail de convocation envoyé, recueil des besoins programmé.";
+      } else if (result.status === "programme") {
+        statusMessage = "Convocation et recueil des besoins programmés automatiquement.";
       }
 
       toast({
