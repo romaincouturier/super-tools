@@ -88,7 +88,7 @@ const ParticipantTable = ({
                           : "\u2014"}
                       </span>
                       {participant.company && (
-                        <span className="text-xs text-muted-foreground">&middot; {participant.company}</span>
+                        <span className="text-xs text-muted-foreground">{participant.company}</span>
                       )}
                       {participant.formula && (
                         <Badge variant="outline" className="text-[10px] px-1.5 py-0">
