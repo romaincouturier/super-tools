@@ -8,7 +8,6 @@ import {
   generateWoocommerceCoupon,
   sendElearningAccess,
   scheduleParticipantEmail,
-  scheduleWelcomeEmail,
   scheduleTrainerSummary,
 } from "@/services/participants";
 import { getEmailMode } from "@/lib/emailScheduling";
