@@ -117,6 +117,32 @@ export async function sendElearningAccessToBatch(
   }
 }
 
+export async function scheduleWelcomeEmailsBatch(
+  participants: InsertedParticipant[],
+  trainingId: string,
+  trainingStartDate: string,
+): Promise<void> {
+  try {
+    const workingDays = await fetchWorkingDays(supabase);
+    const startDate = parseISO(trainingStartDate);
+    const scheduledDate = subtractWorkingDays(startDate, 7, workingDays);
+
+    if (scheduledDate > new Date()) {
+      const scheduledEmails = participants.map((participant) => ({
+        training_id: trainingId,
+        participant_id: participant.id,
+        email_type: "welcome",
+        scheduled_for: format(scheduledDate, "yyyy-MM-dd'T'09:00:00"),
+        status: "pending",
+      }));
+
+      await supabase.from("scheduled_emails").insert(scheduledEmails);
+    }
+  } catch (error: unknown) {
+    console.error("Failed to schedule welcome emails:", getErrorMessage(error));
+  }
+}
+
 export async function scheduleNeedsSurveyEmails(
   participants: InsertedParticipant[],
   trainingId: string,
