@@ -8,6 +8,7 @@ import {
   generateWoocommerceCoupon,
   sendElearningAccess,
   scheduleParticipantEmail,
+  scheduleWelcomeEmail,
   scheduleTrainerSummary,
 } from "@/services/participants";
 import { getEmailMode } from "@/lib/emailScheduling";
@@ -92,12 +93,22 @@ export function useAddParticipant({
         soldPriceHt: params.soldPriceHt,
       });
 
-      // 2. Send welcome email (skip for e-learning)
-      if (sendWelcomeNow && insertedParticipant && formatFormation !== "e_learning") {
-        try {
-          await sendParticipantWelcomeEmail(insertedParticipant.id, trainingId);
-        } catch (emailError) {
-          console.error("Failed to send welcome email:", emailError);
+      // 2. Send or schedule welcome email (skip for e-learning)
+      if (insertedParticipant && formatFormation !== "e_learning") {
+        if (sendWelcomeNow) {
+          // Training is 2-7 days away: send immediately
+          try {
+            await sendParticipantWelcomeEmail(insertedParticipant.id, trainingId);
+          } catch (emailError) {
+            console.error("Failed to send welcome email:", emailError);
+          }
+        } else if (status === "programme" && trainingStartDate) {
+          // Training is >7 days away: schedule for J-7 working days
+          try {
+            await scheduleWelcomeEmail(trainingId, insertedParticipant.id, trainingStartDate);
+          } catch (scheduleError) {
+            console.error("Failed to schedule welcome email:", scheduleError);
+          }
         }
       }
 
@@ -132,8 +143,10 @@ export function useAddParticipant({
       }
 
       // 4. Schedule needs survey email for future trainings (skip for e-learning)
+      // Always schedule when training is in the future (not just when sendWelcomeNow)
       let needsSurveySkipped = false;
-      if (sendWelcomeNow && insertedParticipant && trainingStartDate && formatFormation !== "e_learning") {
+      const trainingInFuture = status !== "non_envoye";
+      if (trainingInFuture && insertedParticipant && trainingStartDate && formatFormation !== "e_learning") {
         try {
           const scheduled = await scheduleParticipantEmail(
             trainingId,
@@ -188,6 +201,8 @@ export function useAddParticipant({
           "Mail de convocation envoyé. ⚠️ Le recueil des besoins n'a pas été programmé car la date d'envoi est dépassée.";
       } else if (result.sendWelcomeNow) {
         statusMessage = "Mail de convocation envoyé, recueil des besoins programmé.";
+      } else if (result.status === "programme") {
+        statusMessage = "Convocation et recueil des besoins programmés automatiquement.";
       }
 
       toast({
