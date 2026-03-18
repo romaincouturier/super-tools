@@ -61,7 +61,8 @@ const CardDetailCommercial = ({ state, handlers }: Props) => {
               const params = new URLSearchParams({
                 ...(company && { nomClient: company }),
                 ...(email && { emailCommanditaire: email }),
-                ...((firstName || lastName) && { adresseCommanditaire: [firstName, lastName].filter(Boolean).join(" ") }),
+                ...(firstName && { prenomCommanditaire: firstName }),
+                ...(lastName && { nomCommanditaire: lastName }),
                 ...(card?.id && { crmCardId: card.id }),
                 source: "crm",
               });

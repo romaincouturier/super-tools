@@ -6,7 +6,8 @@ import { Textarea } from "@/components/ui/textarea";
 interface ParticipantInputProps {
   participants: string;
   setParticipants: (v: string) => void;
-  adresseCommanditaire: string;
+  prenomCommanditaire: string;
+  nomCommanditaire: string;
   emailCommanditaire: string;
   countParticipants: () => number;
 }
@@ -14,12 +15,13 @@ interface ParticipantInputProps {
 export default function ParticipantInput({
   participants,
   setParticipants,
-  adresseCommanditaire,
+  prenomCommanditaire,
+  nomCommanditaire,
   emailCommanditaire,
   countParticipants,
 }: ParticipantInputProps) {
   const handleAddCommanditaire = () => {
-    const commanditaireEntry = `${adresseCommanditaire} ${emailCommanditaire}`;
+    const commanditaireEntry = [prenomCommanditaire, nomCommanditaire, emailCommanditaire].filter(Boolean).join(" ");
     if (participants.trim()) {
       if (!participants.includes(emailCommanditaire)) {
         setParticipants(participants + "\n" + commanditaireEntry);
@@ -29,6 +31,8 @@ export default function ParticipantInput({
     }
   };
 
+  const canAdd = (prenomCommanditaire || nomCommanditaire) && emailCommanditaire;
+
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
@@ -36,7 +40,7 @@ export default function ParticipantInput({
           Liste des participants
           <span className="text-muted-foreground font-normal text-sm ml-1">(Prénom Nom e-mail ;,)</span>
         </Label>
-        {adresseCommanditaire && emailCommanditaire && (
+        {canAdd && (
           <Button
             type="button"
             variant="ghost"

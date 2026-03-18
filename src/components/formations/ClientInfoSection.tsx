@@ -27,6 +27,8 @@ interface ClientInfoSectionProps {
   setEmailCommanditaire: (v: string) => void;
   civiliteCommanditaire: "M." | "Mme" | "";
   setCiviliteCommanditaire: (v: "M." | "Mme" | "") => void;
+  prenomCommanditaire: string;
+  setPrenomCommanditaire: (v: string) => void;
   nomCommanditaire: string;
   setNomCommanditaire: (v: string) => void;
 }
@@ -54,6 +56,8 @@ export default function ClientInfoSection({
   setEmailCommanditaire,
   civiliteCommanditaire,
   setCiviliteCommanditaire,
+  prenomCommanditaire,
+  setPrenomCommanditaire,
   nomCommanditaire,
   setNomCommanditaire,
 }: ClientInfoSectionProps) {
@@ -129,39 +133,48 @@ export default function ClientInfoSection({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="emailCommanditaire">Email du commanditaire *</Label>
-          <Input id="emailCommanditaire" type="email" placeholder="email@exemple.com" value={emailCommanditaire} onChange={(e) => setEmailCommanditaire(e.target.value)} required />
-        </div>
-        <div className="space-y-2">
-          <Label>
-            Comment s'adresser au commanditaire *
-          </Label>
-          <div className="flex gap-3 items-center">
-            <RadioGroup
-              value={civiliteCommanditaire}
-              onValueChange={(v) => setCiviliteCommanditaire(v as "M." | "Mme")}
-              className="flex gap-3"
-            >
-              <div className="flex items-center space-x-1.5">
-                <RadioGroupItem value="M." id="civilite-m" />
-                <Label htmlFor="civilite-m" className="font-normal cursor-pointer">M.</Label>
-              </div>
-              <div className="flex items-center space-x-1.5">
-                <RadioGroupItem value="Mme" id="civilite-mme" />
-                <Label htmlFor="civilite-mme" className="font-normal cursor-pointer">Mme</Label>
-              </div>
-            </RadioGroup>
-            <Input
-              id="nomCommanditaire"
-              placeholder="Nom du commanditaire"
-              value={nomCommanditaire}
-              onChange={(e) => setNomCommanditaire(e.target.value)}
-              required
-              className="flex-1"
-            />
-          </div>
+      <div className="space-y-2">
+        <Label>Commanditaire *</Label>
+        <div className="flex gap-3 items-center">
+          <RadioGroup
+            value={civiliteCommanditaire}
+            onValueChange={(v) => setCiviliteCommanditaire(v as "M." | "Mme")}
+            className="flex gap-3"
+          >
+            <div className="flex items-center space-x-1.5">
+              <RadioGroupItem value="M." id="civilite-m" />
+              <Label htmlFor="civilite-m" className="font-normal cursor-pointer">M.</Label>
+            </div>
+            <div className="flex items-center space-x-1.5">
+              <RadioGroupItem value="Mme" id="civilite-mme" />
+              <Label htmlFor="civilite-mme" className="font-normal cursor-pointer">Mme</Label>
+            </div>
+          </RadioGroup>
+          <Input
+            id="prenomCommanditaire"
+            placeholder="Prénom"
+            value={prenomCommanditaire}
+            onChange={(e) => setPrenomCommanditaire(e.target.value)}
+            required
+            className="flex-1"
+          />
+          <Input
+            id="nomCommanditaire"
+            placeholder="Nom"
+            value={nomCommanditaire}
+            onChange={(e) => setNomCommanditaire(e.target.value)}
+            required
+            className="flex-1"
+          />
+          <Input
+            id="emailCommanditaire"
+            type="email"
+            placeholder="email@exemple.com"
+            value={emailCommanditaire}
+            onChange={(e) => setEmailCommanditaire(e.target.value)}
+            required
+            className="flex-1"
+          />
         </div>
       </div>
     </div>

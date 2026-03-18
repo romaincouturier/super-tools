@@ -29,7 +29,8 @@ export interface FormationFormSectionProps {
   setFormatFormation: (v: "intra" | "inter" | "") => void;
   participants: string;
   setParticipants: (v: string) => void;
-  adresseCommanditaire: string;
+  prenomCommanditaire: string;
+  nomCommanditaire: string;
   emailCommanditaire: string;
   countParticipants: () => number;
   formationDemandee: string;
