@@ -109,20 +109,6 @@ serve(async (req) => {
       const trainingId = live.training_id;
       const liveId = live.id;
 
-      // Check if already sent today for this specific live
-      const { data: existingLog } = await supabase
-        .from("activity_logs")
-        .select("id")
-        .eq("action_type", "live_reminder_sent")
-        .eq("recipient_email", liveId) // use liveId as key for dedup
-        .gte("created_at", parisDate + "T00:00:00")
-        .limit(1);
-
-      if (existingLog && existingLog.length > 0) {
-        console.log(`[process-live-reminders] Already sent for live ${liveId}, skipping`);
-        continue;
-      }
-
       // Fetch participants
       const { data: participants } = await supabase
         .from("training_participants")
@@ -133,6 +119,23 @@ serve(async (req) => {
         console.log(`[process-live-reminders] No participants for training ${trainingId}`);
         continue;
       }
+
+      // Retry-safe dedup per participant for this live (prevents duplicates on reruns)
+      const participantLogKeys = participants
+        .filter((p: any) => !!p.id)
+        .map((p: any) => `${liveId}:${p.id}`);
+
+      const { data: existingParticipantLogs } = participantLogKeys.length > 0
+        ? await supabase
+            .from("activity_logs")
+            .select("recipient_email")
+            .eq("action_type", "live_reminder_participant_sent")
+            .in("recipient_email", participantLogKeys)
+        : { data: [] as { recipient_email: string }[] };
+
+      const alreadySentKeys = new Set(
+        (existingParticipantLogs || []).map((row: any) => row.recipient_email)
+      );
 
       const useFormal = !!training.participants_formal_address;
       const templateKey = useFormal ? "live_reminder_vous" : "live_reminder_tu";
@@ -158,19 +161,24 @@ serve(async (req) => {
       const liveTitle = live.title || "Live collectif";
 
       let sentCount = 0;
+      let skippedAlreadySent = 0;
 
       for (let i = 0; i < participants.length; i++) {
         const p = participants[i];
         if (!p.email) continue;
+
+        const participantLogKey = `${liveId}:${p.id}`;
+        if (alreadySentKeys.has(participantLogKey)) {
+          skippedAlreadySent++;
+          continue;
+        }
 
         if (i > 0) {
           await new Promise(resolve => setTimeout(resolve, 400));
         }
 
         const firstName = p.first_name || "";
-        const greeting = useFormal
-          ? (firstName ? `Bonjour ${firstName},` : "Bonjour,")
-          : (firstName ? `Bonjour ${firstName},` : "Bonjour,");
+        const greeting = firstName ? `Bonjour ${firstName},` : "Bonjour,";
 
         let subject: string;
         let htmlContent: string;
@@ -238,7 +246,24 @@ serve(async (req) => {
 
         if (result.success) {
           sentCount++;
+          alreadySentKeys.add(participantLogKey);
           console.log(`[process-live-reminders] Sent to ${p.email}`);
+
+          try {
+            await supabase.from("activity_logs").insert({
+              action_type: "live_reminder_participant_sent",
+              recipient_email: participantLogKey,
+              details: {
+                training_id: trainingId,
+                training_name: training.training_name,
+                live_title: liveTitle,
+                participant_id: p.id,
+                participant_email: p.email,
+              },
+            });
+          } catch (logErr) {
+            console.warn("[process-live-reminders] Failed to log participant send:", logErr);
+          }
         }
       }
 
@@ -249,11 +274,12 @@ serve(async (req) => {
       const trainer = training.trainer_id ? trainerMap[training.trainer_id] : null;
 
       if (trainerTemplate && trainer?.email) {
+        const trainerLogKey = `${trainer.email}:${liveId}`;
         const { data: trainerLog } = await supabase
           .from("activity_logs")
           .select("id")
           .eq("action_type", "trainer_live_reminder_sent")
-          .eq("recipient_email", `${trainer.email}:${liveId}`)
+          .eq("recipient_email", trainerLogKey)
           .limit(1);
 
         if (!trainerLog || trainerLog.length === 0) {
@@ -297,25 +323,27 @@ serve(async (req) => {
           if (trainerResult.success) {
             totalSent++;
             console.log(`[process-live-reminders] Trainer reminder sent to ${trainer.email}`);
-          }
 
-          try {
-            await supabase.from("activity_logs").insert({
-              action_type: "trainer_live_reminder_sent",
-              recipient_email: `${trainer.email}:${liveId}`,
-              details: {
-                training_id: trainingId,
-                training_name: training.training_name,
-                live_title: liveTitle,
-              },
-            });
-          } catch (logErr) {
-            console.warn("[process-live-reminders] Failed to log trainer reminder:", logErr);
+            try {
+              await supabase.from("activity_logs").insert({
+                action_type: "trainer_live_reminder_sent",
+                recipient_email: trainerLogKey,
+                details: {
+                  training_id: trainingId,
+                  training_name: training.training_name,
+                  live_title: liveTitle,
+                },
+              });
+            } catch (logErr) {
+              console.warn("[process-live-reminders] Failed to log trainer reminder:", logErr);
+            }
+          } else {
+            console.warn(`[process-live-reminders] Trainer reminder failed for ${trainer.email}`);
           }
         }
       }
 
-      // Log participant reminder to prevent duplicates
+      // Summary log of this run (informational, not used for hard dedup)
       try {
         await supabase.from("activity_logs").insert({
           action_type: "live_reminder_sent",
@@ -324,11 +352,13 @@ serve(async (req) => {
             training_id: trainingId,
             training_name: training.training_name,
             live_title: liveTitle,
-            participants_notified: sentCount,
+            participants_total: participants.length,
+            participants_sent_this_run: sentCount,
+            participants_already_sent: skippedAlreadySent,
           },
         });
       } catch (logErr) {
-        console.warn("[process-live-reminders] Failed to log:", logErr);
+        console.warn("[process-live-reminders] Failed to log summary:", logErr);
       }
     }
 
