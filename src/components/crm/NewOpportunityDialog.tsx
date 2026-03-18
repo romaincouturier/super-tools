@@ -12,7 +12,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Sparkles, User, Building2, Phone, Mail, Linkedin, FileText, Euro, TrendingUp } from "lucide-react";
+import { Loader2, Sparkles, User, Building2, Phone, Mail, Linkedin, FileText, Euro, TrendingUp, ChevronDown, MessageSquare } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useExtractOpportunity, useCreateCard, useCrmBoard } from "@/hooks/useCrmBoard";
 import { OpportunityExtraction, BriefQuestion, AcquisitionSource, acquisitionSourceConfig } from "@/types/crm";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -27,6 +28,7 @@ interface NewOpportunityDialogProps {
 export function NewOpportunityDialog({ open, onOpenChange, userEmail }: NewOpportunityDialogProps) {
   const [step, setStep] = useState<"input" | "review">("input");
   const [rawInput, setRawInput] = useState("");
+  const [rawInputOpen, setRawInputOpen] = useState(false);
   const [_extraction, setExtraction] = useState<OpportunityExtraction | null>(null);
   const [editedExtraction, setEditedExtraction] = useState<OpportunityExtraction | null>(null);
   const [estimatedValue, setEstimatedValue] = useState("");
@@ -189,6 +191,7 @@ export function NewOpportunityDialog({ open, onOpenChange, userEmail }: NewOppor
       // Reset and close
       setStep("input");
       setRawInput("");
+      setRawInputOpen(false);
       setExtraction(null);
       setEditedExtraction(null);
       setEstimatedValue("");
@@ -203,6 +206,7 @@ export function NewOpportunityDialog({ open, onOpenChange, userEmail }: NewOppor
   const handleClose = () => {
     setStep("input");
     setRawInput("");
+    setRawInputOpen(false);
     setExtraction(null);
     setEditedExtraction(null);
     setEstimatedValue("");
@@ -279,6 +283,24 @@ Tel: 06 12 34 56 78"
           </div>
         ) : editedExtraction ? (
           <div className="space-y-6">
+            {/* Raw input (collapsible) */}
+            <Collapsible open={rawInputOpen} onOpenChange={setRawInputOpen}>
+              <CollapsibleTrigger asChild>
+                <Button variant="outline" size="sm" className="w-full justify-between text-muted-foreground">
+                  <span className="flex items-center gap-2">
+                    <MessageSquare className="h-3.5 w-3.5" />
+                    Message initial
+                  </span>
+                  <ChevronDown className={`h-4 w-4 transition-transform ${rawInputOpen ? "rotate-180" : ""}`} />
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <pre className="mt-2 whitespace-pre-wrap text-xs text-muted-foreground bg-muted/50 rounded-md p-3 max-h-[200px] overflow-y-auto border">
+                  {rawInput}
+                </pre>
+              </CollapsibleContent>
+            </Collapsible>
+
             {/* Title */}
             <div>
               <Label htmlFor="title">Titre de l'opportunité</Label>
