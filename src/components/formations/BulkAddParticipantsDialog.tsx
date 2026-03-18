@@ -10,7 +10,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { useParticipantParser } from "@/hooks/useParticipantParser";
 import { getErrorMessage } from "@/lib/error-utils";
-import { insertParticipantsWithQuestionnaires, sendWelcomeEmailsToBatch, sendElearningAccessToBatch, scheduleNeedsSurveyEmails, scheduleWelcomeEmailsBatch, logBulkAddActivity, buildStatusMessage } from "@/services/bulkParticipants";
+import { insertParticipantsWithQuestionnaires, sendWelcomeEmailsToBatch, sendElearningAccessToBatch, scheduleNeedsSurveyEmails, logBulkAddActivity, buildStatusMessage } from "@/services/bulkParticipants";
 import { scheduleTrainerSummaryIfNeeded } from "@/lib/workingDays";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -49,12 +49,9 @@ const BulkAddParticipantsDialog = ({
     try {
       const { data, status, sendWelcomeNow, duplicateWarning } = await insertParticipantsWithQuestionnaires(parsedParticipants, trainingId, trainingStartDate);
       if (duplicateWarning) toast({ title: "Doublons détectés", description: "Certains participants étaient déjà inscrits et ont été ignorés.", variant: "default" });
-      if (data && data.length > 0 && formatFormation !== "e_learning") {
-        if (sendWelcomeNow) {
-          await sendWelcomeEmailsToBatch(data, trainingId);
-        } else if (status === "programme" && trainingStartDate) {
-          await scheduleWelcomeEmailsBatch(data, trainingId, trainingStartDate);
-        }
+      const trainingInFutureBulk = status !== "non_envoye";
+      if (trainingInFutureBulk && data && data.length > 0 && formatFormation !== "e_learning") {
+        await sendWelcomeEmailsToBatch(data, trainingId);
       }
       if (formatFormation === "e_learning" && data && data.length > 0) await sendElearningAccessToBatch(data, trainingId);
       let needsSurveySkipped = false;
