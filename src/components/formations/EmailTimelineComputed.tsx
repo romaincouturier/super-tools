@@ -625,12 +625,12 @@ function TimelineRow({
           {breakdown}
         </div>
         <div className="flex items-center gap-1.5 text-muted-foreground mt-0.5">
-          <Icon className="h-3 w-3 flex-shrink-0" />
-          <span className="truncate">{recipientLabel}</span>
-          <span className="text-muted-foreground/60">•</span>
           <span className="whitespace-nowrap">
             {format(date, "d MMM yyyy", { locale: fr })}
           </span>
+          <span className="text-muted-foreground/60">•</span>
+          <Icon className="h-3 w-3 flex-shrink-0" />
+          <span className="truncate">{recipientLabel}</span>
         </div>
         {condition && (
           <p className="text-[10px] text-muted-foreground/70 italic mt-0.5">
