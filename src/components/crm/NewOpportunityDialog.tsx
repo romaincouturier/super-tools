@@ -12,8 +12,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Sparkles, User, Building2, Phone, Mail, Linkedin, FileText, Euro, TrendingUp, ChevronDown, MessageSquare, History, CheckCircle, XCircle, Clock } from "lucide-react";
+import { Loader2, Sparkles, User, Building2, Phone, Mail, Linkedin, FileText, Euro, TrendingUp, ChevronDown, MessageSquare, History, CheckCircle, XCircle, Clock, CalendarClock } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useExtractOpportunity, useCreateCard, useCrmBoard } from "@/hooks/useCrmBoard";
 import { OpportunityExtraction, BriefQuestion, AcquisitionSource, acquisitionSourceConfig } from "@/types/crm";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -48,6 +49,9 @@ export function NewOpportunityDialog({ open, onOpenChange, userEmail }: NewOppor
   const [acquisitionSource, setAcquisitionSource] = useState<AcquisitionSource | null>(null);
   const [clientHistory, setClientHistory] = useState<ClientHistoryItem[]>([]);
   const [clientHistoryOpen, setClientHistoryOpen] = useState(true);
+  const [scheduleAction, setScheduleAction] = useState(false);
+  const [nextActionDate, setNextActionDate] = useState("");
+  const [nextActionText, setNextActionText] = useState("");
 
   const { data: boardData } = useCrmBoard();
   const extractMutation = useExtractOpportunity();
@@ -205,6 +209,11 @@ export function NewOpportunityDialog({ open, onOpenChange, userEmail }: NewOppor
           brief_questions: editedExtraction.brief_questions,
           raw_input: rawInput,
           acquisition_source: acquisitionSource || undefined,
+          ...(scheduleAction && nextActionDate && {
+            status_operational: "WAITING" as const,
+            waiting_next_action_date: nextActionDate,
+            waiting_next_action_text: nextActionText || undefined,
+          }),
           description_html: rawInput
             .replace(/\r\n/g, "\n")
             .replace(/[\u2028\u2029]/g, "\n")
@@ -236,6 +245,9 @@ export function NewOpportunityDialog({ open, onOpenChange, userEmail }: NewOppor
       setAcquisitionSource(null);
       setClientHistory([]);
       setClientHistoryOpen(true);
+      setScheduleAction(false);
+      setNextActionDate("");
+      setNextActionText("");
       onOpenChange(false);
     } catch {
       // Error handled by mutation
@@ -253,6 +265,9 @@ export function NewOpportunityDialog({ open, onOpenChange, userEmail }: NewOppor
     setAcquisitionSource(null);
     setClientHistory([]);
     setClientHistoryOpen(true);
+    setScheduleAction(false);
+    setNextActionDate("");
+    setNextActionText("");
     onOpenChange(false);
   };
 
@@ -549,6 +564,45 @@ Tel: 06 12 34 56 78"
                   <TrendingUp className="h-3 w-3 text-green-600" />
                   Estimation basée sur {valueEstimation.count} {valueEstimation.source} (moyenne : {valueEstimation.value.toLocaleString("fr-FR")} €)
                 </p>
+              )}
+            </div>
+
+            {/* Schedule next action */}
+            <div className="space-y-3">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="schedule-action"
+                  checked={scheduleAction}
+                  onCheckedChange={(checked) => setScheduleAction(checked === true)}
+                />
+                <Label htmlFor="schedule-action" className="flex items-center gap-1.5 font-normal cursor-pointer">
+                  <CalendarClock className="h-3.5 w-3.5" />
+                  Programmer une prochaine action
+                </Label>
+              </div>
+              {scheduleAction && (
+                <div className="grid grid-cols-2 gap-3 pl-6">
+                  <div>
+                    <Label htmlFor="next-action-date" className="text-xs">Date *</Label>
+                    <Input
+                      id="next-action-date"
+                      type="date"
+                      value={nextActionDate}
+                      onChange={(e) => setNextActionDate(e.target.value)}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="next-action-text" className="text-xs">Action prévue</Label>
+                    <Input
+                      id="next-action-text"
+                      value={nextActionText}
+                      onChange={(e) => setNextActionText(e.target.value)}
+                      placeholder="Ex: Relancer le client"
+                      className="mt-1"
+                    />
+                  </div>
+                </div>
               )}
             </div>
 
