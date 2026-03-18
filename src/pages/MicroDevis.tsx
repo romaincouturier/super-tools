@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
@@ -39,6 +39,7 @@ const MicroDevis = () => {
   const [paysAutre, setPaysAutre] = useState("");
   const [emailCommanditaire, setEmailCommanditaire] = useState("");
   const [civiliteCommanditaire, setCiviliteCommanditaire] = useState<"M." | "Mme" | "">("");
+  const [prenomCommanditaire, setPrenomCommanditaire] = useState("");
   const [nomCommanditaire, setNomCommanditaire] = useState("");
   const [typeDevis, setTypeDevis] = useState<"formation" | "jeu" | "">("");
   const [isAdministration, setIsAdministration] = useState<"oui" | "non" | "">("");
@@ -57,6 +58,7 @@ const MicroDevis = () => {
   const [jsonPreviewOpen, setJsonPreviewOpen] = useState(false);
   const [initialDefaultsApplied, setInitialDefaultsApplied] = useState(false);
 
+  const pendingFormulaIdRef = useRef<string | null>(null);
   const STORAGE_KEY = "microDevisFormData";
 
   // Extracted hooks
@@ -65,6 +67,17 @@ const MicroDevis = () => {
   const datesHook = useFormationDates(user, initialDefaultsApplied, dateFormation);
   const formulasHook = useFormationFormulas(formationDemandee, configsHook.formationConfigs);
   const historyHook = useDevisHistory();
+
+  // Restore saved formula selection after formulas load
+  useEffect(() => {
+    if (pendingFormulaIdRef.current && formulasHook.formationFormulas.length > 0) {
+      const match = formulasHook.formationFormulas.find(f => f.id === pendingFormulaIdRef.current);
+      if (match) {
+        formulasHook.setSelectedFormulaId(match.id);
+      }
+      pendingFormulaIdRef.current = null;
+    }
+  }, [formulasHook.formationFormulas]);
 
   // Auth
   useEffect(() => {
@@ -118,6 +131,7 @@ const MicroDevis = () => {
         if (d.nomClient) setNomClient(d.nomClient);
         if (d.emailCommanditaire) setEmailCommanditaire(d.emailCommanditaire);
         if (d.typeDevis) setTypeDevis(d.typeDevis);
+        if (d.selectedFormulaId) pendingFormulaIdRef.current = d.selectedFormulaId;
       }
     } catch (e) { console.error("Failed to load saved form data:", e); }
   }, [searchParams]);
@@ -127,12 +141,16 @@ const MicroDevis = () => {
     if (searchParams.get("source") !== "crm") return;
     const n = searchParams.get("nomClient");
     const e = searchParams.get("emailCommanditaire");
-    const a = searchParams.get("adresseCommanditaire");
+    const p = searchParams.get("prenomCommanditaire");
+    const ln = searchParams.get("nomCommanditaire");
+    const a = searchParams.get("adresseCommanditaire"); // legacy CRM prefill
     const c = searchParams.get("crmCardId");
     if (n) setNomClient(n);
     if (e) setEmailCommanditaire(e);
-    if (a) {
-      // Parse "Mme Dupont" or "M. Dupont" from CRM prefill
+    if (p) setPrenomCommanditaire(p);
+    if (ln) setNomCommanditaire(ln);
+    if (a && !p && !ln) {
+      // Legacy: parse "Mme Dupont" or "M. Dupont"
       if (a.startsWith("Mme ")) { setCiviliteCommanditaire("Mme"); setNomCommanditaire(a.slice(4)); }
       else if (a.startsWith("M. ")) { setCiviliteCommanditaire("M."); setNomCommanditaire(a.slice(3)); }
       else { setNomCommanditaire(a); }
@@ -147,8 +165,9 @@ const MicroDevis = () => {
     sessionStorage.setItem(STORAGE_KEY, JSON.stringify({
       formatFormation, formationDemandee, formationLibre, dateFormation,
       dateFormationLibre, lieu, lieuAutre, nomClient, emailCommanditaire, typeDevis,
+      selectedFormulaId: formulasHook.selectedFormulaId,
     }));
-  }, [formatFormation, formationDemandee, formationLibre, dateFormation, dateFormationLibre, lieu, lieuAutre, nomClient, emailCommanditaire, typeDevis]);
+  }, [formatFormation, formationDemandee, formationLibre, dateFormation, dateFormationLibre, lieu, lieuAutre, nomClient, emailCommanditaire, typeDevis, formulasHook.selectedFormulaId]);
 
   // Auto-set lieu
   useEffect(() => {
@@ -252,7 +271,7 @@ const MicroDevis = () => {
       toast({ title: typeSubrogation === "les2" ? "Devis envoyés !" : "Devis envoyé !", description: typeSubrogation === "les2" ? `Les 2 devis ont été générés et envoyés à ${normalizedEmail}` : `Le devis a été généré et envoyé à ${normalizedEmail}` });
       if (searchParams.get("source") === "crm") { setTimeout(() => { window.close(); }, 1500); return; }
       setNomClient(""); setAdresseClient(""); setCodePostalClient(""); setVilleClient("");
-      setPays("france"); setPaysAutre(""); setEmailCommanditaire(""); setCiviliteCommanditaire(""); setNomCommanditaire("");
+      setPays("france"); setPaysAutre(""); setEmailCommanditaire(""); setCiviliteCommanditaire(""); setPrenomCommanditaire(""); setNomCommanditaire("");
       setTypeDevis(""); setIsAdministration(""); setNoteDevis(""); setParticipants("");
       setFormationDemandee(configsHook.formationConfigs.find(f => f.is_default)?.formation_name || "");
       setDateFormation(""); setLieu(""); setLieuAutre(""); setIncludeCadeau(false); setFraisDossier("");
@@ -305,6 +324,7 @@ const MicroDevis = () => {
                 pays={pays} setPays={setPays} paysAutre={paysAutre} setPaysAutre={setPaysAutre}
                 emailCommanditaire={emailCommanditaire} setEmailCommanditaire={setEmailCommanditaire}
                 civiliteCommanditaire={civiliteCommanditaire} setCiviliteCommanditaire={setCiviliteCommanditaire}
+                prenomCommanditaire={prenomCommanditaire} setPrenomCommanditaire={setPrenomCommanditaire}
                 nomCommanditaire={nomCommanditaire} setNomCommanditaire={setNomCommanditaire}
               />
 
@@ -318,7 +338,7 @@ const MicroDevis = () => {
                 <FormationFormSection
                   formatFormation={formatFormation} setFormatFormation={setFormatFormation}
                   participants={participants} setParticipants={setParticipants}
-                  adresseCommanditaire={`${civiliteCommanditaire} ${nomCommanditaire}`.trim()} emailCommanditaire={emailCommanditaire}
+                  prenomCommanditaire={prenomCommanditaire} nomCommanditaire={nomCommanditaire} emailCommanditaire={emailCommanditaire}
                   countParticipants={countParticipants}
                   formationDemandee={formationDemandee} setFormationDemandee={setFormationDemandee}
                   formationConfigs={configsHook.formationConfigs} loadingConfigs={configsHook.loadingConfigs}

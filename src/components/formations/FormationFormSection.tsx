@@ -43,7 +43,8 @@ export default function FormationFormSection(props: FormationFormSectionProps) {
       <ParticipantInput
         participants={props.participants}
         setParticipants={props.setParticipants}
-        adresseCommanditaire={props.adresseCommanditaire}
+        prenomCommanditaire={props.prenomCommanditaire}
+        nomCommanditaire={props.nomCommanditaire}
         emailCommanditaire={props.emailCommanditaire}
         countParticipants={props.countParticipants}
       />

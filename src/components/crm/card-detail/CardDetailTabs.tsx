@@ -99,10 +99,10 @@ const CardDetailTabs = ({ state, handlers, details, detailsLoading }: Props) => 
       {/* Attachments */}
       <TabsContent value="attachments" className="space-y-4 mt-4">
         <div>
-          <input type="file" id="file-upload" className="hidden" onChange={handlers.handleFileUpload} />
+          <input type="file" id="file-upload" className="hidden" multiple onChange={handlers.handleFileUpload} />
           <Button variant="outline" onClick={() => document.getElementById("file-upload")?.click()} disabled={addAttachment.isPending}>
             {addAttachment.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Plus className="h-4 w-4 mr-2" />}
-            Ajouter un fichier
+            Ajouter des fichiers
           </Button>
         </div>
         <div className="space-y-2">

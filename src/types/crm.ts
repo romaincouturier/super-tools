@@ -3,7 +3,7 @@
 export type StatusOperational = 'TODAY' | 'WAITING';
 export type SalesStatus = 'OPEN' | 'WON' | 'LOST' | 'CANCELED';
 export type ServiceType = 'formation' | 'mission';
-export type AcquisitionSource = 'recommandation' | 'linkedin' | 'site_web' | 'evenement' | 'appel_froid' | 'email_entrant' | 'partenaire' | 'nouvelle_mission' | 'ancien_client' | 'recherche_google' | 'reseau' | 'autre';
+export type AcquisitionSource = 'recommandation' | 'linkedin' | 'site_web' | 'evenement' | 'appel_froid' | 'email_entrant' | 'partenaire' | 'nouvelle_mission' | 'ancien_client' | 'recherche_google' | 'reseau' | 'demarchage' | 'autre';
 export type LossReason = 'prix' | 'timing' | 'concurrent' | 'besoin_non_qualifie' | 'pas_de_budget' | 'pas_de_reponse' | 'autre';
 export type NextActionType = 'email' | 'phone' | 'rdv_physique' | 'rdv_visio' | 'other';
 
@@ -269,6 +269,7 @@ export const acquisitionSourceConfig: Record<AcquisitionSource, string> = {
   email_entrant: 'Email entrant',
   evenement: 'Événement',
   appel_froid: 'Appel à froid',
+  demarchage: 'Démarchage',
   autre: 'Autre',
 };
 

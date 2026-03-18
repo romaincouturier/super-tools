@@ -37,7 +37,11 @@ const DetailDrawer = ({
   headerClassName,
 }: DetailDrawerProps) => (
   <Sheet open={open} onOpenChange={onOpenChange}>
-    <SheetContent hideCloseButton className={cn("w-full", contentClassName)}>
+    <SheetContent
+      hideCloseButton
+      className={cn("w-full", contentClassName)}
+      onEscapeKeyDown={() => onOpenChange(false)}
+    >
       <SheetHeader className={headerClassName}>
         <SheetTitle className="flex items-center justify-between gap-2">
           <span className="truncate flex-1">{title}</span>

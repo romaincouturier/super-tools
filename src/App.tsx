@@ -12,6 +12,11 @@ import { PageViewTracker } from "@/components/PageViewTracker";
 import { RouteErrorBoundary } from "@/components/RouteErrorBoundary";
 import { lazyWithRetry } from "@/lib/lazyWithRetry";
 import "@/i18n";
+import { registerToast } from "@/lib/offlineMutationGuard";
+import { toast } from "@/hooks/use-toast";
+
+// Wire toast into offlineGuard (avoids lib → hooks circular dependency)
+registerToast(toast);
 import { createIDBPersister } from "@/lib/queryPersister";
 import OfflineBanner from "@/components/OfflineBanner";
 

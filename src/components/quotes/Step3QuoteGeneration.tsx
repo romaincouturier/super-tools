@@ -19,13 +19,16 @@ import {
   Trash2,
   FileDown,
   RefreshCw,
+  Swords,
 } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQuoteSettings, useUpdateQuote } from "@/hooks/useQuotes";
 import type { Quote, QuoteLineItem } from "@/types/quotes";
 import type { CrmCard } from "@/types/crm";
 import { v4 as uuid } from "uuid";
+import { htmlToPlainText, cleanHtmlOutput } from "@/lib/htmlUtils";
 
 interface Props {
   quote: Quote;
@@ -33,7 +36,9 @@ interface Props {
   instructions: string;
   travelTotal?: number;
   crmCard: CrmCard;
+  challengeHtml?: string;
   onContinue: (updatedQuote: Quote) => void;
+  onChallengeChange?: (html: string) => void;
 }
 
 function emptyLine(vatRate: number, defaultUnit = "jour"): QuoteLineItem {
@@ -50,13 +55,29 @@ function emptyLine(vatRate: number, defaultUnit = "jour"): QuoteLineItem {
   };
 }
 
+function createTravelLine(travelTotal: number, defaultVat: number): QuoteLineItem {
+  return {
+    id: uuid(),
+    product: "Frais de déplacement",
+    description: "Frais de transport, hébergement et restauration",
+    quantity: 1,
+    unit: "forfait",
+    unit_price_ht: Math.round(travelTotal * 100) / 100,
+    vat_rate: defaultVat,
+    total_ht: Math.round(travelTotal * 100) / 100,
+    total_ttc: Math.round(travelTotal * (1 + defaultVat / 100) * 100) / 100,
+  };
+}
+
 export default function Step3QuoteGeneration({
   quote,
   synthesis,
   instructions,
   travelTotal = 0,
   crmCard,
+  challengeHtml: initialChallengeHtml,
   onContinue,
+  onChallengeChange,
 }: Props) {
   const { data: settings } = useQuoteSettings();
   const updateMutation = useUpdateQuote();
@@ -67,6 +88,9 @@ export default function Step3QuoteGeneration({
     quote.line_items?.length > 0 ? quote.line_items : []
   );
   const [isGenerating, setIsGenerating] = useState(false);
+  const [challengeHtml, setChallengeHtml] = useState(initialChallengeHtml || "");
+  const [isChallenging, setIsChallenging] = useState(false);
+  const [challengeDone, setChallengeDone] = useState(!!initialChallengeHtml);
   const [expiryDate, setExpiryDate] = useState(quote.expiry_date);
   const [saleType, setSaleType] = useState(
     quote.sale_type || settings?.default_sale_type || ""
@@ -184,17 +208,7 @@ export default function Step3QuoteGeneration({
 
         // Add travel expenses line if not already included
         if (travelTotal > 0 && !generatedLines.some((l) => l.product?.toLowerCase().includes("déplacement"))) {
-          generatedLines.push({
-            id: uuid(),
-            product: "Frais de déplacement",
-            description: "Frais de transport, hébergement et restauration",
-            quantity: 1,
-            unit: "forfait",
-            unit_price_ht: Math.round(travelTotal * 100) / 100,
-            vat_rate: defaultVat,
-            total_ht: Math.round(travelTotal * 100) / 100,
-            total_ttc: Math.round(travelTotal * (1 + defaultVat / 100) * 100) / 100,
-          });
+          generatedLines.push(createTravelLine(travelTotal, defaultVat));
         }
 
         setLines(generatedLines);
@@ -207,17 +221,7 @@ export default function Step3QuoteGeneration({
       const fallbackLines: QuoteLineItem[] = [emptyLine(defaultVat, defaultUnit)];
       // Always add travel line on error fallback
       if (travelTotal > 0) {
-        fallbackLines.push({
-          id: uuid(),
-          product: "Frais de déplacement",
-          description: "Frais de transport, hébergement et restauration",
-          quantity: 1,
-          unit: "forfait",
-          unit_price_ht: Math.round(travelTotal * 100) / 100,
-          vat_rate: defaultVat,
-          total_ht: Math.round(travelTotal * 100) / 100,
-          total_ttc: Math.round(travelTotal * (1 + defaultVat / 100) * 100) / 100,
-        });
+        fallbackLines.push(createTravelLine(travelTotal, defaultVat));
       }
       if (lines.length === 0) {
         setLines(fallbackLines);
@@ -232,6 +236,54 @@ export default function Step3QuoteGeneration({
       generateLines();
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleChallenge = async () => {
+    if (lines.length === 0) {
+      toast.error("Générez d'abord les lignes du devis avant de lancer le challenge.");
+      return;
+    }
+    setIsChallenging(true);
+    setChallengeHtml("");
+    setChallengeDone(false);
+
+    try {
+      const linesContext = lines
+        .map((l, i) => `Ligne ${i + 1}: ${l.product} — ${l.description || ""} — ${l.quantity} ${l.unit} × ${l.unit_price_ht}€ HT = ${fmt(l.quantity * l.unit_price_ht)}`)
+        .join("\n");
+
+      const clientContext = [
+        `Opportunité : ${crmCard.title}`,
+        `Client : ${crmCard.company || ""}`,
+        crmCard.service_type ? `Type : ${crmCard.service_type}` : "",
+        crmCard.estimated_value ? `Valeur estimée : ${crmCard.estimated_value} €` : "",
+        `\nTotal HT du devis : ${fmt(totals.totalHt)}`,
+        `Total TTC du devis : ${fmt(totals.totalTtc)}`,
+        travelTotal > 0 ? `Frais de déplacement : ${fmt(travelTotal)}` : "",
+        rightsEnabled ? `Cession de droits : ${rightsRate}% = ${fmt(totals.rightsAmount)}` : "",
+        saleType ? `Type de vente : ${saleType}` : "",
+        `\n=== LIGNES DU DEVIS ===\n${linesContext}`,
+      ].filter(Boolean).join("\n");
+
+      const { data, error } = await supabase.functions.invoke("commercial-challenge", {
+        body: {
+          synthesis: htmlToPlainText(synthesis),
+          instructions: instructions || null,
+          clientContext,
+        },
+      });
+
+      if (error) throw error;
+      const cleaned = cleanHtmlOutput(data.challenge || "");
+      setChallengeHtml(cleaned);
+      setChallengeDone(true);
+      onChallengeChange?.(cleaned);
+    } catch (e: unknown) {
+      console.error("Challenge error:", e);
+      toast.error("Erreur lors du challenge commercial : " + (e instanceof Error ? e.message : "Erreur inconnue"));
+    } finally {
+      setIsChallenging(false);
+    }
+  };
 
   const updateLine = (id: string, field: keyof QuoteLineItem, value: string | number) => {
     setLines((prev) =>
@@ -762,6 +814,64 @@ export default function Step3QuoteGeneration({
                   </div>
                 </div>
               )}
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Commercial Challenge on Quote */}
+      <Card className="border-amber-200 bg-amber-50/30 dark:border-amber-900 dark:bg-amber-950/20">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Swords className="w-5 h-5 text-amber-600" />
+            Challenge commercial du devis
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Alert className="border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/40">
+            <Swords className="w-4 h-4 text-amber-600" />
+            <AlertDescription>
+              Le coach IA va challenger votre devis complet : lignes, pricing, cohérence avec la synthèse et les données de l'opportunité.
+            </AlertDescription>
+          </Alert>
+
+          {!challengeDone && !isChallenging && (
+            <Button
+              onClick={handleChallenge}
+              disabled={lines.length === 0 || isGenerating}
+              variant="outline"
+              className="gap-2 w-full py-6 text-base border-amber-300 hover:bg-amber-100 dark:border-amber-800 dark:hover:bg-amber-950/40"
+            >
+              <Swords className="w-5 h-5 text-amber-600" />
+              Lancer le challenge du devis
+            </Button>
+          )}
+
+          {isChallenging && (
+            <div className="flex items-center justify-center py-10 gap-3">
+              <Loader2 className="w-5 h-5 animate-spin text-amber-600" />
+              <span className="text-muted-foreground">
+                Le coach analyse votre devis...
+              </span>
+            </div>
+          )}
+
+          {challengeDone && challengeHtml && (
+            <>
+              <div
+                className="p-4 border rounded-md bg-background overflow-y-auto max-h-[500px] text-sm leading-relaxed [&_h3]:text-base [&_h3]:font-semibold [&_h3]:mt-4 [&_h3]:mb-1 [&_h3:first-child]:mt-0 [&_p]:my-1 [&_ul]:my-1 [&_ul]:pl-5 [&_ul]:list-disc [&_li]:my-0.5 [&_strong]:font-semibold"
+                dangerouslySetInnerHTML={{ __html: challengeHtml }}
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleChallenge}
+                disabled={isChallenging}
+                className="gap-2"
+              >
+                <RefreshCw className="w-4 h-4" />
+                Relancer le challenge
+              </Button>
             </>
           )}
         </CardContent>

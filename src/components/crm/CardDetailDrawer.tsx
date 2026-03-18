@@ -563,9 +563,12 @@ const CardDetailDrawer = ({
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!card || !user?.email || !e.target.files?.[0]) return;
+    if (!card || !user?.email || !e.target.files?.length) return;
+    const files = Array.from(e.target.files);
     try {
-      await addAttachment.mutateAsync({ cardId: card.id, file: e.target.files[0], actorEmail: user.email });
+      for (const file of files) {
+        await addAttachment.mutateAsync({ cardId: card.id, file, actorEmail: user.email });
+      }
     } catch (err) {
       console.error("handleFileUpload error:", err);
       toast({ title: "Erreur", description: "Impossible d'uploader le fichier.", variant: "destructive" });
@@ -658,7 +661,7 @@ const CardDetailDrawer = ({
     emailTo, setEmailTo, emailCc, setEmailCc, emailBcc, setEmailBcc,
     showCcBcc, setShowCcBcc, emailSubject, setEmailSubject, emailBody, setEmailBody,
     emailAttachments, setEmailAttachments,
-    emailSubjectBeforeAi, emailBodyBeforeAi, improvingSubject, improvingBody,
+    emailSubjectBeforeAi, emailBodyBeforeAi, improvingSubject, improvingBody, sendEmailPending: sendEmail.isPending,
     isFullScreen, setIsFullScreen, fieldSaving, fieldSaved, descriptionSaving, descriptionSaved,
     aiAnalyzing, aiAnalysis, setAiAnalysis, quoteGenerating, quoteDescription, setQuoteDescription,
     showPricingDialog, setShowPricingDialog, newComment, setNewComment,

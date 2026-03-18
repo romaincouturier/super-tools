@@ -535,7 +535,9 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
             instructions={instructions}
             travelTotal={travelTotal}
             crmCard={crmCard}
+            challengeHtml={challengeHtml}
             onContinue={handleQuoteContinue}
+            onChallengeChange={handleChallengeChange}
           />
         </>
       )}
