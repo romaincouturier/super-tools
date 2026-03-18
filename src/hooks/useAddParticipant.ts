@@ -132,8 +132,10 @@ export function useAddParticipant({
       }
 
       // 4. Schedule needs survey email for future trainings (skip for e-learning)
+      // Always schedule when training is in the future (not just when sendWelcomeNow)
       let needsSurveySkipped = false;
-      if (sendWelcomeNow && insertedParticipant && trainingStartDate && formatFormation !== "e_learning") {
+      const trainingInFuture = status !== "non_envoye";
+      if (trainingInFuture && insertedParticipant && trainingStartDate && formatFormation !== "e_learning") {
         try {
           const scheduled = await scheduleParticipantEmail(
             trainingId,
