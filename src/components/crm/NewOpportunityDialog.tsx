@@ -12,12 +12,24 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Sparkles, User, Building2, Phone, Mail, Linkedin, FileText, Euro, TrendingUp, ChevronDown, MessageSquare } from "lucide-react";
+import { Loader2, Sparkles, User, Building2, Phone, Mail, Linkedin, FileText, Euro, TrendingUp, ChevronDown, MessageSquare, History, CheckCircle, XCircle, Clock } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useExtractOpportunity, useCreateCard, useCrmBoard } from "@/hooks/useCrmBoard";
 import { OpportunityExtraction, BriefQuestion, AcquisitionSource, acquisitionSourceConfig } from "@/types/crm";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
+
+interface ClientHistoryItem {
+  id: string;
+  title: string;
+  service_type: string | null;
+  sales_status: string;
+  estimated_value: number | null;
+  won_at: string | null;
+  lost_at: string | null;
+  loss_reason: string | null;
+  created_at: string;
+}
 
 interface NewOpportunityDialogProps {
   open: boolean;
@@ -34,6 +46,8 @@ export function NewOpportunityDialog({ open, onOpenChange, userEmail }: NewOppor
   const [estimatedValue, setEstimatedValue] = useState("");
   const [valueEstimation, setValueEstimation] = useState<{ value: number; source: string; count: number } | null>(null);
   const [acquisitionSource, setAcquisitionSource] = useState<AcquisitionSource | null>(null);
+  const [clientHistory, setClientHistory] = useState<ClientHistoryItem[]>([]);
+  const [clientHistoryOpen, setClientHistoryOpen] = useState(true);
 
   const { data: boardData } = useCrmBoard();
   const extractMutation = useExtractOpportunity();
@@ -95,6 +109,27 @@ export function NewOpportunityDialog({ open, onOpenChange, userEmail }: NewOppor
     }
   };
 
+  const fetchClientHistory = async (email: string | null, company: string | null) => {
+    if (!email && !company) { setClientHistory([]); return; }
+    try {
+      let query = supabase
+        .from("crm_cards")
+        .select("id, title, service_type, sales_status, estimated_value, won_at, lost_at, loss_reason, created_at")
+        .order("created_at", { ascending: false });
+
+      if (email) {
+        query = query.eq("email", email);
+      } else if (company) {
+        query = query.eq("company", company);
+      }
+
+      const { data } = await query;
+      setClientHistory((data as ClientHistoryItem[]) || []);
+    } catch {
+      setClientHistory([]);
+    }
+  };
+
   const handleExtract = async () => {
     if (!rawInput.trim()) return;
 
@@ -108,6 +143,8 @@ export function NewOpportunityDialog({ open, onOpenChange, userEmail }: NewOppor
       // Auto-detect acquisition source
       const detectedSource = await detectAcquisitionSource(rawInput, result.email);
       if (detectedSource) setAcquisitionSource(detectedSource);
+      // Fetch client history
+      fetchClientHistory(result.email, result.company);
     } catch {
       // Error handled by mutation
     }
@@ -197,6 +234,8 @@ export function NewOpportunityDialog({ open, onOpenChange, userEmail }: NewOppor
       setEstimatedValue("");
       setValueEstimation(null);
       setAcquisitionSource(null);
+      setClientHistory([]);
+      setClientHistoryOpen(true);
       onOpenChange(false);
     } catch {
       // Error handled by mutation
@@ -212,6 +251,8 @@ export function NewOpportunityDialog({ open, onOpenChange, userEmail }: NewOppor
     setEstimatedValue("");
     setValueEstimation(null);
     setAcquisitionSource(null);
+    setClientHistory([]);
+    setClientHistoryOpen(true);
     onOpenChange(false);
   };
 
@@ -300,6 +341,63 @@ Tel: 06 12 34 56 78"
                 </pre>
               </CollapsibleContent>
             </Collapsible>
+
+            {/* Client history */}
+            {clientHistory.length > 0 && (
+              <Collapsible open={clientHistoryOpen} onOpenChange={setClientHistoryOpen}>
+                <CollapsibleTrigger asChild>
+                  <Button variant="outline" size="sm" className="w-full justify-between border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-300 dark:hover:bg-amber-950/50">
+                    <span className="flex items-center gap-2">
+                      <History className="h-3.5 w-3.5" />
+                      Client connu — {clientHistory.length} opportunité{clientHistory.length > 1 ? "s" : ""} existante{clientHistory.length > 1 ? "s" : ""}
+                    </span>
+                    <ChevronDown className={`h-4 w-4 transition-transform ${clientHistoryOpen ? "rotate-180" : ""}`} />
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <div className="mt-2 space-y-1.5">
+                    {clientHistory.map((card) => {
+                      const isWon = card.sales_status === "WON";
+                      const isLost = card.sales_status === "LOST";
+                      const StatusIcon = isWon ? CheckCircle : isLost ? XCircle : Clock;
+                      const statusColor = isWon ? "text-green-600" : isLost ? "text-red-500" : "text-amber-500";
+                      const statusLabel = isWon ? "Gagné" : isLost ? "Perdu" : "En cours";
+                      const date = card.won_at || card.lost_at || card.created_at;
+                      return (
+                        <div key={card.id} className="flex items-center gap-2 text-xs rounded-md border px-3 py-2 bg-muted/30">
+                          <StatusIcon className={`h-3.5 w-3.5 flex-shrink-0 ${statusColor}`} />
+                          <span className="font-medium truncate flex-1">{card.title}</span>
+                          {card.service_type && (
+                            <Badge variant="outline" className="text-[10px] h-4 px-1">
+                              {card.service_type === "formation" ? "Formation" : "Mission"}
+                            </Badge>
+                          )}
+                          {card.estimated_value ? (
+                            <span className="text-muted-foreground whitespace-nowrap">
+                              {card.estimated_value.toLocaleString("fr-FR")} €
+                            </span>
+                          ) : null}
+                          <span className={`whitespace-nowrap ${statusColor}`}>{statusLabel}</span>
+                          <span className="text-muted-foreground/60 whitespace-nowrap">
+                            {new Date(date).toLocaleDateString("fr-FR", { month: "short", year: "numeric" })}
+                          </span>
+                        </div>
+                      );
+                    })}
+                    {(() => {
+                      const wonCards = clientHistory.filter(c => c.sales_status === "WON");
+                      const totalWon = wonCards.reduce((s, c) => s + (c.estimated_value || 0), 0);
+                      if (wonCards.length === 0) return null;
+                      return (
+                        <p className="text-xs text-muted-foreground pt-1 pl-1">
+                          Total gagné : <span className="font-medium text-green-600">{totalWon.toLocaleString("fr-FR")} €</span> sur {wonCards.length} opportunité{wonCards.length > 1 ? "s" : ""}
+                        </p>
+                      );
+                    })()}
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+            )}
 
             {/* Title */}
             <div>
