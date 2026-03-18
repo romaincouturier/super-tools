@@ -34,7 +34,6 @@ import { fr } from "date-fns/locale";
 import DOMPurify from "dompurify";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useSendEmail } from "@/hooks/useCrmBoard";
 import { useCrmEmailTemplates, replaceCrmVariables } from "@/hooks/useCrmEmailTemplates";
 import { useToast } from "@/hooks/use-toast";
 import EmailEditor from "../EmailEditor";
@@ -53,7 +52,6 @@ const CardDetailCommunication = ({ state, handlers, details, emailFileInputRef, 
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const sendEmail = useSendEmail();
   const { data: crmEmailTemplates } = useCrmEmailTemplates();
   const { toast } = useToast();
 
@@ -64,7 +62,7 @@ const CardDetailCommunication = ({ state, handlers, details, emailFileInputRef, 
     emailSubject, setEmailSubject, emailBody, setEmailBody,
     emailAttachments, setEmailAttachments,
     emailSubjectBeforeAi, emailBodyBeforeAi,
-    improvingSubject, improvingBody,
+    improvingSubject, improvingBody, sendEmailPending,
   } = state;
 
   return (
@@ -293,10 +291,10 @@ const CardDetailCommunication = ({ state, handlers, details, emailFileInputRef, 
         <div className="flex gap-2">
           <Button
             onClick={handlers.handleSendEmail}
-            disabled={!emailTo.trim() || !emailSubject.trim() || sendEmail.isPending}
+            disabled={!emailTo.trim() || !emailSubject.trim() || sendEmailPending}
             className="flex-1"
           >
-            {sendEmail.isPending ? (
+            {sendEmailPending ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 Envoi en cours…
@@ -310,7 +308,7 @@ const CardDetailCommunication = ({ state, handlers, details, emailFileInputRef, 
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" disabled={!emailTo.trim() || !emailSubject.trim() || sendEmail.isPending} className="px-2">
+              <Button variant="outline" disabled={!emailTo.trim() || !emailSubject.trim() || sendEmailPending} className="px-2">
                 <Calendar className="h-4 w-4" />
                 <ChevronDown className="h-3 w-3 ml-1" />
               </Button>

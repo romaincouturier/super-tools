@@ -661,7 +661,7 @@ const CardDetailDrawer = ({
     emailTo, setEmailTo, emailCc, setEmailCc, emailBcc, setEmailBcc,
     showCcBcc, setShowCcBcc, emailSubject, setEmailSubject, emailBody, setEmailBody,
     emailAttachments, setEmailAttachments,
-    emailSubjectBeforeAi, emailBodyBeforeAi, improvingSubject, improvingBody,
+    emailSubjectBeforeAi, emailBodyBeforeAi, improvingSubject, improvingBody, sendEmailPending: sendEmail.isPending,
     isFullScreen, setIsFullScreen, fieldSaving, fieldSaved, descriptionSaving, descriptionSaved,
     aiAnalyzing, aiAnalysis, setAiAnalysis, quoteGenerating, quoteDescription, setQuoteDescription,
     showPricingDialog, setShowPricingDialog, newComment, setNewComment,

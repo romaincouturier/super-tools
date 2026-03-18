@@ -105,6 +105,7 @@ export interface CardDetailState {
   emailBodyBeforeAi: string | null;
   improvingSubject: boolean;
   improvingBody: boolean;
+  sendEmailPending: boolean;
 
   // UI
   isFullScreen: boolean;
