@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
@@ -58,6 +58,7 @@ const MicroDevis = () => {
   const [jsonPreviewOpen, setJsonPreviewOpen] = useState(false);
   const [initialDefaultsApplied, setInitialDefaultsApplied] = useState(false);
 
+  const pendingFormulaIdRef = useRef<string | null>(null);
   const STORAGE_KEY = "microDevisFormData";
 
   // Extracted hooks
@@ -66,6 +67,17 @@ const MicroDevis = () => {
   const datesHook = useFormationDates(user, initialDefaultsApplied, dateFormation);
   const formulasHook = useFormationFormulas(formationDemandee, configsHook.formationConfigs);
   const historyHook = useDevisHistory();
+
+  // Restore saved formula selection after formulas load
+  useEffect(() => {
+    if (pendingFormulaIdRef.current && formulasHook.formationFormulas.length > 0) {
+      const match = formulasHook.formationFormulas.find(f => f.id === pendingFormulaIdRef.current);
+      if (match) {
+        formulasHook.setSelectedFormulaId(match.id);
+      }
+      pendingFormulaIdRef.current = null;
+    }
+  }, [formulasHook.formationFormulas]);
 
   // Auth
   useEffect(() => {
@@ -119,6 +131,7 @@ const MicroDevis = () => {
         if (d.nomClient) setNomClient(d.nomClient);
         if (d.emailCommanditaire) setEmailCommanditaire(d.emailCommanditaire);
         if (d.typeDevis) setTypeDevis(d.typeDevis);
+        if (d.selectedFormulaId) pendingFormulaIdRef.current = d.selectedFormulaId;
       }
     } catch (e) { console.error("Failed to load saved form data:", e); }
   }, [searchParams]);
@@ -152,8 +165,9 @@ const MicroDevis = () => {
     sessionStorage.setItem(STORAGE_KEY, JSON.stringify({
       formatFormation, formationDemandee, formationLibre, dateFormation,
       dateFormationLibre, lieu, lieuAutre, nomClient, emailCommanditaire, typeDevis,
+      selectedFormulaId: formulasHook.selectedFormulaId,
     }));
-  }, [formatFormation, formationDemandee, formationLibre, dateFormation, dateFormationLibre, lieu, lieuAutre, nomClient, emailCommanditaire, typeDevis]);
+  }, [formatFormation, formationDemandee, formationLibre, dateFormation, dateFormationLibre, lieu, lieuAutre, nomClient, emailCommanditaire, typeDevis, formulasHook.selectedFormulaId]);
 
   // Auto-set lieu
   useEffect(() => {
