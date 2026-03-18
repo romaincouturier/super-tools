@@ -93,22 +93,12 @@ export function useAddParticipant({
         soldPriceHt: params.soldPriceHt,
       });
 
-      // 2. Send or schedule welcome email (skip for e-learning)
-      if (insertedParticipant && formatFormation !== "e_learning") {
-        if (sendWelcomeNow) {
-          // Training is 2-7 days away: send immediately
-          try {
-            await sendParticipantWelcomeEmail(insertedParticipant.id, trainingId);
-          } catch (emailError) {
-            console.error("Failed to send welcome email:", emailError);
-          }
-        } else if (status === "programme" && trainingStartDate) {
-          // Training is >7 days away: schedule for J-7 working days
-          try {
-            await scheduleWelcomeEmail(trainingId, insertedParticipant.id, trainingStartDate);
-          } catch (scheduleError) {
-            console.error("Failed to schedule welcome email:", scheduleError);
-          }
+      // 2. Send welcome email immediately (skip for e-learning and past trainings)
+      if (insertedParticipant && formatFormation !== "e_learning" && status !== "non_envoye") {
+        try {
+          await sendParticipantWelcomeEmail(insertedParticipant.id, trainingId);
+        } catch (emailError) {
+          console.error("Failed to send welcome email:", emailError);
         }
       }
 
