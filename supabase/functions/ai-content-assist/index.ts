@@ -11,7 +11,7 @@ serve(async (req) => {
   }
 
   try {
-    const { action, content } = await req.json();
+    const { action, content, userId } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
     if (!LOVABLE_API_KEY) {
@@ -40,13 +40,32 @@ serve(async (req) => {
     const supertiltVoice = settings.find((s: any) => s.setting_type === "supertilt_voice")?.content || "";
     const romainVoice = settings.find((s: any) => s.setting_type === "romain_voice")?.content || "";
 
+    // Fetch calling user's editorial voice from profiles
+    let userVoice = "";
+    if (userId) {
+      const profileRes = await fetch(
+        `${supabaseUrl}/rest/v1/profiles?select=voice_description&user_id=eq.${userId}`,
+        {
+          headers: {
+            "apikey": supabaseKey,
+            "Authorization": `Bearer ${supabaseKey}`,
+          },
+        }
+      );
+      const profiles = await profileRes.json();
+      userVoice = profiles?.[0]?.voice_description || "";
+    }
+
+    // Prefer per-user voice_description, fall back to romain_voice from ai_brand_settings
+    const editorialVoice = userVoice || romainVoice || "Experte mais accessible, partage d'expérience terrain, ton direct et authentique.";
+
     let systemPrompt = `Tu es un assistant marketing spécialisé pour SuperTilt, un organisme de formation professionnel.
 
 VOIX DE MARQUE SUPERTILT:
 ${supertiltVoice || "Professionnelle, accessible, engageante, avec une touche d'humour bienveillant."}
 
-VOIX EDITORIALE DE ROMAIN COUTURIER:
-${romainVoice || "Experte mais accessible, partage d'expérience terrain, ton direct et authentique."}
+VOIX ÉDITORIALE DE L'UTILISATEUR:
+${editorialVoice}
 
 Tu dois adapter le contenu en respectant ces voix selon le contexte.`;
 
@@ -69,7 +88,7 @@ Réponds uniquement avec le contenu reformulé, sans explication ni introduction
 - Des sous-titres clairs
 - Une conclusion avec appel à l'action
 
-Utilise la voix éditoriale de Romain Couturier.
+Utilise la voix éditoriale de l'utilisateur.
 
 CONTENU ORIGINAL:
 ${content}
@@ -85,7 +104,7 @@ Réponds uniquement avec l'article adapté.`;
 - Appel à l'action ou question finale
 - Maximum 1300 caractères
 
-Utilise la voix éditoriale de Romain Couturier.
+Utilise la voix éditoriale de l'utilisateur.
 
 CONTENU ORIGINAL:
 ${content}
