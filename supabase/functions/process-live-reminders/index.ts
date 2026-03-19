@@ -53,7 +53,8 @@ serve(async (req) => {
           id,
           training_name,
           participants_formal_address,
-          trainer_id
+          trainer_id,
+          supports_url
         )
       `)
       .gte("scheduled_at", parisDate + "T00:00:00+00:00")
@@ -159,6 +160,7 @@ serve(async (req) => {
       const liveMeetingUrl = live.meeting_url || "";
       const liveEmailContent = live.email_content || "";
       const liveTitle = live.title || "Live collectif";
+      const supportsUrl = training.supports_url || "";
 
       let sentCount = 0;
       let skippedAlreadySent = 0;
@@ -205,6 +207,7 @@ serve(async (req) => {
             live_date: liveDate,
             live_time: liveTime,
             meeting_url: liveMeetingUrl || undefined,
+            supports_url: supportsUrl || undefined,
           };
 
           subject = processTemplate(template.subject, variables, false);
@@ -219,6 +222,9 @@ serve(async (req) => {
           const meetingUrlSection = liveMeetingUrl
             ? `<p><a href="${liveMeetingUrl}" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Rejoindre le live</a></p>`
             : "";
+          const supportsSection = supportsUrl
+            ? `<p>📚 Pour rappel, ${useFormal ? "vous pouvez retrouver" : "tu peux retrouver"} les supports de la formation ici : <a href="${supportsUrl}" style="color: #e6bc00; font-weight: bold;">Accéder aux supports</a></p>`
+            : "";
           subject = `📺 Rappel : Live "${liveTitle}" aujourd'hui – ${training.training_name}`;
           htmlContent = `
             <p>${greeting}</p>
@@ -228,6 +234,7 @@ serve(async (req) => {
               <li>📅 ${liveDate} à ${liveTime}</li>
             </ul>
             ${meetingUrlSection}
+            ${supportsSection}
             <p>${useFormal ? "Votre" : "Ta"} présence est importante pour profiter pleinement de ce moment d'échange.</p>
             <p>À tout à l'heure !</p>
             ${signatureHtml}
@@ -299,6 +306,7 @@ serve(async (req) => {
             live_time: liveTime,
             meeting_url: liveMeetingUrl || undefined,
             has_attendance: hasAttendance ? "1" : undefined,
+            supports_url: supportsUrl || undefined,
           };
 
           const trainerSubject = processTemplate(trainerTemplate.subject, trainerVars, false);
