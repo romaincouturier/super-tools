@@ -207,6 +207,7 @@ serve(async (req) => {
             live_date: liveDate,
             live_time: liveTime,
             meeting_url: liveMeetingUrl || undefined,
+            supports_url: supportsUrl || undefined,
           };
 
           subject = processTemplate(template.subject, variables, false);
