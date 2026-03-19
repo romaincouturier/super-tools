@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import * as XLSX from "https://cdn.sheetjs.com/xlsx-0.20.3/package/xlsx.mjs";
 import { getSenderFrom, getBccList } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
 import { processTemplate, textToHtml } from "../_shared/templates.ts";
@@ -188,10 +189,10 @@ Bonne réception.`;
     const contentText = processTemplate(contentTemplate, variables, false);
     const contentHtml = textToHtml(contentText);
 
-    const htmlContent = `${contentHtml}\n${signature}`;
+    let htmlContent = `${contentHtml}\n${signature}`;
 
     // Build attachments
-    const attachments: Array<{ filename: string; path: string }> = [];
+    const attachments: Array<{ filename: string; path?: string; content?: string }> = [];
 
     if ((documentType === "invoice" || documentType === "all") && invoiceUrl) {
       attachments.push({ filename: "Facture.pdf", path: invoiceUrl });
@@ -206,6 +207,115 @@ Bonne réception.`;
       certificateUrls.forEach((url: string, index: number) => {
         attachments.push({ filename: `Certificat_${index + 1}.pdf`, path: url });
       });
+    }
+
+    // Handle evaluations export
+    if (documentType === "evaluations" && trainingId) {
+      const { data: evaluations } = await supabase
+        .from("training_evaluations")
+        .select("first_name, last_name, email, company, appreciation_generale, objectifs_evaluation, rythme, equilibre_theorie_pratique, recommandation, message_recommandation, amelioration_suggeree, remarques_libres, date_soumission")
+        .eq("training_id", trainingId)
+        .eq("etat", "soumis")
+        .order("date_soumission", { ascending: true });
+
+      if (!evaluations || evaluations.length === 0) {
+        return new Response(
+          JSON.stringify({ error: "Aucune évaluation soumise pour cette formation" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Build xlsx rows
+      const ratingLabels: Record<string, string> = {
+        "1": "1/5 — Très insuffisant",
+        "2": "2/5 — Insuffisant",
+        "3": "3/5 — Moyen",
+        "4": "4/5 — Satisfaisant",
+        "5": "5/5 — Très satisfaisant",
+      };
+
+      const objectifRatingLabels: Record<string, string> = {
+        "1": "Non atteint",
+        "2": "Partiellement",
+        "3": "Atteint",
+        "4": "Dépassé",
+      };
+
+      const rows = evaluations.map((ev: any) => {
+        const name = [ev.first_name, ev.last_name].filter(Boolean).join(" ") || ev.email || "Anonyme";
+
+        // Format objectifs
+        let objectifsStr = "";
+        if (ev.objectifs_evaluation && Array.isArray(ev.objectifs_evaluation)) {
+          objectifsStr = ev.objectifs_evaluation
+            .map((obj: any) => `${obj.label || obj.title || "Objectif"}: ${objectifRatingLabels[String(obj.rating)] || obj.rating || "—"}`)
+            .join("\n");
+        }
+
+        const submittedAt = ev.date_soumission
+          ? new Date(ev.date_soumission).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })
+          : "";
+
+        return {
+          "Participant": name,
+          "Entreprise": ev.company || "",
+          "Note générale": ev.appreciation_generale ? ratingLabels[String(ev.appreciation_generale)] || `${ev.appreciation_generale}/5` : "",
+          "Objectifs": objectifsStr,
+          "Rythme": ev.rythme || "",
+          "Équilibre théorie/pratique": ev.equilibre_theorie_pratique || "",
+          "Recommandation": ev.recommandation || "",
+          "Message recommandation": ev.message_recommandation || "",
+          "Améliorations suggérées": ev.amelioration_suggeree || "",
+          "Remarques": ev.remarques_libres || "",
+          "Date": submittedAt,
+        };
+      });
+
+      // Generate xlsx
+      const ws = XLSX.utils.json_to_sheet(rows);
+
+      // Set column widths
+      ws["!cols"] = [
+        { wch: 25 }, // Participant
+        { wch: 20 }, // Entreprise
+        { wch: 25 }, // Note
+        { wch: 40 }, // Objectifs
+        { wch: 20 }, // Rythme
+        { wch: 25 }, // Équilibre
+        { wch: 15 }, // Recommandation
+        { wch: 40 }, // Message
+        { wch: 40 }, // Améliorations
+        { wch: 40 }, // Remarques
+        { wch: 15 }, // Date
+      ];
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Évaluations");
+      const xlsxBuffer = XLSX.write(wb, { type: "base64", bookType: "xlsx" });
+
+      // Compute average rating
+      const ratings = evaluations
+        .map((ev: any) => Number(ev.appreciation_generale))
+        .filter((r: number) => r > 0);
+      const avgRating = ratings.length > 0
+        ? (ratings.reduce((a: number, b: number) => a + b, 0) / ratings.length).toFixed(1)
+        : "N/A";
+
+      attachments.push({
+        filename: `Evaluations_${(trainingName || "formation").replace(/[^a-zA-Z0-9àâéèêëïôùûüç\s-]/g, "").replace(/\s+/g, "_")}.xlsx`,
+        content: xlsxBuffer,
+      });
+
+      // Override subject and content for evaluations
+      subject = `Évaluations participants - ${trainingName || ""}${dateInfo ? ` - ${dateInfo}` : ""} - Supertilt`;
+
+      const evalGreeting = formalAddress ? "Bonjour" : (firstName ? `Bonjour ${firstName}` : "Bonjour");
+      const evalBody = formalAddress
+        ? `${evalGreeting},\n\nVeuillez trouver ci-joint les évaluations des ${evaluations.length} participant(s) de la formation "${trainingName || ""}"${trainingDates ? ` qui s'est déroulée ${trainingDates}` : ""}.\n\nNote moyenne : ${avgRating}/5\n\nBonne réception.`
+        : `${evalGreeting},\n\nVoici les évaluations des ${evaluations.length} participant(s) de la formation "${trainingName || ""}"${trainingDates ? ` qui s'est déroulée ${trainingDates}` : ""}.\n\nNote moyenne : ${avgRating}/5\n\nBonne réception !`;
+
+      const evalHtml = textToHtml(evalBody);
+      htmlContent = `${evalHtml}\n${signature}`;
     }
 
     if (attachments.length === 0) {

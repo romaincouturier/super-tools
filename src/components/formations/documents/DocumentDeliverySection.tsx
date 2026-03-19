@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Send, Loader2, FileText, Receipt, ClipboardList, Mail, Award } from "lucide-react";
+import { Send, Loader2, FileText, Receipt, ClipboardList, Mail, Award, Star } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,7 @@ import {
 import type { DocumentSentInfo } from "./types";
 import SendRecipientDialog from "./SendRecipientDialog";
 
-type DocumentType = "invoice" | "sheets" | "certificates" | "all";
+type DocumentType = "invoice" | "sheets" | "certificates" | "evaluations" | "all";
 
 interface DocumentDeliverySectionProps {
   trainingId: string;
@@ -32,6 +32,7 @@ interface DocumentDeliverySectionProps {
   sponsorFormalAddress: boolean;
   documentsSentInfo: DocumentSentInfo;
   setDocumentsSentInfo: React.Dispatch<React.SetStateAction<DocumentSentInfo>>;
+  evaluationCount?: number;
 }
 
 const DocumentDeliverySection = ({
@@ -48,6 +49,7 @@ const DocumentDeliverySection = ({
   sponsorFirstName,
   sponsorFormalAddress,
   setDocumentsSentInfo,
+  evaluationCount = 0,
 }: DocumentDeliverySectionProps) => {
   const [sendingDocuments, setSendingDocuments] = useState(false);
   const [customRecipientEmail, setCustomRecipientEmail] = useState("");
@@ -58,8 +60,9 @@ const DocumentDeliverySection = ({
   const { toast } = useToast();
 
   const hasCertificates = certificateUrls.length > 0;
-  const hasDocuments = invoiceFileUrl || attendanceSheetsUrls.length > 0 || hasCertificates;
-  const docCount = (invoiceFileUrl ? 1 : 0) + (attendanceSheetsUrls.length > 0 ? 1 : 0) + (hasCertificates ? 1 : 0);
+  const hasEvaluations = evaluationCount > 0;
+  const hasDocuments = invoiceFileUrl || attendanceSheetsUrls.length > 0 || hasCertificates || hasEvaluations;
+  const docCount = (invoiceFileUrl ? 1 : 0) + (attendanceSheetsUrls.length > 0 ? 1 : 0) + (hasCertificates ? 1 : 0) + (hasEvaluations ? 1 : 0);
 
   const handleSendDocuments = async (type: DocumentType, recipientEmail?: string, cc?: string) => {
     const targetEmail = recipientEmail || sponsorEmail;
@@ -152,6 +155,11 @@ const DocumentDeliverySection = ({
           <Award className="h-4 w-4 mr-2" />Certificats ({certificateUrls.length})
         </DropdownMenuItem>
       )}
+      {hasEvaluations && (
+        <DropdownMenuItem onClick={() => openCustomRecipientDialog("evaluations", false)}>
+          <Star className="h-4 w-4 mr-2" />Évaluations participants ({evaluationCount})
+        </DropdownMenuItem>
+      )}
     </DropdownMenuContent>
   );
 
@@ -164,6 +172,7 @@ const DocumentDeliverySection = ({
           {invoiceFileUrl && <DropdownMenuItem onClick={() => openCustomRecipientDialog("invoice", true)}><Receipt className="h-4 w-4 mr-2" />Facture</DropdownMenuItem>}
           {attendanceSheetsUrls.length > 0 && <DropdownMenuItem onClick={() => openCustomRecipientDialog("sheets", true)}><ClipboardList className="h-4 w-4 mr-2" />Feuilles d&apos;émargement</DropdownMenuItem>}
           {hasCertificates && <DropdownMenuItem onClick={() => openCustomRecipientDialog("certificates", true)}><Award className="h-4 w-4 mr-2" />Certificats ({certificateUrls.length})</DropdownMenuItem>}
+          {hasEvaluations && <DropdownMenuItem onClick={() => openCustomRecipientDialog("evaluations", true)}><Star className="h-4 w-4 mr-2" />Évaluations participants ({evaluationCount})</DropdownMenuItem>}
           {docCount >= 2 && <DropdownMenuItem onClick={() => openCustomRecipientDialog("all", true)}><FileText className="h-4 w-4 mr-2" />Tous les documents</DropdownMenuItem>}
           <DropdownMenuSeparator />
         </>
@@ -172,6 +181,7 @@ const DocumentDeliverySection = ({
       {invoiceFileUrl && <DropdownMenuItem onClick={() => openCustomRecipientDialog("invoice", false)}><Mail className="h-4 w-4 mr-2" />Facture → autre email</DropdownMenuItem>}
       {attendanceSheetsUrls.length > 0 && <DropdownMenuItem onClick={() => openCustomRecipientDialog("sheets", false)}><Mail className="h-4 w-4 mr-2" />Émargements → autre email</DropdownMenuItem>}
       {hasCertificates && <DropdownMenuItem onClick={() => openCustomRecipientDialog("certificates", false)}><Mail className="h-4 w-4 mr-2" />Certificats → autre email</DropdownMenuItem>}
+      {hasEvaluations && <DropdownMenuItem onClick={() => openCustomRecipientDialog("evaluations", false)}><Mail className="h-4 w-4 mr-2" />Évaluations → autre email</DropdownMenuItem>}
       {docCount >= 2 && <DropdownMenuItem onClick={() => openCustomRecipientDialog("all", false)}><Mail className="h-4 w-4 mr-2" />Tous → autre email</DropdownMenuItem>}
     </DropdownMenuContent>
   );

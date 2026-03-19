@@ -36,7 +36,7 @@ const DocumentsManager = ({
     documentsSentInfo, setDocumentsSentInfo,
     conventionSentAt, setConventionSentAt,
     conventionSignatureStatus, conventionSignatureUrl, setConventionSignatureUrl,
-    certificateUrls,
+    certificateUrls, evaluationCount,
   } = useDocumentsFetch({ trainingId, participants });
 
   useEffect(() => { setAttendanceSheetsUrls(initialSheetsUrls); }, [initialSheetsUrls]);
@@ -105,7 +105,7 @@ const DocumentsManager = ({
             attendanceSheetsUrls={attendanceSheetsUrls} certificateUrls={certificateUrls}
             sponsorEmail={sponsorEmail} sponsorName={sponsorName} sponsorFirstName={sponsorFirstName}
             sponsorFormalAddress={sponsorFormalAddress} documentsSentInfo={documentsSentInfo}
-            setDocumentsSentInfo={setDocumentsSentInfo}
+            setDocumentsSentInfo={setDocumentsSentInfo} evaluationCount={evaluationCount}
           />
         </CardContent>
       </Card>

@@ -16,6 +16,7 @@ interface UseDocumentsFetchResult {
   conventionSignatureUrl: string | null;
   setConventionSignatureUrl: (url: string | null) => void;
   certificateUrls: string[];
+  evaluationCount: number;
 }
 
 export function useDocumentsFetch({ trainingId, participants }: UseDocumentsFetchParams): UseDocumentsFetchResult {
@@ -24,6 +25,7 @@ export function useDocumentsFetch({ trainingId, participants }: UseDocumentsFetc
   const [conventionSignatureUrl, setConventionSignatureUrl] = useState<string | null>(null);
   const [conventionSignatureStatus, setConventionSignatureStatus] = useState<ConventionSignatureStatus | null>(null);
   const [certificateUrls, setCertificateUrls] = useState<string[]>([]);
+  const [evaluationCount, setEvaluationCount] = useState(0);
 
   // Fetch document send dates from activity logs
   useEffect(() => {
@@ -106,24 +108,26 @@ export function useDocumentsFetch({ trainingId, participants }: UseDocumentsFetc
     fetchConventionSignatureStatus();
   }, [trainingId]);
 
-  // Fetch certificate URLs for all participants
+  // Fetch certificate URLs and evaluation count for all participants
   useEffect(() => {
-    const fetchCertificates = async () => {
+    const fetchCertificatesAndEvaluations = async () => {
       const { data, error } = await supabase
         .from("training_evaluations")
-        .select("certificate_url, first_name, last_name")
-        .eq("training_id", trainingId)
-        .not("certificate_url", "is", null);
+        .select("certificate_url, etat")
+        .eq("training_id", trainingId);
 
       if (!error && data) {
         const urls = data
           .map((e: { certificate_url: string | null }) => e.certificate_url as string)
           .filter(Boolean);
         setCertificateUrls(urls);
+
+        const submitted = data.filter((e: { etat: string }) => e.etat === "soumis").length;
+        setEvaluationCount(submitted);
       }
     };
 
-    fetchCertificates();
+    fetchCertificatesAndEvaluations();
   }, [trainingId, participants]);
 
   return {
@@ -135,5 +139,6 @@ export function useDocumentsFetch({ trainingId, participants }: UseDocumentsFetc
     conventionSignatureUrl,
     setConventionSignatureUrl,
     certificateUrls,
+    evaluationCount,
   };
 }
