@@ -1,4 +1,4 @@
-type ToastFn = (opts: { title: string; description: string; variant: string }) => void;
+type ToastFn = (opts: { title: string; description: string; variant?: "default" | "destructive" }) => void;
 
 let _toast: ToastFn | null = null;
 
