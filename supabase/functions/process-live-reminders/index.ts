@@ -306,6 +306,7 @@ serve(async (req) => {
             live_time: liveTime,
             meeting_url: liveMeetingUrl || undefined,
             has_attendance: hasAttendance ? "1" : undefined,
+            supports_url: supportsUrl || undefined,
           };
 
           const trainerSubject = processTemplate(trainerTemplate.subject, trainerVars, false);
