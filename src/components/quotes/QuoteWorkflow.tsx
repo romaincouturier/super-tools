@@ -12,6 +12,7 @@ import Step3QuoteGeneration from "./Step3QuoteGeneration";
 import Step4Loom from "./Step4Loom";
 import Step5Email from "./Step5Email";
 import { useCreateQuote, useUpdateQuote, useQuote } from "@/hooks/useQuotes";
+import { fetchQuotesByCard } from "@/services/quotes";
 import type { CrmCard } from "@/types/crm";
 import type { Quote, QuoteWorkflowStep } from "@/types/quotes";
 import type { TravelDestination, TravelSettings } from "@/components/crm/TravelExpenseCalculator";
@@ -104,7 +105,11 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
   const navigate = useNavigate();
   const createMutation = useCreateQuote();
   const updateMutation = useUpdateQuote();
-  const { data: existingQuote, isLoading: loadingQuote } = useQuote(existingQuoteId);
+
+  // Resolve effective quote ID: URL param > session > none
+  const sessionSnapshot = loadSession(crmCard.id);
+  const effectiveQuoteId = existingQuoteId || sessionSnapshot?.quoteId || undefined;
+  const { data: existingQuote, isLoading: loadingQuote } = useQuote(effectiveQuoteId);
 
   // Determine initial step from existing quote
   const getInitialStep = (q: Quote | null | undefined): QuoteWorkflowStep => {
@@ -241,6 +246,71 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
     }
   }, [existingQuote]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ---- Auto-create / find draft on mount so DB auto-saves work from Step 0 ----
+  const draftInitRef = useRef(false);
+
+  useEffect(() => {
+    // Skip if we already have a quote or an ID to load from
+    if (effectiveQuoteId || quote || draftInitRef.current) return;
+    draftInitRef.current = true;
+
+    (async () => {
+      try {
+        // Look for an existing draft quote for this CRM card
+        const cardQuotes = await fetchQuotesByCard(crmCard.id);
+        const draft = cardQuotes.find((q) => q.status === "draft");
+
+        if (draft) {
+          setQuote(draft);
+          // Restore workflow state from DB when session is gone
+          if (!session) {
+            if (draft.synthesis) setSynthesis(draft.synthesis);
+            if (draft.instructions) setInstructions(draft.instructions);
+            if (draft.loom_url) setLoomUrl(draft.loom_url);
+            if ((draft as any).challenge_html) setChallengeHtml((draft as any).challenge_html);
+            const td = (draft as any).travel_data;
+            if (td) {
+              setTravelTotal(td.total || 0);
+              setTravelDestinations((td.destinations || []) as TravelDestination[]);
+              setTravelSettings((td.settings || null) as TravelSettings | null);
+            }
+            // Restore client data
+            if (draft.client_company) {
+              setClientData({
+                company: draft.client_company,
+                address: draft.client_address,
+                zip: draft.client_zip,
+                city: draft.client_city,
+                vatNumber: draft.client_vat_number || "",
+                siren: draft.client_siren || "",
+                email: draft.client_email || "",
+              });
+            }
+            // Restore step progression
+            const savedStep = getInitialStep(draft);
+            if (savedStep > 0) {
+              setStep(savedStep);
+              setCompletedSteps(getInitialCompleted(draft));
+            }
+          }
+          return;
+        }
+
+        // No draft found — create one immediately
+        const newQuote = await createMutation.mutateAsync({
+          crm_card_id: crmCard.id,
+          client_company: crmCard.company || "",
+          client_address: "",
+          client_zip: "",
+          client_city: "",
+        });
+        setQuote(newQuote);
+      } catch (e) {
+        console.warn("Could not initialise draft quote:", e);
+      }
+    })();
+  }, [effectiveQuoteId, quote]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const completeStep = useCallback(
     (s: number) => setCompletedSteps((prev) => new Set([...prev, s])),
     []
@@ -289,6 +359,20 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
       });
     }
   }, [quote]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Auto-save travel data to DB (debounced via effect)
+  const travelSaveTimer = useRef<ReturnType<typeof setTimeout>>();
+  useEffect(() => {
+    if (!quote || travelDestinations.length === 0) return;
+    clearTimeout(travelSaveTimer.current);
+    travelSaveTimer.current = setTimeout(() => {
+      updateMutation.mutate({
+        id: quote.id,
+        updates: { travel_data: { total: travelTotal, destinations: travelDestinations, settings: travelSettings } },
+      });
+    }, 2000);
+    return () => clearTimeout(travelSaveTimer.current);
+  }, [travelTotal, travelDestinations, travelSettings, quote?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Step 0 → Synthèse complete, go to step 1 (Loom)
   const handleSynthesisValidated = async (s: string, i: string) => {
