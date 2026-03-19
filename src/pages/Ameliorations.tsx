@@ -1,7 +1,4 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { User } from "@supabase/supabase-js";
+import { useState } from "react";
 import {
   Loader2,
   Filter,
@@ -27,11 +24,10 @@ import ImprovementCard from "@/components/ameliorations/ImprovementCard";
 import ImprovementFormDialog from "@/components/ameliorations/ImprovementFormDialog";
 import ImprovementDetailDrawer from "@/components/ameliorations/ImprovementDetailDrawer";
 import ImprovementKanban from "@/components/ameliorations/ImprovementKanban";
+import { useAuth } from "@/hooks/useAuth";
 
 const Ameliorations = () => {
-  const [user, setUser] = useState<User | null>(null);
-  const [authLoading, setAuthLoading] = useState(true);
-  const navigate = useNavigate();
+  const { user, loading: authLoading } = useAuth();
 
   // View mode: list or kanban (persisted in localStorage)
   const [viewMode, setViewMode] = useState<"list" | "kanban">(() => {
@@ -62,17 +58,6 @@ const Ameliorations = () => {
     fetchNotes,
     addNote,
   } = useImprovements();
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session?.user) {
-        navigate("/auth");
-      } else {
-        setUser(session.user);
-      }
-      setAuthLoading(false);
-    });
-  }, [navigate]);
 
   const toggleView = (mode: "list" | "kanban") => {
     setViewMode(mode);

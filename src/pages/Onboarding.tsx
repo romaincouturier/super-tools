@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -54,15 +55,13 @@ export default function Onboarding() {
   // Step 4 — questionnaire is auto
   const [questionnaireType, setQuestionnaireType] = useState("besoins");
 
+  const { user: authUser } = useAuth({ checkPasswordChange: false });
+
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) navigate("/auth");
-      else {
-        const meta = session.user.user_metadata;
-        if (meta?.full_name) setDisplayName(meta.full_name);
-      }
-    });
-  }, [navigate]);
+    if (authUser?.user_metadata?.full_name) {
+      setDisplayName(authUser.user_metadata.full_name);
+    }
+  }, [authUser]);
 
   const markComplete = (step: number) => {
     setCompletedSteps((prev) => [...new Set([...prev, step])]);

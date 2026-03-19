@@ -1,7 +1,5 @@
-import { useState, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { User } from "@supabase/supabase-js";
+import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Loader2, Newspaper, Eye, EyeOff } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import ModuleLayout from "@/components/ModuleLayout";
@@ -12,47 +10,15 @@ import ContentDashboard from "@/components/content/ContentDashboard";
 import AiIdeasSearch from "@/components/content/AiIdeasSearch";
 import NotificationBell from "@/components/content/NotificationBell";
 import NewsletterSection from "@/components/content/NewsletterSection";
+import { useAuth } from "@/hooks/useAuth";
 
 const ContentBoard = () => {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
+  const { user, loading, logout } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const openCardId = searchParams.get("card");
   const [filterReview, setFilterReview] = useState(false);
   const [showPublished, setShowPublished] = useState(false);
   const [newsletterRefreshKey, setNewsletterRefreshKey] = useState(0);
-
-  useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) {
-        navigate("/auth");
-        return;
-      }
-      setUser(session.user);
-      setLoading(false);
-    };
-
-    checkAuth();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        if (!session?.user) {
-          navigate("/auth");
-        } else {
-          setUser(session.user);
-        }
-      }
-    );
-
-    return () => subscription.unsubscribe();
-  }, [navigate]);
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate("/auth");
-  };
 
   const handleSelectCard = (cardId: string) => {
     setSearchParams({ card: cardId });
