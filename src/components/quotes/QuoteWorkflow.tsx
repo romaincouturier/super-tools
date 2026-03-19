@@ -78,6 +78,28 @@ interface Props {
   existingQuoteId?: string;
 }
 
+const SIDEBAR_WIDTH_KEY = "quote-sidebar-width";
+const SIDEBAR_MIN = 400;
+const SIDEBAR_MAX = 900;
+const SIDEBAR_DEFAULT = 700;
+
+function loadSidebarWidth(): number {
+  try {
+    const v = localStorage.getItem(SIDEBAR_WIDTH_KEY);
+    if (v) {
+      const n = Number(v);
+      if (n >= SIDEBAR_MIN && n <= SIDEBAR_MAX) return n;
+    }
+  } catch {}
+  return SIDEBAR_DEFAULT;
+}
+
+function saveSidebarWidth(w: number) {
+  try {
+    localStorage.setItem(SIDEBAR_WIDTH_KEY, String(w));
+  } catch {}
+}
+
 export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
   const navigate = useNavigate();
   const createMutation = useCreateQuote();
@@ -128,6 +150,39 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
 
   // Track if session was already restored from quote (to avoid overriding session data)
   const restoredFromQuote = useRef(!!session);
+
+  // ---- Resizable sidebar ----
+  const [sidebarWidth, setSidebarWidth] = useState(loadSidebarWidth);
+  const isDragging = useRef(false);
+
+  const handleResizeMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    isDragging.current = true;
+    const sheetEl = (e.target as HTMLElement).closest("[data-sidebar-panel]") as HTMLElement | null;
+
+    const onMouseMove = (ev: MouseEvent) => {
+      if (!isDragging.current) return;
+      const newWidth = Math.min(SIDEBAR_MAX, Math.max(SIDEBAR_MIN, window.innerWidth - ev.clientX));
+      if (sheetEl) sheetEl.style.width = `${newWidth}px`;
+    };
+
+    const onMouseUp = (ev: MouseEvent) => {
+      if (!isDragging.current) return;
+      isDragging.current = false;
+      const finalWidth = Math.min(SIDEBAR_MAX, Math.max(SIDEBAR_MIN, window.innerWidth - ev.clientX));
+      setSidebarWidth(finalWidth);
+      saveSidebarWidth(finalWidth);
+      document.removeEventListener("mousemove", onMouseMove);
+      document.removeEventListener("mouseup", onMouseUp);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+
+    document.addEventListener("mousemove", onMouseMove);
+    document.addEventListener("mouseup", onMouseUp);
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+  }, []);
 
   // Auto-persist to sessionStorage on every state change
   useEffect(() => {
@@ -403,7 +458,7 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
       <div className="flex items-center justify-between mb-4">
         <div>
           {crmCard.description_html && (
-            <Sheet>
+            <Sheet onOpenChange={(open) => { if (!open) saveSidebarWidth(sidebarWidth); }}>
               <SheetTrigger asChild>
                 <Button
                   variant="outline"
@@ -414,7 +469,16 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
                   Fiche opportunité
                 </Button>
               </SheetTrigger>
-              <SheetContent className="w-[500px] sm:w-[700px] overflow-y-auto">
+              <SheetContent
+                className="overflow-y-auto !max-w-none"
+                style={{ width: sidebarWidth }}
+                data-sidebar-panel
+              >
+                {/* Resize drag handle on left edge */}
+                <div
+                  onMouseDown={handleResizeMouseDown}
+                  className="absolute top-0 left-0 h-full w-1 cursor-col-resize bg-border hover:bg-primary/30 transition-colors z-50"
+                />
                 <SheetHeader>
                   <SheetTitle className="flex items-center gap-2">
                     <FileText className="w-5 h-5" />
