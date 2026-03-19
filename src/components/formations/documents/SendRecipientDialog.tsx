@@ -11,8 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-
-type DocumentType = "invoice" | "sheets" | "certificates" | "all";
+import type { DocumentType } from "./types";
 
 interface SendRecipientDialogProps {
   open: boolean;
@@ -33,6 +32,7 @@ const getDocumentTypeLabel = (type: DocumentType | null): string => {
     case "invoice": return "la facture";
     case "sheets": return "les feuilles d'émargement";
     case "certificates": return "les certificats";
+    case "evaluations": return "les évaluations participants";
     default: return "tous les documents";
   }
 };

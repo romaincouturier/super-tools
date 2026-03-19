@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { FileText, Link, Loader2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -36,7 +35,7 @@ const DocumentsManager = ({
     documentsSentInfo, setDocumentsSentInfo,
     conventionSentAt, setConventionSentAt,
     conventionSignatureStatus, conventionSignatureUrl, setConventionSignatureUrl,
-    certificateUrls,
+    certificateUrls, evaluationCount, saveSupportsUrl,
   } = useDocumentsFetch({ trainingId, participants });
 
   useEffect(() => { setAttendanceSheetsUrls(initialSheetsUrls); }, [initialSheetsUrls]);
@@ -49,8 +48,7 @@ const DocumentsManager = ({
     if (supportsUrl === (initialSupportsUrl || "")) return;
     setSavingSupportsUrl(true);
     try {
-      const { error } = await supabase.from("trainings").update({ supports_url: supportsUrl || null }).eq("id", trainingId);
-      if (error) throw error;
+      await saveSupportsUrl(supportsUrl);
       onUpdate?.();
       toast({ title: "Lien enregistré", description: "Le lien vers les supports a été mis à jour." });
     } catch (error: unknown) {
@@ -105,7 +103,7 @@ const DocumentsManager = ({
             attendanceSheetsUrls={attendanceSheetsUrls} certificateUrls={certificateUrls}
             sponsorEmail={sponsorEmail} sponsorName={sponsorName} sponsorFirstName={sponsorFirstName}
             sponsorFormalAddress={sponsorFormalAddress} documentsSentInfo={documentsSentInfo}
-            setDocumentsSentInfo={setDocumentsSentInfo}
+            setDocumentsSentInfo={setDocumentsSentInfo} evaluationCount={evaluationCount}
           />
         </CardContent>
       </Card>

@@ -5,31 +5,33 @@ import {
   createJsonResponse,
   createErrorResponse,
 } from "../_shared/mod.ts";
+import {
+  fetchAllDailyData,
+  userCanSee,
+  REVIEW_COLUMN_ASSIGNMENTS,
+  type Recipient,
+} from "../_shared/daily-data-fetchers.ts";
 
 /**
  * Generate Daily Actions
  *
  * Called daily at 7:05 AM (after the digest email).
- * Creates action items in daily_actions table from the same data sources
- * as process-logistics-reminders. Idempotent: skips if actions already exist for today.
+ * Creates action items in daily_actions table.
+ *
+ * Data fetching is shared with process-logistics-reminders via _shared/daily-data-fetchers.ts.
  */
 
-const VERSION = "generate-daily-actions@1.1.0";
+const VERSION = "generate-daily-actions@2.0.0";
 
-interface Recipient {
-  userId: string;
-  email: string;
-  isAdmin: boolean;
-}
-
-interface ActionItem {
+interface ActionRow {
+  user_id: string;
+  action_date: string;
   category: string;
   title: string;
   description: string | null;
   link: string;
   entity_type: string;
   entity_id: string;
-  assignedTo?: string | null;
 }
 
 serve(async (req) => {
@@ -45,812 +47,268 @@ serve(async (req) => {
     const urls = await getAppUrls();
     const appUrl = urls.app_url;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
     const today = new Date().toISOString().split("T")[0];
-    const todayDate = new Date(today);
 
-    // Note: idempotency is handled by the upsert's onConflict clause
-    // (user_id, action_date, category, entity_type, entity_id).
-    // We no longer skip entirely if some actions exist, to handle partial generation.
-
-    // ── Fetch recipients ──
-    const { data: allProfiles } = await supabase
-      .from("profiles")
-      .select("user_id, email, first_name, is_admin");
-
-    const { data: moduleAccess } = await supabase
-      .from("user_module_access")
-      .select("user_id, module");
-
-    const moduleUserIds = new Set<string>();
-    (moduleAccess || []).forEach((m: any) => {
-      if (["formations", "crm", "missions", "contenu", "events"].includes(m.module)) {
-        moduleUserIds.add(m.user_id);
-      }
-    });
-
-    const recipients: Recipient[] = (allProfiles || [])
-      .filter((p: any) => p.is_admin || moduleUserIds.has(p.user_id))
-      .map((p: any) => ({
-        userId: p.user_id,
-        email: p.email,
-        isAdmin: p.is_admin === true,
-      }));
+    // ── Fetch all data using shared fetchers ──
+    const data = await fetchAllDailyData(supabase, today);
+    const { recipients } = data;
 
     if (recipients.length === 0) {
       return createJsonResponse({ success: true, message: "No recipients", _version: VERSION });
     }
 
-    // ══════════════════════════════════
-    // Collect all action items (global)
-    // ══════════════════════════════════
+    console.log(`[${VERSION}] ${recipients.length} recipients, building actions...`);
 
-    const globalActions: ActionItem[] = [];
-    const perUserActions: ActionItem[] = []; // actions with assignedTo
-
-    // 0. MISSIONS — ACTIONS À TRAITER (prochaine action due aujourd'hui ou en retard)
-    const { data: missionsWithActions } = await supabase
-      .from("missions")
-      .select("id, title, client_name, emoji, assigned_to, waiting_next_action_date, waiting_next_action_text")
-      .not("waiting_next_action_text", "is", null)
-      .lte("waiting_next_action_date", today)
-      .in("status", ["not_started", "in_progress", "pending"]);
-
-    if (missionsWithActions) {
-      for (const m of missionsWithActions) {
-        if (!m.waiting_next_action_text?.trim()) continue;
-        const label = m.client_name ? `${m.client_name} — ${m.title}` : m.title;
-        const emoji = m.emoji ? `${m.emoji} ` : "";
-        const isOverdue = m.waiting_next_action_date < today;
-        const dateLabel = m.waiting_next_action_date === today
-          ? "Aujourd'hui"
-          : `En retard (${new Date(m.waiting_next_action_date).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })})`;
-        perUserActions.push({
-          category: "missions_actions",
-          title: `${emoji}${label}`,
-          description: `${m.waiting_next_action_text}${isOverdue ? ` — ⚠️ ${dateLabel}` : ""}`,
-          link: `${appUrl}/missions/${m.id}`,
-          entity_type: "mission",
-          entity_id: m.id,
-          assignedTo: m.assigned_to,
-        });
-      }
-      console.log(`[${VERSION}] Missions actions à traiter: ${missionsWithActions.length}`);
+    // ── Build per-user and global action lists ──
+    // "global" = visible to all users
+    // "perUser" = filtered by assignedTo
+    // "strictAssigned" = only visible to the assigned user (not even admins see others')
+    interface ActionDef {
+      category: string;
+      title: string;
+      description: string | null;
+      link: string;
+      entityType: string;
+      entityId: string;
+      assignedTo?: string | null;
+      scope: "global" | "perUser" | "strictAssigned";
     }
 
-    // 0b. E-LEARNING EN COURS AVEC GROUPE PRIVÉ (priorité haute, en tête)
-    const { data: activeElearnings } = await supabase
-      .from("trainings")
-      .select("id, training_name, start_date, end_date, private_group_url, assigned_to")
-      .in("format_formation", ["e_learning"])
-      .not("private_group_url", "is", null)
-      .lte("start_date", today);
+    const actions: ActionDef[] = [];
 
-    if (activeElearnings) {
-      for (const t of activeElearnings) {
-        if (t.end_date && t.end_date < today) continue;
-        if (!t.private_group_url?.trim()) continue;
-
-        perUserActions.push({
-          category: "elearning_groupe",
-          title: `💬 ${t.training_name}`,
-          description: "Répondre aux messages du groupe privé",
-          link: t.private_group_url.trim(),
-          entity_type: "training",
-          entity_id: t.id,
-          assignedTo: t.assigned_to,
-        });
-      }
-      console.log(`[${VERSION}] E-learning groupes privés actifs: ${perUserActions.filter(a => a.category === "elearning_groupe").length}`);
-    }
-
-    // 1. MISSIONS À FACTURER (filtered by assigned_to)
-    const { data: missionsToInvoice } = await supabase
-      .from("missions")
-      .select("id, title, client_name, consumed_amount, billed_amount, emoji, assigned_to, waiting_next_action_date")
-      .in("status", ["in_progress", "completed"]);
-
-    if (missionsToInvoice) {
-      for (const m of missionsToInvoice) {
-        const consumed = Number(m.consumed_amount) || 0;
-        const billed = Number(m.billed_amount) || 0;
-        if (consumed <= 0 || billed >= consumed) continue;
-        // Skip missions with a future scheduled action
-        if (m.waiting_next_action_date && m.waiting_next_action_date > today) continue;
-        const remaining = consumed - billed;
-        const label = m.client_name ? `${m.client_name} — ${m.title}` : m.title;
-        const emoji = m.emoji ? `${m.emoji} ` : "";
-        perUserActions.push({
-          category: "missions_a_facturer",
-          title: `${emoji}${label}`,
-          description: `${remaining.toLocaleString("fr-FR")} € à facturer`,
-          link: `${appUrl}/missions/${m.id}`,
-          entity_type: "mission",
-          entity_id: m.id,
-          assignedTo: m.assigned_to,
-        });
-      }
-    }
-    console.log(`[${VERSION}] Missions à facturer: ${perUserActions.filter(a => a.category === "missions_a_facturer").length}`);
-
-    // 1c. ACTIVITÉS MISSION NON FACTURÉES
-    const { data: unbilledActivities } = await supabase
-      .from("mission_activities")
-      .select("id, mission_id, description, activity_date, billable_amount, duration, duration_type")
-      .eq("is_billed", false)
-      .gt("billable_amount", 0);
-
-    if (unbilledActivities && unbilledActivities.length > 0) {
-      // Group by mission_id
-      const byMission = new Map<string, any[]>();
-      for (const a of unbilledActivities) {
-        const list = byMission.get(a.mission_id) || [];
-        list.push(a);
-        byMission.set(a.mission_id, list);
-      }
-
-      // Fetch mission info for these missions
-      const missionIds = [...byMission.keys()];
-      const { data: activityMissions } = await supabase
-        .from("missions")
-        .select("id, title, client_name, emoji, assigned_to, waiting_next_action_date")
-        .in("id", missionIds);
-
-      if (activityMissions) {
-        for (const m of activityMissions) {
-          // Skip missions with a future scheduled action
-          if (m.waiting_next_action_date && m.waiting_next_action_date > today) continue;
-          const activities = byMission.get(m.id) || [];
-          const totalUnbilled = activities.reduce((sum: number, a: any) => sum + (Number(a.billable_amount) || 0), 0);
-          const label = m.client_name ? `${m.client_name} — ${m.title}` : m.title;
-          const emoji = m.emoji ? `${m.emoji} ` : "";
-          perUserActions.push({
-            category: "missions_activites_non_facturees",
-            title: `${emoji}${label}`,
-            description: `${activities.length} activité(s) non facturée(s) — ${totalUnbilled.toLocaleString("fr-FR")} €`,
-            link: `${appUrl}/missions/${m.id}`,
-            entity_type: "mission",
-            entity_id: m.id,
-            assignedTo: m.assigned_to,
-          });
-        }
-      }
-    }
-    console.log(`[${VERSION}] Activités non facturées: ${perUserActions.filter(a => a.category === "missions_activites_non_facturees").length}`);
-
-    // 1b. MISSIONS SANS DATE DE DÉBUT (filtered by assigned_to)
-    const { data: missionsNoStartDate } = await supabase
-      .from("missions")
-      .select("id, title, client_name, emoji, assigned_to, waiting_next_action_date")
-      .in("status", ["not_started", "in_progress"])
-      .is("start_date", null);
-
-    if (missionsNoStartDate) {
-      for (const m of missionsNoStartDate) {
-        const label = m.client_name ? `${m.client_name} — ${m.title}` : m.title;
-        const emoji = m.emoji ? `${m.emoji} ` : "";
-        // Skip missions with a future scheduled action
-        if (m.waiting_next_action_date && m.waiting_next_action_date > today) continue;
-        perUserActions.push({
-          category: "missions_sans_date",
-          title: `${emoji}${label}`,
-          description: "Date de début à définir",
-          link: `${appUrl}/missions/${m.id}`,
-          entity_type: "mission",
-          entity_id: m.id,
-          assignedTo: m.assigned_to,
-        });
-      }
-    }
-    console.log(`[${VERSION}] Missions sans date de début: ${perUserActions.filter(a => a.category === "missions_sans_date").length}`);
-
-    // 2-4. CRM: Devis à faire, Opportunités, Devis à relancer
-    const { data: crmColumns } = await supabase
-      .from("crm_columns")
-      .select("id, name, position")
-      .eq("is_archived", false)
-      .order("position", { ascending: true });
-
-    const columns = crmColumns || [];
-    const firstColumn = columns.length > 0 ? columns[0] : null;
-    const contacteColumn = columns.find((c: any) => c.name.toLowerCase().includes("contact"));
-    const devisEnvoyeColumn = columns.find((c: any) => c.name.toLowerCase().includes("devis envoy"));
-
-    const targetColumnIds = new Set<string>();
-    if (firstColumn) targetColumnIds.add(firstColumn.id);
-    if (contacteColumn) targetColumnIds.add(contacteColumn.id);
-    if (devisEnvoyeColumn) targetColumnIds.add(devisEnvoyeColumn.id);
-
-    let crmCards: any[] = [];
-    if (targetColumnIds.size > 0) {
-      const { data: cards } = await supabase
-        .from("crm_cards")
-        .select("id, title, company, first_name, last_name, column_id, estimated_value, emoji, assigned_to, waiting_next_action_date, next_action_done")
-        .eq("sales_status", "OPEN")
-        .in("column_id", [...targetColumnIds]);
-      // Filter: only cards with action due today or overdue (or no date = act now)
-      crmCards = (cards || []).filter((c: any) => {
-        if (c.next_action_done === true) return false;
-        if (!c.waiting_next_action_date) return true; // no date = needs action now
-        return c.waiting_next_action_date <= today; // due today or overdue
+    // 0. Missions — Actions à traiter
+    for (const m of data.missionActions) {
+      const label = m.clientName ? `${m.clientName} — ${m.title}` : m.title;
+      const emoji = m.emoji ? `${m.emoji} ` : "";
+      const dateLabel = m.actionDate === today
+        ? "Aujourd'hui"
+        : `En retard (${new Date(m.actionDate).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })})`;
+      actions.push({
+        category: "missions_actions",
+        title: `${emoji}${label}`,
+        description: `${m.actionText}${m.isOverdue ? ` — ⚠️ ${dateLabel}` : ""}`,
+        link: `${appUrl}/missions/${m.id}`,
+        entityType: "mission", entityId: m.id,
+        assignedTo: m.assignedTo, scope: "perUser",
       });
     }
 
-    const formatCrmCard = (card: any): { title: string; desc: string } => {
+    // 0b. E-learning groupes privés
+    for (const t of data.elearningGroups) {
+      actions.push({
+        category: "elearning_groupe",
+        title: `💬 ${t.trainingName}`,
+        description: "Répondre aux messages du groupe privé",
+        link: t.privateGroupUrl,
+        entityType: "training", entityId: t.id,
+        assignedTo: t.assignedTo, scope: "perUser",
+      });
+    }
+
+    // 1. Missions à facturer
+    for (const m of data.missionsToInvoice) {
+      const label = m.clientName ? `${m.clientName} — ${m.title}` : m.title;
+      const emoji = m.emoji ? `${m.emoji} ` : "";
+      actions.push({
+        category: "missions_a_facturer",
+        title: `${emoji}${label}`,
+        description: `${m.remaining.toLocaleString("fr-FR")} € à facturer`,
+        link: `${appUrl}/missions/${m.id}`,
+        entityType: "mission", entityId: m.id,
+        assignedTo: m.assignedTo, scope: "perUser",
+      });
+    }
+
+    // 1c. Activités non facturées
+    for (const m of data.unbilledActivities) {
+      const label = m.clientName ? `${m.clientName} — ${m.title}` : m.title;
+      const emoji = m.emoji ? `${m.emoji} ` : "";
+      actions.push({
+        category: "missions_activites_non_facturees",
+        title: `${emoji}${label}`,
+        description: `${m.activityCount} activité(s) non facturée(s) — ${m.totalUnbilled.toLocaleString("fr-FR")} €`,
+        link: `${appUrl}/missions/${m.missionId}`,
+        entityType: "mission", entityId: m.missionId,
+        assignedTo: m.assignedTo, scope: "perUser",
+      });
+    }
+
+    // 1b. Missions sans date
+    for (const m of data.missionsNoStartDate) {
+      const label = m.clientName ? `${m.clientName} — ${m.title}` : m.title;
+      const emoji = m.emoji ? `${m.emoji} ` : "";
+      actions.push({
+        category: "missions_sans_date",
+        title: `${emoji}${label}`,
+        description: "Date de début à définir",
+        link: `${appUrl}/missions/${m.id}`,
+        entityType: "mission", entityId: m.id,
+        assignedTo: m.assignedTo, scope: "perUser",
+      });
+    }
+
+    // 2-4. CRM cards
+    for (const card of data.crmCards) {
       const label = card.company ? `${card.company} — ${card.title}` : card.title;
       const emoji = card.emoji ? `${card.emoji} ` : "";
-      const value = card.estimated_value && Number(card.estimated_value) > 0
-        ? `${Number(card.estimated_value).toLocaleString("fr-FR")} €`
-        : null;
-      return { title: `${emoji}${label}`, desc: value || "" };
-    };
-
-    for (const card of crmCards) {
-      let category = "";
-      if (contacteColumn && card.column_id === contacteColumn.id) {
-        category = "devis_a_faire";
-      } else if (firstColumn && card.column_id === firstColumn.id && card.column_id !== contacteColumn?.id) {
-        category = "opportunites";
-      } else if (devisEnvoyeColumn && card.column_id === devisEnvoyeColumn.id) {
-        category = "devis_a_relancer";
-      }
-      if (!category) continue;
-      const { title, desc } = formatCrmCard(card);
-      perUserActions.push({
-        category,
-        title,
-        description: desc || null,
+      const value = card.estimatedValue && card.estimatedValue > 0
+        ? `${card.estimatedValue.toLocaleString("fr-FR")} €` : null;
+      actions.push({
+        category: card.category,
+        title: `${emoji}${label}`,
+        description: value,
         link: `${appUrl}/crm`,
-        entity_type: "crm_card",
-        entity_id: card.id,
-        assignedTo: card.assigned_to,
+        entityType: "crm_card", entityId: card.id,
+        assignedTo: card.assignedTo, scope: "perUser",
       });
     }
 
-    // 5. FORMATIONS À TRAITER (conventions)
-    const { data: allTrainings } = await supabase
-      .from("trainings")
-      .select("id, training_name, start_date, format_formation, convention_file_url, signed_convention_urls, sponsor_email, assigned_to, is_cancelled")
-      .gt("start_date", today)
-      .or("is_cancelled.is.null,is_cancelled.eq.false");
-
-    const trainings = allTrainings || [];
-    const trainingIds = trainings.map((t) => t.id);
-
-    const { data: allParticipants } = trainingIds.length > 0
-      ? await supabase
-          .from("training_participants")
-          .select("id, training_id, first_name, last_name, email, convention_file_url, signed_convention_url, sponsor_email, payment_mode")
-          .in("training_id", trainingIds)
-      : { data: [] };
-
-    const { data: allSignatures } = trainingIds.length > 0
-      ? await supabase
-          .from("convention_signatures")
-          .select("training_id, recipient_email, status")
-          .in("training_id", trainingIds)
-      : { data: [] };
-
-    const participantsByTraining = new Map<string, any[]>();
-    for (const p of (allParticipants || [])) {
-      const list = participantsByTraining.get(p.training_id) || [];
-      list.push(p);
-      participantsByTraining.set(p.training_id, list);
+    // 5. Training conventions
+    for (const t of data.trainingConventions) {
+      const dateStr = new Date(t.startDate).toLocaleDateString("fr-FR", { day: "numeric", month: "long" });
+      const issueLabels: Record<string, string> = {
+        not_generated: "Convention non générée",
+        not_signed: "Convention non signée",
+        pending_signature: "Signature électronique en attente",
+      };
+      const label = issueLabels[t.issue];
+      const names = t.participantNames?.length ? ` pour : ${t.participantNames.join(", ")}` : "";
+      actions.push({
+        category: "formations_conventions",
+        title: t.trainingName,
+        description: `${label}${names} (${dateStr})`,
+        link: `${appUrl}/formations/${t.trainingId}`,
+        entityType: "training", entityId: t.trainingId,
+        assignedTo: t.assignedTo, scope: "perUser",
+      });
     }
 
-    const signaturesByKey = new Map<string, string>();
-    for (const sig of (allSignatures || [])) {
-      signaturesByKey.set(`${sig.training_id}:${sig.recipient_email}`, sig.status);
+    // 6. Articles en relecture (strictAssigned)
+    for (const card of data.reviewArticles) {
+      actions.push({
+        category: "articles_relire",
+        title: card.title,
+        description: `En relecture — ${card.columnName}`,
+        link: `${appUrl}/contenu?card=${card.id}`,
+        entityType: "content_card", entityId: card.id,
+        assignedTo: card.assignedUserId, scope: "strictAssigned",
+      });
     }
 
-    for (const t of trainings) {
-      const isIntra = t.format_formation === "intra";
-      const isInterOrElearning = t.format_formation === "inter-entreprises" || t.format_formation === "e_learning";
-      const trainingDate = new Date(t.start_date).toLocaleDateString("fr-FR", { day: "numeric", month: "long" });
-
-      // Convention non générée
-      if (isIntra && !t.convention_file_url) {
-        perUserActions.push({
-          category: "formations_conventions",
-          title: t.training_name,
-          description: `Convention non générée (${trainingDate})`,
-          link: `${appUrl}/formations/${t.id}`,
-          entity_type: "training",
-          entity_id: t.id,
-          assignedTo: t.assigned_to,
-        });
-      } else if (isInterOrElearning) {
-        const tParticipants = participantsByTraining.get(t.id) || [];
-        const missing = tParticipants.filter((p: any) => !p.convention_file_url && p.payment_mode !== "online");
-        if (missing.length > 0) {
-          const names = missing.map((p: any) => `${p.first_name || ""} ${p.last_name || ""}`.trim() || p.email);
-          perUserActions.push({
-            category: "formations_conventions",
-            title: t.training_name,
-            description: `Convention non générée pour : ${names.join(", ")} (${trainingDate})`,
-            link: `${appUrl}/formations/${t.id}`,
-            entity_type: "training",
-            entity_id: t.id,
-            assignedTo: t.assigned_to,
-          });
-        }
-      }
-
-      // Convention non signée
-      if (isIntra && t.convention_file_url) {
-        const signedUrls = t.signed_convention_urls || [];
-        if (signedUrls.length === 0) {
-          const sigKey = `${t.id}:${t.sponsor_email}`;
-          const sigStatus = signaturesByKey.get(sigKey);
-          const label = sigStatus === "signed"
-            ? null
-            : sigStatus === "pending"
-              ? "Signature électronique en attente"
-              : "Convention non signée";
-          if (label) {
-            perUserActions.push({
-              category: "formations_conventions",
-              title: t.training_name,
-              description: `${label} (${trainingDate})`,
-              link: `${appUrl}/formations/${t.id}`,
-              entity_type: "training",
-              entity_id: t.id,
-              assignedTo: t.assigned_to,
-            });
-          }
-        }
-      } else if (isInterOrElearning) {
-        const tParticipants = participantsByTraining.get(t.id) || [];
-        const unsignedNames: string[] = [];
-        for (const p of tParticipants) {
-          if (p.payment_mode === "online") continue;
-          if (!p.convention_file_url) continue;
-          if (p.signed_convention_url) continue;
-          const sigKey = `${t.id}:${p.sponsor_email}`;
-          const sigStatus = signaturesByKey.get(sigKey);
-          if (sigStatus === "signed") continue;
-          unsignedNames.push(`${p.first_name || ""} ${p.last_name || ""}`.trim() || p.email);
-        }
-        if (unsignedNames.length > 0) {
-          perUserActions.push({
-            category: "formations_conventions",
-            title: t.training_name,
-            description: `Convention non signée pour : ${unsignedNames.join(", ")} (${trainingDate})`,
-            link: `${appUrl}/formations/${t.id}`,
-            entity_type: "training",
-            entity_id: t.id,
-            assignedTo: t.assigned_to,
-          });
-        }
-      }
-    }
-
-    // 6. ARTICLES EN RELECTURE (only cards in "Relecture" columns, assigned to the column owner)
-    // Column-to-user mapping for review assignments
-    const REVIEW_COLUMN_ASSIGNMENTS: Record<string, string> = {
-      // column_id → user_id
-      "290ab277-6f1a-48b4-8641-d8b033d667de": "81d0328b-7651-4deb-95c0-c7ac81eb952e", // Relecture en cours Romain → Romain
-      "2ea6b47e-9d87-41d7-9eaa-95f57ba379da": "c894a7ec-4680-4a9e-bed7-4aad7af12909", // Relecture en cours Manue → Emmanuelle
-    };
-    const REVIEW_COLUMN_IDS = Object.keys(REVIEW_COLUMN_ASSIGNMENTS);
-
-    // Fetch cards in review columns directly
-    const { data: cardsInReview } = await supabase
-      .from("content_cards")
-      .select("id, title, column_id, content_columns:column_id(name)")
-      .in("column_id", REVIEW_COLUMN_IDS);
-
-    if (cardsInReview) {
-      for (const card of cardsInReview) {
-        const columnName = (card as any).content_columns?.name || "";
-        const assignedUserId = REVIEW_COLUMN_ASSIGNMENTS[card.column_id];
-        if (!assignedUserId) continue;
-
-        perUserActions.push({
-          category: "articles_relire",
-          title: card.title,
-          description: `En relecture — ${columnName}`,
-          link: `${appUrl}/contenu?card=${card.id}`,
-          entity_type: "content_card",
-          entity_id: card.id,
-          assignedTo: assignedUserId,
-        });
-      }
-      console.log(`[${VERSION}] Articles en relecture: ${cardsInReview.length}`);
-    }
-
-    // 6bis. COMMENTAIRES CONTENUS NON RÉSOLUS (only for cards in review columns)
-    const { data: unresolvedComments } = await supabase
-      .from("review_comments")
-      .select("id, card_id, author_id, content, mentioned_user_ids, assigned_to, content_cards:card_id(title, column_id, content_columns:column_id(name))")
-      .eq("status", "pending")
-      .is("parent_comment_id", null);
-
-    if (unresolvedComments) {
-      for (const c of unresolvedComments as any[]) {
-        const card = c.content_cards;
-        if (!card?.column_id) continue;
-        // Only include comments on cards in review columns
-        const assignedUserId = REVIEW_COLUMN_ASSIGNMENTS[card.column_id];
-        if (!assignedUserId) continue;
-
-        const cardTitle = card?.title || "Sans titre";
-        const preview = c.content?.length > 60 ? c.content.slice(0, 60) + "…" : c.content;
-
-        // Collect target users: column owner + author + mentioned + assigned
-        const targetUserIds = new Set<string>();
-        targetUserIds.add(assignedUserId); // Always notify the column owner
-        if (c.author_id) targetUserIds.add(c.author_id);
-        if (c.assigned_to) targetUserIds.add(c.assigned_to);
-        if (c.mentioned_user_ids && Array.isArray(c.mentioned_user_ids)) {
-          for (const uid of c.mentioned_user_ids) targetUserIds.add(uid);
-        }
-
-        for (const uid of targetUserIds) {
-          perUserActions.push({
-            category: "commentaires_contenu",
-            title: `💬 ${cardTitle}`,
-            description: `Commentaire non résolu : ${preview}`,
-            link: `${appUrl}/contenu?card=${c.card_id}`,
-            entity_type: "review_comment",
-            entity_id: c.id,
-            assignedTo: uid,
-          });
-        }
-      }
-      console.log(`[${VERSION}] Commentaires contenus non résolus (en relecture): ${unresolvedComments.filter((c: any) => REVIEW_COLUMN_IDS.includes(c.content_cards?.column_id)).length}`);
-    }
-
-    // 6b. ARTICLES BLOQUÉS (cards in waiting/blocked columns, no review filter)
-    const { data: blockedCards } = await supabase
-      .from("content_cards")
-      .select("id, title, column_id, content_columns:column_id(name)")
-      .not("column_id", "is", null);
-
-    if (blockedCards) {
-      for (const card of blockedCards) {
-        const columnName = ((card as any).content_columns?.name || "").toLowerCase();
-        if (columnName.includes("bloqu") || columnName.includes("attente")) {
-          globalActions.push({
-            category: "articles_bloques",
-            title: card.title,
-            description: `Colonne : ${(card as any).content_columns?.name}`,
-            link: `${appUrl}/contenu?card=${card.id}`,
-            entity_type: "content_card",
-            entity_id: card.id,
-          });
-        }
-      }
-    }
-
-    // 7. ÉVÉNEMENTS APPROCHANT (< 15 jours)
-    const fifteenDays = new Date(todayDate);
-    fifteenDays.setDate(fifteenDays.getDate() + 15);
-    const maxEventDate = fifteenDays.toISOString().split("T")[0];
-
-    const { data: upcomingEvents } = await supabase
-      .from("events")
-      .select("id, title, event_date, location, assigned_to")
-      .gte("event_date", today)
-      .lte("event_date", maxEventDate)
-      .eq("status", "active")
-      .order("event_date", { ascending: true });
-
-    if (upcomingEvents) {
-      for (const ev of upcomingEvents) {
-        const daysUntil = Math.ceil((new Date(ev.event_date).getTime() - todayDate.getTime()) / (1000 * 60 * 60 * 24));
-        const eventDate = new Date(ev.event_date).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" });
-        const daysLabel = daysUntil === 0 ? "Aujourd'hui" : daysUntil === 1 ? "Demain" : `J-${daysUntil}`;
-        perUserActions.push({
-          category: "evenements",
-          title: ev.title,
-          description: `${eventDate}${ev.location ? ` — ${ev.location}` : ""} (${daysLabel})`,
-          link: `${appUrl}/events/${ev.id}`,
-          entity_type: "event",
-          entity_id: ev.id,
-          assignedTo: ev.assigned_to,
+    // 6bis. Commentaires non résolus (strictAssigned, one per target user)
+    for (const c of data.unresolvedComments) {
+      for (const uid of c.targetUserIds) {
+        actions.push({
+          category: "commentaires_contenu",
+          title: `💬 ${c.cardTitle}`,
+          description: `Commentaire non résolu : ${c.contentPreview}`,
+          link: `${appUrl}/contenu?card=${c.cardId}`,
+          entityType: "review_comment", entityId: c.id,
+          assignedTo: uid, scope: "strictAssigned",
         });
       }
     }
 
-    // 8. CFP À SOUMETTRE (< 30 jours)
-    const thirtyDays = new Date(todayDate);
-    thirtyDays.setDate(thirtyDays.getDate() + 30);
-    const maxCfpDate = thirtyDays.toISOString().split("T")[0];
-
-    const { data: cfpEvents } = await supabase
-      .from("events")
-      .select("id, title, cfp_deadline, assigned_to")
-      .eq("event_type", "external")
-      .eq("status", "active")
-      .not("cfp_deadline", "is", null)
-      .gte("cfp_deadline", today)
-      .lte("cfp_deadline", maxCfpDate)
-      .order("cfp_deadline", { ascending: true });
-
-    if (cfpEvents) {
-      for (const ev of cfpEvents) {
-        const daysUntil = Math.ceil((new Date(ev.cfp_deadline).getTime() - todayDate.getTime()) / (1000 * 60 * 60 * 24));
-        const deadlineDate = new Date(ev.cfp_deadline).toLocaleDateString("fr-FR", { day: "numeric", month: "long" });
-        perUserActions.push({
-          category: "cfp_soumettre",
-          title: ev.title,
-          description: `Deadline CFP : ${deadlineDate} (J-${daysUntil})`,
-          link: `${appUrl}/events/${ev.id}`,
-          entity_type: "event",
-          entity_id: ev.id,
-          assignedTo: ev.assigned_to,
-        });
-      }
+    // 6b. Articles bloqués (global)
+    for (const card of data.blockedArticles) {
+      actions.push({
+        category: "articles_bloques",
+        title: card.title,
+        description: `Colonne : ${card.columnName}`,
+        link: `${appUrl}/contenu?card=${card.id}`,
+        entityType: "content_card", entityId: card.id,
+        scope: "global",
+      });
     }
 
-    // 9. CFP ANNÉE SUIVANTE
-    const tenMonthsAgo = new Date(todayDate);
-    tenMonthsAgo.setMonth(tenMonthsAgo.getMonth() - 10);
-    const tenMonthsAgoStr = tenMonthsAgo.toISOString().split("T")[0];
-    const tenMonthsAgoMinus7 = new Date(tenMonthsAgo);
-    tenMonthsAgoMinus7.setDate(tenMonthsAgoMinus7.getDate() - 7);
-    const tenMonthsAgoMinus7Str = tenMonthsAgoMinus7.toISOString().split("T")[0];
-
-    const { data: cfpReminderEvents } = await supabase
-      .from("events")
-      .select("id, title, cfp_deadline, assigned_to")
-      .eq("event_type", "external")
-      .not("cfp_deadline", "is", null)
-      .gte("cfp_deadline", tenMonthsAgoMinus7Str)
-      .lte("cfp_deadline", tenMonthsAgoStr);
-
-    if (cfpReminderEvents) {
-      for (const ev of cfpReminderEvents) {
-        perUserActions.push({
-          category: "cfp_surveiller",
-          title: ev.title,
-          description: "Vérifier le CFP de cette année",
-          link: `${appUrl}/events/${ev.id}`,
-          entity_type: "event",
-          entity_id: ev.id,
-          assignedTo: ev.assigned_to,
-        });
-      }
+    // 7. Événements approchant
+    for (const ev of data.upcomingEvents) {
+      const eventDate = new Date(ev.eventDate).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" });
+      const daysLabel = ev.daysUntil === 0 ? "Aujourd'hui" : ev.daysUntil === 1 ? "Demain" : `J-${ev.daysUntil}`;
+      actions.push({
+        category: "evenements",
+        title: ev.title,
+        description: `${eventDate}${ev.location ? ` — ${ev.location}` : ""} (${daysLabel})`,
+        link: `${appUrl}/events/${ev.id}`,
+        entityType: "event", entityId: ev.id,
+        assignedTo: ev.assignedTo, scope: "perUser",
+      });
     }
 
-    // 10. FORMATIONS TERMINÉES SANS FACTURE
-    // Exclude trainings where ALL participants paid online (no invoice needed)
-    const { data: pastTrainings } = await supabase
-      .from("trainings")
-      .select("id, training_name, start_date, end_date, invoice_file_url, assigned_to, format_formation, is_cancelled")
-      .lt("start_date", today)
-      .is("invoice_file_url", null)
-      .or("is_cancelled.is.null,is_cancelled.eq.false");
-
-    if (pastTrainings) {
-      // Fetch participants for these trainings to check payment modes
-      const pastTrainingIds = pastTrainings
-        .filter((t: any) => {
-          const endDate = t.end_date || t.start_date;
-          return new Date(endDate) < new Date(today);
-        })
-        .map((t: any) => t.id);
-
-      let participantsByTrainingInvoice = new Map<string, any[]>();
-      if (pastTrainingIds.length > 0) {
-        const { data: pts } = await supabase
-          .from("training_participants")
-          .select("training_id, payment_mode, invoice_file_url")
-          .in("training_id", pastTrainingIds);
-        if (pts) {
-          for (const p of pts) {
-            const list = participantsByTrainingInvoice.get(p.training_id) || [];
-            list.push(p);
-            participantsByTrainingInvoice.set(p.training_id, list);
-          }
-        }
-      }
-
-      for (const t of pastTrainings) {
-        const endDate = t.end_date || t.start_date;
-        if (new Date(endDate) >= new Date(today)) continue;
-
-        // Check if all participants paid online — no invoice needed
-        const participants = participantsByTrainingInvoice.get(t.id) || [];
-        if (participants.length > 0) {
-          const allPaidOnline = participants.every((p: any) => p.payment_mode === "online");
-          if (allPaidOnline) continue;
-
-          // For inter/e-learning: check if all invoice-mode participants already have their invoice
-          const isInterOrElearning = ["inter-entreprises", "e_learning"].includes(t.format_formation);
-          if (isInterOrElearning) {
-            const invoiceParticipants = participants.filter((p: any) => p.payment_mode !== "online");
-            const allInvoiced = invoiceParticipants.length > 0 && invoiceParticipants.every((p: any) => p.invoice_file_url);
-            if (allInvoiced) continue;
-          }
-        }
-
-        const daysAgo = Math.ceil((Date.now() - new Date(endDate).getTime()) / (1000 * 60 * 60 * 24));
-        const formattedDate = new Date(endDate).toLocaleDateString("fr-FR", { day: "numeric", month: "long" });
-        perUserActions.push({
-          category: "formations_facture",
-          title: t.training_name,
-          description: `Terminée le ${formattedDate} (il y a ${daysAgo}j)`,
-          link: `${appUrl}/formations/${t.id}`,
-          entity_type: "training",
-          entity_id: t.id,
-          assignedTo: t.assigned_to,
-        });
-      }
+    // 8. CFP à soumettre
+    for (const ev of data.cfpAlerts) {
+      const deadlineDate = new Date(ev.cfpDeadline).toLocaleDateString("fr-FR", { day: "numeric", month: "long" });
+      actions.push({
+        category: "cfp_soumettre",
+        title: ev.title,
+        description: `Deadline CFP : ${deadlineDate} (J-${ev.daysUntil})`,
+        link: `${appUrl}/events/${ev.id}`,
+        entityType: "event", entityId: ev.id,
+        assignedTo: ev.assignedTo, scope: "perUser",
+      });
     }
 
-    // 11. OKR INITIATIVES ACTIVES
-    const { data: activeInitiatives } = await supabase
-      .from("okr_initiatives")
-      .select("id, title, progress_percentage, key_result_id, status")
-      .in("status", ["active", "draft"]);
-
-    if (activeInitiatives && activeInitiatives.length > 0) {
-      // Get parent key results + objectives for context
-      const krIds = [...new Set(activeInitiatives.map((i: any) => i.key_result_id))];
-      const { data: keyResults } = await supabase
-        .from("okr_key_results")
-        .select("id, title, objective_id")
-        .in("id", krIds);
-
-      let objectiveMap: Record<string, any> = {};
-      if (keyResults && keyResults.length > 0) {
-        const objIds = [...new Set(keyResults.map((kr: any) => kr.objective_id))];
-        const { data: objectives } = await supabase
-          .from("okr_objectives")
-          .select("id, title, status, owner_email")
-          .in("id", objIds)
-          .in("status", ["active"]);
-        if (objectives) {
-          for (const o of objectives) objectiveMap[o.id] = o;
-        }
-      }
-
-      const krMap: Record<string, any> = {};
-      if (keyResults) {
-        for (const kr of keyResults) krMap[kr.id] = kr;
-      }
-
-      for (const init of activeInitiatives) {
-        const kr = krMap[init.key_result_id];
-        if (!kr) continue;
-        const obj = objectiveMap[kr.objective_id];
-        if (!obj) continue; // Only include initiatives from active objectives
-
-        globalActions.push({
-          category: "okr_initiatives",
-          title: init.title,
-          description: `${obj.title} → ${kr.title} (${init.progress_percentage}%)`,
-          link: `${appUrl}/okr`,
-          entity_type: "okr_initiative",
-          entity_id: init.id,
-        });
-      }
-      console.log(`[${VERSION}] OKR initiatives actives: ${activeInitiatives.length}`);
+    // 9. CFP année suivante
+    for (const ev of data.cfpReminders) {
+      actions.push({
+        category: "cfp_surveiller",
+        title: ev.title,
+        description: "Vérifier le CFP de cette année",
+        link: `${appUrl}/events/${ev.id}`,
+        entityType: "event", entityId: ev.id,
+        assignedTo: ev.assignedTo, scope: "perUser",
+      });
     }
 
-    // 12. RAPPELS RÉSERVATION (J-60, rappel quotidien tant que non coché)
-    const sixtyDaysLater = new Date(todayDate);
-    sixtyDaysLater.setDate(sixtyDaysLater.getDate() + 60);
-    const sixtyDaysStr = sixtyDaysLater.toISOString().split("T")[0];
-
-    // 12a. Missions
-    const { data: missionsNeedingBooking } = await supabase
-      .from("missions")
-      .select("id, title, client_name, location, start_date, train_booked, hotel_booked, assigned_to, emoji")
-      .not("location", "is", null)
-      .not("start_date", "is", null)
-      .gte("start_date", today)
-      .lte("start_date", sixtyDaysStr)
-      .in("status", ["pending", "in_progress", "not_started"]);
-
-    if (missionsNeedingBooking) {
-      for (const m of missionsNeedingBooking) {
-        if (!m.location?.trim()) continue;
-        const needsTrain = !m.train_booked;
-        const needsHotel = !m.hotel_booked;
-        if (!needsTrain && !needsHotel) continue;
-
-        const items: string[] = [];
-        if (needsTrain) items.push("🚄 Train");
-        if (needsHotel) items.push("🏨 Hôtel");
-        const startFormatted = new Date(m.start_date).toLocaleDateString("fr-FR", { day: "numeric", month: "long" });
-
-        perUserActions.push({
-          category: "reservations_mission",
-          title: `${m.emoji || "📋"} ${m.title}`,
-          description: `${items.join(" + ")} à réserver — ${m.location} (${startFormatted})`,
-          link: `${appUrl}/missions/${m.id}`,
-          entity_type: "mission",
-          entity_id: m.id,
-          assignedTo: m.assigned_to,
-        });
-      }
-      console.log(`[${VERSION}] Missions nécessitant réservation: ${missionsNeedingBooking.filter((m: any) => (!m.train_booked || !m.hotel_booked) && m.location).length}`);
+    // 10. Formations sans facture
+    for (const t of data.pastTrainingsNoInvoice) {
+      const formattedDate = new Date(t.endDate).toLocaleDateString("fr-FR", { day: "numeric", month: "long" });
+      actions.push({
+        category: "formations_facture",
+        title: t.trainingName,
+        description: `Terminée le ${formattedDate} (il y a ${t.daysAgo}j)`,
+        link: `${appUrl}/formations/${t.trainingId}`,
+        entityType: "training", entityId: t.trainingId,
+        assignedTo: t.assignedTo, scope: "perUser",
+      });
     }
 
-    // 12b. Formations (train, hôtel, restaurant, salle, matériel)
-    const { data: trainingsNeedingBooking } = await supabase
-      .from("trainings")
-      .select("id, training_name, location, start_date, train_booked, hotel_booked, restaurant_booked, room_rental_booked, equipment_ready, format_formation, session_type, assigned_to, is_cancelled")
-      .not("start_date", "is", null)
-      .gte("start_date", today)
-      .lte("start_date", sixtyDaysStr)
-      .or("is_cancelled.is.null,is_cancelled.eq.false");
-
-    if (trainingsNeedingBooking) {
-      for (const t of trainingsNeedingBooking) {
-        const hasLocation = t.location?.trim();
-        const isPresentiel = t.format_formation !== "e_learning" && t.format_formation !== "classe_virtuelle";
-        const isInter = t.format_formation === "inter-entreprises" || t.session_type === "inter";
-
-        const items: string[] = [];
-        if (isPresentiel && hasLocation) {
-          if (!t.train_booked) items.push("🚄 Train");
-          if (!t.hotel_booked) items.push("🏨 Hôtel");
-          if (isInter && !t.restaurant_booked) items.push("🍽️ Restaurant");
-          if (!t.room_rental_booked) items.push("🚪 Salle");
-        }
-        if (isPresentiel && !t.equipment_ready) items.push("📦 Matériel");
-
-        if (items.length === 0) continue;
-
-        const startFormatted = new Date(t.start_date).toLocaleDateString("fr-FR", { day: "numeric", month: "long" });
-
-        perUserActions.push({
-          category: "reservations_formation",
-          title: `🎓 ${t.training_name}`,
-          description: `${items.join(" + ")} à réserver — ${hasLocation ? t.location + " " : ""}(${startFormatted})`,
-          link: `${appUrl}/formations/${t.id}`,
-          entity_type: "training",
-          entity_id: t.id,
-          assignedTo: t.assigned_to,
-        });
-      }
-      console.log(`[${VERSION}] Formations nécessitant réservation: ${trainingsNeedingBooking.filter((t: any) => !t.train_booked || !t.hotel_booked || !t.restaurant_booked || !t.room_rental_booked || !t.equipment_ready).length}`);
+    // 11. OKR Initiatives (global)
+    for (const init of data.okrInitiatives) {
+      actions.push({
+        category: "okr_initiatives",
+        title: init.title,
+        description: `${init.objectiveTitle} → ${init.keyResultTitle} (${init.progressPercentage}%)`,
+        link: `${appUrl}/okr`,
+        entityType: "okr_initiative", entityId: init.id,
+        scope: "global",
+      });
     }
 
-    // 12c. Événements internes en physique
-    const { data: eventsNeedingBooking } = await supabase
-      .from("events")
-      .select("id, title, event_date, location, location_type, event_type, train_booked, hotel_booked, room_rental_booked, restaurant_booked, assigned_to")
-      .eq("event_type", "internal")
-      .eq("location_type", "physical")
-      .eq("status", "active")
-      .not("location", "is", null)
-      .gte("event_date", today)
-      .lte("event_date", sixtyDaysStr);
-
-    if (eventsNeedingBooking) {
-      for (const ev of eventsNeedingBooking) {
-        if (!ev.location?.trim()) continue;
-        const items: string[] = [];
-        if (!ev.train_booked) items.push("🚄 Train");
-        if (!ev.hotel_booked) items.push("🏨 Hôtel");
-        if (!ev.room_rental_booked) items.push("🚪 Salle");
-        if (!ev.restaurant_booked) items.push("🍽️ Restaurant");
-        if (items.length === 0) continue;
-
-        const eventDateFormatted = new Date(ev.event_date).toLocaleDateString("fr-FR", { day: "numeric", month: "long" });
-
-        perUserActions.push({
-          category: "reservations_evenement",
-          title: `📅 ${ev.title}`,
-          description: `${items.join(" + ")} à réserver — ${ev.location} (${eventDateFormatted})`,
-          link: `${appUrl}/events/${ev.id}`,
-          entity_type: "event",
-          entity_id: ev.id,
-          assignedTo: ev.assigned_to,
-        });
-      }
-      console.log(`[${VERSION}] Événements nécessitant réservation: ${eventsNeedingBooking.filter((ev: any) => !ev.train_booked || !ev.hotel_booked || !ev.room_rental_booked || !ev.restaurant_booked).length}`);
+    // 12. Réservations
+    for (const r of data.reservations) {
+      const items: string[] = [];
+      if (r.needsTrain) items.push("🚄 Train");
+      if (r.needsHotel) items.push("🏨 Hôtel");
+      if (r.needsRestaurant) items.push("🍽️ Restaurant");
+      if (r.needsRoom) items.push("🚪 Salle");
+      if (r.needsEquipment) items.push("📦 Matériel");
+      const startFormatted = new Date(r.startDate).toLocaleDateString("fr-FR", { day: "numeric", month: "long" });
+      const pathMap = { mission: "missions", training: "formations", event: "events" };
+      const categoryMap = { mission: "reservations_mission", training: "reservations_formation", event: "reservations_evenement" };
+      actions.push({
+        category: categoryMap[r.entityType],
+        title: `${r.emoji || "📋"} ${r.title}`,
+        description: `${items.join(" + ")} à réserver — ${r.location} (${startFormatted})`,
+        link: `${appUrl}/${pathMap[r.entityType]}/${r.entityId}`,
+        entityType: r.entityType, entityId: r.entityId,
+        assignedTo: r.assignedTo, scope: "perUser",
+      });
     }
 
-    // ══════════════════════════════════
-    // Delete existing actions for today before re-inserting (clean slate)
-    // This ensures removed/reassigned actions don't linger
-    // ══════════════════════════════════
+    // ── Delete + insert per user ──
+    const STRICT_ASSIGNED_CATEGORIES = ["articles_relire", "commentaires_contenu"];
+
     for (const recipient of recipients) {
       // Delete non-completed actions (will be regenerated)
       await supabase
@@ -860,50 +318,33 @@ serve(async (req) => {
         .eq("action_date", today)
         .eq("is_completed", false);
 
-      // Also delete completed review actions that may have been wrongly assigned
-      // (e.g. admin previously got another user's review cards)
-      // These are strictly user-scoped and should not persist if reassigned
+      // Delete completed strict-assigned actions (may have been reassigned)
       await supabase
         .from("daily_actions")
         .delete()
         .eq("user_id", recipient.userId)
         .eq("action_date", today)
-        .in("category", ["articles_relire", "commentaires_contenu"])
+        .in("category", STRICT_ASSIGNED_CATEGORIES)
         .eq("is_completed", true);
     }
 
-    // ══════════════════════════════════
-    // Insert actions per user
-    // ══════════════════════════════════
     let totalInserted = 0;
 
     for (const recipient of recipients) {
-      const userActions: any[] = [];
+      const userActions: ActionRow[] = [];
 
-      // Global actions: visible to all
-      for (const action of globalActions) {
-        userActions.push({
-          user_id: recipient.userId,
-          action_date: today,
-          category: action.category,
-          title: action.title,
-          description: action.description,
-          link: action.link,
-          entity_type: action.entity_type,
-          entity_id: action.entity_id,
-        });
-      }
-
-      // Per-user actions: only if admin or assigned (unassigned items only visible to admins)
-      // Exception: review-related categories are strictly assigned (admin should NOT see others' reviews)
-      const STRICT_ASSIGNED_CATEGORIES = ["articles_relire", "commentaires_contenu"];
-      for (const action of perUserActions) {
-        const isStrictlyAssigned = STRICT_ASSIGNED_CATEGORIES.includes(action.category);
-        if (isStrictlyAssigned) {
-          if (action.assignedTo !== recipient.userId) continue;
+      for (const action of actions) {
+        let visible = false;
+        if (action.scope === "global") {
+          visible = true;
+        } else if (action.scope === "strictAssigned") {
+          visible = action.assignedTo === recipient.userId;
         } else {
-          if (!recipient.isAdmin && (!action.assignedTo || action.assignedTo !== recipient.userId)) continue;
+          // perUser: admin sees all, non-admin only sees assigned
+          visible = userCanSee(recipient, action.assignedTo ?? null);
         }
+        if (!visible) continue;
+
         userActions.push({
           user_id: recipient.userId,
           action_date: today,
@@ -911,17 +352,16 @@ serve(async (req) => {
           title: action.title,
           description: action.description,
           link: action.link,
-          entity_type: action.entity_type,
-          entity_id: action.entity_id,
+          entity_type: action.entityType,
+          entity_id: action.entityId,
         });
       }
-      
 
       if (userActions.length === 0) continue;
 
-      // Deduplicate by conflict key to avoid "cannot affect row a second time"
+      // Deduplicate
       const seen = new Set<string>();
-      const dedupedActions = userActions.filter((a: any) => {
+      const deduped = userActions.filter(a => {
         const key = `${a.category}|${a.entity_type}|${a.entity_id}`;
         if (seen.has(key)) return false;
         seen.add(key);
@@ -930,12 +370,12 @@ serve(async (req) => {
 
       const { error } = await supabase
         .from("daily_actions")
-        .upsert(dedupedActions, { onConflict: "user_id,action_date,category,entity_type,entity_id" });
+        .upsert(deduped, { onConflict: "user_id,action_date,category,entity_type,entity_id" });
 
       if (error) {
-        console.error(`[${VERSION}] Error inserting for ${recipient.email}:`, error.message);
+        console.error(`[${VERSION}] Error inserting for user ${recipient.userId}:`, error.message);
       } else {
-        totalInserted += userActions.length;
+        totalInserted += deduped.length;
       }
     }
 
