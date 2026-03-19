@@ -359,7 +359,7 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
       if (error) throw error;
       fetchComments();
       onCommentAdded?.();
-      toast.success(status === "corrected" ? "Marqué comme corrigé" : "Marqué non pertinent");
+      toast.success("Marqué comme corrigé");
     } catch (error) {
       console.error("Error:", error);
       toast.error("Erreur");
@@ -417,15 +417,24 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
     }
   };
 
-  const renderMentions = (text: string) => {
-    const parts = text.split(/(@\w+(?:\s\w+){0,2})/g);
-    return parts.map((part, i) =>
-      part.startsWith("@") && part.length > 1 ? (
-        <span key={i} className="text-primary font-medium bg-primary/10 rounded px-0.5">{part}</span>
-      ) : (
-        part
-      )
-    );
+  const renderTextWithLinks = (text: string) => {
+    // Split on mentions and URLs
+    const parts = text.split(/((?:https?:\/\/)[^\s<]+|@\w+(?:\s\w+){0,2})/g);
+    return parts.map((part, i) => {
+      if (part.startsWith("@") && part.length > 1) {
+        return (
+          <span key={i} className="text-primary font-medium bg-primary/10 rounded px-0.5">{part}</span>
+        );
+      }
+      if (/^https?:\/\//.test(part)) {
+        return (
+          <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-primary underline hover:text-primary/80 break-all">
+            {part}
+          </a>
+        );
+      }
+      return part;
+    });
   };
 
   const getDisplayName = (comment: Comment) =>
@@ -484,7 +493,7 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
             {comment.content.length > 80 ? comment.content.slice(0, 80) + "…" : comment.content}
           </span>
           <Badge variant="secondary" className="text-[10px] h-4 bg-green-100 text-green-700 flex-shrink-0">
-            {comment.status === "corrected" ? "Corrigé" : "Non pertinent"}
+            Corrigé
           </Badge>
           {replies.length > 0 && (
             <span className="text-[10px] text-muted-foreground flex-shrink-0">{replies.length} rép.</span>
@@ -541,11 +550,11 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
                 {isResolved && (
                   <Badge variant="secondary" className="text-[10px] h-4 bg-green-100 text-green-700">
                     <CheckCheck className="h-2.5 w-2.5 mr-0.5" />
-                    {comment.status === "corrected" ? "Corrigé" : comment.status === "refused" ? "Non pertinent" : "Traité"}
+                    {comment.status === "corrected" ? "Corrigé" : "Traité"}
                   </Badge>
                 )}
               </div>
-              <p className="text-sm mt-1 whitespace-pre-wrap leading-relaxed">{renderMentions(comment.content)}</p>
+              <p className="text-sm mt-1 whitespace-pre-wrap leading-relaxed">{renderTextWithLinks(comment.content)}</p>
 
               {comment.image_url && (
                 <a href={comment.image_url} target="_blank" rel="noopener noreferrer" className="mt-2 block">
@@ -586,15 +595,6 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
                       <Pencil className="h-3 w-3 mr-1" />
                       Corrigé
                     </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-6 text-[11px] text-muted-foreground hover:text-destructive"
-                      onClick={() => handleResolve(comment.id, "refused")}
-                    >
-                      <X className="h-3 w-3 mr-1" />
-                      Non pertinent
-                    </Button>
                   </>
                 )}
                 <Button
@@ -634,7 +634,7 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
                     <span className="text-[11px] font-medium">{getDisplayName(reply)}</span>
                     <span className="text-[10px] text-muted-foreground">{formatDate(reply.created_at)}</span>
                   </div>
-                  <p className="text-sm mt-0.5 whitespace-pre-wrap">{renderMentions(reply.content)}</p>
+                  <p className="text-sm mt-0.5 whitespace-pre-wrap">{renderTextWithLinks(reply.content)}</p>
                   {reply.author_id === currentUserId && (
                     <Button
                       size="sm"
