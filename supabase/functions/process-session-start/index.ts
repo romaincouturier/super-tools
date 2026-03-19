@@ -77,7 +77,7 @@ serve(async (req) => {
       .eq("day_date", today)
       .gte("start_time", windowStartTime + ":00")
       .lte("start_time", windowEndTime + ":59")
-      .in("trainings.format_formation", ["intra", "inter-entreprises"]);
+      .not("trainings.format_formation", "eq", "elearning");
 
     if (schedulesError) {
       console.error("[process-session-start] Error fetching schedules:", schedulesError);
