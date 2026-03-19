@@ -156,13 +156,24 @@ export function useQuestionnaire() {
     catch (e) { console.warn("Failed to insert questionnaire event", e); }
   };
 
-  const fetchData = async () => {
+  const fetchData = async (attempt = 1) => {
     if (!token) { setError("Lien invalide : token manquant."); setLoading(false); return; }
     setLoading(true); setError(null);
     try {
       const { data: qArr, error: qErr } = await rpc.getQuestionnaireByToken(token);
-      if (qErr || !qArr || qArr.length === 0) throw qErr || new Error("Questionnaire introuvable");
-      const qTyped = qArr[0] as unknown as QuestionnaireRecord;
+      if (qErr) {
+        console.error("RPC error:", qErr.message, qErr);
+        // Retry once on network errors
+        if (attempt === 1 && (qErr.message?.includes("fetch") || qErr.message?.includes("network") || qErr.message?.includes("Failed"))) {
+          console.log("Retrying questionnaire fetch (attempt 2)...");
+          await new Promise(r => setTimeout(r, 2000));
+          return fetchData(2);
+        }
+        throw qErr;
+      }
+      if (!qArr || (Array.isArray(qArr) && qArr.length === 0)) throw new Error("Questionnaire introuvable");
+      const qData = Array.isArray(qArr) ? qArr[0] : qArr;
+      const qTyped = qData as unknown as QuestionnaireRecord;
       setQuestionnaireAndRef(qTyped);
       if (qTyped.besoins_accessibilite && qTyped.besoins_accessibilite.trim()) setAccessibiliteChoice("oui");
       else if (qTyped.besoins_accessibilite !== null && qTyped.besoins_accessibilite !== undefined) setAccessibiliteChoice("non");
@@ -193,10 +204,10 @@ export function useQuestionnaire() {
       }
     } catch (e: unknown) {
       console.error("Failed to load questionnaire", e);
-      const errorMsg = "Impossible d'ouvrir ce questionnaire (lien invalide, expiré, ou accès refusé).";
+      const errDetail = e instanceof Error ? e.message : typeof e === "object" && e !== null && "code" in e ? String((e as { code: unknown }).code) : "unknown";
+      const errorMsg = `Impossible d'ouvrir ce questionnaire. Erreur : ${errDetail}. Essayez de recharger la page.`;
       setError(errorMsg);
-      const errDetail = e instanceof Error ? e.message : typeof e === "object" && e !== null && "code" in e ? String((e as { code: unknown }).code) : errorMsg;
-      supabase.functions.invoke("alert-form-error", { body: { formType: "besoins", token, errorMessage: errDetail, userAgent: navigator.userAgent, url: window.location.href } }).catch(() => {});
+      supabase.functions.invoke("alert-form-error", { body: { formType: "besoins", token, errorMessage: errDetail, userAgent: navigator.userAgent, url: window.location.href, attempt } }).catch(() => {});
     } finally { setLoading(false); initialLoadCompleteRef.current = true; }
   };
 
