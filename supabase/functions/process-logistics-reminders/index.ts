@@ -343,7 +343,7 @@ serve(async (req) => {
     // ════════════════════════════════════════════
     const { data: missionsToInvoice } = await supabase
       .from("missions")
-      .select("id, title, client_name, consumed_amount, billed_amount, emoji, assigned_to")
+      .select("id, title, client_name, consumed_amount, billed_amount, emoji, assigned_to, waiting_next_action_date")
       .in("status", ["in_progress", "completed"]);
 
     interface MissionAlert {
@@ -357,6 +357,8 @@ serve(async (req) => {
         const consumed = Number(m.consumed_amount) || 0;
         const billed = Number(m.billed_amount) || 0;
         if (consumed <= 0 || billed >= consumed) continue;
+        // Skip missions with a future scheduled action
+        if (m.waiting_next_action_date && m.waiting_next_action_date > today) continue;
         const remaining = consumed - billed;
         const label = m.client_name ? `${m.client_name} — ${m.title}` : m.title;
         const emojiPrefix = m.emoji ? `${m.emoji} ` : "";
@@ -394,11 +396,13 @@ serve(async (req) => {
       const missionIds = [...byMission.keys()];
       const { data: activityMissions } = await supabase
         .from("missions")
-        .select("id, title, client_name, emoji, assigned_to")
+        .select("id, title, client_name, emoji, assigned_to, waiting_next_action_date")
         .in("id", missionIds);
 
       if (activityMissions) {
         for (const m of activityMissions) {
+          // Skip missions with a future scheduled action
+          if (m.waiting_next_action_date && m.waiting_next_action_date > today) continue;
           const activities = byMission.get(m.id) || [];
           const totalUnbilled = activities.reduce((sum: number, a: any) => sum + (Number(a.billable_amount) || 0), 0);
           const label = m.client_name ? `${m.client_name} — ${m.title}` : m.title;
@@ -417,13 +421,15 @@ serve(async (req) => {
     // ════════════════════════════════════════════
     const { data: missionsNoStartDate } = await supabase
       .from("missions")
-      .select("id, title, client_name, emoji, assigned_to")
+      .select("id, title, client_name, emoji, assigned_to, waiting_next_action_date")
       .in("status", ["not_started", "in_progress"])
       .is("start_date", null);
 
     const missionNoDateAlerts: MissionAlert[] = [];
     if (missionsNoStartDate) {
       for (const m of missionsNoStartDate) {
+        // Skip missions with a future scheduled action
+        if (m.waiting_next_action_date && m.waiting_next_action_date > today) continue;
         const label = m.client_name ? `${m.client_name} — ${m.title}` : m.title;
         const emojiPrefix = m.emoji ? `${m.emoji} ` : "";
         missionNoDateAlerts.push({
@@ -679,6 +685,74 @@ serve(async (req) => {
       }
     }
     console.log(`[${VERSION}] Articles en relecture: ${cardsInReviewColumns?.length || 0}`);
+
+    // ════════════════════════════════════════════
+    // 6b. ARTICLES BLOQUÉS (cards in waiting/blocked columns)
+    // ════════════════════════════════════════════
+    const { data: allContentCards } = await supabase
+      .from("content_cards")
+      .select("id, title, column_id, content_columns:column_id(name)")
+      .not("column_id", "is", null);
+
+    const blockedArticleAlerts: GenericAlert[] = [];
+    if (allContentCards) {
+      for (const card of allContentCards) {
+        const columnName = ((card as any).content_columns?.name || "").toLowerCase();
+        if (columnName.includes("bloqu") || columnName.includes("attente")) {
+          blockedArticleAlerts.push({
+            assignedTo: null,
+            html: `<li><a href="${appUrl}/contenu?card=${card.id}" style="color: ${COLORS.primary}; text-decoration: underline;">${card.title}</a> — ${(card as any).content_columns?.name}</li>`,
+          });
+        }
+      }
+    }
+    console.log(`[${VERSION}] Articles bloqués: ${blockedArticleAlerts.length}`);
+
+    // ════════════════════════════════════════════
+    // 6c. COMMENTAIRES CONTENUS NON RÉSOLUS (on review columns)
+    // ════════════════════════════════════════════
+    const { data: unresolvedComments } = await supabase
+      .from("review_comments")
+      .select("id, card_id, author_id, content, mentioned_user_ids, assigned_to, content_cards:card_id(title, column_id, content_columns:column_id(name))")
+      .eq("status", "pending")
+      .is("parent_comment_id", null);
+
+    // Group unresolved comments by user email (column owner + mentioned + author + assigned)
+    const commentAlertsByUserId = new Map<string, GenericAlert[]>();
+    if (unresolvedComments) {
+      // Build userId→email map from recipients
+      const userIdToEmail = new Map<string, string>();
+      for (const r of recipients) userIdToEmail.set(r.userId, r.email);
+
+      for (const c of unresolvedComments as any[]) {
+        const card = c.content_cards;
+        if (!card?.column_id) continue;
+        // Only include comments on cards in review columns
+        const assignedUserId = REVIEW_COLUMN_ASSIGNMENTS[card.column_id];
+        if (!assignedUserId) continue;
+
+        const cardTitle = card?.title || "Sans titre";
+        const preview = c.content?.length > 60 ? c.content.slice(0, 60) + "…" : c.content;
+
+        const alertHtml = `<li><a href="${appUrl}/contenu?card=${c.card_id}" style="color: ${COLORS.primary}; text-decoration: underline;">💬 ${cardTitle}</a> — ${preview}</li>`;
+
+        // Collect target users
+        const targetUserIds = new Set<string>();
+        targetUserIds.add(assignedUserId);
+        if (c.author_id) targetUserIds.add(c.author_id);
+        if (c.assigned_to) targetUserIds.add(c.assigned_to);
+        if (c.mentioned_user_ids && Array.isArray(c.mentioned_user_ids)) {
+          for (const uid of c.mentioned_user_ids) targetUserIds.add(uid);
+        }
+
+        for (const uid of targetUserIds) {
+          const list = commentAlertsByUserId.get(uid) || [];
+          list.push({ assignedTo: uid, html: alertHtml });
+          commentAlertsByUserId.set(uid, list);
+        }
+      }
+    }
+    console.log(`[${VERSION}] Commentaires non résolus (en relecture): ${unresolvedComments?.length || 0}`);
 
     // ════════════════════════════════════════════
     // 7. ÉVÉNEMENTS APPROCHANT (< 15 jours)
@@ -951,6 +1025,19 @@ serve(async (req) => {
         });
         sections.push(sectionHtml("📋", "Articles en relecture", COLORS.purple, items, userReviewCards.length));
         alertCount += userReviewCards.length;
+      }
+
+      // 6b. Articles bloqués (visible to all)
+      if (blockedArticleAlerts.length > 0) {
+        sections.push(sectionHtml("🚫", "Articles bloqués", COLORS.orange, blockedArticleAlerts.map((a) => a.html), blockedArticleAlerts.length));
+        alertCount += blockedArticleAlerts.length;
+      }
+
+      // 6c. Commentaires non résolus (only for this user)
+      const userCommentAlerts = commentAlertsByUserId.get(recipient.userId);
+      if (userCommentAlerts && userCommentAlerts.length > 0) {
+        sections.push(sectionHtml("💬", "Commentaires non résolus", COLORS.purple, userCommentAlerts.map((a) => a.html), userCommentAlerts.length));
+        alertCount += userCommentAlerts.length;
       }
 
       // 7. CFP à soumettre (filtered by assigned_to)
