@@ -1,3 +1,5 @@
+export type DocumentType = "invoice" | "sheets" | "certificates" | "evaluations" | "all";
+
 export interface DocumentSentInfo {
   invoice: string | null;
   sheets: string | null;

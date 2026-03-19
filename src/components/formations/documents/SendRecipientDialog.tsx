@@ -11,8 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-
-type DocumentType = "invoice" | "sheets" | "certificates" | "evaluations" | "all";
+import type { DocumentType } from "./types";
 
 interface SendRecipientDialogProps {
   open: boolean;

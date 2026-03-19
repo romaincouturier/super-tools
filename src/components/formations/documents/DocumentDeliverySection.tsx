@@ -12,10 +12,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-import type { DocumentSentInfo } from "./types";
+import type { DocumentSentInfo, DocumentType } from "./types";
 import SendRecipientDialog from "./SendRecipientDialog";
-
-type DocumentType = "invoice" | "sheets" | "certificates" | "evaluations" | "all";
 
 interface DocumentDeliverySectionProps {
   trainingId: string;

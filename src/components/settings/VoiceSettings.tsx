@@ -1,93 +1,23 @@
-import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Save, Loader2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { useVoiceSettings } from "@/hooks/useVoiceSettings";
+import { getErrorMessage } from "@/lib/error-utils";
 
 export default function VoiceSettings() {
   const { toast } = useToast();
-  const [brandVoice, setBrandVoice] = useState("");
-  const [userVoice, setUserVoice] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [userId, setUserId] = useState<string | null>(null);
-
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        // Get current user
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-        setUserId(user.id);
-
-        // Load brand voice from ai_brand_settings
-        const { data: brandSettings } = await supabase
-          .from("ai_brand_settings")
-          .select("content")
-          .eq("setting_type", "supertilt_voice")
-          .maybeSingle();
-
-        if (brandSettings) {
-          setBrandVoice(brandSettings.content || "");
-        }
-
-        // Load user voice from profiles
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("voice_description")
-          .eq("user_id", user.id)
-          .maybeSingle();
-
-        if (profile) {
-          setUserVoice(profile.voice_description || "");
-        }
-      } catch (error) {
-        console.error("Error loading voice settings:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadData();
-  }, []);
+  const { brandVoice, userVoice, loading, saving, setBrandVoice, setUserVoice, save } = useVoiceSettings();
 
   const handleSave = async () => {
-    if (!userId) return;
-    setSaving(true);
-
-    try {
-      // Save brand voice
-      const { error: brandError } = await supabase
-        .from("ai_brand_settings")
-        .update({ content: brandVoice })
-        .eq("setting_type", "supertilt_voice");
-
-      if (brandError) throw brandError;
-
-      // Save user voice
-      const { error: userError } = await supabase
-        .from("profiles")
-        .update({ voice_description: userVoice })
-        .eq("user_id", userId);
-
-      if (userError) throw userError;
-
-      toast({
-        title: "Voix sauvegardées",
-        description: "Les paramètres de voix ont été mis à jour.",
-      });
-    } catch (error) {
-      console.error("Error saving voice settings:", error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de sauvegarder les paramètres de voix.",
-        variant: "destructive",
-      });
-    } finally {
-      setSaving(false);
+    const result = await save();
+    if (result?.success) {
+      toast({ title: "Voix sauvegardées", description: "Les paramètres de voix ont été mis à jour." });
+    } else {
+      console.error("Error saving voice settings:", result?.error);
+      toast({ title: "Erreur", description: getErrorMessage(result?.error), variant: "destructive" });
     }
   };
 

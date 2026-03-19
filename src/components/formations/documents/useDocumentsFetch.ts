@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { DocumentSentInfo, ConventionSignatureStatus, JourneyEvent } from "./types";
 
@@ -17,6 +17,7 @@ interface UseDocumentsFetchResult {
   setConventionSignatureUrl: (url: string | null) => void;
   certificateUrls: string[];
   evaluationCount: number;
+  saveSupportsUrl: (url: string) => Promise<void>;
 }
 
 export function useDocumentsFetch({ trainingId, participants }: UseDocumentsFetchParams): UseDocumentsFetchResult {
@@ -130,6 +131,11 @@ export function useDocumentsFetch({ trainingId, participants }: UseDocumentsFetc
     fetchCertificatesAndEvaluations();
   }, [trainingId, participants]);
 
+  const saveSupportsUrl = useCallback(async (url: string) => {
+    const { error } = await supabase.from("trainings").update({ supports_url: url || null }).eq("id", trainingId);
+    if (error) throw error;
+  }, [trainingId]);
+
   return {
     documentsSentInfo,
     setDocumentsSentInfo,
@@ -140,5 +146,6 @@ export function useDocumentsFetch({ trainingId, participants }: UseDocumentsFetc
     setConventionSignatureUrl,
     certificateUrls,
     evaluationCount,
+    saveSupportsUrl,
   };
 }
