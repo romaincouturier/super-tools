@@ -222,6 +222,9 @@ serve(async (req) => {
           const meetingUrlSection = liveMeetingUrl
             ? `<p><a href="${liveMeetingUrl}" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Rejoindre le live</a></p>`
             : "";
+          const supportsSection = supportsUrl
+            ? `<p>📚 Pour rappel, ${useFormal ? "vous pouvez retrouver" : "tu peux retrouver"} les supports de la formation ici : <a href="${supportsUrl}" style="color: #e6bc00; font-weight: bold;">Accéder aux supports</a></p>`
+            : "";
           subject = `📺 Rappel : Live "${liveTitle}" aujourd'hui – ${training.training_name}`;
           htmlContent = `
             <p>${greeting}</p>
@@ -231,6 +234,7 @@ serve(async (req) => {
               <li>📅 ${liveDate} à ${liveTime}</li>
             </ul>
             ${meetingUrlSection}
+            ${supportsSection}
             <p>${useFormal ? "Votre" : "Ta"} présence est importante pour profiter pleinement de ce moment d'échange.</p>
             <p>À tout à l'heure !</p>
             ${signatureHtml}
