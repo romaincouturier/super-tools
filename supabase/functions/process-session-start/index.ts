@@ -370,10 +370,230 @@ serve(async (req) => {
       }
     }
 
+    // =============================================
+    // PART 2: Process live meetings starting now
+    // =============================================
+    let livesProcessed = 0;
+
+    try {
+      // Build Paris-local ISO range for the 15-min window
+      const parisDate = now.toLocaleDateString("en-CA", { timeZone: "Europe/Paris" });
+      const parisWindowStart = `${parisDate}T${windowStartTime}:00+01:00`;
+      const parisWindowEnd = `${parisDate}T${windowEndTime}:59+01:00`;
+
+      // Use UTC-based range instead for reliability
+      const utcWindowStart = windowStart.toISOString();
+      const utcWindowEnd = windowEnd.toISOString();
+
+      const { data: liveMeetings, error: livesError } = await supabase
+        .from("training_live_meetings")
+        .select(`
+          id,
+          title,
+          scheduled_at,
+          training_id,
+          trainings!inner (
+            id,
+            training_name,
+            location,
+            format_formation,
+            trainer_id,
+            trainer_name,
+            participants_formal_address,
+            trainers (
+              id,
+              email,
+              first_name,
+              last_name
+            )
+          )
+        `)
+        .gte("scheduled_at", utcWindowStart)
+        .lte("scheduled_at", utcWindowEnd)
+        .neq("status", "cancelled");
+
+      if (livesError) {
+        console.error("[process-session-start] Error fetching lives:", livesError);
+      } else if (liveMeetings && liveMeetings.length > 0) {
+        console.log(`[process-session-start] Found ${liveMeetings.length} live(s) starting now`);
+
+        for (const live of liveMeetings) {
+          const training = live.trainings as any;
+          const trainingId = live.training_id;
+          const liveId = live.id;
+
+          // Skip e-learning
+          if (training.format_formation === "elearning") continue;
+
+          // Determine date and period from scheduled_at
+          const liveDate = new Date(live.scheduled_at);
+          const liveHour = parseInt(liveDate.toLocaleTimeString("en-US", { timeZone: "Europe/Paris", hour12: false, hour: "2-digit" }));
+          const period = liveHour < 13 ? "AM" : "PM";
+          const scheduleDate = liveDate.toLocaleDateString("en-CA", { timeZone: "Europe/Paris" });
+
+          // Dedup using activity_logs
+          const dedupKey = `session_start_live:${liveId}:${period}`;
+          const { data: existingLog } = await supabase
+            .from("activity_logs")
+            .select("id")
+            .eq("action_type", "session_start_live_processed")
+            .eq("recipient_email", dedupKey)
+            .limit(1);
+
+          if (existingLog && existingLog.length > 0) {
+            console.log(`[process-session-start] Live ${liveId} ${period} already processed, skipping`);
+            continue;
+          }
+
+          // Format date for display
+          const dateObj = new Date(scheduleDate + "T12:00:00");
+          const formattedDate = dateObj.toLocaleDateString("fr-FR", {
+            timeZone: "Europe/Paris",
+            weekday: "long",
+            day: "numeric",
+            month: "long",
+            year: "numeric",
+          });
+          const liveTime = liveDate.toLocaleTimeString("fr-FR", {
+            timeZone: "Europe/Paris",
+            hour: "2-digit",
+            minute: "2-digit",
+          });
+          const periodLabel = period === "AM" ? "Matin" : "Après-midi";
+
+          // Fetch participants
+          const { data: participants } = await supabase
+            .from("training_participants")
+            .select("id, first_name, last_name, email")
+            .eq("training_id", trainingId);
+
+          if (!participants || participants.length === 0) {
+            console.log(`[process-session-start] No participants for live training ${trainingId}`);
+            continue;
+          }
+
+          let liveSignaturesSent = 0;
+
+          for (let i = 0; i < participants.length; i++) {
+            const participant = participants[i];
+            if (!participant.email) continue;
+
+            if (i > 0) await new Promise(resolve => setTimeout(resolve, 300));
+
+            try {
+              // Check existing signature
+              const { data: existingSig } = await supabase
+                .from("attendance_signatures")
+                .select("id, signed_at, token, email_sent_at")
+                .eq("training_id", trainingId)
+                .eq("participant_id", participant.id)
+                .eq("schedule_date", scheduleDate)
+                .eq("period", period)
+                .maybeSingle();
+
+              if (existingSig?.signed_at || existingSig?.email_sent_at) continue;
+
+              let token: string;
+              if (existingSig) {
+                token = existingSig.token;
+              } else {
+                token = crypto.randomUUID();
+                const { error: insertErr } = await supabase
+                  .from("attendance_signatures")
+                  .insert({
+                    training_id: trainingId,
+                    participant_id: participant.id,
+                    schedule_date: scheduleDate,
+                    period,
+                    token,
+                  });
+                if (insertErr) {
+                  console.error(`[process-session-start] Error creating sig for ${participant.email}:`, insertErr);
+                  continue;
+                }
+              }
+
+              const signatureUrl = `${baseUrl}/emargement/${token}`;
+              const firstName = participant.first_name || "";
+              const greeting = firstName ? `Bonjour ${firstName},` : "Bonjour,";
+
+              const htmlContent = `
+                <p>${greeting}</p>
+                <p>Merci de bien vouloir signer ta présence pour la formation <strong>"${training.training_name}"</strong>.</p>
+                <ul style="list-style: none; padding: 0; margin: 20px 0;">
+                  <li>📺 <strong>Live :</strong> ${live.title || "Session live"}</li>
+                  <li>📅 <strong>Date :</strong> ${formattedDate} à ${liveTime}</li>
+                </ul>
+                <p style="margin: 25px 0;">
+                  <a href="${signatureUrl}" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold;">
+                    ✍️ Signer ma présence
+                  </a>
+                </p>
+                <p style="font-size: 12px; color: #666;">
+                  Cette signature électronique a valeur légale conformément au règlement européen eIDAS.
+                </p>
+                ${signature}
+              `;
+
+              const result = await sendEmail({
+                from: senderFrom,
+                to: [participant.email],
+                bcc: bccList,
+                subject: `✍️ Émargement – ${training.training_name} – ${formattedDate}`,
+                html: htmlContent,
+                _emailType: "attendance_signature_auto_live",
+                _trainingId: trainingId,
+                _participantId: participant.id,
+              });
+
+              if (result.success) {
+                await supabase
+                  .from("attendance_signatures")
+                  .update({ email_sent_at: new Date().toISOString() })
+                  .eq("training_id", trainingId)
+                  .eq("participant_id", participant.id)
+                  .eq("schedule_date", scheduleDate)
+                  .eq("period", period);
+                liveSignaturesSent++;
+                console.log(`[process-session-start] Live sig request sent to ${participant.email}`);
+              }
+            } catch (err) {
+              console.error(`[process-session-start] Error processing live participant ${participant.email}:`, err);
+            }
+          }
+
+          totalSignaturesSent += liveSignaturesSent;
+          livesProcessed++;
+
+          // Log dedup
+          try {
+            await supabase.from("activity_logs").insert({
+              action_type: "session_start_live_processed",
+              recipient_email: dedupKey,
+              details: {
+                training_id: trainingId,
+                training_name: training.training_name,
+                live_id: liveId,
+                live_title: live.title,
+                schedule_date: scheduleDate,
+                period,
+                signatures_sent: liveSignaturesSent,
+              },
+            });
+          } catch (logErr) {
+            console.warn("[process-session-start] Failed to log live processing:", logErr);
+          }
+        }
+      }
+    } catch (liveErr) {
+      console.error("[process-session-start] Error processing lives:", liveErr);
+    }
+
     return new Response(
       JSON.stringify({
         success: true,
         sessions_processed: schedules.length,
+        lives_processed: livesProcessed,
         signatures_sent: totalSignaturesSent,
         trainer_notifications: totalTrainerNotifications,
       }),
