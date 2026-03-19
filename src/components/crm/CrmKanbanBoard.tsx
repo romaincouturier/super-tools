@@ -1,35 +1,26 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
-import {
-  DndContext,
-  DragOverlay,
-  DragStartEvent,
-  DragEndEvent,
-  DragOverEvent,
-} from "@dnd-kit/core";
-import {
-  arrayMove,
-  SortableContext,
-  horizontalListSortingStrategy,
-} from "@dnd-kit/sortable";
 import { Plus, Loader2, Search, X, Building, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useCrmBoard, useMoveCard, useCreateColumn, useCrmSettings, useUpdateCard } from "@/hooks/useCrmBoard";
 import { useAuth } from "@/hooks/useAuth";
-import { CrmCard, LossReason } from "@/types/crm";
+import { CrmCard, CrmColumn as CrmColumnType, LossReason } from "@/types/crm";
 import LossReasonDialog from "./LossReasonDialog";
-import CrmColumn from "./CrmColumn";
 import CrmCardComponent from "./CrmCard";
+import CrmColumnHeader from "./CrmColumnHeader";
 import CardDetailDrawer from "./CardDetailDrawer";
 import AddColumnDialog from "@/components/shared/AddColumnDialog";
 import { CreateTrainingDialog } from "./CreateTrainingDialog";
 import { useNavigate } from "react-router-dom";
 import { isAfter, startOfDay } from "date-fns";
 import { celebrateWin } from "@/lib/celebrateWin";
-import { useKanbanDnd } from "@/hooks/useKanbanDnd";
-import { kanbanCollision } from "@/lib/kanbanCollision";
 import { isWonColumnName, isLostColumnName } from "@/lib/crmColumnStatus";
+import GenericKanbanBoard from "@/components/shared/kanban/GenericKanbanBoard";
+import type { KanbanColumnDef, KanbanCardDef, KanbanDropResult } from "@/types/kanban";
+
+type CrmKanbanCard = CrmCard & KanbanCardDef;
+type CrmKanbanColumn = CrmColumnType & KanbanColumnDef;
 
 interface CrmKanbanBoardProps {
   initialCardId?: string | null;
@@ -46,11 +37,9 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
 
   const serviceTypeColors = crmSettings?.serviceTypeColors;
 
-  const [activeCard, setActiveCard] = useState<CrmCard | null>(null);
   const [selectedCard, setSelectedCard] = useState<CrmCard | null>(null);
   const [showAddColumn, setShowAddColumn] = useState(false);
-  const [localCards, setLocalCards] = useState<CrmCard[]>([]);
-  
+
   // Training creation dialog state
   const [showCreateTrainingDialog, setShowCreateTrainingDialog] = useState(false);
   const [pendingTrainingCard, setPendingTrainingCard] = useState<CrmCard | null>(null);
@@ -136,8 +125,6 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
     return boardData?.columns.find((c) => c.id === columnId)?.name || "";
   }, [boardData?.columns]);
 
-  const { sensors } = useKanbanDnd({ enableKeyboard: true });
-
   // Filter helpers
   const isScheduledInFuture = (card: CrmCard): boolean => {
     if (!card.waiting_next_action_date) return false;
@@ -154,90 +141,40 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
     return card.sales_status === "LOST";
   };
 
-  // Sync local cards with server data, applying filter mode
-  useEffect(() => {
-    if (boardData?.cards) {
-      let filtered: CrmCard[];
-      switch (filterMode) {
-        case "gagne":
-          filtered = boardData.cards.filter(isWonCard);
-          break;
-        case "perdu":
-          filtered = boardData.cards.filter(isLostCard);
-          break;
-        case "a_venir":
-          filtered = boardData.cards.filter(isScheduledInFuture);
-          break;
-        case "en_cours":
-          filtered = boardData.cards.filter((c) => !isWonCard(c) && !isLostCard(c) && !isScheduledInFuture(c));
-          break;
-        default: // "all" — default board behavior: hide future scheduled
-          filtered = boardData.cards.filter((c) => !isScheduledInFuture(c));
-          break;
-      }
-      setLocalCards(filtered);
+  // Build filtered cards for the board
+  const kanbanCards: CrmKanbanCard[] = useMemo(() => {
+    if (!boardData?.cards) return [];
+    let filtered: CrmCard[];
+    switch (filterMode) {
+      case "gagne":
+        filtered = boardData.cards.filter(isWonCard);
+        break;
+      case "perdu":
+        filtered = boardData.cards.filter(isLostCard);
+        break;
+      case "a_venir":
+        filtered = boardData.cards.filter(isScheduledInFuture);
+        break;
+      case "en_cours":
+        filtered = boardData.cards.filter((c) => !isWonCard(c) && !isLostCard(c) && !isScheduledInFuture(c));
+        break;
+      default: // "all" — default board behavior: hide future scheduled
+        filtered = boardData.cards.filter((c) => !isScheduledInFuture(c));
+        break;
     }
+    return filtered.map((c) => ({
+      ...c,
+      columnId: c.column_id,
+    }));
   }, [boardData?.cards, filterMode]);
 
-
-  const handleDragStart = (event: DragStartEvent) => {
-    const card = localCards.find((c) => c.id === event.active.id);
-    if (card) setActiveCard(card);
-  };
-
-  const handleDragOver = (event: DragOverEvent) => {
-    const { active, over } = event;
-    if (!over) return;
-
-    const activeCardId = active.id as string;
-    const overId = over.id as string;
-    const activeCardData = localCards.find((c) => c.id === activeCardId);
-    if (!activeCardData) return;
-
-    // Check if over a column directly
-    const overColumn = boardData?.columns.find((col) => col.id === overId);
-    if (overColumn && activeCardData.column_id !== overColumn.id) {
-      setLocalCards((prev) =>
-        prev.map((c) =>
-          c.id === activeCardId ? { ...c, column_id: overColumn.id } : c
-        )
-      );
-      return;
-    }
-
-    // Check if over another card
-    const overCard = localCards.find((c) => c.id === overId);
-    if (!overCard || activeCardId === overId) return;
-
-    if (activeCardData.column_id !== overCard.column_id) {
-      // Cross-column: move card to the target column
-      setLocalCards((prev) =>
-        prev.map((c) =>
-          c.id === activeCardId ? { ...c, column_id: overCard.column_id } : c
-        )
-      );
-    } else {
-      // Same column: reorder cards optimistically
-      setLocalCards((prev) => {
-        const colCards = prev
-          .filter((c) => c.column_id === activeCardData.column_id)
-          .sort((a, b) => a.position - b.position);
-        const fromIndex = colCards.findIndex((c) => c.id === activeCardId);
-        const toIndex = colCards.findIndex((c) => c.id === overId);
-        if (fromIndex === -1 || toIndex === -1 || fromIndex === toIndex) return prev;
-
-        const reordered = arrayMove(colCards, fromIndex, toIndex);
-        // Update positions to reflect new order
-        const positionMap = new Map<string, number>();
-        reordered.forEach((c, i) => positionMap.set(c.id, i));
-
-        return prev.map((c) => {
-          const newPos = positionMap.get(c.id);
-          return newPos !== undefined ? { ...c, position: newPos } : c;
-        });
-      });
-    }
-  };
+  // Build columns for the board
+  const kanbanColumns: CrmKanbanColumn[] = useMemo(() => {
+    if (!boardData?.columns) return [];
+    return boardData.columns.map((col) => ({
+      ...col,
+    }));
+  }, [boardData?.columns]);
 
   // Handle loss reason dialog confirmation from drag
   const handleDragLossReasonConfirm = async (reason: LossReason, detail: string) => {
@@ -271,38 +208,19 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
   // Celebration confetti animation for won deals
   const confettiFrameRef = useRef<number | null>(null);
 
-  const handleDragEnd = async (event: DragEndEvent) => {
-    const { active, over } = event;
-    setActiveCard(null);
+  const handleCardMove = async (result: KanbanDropResult<CrmKanbanCard>) => {
+    const { card, sourceColumnId, targetColumnId, newPosition } = result;
+    if (!user?.email) return;
 
-    if (!over || !user?.email) return;
-
-    const activeCardId = active.id as string;
-    const draggedCard = localCards.find((c) => c.id === activeCardId);
-    if (!draggedCard) return;
-
-    // The dragged card's column_id has been updated optimistically during dragOver,
-    // so draggedCard.column_id is the target column.
-    const targetColumnId = draggedCard.column_id;
     const targetColumn = boardData?.columns.find((col) => col.id === targetColumnId);
-
-    // Calculate new position from the optimistic local order
-    const columnCards = localCards
-      .filter((c) => c.column_id === targetColumnId)
-      .sort((a, b) => a.position - b.position);
-    const newIndex = columnCards.findIndex((c) => c.id === activeCardId);
-    if (newIndex === -1) return;
-
-    // Get old column for logging
-    const originalCard = boardData?.cards.find((c) => c.id === activeCardId);
-    const oldColumnId = originalCard?.column_id || targetColumnId;
-    const oldColumn = boardData?.columns.find((col) => col.id === oldColumnId);
+    const sourceColumn = boardData?.columns.find((col) => col.id === sourceColumnId);
+    const originalCard = boardData?.cards.find((c) => c.id === card.id);
 
     // Check if moving to/from a "won" or "lost" column
     const isWonColumn = targetColumn ? isWonColumnName(targetColumn.name) : false;
-    const wasInWonColumn = oldColumn ? isWonColumnName(oldColumn.name) : false;
+    const wasInWonColumn = sourceColumn ? isWonColumnName(sourceColumn.name) : false;
     const isLostColumn = targetColumn ? isLostColumnName(targetColumn.name) : false;
-    const wasInLostColumn = oldColumn ? isLostColumnName(oldColumn.name) : false;
+    const wasInLostColumn = sourceColumn ? isLostColumnName(sourceColumn.name) : false;
 
     // Detect transitions
     const movingToWon = isWonColumn && !wasInWonColumn;
@@ -310,23 +228,22 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
     const leavingWonColumn = wasInWonColumn && !isWonColumn;
     const leavingLostColumn = wasInLostColumn && !isLostColumn;
 
-    // Determine what updates to apply
     if (movingToLost && originalCard) {
       // Moving to lost column: intercept with loss reason dialog
       setPendingLossCard({
-        cardId: activeCardId,
+        cardId: card.id,
         targetColumnId,
-        newIndex: Math.max(0, newIndex),
+        newIndex: Math.max(0, newPosition),
         oldCard: originalCard,
       });
       setShowLossReasonDialog(true);
     } else if (movingToWon) {
       // Moving to won column: set sales_status to WON + trigger celebration
       await updateCard.mutateAsync({
-        id: activeCardId,
+        id: card.id,
         updates: {
           column_id: targetColumnId,
-          position: Math.max(0, newIndex),
+          position: Math.max(0, newPosition),
           sales_status: "WON",
           won_at: new Date().toISOString(),
         },
@@ -346,10 +263,10 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
     } else if (leavingWonColumn || leavingLostColumn) {
       // Leaving won/lost column: reset sales_status to OPEN
       await updateCard.mutateAsync({
-        id: activeCardId,
+        id: card.id,
         updates: {
           column_id: targetColumnId,
-          position: Math.max(0, newIndex),
+          position: Math.max(0, newPosition),
           sales_status: "OPEN",
           won_at: null,
           lost_at: null,
@@ -362,11 +279,11 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
     } else {
       // Regular move (no status change)
       moveCard.mutate({
-        cardId: activeCardId,
+        cardId: card.id,
         newColumnId: targetColumnId,
-        newPosition: Math.max(0, newIndex),
+        newPosition: Math.max(0, newPosition),
         actorEmail: user.email,
-        oldColumnId,
+        oldColumnId: sourceColumnId,
       });
     }
   };
@@ -415,7 +332,7 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
     setShowAddColumn(false);
   };
 
-  const handleCardClick = useCallback((card: CrmCard) => {
+  const handleCardClick = useCallback((card: CrmKanbanCard) => {
     setSelectedCard(card);
   }, []);
 
@@ -427,8 +344,8 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
     );
   }
 
-  const columns = boardData?.columns || [];
   const tags = boardData?.tags || [];
+  const allColumns = boardData?.columns || [];
 
   return (
     <div className="h-full flex flex-col gap-3">
@@ -554,35 +471,22 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
       </div>
       </div>
 
-      <DndContext
-        sensors={sensors}
-        collisionDetection={kanbanCollision}
-        onDragStart={handleDragStart}
-        onDragOver={handleDragOver}
-        onDragEnd={handleDragEnd}
-      >
-        <div className="flex gap-4 overflow-x-auto pb-4 h-full">
-          <SortableContext
-            items={columns.map((c) => c.id)}
-            strategy={horizontalListSortingStrategy}
-          >
-            {columns.map((column) => {
-              const columnCards = localCards
-                .filter((c) => c.column_id === column.id)
-                .sort((a, b) => a.position - b.position);
-
-              return (
-                <CrmColumn
-                  key={column.id}
-                  column={column}
-                  cards={columnCards}
-                  onCardClick={handleCardClick}
-                  serviceTypeColors={serviceTypeColors}
-                />
-              );
-            })}
-          </SortableContext>
-
+      <GenericKanbanBoard<CrmKanbanCard, CrmKanbanColumn>
+        columns={kanbanColumns}
+        cards={kanbanCards}
+        loading={isLoading}
+        config={{ cardSortable: true, enableKeyboard: true }}
+        renderCard={(card, isDragging) => (
+          <CrmCardComponent
+            card={card}
+            isDragging={isDragging}
+            serviceTypeColors={serviceTypeColors}
+          />
+        )}
+        renderColumnHeader={(col, colCards) => (
+          <CrmColumnHeader column={col} cards={colCards} />
+        )}
+        renderAfterColumns={() => (
           <div className="flex-shrink-0 w-72">
             <Button
               variant="outline"
@@ -593,18 +497,10 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
               Ajouter une colonne
             </Button>
           </div>
-        </div>
-
-        <DragOverlay>
-          {activeCard ? (
-            <CrmCardComponent
-              card={activeCard}
-              isDragging
-              serviceTypeColors={serviceTypeColors}
-            />
-          ) : null}
-        </DragOverlay>
-      </DndContext>
+        )}
+        onCardMove={handleCardMove}
+        onCardClick={handleCardClick}
+      />
 
       <AddColumnDialog
         open={showAddColumn}
@@ -617,7 +513,7 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
         open={!!selectedCard}
         onOpenChange={(open) => !open && setSelectedCard(null)}
         allTags={tags}
-        allColumns={columns}
+        allColumns={allColumns}
       />
 
       {/* Create Training Dialog for drag-to-won */}
