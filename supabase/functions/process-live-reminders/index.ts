@@ -160,6 +160,7 @@ serve(async (req) => {
       const liveMeetingUrl = live.meeting_url || "";
       const liveEmailContent = live.email_content || "";
       const liveTitle = live.title || "Live collectif";
+      const supportsUrl = training.supports_url || "";
 
       let sentCount = 0;
       let skippedAlreadySent = 0;
