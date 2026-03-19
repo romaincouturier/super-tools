@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { scheduleEmail } from "@/services/activityLog";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import { UserCheck, Plus, Trash2, Loader2, Pencil, Check, X } from "lucide-react";
@@ -131,13 +132,12 @@ const CoachingSlotsSection = ({ trainingId, participants }: CoachingSlotsSection
 
       if (reminderDate <= new Date()) return;
 
-      await supabase.from("scheduled_emails").insert({
-        training_id: trainingId,
-        participant_id: pId,
-        email_type: "coaching_reminder",
-        scheduled_for: reminderDate.toISOString(),
-        status: "pending",
-        error_message: `coaching:${slotId}`,
+      await scheduleEmail({
+        trainingId,
+        participantId: pId,
+        emailType: "coaching_reminder",
+        scheduledFor: reminderDate.toISOString(),
+        errorMessage: `coaching:${slotId}`,
       });
     } catch (err) {
       console.warn("Failed to schedule coaching reminder:", err);

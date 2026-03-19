@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { logActivity } from "@/services/activityLog";
 import type { Participant, ConventionSignatureInfo } from "./types";
 import type { CertificateInfo as CertInfo } from "@/lib/evaluationUtils";
 import { useDocumentActions } from "./useDocumentActions";
@@ -63,9 +64,9 @@ export function useParticipantActions({
 
       if (error) throw error;
 
-      await supabase.from("activity_logs").insert({
-        action_type: "participant_removed",
-        recipient_email: participant.email,
+      await logActivity({
+        actionType: "participant_removed",
+        recipientEmail: participant.email,
         details: {
           training_id: trainingId,
           participant_name: `${participant.first_name || ""} ${participant.last_name || ""}`.trim() || null,

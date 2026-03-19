@@ -2,6 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { format, parseISO } from "date-fns";
 import { subtractWorkingDays, fetchWorkingDays, fetchNeedsSurveyDelay, scheduleTrainerSummaryIfNeeded } from "@/lib/workingDays";
 import { capitalizeName } from "@/lib/stringUtils";
+import { logActivity, scheduleEmail } from "@/services/activityLog";
 
 /** Sanitize a filename by removing accents and special characters (preserving case). */
 function sanitizeUploadName(name: string): string {
@@ -110,9 +111,9 @@ export async function logParticipantActivity(
   lastName: string,
   company: string,
 ) {
-  await supabase.from("activity_logs").insert({
-    action_type: "participant_added",
-    recipient_email: email.trim().toLowerCase(),
+  await logActivity({
+    actionType: "participant_added",
+    recipientEmail: email.trim().toLowerCase(),
     details: {
       training_id: trainingId,
       participant_name: `${firstName.trim() || ""} ${lastName.trim() || ""}`.trim() || null,
@@ -195,12 +196,11 @@ export async function scheduleParticipantEmail(
 
   // Only schedule if the date is in the future
   if (scheduledDate > new Date()) {
-    await supabase.from("scheduled_emails").insert({
-      training_id: trainingId,
-      participant_id: participantId,
-      email_type: "needs_survey",
-      scheduled_for: format(scheduledDate, "yyyy-MM-dd'T'09:00:00"),
-      status: "pending",
+    await scheduleEmail({
+      trainingId,
+      participantId,
+      emailType: "needs_survey",
+      scheduledFor: format(scheduledDate, "yyyy-MM-dd'T'09:00:00"),
     });
     return true;
   }
@@ -222,12 +222,11 @@ export async function scheduleWelcomeEmail(
   const scheduledDate = subtractWorkingDays(startDate, 7, workingDays);
 
   if (scheduledDate > new Date()) {
-    await supabase.from("scheduled_emails").insert({
-      training_id: trainingId,
-      participant_id: participantId,
-      email_type: "welcome",
-      scheduled_for: format(scheduledDate, "yyyy-MM-dd'T'09:00:00"),
-      status: "pending",
+    await scheduleEmail({
+      trainingId,
+      participantId,
+      emailType: "welcome",
+      scheduledFor: format(scheduledDate, "yyyy-MM-dd'T'09:00:00"),
     });
     return true;
   }

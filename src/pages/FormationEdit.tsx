@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { logActivity } from "@/services/activityLog";
 import { Loader2, Calendar, Save } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { format, parseISO } from "date-fns";
@@ -222,10 +223,10 @@ const FormationEdit = () => {
       }
 
       // Log activity
-      await supabase.from("activity_logs").insert({
-        action_type: "training_updated",
-        recipient_email: user.email || "unknown",
-        user_id: user.id,
+      await logActivity({
+        actionType: "training_updated",
+        recipientEmail: user.email || "unknown",
+        userId: user.id,
         details: {
           training_id: id,
           training_name: form.trainingName,
