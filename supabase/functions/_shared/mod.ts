@@ -61,3 +61,30 @@ export {
 
 // App URLs
 export { getAppUrls } from "./app-urls.ts";
+
+// Daily data fetchers (shared between digest email & daily actions)
+export {
+  fetchAllDailyData,
+  fetchRecipients,
+  userCanSee,
+  REVIEW_COLUMN_ASSIGNMENTS,
+  REVIEW_COLUMN_IDS,
+  type DailyData,
+  type Recipient,
+  type MissionActionItem,
+  type ElearningGroupItem,
+  type MissionInvoiceItem,
+  type UnbilledActivityItem,
+  type MissionNoDateItem,
+  type CrmCardItem,
+  type TrainingConventionItem,
+  type ReviewArticleItem,
+  type BlockedArticleItem,
+  type UnresolvedCommentItem,
+  type EventItem,
+  type CfpItem,
+  type CfpReminderItem,
+  type TrainingInvoiceItem,
+  type ReservationItem,
+  type OkrInitiativeItem,
+} from "./daily-data-fetchers.ts";
