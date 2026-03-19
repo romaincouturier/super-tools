@@ -8,12 +8,12 @@ import { sendEmail } from "../_shared/resend.ts";
  * Process Session Start
  * 
  * Runs every 15 minutes (via cron job).
- * For each training schedule slot starting now (±15 min window):
+ * For each training schedule slot OR live meeting starting now (±15 min window):
  *  - Sends attendance signature requests to all participants (AM and/or PM)
  *  - Notifies the trainer
  * 
- * Only for format_formation = 'intra' or 'inter-entreprises'.
- * Uses session_start_notifications table to prevent duplicate sends.
+ * Excludes e-learning format.
+ * Uses session_start_notifications / activity_logs to prevent duplicate sends.
  */
 
 const corsHeaders = {
