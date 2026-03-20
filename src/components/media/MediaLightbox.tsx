@@ -1,7 +1,7 @@
 import { MediaItem, useRenameMedia } from "@/hooks/useMedia";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { X, Briefcase, ChevronLeft, ChevronRight, Download, Pencil, GraduationCap, CalendarDays, HandCoins, Package } from "lucide-react";
+import { X, Briefcase, ChevronLeft, ChevronRight, Download, Pencil, GraduationCap, CalendarDays, HandCoins, Package, Newspaper } from "lucide-react";
 import { toast } from "sonner";
 import { useEffect, useCallback } from "react";
 import { formatFileSize, downloadFile as downloadFileUtil, promptRenameFile } from "@/lib/file-utils";
