@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient, QueryClient } from "@tanstack/re
 import { supabase } from "@/integrations/supabase/client";
 import { sanitizeFileName, resolveContentType } from "@/lib/file-utils";
 
-export type MediaSourceType = "mission" | "event" | "training" | "crm";
+export type MediaSourceType = "mission" | "event" | "training" | "crm" | "content";
 
 export interface MediaItem {
   id: string;
