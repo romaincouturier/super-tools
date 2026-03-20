@@ -94,7 +94,7 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
   const { isRecording: isListening, isTranscribing, isSupported: speechSupported, startRecording, stopRecording } =
     useVoiceDictation({
       onTranscript: (transcript) => {
-        analyzeVoiceTranscript(transcript);
+        setNewComment((prev) => (prev ? prev + " " + transcript : transcript));
       },
     });
 
