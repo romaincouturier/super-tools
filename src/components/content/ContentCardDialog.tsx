@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Upload, X, Plus, Maximize2, Minimize2, RefreshCw, FileText, Linkedin, Instagram, Loader2, Save, Mail, Check, MessageSquare } from "lucide-react";
+import { Upload, X, Plus, Maximize2, Minimize2, RefreshCw, FileText, Linkedin, Instagram, Loader2, Save, Mail, Check, MessageSquare, ZoomIn } from "lucide-react";
 import {
   Dialog,
   DialogContent,
