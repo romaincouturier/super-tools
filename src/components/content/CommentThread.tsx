@@ -7,7 +7,7 @@ import {
   FileText, Palette, Trash2, Copy, Mic, MicOff, Reply, CheckCheck,
   ChevronDown, ChevronRight, UserPlus
 } from "lucide-react";
-import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
+import { useVoiceDictation } from "@/hooks/useVoiceDictation";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -83,10 +83,14 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
 
   // Voice
   const [analyzingVoice, setAnalyzingVoice] = useState(false);
-  const [voiceTranscript, setVoiceTranscript] = useState("");
-  const voiceTranscriptRef = useRef("");
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { isListening, isSupported: speechSupported, startListening, stopListening } = useSpeechRecognition("fr-FR", true);
+
+  const { isRecording: isListening, isTranscribing, isSupported: speechSupported, startRecording, stopRecording } =
+    useVoiceDictation({
+      onTranscript: (transcript) => {
+        analyzeVoiceTranscript(transcript);
+      },
+    });
 
   const [showCorrection, setShowCorrection] = useState(false);
 
@@ -381,20 +385,9 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
 
   const handleVoiceToggle = () => {
     if (isListening) {
-      stopListening();
-      const transcript = voiceTranscriptRef.current.trim();
-      if (transcript) {
-        analyzeVoiceTranscript(transcript);
-      } else {
-        toast.info("Aucun texte détecté");
-      }
+      stopRecording();
     } else {
-      setVoiceTranscript("");
-      voiceTranscriptRef.current = "";
-      startListening((fullTranscript: string) => {
-        voiceTranscriptRef.current = fullTranscript;
-        setVoiceTranscript(fullTranscript);
-      });
+      startRecording();
     }
   };
 
@@ -753,11 +746,11 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
           />
         )}
 
-        {/* Listening indicator */}
-        {isListening && (
+        {/* Listening / transcribing indicator */}
+        {(isListening || isTranscribing) && (
           <div className="flex items-center gap-2 text-sm text-destructive animate-pulse">
             <Mic className="h-4 w-4" />
-            <span>Écoute en cours… {voiceTranscript && `"${voiceTranscript}"`}</span>
+            <span>{isTranscribing ? "Transcription en cours…" : "Écoute en cours…"}</span>
           </div>
         )}
 
