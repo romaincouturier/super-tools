@@ -116,7 +116,7 @@ export default function AiAnalysisSection({ analysis, onUpdate, onDelete, onRean
               />
             ) : (
               <p className="whitespace-pre-wrap mt-0.5">
-                {(analysis as Record<string, unknown>)[f.key] as string || "—"}
+                {(analysis as unknown as Record<string, string>)[f.key] || "—"}
               </p>
             )}
           </div>
