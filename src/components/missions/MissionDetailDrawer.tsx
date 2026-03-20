@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import DetailDrawer from "@/components/shared/DetailDrawer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
@@ -27,6 +27,7 @@ import EntityDocumentsManager from "@/components/shared/EntityDocumentsManager";
 import SendDeliverablesDialog from "./SendDeliverablesDialog";
 import AssignedUserSelector from "@/components/formations/AssignedUserSelector";
 import NextActionScheduler from "@/components/shared/NextActionScheduler";
+import { useAutoSaveForm } from "@/hooks/useAutoSaveForm";
 import { getGoogleMapsSearchUrl } from "@/lib/googleMaps";
 import { startOfDay, isAfter } from "date-fns";
 
@@ -60,9 +61,6 @@ const MissionDetailDrawer = ({
   const [showDeliverables, setShowDeliverables] = useState(false);
   const [aiSummary, setAiSummary] = useState<string | null>(null);
   const [aiSummaryLoading, setAiSummaryLoading] = useState(false);
-  const skipNextSaveRef = useRef(true);
-  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pendingUpdatesRef = useRef<{ id: string; updates: Record<string, unknown> } | null>(null);
 
   const handleShareLink = () => {
     if (!mission) return;
@@ -119,7 +117,6 @@ const MissionDetailDrawer = ({
   const missionId = mission?.id;
   useEffect(() => {
     if (mission) {
-      skipNextSaveRef.current = true;
       setAiSummary(null);
       setTitle(mission.title);
       setDescription(mission.description || "");
@@ -140,68 +137,56 @@ const MissionDetailDrawer = ({
       setScheduledDate(mission.waiting_next_action_date || "");
       setScheduledText(mission.waiting_next_action_text || "");
       setShowScheduleForm(false);
+      resetTracking();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [missionId]);
 
-  // Flush any pending save immediately
-  const flushSave = useCallback(() => {
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current);
-      saveTimeoutRef.current = null;
+  // Build form values for auto-save
+  const formValues = {
+    title: title.trim(),
+    description: description.trim() || null,
+    client_name: clientName.trim() || null,
+    status,
+    start_date: startDate || null,
+    end_date: endDate || null,
+    daily_rate: dailyRate ? parseFloat(dailyRate) : null,
+    total_days: totalDays ? parseInt(totalDays) : null,
+    initial_amount: initialAmount ? parseFloat(initialAmount) : null,
+    tags,
+    color,
+    emoji: missionEmoji,
+    location: location.trim() || null,
+    assigned_to: assignedTo,
+    waiting_next_action_date: scheduledDate || null,
+    waiting_next_action_text: scheduledText.trim() || null,
+  };
+
+  const handleAutoSave = useCallback(async (values: Record<string, unknown>) => {
+    if (!mission) return false;
+    try {
+      await updateMission.mutateAsync({ id: mission.id, updates: values });
+      return true;
+    } catch {
+      return false;
     }
-    if (pendingUpdatesRef.current) {
-      updateMission.mutate(pendingUpdatesRef.current);
-      pendingUpdatesRef.current = null;
-    }
-  }, [updateMission]);
+  }, [mission, updateMission]);
+
+  const { resetTracking, flushAndGetPending } = useAutoSaveForm({
+    open,
+    formValues,
+    onSave: handleAutoSave,
+  });
 
   // Flush pending save when drawer closes
   useEffect(() => {
-    if (!open) flushSave();
-  }, [open, flushSave]);
-
-  // Auto-save settings with debounce
-  useEffect(() => {
-    if (skipNextSaveRef.current) {
-      skipNextSaveRef.current = false;
-      return;
+    if (!open) {
+      const pending = flushAndGetPending();
+      if (pending && mission) {
+        updateMission.mutate({ id: mission.id, updates: pending });
+      }
     }
-    if (!mission) return;
-
-    const payload = {
-      id: mission.id,
-      updates: {
-        title: title.trim(),
-        description: description.trim() || null,
-        client_name: clientName.trim() || null,
-        status,
-        start_date: startDate || null,
-        end_date: endDate || null,
-        daily_rate: dailyRate ? parseFloat(dailyRate) : null,
-        total_days: totalDays ? parseInt(totalDays) : null,
-        initial_amount: initialAmount ? parseFloat(initialAmount) : null,
-        tags,
-        color,
-        emoji: missionEmoji,
-        location: location.trim() || null,
-        assigned_to: assignedTo,
-        waiting_next_action_date: scheduledDate || null,
-        waiting_next_action_text: scheduledText.trim() || null,
-      },
-    };
-
-    pendingUpdatesRef.current = payload;
-
-    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
-    saveTimeoutRef.current = setTimeout(() => {
-      updateMission.mutate(payload);
-      pendingUpdatesRef.current = null;
-      saveTimeoutRef.current = null;
-    }, 800);
-
-    return () => { if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current); };
-  }, [title, description, clientName, status, startDate, endDate, dailyRate, totalDays, initialAmount, tags, color, missionEmoji, location, assignedTo, scheduledDate, scheduledText]);
+  }, [open, flushAndGetPending, mission, updateMission]);
 
   const handleDelete = async () => {
     if (!mission) return;
