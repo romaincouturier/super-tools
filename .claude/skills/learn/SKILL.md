@@ -1,45 +1,45 @@
 ---
 name: learn
-description: "Capture un constat ou une question récente en item d'amélioration continue dans IMPROVEMENTS.md. Utiliser après avoir posé une question sur le code, identifié un pattern dupliqué, ou repéré une dette technique."
+description: "Capture un constat ou une question récente comme règle d'amélioration continue dans IMPROVEMENTS.md. Utiliser après avoir posé une question sur le code, identifié un pattern, ou corrigé un bug révélateur."
 allowed-tools: Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion
 ---
 
 Tu viens de répondre à une question de l'utilisateur ou d'identifier un constat sur la codebase.
-Ton rôle est de transformer ce constat en item actionnable dans le backlog d'amélioration continue.
+Ton rôle est de transformer ce constat en **règle acquise** : une leçon apprise que le système doit vérifier en permanence à partir de maintenant.
+
+Ce ne sont PAS des tickets de backlog. Ce sont des **invariants** — des choses qu'on a découvertes et qu'on ne veut plus jamais oublier.
 
 ## 1. Analyser le contexte de la conversation
 
-- Relis les derniers échanges de la conversation pour identifier le **constat** (ce qui a été observé ou demandé)
+- Relis les derniers échanges pour identifier le **constat** (ce qui a été observé, demandé, ou corrigé)
 - Identifie la **catégorie** :
-  - `duplication` — code dupliqué qui pourrait être mutualisé
-  - `architecture` — violation ou amélioration architecturale
-  - `pattern` — pattern existant à généraliser ou documenter
-  - `dette` — dette technique à résorber
-  - `convention` — convention manquante ou non respectée
-  - `performance` — optimisation possible
-  - `securite` — point de sécurité à renforcer
-  - `dx` — amélioration de l'expérience développeur (tooling, skills, etc.)
+  - `duplication` — code dupliqué qui doit rester mutualisé
+  - `architecture` — règle architecturale à respecter
+  - `pattern` — pattern standard à suivre pour un besoin donné
+  - `convention` — convention de code à appliquer systématiquement
+  - `securite` — point de sécurité à vérifier en permanence
+  - `dx` — amélioration de l'expérience développeur
 
-## 2. Qualifier l'item
+## 2. Demander du contexte si nécessaire
 
-- Demande à l'utilisateur (avec AskUserQuestion) :
-  - **Priorité** : haute (à traiter au prochain sprint), moyenne (à planifier), basse (quand on a le temps)
-  - **Scope** : est-ce que l'utilisateur veut ajouter des détails ou un contexte supplémentaire ?
+- Si le constat est ambigu ou incomplet, utilise AskUserQuestion pour clarifier
+- Ne demande PAS de priorité — toutes les règles sont à vérifier en permanence
+- Demande seulement si l'utilisateur veut ajouter du contexte supplémentaire
 
 ## 3. Écrire dans IMPROVEMENTS.md
 
 - Lis le fichier `IMPROVEMENTS.md` à la racine du projet
-- Ajoute un nouvel item **en haut** de la section correspondante (catégorie)
+- Ajoute la nouvelle règle **en haut** de la section correspondante (catégorie)
 - Si la section n'existe pas encore, crée-la
 
-Format d'un item :
+Format d'une règle :
 ```markdown
-### [CATÉGORIE-NNN] Titre court et actionnable
-- **Constat** : description factuelle de ce qui a été observé
-- **Fichiers concernés** : liste des fichiers identifiés lors de l'analyse
-- **Action suggérée** : ce qu'il faudrait faire concrètement
-- **Priorité** : haute | moyenne | basse
-- **Origine** : question/constat qui a mené à cet item
+### [NNN] Titre court — la règle en une phrase
+- **Constat** : ce qui a été observé ou le bug qui a révélé le problème
+- **Règle** : ce qu'il faut toujours faire / ne jamais faire
+- **Vérification** : comment vérifier que la règle est respectée (grep, pattern à chercher, etc.)
+- **Fichiers de référence** : les fichiers qui implémentent correctement le pattern
+- **Origine** : question ou bug qui a mené à cette règle
 - **Date** : YYYY-MM-DD
 ```
 
@@ -47,13 +47,13 @@ Format d'un item :
 
 ## 4. Vérifier la cohérence
 
-- Vérifie qu'il n'y a pas de doublon (item similaire déjà présent dans le backlog)
-- Si un item similaire existe, propose de le mettre à jour plutôt que d'en créer un nouveau
+- Vérifie qu'il n'y a pas de doublon (règle similaire déjà présente)
+- Si une règle similaire existe, enrichis-la avec le nouveau constat plutôt que d'en créer une nouvelle
 
 ## 5. Résumé
 
 Affiche un résumé court :
-- L'item ajouté (titre + catégorie + priorité)
-- Le nombre total d'items dans le backlog par priorité (haute/moyenne/basse)
+- La règle ajoutée (titre + catégorie)
+- Le nombre total de règles dans le fichier
 
 $ARGUMENTS

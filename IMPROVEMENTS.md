@@ -1,66 +1,57 @@
-# Backlog d'amélioration continue
+# Règles d'amélioration continue
 
 Ce fichier est géré automatiquement par la skill `/learn`.
-Chaque item est issu d'une question ou d'un constat fait pendant une session de développement.
+Chaque règle est issue d'un constat fait pendant le développement — un bug, une question, un pattern identifié.
+Ce ne sont pas des tickets : ce sont des **invariants** à vérifier en permanence.
 
 ---
 
 ## Duplication
 
-### [DUP-003] Extraire getFileType() dans file-utils.ts
-- **Constat** : La fonction `getFileType(file: File)` est dupliquée à l'identique dans `EntityMediaManager.tsx` et `MediaUploadDialog.tsx`. Le même bug (utilisation de `file.type` au lieu de `resolveContentType()`) a dû être corrigé dans les deux fichiers.
-- **Fichiers concernés** : `src/components/media/EntityMediaManager.tsx:34-38`, `src/components/media/MediaUploadDialog.tsx:45-49`, `src/lib/file-utils.ts`
-- **Action suggérée** : Extraire `getFileType()` dans `src/lib/file-utils.ts` et l'importer dans les deux composants. Elle y rejoint logiquement `resolveContentType()` qu'elle utilise déjà.
-- **Priorité** : haute
+### [003] Extraire getFileType() dans file-utils.ts — ne jamais dupliquer une fonction utilitaire
+- **Constat** : La fonction `getFileType(file: File)` était dupliquée à l'identique dans `EntityMediaManager.tsx` et `MediaUploadDialog.tsx`. Le même bug (`file.type` au lieu de `resolveContentType()`) a dû être corrigé dans les deux fichiers.
+- **Règle** : Toute fonction utilitaire doit exister en un seul exemplaire dans `src/lib/`. Si elle est copiée-collée, l'extraire immédiatement.
+- **Vérification** : Chercher les fonctions définies dans plusieurs composants avec le même nom ou le même corps.
+- **Fichiers de référence** : `src/lib/file-utils.ts`
 - **Origine** : bug SVG non uploadable — même correction appliquée deux fois
 - **Date** : 2026-03-20
 
 ## Architecture
 
-_(aucun item pour le moment)_
+_(aucune règle pour le moment)_
 
 ## Pattern
 
-### [PATTERN-001] Auto-save : useAutoSaveForm est le pattern standard
-- **Constat** : Le hook `useAutoSaveForm` existait déjà mais `MissionDetailDrawer` réimplémentait le même pattern manuellement (skipNextSaveRef, saveTimeoutRef, pendingUpdatesRef). `EventEdit` n'avait pas d'auto-save du tout.
-- **Fichiers concernés** : `src/hooks/useAutoSaveForm.ts`, `src/components/missions/MissionDetailDrawer.tsx`, `src/pages/EventEdit.tsx`
-- **Action suggérée** : Déjà corrigé — MissionDetailDrawer et EventEdit utilisent maintenant `useAutoSaveForm`. Vérifier que tout nouveau formulaire avec auto-save utilise ce hook.
-- **Priorité** : moyenne
-- **Origine** : question "est-ce que l'auto-save peut être refactorisé pour éviter du code dupliqué ?"
-- **Date** : 2026-03-20
-- **Statut** : ✅ résolu
-
-### [PATTERN-002] Gestion de fichiers : architecture bien mutualisée
-- **Constat** : L'upload/gestion de fichiers est correctement mutualisé via `EntityDocumentsManager` (documents), `EntityMediaManager` (médias), `useEntityDocuments` et `useMedia` (hooks), et `file-utils.ts` (utilitaires). Les seuls cas spécialisés (participants, CRM, support) le sont pour des raisons métier valides.
-- **Fichiers concernés** : `src/components/shared/EntityDocumentsManager.tsx`, `src/components/media/EntityMediaManager.tsx`, `src/hooks/useEntityDocuments.ts`, `src/hooks/useMedia.ts`, `src/lib/file-utils.ts`
-- **Action suggérée** : Aucune action requise. Pattern à suivre pour toute nouvelle entité nécessitant des fichiers.
-- **Priorité** : basse
+### [002] Gestion de fichiers — architecture mutualisée via EntityDocumentsManager / EntityMediaManager
+- **Constat** : L'upload/gestion de fichiers est correctement mutualisé. Les seuls cas spécialisés (participants, CRM, support) le sont pour des raisons métier valides.
+- **Règle** : Toute nouvelle entité nécessitant des fichiers doit utiliser `EntityDocumentsManager` (documents) ou `EntityMediaManager` (médias), avec les hooks `useEntityDocuments` / `useMedia`.
+- **Vérification** : Vérifier qu'aucun nouveau composant ne réimplémente l'upload from scratch.
+- **Fichiers de référence** : `src/components/shared/EntityDocumentsManager.tsx`, `src/components/media/EntityMediaManager.tsx`, `src/hooks/useEntityDocuments.ts`, `src/hooks/useMedia.ts`, `src/lib/file-utils.ts`
 - **Origine** : question "est-ce que l'ajout de fichier est un code mutualisé ?"
 - **Date** : 2026-03-20
-- **Statut** : ✅ documenté
 
-## Dette
-
-_(aucun item pour le moment)_
+### [001] Auto-save — toujours utiliser useAutoSaveForm
+- **Constat** : `MissionDetailDrawer` réimplémentait le pattern auto-save manuellement (skipNextSaveRef, saveTimeoutRef, pendingUpdatesRef) alors que le hook `useAutoSaveForm` existait déjà. Corrigé.
+- **Règle** : Tout formulaire avec auto-save doit utiliser le hook `useAutoSaveForm`. Ne jamais réimplémenter le pattern manuellement.
+- **Vérification** : Chercher `setTimeout` + `save` ou `saveTimeoutRef` dans les composants formulaire — si trouvé, c'est une violation.
+- **Fichiers de référence** : `src/hooks/useAutoSaveForm.ts`
+- **Origine** : question "est-ce que l'auto-save peut être refactorisé ?"
+- **Date** : 2026-03-20
 
 ## Convention
 
-### [CONV-004] Toujours utiliser resolveContentType() pour détecter le type MIME
-- **Constat** : `file.type` peut être vide sur certains navigateurs (notamment Safari pour les SVG). La fonction `resolveContentType()` dans `file-utils.ts` gère ce cas avec un fallback par extension, mais elle n'était pas utilisée partout — `getFileType()` accédait directement à `file.type`.
-- **Fichiers concernés** : `src/lib/file-utils.ts` (resolveContentType), tout composant manipulant des fichiers uploadés
-- **Action suggérée** : Convention à respecter : ne jamais utiliser `file.type` directement, toujours passer par `resolveContentType(file)`. Ajouter un commentaire dans `file-utils.ts` pour documenter cette règle.
-- **Priorité** : haute
+### [004] Toujours utiliser resolveContentType() — jamais file.type directement
+- **Constat** : `file.type` peut être vide sur certains navigateurs (notamment Safari pour les SVG). La fonction `resolveContentType()` gère ce cas avec un fallback par extension.
+- **Règle** : Ne jamais utiliser `file.type` directement. Toujours passer par `resolveContentType(file)`.
+- **Vérification** : `grep -r "file\.type" src/` — tout résultat hors de `file-utils.ts` est suspect.
+- **Fichiers de référence** : `src/lib/file-utils.ts` (resolveContentType)
 - **Origine** : bug SVG — `file.type` vide sur certains navigateurs
 - **Date** : 2026-03-20
 
-## Performance
-
-_(aucun item pour le moment)_
-
 ## Sécurité
 
-_(aucun item pour le moment)_
+_(aucune règle pour le moment)_
 
 ## DX
 
-_(aucun item pour le moment)_
+_(aucune règle pour le moment)_
