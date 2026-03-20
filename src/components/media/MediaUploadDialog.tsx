@@ -4,6 +4,7 @@ import { Mission } from "@/types/missions";
 import { useAddMedia, uploadMediaFile, MediaSourceType } from "@/hooks/useMedia";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { resolveContentType } from "@/lib/file-utils";
 import {
   Dialog,
   DialogContent,
@@ -43,8 +44,9 @@ const MediaUploadDialog = ({ missions, trainings = [], events = [], crmCards = [
   const addMedia = useAddMedia();
 
   const getFileType = (file: File): "image" | "video" | null => {
-    if (file.type.startsWith("image/")) return "image";
-    if (file.type.startsWith("video/")) return "video";
+    const mime = resolveContentType(file);
+    if (mime.startsWith("image/")) return "image";
+    if (mime.startsWith("video/")) return "video";
     return null;
   };
 
