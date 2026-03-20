@@ -31,7 +31,7 @@ import {
 } from "@/components/ui/tooltip";
 import { Progress } from "@/components/ui/progress";
 import { useUserPreference } from "@/hooks/useUserPreferences";
-import { useMissions, useMissionActivities } from "@/hooks/useMissions";
+import { useMissions } from "@/hooks/useMissions";
 import { useToast } from "@/hooks/use-toast";
 
 // Default profitability settings

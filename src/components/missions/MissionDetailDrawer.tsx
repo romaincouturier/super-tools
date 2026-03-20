@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Trash2, Loader2, X, Plus, Clock, FileText, Settings, ImageIcon, Share2, Check, Sparkles, MapPin, FolderOpen, CheckCircle2, Package, Calendar } from "lucide-react";
+import { Trash2, Loader2, X, Plus, Clock, FileText, Settings, ImageIcon, Share2, Check, Sparkles, MapPin, FolderOpen, Package, Calendar } from "lucide-react";
 import { Mission, MissionStatus, missionStatusConfig } from "@/types/missions";
 import { useUpdateMission, useDeleteMission } from "@/hooks/useMissions";
 import { useToast } from "@/hooks/use-toast";
@@ -24,7 +24,6 @@ import EmojiPickerButton from "@/components/ui/emoji-picker-button";
 import { supabase } from "@/integrations/supabase/client";
 import LogisticsBookingButtons from "@/components/shared/LogisticsBookingButtons";
 import EntityDocumentsManager from "@/components/shared/EntityDocumentsManager";
-import MissionActionsManager from "./MissionActionsManager";
 import SendDeliverablesDialog from "./SendDeliverablesDialog";
 import AssignedUserSelector from "@/components/formations/AssignedUserSelector";
 import NextActionScheduler from "@/components/shared/NextActionScheduler";
@@ -109,7 +108,7 @@ const MissionDetailDrawer = ({
   const [location, setLocation] = useState("");
   const [trainBooked, setTrainBooked] = useState(false);
   const [hotelBooked, setHotelBooked] = useState(false);
-  const [activeTab, setActiveTab] = useState("activities");
+  const [activeTab, setActiveTab] = useState("pages");
   const [activityPageRequest, setActivityPageRequest] = useState<{ activityId: string; description: string } | null>(null);
   const [assignedTo, setAssignedTo] = useState<string | null>(null);
   const [scheduledDate, setScheduledDate] = useState("");
@@ -246,11 +245,11 @@ const MissionDetailDrawer = ({
       >
         {aiSummaryLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
       </Button>
-      <Button size="sm" variant="outline" onClick={() => setShowScheduleForm(true)} title="Programmer une action">
-        <Calendar className="h-4 w-4" />
-      </Button>
       <Button size="sm" variant="outline" onClick={() => setShowDeliverables(true)} title="Envoyer les livrables">
         <Package className="h-4 w-4" />
+      </Button>
+      <Button size="sm" variant="outline" onClick={() => setActiveTab("settings")} title="Paramètres">
+        <Settings className="h-4 w-4" />
       </Button>
       <Button size="sm" variant="outline" onClick={handleShareLink} title="Copier le lien de partage">
         {copied ? <Check className="h-4 w-4 text-green-600" /> : <Share2 className="h-4 w-4" />}
@@ -266,8 +265,16 @@ const MissionDetailDrawer = ({
       actions={headerActions}
       contentClassName="overflow-y-auto sm:max-w-5xl"
     >
-        {/* Next Action Scheduler */}
-        <div className="mt-3">
+        {/* Schedule action button + Next Action Scheduler */}
+        <div className="mt-3 flex items-start gap-2">
+          {!showScheduleForm && (
+            <Button size="sm" variant="outline" onClick={() => setShowScheduleForm(true)} title="Programmer une action">
+              <Calendar className="h-4 w-4 mr-1.5" />
+              Programmer une action
+            </Button>
+          )}
+        </div>
+        <div className="mt-2">
           <NextActionScheduler
             currentAction={{
               date: mission.waiting_next_action_date,
@@ -339,15 +346,7 @@ const MissionDetailDrawer = ({
         )}
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
-          <TabsList className="grid w-full grid-cols-6">
-            <TabsTrigger value="activities" className="flex items-center gap-2">
-              <Clock className="h-4 w-4" />
-              Activités
-            </TabsTrigger>
-            <TabsTrigger value="actions" className="flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4" />
-              Actions
-            </TabsTrigger>
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="pages" className="flex items-center gap-2">
               <FileText className="h-4 w-4" />
               Pages
@@ -360,9 +359,9 @@ const MissionDetailDrawer = ({
               <ImageIcon className="h-4 w-4" />
               Galerie
             </TabsTrigger>
-            <TabsTrigger value="settings" className="flex items-center gap-2">
-              <Settings className="h-4 w-4" />
-              Paramètres
+            <TabsTrigger value="activities" className="flex items-center gap-2">
+              <Clock className="h-4 w-4" />
+              Activités
             </TabsTrigger>
           </TabsList>
 
@@ -375,11 +374,6 @@ const MissionDetailDrawer = ({
                 setActiveTab("pages");
               }}
             />
-          </TabsContent>
-
-          {/* Actions Tab */}
-          <TabsContent value="actions" className="mt-4">
-            <MissionActionsManager missionId={mission.id} />
           </TabsContent>
 
           {/* Pages Tab */}
