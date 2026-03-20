@@ -7,7 +7,13 @@ Chaque item est issu d'une question ou d'un constat fait pendant une session de 
 
 ## Duplication
 
-_(aucun item pour le moment)_
+### [DUP-003] Extraire getFileType() dans file-utils.ts
+- **Constat** : La fonction `getFileType(file: File)` est dupliquée à l'identique dans `EntityMediaManager.tsx` et `MediaUploadDialog.tsx`. Le même bug (utilisation de `file.type` au lieu de `resolveContentType()`) a dû être corrigé dans les deux fichiers.
+- **Fichiers concernés** : `src/components/media/EntityMediaManager.tsx:34-38`, `src/components/media/MediaUploadDialog.tsx:45-49`, `src/lib/file-utils.ts`
+- **Action suggérée** : Extraire `getFileType()` dans `src/lib/file-utils.ts` et l'importer dans les deux composants. Elle y rejoint logiquement `resolveContentType()` qu'elle utilise déjà.
+- **Priorité** : haute
+- **Origine** : bug SVG non uploadable — même correction appliquée deux fois
+- **Date** : 2026-03-20
 
 ## Architecture
 
@@ -39,7 +45,13 @@ _(aucun item pour le moment)_
 
 ## Convention
 
-_(aucun item pour le moment)_
+### [CONV-004] Toujours utiliser resolveContentType() pour détecter le type MIME
+- **Constat** : `file.type` peut être vide sur certains navigateurs (notamment Safari pour les SVG). La fonction `resolveContentType()` dans `file-utils.ts` gère ce cas avec un fallback par extension, mais elle n'était pas utilisée partout — `getFileType()` accédait directement à `file.type`.
+- **Fichiers concernés** : `src/lib/file-utils.ts` (resolveContentType), tout composant manipulant des fichiers uploadés
+- **Action suggérée** : Convention à respecter : ne jamais utiliser `file.type` directement, toujours passer par `resolveContentType(file)`. Ajouter un commentaire dans `file-utils.ts` pour documenter cette règle.
+- **Priorité** : haute
+- **Origine** : bug SVG — `file.type` vide sur certains navigateurs
+- **Date** : 2026-03-20
 
 ## Performance
 
