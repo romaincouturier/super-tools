@@ -83,10 +83,14 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
 
   // Voice
   const [analyzingVoice, setAnalyzingVoice] = useState(false);
-  const [voiceTranscript, setVoiceTranscript] = useState("");
-  const voiceTranscriptRef = useRef("");
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { isListening, isSupported: speechSupported, startListening, stopListening } = useSpeechRecognition("fr-FR", true);
+
+  const { isRecording: isListening, isTranscribing, isSupported: speechSupported, startRecording, stopRecording } =
+    useVoiceDictation({
+      onTranscript: (transcript) => {
+        analyzeVoiceTranscript(transcript);
+      },
+    });
 
   const [showCorrection, setShowCorrection] = useState(false);
 
