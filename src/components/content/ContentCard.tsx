@@ -86,13 +86,27 @@ const ContentCard = ({ card, isDragging: isDraggingProp, typeColors, onEdit, onD
       />
 
       {card.image_url && (
-        <div className="aspect-video w-full overflow-hidden">
+        <div
+          className="aspect-video w-full overflow-hidden cursor-pointer"
+          onClick={(e) => {
+            e.stopPropagation();
+            setLightboxOpen(true);
+          }}
+        >
           <img
             src={card.image_url}
             alt={card.title}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
           />
         </div>
+      )}
+
+      {lightboxOpen && card.image_url && (
+        <ImageLightbox
+          src={card.image_url}
+          alt={card.title}
+          onClose={() => setLightboxOpen(false)}
+        />
       )}
 
       <div className="p-3">
