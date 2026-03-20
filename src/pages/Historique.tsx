@@ -151,6 +151,7 @@ const formatDateForInput = (date: Date): string => {
 };
 
 const Historique = () => {
+  const navigate = useNavigate();
   const { user, loading } = useAuth();
   const [logs, setLogs] = useState<ActivityLog[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(true);

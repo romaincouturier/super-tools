@@ -91,6 +91,7 @@ interface Analysis {
 }
 
 const Evaluations = () => {
+  const navigate = useNavigate();
   const { user, loading } = useAuth();
   const [trainings, setTrainings] = useState<Training[]>([]);
   const [evaluations, setEvaluations] = useState<Evaluation[]>([]);
