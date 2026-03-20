@@ -19,6 +19,7 @@ interface WorkflowSessionState {
   synthesis: string;
   instructions: string;
   loomUrl: string | null;
+  loomScript: string;
   challengeHtml: string;
   travelTotal: number;
   travelDestinations: TravelDestination[];
@@ -94,6 +95,7 @@ function extractQuoteState(q: Quote) {
     synthesis: q.synthesis || "",
     instructions: q.instructions || "",
     loomUrl: q.loom_url || null,
+    loomScript: (q as any).loom_script || "",
     challengeHtml: (q as any).challenge_html || "",
     travelTotal: (q as any).travel_data?.total || 0,
     travelDestinations: ((q as any).travel_data?.destinations || []) as TravelDestination[],
@@ -140,6 +142,7 @@ export function useQuoteWorkflow(crmCard: CrmCard, existingQuoteId?: string) {
   const [instructions, setInstructions] = useState(session?.instructions ?? "");
   const [quote, setQuote] = useState<Quote | null>(null);
   const [loomUrl, setLoomUrl] = useState<string | null>(session?.loomUrl ?? null);
+  const [loomScript, setLoomScript] = useState(session?.loomScript ?? "");
   const [challengeHtml, setChallengeHtml] = useState(session?.challengeHtml ?? "");
 
   // Travel state
@@ -161,6 +164,7 @@ export function useQuoteWorkflow(crmCard: CrmCard, existingQuoteId?: string) {
       synthesis,
       instructions,
       loomUrl,
+      loomScript,
       challengeHtml,
       travelTotal,
       travelDestinations,
@@ -169,7 +173,7 @@ export function useQuoteWorkflow(crmCard: CrmCard, existingQuoteId?: string) {
       quoteId: quote?.id ?? session?.quoteId ?? null,
       savedAt: Date.now(),
     });
-  }, [step, completedSteps, synthesis, instructions, loomUrl, challengeHtml, travelTotal, travelDestinations, travelSettings, clientData, quote, crmCard.id]);
+  }, [step, completedSteps, synthesis, instructions, loomUrl, loomScript, challengeHtml, travelTotal, travelDestinations, travelSettings, clientData, quote, crmCard.id]);
 
   // ---- Restore from existing quote ----
   useEffect(() => {
@@ -180,6 +184,7 @@ export function useQuoteWorkflow(crmCard: CrmCard, existingQuoteId?: string) {
       if (restored.synthesis) setSynthesis(restored.synthesis);
       if (restored.instructions) setInstructions(restored.instructions);
       if (restored.loomUrl) setLoomUrl(restored.loomUrl);
+      if (restored.loomScript) setLoomScript(restored.loomScript);
       if (restored.challengeHtml) setChallengeHtml(restored.challengeHtml);
       if (restored.travelTotal) setTravelTotal(restored.travelTotal);
       if (restored.travelDestinations.length > 0) setTravelDestinations(restored.travelDestinations);
@@ -213,6 +218,7 @@ export function useQuoteWorkflow(crmCard: CrmCard, existingQuoteId?: string) {
             if (restored.synthesis) setSynthesis(restored.synthesis);
             if (restored.instructions) setInstructions(restored.instructions);
             if (restored.loomUrl) setLoomUrl(restored.loomUrl);
+            if (restored.loomScript) setLoomScript(restored.loomScript);
             if (restored.challengeHtml) setChallengeHtml(restored.challengeHtml);
             if (restored.travelTotal) setTravelTotal(restored.travelTotal);
             if (restored.travelDestinations.length > 0) setTravelDestinations(restored.travelDestinations);
@@ -274,6 +280,13 @@ export function useQuoteWorkflow(crmCard: CrmCard, existingQuoteId?: string) {
     }
   }, [quote]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const handleDraftLoomScript = useCallback((script: string) => {
+    setLoomScript(script);
+    if (quote) {
+      updateMutation.mutate({ id: quote.id, updates: { loom_script: script } });
+    }
+  }, [quote]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleChallengeChange = useCallback((html: string) => {
     setChallengeHtml(html);
     if (quote) {
@@ -307,7 +320,10 @@ export function useQuoteWorkflow(crmCard: CrmCard, existingQuoteId?: string) {
   const handleLoomContinue = async (url: string | null) => {
     setLoomUrl(url);
     completeStep(1);
-    saveWorkflowStep(quote?.id || "", 2, url ? { loom_url: url } : {});
+    saveWorkflowStep(quote?.id || "", 2, {
+      ...(url ? { loom_url: url } : {}),
+      ...(loomScript ? { loom_script: loomScript } : {}),
+    });
     setStep(2);
   };
 
@@ -391,6 +407,7 @@ export function useQuoteWorkflow(crmCard: CrmCard, existingQuoteId?: string) {
             synthesis,
             instructions,
             loom_url: loomUrl || null,
+            loom_script: loomScript || null,
             workflow_step: step,
             ...(challengeHtml ? { challenge_html: challengeHtml } : {}),
             ...(travelDestinations.length > 0 ? { travel_data: { total: travelTotal, destinations: travelDestinations, settings: travelSettings } } : {}),
@@ -424,6 +441,7 @@ export function useQuoteWorkflow(crmCard: CrmCard, existingQuoteId?: string) {
             synthesis,
             instructions,
             loom_url: loomUrl || null,
+            loom_script: loomScript || null,
             workflow_step: step,
             ...(challengeHtml ? { challenge_html: challengeHtml } : {}),
           },
@@ -446,6 +464,7 @@ export function useQuoteWorkflow(crmCard: CrmCard, existingQuoteId?: string) {
     instructions,
     quote,
     loomUrl,
+    loomScript,
     challengeHtml,
     travelTotal,
     travelDestinations,
@@ -468,6 +487,7 @@ export function useQuoteWorkflow(crmCard: CrmCard, existingQuoteId?: string) {
     // Draft handlers
     handleDraftSynthesis,
     handleDraftLoom,
+    handleDraftLoomScript,
     handleChallengeChange,
     handleManualSave,
   };

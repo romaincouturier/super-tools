@@ -12,7 +12,9 @@ import type { Quote } from "@/types/quotes";
 interface Props {
   onContinue: (loomUrl: string | null) => void;
   onDraftChange?: (loomUrl: string) => void;
+  onScriptChange?: (script: string) => void;
   initialLoomUrl?: string | null;
+  initialScript?: string;
   crmCard?: CrmCard;
   quote?: Quote | null;
   synthesis?: string;
@@ -56,7 +58,9 @@ function cleanScriptOutput(raw: string): string {
 export default function Step4Loom({
   onContinue,
   onDraftChange,
+  onScriptChange,
   initialLoomUrl,
+  initialScript,
   crmCard,
   quote,
   synthesis,
@@ -64,7 +68,7 @@ export default function Step4Loom({
   challengeHtml,
 }: Props) {
   const [loomUrl, setLoomUrl] = useState(initialLoomUrl || "");
-  const [script, setScript] = useState("");
+  const [script, setScript] = useState(initialScript || "");
   const [scriptLoading, setScriptLoading] = useState(false);
 
   // Auto-save draft
@@ -98,7 +102,9 @@ export default function Step4Loom({
         service_type: crmCard.service_type || "",
         line_items: quote?.line_items || [],
       });
-      setScript(cleanScriptOutput(result));
+      const cleaned = cleanScriptOutput(result);
+      setScript(cleaned);
+      onScriptChange?.(cleaned);
     } catch {
       setScript("Erreur lors de la génération du script. Veuillez réessayer.");
     } finally {

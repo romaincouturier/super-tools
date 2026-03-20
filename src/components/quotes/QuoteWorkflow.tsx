@@ -188,7 +188,9 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
           <Step4Loom
             onContinue={wf.handleLoomContinue}
             onDraftChange={wf.handleDraftLoom}
+            onScriptChange={wf.handleDraftLoomScript}
             initialLoomUrl={wf.loomUrl}
+            initialScript={wf.loomScript}
             crmCard={crmCard}
             quote={wf.quote}
             synthesis={wf.synthesis}

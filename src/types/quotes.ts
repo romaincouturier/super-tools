@@ -95,6 +95,7 @@ export interface Quote {
   rights_transfer_amount: number | null;
   // Loom
   loom_url: string | null;
+  loom_script: string | null;
   // Email
   email_subject: string | null;
   email_body: string | null;
@@ -136,6 +137,7 @@ export interface UpdateQuoteInput {
   rights_transfer_rate?: number | null;
   rights_transfer_amount?: number | null;
   loom_url?: string | null;
+  loom_script?: string | null;
   email_subject?: string | null;
   email_body?: string | null;
   email_sent_at?: string | null;
