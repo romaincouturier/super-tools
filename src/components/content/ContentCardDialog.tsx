@@ -554,12 +554,21 @@ const ContentCardDialog = ({
             <div className="space-y-2">
               <Label>Image</Label>
               {imageUrl ? (
-                <div className="relative">
+                <div className="relative group">
                   <img
                     src={imageUrl}
                     alt="Preview"
-                    className="w-full max-h-48 object-cover rounded-lg"
+                    className="w-full max-h-48 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                    onClick={() => setImageLightboxOpen(true)}
                   />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute top-2 left-2 h-8 w-8 bg-black/50 text-white hover:bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={() => setImageLightboxOpen(true)}
+                  >
+                    <ZoomIn className="h-4 w-4" />
+                  </Button>
                   <Button
                     variant="destructive"
                     size="icon"
@@ -568,6 +577,13 @@ const ContentCardDialog = ({
                   >
                     <X className="h-4 w-4" />
                   </Button>
+                  {imageLightboxOpen && (
+                    <ImageLightbox
+                      src={imageUrl}
+                      alt={title || "Image du contenu"}
+                      onClose={() => setImageLightboxOpen(false)}
+                    />
+                  )}
                 </div>
               ) : (
                 <div
