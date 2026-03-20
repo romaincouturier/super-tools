@@ -282,7 +282,7 @@ export const deleteMediaFile = async (fileUrl: string) => {
   const url = new URL(fileUrl);
 
   // Handle files in any of the known buckets
-  const buckets = ["media", "mission-media", "event-media", "training-media"];
+  const buckets = ["media", "mission-media", "event-media", "training-media", "content-images"];
   for (const bucket of buckets) {
     const marker = `/${bucket}/`;
     const idx = url.pathname.indexOf(marker);

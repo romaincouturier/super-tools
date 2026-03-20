@@ -12,6 +12,7 @@ const sourceIcon = (sourceType: string) => {
     case "training": return <GraduationCap className="h-3 w-3 mr-1" />;
     case "event": return <CalendarDays className="h-3 w-3 mr-1" />;
     case "crm": return <HandCoins className="h-3 w-3 mr-1" />;
+    case "content": return <Newspaper className="h-3 w-3 mr-1" />;
     default: return <Briefcase className="h-3 w-3 mr-1" />;
   }
 };
