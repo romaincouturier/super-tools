@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.command' | grep -qE '^\\s*git\\s+(commit|add\\s+-A.*&&.*commit)' && bash scripts/check-rules.sh --staged || true",
+            "timeout": 30,
+            "statusMessage": "Vérification des règles IMPROVEMENTS.md..."
+          }
+        ]
+      }
+    ]
+  }
+}
