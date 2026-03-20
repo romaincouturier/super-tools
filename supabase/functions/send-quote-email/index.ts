@@ -1,6 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { sendEmail } from "../_shared/resend.ts";
 import { getBccList } from "../_shared/email-settings.ts";
+import { guessMimeType } from "../_shared/mime-types.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
 
 const corsHeaders = {
