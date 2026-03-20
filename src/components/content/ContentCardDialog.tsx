@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Upload, X, Plus, Maximize2, Minimize2, RefreshCw, FileText, Linkedin, Instagram, Loader2, Save, Mail, Check, MessageSquare } from "lucide-react";
+import { Upload, X, Plus, Maximize2, Minimize2, RefreshCw, FileText, Linkedin, Instagram, Loader2, Save, Mail, Check, MessageSquare, ZoomIn } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -25,6 +25,7 @@ import ReviewSection from "./ReviewSection";
 import RichTextEditor from "./RichTextEditor";
 import EmojiPickerButton from "@/components/ui/emoji-picker-button";
 import { cn } from "@/lib/utils";
+import ImageLightbox from "@/components/ui/image-lightbox";
 
 type AiActionType = "reformulate" | "adapt_blog" | "adapt_linkedin" | "adapt_instagram";
 
@@ -58,6 +59,7 @@ const ContentCardDialog = ({
   const [cardType, setCardType] = useState<ContentCardType>("article");
   const [emoji, setEmoji] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [imageLightboxOpen, setImageLightboxOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [aiLoading, setAiLoading] = useState<AiActionType | null>(null);
   const [draftNewsletters, setDraftNewsletters] = useState<{ id: string; title: string | null; scheduled_date: string }[]>([]);
@@ -248,7 +250,25 @@ const ContentCardDialog = ({
         .from("content-images")
         .getPublicUrl(fileName);
 
-      setImageUrl(urlData.publicUrl);
+      const publicUrl = urlData.publicUrl;
+      setImageUrl(publicUrl);
+
+      // Register in media library if card exists
+      if (card) {
+        const session = await supabase.auth.getSession();
+        await supabase.from("media").insert({
+          file_url: publicUrl,
+          file_name: file.name,
+          file_type: "image",
+          mime_type: file.type,
+          file_size: file.size,
+          source_type: "content",
+          source_id: card.id,
+          position: 0,
+          created_by: session.data.session?.user?.id || null,
+        });
+      }
+
       toast.success("Image téléchargée");
     } catch (error) {
       console.error("Error uploading image:", error);
@@ -552,12 +572,21 @@ const ContentCardDialog = ({
             <div className="space-y-2">
               <Label>Image</Label>
               {imageUrl ? (
-                <div className="relative">
+                <div className="relative group">
                   <img
                     src={imageUrl}
                     alt="Preview"
-                    className="w-full max-h-48 object-cover rounded-lg"
+                    className="w-full max-h-48 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                    onClick={() => setImageLightboxOpen(true)}
                   />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute top-2 left-2 h-8 w-8 bg-black/50 text-white hover:bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={() => setImageLightboxOpen(true)}
+                  >
+                    <ZoomIn className="h-4 w-4" />
+                  </Button>
                   <Button
                     variant="destructive"
                     size="icon"
@@ -566,6 +595,13 @@ const ContentCardDialog = ({
                   >
                     <X className="h-4 w-4" />
                   </Button>
+                  {imageLightboxOpen && (
+                    <ImageLightbox
+                      src={imageUrl}
+                      alt={title || "Image du contenu"}
+                      onClose={() => setImageLightboxOpen(false)}
+                    />
+                  )}
                 </div>
               ) : (
                 <div

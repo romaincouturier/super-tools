@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useState } from "react";
 import { MoreHorizontal, Pencil, Trash2, Eye } from "lucide-react";
+import ImageLightbox from "@/components/ui/image-lightbox";
 import type { ContentTypeColors } from "./KanbanBoard";
 import { Button } from "@/components/ui/button";
 import {
@@ -39,6 +40,7 @@ const getTagColor = (tag: string) => {
 
 const ContentCard = ({ card, isDragging: isDraggingProp, typeColors, onEdit, onDelete, onView, onEmojiChange }: ContentCardProps) => {
   const { ref, style, attributes, listeners, isDragging } = useSortableCard(card.id, isDraggingProp);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
   const borderColor = typeColors ? (typeColors as any)[card.card_type] || "#3b82f6" : (card.card_type === "post" ? "#a855f7" : "#3b82f6");
 
   const handleCardClick = (e: React.MouseEvent) => {
@@ -84,13 +86,27 @@ const ContentCard = ({ card, isDragging: isDraggingProp, typeColors, onEdit, onD
       />
 
       {card.image_url && (
-        <div className="aspect-video w-full overflow-hidden">
+        <div
+          className="aspect-video w-full overflow-hidden cursor-pointer"
+          onClick={(e) => {
+            e.stopPropagation();
+            setLightboxOpen(true);
+          }}
+        >
           <img
             src={card.image_url}
             alt={card.title}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
           />
         </div>
+      )}
+
+      {lightboxOpen && card.image_url && (
+        <ImageLightbox
+          src={card.image_url}
+          alt={card.title}
+          onClose={() => setLightboxOpen(false)}
+        />
       )}
 
       <div className="p-3">

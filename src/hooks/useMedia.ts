@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient, QueryClient } from "@tanstack/re
 import { supabase } from "@/integrations/supabase/client";
 import { sanitizeFileName, resolveContentType } from "@/lib/file-utils";
 
-export type MediaSourceType = "mission" | "event" | "training" | "crm";
+export type MediaSourceType = "mission" | "event" | "training" | "crm" | "content";
 
 export interface MediaItem {
   id: string;
@@ -48,6 +48,7 @@ export const useMediaLibrary = () => {
       const eventIds = [...new Set(rows.filter((r) => r.source_type === "event").map((r) => r.source_id))];
       const trainingIds = [...new Set(rows.filter((r) => r.source_type === "training").map((r) => r.source_id))];
       const crmIds = [...new Set(rows.filter((r) => r.source_type === "crm").map((r) => r.source_id))];
+      const contentIds = [...new Set(rows.filter((r) => r.source_type === "content").map((r) => r.source_id))];
 
       // Fetch labels
       const labelMap: Record<string, { label: string; emoji: string | null; color: string | null; tags: string[] }> = {};
@@ -89,6 +90,16 @@ export const useMediaLibrary = () => {
           .in("id", crmIds);
         (data || []).forEach((c) => {
           labelMap[c.id] = { label: c.title, emoji: c.emoji ?? null, color: null, tags: ["opportunité"] };
+        });
+      }
+
+      if (contentIds.length > 0) {
+        const { data } = await supabase
+          .from("content_cards")
+          .select("id, title, emoji")
+          .in("id", contentIds);
+        (data || []).forEach((c) => {
+          labelMap[c.id] = { label: c.title, emoji: c.emoji ?? null, color: null, tags: ["contenu"] };
         });
       }
 
@@ -271,7 +282,7 @@ export const deleteMediaFile = async (fileUrl: string) => {
   const url = new URL(fileUrl);
 
   // Handle files in any of the known buckets
-  const buckets = ["media", "mission-media", "event-media", "training-media"];
+  const buckets = ["media", "mission-media", "event-media", "training-media", "content-images"];
   for (const bucket of buckets) {
     const marker = `/${bucket}/`;
     const idx = url.pathname.indexOf(marker);

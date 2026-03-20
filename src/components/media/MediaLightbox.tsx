@@ -1,7 +1,7 @@
 import { MediaItem, useRenameMedia } from "@/hooks/useMedia";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { X, Briefcase, ChevronLeft, ChevronRight, Download, Pencil, GraduationCap, CalendarDays, HandCoins, Package } from "lucide-react";
+import { X, Briefcase, ChevronLeft, ChevronRight, Download, Pencil, GraduationCap, CalendarDays, HandCoins, Package, Newspaper } from "lucide-react";
 import { toast } from "sonner";
 import { useEffect, useCallback } from "react";
 import { formatFileSize, downloadFile as downloadFileUtil, promptRenameFile } from "@/lib/file-utils";
@@ -12,6 +12,7 @@ const sourceIcon = (sourceType: string) => {
     case "training": return <GraduationCap className="h-3 w-3 mr-1" />;
     case "event": return <CalendarDays className="h-3 w-3 mr-1" />;
     case "crm": return <HandCoins className="h-3 w-3 mr-1" />;
+    case "content": return <Newspaper className="h-3 w-3 mr-1" />;
     default: return <Briefcase className="h-3 w-3 mr-1" />;
   }
 };
