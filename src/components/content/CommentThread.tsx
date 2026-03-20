@@ -385,20 +385,9 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
 
   const handleVoiceToggle = () => {
     if (isListening) {
-      stopListening();
-      const transcript = voiceTranscriptRef.current.trim();
-      if (transcript) {
-        analyzeVoiceTranscript(transcript);
-      } else {
-        toast.info("Aucun texte détecté");
-      }
+      stopRecording();
     } else {
-      setVoiceTranscript("");
-      voiceTranscriptRef.current = "";
-      startListening((fullTranscript: string) => {
-        voiceTranscriptRef.current = fullTranscript;
-        setVoiceTranscript(fullTranscript);
-      });
+      startRecording();
     }
   };
 
