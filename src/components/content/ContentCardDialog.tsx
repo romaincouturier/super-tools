@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Upload, X, Plus, Maximize2, Minimize2, RefreshCw, FileText, Linkedin, Instagram, Loader2, Save, Mail, Check, MessageSquare, ZoomIn } from "lucide-react";
+import { Upload, X, Plus, Maximize2, Minimize2, RefreshCw, FileText, Linkedin, Instagram, Loader2, Save, Mail, Check, MessageSquare, ZoomIn, ChevronDown } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -16,11 +16,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import type { Card, ContentCardType } from "./KanbanBoard";
+import type { Card, Column, ContentCardType } from "./KanbanBoard";
 import ReviewSection from "./ReviewSection";
 import RichTextEditor from "./RichTextEditor";
 import EmojiPickerButton from "@/components/ui/emoji-picker-button";
@@ -40,6 +46,8 @@ interface ContentCardDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   card: Card | null;
+  columns?: Column[];
+  onColumnChange?: (cardId: string, newColumnId: string) => void;
   onSave: (card: Partial<Card>, options?: { newsletterId?: string; initialComment?: string }) => void;
   onNewsletterChange?: () => void;
 }
@@ -48,6 +56,8 @@ const ContentCardDialog = ({
   open,
   onOpenChange,
   card,
+  columns = [],
+  onColumnChange,
   onSave,
   onNewsletterChange,
 }: ContentCardDialogProps) => {
@@ -68,6 +78,7 @@ const ContentCardDialog = ({
   const [autoSaving, setAutoSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [initialComment, setInitialComment] = useState("");
+  const [currentColumnId, setCurrentColumnId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Auto-save refs
@@ -83,6 +94,7 @@ const ContentCardDialog = ({
       setTags(card.tags || []);
       setCardType(card.card_type || "article");
       setEmoji(card.emoji || null);
+      setCurrentColumnId(card.column_id);
     } else {
       setTitle("");
       setDescription("");
@@ -91,6 +103,7 @@ const ContentCardDialog = ({
       setCardType("article");
       setEmoji(null);
       setInitialComment("");
+      setCurrentColumnId(null);
     }
     lastSavedHashRef.current = "";
     setLastSaved(null);
@@ -413,7 +426,33 @@ const ContentCardDialog = ({
             placeholder="Titre de la carte"
             className="flex-1 border-none shadow-none text-xl font-semibold h-auto py-1 px-0 focus-visible:ring-0 placeholder:text-muted-foreground/50"
           />
-          <div className="flex items-center gap-1 shrink-0">
+          <div className="flex items-center gap-1.5 shrink-0">
+            {/* Column selector for existing cards */}
+            {card && columns.length > 0 && (
+              <DropdownMenu modal={false}>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-1.5 h-7 text-xs">
+                    {columns.find(c => c.id === currentColumnId)?.name || "Colonne"}
+                    <ChevronDown className="h-3 w-3 opacity-70" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {columns.map((col) => (
+                    <DropdownMenuItem
+                      key={col.id}
+                      onClick={() => {
+                        setCurrentColumnId(col.id);
+                        onColumnChange?.(card.id, col.id);
+                      }}
+                      disabled={col.id === currentColumnId}
+                      className={cn(col.id === currentColumnId && "font-semibold bg-accent")}
+                    >
+                      {col.name}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
             {card ? (
               <div className="flex items-center gap-1.5">
                 <span className="text-xs text-muted-foreground">
