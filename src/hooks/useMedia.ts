@@ -93,6 +93,16 @@ export const useMediaLibrary = () => {
         });
       }
 
+      if (contentIds.length > 0) {
+        const { data } = await supabase
+          .from("content_cards")
+          .select("id, title, emoji")
+          .in("id", contentIds);
+        (data || []).forEach((c) => {
+          labelMap[c.id] = { label: c.title, emoji: c.emoji ?? null, color: null, tags: ["contenu"] };
+        });
+      }
+
       return rows.map((row: any): MediaItem => {
         const info = labelMap[row.source_id] || { label: "Inconnu", emoji: null, color: null, tags: [] };
         return {
