@@ -746,11 +746,11 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
           />
         )}
 
-        {/* Listening indicator */}
-        {isListening && (
+        {/* Listening / transcribing indicator */}
+        {(isListening || isTranscribing) && (
           <div className="flex items-center gap-2 text-sm text-destructive animate-pulse">
             <Mic className="h-4 w-4" />
-            <span>Écoute en cours… {voiceTranscript && `"${voiceTranscript}"`}</span>
+            <span>{isTranscribing ? "Transcription en cours…" : "Écoute en cours…"}</span>
           </div>
         )}
 
