@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Bug, Lightbulb } from "lucide-react";
+import { useState, useCallback } from "react";
+import { Bug, Lightbulb, Mic, MicOff, Loader2, Sparkles } from "lucide-react";
 import { SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { toast } from "sonner";
 import {
   SUPPORT_COLUMNS,
   TICKET_TYPE_CONFIG,
@@ -16,10 +17,15 @@ import {
   type TicketType,
   type TicketPriority,
   type TicketStatus,
+  type TicketAiAnalysis,
 } from "@/types/support";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
 import AiAnalysisSection from "./AiAnalysisSection";
+import AssignedUserSelector from "@/components/formations/AssignedUserSelector";
+import { useVoiceDictation } from "@/hooks/useVoiceDictation";
+import { analyzeTicket } from "@/services/support";
+import { cn } from "@/lib/utils";
 
 interface Props {
   ticket: SupportTicket;
@@ -31,8 +37,42 @@ export default function TicketDetail({ ticket, onUpdate }: Props) {
   const [resolutionNotes, setResolutionNotes] = useState(ticket.resolution_notes || "");
   const [title, setTitle] = useState(ticket.title);
   const [type, setType] = useState<TicketType>(ticket.type);
-  const [assignedTo, setAssignedTo] = useState(ticket.assigned_to || "");
   const [pageUrl, setPageUrl] = useState(ticket.page_url || "");
+  const [reanalyzing, setReanalyzing] = useState(false);
+
+  // Voice dictation for resolution notes
+  const handleTranscript = useCallback((text: string) => {
+    setResolutionNotes((prev) => {
+      const separator = prev.trim() ? "\n" : "";
+      return prev + separator + text;
+    });
+  }, []);
+
+  const { isRecording, isTranscribing, isSupported, startRecording, stopRecording } = useVoiceDictation({
+    onTranscript: handleTranscript,
+  });
+
+  // AI analysis handlers
+  const handleUpdateAnalysis = (analysis: TicketAiAnalysis) => {
+    onUpdate(ticket.id, { ai_analysis: analysis });
+  };
+
+  const handleDeleteAnalysis = () => {
+    onUpdate(ticket.id, { ai_analysis: null });
+  };
+
+  const handleReanalyze = async () => {
+    setReanalyzing(true);
+    try {
+      const analysis = await analyzeTicket(ticket.description);
+      onUpdate(ticket.id, { ai_analysis: analysis });
+      toast.success("Analyse IA mise à jour");
+    } catch {
+      toast.error("Erreur lors de l'analyse IA");
+    } finally {
+      setReanalyzing(false);
+    }
+  };
 
   return (
     <ScrollArea className="h-full">
@@ -96,15 +136,12 @@ export default function TicketDetail({ ticket, onUpdate }: Props) {
           </div>
         </div>
 
-        {/* Assigné à */}
+        {/* Assigné à — sélecteur d'équipe */}
         <div className="space-y-1.5">
           <Label className="text-xs text-muted-foreground">Assigné à</Label>
-          <Input
-            value={assignedTo}
-            onChange={(e) => setAssignedTo(e.target.value)}
-            onBlur={() => { if (assignedTo !== (ticket.assigned_to || "")) onUpdate(ticket.id, { assigned_to: assignedTo || null }); }}
-            placeholder="Email ou nom de la personne"
-            className="text-sm"
+          <AssignedUserSelector
+            value={ticket.assigned_to}
+            onChange={(userId) => onUpdate(ticket.id, { assigned_to: userId })}
           />
         </div>
 
@@ -141,7 +178,26 @@ export default function TicketDetail({ ticket, onUpdate }: Props) {
         </Card>
 
         {/* AI Analysis */}
-        {ticket.ai_analysis && <AiAnalysisSection analysis={ticket.ai_analysis} />}
+        {ticket.ai_analysis ? (
+          <AiAnalysisSection
+            analysis={ticket.ai_analysis}
+            onUpdate={handleUpdateAnalysis}
+            onDelete={handleDeleteAnalysis}
+            onReanalyze={handleReanalyze}
+            reanalyzing={reanalyzing}
+          />
+        ) : (
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            onClick={handleReanalyze}
+            disabled={reanalyzing}
+          >
+            {reanalyzing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+            Lancer l'analyse IA
+          </Button>
+        )}
 
         {/* Info read-only */}
         <div className="space-y-2 text-sm">
@@ -161,9 +217,33 @@ export default function TicketDetail({ ticket, onUpdate }: Props) {
           )}
         </div>
 
-        {/* Resolution notes */}
+        {/* Resolution notes with voice dictation */}
         <div className="space-y-2">
-          <Label className="text-sm">Notes de résolution</Label>
+          <div className="flex items-center justify-between">
+            <Label className="text-sm">Notes de résolution</Label>
+            {isSupported && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className={cn(
+                  "h-7 px-2 gap-1.5 text-xs",
+                  isRecording && "text-red-600 hover:text-red-700",
+                )}
+                onClick={isRecording ? stopRecording : startRecording}
+                disabled={isTranscribing}
+                title={isRecording ? "Arrêter l'enregistrement" : "Dicter par micro"}
+              >
+                {isTranscribing ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : isRecording ? (
+                  <MicOff className="h-3.5 w-3.5" />
+                ) : (
+                  <Mic className="h-3.5 w-3.5" />
+                )}
+                {isTranscribing ? "Transcription…" : isRecording ? "Arrêter" : "Dicter"}
+              </Button>
+            )}
+          </div>
           <Textarea
             value={resolutionNotes}
             onChange={(e) => setResolutionNotes(e.target.value)}

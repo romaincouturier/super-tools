@@ -81,6 +81,12 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
   const [replyText, setReplyText] = useState("");
   const [submittingReply, setSubmittingReply] = useState(false);
 
+  // Edit state
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editContent, setEditContent] = useState("");
+  const [editCorrection, setEditCorrection] = useState("");
+  const [submittingEdit, setSubmittingEdit] = useState(false);
+
   // Voice
   const [analyzingVoice, setAnalyzingVoice] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -383,6 +389,42 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
     }
   };
 
+  const startEditing = (comment: Comment) => {
+    setEditingId(comment.id);
+    setEditContent(comment.content);
+    setEditCorrection(comment.proposed_correction || "");
+  };
+
+  const cancelEditing = () => {
+    setEditingId(null);
+    setEditContent("");
+    setEditCorrection("");
+  };
+
+  const handleEditSave = async () => {
+    if (!editingId || !editContent.trim()) return;
+    setSubmittingEdit(true);
+    try {
+      const updateData: Record<string, unknown> = {
+        content: editContent.trim(),
+        proposed_correction: editCorrection.trim() || null,
+      };
+      const { error } = await supabase
+        .from("review_comments")
+        .update(updateData)
+        .eq("id", editingId);
+      if (error) throw error;
+      cancelEditing();
+      fetchComments();
+      toast.success("Commentaire modifié");
+    } catch (error) {
+      console.error("Error editing comment:", error);
+      toast.error("Erreur lors de la modification");
+    } finally {
+      setSubmittingEdit(false);
+    }
+  };
+
   const handleVoiceToggle = () => {
     if (isListening) {
       stopRecording();
@@ -547,35 +589,73 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
                   </Badge>
                 )}
               </div>
-              <p className="text-sm mt-1 whitespace-pre-wrap leading-relaxed">{renderTextWithLinks(comment.content)}</p>
-
-              {comment.image_url && (
-                <a href={comment.image_url} target="_blank" rel="noopener noreferrer" className="mt-2 block">
-                  <img src={comment.image_url} alt="Capture" className="max-w-full max-h-40 rounded border hover:opacity-90" />
-                </a>
-              )}
-
-              {comment.proposed_correction && (
-                <div className="mt-2 p-2 bg-blue-50 border border-blue-100 rounded text-sm relative group/correction">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-medium text-blue-600 uppercase tracking-wider">Correction proposée</span>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-5 w-5 opacity-0 group-hover/correction:opacity-100 text-blue-600"
-                      onClick={() => {
-                        navigator.clipboard.writeText(comment.proposed_correction!);
-                        toast.success("Copié");
-                      }}
-                    >
-                      <Copy className="h-3 w-3" />
+              {editingId === comment.id ? (
+                <div className="mt-1 space-y-2">
+                  <Textarea
+                    value={editContent}
+                    onChange={(e) => setEditContent(e.target.value)}
+                    rows={3}
+                    className="resize-none text-sm"
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) handleEditSave();
+                      if (e.key === "Escape") cancelEditing();
+                    }}
+                  />
+                  {(editCorrection || comment.proposed_correction) && (
+                    <Textarea
+                      value={editCorrection}
+                      onChange={(e) => setEditCorrection(e.target.value)}
+                      placeholder="Correction proposée (optionnel)"
+                      rows={2}
+                      className="resize-none text-sm"
+                    />
+                  )}
+                  <div className="flex items-center gap-2">
+                    <Button size="sm" className="h-6 text-[11px]" onClick={handleEditSave} disabled={submittingEdit || !editContent.trim()}>
+                      {submittingEdit ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
+                      Enregistrer
                     </Button>
+                    <Button size="sm" variant="ghost" className="h-6 text-[11px]" onClick={cancelEditing}>
+                      Annuler
+                    </Button>
+                    <span className="text-[10px] text-muted-foreground">⌘+Entrée · Échap</span>
                   </div>
-                  <p className="text-blue-900 mt-1 whitespace-pre-wrap">{comment.proposed_correction}</p>
                 </div>
+              ) : (
+                <>
+                  <p className="text-sm mt-1 whitespace-pre-wrap leading-relaxed">{renderTextWithLinks(comment.content)}</p>
+
+                  {comment.image_url && (
+                    <a href={comment.image_url} target="_blank" rel="noopener noreferrer" className="mt-2 block">
+                      <img src={comment.image_url} alt="Capture" className="max-w-full max-h-40 rounded border hover:opacity-90" />
+                    </a>
+                  )}
+
+                  {comment.proposed_correction && (
+                    <div className="mt-2 p-2 bg-blue-50 border border-blue-100 rounded text-sm relative group/correction">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-medium text-blue-600 uppercase tracking-wider">Correction proposée</span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-5 w-5 opacity-0 group-hover/correction:opacity-100 text-blue-600"
+                          onClick={() => {
+                            navigator.clipboard.writeText(comment.proposed_correction!);
+                            toast.success("Copié");
+                          }}
+                        >
+                          <Copy className="h-3 w-3" />
+                        </Button>
+                      </div>
+                      <p className="text-blue-900 mt-1 whitespace-pre-wrap">{comment.proposed_correction}</p>
+                    </div>
+                  )}
+                </>
               )}
 
               {/* Actions */}
+              {editingId !== comment.id && (
               <div className="flex items-center gap-1 mt-2">
                 {canResolve && (
                   <>
@@ -600,16 +680,28 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
                   Répondre
                 </Button>
                 {comment.author_id === currentUserId && (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="h-6 text-[11px] text-muted-foreground hover:text-destructive ml-auto"
-                    onClick={() => handleDelete(comment.id)}
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </Button>
+                  <>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-6 text-[11px] text-muted-foreground hover:text-primary"
+                      onClick={() => startEditing(comment)}
+                    >
+                      <Pencil className="h-3 w-3 mr-1" />
+                      Modifier
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-6 text-[11px] text-muted-foreground hover:text-destructive ml-auto"
+                      onClick={() => handleDelete(comment.id)}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </>
                 )}
               </div>
+              )}
             </div>
           </div>
         </div>
@@ -627,16 +719,54 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
                     <span className="text-[11px] font-medium">{getDisplayName(reply)}</span>
                     <span className="text-[10px] text-muted-foreground">{formatDate(reply.created_at)}</span>
                   </div>
-                  <p className="text-sm mt-0.5 whitespace-pre-wrap">{renderTextWithLinks(reply.content)}</p>
-                  {reply.author_id === currentUserId && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-5 text-[10px] text-muted-foreground hover:text-destructive mt-0.5 -ml-2"
-                      onClick={() => handleDelete(reply.id)}
-                    >
-                      <Trash2 className="h-2.5 w-2.5" />
-                    </Button>
+                  {editingId === reply.id ? (
+                    <div className="mt-1 space-y-1.5">
+                      <Textarea
+                        value={editContent}
+                        onChange={(e) => setEditContent(e.target.value)}
+                        rows={2}
+                        className="resize-none text-sm"
+                        autoFocus
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) handleEditSave();
+                          if (e.key === "Escape") cancelEditing();
+                        }}
+                      />
+                      <div className="flex items-center gap-2">
+                        <Button size="sm" className="h-5 text-[10px]" onClick={handleEditSave} disabled={submittingEdit || !editContent.trim()}>
+                          {submittingEdit ? <Loader2 className="h-2.5 w-2.5 animate-spin mr-1" /> : null}
+                          Enregistrer
+                        </Button>
+                        <Button size="sm" variant="ghost" className="h-5 text-[10px]" onClick={cancelEditing}>
+                          Annuler
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <p className="text-sm mt-0.5 whitespace-pre-wrap">{renderTextWithLinks(reply.content)}</p>
+                      {reply.author_id === currentUserId && (
+                        <div className="flex items-center gap-1 mt-0.5 -ml-2">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-5 text-[10px] text-muted-foreground hover:text-primary"
+                            onClick={() => startEditing(reply)}
+                          >
+                            <Pencil className="h-2.5 w-2.5 mr-0.5" />
+                            Modifier
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-5 text-[10px] text-muted-foreground hover:text-destructive"
+                            onClick={() => handleDelete(reply.id)}
+                          >
+                            <Trash2 className="h-2.5 w-2.5" />
+                          </Button>
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               </div>

@@ -1,6 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { registerMediaEntry } from "@/hooks/useMedia";
+import { resolveContentType } from "@/lib/file-utils";
 import type { Database } from "@/integrations/supabase/types";
 
 type Tables = Database["public"]["Tables"];
@@ -690,12 +692,23 @@ export function useLearnerBadges(email: string | undefined) {
 export async function uploadLmsVideo(file: File, lessonId: string): Promise<string> {
   const ext = file.name.split(".").pop()?.toLowerCase() || "mp4";
   const path = `videos/${lessonId}/${Date.now()}.${ext}`;
+  const contentType = resolveContentType(file) || "video/mp4";
   const { error } = await supabase.storage
     .from("lms-content")
-    .upload(path, file, { contentType: file.type || "video/mp4", upsert: true });
+    .upload(path, file, { contentType, upsert: true });
   if (error) throw error;
   const { data } = supabase.storage.from("lms-content").getPublicUrl(path);
-  return data.publicUrl;
+  const publicUrl = data.publicUrl;
+  await registerMediaEntry({
+    file_url: publicUrl,
+    file_name: file.name,
+    file_type: "video",
+    mime_type: contentType,
+    file_size: file.size,
+    source_type: "lms",
+    source_id: lessonId,
+  });
+  return publicUrl;
 }
 
 export async function uploadAssignmentFile(file: File, lessonId: string, email: string): Promise<{ url: string; name: string; size: number }> {
@@ -703,7 +716,7 @@ export async function uploadAssignmentFile(file: File, lessonId: string, email: 
   const path = `assignments/${lessonId}/${email}/${Date.now()}_${safeName}`;
   const { error } = await supabase.storage
     .from("lms-content")
-    .upload(path, file, { contentType: file.type, upsert: true });
+    .upload(path, file, { contentType: resolveContentType(file), upsert: true });
   if (error) throw error;
   const { data } = supabase.storage.from("lms-content").getPublicUrl(path);
   return { url: data.publicUrl, name: file.name, size: file.size };

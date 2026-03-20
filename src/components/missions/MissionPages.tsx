@@ -71,6 +71,8 @@ import {
 import { Mission } from "@/types/missions";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { registerMediaEntry } from "@/hooks/useMedia";
+import { resolveContentType } from "@/lib/file-utils";
 
 interface MissionPagesProps {
   mission: Mission;
@@ -310,20 +312,32 @@ const PageEditor = ({
       try {
         const ext = file.name.split(".").pop() || "png";
         const fileName = `pages/${page.id}/${Date.now()}.${ext}`;
+        const contentType = resolveContentType(file);
         const { error } = await supabase.storage
           .from("mission-media")
-          .upload(fileName, file, { contentType: file.type });
+          .upload(fileName, file, { contentType });
         if (error) throw error;
         const { data: urlData } = supabase.storage
           .from("mission-media")
           .getPublicUrl(fileName);
-        return urlData.publicUrl;
+        const publicUrl = urlData.publicUrl;
+        const fileType = contentType.startsWith("video/") ? "video" as const : "image" as const;
+        await registerMediaEntry({
+          file_url: publicUrl,
+          file_name: file.name,
+          file_type: fileType,
+          mime_type: contentType,
+          file_size: file.size,
+          source_type: "mission",
+          source_id: missionId,
+        });
+        return publicUrl;
       } catch (err) {
         console.error("Upload error:", err);
         return null;
       }
     },
-    [page.id]
+    [page.id, missionId]
   );
 
   const uploadDocument = useCallback(
@@ -332,7 +346,7 @@ const PageEditor = ({
         const fileName = `pages/${page.id}/docs/${Date.now()}-${file.name}`;
         const { error } = await supabase.storage
           .from("mission-media")
-          .upload(fileName, file, { contentType: file.type });
+          .upload(fileName, file, { contentType: resolveContentType(file) });
         if (error) throw error;
         const { data: urlData } = supabase.storage
           .from("mission-media")
@@ -422,7 +436,8 @@ const PageEditor = ({
         const files = event.dataTransfer?.files;
         if (!files || files.length === 0) return false;
         const file = files[0];
-        if (file.type.startsWith("image/")) {
+        const dropType = resolveContentType(file);
+        if (dropType.startsWith("image/")) {
           event.preventDefault();
           setImageUploading(true);
           uploadImage(file).then((url) => {
@@ -431,7 +446,7 @@ const PageEditor = ({
           });
           return true;
         }
-        if (file.type.startsWith("video/")) {
+        if (dropType.startsWith("video/")) {
           event.preventDefault();
           setImageUploading(true);
           uploadImage(file).then((url) => {
@@ -482,7 +497,7 @@ const PageEditor = ({
     if (!editor) return;
     setImageUploading(true);
     for (const file of Array.from(files)) {
-      if (file.type.startsWith("image/")) {
+      if (resolveContentType(file).startsWith("image/")) {
         const url = await uploadImage(file);
         if (url) editor.chain().focus().setImage({ src: url }).run();
       }
@@ -494,7 +509,7 @@ const PageEditor = ({
     if (!editor) return;
     setImageUploading(true);
     for (const file of Array.from(files)) {
-      if (file.type.startsWith("video/")) {
+      if (resolveContentType(file).startsWith("video/")) {
         const url = await uploadImage(file);
         if (url) editor.chain().focus().insertContent({ type: "video", attrs: { src: url } }).run();
       }

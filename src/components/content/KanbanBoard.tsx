@@ -636,6 +636,26 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
           }
         }}
         card={editingCard}
+        columns={columns}
+        onColumnChange={async (cardId, newColumnId) => {
+          setCards((prev) =>
+            prev.map((c) => (c.id === cardId ? { ...c, column_id: newColumnId } : c))
+          );
+          if (editingCard) {
+            setEditingCard({ ...editingCard, column_id: newColumnId });
+          }
+          try {
+            await supabase
+              .from("content_cards")
+              .update({ column_id: newColumnId })
+              .eq("id", cardId);
+            toast.success("Carte déplacée");
+          } catch (error) {
+            console.error("Error moving card:", error);
+            toast.error("Erreur lors du déplacement");
+            fetchData();
+          }
+        }}
         onSave={handleSaveCard}
         onNewsletterChange={onNewsletterChange}
       />
