@@ -1476,7 +1476,9 @@ export type Database = {
           created_at: string
           html_content: string
           id: string
+          improvement_count: number
           is_default: boolean
+          last_improved_at: string | null
           subject: string
           template_name: string
           template_type: string
@@ -1486,7 +1488,9 @@ export type Database = {
           created_at?: string
           html_content: string
           id?: string
+          improvement_count?: number
           is_default?: boolean
+          last_improved_at?: string | null
           subject: string
           template_name: string
           template_type: string
@@ -1496,7 +1500,9 @@ export type Database = {
           created_at?: string
           html_content?: string
           id?: string
+          improvement_count?: number
           is_default?: boolean
+          last_improved_at?: string | null
           subject?: string
           template_name?: string
           template_type?: string

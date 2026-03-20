@@ -4,6 +4,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { getSenderFrom, getSenderEmail, getBccList } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
 import { sendEmail } from "../_shared/resend.ts";
+import { guessMimeType } from "../_shared/mime-types.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -232,10 +233,11 @@ async function persistEmailAttachmentsToStorage(
       const safeFilename = attachment.filename.replace(/[^a-zA-Z0-9._-]/g, "_");
       const storagePath = `emails/${cardId}/${Date.now()}_${safeFilename}`;
 
+      const mimeType = guessMimeType(attachment.filename);
       const { error } = await supabase.storage
         .from("crm-attachments")
         .upload(storagePath, bytes, {
-          contentType: "application/octet-stream",
+          contentType: mimeType,
           upsert: false,
         });
 

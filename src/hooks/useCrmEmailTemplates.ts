@@ -25,7 +25,7 @@ export const useCrmEmailTemplates = () => {
         .order("template_name");
 
       if (error) throw error;
-      return data as CrmEmailTemplate[];
+      return data as unknown as CrmEmailTemplate[];
     },
   });
 };
