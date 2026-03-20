@@ -7,7 +7,7 @@ import {
   FileText, Palette, Trash2, Copy, Mic, MicOff, Reply, CheckCheck,
   ChevronDown, ChevronRight, UserPlus
 } from "lucide-react";
-import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
+import { useVoiceDictation } from "@/hooks/useVoiceDictation";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
