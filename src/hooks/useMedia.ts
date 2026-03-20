@@ -48,6 +48,7 @@ export const useMediaLibrary = () => {
       const eventIds = [...new Set(rows.filter((r) => r.source_type === "event").map((r) => r.source_id))];
       const trainingIds = [...new Set(rows.filter((r) => r.source_type === "training").map((r) => r.source_id))];
       const crmIds = [...new Set(rows.filter((r) => r.source_type === "crm").map((r) => r.source_id))];
+      const contentIds = [...new Set(rows.filter((r) => r.source_type === "content").map((r) => r.source_id))];
 
       // Fetch labels
       const labelMap: Record<string, { label: string; emoji: string | null; color: string | null; tags: string[] }> = {};
