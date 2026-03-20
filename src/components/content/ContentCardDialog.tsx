@@ -59,6 +59,7 @@ const ContentCardDialog = ({
   const [cardType, setCardType] = useState<ContentCardType>("article");
   const [emoji, setEmoji] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [imageLightboxOpen, setImageLightboxOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [aiLoading, setAiLoading] = useState<AiActionType | null>(null);
   const [draftNewsletters, setDraftNewsletters] = useState<{ id: string; title: string | null; scheduled_date: string }[]>([]);
