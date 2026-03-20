@@ -8,6 +8,8 @@ export interface CrmEmailTemplate {
   subject: string;
   html_content: string;
   is_default: boolean;
+  last_improved_at: string | null;
+  improvement_count: number;
 }
 
 const QUERY_KEY = "crm-email-templates";
@@ -56,7 +58,7 @@ export const useCreateCrmTemplate = () => {
 export const useUpdateCrmTemplate = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, updates }: { id: string; updates: Partial<Pick<CrmEmailTemplate, "template_name" | "subject" | "html_content">> }) => {
+    mutationFn: async ({ id, updates }: { id: string; updates: Partial<Pick<CrmEmailTemplate, "template_name" | "subject" | "html_content" | "last_improved_at" | "improvement_count">> }) => {
       const { data, error } = await supabase
         .from("email_templates")
         .update(updates)

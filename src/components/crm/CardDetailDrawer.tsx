@@ -83,7 +83,7 @@ const CardDetailDrawer = ({
   const addComment = useAddComment();
   const addAttachment = useAddAttachment();
   const sendEmail = useSendEmail();
-  const { data: _crmEmailTemplates } = useCrmEmailTemplates();
+  const { data: crmEmailTemplates } = useCrmEmailTemplates();
   const updateTemplate = useUpdateCrmTemplate();
 
   // ═══ STATE ═══
@@ -609,12 +609,59 @@ const CardDetailDrawer = ({
       });
       setEmailTo(""); setEmailCc(""); setEmailBcc(""); setShowCcBcc(false); setEmailSubject(""); setEmailBody(""); setEmailAttachments([]); selectedTemplateRef.current = null;
       await queryClient.invalidateQueries({ queryKey: ["crm-board", "card-details", card.id] });
-      if (templateSnapshot) {
-        try {
+      // AI auto-learning: improve email templates based on what was actually sent
+      try {
+        if (templateSnapshot) {
+          // Template was used — compare sent version with template and improve
           const result = await crmAiAssist("improve_template", { subject: templateSnapshot.subject, body: templateSnapshot.html_content, context: `Objet envoyé : ${sentSubject}\n\nContenu envoyé :\n${sentBody}` });
-          if (result) { try { const improved = JSON.parse(result); if (improved.subject && improved.html_content) { await updateTemplate.mutateAsync({ id: templateSnapshot.id, updates: { subject: improved.subject, html_content: improved.html_content } }); } } catch { /* skip */ } }
-        } catch { /* best-effort */ }
-      }
+          if (result) {
+            try {
+              const improved = JSON.parse(result);
+              if (improved.subject && improved.html_content) {
+                const tpl = crmEmailTemplates?.find(t => t.id === templateSnapshot.id);
+                await updateTemplate.mutateAsync({
+                  id: templateSnapshot.id,
+                  updates: {
+                    subject: improved.subject,
+                    html_content: improved.html_content,
+                    last_improved_at: new Date().toISOString(),
+                    improvement_count: (tpl?.improvement_count || 0) + 1,
+                  },
+                });
+                toast({ title: "Modèle auto-amélioré", description: `Le modèle "${tpl?.template_name || "email"}" a été mis à jour d'après votre style.` });
+              }
+            } catch { /* JSON parse error — skip */ }
+          }
+        } else if (crmEmailTemplates && crmEmailTemplates.length > 0) {
+          // No template used — learn from free-form email and improve closest template
+          const result = await crmAiAssist("learn_email_style", {
+            ...buildCardDataForAi(),
+            sent_subject: sentSubject,
+            sent_body: sentBody,
+            templates: crmEmailTemplates.map(t => ({ id: t.id, template_name: t.template_name, subject: t.subject, html_content: t.html_content })),
+          });
+          if (result) {
+            try {
+              const parsed = JSON.parse(result);
+              if (parsed.improved && parsed.template_index != null && parsed.subject && parsed.html_content) {
+                const tpl = crmEmailTemplates[parsed.template_index];
+                if (tpl) {
+                  await updateTemplate.mutateAsync({
+                    id: tpl.id,
+                    updates: {
+                      subject: parsed.subject,
+                      html_content: parsed.html_content,
+                      last_improved_at: new Date().toISOString(),
+                      improvement_count: (tpl.improvement_count || 0) + 1,
+                    },
+                  });
+                  toast({ title: "Apprentissage du style", description: `Le modèle "${tpl.template_name}" a été amélioré d'après vos derniers emails.` });
+                }
+              }
+            } catch { /* JSON parse error — skip */ }
+          }
+        }
+      } catch { /* best-effort, non-blocking */ }
     } finally {
       sendingRef.current = false;
     }
