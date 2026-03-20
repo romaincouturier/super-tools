@@ -24,6 +24,8 @@ import { useEffect, useCallback, useState, useRef } from "react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
+import { registerMediaEntry } from "@/hooks/useMedia";
+import { resolveContentType } from "@/lib/file-utils";
 
 interface CrmDescriptionEditorProps {
   content: string;
@@ -47,16 +49,27 @@ const CrmDescriptionEditor = ({
     async (file: File): Promise<string | null> => {
       if (!cardId) return null;
       try {
-        const ext = file.type.split("/")[1] || "png";
+        const contentType = resolveContentType(file);
+        const ext = contentType.split("/")[1] || "png";
         const fileName = `${cardId}/${Date.now()}.${ext}`;
         const { error } = await supabase.storage
           .from("crm-attachments")
-          .upload(fileName, file, { contentType: file.type });
+          .upload(fileName, file, { contentType });
         if (error) throw error;
         const { data: urlData } = supabase.storage
           .from("crm-attachments")
           .getPublicUrl(fileName);
-        return urlData.publicUrl;
+        const publicUrl = urlData.publicUrl;
+        await registerMediaEntry({
+          file_url: publicUrl,
+          file_name: file.name,
+          file_type: "image",
+          mime_type: contentType,
+          file_size: file.size,
+          source_type: "crm",
+          source_id: cardId,
+        });
+        return publicUrl;
       } catch (err) {
         console.error("Image upload error:", err);
         return null;

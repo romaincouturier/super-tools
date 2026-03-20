@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient, QueryClient } from "@tanstack/re
 import { supabase } from "@/integrations/supabase/client";
 import { sanitizeFileName, resolveContentType } from "@/lib/file-utils";
 
-export type MediaSourceType = "mission" | "event" | "training" | "crm" | "content";
+export type MediaSourceType = "mission" | "event" | "training" | "crm" | "content" | "lms";
 
 export interface MediaItem {
   id: string;
@@ -49,6 +49,7 @@ export const useMediaLibrary = () => {
       const trainingIds = [...new Set(rows.filter((r) => r.source_type === "training").map((r) => r.source_id))];
       const crmIds = [...new Set(rows.filter((r) => r.source_type === "crm").map((r) => r.source_id))];
       const contentIds = [...new Set(rows.filter((r) => r.source_type === "content").map((r) => r.source_id))];
+      const lmsIds = [...new Set(rows.filter((r) => r.source_type === "lms").map((r) => r.source_id))];
 
       // Fetch labels
       const labelMap: Record<string, { label: string; emoji: string | null; color: string | null; tags: string[] }> = {};
@@ -100,6 +101,16 @@ export const useMediaLibrary = () => {
           .in("id", contentIds);
         (data || []).forEach((c) => {
           labelMap[c.id] = { label: c.title, emoji: c.emoji ?? null, color: null, tags: ["contenu"] };
+        });
+      }
+
+      if (lmsIds.length > 0) {
+        const { data } = await supabase
+          .from("lms_lessons")
+          .select("id, title")
+          .in("id", lmsIds);
+        (data || []).forEach((l) => {
+          labelMap[l.id] = { label: l.title, emoji: null, color: null, tags: ["formation en ligne"] };
         });
       }
 
@@ -276,6 +287,33 @@ export const uploadMediaFile = async (file: File, sourceType: MediaSourceType, s
     .getPublicUrl(path);
 
   return urlData.publicUrl;
+};
+
+/**
+ * Register a file (already uploaded to any bucket) into the central media library.
+ * Skips silently if the file_url is already registered.
+ */
+export const registerMediaEntry = async (entry: {
+  file_url: string;
+  file_name: string;
+  file_type: "image" | "video" | "video_link";
+  mime_type: string | null;
+  file_size: number | null;
+  source_type: MediaSourceType;
+  source_id: string;
+}) => {
+  try {
+    const { data: session } = await supabase.auth.getSession();
+    const userId = session.session?.user?.id || null;
+    await supabase.from("media").insert({
+      ...entry,
+      position: 0,
+      created_by: userId,
+    });
+  } catch {
+    // Best-effort: don't break the upload flow if registration fails
+    console.warn("Failed to register media entry:", entry.file_url);
+  }
 };
 
 export const deleteMediaFile = async (fileUrl: string) => {
