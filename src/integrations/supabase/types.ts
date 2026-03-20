@@ -4598,6 +4598,7 @@ export type Database = {
           instructions: string | null
           issue_date: string
           line_items: Json
+          loom_script: string | null
           loom_url: string | null
           pdf_path: string | null
           quote_number: string
@@ -4636,6 +4637,7 @@ export type Database = {
           instructions?: string | null
           issue_date?: string
           line_items?: Json
+          loom_script?: string | null
           loom_url?: string | null
           pdf_path?: string | null
           quote_number: string
@@ -4674,6 +4676,7 @@ export type Database = {
           instructions?: string | null
           issue_date?: string
           line_items?: Json
+          loom_script?: string | null
           loom_url?: string | null
           pdf_path?: string | null
           quote_number?: string
