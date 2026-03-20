@@ -17,7 +17,7 @@ export async function logActivity(opts: {
     recipient_email: opts.recipientEmail,
     user_id: opts.userId ?? null,
     details: opts.details ?? null,
-  });
+  } as any);
   if (error) {
     console.error("[logActivity] Failed:", error.message, opts);
   }

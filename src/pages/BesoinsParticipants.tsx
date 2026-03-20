@@ -81,6 +81,7 @@ interface NeedsSurvey {
 }
 
 const BesoinsParticipants = () => {
+  const navigate = useNavigate();
   const { user, loading } = useAuth();
   const [surveys, setSurveys] = useState<NeedsSurvey[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
