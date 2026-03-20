@@ -9,7 +9,7 @@ import {
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
 
 interface CrmAiRequest {
-  action: "analyze_exchanges" | "generate_quote_description" | "improve_email_subject" | "improve_email_body" | "cleanup_dictation" | "suggest_next_action" | "find_website" | "improve_template" | "generate_loom_script";
+  action: "analyze_exchanges" | "generate_quote_description" | "improve_email_subject" | "improve_email_body" | "cleanup_dictation" | "suggest_next_action" | "find_website" | "improve_template" | "generate_loom_script" | "learn_email_style";
   card_data: {
     title?: string;
     description?: string;
@@ -37,6 +37,10 @@ interface CrmAiRequest {
     instructions?: string;
     challenge?: string;
     line_items?: Array<{ label?: string; description?: string; quantity?: number; unit_price?: number }>;
+    // Learn email style fields
+    templates?: Array<{ id: string; template_name: string; subject: string; html_content: string }>;
+    sent_subject?: string;
+    sent_body?: string;
   };
 }
 
@@ -445,6 +449,62 @@ Structure attendue :
 5. **Prochaines étapes** (~15s) — Appel à l'action clair
 
 Pour chaque section, écris des bullet points avec les idées clés à aborder (pas un texte mot à mot). Le formateur doit pouvoir improviser naturellement.`;
+
+        result = await callAnthropic(systemPrompt, userPrompt);
+        break;
+      }
+
+      case "learn_email_style": {
+        const templates = card_data.templates || [];
+        if (templates.length === 0) {
+          result = JSON.stringify({ improved: false, reason: "no_templates" });
+          break;
+        }
+
+        const sentSubject = card_data.sent_subject || "";
+        const sentBody = card_data.sent_body || "";
+        const recentEmails = card_data.emails_sent || [];
+
+        const templateList = templates.map((t, i) =>
+          `[${i}] "${t.template_name}" — Objet: "${t.subject}"\nContenu:\n${t.html_content}`
+        ).join("\n\n---\n\n");
+
+        const recentEmailsList = recentEmails.slice(0, 5).map((e, i) =>
+          `[${i + 1}] Objet: "${e.subject}" (${e.sent_at})\n${e.body_html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().substring(0, 300)}`
+        ).join("\n\n");
+
+        const systemPrompt = `Tu es un expert en rédaction d'emails commerciaux pour SuperTilt, organisme de formation professionnelle certifié Qualiopi.
+
+On te donne l'email que l'utilisateur vient d'envoyer (sans utiliser de template), les derniers emails envoyés, et la liste des templates existants.
+
+Tu dois :
+1. Identifier le template le plus PROCHE de l'email envoyé (par intention et contexte, pas forcément par mots)
+2. Améliorer CE template en intégrant le style, le ton et les formulations de l'email envoyé et des emails récents
+3. Le template doit rester GÉNÉRIQUE et RÉUTILISABLE (garder les variables {{first_name}}, {{company}} etc.)
+
+Règles :
+- Conserve les variables du modèle ({{first_name}}, {{last_name}}, {{company}}, {{title}}, etc.)
+- Si aucun template ne correspond à l'intention de l'email, réponds {"improved": false, "reason": "no_match"}
+- Si le template n'a pas besoin d'amélioration, réponds {"improved": false, "reason": "already_good"}
+- Sinon, réponds en JSON : {"improved": true, "template_index": N, "subject": "...", "html_content": "..."}
+- Conserve le format HTML avec balises <p>`;
+
+        const userPrompt = `Email envoyé (sans template) :
+Objet : "${sentSubject}"
+Contenu :
+${sentBody}
+
+---
+
+Derniers emails envoyés par l'utilisateur :
+${recentEmailsList || "(aucun historique)"}
+
+---
+
+Templates disponibles :
+${templateList}
+
+Analyse et améliore le template le plus pertinent. Réponds en JSON.`;
 
         result = await callAnthropic(systemPrompt, userPrompt);
         break;

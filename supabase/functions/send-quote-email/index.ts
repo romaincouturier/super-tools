@@ -167,6 +167,30 @@ ${signature ? `<br>${signature}` : ""}
       }
     }
 
+    // Upload attachments to Supabase Storage for later download
+    const storagePaths: string[] = [];
+    if (attachments.length > 0 && quoteId) {
+      try {
+        const url = Deno.env.get("SUPABASE_URL")!;
+        const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+        const sb = createClient(url, key);
+        for (const att of attachments) {
+          const bytes = Uint8Array.from(atob(att.content), (c) => c.charCodeAt(0));
+          const storagePath = `emails/${quoteId}/${Date.now()}_${att.filename.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+          const { error: uploadError } = await sb.storage
+            .from("crm-attachments")
+            .upload(storagePath, bytes, { contentType: "application/octet-stream", upsert: false });
+          if (!uploadError) {
+            storagePaths.push(storagePath);
+          } else {
+            console.warn("Attachment upload failed:", uploadError);
+          }
+        }
+      } catch (storageErr) {
+        console.warn("Storage upload failed (non-blocking):", storageErr);
+      }
+    }
+
     const bcc = isTest ? [] : await getBccList();
 
     const result = await sendEmail({
@@ -183,7 +207,7 @@ ${signature ? `<br>${signature}` : ""}
     }
 
     return new Response(
-      JSON.stringify({ success: true, id: result.id }),
+      JSON.stringify({ success: true, id: result.id, attachment_paths: storagePaths }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {

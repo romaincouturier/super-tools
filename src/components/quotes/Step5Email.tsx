@@ -129,7 +129,7 @@ export default function Step5Email({
       });
 
       // Send email via edge function
-      await supabase.functions.invoke("send-quote-email", {
+      const { data: sendResult } = await supabase.functions.invoke("send-quote-email", {
         body: {
           quoteId: quote.id,
           to,
@@ -141,6 +141,7 @@ export default function Step5Email({
 
       // Log email in CRM card history (crm_card_emails)
       const senderEmail = settings?.company_email || "";
+      const attachmentPaths = sendResult?.attachment_paths as string[] | undefined;
       await supabase.from("crm_card_emails").insert({
         card_id: quote.crm_card_id,
         sender_email: senderEmail,
@@ -149,6 +150,7 @@ export default function Step5Email({
         body_html: body.replace(/\n/g, "<br>"),
         sent_at: sentAt,
         attachment_names: [`${quote.quote_number}.pdf`],
+        attachment_paths: attachmentPaths?.length ? attachmentPaths : null,
         delivery_status: "sent",
       });
 

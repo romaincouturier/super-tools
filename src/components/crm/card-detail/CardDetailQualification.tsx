@@ -16,8 +16,11 @@ import {
   X,
   ChevronDown,
   ChevronUp,
+  ExternalLink,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useSearchMissions } from "@/hooks/useMissions";
 import { useUpdateCard } from "@/hooks/useCrmBoard";
@@ -46,6 +49,20 @@ const CardDetailQualification = ({ state, handlers }: Props) => {
   } = state;
 
   const { data: missionSearchResults, isLoading: searchingMissions } = useSearchMissions(missionSearchQuery);
+
+  // Fetch linked mission details for display
+  const { data: linkedMission } = useQuery({
+    queryKey: ["linked-mission", linkedMissionId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("missions")
+        .select("id, title, status")
+        .eq("id", linkedMissionId!)
+        .single();
+      return data;
+    },
+    enabled: !!linkedMissionId,
+  });
 
   return (
     <>
@@ -184,7 +201,15 @@ const CardDetailQualification = ({ state, handlers }: Props) => {
             </h4>
             {linkedMissionId ? (
               <div className="flex items-center justify-between p-2 bg-white rounded border">
-                <span className="text-sm">Mission #{linkedMissionId.slice(0, 8)}</span>
+                <a
+                  href={`/missions/${linkedMissionId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm hover:text-primary transition-colors flex items-center gap-1.5"
+                >
+                  {linkedMission?.title || `Mission #${linkedMissionId.slice(0, 8)}`}
+                  <ExternalLink className="h-3 w-3" />
+                </a>
                 <Button variant="ghost" size="sm" onClick={() => setLinkedMissionId(null)}>
                   <X className="h-4 w-4" />
                 </Button>

@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Trash2, Loader2, X, Plus, Clock, FileText, Settings, ImageIcon, Share2, Check, Sparkles, MapPin, FolderOpen, Package, Calendar } from "lucide-react";
+import { Trash2, Loader2, X, Plus, Clock, FileText, Settings, ImageIcon, Share2, Check, Sparkles, MapPin, FolderOpen, Package, Calendar, ExternalLink, Briefcase } from "lucide-react";
 import { Mission, MissionStatus, missionStatusConfig } from "@/types/missions";
 import { useUpdateMission, useDeleteMission } from "@/hooks/useMissions";
 import { useToast } from "@/hooks/use-toast";
@@ -30,6 +30,7 @@ import NextActionScheduler from "@/components/shared/NextActionScheduler";
 import { useAutoSaveForm } from "@/hooks/useAutoSaveForm";
 import { getGoogleMapsSearchUrl } from "@/lib/googleMaps";
 import { startOfDay, isAfter } from "date-fns";
+import { useQuery } from "@tanstack/react-query";
 
 interface MissionDetailDrawerProps {
   mission: Mission | null;
@@ -112,6 +113,21 @@ const MissionDetailDrawer = ({
   const [scheduledDate, setScheduledDate] = useState("");
   const [scheduledText, setScheduledText] = useState("");
   const [showScheduleForm, setShowScheduleForm] = useState(false);
+
+  // Fetch linked CRM card (opportunity) for this mission
+  const { data: linkedCard } = useQuery({
+    queryKey: ["linked-crm-card", mission?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("crm_cards")
+        .select("id, title")
+        .eq("linked_mission_id", mission!.id)
+        .limit(1)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!mission?.id,
+  });
 
   // Initialize form when a different mission is opened
   const missionId = mission?.id;
@@ -250,6 +266,20 @@ const MissionDetailDrawer = ({
       actions={headerActions}
       contentClassName="overflow-y-auto sm:max-w-5xl"
     >
+        {/* Linked CRM opportunity */}
+        {linkedCard && (
+          <a
+            href={`/crm/card/${linkedCard.id}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-3 flex items-center gap-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-700 hover:bg-blue-100 transition-colors w-fit"
+          >
+            <Briefcase className="h-4 w-4" />
+            Opportunité : {linkedCard.title}
+            <ExternalLink className="h-3 w-3" />
+          </a>
+        )}
+
         {/* Schedule action button + Next Action Scheduler */}
         <div className="mt-3 flex items-start gap-2">
           {!showScheduleForm && (
