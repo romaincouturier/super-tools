@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import ReactMarkdown from "react-markdown";
@@ -80,6 +81,7 @@ interface NeedsSurvey {
 }
 
 const BesoinsParticipants = () => {
+  const navigate = useNavigate();
   const { user, loading } = useAuth();
   const [surveys, setSurveys] = useState<NeedsSurvey[]>([]);
   const [searchTerm, setSearchTerm] = useState("");

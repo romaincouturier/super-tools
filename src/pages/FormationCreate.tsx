@@ -100,7 +100,7 @@ const FormationCreate = () => {
 
       const { data: training, error: trainingError } = await supabase
         .from("trainings")
-        .insert(payload)
+        .insert(payload as any)
         .select()
         .single();
 
