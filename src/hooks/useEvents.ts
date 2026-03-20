@@ -33,7 +33,6 @@ export const useEvent = (id: string | undefined) => {
     },
     enabled: !!id,
     staleTime: 30_000,
-    refetchOnWindowFocus: true,
   });
 };
 
@@ -51,7 +50,6 @@ export const useEventMedia = (eventId: string | undefined) => {
     },
     enabled: !!eventId,
     staleTime: 30_000,
-    refetchOnWindowFocus: true,
   });
 };
 
