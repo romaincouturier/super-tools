@@ -4,6 +4,7 @@ import { getEmailMode } from "@/lib/emailScheduling";
 import { subtractWorkingDays, fetchWorkingDays, fetchNeedsSurveyDelay, scheduleTrainerSummaryIfNeeded } from "@/lib/workingDays";
 import { format, parseISO } from "date-fns";
 import { getErrorMessage } from "@/lib/error-utils";
+import { scheduleEmailsBulk } from "@/services/activityLog";
 import type { ParsedParticipant } from "@/hooks/useParticipantParser";
 import { sendParticipantWelcomeEmail, generateWoocommerceCoupon, sendElearningAccess } from "@/services/participants";
 
@@ -133,10 +134,9 @@ export async function scheduleWelcomeEmailsBatch(
         participant_id: participant.id,
         email_type: "welcome",
         scheduled_for: format(scheduledDate, "yyyy-MM-dd'T'09:00:00"),
-        status: "pending",
       }));
 
-      await supabase.from("scheduled_emails").insert(scheduledEmails);
+      await scheduleEmailsBulk(scheduledEmails);
     }
   } catch (error: unknown) {
     console.error("Failed to schedule welcome emails:", getErrorMessage(error));
@@ -163,10 +163,9 @@ export async function scheduleNeedsSurveyEmails(
         participant_id: participant.id,
         email_type: "needs_survey",
         scheduled_for: format(scheduledDate, "yyyy-MM-dd'T'09:00:00"),
-        status: "pending",
       }));
 
-      await supabase.from("scheduled_emails").insert(scheduledEmails);
+      await scheduleEmailsBulk(scheduledEmails);
       return false; // not skipped
     }
     return true; // skipped
@@ -181,6 +180,7 @@ export async function logBulkAddActivity(
   trainingId: string,
   isInterEntreprise: boolean,
 ): Promise<void> {
+  // Bulk insert activity logs — uses raw supabase for batch efficiency
   const logInserts = participants.map((p) => ({
     action_type: "participant_added",
     recipient_email: p.email,

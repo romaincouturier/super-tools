@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { User } from "@supabase/supabase-js";
+import { useAuth } from "@/hooks/useAuth";
 import {
   Loader2,
   Star,
@@ -91,8 +90,7 @@ interface Analysis {
 }
 
 const Evaluations = () => {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { user, loading } = useAuth();
   const [trainings, setTrainings] = useState<Training[]>([]);
   const [evaluations, setEvaluations] = useState<Evaluation[]>([]);
   const [selectedTraining, setSelectedTraining] = useState<string>("all");
@@ -103,21 +101,14 @@ const Evaluations = () => {
   const [acceptingItem, setAcceptingItem] = useState<string | null>(null);
   const [selectedEvaluation, setSelectedEvaluation] = useState<Evaluation | null>(null);
   const [showDetail, setShowDetail] = useState(false);
-  const navigate = useNavigate();
   const { toast } = useToast();
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session?.user) {
-        navigate("/auth");
-      } else {
-        setUser(session.user);
-        fetchData();
-        checkDeletePermission(session.user.email || "");
-      }
-      setLoading(false);
-    });
-  }, [navigate]);
+    if (user) {
+      fetchData();
+      checkDeletePermission(user.email || "");
+    }
+  }, [user]);
 
   const checkDeletePermission = async (userEmail: string) => {
     // Admin always has permission - check via profiles table

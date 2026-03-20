@@ -174,13 +174,9 @@ const EntityDocumentsManager = ({
                 <div className="min-w-0">
                   <p className="text-sm font-medium truncate">{doc.file_name}</p>
                   <p className="text-xs text-muted-foreground">
+                    {doc.created_at && format(parseISO(doc.created_at), "d MMM yyyy", { locale: fr })}
+                    {doc.created_at && doc.file_size != null && <>{" "}&middot;{" "}</>}
                     {formatFileSize(doc.file_size)}
-                    {doc.created_at && (
-                      <>
-                        {" "}&middot;{" "}
-                        {format(parseISO(doc.created_at), "d MMM yyyy", { locale: fr })}
-                      </>
-                    )}
                   </p>
                 </div>
               </div>

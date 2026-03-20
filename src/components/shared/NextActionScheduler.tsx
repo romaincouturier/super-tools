@@ -6,7 +6,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { X, Loader2, Calendar, Pencil } from "lucide-react";
+import { X, Loader2, Calendar } from "lucide-react";
 import { format, addDays } from "date-fns";
 import { fr } from "date-fns/locale";
 
@@ -75,9 +75,15 @@ const NextActionScheduler = ({
 
   return (
     <>
-      {/* Banner showing current scheduled action */}
+      {/* Banner showing current scheduled action — click to edit */}
       {displayDate && !showForm && (
-        <div className="mb-3 px-3 py-2 bg-blue-50 rounded-lg border border-blue-200 flex items-center justify-between gap-2">
+        <div
+          className="mb-3 px-3 py-2 bg-blue-50 rounded-lg border border-blue-200 flex items-center justify-between gap-2 cursor-pointer hover:bg-blue-100 transition-colors"
+          onClick={() => setShowForm(true)}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setShowForm(true); }}
+        >
           <div className="flex items-center gap-2 text-sm text-blue-700 min-w-0">
             <Calendar className="h-4 w-4 shrink-0" />
             <span className="truncate">
@@ -90,10 +96,7 @@ const NextActionScheduler = ({
             </span>
           </div>
           <div className="flex items-center gap-1 shrink-0">
-            <Button variant="ghost" size="sm" className="h-6 px-2 text-xs text-blue-700 hover:text-blue-900" onClick={() => setShowForm(true)}>
-              <Pencil className="h-3 w-3" />
-            </Button>
-            <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-blue-500 hover:text-blue-700" onClick={handleClear}>
+            <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-blue-500 hover:text-blue-700" onClick={(e) => { e.stopPropagation(); handleClear(); }}>
               <X className="h-3.5 w-3.5" />
             </Button>
           </div>
@@ -184,6 +187,10 @@ const NextActionScheduler = ({
                 value={scheduledDate}
                 onChange={(e) => setScheduledDate(e.target.value)}
                 className="h-7 w-36 text-xs"
+                autoComplete="off"
+                data-form-type="other"
+                data-lpignore="true"
+                data-1p-ignore
               />
             </div>
           </div>

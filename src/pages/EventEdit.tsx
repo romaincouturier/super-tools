@@ -22,6 +22,7 @@ import { useEvent, useUpdateEvent } from "@/hooks/useEvents";
 import AssignedUserSelector from "@/components/formations/AssignedUserSelector";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
+import { useAutoSaveForm } from "@/hooks/useAutoSaveForm";
 
 type ChangeMap = Record<string, { old: string | null; new: string | null }>;
 
@@ -46,7 +47,7 @@ const EventEdit = () => {
     privateGroupUrl: "",
   });
 
-  // For change detection
+  // For change detection (notification)
   const originalRef = useRef<Record<string, string | null> | null>(null);
 
   // Notify dialog state
@@ -58,7 +59,7 @@ const EventEdit = () => {
 
   useEffect(() => {
     if (event) {
-      const mapped = {
+      setValues({
         title: event.title,
         description: event.description || "",
         eventDate: event.event_date,
@@ -70,10 +71,8 @@ const EventEdit = () => {
         eventUrl: event.event_url || "",
         cfpUrl: event.cfp_url || "",
         privateGroupUrl: (event as unknown as { private_group_url?: string }).private_group_url || "",
-      };
-      setValues(mapped);
+      });
       setAssignedTo(event.assigned_to || null);
-      // Store original DB values for change detection
       originalRef.current = {
         title: event.title,
         description: event.description,
@@ -86,7 +85,9 @@ const EventEdit = () => {
         event_url: event.event_url,
         cfp_url: event.cfp_url,
       };
+      resetTracking();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [event]);
 
   // Fetch shares count
@@ -105,7 +106,7 @@ const EventEdit = () => {
     setValues((prev) => ({ ...prev, [field]: value }));
   }, []);
 
-  const buildNewValues = () => {
+  const buildNewValues = useCallback(() => {
     const isExternal = values.eventType === "external";
     const isInternalVisio = values.eventType === "internal" && values.locationType === "visio";
     return {
@@ -122,7 +123,26 @@ const EventEdit = () => {
       private_group_url: isInternalVisio && values.privateGroupUrl.trim() ? values.privateGroupUrl.trim() : null,
       assigned_to: assignedTo,
     };
-  };
+  }, [values, assignedTo]);
+
+  // Auto-save via useAutoSaveForm
+  const handleAutoSave = useCallback(async () => {
+    if (!id || !values.title.trim() || !values.eventDate) return false;
+    try {
+      await updateEvent.mutateAsync({ id, ...buildNewValues() });
+      return true;
+    } catch {
+      return false;
+    }
+  }, [id, values.title, values.eventDate, updateEvent, buildNewValues]);
+
+  const formValues = { ...values, assignedTo };
+
+  const { autoSaving, resetTracking, flushAndGetPending } = useAutoSaveForm({
+    open: !!event,
+    formValues,
+    onSave: handleAutoSave,
+  });
 
   const detectChanges = (newVals: Record<string, string | null>): ChangeMap => {
     const orig = originalRef.current;
@@ -138,36 +158,23 @@ const EventEdit = () => {
     return changes;
   };
 
-  const handleSubmit = async () => {
-    if (!id || !values.title.trim() || !values.eventDate) {
-      toast({
-        title: "Champs requis",
-        description: "Le nom et la date sont obligatoires.",
-        variant: "destructive",
-      });
-      return;
+  const handleBack = async () => {
+    // Flush any pending auto-save
+    const pending = flushAndGetPending();
+    if (pending && id) {
+      try {
+        await updateEvent.mutateAsync({ id, ...buildNewValues() });
+      } catch { /* ignore */ }
     }
 
+    // Check if we need to notify shared recipients
     const newVals = buildNewValues();
-    try {
-      await updateEvent.mutateAsync({ id, ...newVals });
-      toast({ title: "Événement mis à jour" });
-
-      // Check if there are shared recipients and actual changes
-      const changes = detectChanges(newVals);
-      if (sharesCount > 0 && Object.keys(changes).length > 0) {
-        setPendingChanges(changes);
-        setNotifyDialogOpen(true);
-      } else {
-        navigate(`/events/${id}`);
-      }
-    } catch (error) {
-      console.error("Error updating event:", error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de mettre à jour l'événement.",
-        variant: "destructive",
-      });
+    const changes = detectChanges(newVals);
+    if (sharesCount > 0 && Object.keys(changes).length > 0) {
+      setPendingChanges(changes);
+      setNotifyDialogOpen(true);
+    } else {
+      navigate(`/events/${id}`);
     }
   };
 
@@ -208,22 +215,25 @@ const EventEdit = () => {
     <ModuleLayout>
 
       <main className="max-w-2xl mx-auto p-6">
-        <PageHeader icon={CalendarDays} title="Modifier l'événement" backTo={`/events/${id}`} />
+        <PageHeader
+          icon={CalendarDays}
+          title="Modifier l'événement"
+          backTo={`/events/${id}`}
+          onBackClick={handleBack}
+          actions={
+            <>
+              {(autoSaving || updateEvent.isPending) && (
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+              )}
+            </>
+          }
+        />
 
         <EventFormFields values={values} onChange={handleChange} />
 
         <div className="space-y-2 mt-6">
           <Label>Assigné à</Label>
           <AssignedUserSelector value={assignedTo} onChange={setAssignedTo} />
-        </div>
-
-        <div className="flex justify-end gap-3 pt-4">
-          <Button variant="outline" onClick={() => navigate(`/events/${id}`)}>
-            Annuler
-          </Button>
-          <Button onClick={handleSubmit} disabled={updateEvent.isPending}>
-            Enregistrer
-          </Button>
         </div>
       </main>
 

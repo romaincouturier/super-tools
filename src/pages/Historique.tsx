@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { User } from "@supabase/supabase-js";
+import { useAuth } from "@/hooks/useAuth";
 import { Loader2, History, Award, FileText, RefreshCw, Search, X, Calendar, UserPlus, UserMinus, Send, Mail, Edit, Heart, ChevronDown, ChevronUp } from "lucide-react";
 import ModuleLayout from "@/components/ModuleLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -151,39 +150,15 @@ const formatDateForInput = (date: Date): string => {
 };
 
 const Historique = () => {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { user, loading } = useAuth();
   const [logs, setLogs] = useState<ActivityLog[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(true);
-  const navigate = useNavigate();
 
   // Search filters
   const [searchRecipient, setSearchRecipient] = useState("");
   const [searchDetails, setSearchDetails] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
-
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setUser(session?.user ?? null);
-        setLoading(false);
-        if (!session?.user) {
-          navigate("/auth");
-        }
-      }
-    );
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      setLoading(false);
-      if (!session?.user) {
-        navigate("/auth");
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [navigate]);
 
   const fetchLogs = async () => {
     setLoadingLogs(true);

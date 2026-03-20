@@ -8,17 +8,19 @@ interface PageHeaderProps {
   title: string;
   subtitle?: string;
   backTo?: string;
+  /** Custom back click handler. When provided, overrides default navigate(backTo). */
+  onBackClick?: () => void;
   actions?: ReactNode;
 }
 
-const PageHeader = ({ icon: Icon, title, subtitle, backTo, actions }: PageHeaderProps) => {
+const PageHeader = ({ icon: Icon, title, subtitle, backTo, onBackClick, actions }: PageHeaderProps) => {
   const navigate = useNavigate();
 
   return (
     <div className="flex items-center justify-between mb-6">
       <div className="flex items-center gap-4">
         {backTo && (
-          <Button variant="ghost" size="icon" onClick={() => navigate(backTo)}>
+          <Button variant="ghost" size="icon" onClick={onBackClick ?? (() => navigate(backTo))}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
         )}

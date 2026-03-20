@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import DetailDrawer from "@/components/shared/DetailDrawer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Trash2, Loader2, X, Plus, Clock, FileText, Settings, ImageIcon, Share2, Check, Sparkles, MapPin, FolderOpen, CheckCircle2, Package, Calendar } from "lucide-react";
+import { Trash2, Loader2, X, Plus, Clock, FileText, Settings, ImageIcon, Share2, Check, Sparkles, MapPin, FolderOpen, Package, Calendar } from "lucide-react";
 import { Mission, MissionStatus, missionStatusConfig } from "@/types/missions";
 import { useUpdateMission, useDeleteMission } from "@/hooks/useMissions";
 import { useToast } from "@/hooks/use-toast";
@@ -24,10 +24,10 @@ import EmojiPickerButton from "@/components/ui/emoji-picker-button";
 import { supabase } from "@/integrations/supabase/client";
 import LogisticsBookingButtons from "@/components/shared/LogisticsBookingButtons";
 import EntityDocumentsManager from "@/components/shared/EntityDocumentsManager";
-import MissionActionsManager from "./MissionActionsManager";
 import SendDeliverablesDialog from "./SendDeliverablesDialog";
 import AssignedUserSelector from "@/components/formations/AssignedUserSelector";
 import NextActionScheduler from "@/components/shared/NextActionScheduler";
+import { useAutoSaveForm } from "@/hooks/useAutoSaveForm";
 import { getGoogleMapsSearchUrl } from "@/lib/googleMaps";
 import { startOfDay, isAfter } from "date-fns";
 
@@ -61,9 +61,6 @@ const MissionDetailDrawer = ({
   const [showDeliverables, setShowDeliverables] = useState(false);
   const [aiSummary, setAiSummary] = useState<string | null>(null);
   const [aiSummaryLoading, setAiSummaryLoading] = useState(false);
-  const skipNextSaveRef = useRef(true);
-  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pendingUpdatesRef = useRef<{ id: string; updates: Record<string, unknown> } | null>(null);
 
   const handleShareLink = () => {
     if (!mission) return;
@@ -109,7 +106,7 @@ const MissionDetailDrawer = ({
   const [location, setLocation] = useState("");
   const [trainBooked, setTrainBooked] = useState(false);
   const [hotelBooked, setHotelBooked] = useState(false);
-  const [activeTab, setActiveTab] = useState("activities");
+  const [activeTab, setActiveTab] = useState("pages");
   const [activityPageRequest, setActivityPageRequest] = useState<{ activityId: string; description: string } | null>(null);
   const [assignedTo, setAssignedTo] = useState<string | null>(null);
   const [scheduledDate, setScheduledDate] = useState("");
@@ -120,7 +117,6 @@ const MissionDetailDrawer = ({
   const missionId = mission?.id;
   useEffect(() => {
     if (mission) {
-      skipNextSaveRef.current = true;
       setAiSummary(null);
       setTitle(mission.title);
       setDescription(mission.description || "");
@@ -141,68 +137,56 @@ const MissionDetailDrawer = ({
       setScheduledDate(mission.waiting_next_action_date || "");
       setScheduledText(mission.waiting_next_action_text || "");
       setShowScheduleForm(false);
+      resetTracking();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [missionId]);
 
-  // Flush any pending save immediately
-  const flushSave = useCallback(() => {
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current);
-      saveTimeoutRef.current = null;
+  // Build form values for auto-save
+  const formValues = {
+    title: title.trim(),
+    description: description.trim() || null,
+    client_name: clientName.trim() || null,
+    status,
+    start_date: startDate || null,
+    end_date: endDate || null,
+    daily_rate: dailyRate ? parseFloat(dailyRate) : null,
+    total_days: totalDays ? parseInt(totalDays) : null,
+    initial_amount: initialAmount ? parseFloat(initialAmount) : null,
+    tags,
+    color,
+    emoji: missionEmoji,
+    location: location.trim() || null,
+    assigned_to: assignedTo,
+    waiting_next_action_date: scheduledDate || null,
+    waiting_next_action_text: scheduledText.trim() || null,
+  };
+
+  const handleAutoSave = useCallback(async (values: Record<string, unknown>) => {
+    if (!mission) return false;
+    try {
+      await updateMission.mutateAsync({ id: mission.id, updates: values });
+      return true;
+    } catch {
+      return false;
     }
-    if (pendingUpdatesRef.current) {
-      updateMission.mutate(pendingUpdatesRef.current);
-      pendingUpdatesRef.current = null;
-    }
-  }, [updateMission]);
+  }, [mission, updateMission]);
+
+  const { resetTracking, flushAndGetPending } = useAutoSaveForm({
+    open,
+    formValues,
+    onSave: handleAutoSave,
+  });
 
   // Flush pending save when drawer closes
   useEffect(() => {
-    if (!open) flushSave();
-  }, [open, flushSave]);
-
-  // Auto-save settings with debounce
-  useEffect(() => {
-    if (skipNextSaveRef.current) {
-      skipNextSaveRef.current = false;
-      return;
+    if (!open) {
+      const pending = flushAndGetPending();
+      if (pending && mission) {
+        updateMission.mutate({ id: mission.id, updates: pending });
+      }
     }
-    if (!mission) return;
-
-    const payload = {
-      id: mission.id,
-      updates: {
-        title: title.trim(),
-        description: description.trim() || null,
-        client_name: clientName.trim() || null,
-        status,
-        start_date: startDate || null,
-        end_date: endDate || null,
-        daily_rate: dailyRate ? parseFloat(dailyRate) : null,
-        total_days: totalDays ? parseInt(totalDays) : null,
-        initial_amount: initialAmount ? parseFloat(initialAmount) : null,
-        tags,
-        color,
-        emoji: missionEmoji,
-        location: location.trim() || null,
-        assigned_to: assignedTo,
-        waiting_next_action_date: scheduledDate || null,
-        waiting_next_action_text: scheduledText.trim() || null,
-      },
-    };
-
-    pendingUpdatesRef.current = payload;
-
-    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
-    saveTimeoutRef.current = setTimeout(() => {
-      updateMission.mutate(payload);
-      pendingUpdatesRef.current = null;
-      saveTimeoutRef.current = null;
-    }, 800);
-
-    return () => { if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current); };
-  }, [title, description, clientName, status, startDate, endDate, dailyRate, totalDays, initialAmount, tags, color, missionEmoji, location, assignedTo, scheduledDate, scheduledText]);
+  }, [open, flushAndGetPending, mission, updateMission]);
 
   const handleDelete = async () => {
     if (!mission) return;
@@ -246,11 +230,11 @@ const MissionDetailDrawer = ({
       >
         {aiSummaryLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
       </Button>
-      <Button size="sm" variant="outline" onClick={() => setShowScheduleForm(true)} title="Programmer une action">
-        <Calendar className="h-4 w-4" />
-      </Button>
       <Button size="sm" variant="outline" onClick={() => setShowDeliverables(true)} title="Envoyer les livrables">
         <Package className="h-4 w-4" />
+      </Button>
+      <Button size="sm" variant="outline" onClick={() => setActiveTab("settings")} title="Paramètres">
+        <Settings className="h-4 w-4" />
       </Button>
       <Button size="sm" variant="outline" onClick={handleShareLink} title="Copier le lien de partage">
         {copied ? <Check className="h-4 w-4 text-green-600" /> : <Share2 className="h-4 w-4" />}
@@ -266,8 +250,16 @@ const MissionDetailDrawer = ({
       actions={headerActions}
       contentClassName="overflow-y-auto sm:max-w-5xl"
     >
-        {/* Next Action Scheduler */}
-        <div className="mt-3">
+        {/* Schedule action button + Next Action Scheduler */}
+        <div className="mt-3 flex items-start gap-2">
+          {!showScheduleForm && (
+            <Button size="sm" variant="outline" onClick={() => setShowScheduleForm(true)} title="Programmer une action">
+              <Calendar className="h-4 w-4 mr-1.5" />
+              Programmer une action
+            </Button>
+          )}
+        </div>
+        <div className="mt-2">
           <NextActionScheduler
             currentAction={{
               date: mission.waiting_next_action_date,
@@ -339,15 +331,7 @@ const MissionDetailDrawer = ({
         )}
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
-          <TabsList className="grid w-full grid-cols-6">
-            <TabsTrigger value="activities" className="flex items-center gap-2">
-              <Clock className="h-4 w-4" />
-              Activités
-            </TabsTrigger>
-            <TabsTrigger value="actions" className="flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4" />
-              Actions
-            </TabsTrigger>
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="pages" className="flex items-center gap-2">
               <FileText className="h-4 w-4" />
               Pages
@@ -360,9 +344,9 @@ const MissionDetailDrawer = ({
               <ImageIcon className="h-4 w-4" />
               Galerie
             </TabsTrigger>
-            <TabsTrigger value="settings" className="flex items-center gap-2">
-              <Settings className="h-4 w-4" />
-              Paramètres
+            <TabsTrigger value="activities" className="flex items-center gap-2">
+              <Clock className="h-4 w-4" />
+              Activités
             </TabsTrigger>
           </TabsList>
 
@@ -375,11 +359,6 @@ const MissionDetailDrawer = ({
                 setActiveTab("pages");
               }}
             />
-          </TabsContent>
-
-          {/* Actions Tab */}
-          <TabsContent value="actions" className="mt-4">
-            <MissionActionsManager missionId={mission.id} />
           </TabsContent>
 
           {/* Pages Tab */}

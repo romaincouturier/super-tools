@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { logActivity } from "@/services/activityLog";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Loader2, Calendar, Copy, Video } from "lucide-react";
@@ -246,10 +247,10 @@ const DuplicateTrainingDialog = ({
       }
 
       // Log activity
-      await supabase.from("activity_logs").insert({
-        action_type: "training_created",
-        recipient_email: "system",
-        user_id: userId,
+      await logActivity({
+        actionType: "training_created",
+        recipientEmail: "system",
+        userId,
         details: {
           training_id: newTraining.id,
           training_name: original.training_name,

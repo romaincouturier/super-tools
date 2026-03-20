@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { scheduleEmailsBulk } from "@/services/activityLog";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Video, Plus, Trash2, Loader2, ExternalLink, Check, X, Pencil, Copy, FileText, Save } from "lucide-react";
@@ -152,14 +153,12 @@ const LiveMeetingsSection = ({ trainingId }: LiveMeetingsSectionProps) => {
       const emailRows = eligibleParticipants.map((p) => ({
         training_id: trainingId,
         participant_id: p.id,
-        email_type: "live_reminder" as const,
+        email_type: "live_reminder",
         scheduled_for: reminderDate.toISOString(),
-        status: "pending" as const,
-        // Store meeting id in error_message field for tracking (used to delete on edit)
         error_message: `live:${meetingId}`,
       }));
 
-      await supabase.from("scheduled_emails").insert(emailRows);
+      await scheduleEmailsBulk(emailRows);
     } catch (err) {
       console.warn("Failed to schedule live reminders:", err);
     }
