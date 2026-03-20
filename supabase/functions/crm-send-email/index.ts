@@ -182,10 +182,12 @@ serve(async (req) => {
       for (const att of attachments) {
         try {
           const bytes = Uint8Array.from(atob(att.content), (c) => c.charCodeAt(0));
-          const storagePath = `emails/${card_id}/${Date.now()}_${att.filename.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+          const safeFilename = att.filename.replace(/[^a-zA-Z0-9._-]/g, "_");
+          const storagePath = `emails/${card_id}/${Date.now()}_${safeFilename}`;
+          const mimeType = guessMimeType(att.filename);
           const { error: uploadError } = await supabase.storage
             .from("crm-attachments")
-            .upload(storagePath, bytes, { contentType: "application/octet-stream", upsert: false });
+            .upload(storagePath, bytes, { contentType: mimeType, upsert: false });
           if (!uploadError) {
             attachmentPaths.push(storagePath);
           } else {

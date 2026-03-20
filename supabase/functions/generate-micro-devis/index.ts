@@ -232,10 +232,11 @@ async function persistEmailAttachmentsToStorage(
       const safeFilename = attachment.filename.replace(/[^a-zA-Z0-9._-]/g, "_");
       const storagePath = `emails/${cardId}/${Date.now()}_${safeFilename}`;
 
+      const mimeType = guessMimeType(attachment.filename);
       const { error } = await supabase.storage
         .from("crm-attachments")
         .upload(storagePath, bytes, {
-          contentType: "application/octet-stream",
+          contentType: mimeType,
           upsert: false,
         });
 
