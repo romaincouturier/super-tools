@@ -44,7 +44,7 @@ export default function AiAnalysisSection({ analysis, onUpdate, onDelete, onRean
   const startEditing = () => {
     const initial: Record<string, string> = {};
     for (const f of fields) {
-      initial[f.key] = (analysis as Record<string, unknown>)[f.key] as string || "";
+      initial[f.key] = (analysis as unknown as Record<string, string>)[f.key] || "";
     }
     setDraft(initial);
     setEditing(true);
