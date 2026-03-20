@@ -89,7 +89,7 @@ const MediaGrid = ({ items, onOpenLightbox, allTags }: MediaGridProps) => {
             <img
               src={item.file_url}
               alt={item.file_name}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover will-change-transform"
               loading="lazy"
             />
           ) : (
@@ -107,7 +107,7 @@ const MediaGrid = ({ items, onOpenLightbox, allTags }: MediaGridProps) => {
           )}
 
           {/* Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-2">
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity will-change-[opacity] flex flex-col justify-end p-2">
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-1 text-white text-xs truncate">
                 {item.file_type === "image" ? (
@@ -156,7 +156,7 @@ const MediaGrid = ({ items, onOpenLightbox, allTags }: MediaGridProps) => {
           <div className="absolute top-2 left-2">
             <Badge
               variant="secondary"
-              className="text-[10px] px-1.5 py-0 bg-black/50 text-white border-0 backdrop-blur-sm"
+              className="text-[10px] px-1.5 py-0 bg-black/50 text-white border-0 "
             >
               {item.source_emoji || sourceIcon(item.source_type)}
               <span className="ml-1 max-w-[80px] truncate">{item.source_label}</span>
@@ -170,7 +170,7 @@ const MediaGrid = ({ items, onOpenLightbox, allTags }: MediaGridProps) => {
                 <Badge
                   key={tag}
                   variant="secondary"
-                  className="text-[10px] px-1.5 py-0 bg-primary/80 text-primary-foreground border-0 backdrop-blur-sm"
+                  className="text-[10px] px-1.5 py-0 bg-primary/80 text-primary-foreground border-0 "
                 >
                   {tag}
                 </Badge>
@@ -178,7 +178,7 @@ const MediaGrid = ({ items, onOpenLightbox, allTags }: MediaGridProps) => {
               {(item.tags || []).length > 2 && (
                 <Badge
                   variant="secondary"
-                  className="text-[10px] px-1.5 py-0 bg-black/50 text-white border-0 backdrop-blur-sm"
+                  className="text-[10px] px-1.5 py-0 bg-black/50 text-white border-0 "
                 >
                   +{(item.tags || []).length - 2}
                 </Badge>

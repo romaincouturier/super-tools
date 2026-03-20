@@ -316,7 +316,7 @@ const EntityMediaManager = ({
                   <img
                     src={item.file_url}
                     alt={item.file_name}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover will-change-transform"
                     loading="lazy"
                   />
                 ) : (
@@ -334,7 +334,7 @@ const EntityMediaManager = ({
                 )}
 
                 {/* Hover overlay */}
-                <div className="absolute inset-0 bg-black/60 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity flex items-center justify-center gap-1 z-10">
+                <div className="absolute inset-0 bg-black/60 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity will-change-[opacity] flex items-center justify-center gap-1 z-10">
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
