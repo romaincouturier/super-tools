@@ -250,7 +250,25 @@ const ContentCardDialog = ({
         .from("content-images")
         .getPublicUrl(fileName);
 
-      setImageUrl(urlData.publicUrl);
+      const publicUrl = urlData.publicUrl;
+      setImageUrl(publicUrl);
+
+      // Register in media library if card exists
+      if (card) {
+        const session = await supabase.auth.getSession();
+        await supabase.from("media").insert({
+          file_url: publicUrl,
+          file_name: file.name,
+          file_type: "image",
+          mime_type: file.type,
+          file_size: file.size,
+          source_type: "content",
+          source_id: card.id,
+          position: 0,
+          created_by: session.data.session?.user?.id || null,
+        });
+      }
+
       toast.success("Image téléchargée");
     } catch (error) {
       console.error("Error uploading image:", error);
