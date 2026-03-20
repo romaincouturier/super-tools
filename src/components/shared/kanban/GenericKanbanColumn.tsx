@@ -38,7 +38,7 @@ export default function GenericKanbanColumn<
   // When useSortable is active (columnSortableId set), it already registers
   // a droppable zone — using useDroppable on the same node causes double-registration
   // conflicts that break drop detection on new/empty columns.
-  const { setNodeRef: setDroppableRef, isOver: isDroppableOver } = useDroppable({
+  const { setNodeRef: setDroppableRef } = useDroppable({
     id: column.id,
     disabled: !!columnSortableId,
   });
@@ -50,13 +50,10 @@ export default function GenericKanbanColumn<
     transform,
     transition,
     isDragging: isColumnDragging,
-    isOver: isSortableOver,
   } = useSortable({
     id: columnSortableId ?? `__col_disabled_${column.id}`,
     disabled: !columnSortableId,
   });
-
-  const isOver = isDroppableOver || isSortableOver;
 
   const style = columnSortableId
     ? { transform: CSS.Transform.toString(transform), transition }
@@ -81,7 +78,6 @@ export default function GenericKanbanColumn<
       style={style}
       className={cn(
         "flex-shrink-0 w-72 bg-muted/30 rounded-lg flex flex-col",
-        isOver && "ring-2 ring-primary",
         isColumnDragging && "opacity-50",
         className,
       )}
