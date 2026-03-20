@@ -67,7 +67,7 @@ function withResolvedAt(payload: Record<string, unknown>, status?: string): Reco
 
 export async function updateSupportTicket(
   id: string,
-  updates: Partial<Pick<SupportTicket, "title" | "type" | "status" | "priority" | "assigned_to" | "resolution_notes" | "position" | "page_url">>
+  updates: Partial<Pick<SupportTicket, "title" | "type" | "status" | "priority" | "assigned_to" | "resolution_notes" | "position" | "page_url" | "ai_analysis">>
 ): Promise<SupportTicket> {
   const payload = withResolvedAt({ ...updates }, updates.status);
   const { data, error } = await (supabase as unknown as { from: (table: string) => ReturnType<typeof supabase.from> })
