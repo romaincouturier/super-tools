@@ -25,6 +25,7 @@ import ReviewSection from "./ReviewSection";
 import RichTextEditor from "./RichTextEditor";
 import EmojiPickerButton from "@/components/ui/emoji-picker-button";
 import { cn } from "@/lib/utils";
+import ImageLightbox from "@/components/ui/image-lightbox";
 
 type AiActionType = "reformulate" | "adapt_blog" | "adapt_linkedin" | "adapt_instagram";
 
