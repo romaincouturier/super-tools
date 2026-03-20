@@ -192,6 +192,7 @@ const CardDetailDrawer = ({
       setLinkedMissionId(card.linked_mission_id || null);
       setMissionSearchQuery("");
       setShowMissionSearch(false);
+      setEmailTo(card.email || "");
       setAiAnalysis(null);
       setQuoteDescription(null);
       setDescriptionSaved(false);
