@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useState } from "react";
 import { MoreHorizontal, Pencil, Trash2, Eye } from "lucide-react";
+import ImageLightbox from "@/components/ui/image-lightbox";
 import type { ContentTypeColors } from "./KanbanBoard";
 import { Button } from "@/components/ui/button";
 import {
