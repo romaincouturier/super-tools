@@ -57,8 +57,11 @@ const EventEdit = () => {
   const [notifying, setNotifying] = useState(false);
   const [assignedTo, setAssignedTo] = useState<string | null>(null);
 
+  const prevEventIdRef = useRef<string | null>(null);
+
   useEffect(() => {
-    if (event) {
+    if (event && event.id !== prevEventIdRef.current) {
+      prevEventIdRef.current = event.id;
       setValues({
         title: event.title,
         description: event.description || "",
