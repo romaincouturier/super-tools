@@ -40,6 +40,14 @@ _(aucune règle pour le moment)_
 
 ## Convention
 
+### [005] Overlays hover sur images — toujours promouvoir en couche GPU
+- **Constat** : Les vignettes de la galerie (`MediaGrid`, `EntityMediaManager`) ramaient au hover. Les overlays `transition-opacity` sur des images pleine résolution déclenchaient un repaint complet à chaque frame. Le `backdrop-blur-sm` sur les badges aggravait le problème.
+- **Règle** : Tout overlay avec `transition-opacity` sur une image doit avoir `will-change-[opacity]`. Les images sous l'overlay doivent avoir `will-change-transform`. Ne jamais utiliser `backdrop-blur` sur des éléments qui se superposent à des images dans une grille.
+- **Vérification** : Chercher `transition-opacity` dans les composants media/galerie — vérifier que `will-change` est présent. Chercher `backdrop-blur` sur des badges superposés à des images.
+- **Fichiers de référence** : `src/components/media/MediaGrid.tsx`, `src/components/media/EntityMediaManager.tsx`
+- **Origine** : lag au hover sur les vignettes de la galerie
+- **Date** : 2026-03-20
+
 ### [004] Toujours utiliser resolveContentType() — jamais file.type directement
 - **Constat** : `file.type` peut être vide sur certains navigateurs (notamment Safari pour les SVG). La fonction `resolveContentType()` gère ce cas avec un fallback par extension.
 - **Règle** : Ne jamais utiliser `file.type` directement. Toujours passer par `resolveContentType(file)`.
