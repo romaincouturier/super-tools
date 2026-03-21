@@ -302,12 +302,12 @@ serve(async (req) => {
         )
       );
 
-      // 10c. Commentaires non résolus
+      // 10c. Commentaires non résolus (groupés par article)
       const userComments = commentsByUserId.get(recipient.userId);
       if (userComments && userComments.length > 0) {
         add("💬", "Commentaires non résolus", COLORS.purple,
           userComments.map(c =>
-            `<li>${linkHtml(`${appUrl}/contenu?card=${c.cardId}`, `💬 ${c.cardTitle}`)} — ${c.contentPreview}</li>`
+            `<li>${linkHtml(`${appUrl}/contenu?card=${c.cardId}`, c.cardTitle)} — ${c.commentCount} commentaire${c.commentCount > 1 ? "s" : ""} en attente</li>`
           )
         );
       }

@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { resolveContentType } from "@/lib/file-utils";
 import MentionTextarea, { MentionUser } from "./MentionTextarea";
 import {
   Select,
@@ -220,7 +221,7 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
 
       const { data: uploadData, error } = await supabase.functions.invoke(
         "create-review-image-upload-url",
-        { body: { originalFileName: file.name, mimeType: file.type, reviewId: cardId, fileBase64 } }
+        { body: { originalFileName: file.name, mimeType: resolveContentType(file), reviewId: cardId, fileBase64 } }
       );
       if (error) throw error;
       return (uploadData as Record<string, unknown> | null)?.publicUrl as string || null;

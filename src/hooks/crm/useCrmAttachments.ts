@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { logCrmActivity } from "@/services/crmActivity";
+import { resolveContentType } from "@/lib/file-utils";
 import { useCrmMutation } from "./useCrmMutation";
 
 export const useAddAttachment = () =>
@@ -25,7 +26,7 @@ export const useAddAttachment = () =>
         file_name: file.name,
         file_path: filePath,
         file_size: file.size,
-        mime_type: file.type,
+        mime_type: resolveContentType(file),
       });
       if (error) throw error;
       await logCrmActivity(cardId, "attachment_added", actorEmail, null, file.name);

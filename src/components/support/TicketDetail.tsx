@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { Bug, Lightbulb, Mic, MicOff, Loader2, Sparkles } from "lucide-react";
+import { Bug, Lightbulb, Mic, MicOff, Loader2, Sparkles, Copy, Check } from "lucide-react";
 import { SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,11 +13,14 @@ import { toast } from "sonner";
 import {
   SUPPORT_COLUMNS,
   TICKET_TYPE_CONFIG,
+  TICKET_PRIORITY_CONFIG,
   type SupportTicket,
   type TicketType,
   type TicketPriority,
   type TicketStatus,
   type TicketAiAnalysis,
+  type BugAnalysis,
+  type EvolutionAnalysis,
 } from "@/types/support";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -74,6 +77,47 @@ export default function TicketDetail({ ticket, onUpdate }: Props) {
     }
   };
 
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyAll = useCallback(() => {
+    const priorityLabel = TICKET_PRIORITY_CONFIG[ticket.priority].label;
+    const statusLabel = SUPPORT_COLUMNS.find((c) => c.id === ticket.status)?.name || ticket.status;
+    const lines: string[] = [
+      `# ${ticket.ticket_number} — ${ticket.title}`,
+      "",
+      `- **Type** : ${ticket.type === "bug" ? "Bug" : "Évolution"}`,
+      `- **Priorité** : ${priorityLabel}`,
+      `- **Statut** : ${statusLabel}`,
+      ticket.page_url ? `- **Page** : ${ticket.page_url}` : "",
+      ticket.assigned_to ? `- **Assigné à** : ${ticket.assigned_to}` : "",
+      ticket.submitted_by_email ? `- **Soumis par** : ${ticket.submitted_by_email}` : "",
+      "",
+      "## Description",
+      ticket.description,
+    ];
+
+    if (ticket.ai_analysis) {
+      const a = ticket.ai_analysis;
+      lines.push("", "## Analyse IA");
+      if (a.type === "bug") {
+        const bug = a as BugAnalysis;
+        lines.push(`### Constat\n${bug.constat}`, `### Reproduction\n${bug.reproduction}`, `### Situation désirée\n${bug.situation_desiree}`, `### Procédure de test\n${bug.procedure_test}`);
+      } else {
+        const evo = a as EvolutionAnalysis;
+        lines.push(`### User stories\n${evo.user_stories}`, `### Critères d'acceptation\n${evo.criteres_acceptation}`, `### Impact produit\n${evo.impact_produit}`);
+      }
+    }
+
+    if (ticket.resolution_notes) {
+      lines.push("", "## Notes de résolution", ticket.resolution_notes);
+    }
+
+    navigator.clipboard.writeText(lines.filter((l) => l !== undefined).join("\n"));
+    setCopied(true);
+    toast.success("Ticket copié dans le presse-papier");
+    setTimeout(() => setCopied(false), 2000);
+  }, [ticket]);
+
   return (
     <ScrollArea className="h-full">
       <SheetHeader className="mb-6">
@@ -83,6 +127,10 @@ export default function TicketDetail({ ticket, onUpdate }: Props) {
             {typeConf.label}
           </Badge>
           <span className="text-sm font-mono text-muted-foreground">{ticket.ticket_number}</span>
+          <Button variant="ghost" size="sm" className="h-7 px-2 ml-auto gap-1.5 text-xs" onClick={handleCopyAll}>
+            {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+            {copied ? "Copié" : "Tout copier"}
+          </Button>
         </div>
         <SheetTitle className="text-left sr-only">{ticket.title}</SheetTitle>
       </SheetHeader>
@@ -100,7 +148,7 @@ export default function TicketDetail({ ticket, onUpdate }: Props) {
         </div>
 
         {/* Type + Priorité + Statut */}
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div className="space-y-1.5">
             <Label className="text-xs text-muted-foreground">Type</Label>
             <Select value={type} onValueChange={(v) => { const t = v as TicketType; setType(t); onUpdate(ticket.id, { type: t }); }}>

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { FileText, Upload, Trash2, Loader2, Send, Receipt, Mail, User, ClipboardList, Award } from "lucide-react";
+import { resolveContentType } from "@/lib/file-utils";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
@@ -121,7 +122,7 @@ const ParticipantDocumentsDialog = ({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!file.type.includes("pdf")) {
+    if (!resolveContentType(file).includes("pdf")) {
       toast({
         title: "Format non supporté",
         description: "Seuls les fichiers PDF sont acceptés.",

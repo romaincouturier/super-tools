@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { useCreateSupportTicket, useAnalyzeTicket } from "@/hooks/useSupport";
+import { resolveContentType } from "@/lib/file-utils";
 
 const MAX_FILES = 5;
 const ACCEPTED_TYPES = [
@@ -42,7 +43,7 @@ export function ChatbotFeedbackTab() {
   const addFiles = (newFiles: FileList | File[]) => {
     const toAdd: File[] = [];
     for (const file of Array.from(newFiles)) {
-      if (!ACCEPTED_TYPES.includes(file.type)) {
+      if (!ACCEPTED_TYPES.includes(resolveContentType(file))) {
         toast({ title: "Type non supporté", description: `"${file.name}" n'est pas un format accepté.`, variant: "destructive" });
         continue;
       }
@@ -176,7 +177,7 @@ export function ChatbotFeedbackTab() {
                   key={`${file.name}-${i}`}
                   className="flex items-center gap-2 p-2 rounded-md bg-muted/50 text-sm"
                 >
-                  {isImageType(file.type) ? (
+                  {isImageType(resolveContentType(file)) ? (
                     <ImageIcon className="h-3.5 w-3.5 text-blue-500 shrink-0" />
                   ) : (
                     <FileIcon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />

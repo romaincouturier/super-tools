@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
+import { resolveContentType } from "@/lib/file-utils";
 import { cn } from "@/lib/utils";
 import {
   AlertDialog,
@@ -128,7 +129,7 @@ const ProgramSelector = ({
     if (!file) return;
 
     // Validate file type
-    if (!file.type.includes("pdf")) {
+    if (!resolveContentType(file).includes("pdf")) {
       toast({
         title: "Format non supporté",
         description: "Seuls les fichiers PDF sont acceptés.",

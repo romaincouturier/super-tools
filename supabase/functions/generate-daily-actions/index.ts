@@ -195,15 +195,15 @@ serve(async (req) => {
       });
     }
 
-    // 6bis. Commentaires non résolus (strictAssigned, one per target user)
+    // 6bis. Commentaires non résolus — groupés par article (strictAssigned, one per target user)
     for (const c of data.unresolvedComments) {
       for (const uid of c.targetUserIds) {
         actions.push({
           category: "commentaires_contenu",
           title: `💬 ${c.cardTitle}`,
-          description: `Commentaire non résolu : ${c.contentPreview}`,
+          description: `${c.commentCount} commentaire${c.commentCount > 1 ? "s" : ""} non résolu${c.commentCount > 1 ? "s" : ""}`,
           link: `${appUrl}/contenu?card=${c.cardId}`,
-          entityType: "review_comment", entityId: c.id,
+          entityType: "card_comments", entityId: c.cardId,
           assignedTo: uid, scope: "strictAssigned",
         });
       }

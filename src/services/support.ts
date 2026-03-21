@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import { sanitizeFileName } from "@/lib/file-utils";
+import { sanitizeFileName, resolveContentType } from "@/lib/file-utils";
 import type { SupportTicket, TicketStatus, TicketAiAnalysis } from "@/types/support";
 
 export async function fetchSupportTickets(): Promise<SupportTicket[]> {
@@ -50,7 +50,7 @@ export async function createSupportTicket(
         file_name: file.name,
         file_path: filePath,
         file_size: file.size,
-        mime_type: file.type,
+        mime_type: resolveContentType(file),
       });
     }
   }
@@ -65,6 +65,24 @@ function withResolvedAt(payload: Record<string, unknown>, status?: string): Reco
   return payload;
 }
 
+/** Best-effort email to the ticket submitter when the ticket is resolved/closed. */
+async function notifyTicketResolved(ticket: SupportTicket): Promise<void> {
+  if (!ticket.submitted_by_email) return;
+  try {
+    await supabase.functions.invoke("send-support-notification", {
+      body: {
+        recipientEmail: ticket.submitted_by_email,
+        ticketNumber: ticket.ticket_number,
+        ticketTitle: ticket.title,
+        status: ticket.status,
+        resolutionNotes: ticket.resolution_notes || null,
+      },
+    });
+  } catch (err) {
+    console.error("Failed to send support notification:", err);
+  }
+}
+
 export async function updateSupportTicket(
   id: string,
   updates: Partial<Pick<SupportTicket, "title" | "type" | "status" | "priority" | "assigned_to" | "resolution_notes" | "position" | "page_url" | "ai_analysis">>
@@ -77,6 +95,11 @@ export async function updateSupportTicket(
     .select()
     .single();
   if (error) throw error;
+
+  if (updates.status === "resolu" || updates.status === "ferme") {
+    notifyTicketResolved(data);
+  }
+
   return data;
 }
 
@@ -86,9 +109,15 @@ export async function moveSupportTicket(
   newPosition: number
 ): Promise<void> {
   const payload = withResolvedAt({ status: newStatus, position: newPosition }, newStatus);
-  const { error } = await (supabase as unknown as { from: (table: string) => ReturnType<typeof supabase.from> })
+  const { data, error } = await (supabase as unknown as { from: (table: string) => ReturnType<typeof supabase.from> })
     .from("support_tickets")
     .update(payload)
-    .eq("id", id);
+    .eq("id", id)
+    .select()
+    .single();
   if (error) throw error;
+
+  if (newStatus === "resolu" || newStatus === "ferme") {
+    notifyTicketResolved(data);
+  }
 }

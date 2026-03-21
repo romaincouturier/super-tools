@@ -6,6 +6,7 @@ import {
   deleteSignedConvention,
 } from "@/services/participants";
 import type { ConventionSignatureStatus } from "@/services/participants";
+import { resolveContentType } from "@/lib/file-utils";
 
 export interface UseParticipantConventionOptions {
   participantId: string;
@@ -59,7 +60,7 @@ export function useParticipantConvention({
     async (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (!file) return;
-      if (!file.type.includes("pdf")) {
+      if (!resolveContentType(file).includes("pdf")) {
         toast({
           title: "Format non support\u00e9",
           description: "Seuls les fichiers PDF sont accept\u00e9s.",

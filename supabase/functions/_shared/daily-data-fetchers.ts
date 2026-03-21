@@ -102,10 +102,9 @@ export interface BlockedArticleItem {
 }
 
 export interface UnresolvedCommentItem {
-  id: string;
   cardId: string;
   cardTitle: string;
-  contentPreview: string;
+  commentCount: number;
   targetUserIds: string[];
 }
 
@@ -546,28 +545,37 @@ export async function fetchUnresolvedComments(supabase: SupabaseClient): Promise
     .is("parent_comment_id", null);
 
   if (!data) return [];
-  const results: UnresolvedCommentItem[] = [];
+
+  // Group comments by card (article)
+  const byCard = new Map<string, { cardTitle: string; commentCount: number; targetUserIds: Set<string> }>();
   for (const c of data as any[]) {
     const card = c.content_cards;
     if (!card?.column_id) continue;
     const assignment = REVIEW_COLUMN_ASSIGNMENTS[card.column_id];
     if (!assignment) continue;
 
-    const preview = c.content?.length > 60 ? c.content.slice(0, 60) + "…" : (c.content || "");
-    const targetUserIds = new Set<string>();
-    targetUserIds.add(assignment.userId);
-    if (c.author_id) targetUserIds.add(c.author_id);
-    if (c.assigned_to) targetUserIds.add(c.assigned_to);
-    if (c.mentioned_user_ids && Array.isArray(c.mentioned_user_ids)) {
-      for (const uid of c.mentioned_user_ids) targetUserIds.add(uid);
+    const cardId = c.card_id as string;
+    let group = byCard.get(cardId);
+    if (!group) {
+      group = { cardTitle: card?.title || "Sans titre", commentCount: 0, targetUserIds: new Set<string>() };
+      byCard.set(cardId, group);
     }
+    group.commentCount++;
+    group.targetUserIds.add(assignment.userId);
+    if (c.author_id) group.targetUserIds.add(c.author_id);
+    if (c.assigned_to) group.targetUserIds.add(c.assigned_to);
+    if (c.mentioned_user_ids && Array.isArray(c.mentioned_user_ids)) {
+      for (const uid of c.mentioned_user_ids) group.targetUserIds.add(uid);
+    }
+  }
 
+  const results: UnresolvedCommentItem[] = [];
+  for (const [cardId, group] of byCard) {
     results.push({
-      id: c.id,
-      cardId: c.card_id,
-      cardTitle: card?.title || "Sans titre",
-      contentPreview: preview,
-      targetUserIds: [...targetUserIds],
+      cardId,
+      cardTitle: group.cardTitle,
+      commentCount: group.commentCount,
+      targetUserIds: [...group.targetUserIds],
     });
   }
   return results;

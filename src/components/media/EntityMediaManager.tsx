@@ -14,7 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { downloadFile as downloadFileUtil, promptRenameFile, resolveContentType } from "@/lib/file-utils";
+import { downloadFile as downloadFileUtil, promptRenameFile, getFileType, resolveContentType } from "@/lib/file-utils";
 import { ImageIcon, Video, Plus, Loader2, Upload, Trash2, Play, Download, Package, DownloadCloud, Pencil } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import MediaLightbox from "@/components/media/MediaLightbox";
@@ -30,13 +30,6 @@ interface EntityMediaManagerProps {
   /** Also allow video_link entries (for events) */
   allowVideoLinks?: boolean;
 }
-
-const getFileType = (file: File): "image" | "video" | null => {
-  const mime = resolveContentType(file);
-  if (mime.startsWith("image/")) return "image";
-  if (mime.startsWith("video/")) return "video";
-  return null;
-};
 
 const EntityMediaManager = ({
   sourceType,
@@ -94,7 +87,7 @@ const EntityMediaManager = ({
             file_url: fileUrl,
             file_name: file.name,
             file_type: fileType,
-            mime_type: file.type,
+            mime_type: resolveContentType(file),
             file_size: file.size,
             position: 0,
             source_type: sourceType,
