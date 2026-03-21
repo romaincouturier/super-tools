@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
-import { Plus, Loader2, Search, X, Building, User } from "lucide-react";
+import { Plus, Loader2, Search, X, Building, User, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -17,7 +17,8 @@ import { isAfter, startOfDay } from "date-fns";
 import { celebrateWin } from "@/lib/celebrateWin";
 import { isWonColumnName, isLostColumnName } from "@/lib/crmColumnStatus";
 import GenericKanbanBoard from "@/components/shared/kanban/GenericKanbanBoard";
-import type { KanbanColumnDef, KanbanCardDef, KanbanDropResult } from "@/types/kanban";
+import KanbanStatsDialog from "@/components/shared/kanban/KanbanStatsDialog";
+import type { KanbanColumnDef, KanbanCardDef, KanbanDropResult, KanbanStatsItem } from "@/types/kanban";
 
 type CrmKanbanCard = CrmCard & KanbanCardDef;
 type CrmKanbanColumn = CrmColumnType & KanbanColumnDef;
@@ -39,6 +40,7 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
 
   const [selectedCard, setSelectedCard] = useState<CrmCard | null>(null);
   const [showAddColumn, setShowAddColumn] = useState(false);
+  const [showStats, setShowStats] = useState(false);
 
   // Training creation dialog state
   const [showCreateTrainingDialog, setShowCreateTrainingDialog] = useState(false);
@@ -174,6 +176,23 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
     return boardData.columns.map((col) => ({
       ...col,
     }));
+  }, [boardData?.columns]);
+
+  const statsItems: KanbanStatsItem[] = useMemo(() => {
+    if (!boardData?.cards) return [];
+    return boardData.cards.map((c) => ({
+      id: c.id,
+      columnId: c.column_id,
+      createdAt: c.created_at,
+      completedAt: c.won_at || c.lost_at,
+    }));
+  }, [boardData?.cards]);
+
+  const doneColumnIds = useMemo(() => {
+    if (!boardData?.columns) return [];
+    return boardData.columns
+      .filter((col) => isWonColumnName(col.name) || isLostColumnName(col.name))
+      .map((col) => col.id);
   }, [boardData?.columns]);
 
   // Handle loss reason dialog confirmation from drag
@@ -469,6 +488,11 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
           </Button>
         ))}
       </div>
+
+      <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setShowStats(true)} title="Statistiques du pipeline">
+        <BarChart3 className="h-3.5 w-3.5 mr-1" />
+        <span className="hidden sm:inline">Statistiques</span>
+      </Button>
       </div>
 
       <GenericKanbanBoard<CrmKanbanCard, CrmKanbanColumn>
@@ -534,6 +558,14 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
         open={showLossReasonDialog}
         onConfirm={handleDragLossReasonConfirm}
         onCancel={handleDragLossReasonCancel}
+      />
+
+      <KanbanStatsDialog
+        open={showStats}
+        onOpenChange={setShowStats}
+        columns={kanbanColumns}
+        items={statsItems}
+        doneColumnIds={doneColumnIds}
       />
     </div>
   );

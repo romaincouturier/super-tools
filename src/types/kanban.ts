@@ -51,3 +51,12 @@ export interface GenericKanbanBoardProps<
   columnClassName?: string;
   boardClassName?: string;
 }
+
+/** Item format for kanban statistics (CFD + control chart). */
+export interface KanbanStatsItem {
+  id: string;
+  columnId: string;
+  createdAt: string;
+  /** Date the item reached a "done" column (for cycle time). */
+  completedAt?: string | null;
+}

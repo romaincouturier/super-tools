@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Loader2, Settings2, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { Plus, Loader2, Settings2, MoreHorizontal, Pencil, Trash2, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -20,7 +20,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useUserPreference } from "@/hooks/useUserPreferences";
 import GenericKanbanBoard from "@/components/shared/kanban/GenericKanbanBoard";
-import type { KanbanColumnDef, KanbanCardDef } from "@/types/kanban";
+import KanbanStatsDialog from "@/components/shared/kanban/KanbanStatsDialog";
+import type { KanbanColumnDef, KanbanCardDef, KanbanStatsItem } from "@/types/kanban";
 import ContentCard from "./ContentCard";
 import ContentCardDialog from "./ContentCardDialog";
 import AddColumnDialog from "@/components/shared/AddColumnDialog";
@@ -51,6 +52,7 @@ export interface Card {
   card_type?: ContentCardType;
   emoji?: string | null;
   newsletter_name?: string | null;
+  created_at?: string;
 }
 
 export interface Column {
@@ -80,6 +82,7 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
   const [loading, setLoading] = useState(true);
   const [showAddColumn, setShowAddColumn] = useState(false);
   const [showColorSettings, setShowColorSettings] = useState(false);
+  const [showStats, setShowStats] = useState(false);
   const [editingCard, setEditingCard] = useState<Card | null>(null);
   const [newCardColumnId, setNewCardColumnId] = useState<string | null>(null);
   const [renameColumn, setRenameColumn] = useState<Column | null>(null);
@@ -258,6 +261,20 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
       position: card.display_order,
     }));
   }, [cards, filterReviewOnly, showPublished, cardIdsInReview, cardIdsInSentNewsletter]);
+
+  const statsItems: KanbanStatsItem[] = useMemo(() => {
+    return cards.map((c) => ({
+      id: c.id,
+      columnId: c.column_id,
+      createdAt: c.created_at || new Date().toISOString(),
+      completedAt: null,
+    }));
+  }, [cards]);
+
+  const archiveColumnId = useMemo(() => {
+    const archiveCol = columns.find((c) => c.name.toLowerCase() === "archive");
+    return archiveCol ? [archiveCol.id] : [];
+  }, [columns]);
 
   // --- Column actions ---
 
@@ -524,6 +541,15 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
           variant="ghost"
           size="sm"
           className="h-7 px-2 text-muted-foreground"
+          onClick={() => setShowStats(true)}
+          title="Statistiques du tableau"
+        >
+          <BarChart3 className="h-3.5 w-3.5" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-7 px-2 text-muted-foreground"
           onClick={() => setShowColorSettings(true)}
         >
           <Settings2 className="h-3.5 w-3.5" />
@@ -692,6 +718,14 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
         onOpenChange={setShowColorSettings}
         colors={colors}
         onSave={saveTypeColors}
+      />
+
+      <KanbanStatsDialog
+        open={showStats}
+        onOpenChange={setShowStats}
+        columns={kanbanColumns}
+        items={statsItems}
+        doneColumnIds={archiveColumnId}
       />
     </div>
   );

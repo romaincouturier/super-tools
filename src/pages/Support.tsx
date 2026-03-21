@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useRef } from "react";
-import { Loader2, LifeBuoy, Bug, Lightbulb, Plus, Search, X, AlertCircle, ClipboardCopy, ImagePlus, Sparkles } from "lucide-react";
+import { Loader2, LifeBuoy, Bug, Lightbulb, Plus, Search, X, AlertCircle, ClipboardCopy, ImagePlus, Sparkles, BarChart3 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,7 +23,8 @@ import {
   type TicketType,
   type TicketStatus,
 } from "@/types/support";
-import type { KanbanDropResult } from "@/types/kanban";
+import type { KanbanDropResult, KanbanStatsItem } from "@/types/kanban";
+import KanbanStatsDialog from "@/components/shared/kanban/KanbanStatsDialog";
 
 const Support = () => {
   const { toast } = useToast();
@@ -37,6 +38,7 @@ const Support = () => {
   const [filterType, setFilterType] = useState<"all" | TicketType>("all");
   const [createOpen, setCreateOpen] = useState(false);
   const [detailTicket, setDetailTicket] = useState<SupportTicket | null>(null);
+  const [showStats, setShowStats] = useState(false);
 
   // New ticket form state — simplified: description + optional image only
   const [newDescription, setNewDescription] = useState("");
@@ -78,6 +80,16 @@ const Support = () => {
       evolutions: tickets.filter((t) => t.type === "evolution").length,
       open: tickets.filter((t) => t.status !== "ferme" && t.status !== "resolu").length,
     };
+  }, [tickets]);
+
+  const statsItems: KanbanStatsItem[] = useMemo(() => {
+    if (!tickets) return [];
+    return tickets.map((t) => ({
+      id: t.id,
+      columnId: t.status,
+      createdAt: t.created_at,
+      completedAt: t.resolved_at,
+    }));
   }, [tickets]);
 
   const handleCardMove = async (result: KanbanDropResult<SupportTicketCard>) => {
@@ -226,6 +238,12 @@ const Support = () => {
                 </SelectContent>
               </Select>
 
+              {/* Stats */}
+              <Button size="sm" variant="outline" onClick={() => setShowStats(true)} title="Statistiques du tableau">
+                <BarChart3 className="h-4 w-4 mr-1" />
+                <span className="hidden sm:inline">Statistiques</span>
+              </Button>
+
               {/* Export new tickets */}
               <Button size="sm" variant="outline" onClick={exportNewTickets} title="Copier les tickets nouveaux en texte">
                 <ClipboardCopy className="h-4 w-4 mr-1" />
@@ -344,6 +362,14 @@ const Support = () => {
           )}
         </SheetContent>
       </Sheet>
+
+      <KanbanStatsDialog
+        open={showStats}
+        onOpenChange={setShowStats}
+        columns={SUPPORT_COLUMNS}
+        items={statsItems}
+        doneColumnIds={["resolu", "ferme"]}
+      />
     </ModuleLayout>
   );
 };
