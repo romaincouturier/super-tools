@@ -630,6 +630,7 @@ const ContentCardDialog = ({
                 )}
               </div>
               <RichTextEditor
+                key={card?.id ?? "new"}
                 content={description}
                 onChange={setDescription}
                 placeholder="Description du contenu..."

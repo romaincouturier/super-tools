@@ -216,11 +216,8 @@ const RichTextEditor = ({
     },
   });
 
-  useEffect(() => {
-    if (editor && content !== editor.getHTML()) {
-      editor.commands.setContent(content);
-    }
-  }, [content, editor]);
+  // Content sync is handled via key prop on the parent component.
+  // Avoid syncing content → editor here to prevent overwriting user input.
 
   const setLink = useCallback(() => {
     if (!editor) return;
