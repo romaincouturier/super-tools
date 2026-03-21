@@ -68,8 +68,12 @@ serve(async (req) => {
       .filter((a) => a.entity_type === "review_comment")
       .map((a) => a.entity_id);
 
+    const cardCommentCardIds = pendingActions
+      .filter((a) => a.entity_type === "card_comments")
+      .map((a) => a.entity_id);
+
     // Fetch current states
-    const [missionsResult, cardsResult, trainingsResult, reviewsResult, commentsResult] = await Promise.all([
+    const [missionsResult, cardsResult, trainingsResult, reviewsResult, commentsResult, cardCommentsResult] = await Promise.all([
       missionIds.length > 0
         ? supabase.from("missions").select("id, consumed_amount, billed_amount, status, start_date").in("id", missionIds)
         : { data: [] },
@@ -85,6 +89,9 @@ serve(async (req) => {
       commentIds.length > 0
         ? supabase.from("review_comments").select("id, status").in("id", commentIds)
         : { data: [] },
+      cardCommentCardIds.length > 0
+        ? supabase.from("review_comments").select("card_id, status").in("card_id", cardCommentCardIds).eq("status", "pending").is("parent_comment_id", null)
+        : { data: [] },
     ]);
 
     const missions = new Map((missionsResult.data || []).map((m: any) => [m.id, m]));
@@ -92,6 +99,8 @@ serve(async (req) => {
     const trainingsMap = new Map((trainingsResult.data || []).map((t: any) => [t.id, t]));
     const reviewComments = new Map((commentsResult.data || []).map((c: any) => [c.id, c]));
     const reviews = new Map((reviewsResult.data || []).map((r: any) => [r.id, r]));
+    // Cards that still have pending comments (card_comments entity type)
+    const cardsWithPendingComments = new Set((cardCommentsResult.data || []).map((c: any) => c.card_id));
 
     // Also fetch CRM columns to check if cards moved
     const { data: crmColumns } = await supabase
@@ -254,9 +263,15 @@ serve(async (req) => {
         }
 
         case "commentaires_contenu": {
-          const c = reviewComments.get(action.entity_id);
-          if (c && c.status !== "pending") resolved = true;
-          if (!c) resolved = true; // comment deleted
+          if (action.entity_type === "card_comments") {
+            // Consolidated: resolved when no more pending comments on this card
+            resolved = !cardsWithPendingComments.has(action.entity_id);
+          } else {
+            // Legacy: individual comment check
+            const c = reviewComments.get(action.entity_id);
+            if (c && c.status !== "pending") resolved = true;
+            if (!c) resolved = true; // comment deleted
+          }
           break;
         }
 
