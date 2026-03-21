@@ -15,3 +15,16 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     autoRefreshToken: true,
   }
 });
+
+/**
+ * Create a Supabase client configured for learner portal access.
+ * Passes the learner email as a custom header so RLS policies
+ * can verify the learner's identity via get_learner_email().
+ */
+export function createLearnerClient(learnerEmail: string) {
+  return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+    global: {
+      headers: { 'x-learner-email': learnerEmail },
+    },
+  });
+}

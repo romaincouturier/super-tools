@@ -134,11 +134,14 @@ else
   check "007" "DialogContent/SheetContent avec w-full pour le mobile" \
     "grep -rn 'DialogContent\|AlertDialogContent\|SheetContent' src/components/ src/pages/ --include='*.tsx' | grep 'max-w-' | grep -v 'w-full' | grep -v 'sm:max-w-md' | grep -v node_modules"
 
-  # [008] CORS — informatif seulement (chantier séparé pour migrer 50+ fonctions vers _shared/cors.ts)
-  CORS_VIOLATIONS=$(grep -rn '"Access-Control-Allow-Origin": "\*"' supabase/functions/ --include='*.ts' 2>/dev/null | grep -v '_shared/cors.ts' | grep -v node_modules | wc -l)
-  if [ "$CORS_VIOLATIONS" -gt 0 ]; then
-    echo -e "INFO [008] $CORS_VIOLATIONS edge function(s) avec CORS wildcard hors _shared/cors.ts (migration à planifier)"
-  fi
+  # [008] CORS centralisé — toutes les fonctions doivent importer depuis _shared/cors.ts
+  check "008" "Pas de CORS headers définis localement dans les edge functions" \
+    "grep -rn '\"Access-Control-Allow-Origin\": \"\*\"' supabase/functions/ --include='*.ts' | grep -v '_shared/cors.ts' | grep -v node_modules"
+
+  # [009] RLS — pas de FOR ALL TO anon USING(true) (full open access)
+  # Exclude old migrations whose policies are dropped by later fix migrations
+  check "009" "Pas de FOR ALL TO anon USING(true) dans les migrations" \
+    "grep -rn 'FOR ALL TO anon USING (true)' supabase/migrations/ --include='*.sql' | grep -v '20260308224610' | grep -v '20260308225436'"
 fi
 
 echo ""

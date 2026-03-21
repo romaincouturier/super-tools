@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, createLearnerClient } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,6 +25,8 @@ interface Booking {
 interface Props {
   trainingId: string;
   participantId: string;
+  /** Learner email for RLS authentication */
+  learnerEmail?: string;
   /** Max coaching sessions allowed */
   maxSessions?: number;
   /** Already completed sessions */
@@ -50,10 +52,13 @@ const statusColors: Record<string, string> = {
 export default function CoachingBooking({
   trainingId,
   participantId,
+  learnerEmail,
   maxSessions = 0,
   completedSessions = 0,
   isInstructor = false,
 }: Props) {
+  // Use learner client when learnerEmail is provided (learner portal)
+  const client = learnerEmail ? createLearnerClient(learnerEmail) : supabase;
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -68,7 +73,7 @@ export default function CoachingBooking({
   }, [trainingId, participantId]);
 
   const loadBookings = async () => {
-    const { data } = await supabase
+    const { data } = await client
       .from("coaching_bookings")
       .select("*")
       .eq("training_id", trainingId)
@@ -85,7 +90,7 @@ export default function CoachingBooking({
     if (!date || !time) return;
     setSubmitting(true);
     const requestedDate = new Date(`${date}T${time}:00`).toISOString();
-    const { error } = await supabase.from("coaching_bookings").insert({
+    const { error } = await client.from("coaching_bookings").insert({
       training_id: trainingId,
       participant_id: participantId,
       requested_date: requestedDate,
@@ -104,7 +109,7 @@ export default function CoachingBooking({
   };
 
   const handleUpdateStatus = async (bookingId: string, status: string) => {
-    await supabase
+    await client
       .from("coaching_bookings")
       .update({
         status,
