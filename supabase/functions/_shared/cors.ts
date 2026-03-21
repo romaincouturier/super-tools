@@ -12,6 +12,13 @@ export const corsHeaders = {
 };
 
 /**
+ * Extend corsHeaders with additional headers (for webhook endpoints, etc.)
+ */
+export function extendCorsHeaders(extra: Record<string, string>): Record<string, string> {
+  return { ...corsHeaders, ...extra };
+}
+
+/**
  * Handle CORS preflight request
  */
 export function handleCorsPreflightIfNeeded(req: Request): Response | null {

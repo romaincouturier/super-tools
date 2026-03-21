@@ -3,11 +3,12 @@ import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-
 import { crypto } from "https://deno.land/std@0.190.0/crypto/mod.ts";
 import { encode as hexEncode } from "https://deno.land/std@0.190.0/encoding/hex.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
+import { extendCorsHeaders } from "../_shared/cors.ts";
+
+const corsHeaders = extendCorsHeaders({
   "Access-Control-Allow-Headers": "authorization, x-api-key, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
+});
 
 interface TrainingInput {
   // Required fields
