@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { getSenderFrom, getBccList } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
 import { sendEmail } from "../_shared/resend.ts";
+import { emailButton, emailInfoBox, emailSuccessBox, wrapEmailHtml } from "../_shared/templates.ts";
 
 const VERSION = "send-support-notification@2026-03-21.1";
 
@@ -56,26 +57,16 @@ serve(async (req) => {
 
     const subject = `${ticketNumber} — Votre demande "${ticketTitle}" a été traitée`;
 
-    const htmlContent = `
+    const bodyHtml = `
       <p>Bonjour,</p>
       <p>Votre demande de support a été traitée et son statut est maintenant : <strong>${statusLabel}</strong>.</p>
-      <div style="background-color: #f5f5f5; padding: 15px; border-radius: 8px; margin: 20px 0;">
-        <strong>${ticketNumber} — ${ticketTitle}</strong>
-      </div>
-      ${resolutionNotes ? `
-      <div style="background-color: #f0fdf4; padding: 15px; border-left: 4px solid #22c55e; border-radius: 4px; margin: 20px 0;">
-        <p style="margin: 0 0 5px 0; font-weight: bold; color: #166534;">Notes de résolution :</p>
-        <p style="margin: 0; color: #1a1a1a; white-space: pre-wrap;">${resolutionNotes}</p>
-      </div>
-      ` : ""}
+      ${emailInfoBox(`<strong>${ticketNumber} — ${ticketTitle}</strong>`)}
+      ${resolutionNotes ? emailSuccessBox("Notes de résolution :", resolutionNotes) : ""}
       <p>Si vous avez des questions, n'hésitez pas à créer un nouveau ticket de support.</p>
-      <p style="margin: 20px 0;">
-        <a href="${APP_URL}/support" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">
-          Voir mes tickets
-        </a>
-      </p>
-      ${signature}
+      ${emailButton("Voir mes tickets", `${APP_URL}/support`)}
     `;
+
+    const htmlContent = wrapEmailHtml(bodyHtml, signature);
 
     const result = await sendEmail({
       from: senderFrom,
