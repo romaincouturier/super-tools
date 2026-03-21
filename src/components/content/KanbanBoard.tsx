@@ -473,6 +473,14 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
         }
 
         toast.success("Carte créée");
+
+        // Switch to edit mode so the comment thread is immediately available
+        if (newCard) {
+          await fetchData();
+          setNewCardColumnId(null);
+          setEditingCard(newCard as Card);
+          return;
+        }
       }
       fetchData();
     } catch (error) {
