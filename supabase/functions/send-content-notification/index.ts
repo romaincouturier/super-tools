@@ -5,13 +5,9 @@ import { getSigniticSignature } from "../_shared/signitic.ts";
 import { sendEmail } from "../_shared/resend.ts";
 import { emailButton, emailInfoBox } from "../_shared/templates.ts";
 
+import { corsHeaders } from "../_shared/cors.ts";
 // Bump this when you deploy to confirm the latest code is running.
 const VERSION = "send-content-notification@2026-02-05.1";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {

@@ -5,6 +5,8 @@ import { getSigniticSignature } from "../_shared/signitic.ts";
 import { processTemplate, textToHtml } from "../_shared/templates.ts";
 import { sendEmail } from "../_shared/resend.ts";
 
+import { corsHeaders } from "../_shared/cors.ts";
+
 /**
  * Send Logistics Requirements Email
  *
@@ -20,12 +22,6 @@ import { sendEmail } from "../_shared/resend.ts";
  * - By cron (no body → processes all eligible trainings)
  * - Manually with { trainingId } to force send for a specific training
  */
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
 
 const VERSION = "send-logistics-requirements@1.0.0";
 

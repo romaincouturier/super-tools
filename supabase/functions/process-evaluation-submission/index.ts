@@ -5,11 +5,7 @@ import { getSigniticSignature } from "../_shared/signitic.ts";
 import { processTemplate, textToHtml } from "../_shared/templates.ts";
 import { sendEmail } from "../_shared/resend.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+import { corsHeaders } from "../_shared/cors.ts";
 
 const PDFMONKEY_API_KEY = Deno.env.get("PDFMONKEY_API_KEY");
 const GOOGLE_SERVICE_ACCOUNT_JSON = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_JSON");

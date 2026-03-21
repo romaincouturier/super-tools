@@ -6,10 +6,7 @@ import { getAppUrls } from "../_shared/app-urls.ts";
 import { sendEmail } from "../_shared/resend.ts";
 import { emailButton } from "../_shared/templates.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { corsHeaders } from "../_shared/cors.ts";
 
 interface TrainingSchedule {
   day_date: string;

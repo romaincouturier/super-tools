@@ -5,6 +5,8 @@ import { getBccList } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
 import { processTemplate } from "../_shared/templates.ts";
 
+import { corsHeaders } from "../_shared/cors.ts";
+
 /**
  * Process Today Reminders
  *
@@ -16,12 +18,6 @@ import { processTemplate } from "../_shared/templates.ts";
  *
  * Uses activity_logs to prevent duplicate sends per training per day.
  */
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {

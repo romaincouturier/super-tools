@@ -5,6 +5,8 @@ import { getSigniticSignature } from "../_shared/signitic.ts";
 import { sendEmail } from "../_shared/resend.ts";
 import { emailButton } from "../_shared/templates.ts";
 
+import { corsHeaders } from "../_shared/cors.ts";
+
 /**
  * Process Session Start
  * 
@@ -16,12 +18,6 @@ import { emailButton } from "../_shared/templates.ts";
  * Excludes e-learning format.
  * Uses session_start_notifications / activity_logs to prevent duplicate sends.
  */
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {

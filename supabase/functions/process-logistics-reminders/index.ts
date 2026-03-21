@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getSenderFrom, getBccList } from "../_shared/email-settings.ts";
 import { sendEmail } from "../_shared/resend.ts";
+import { corsHeaders } from "../_shared/cors.ts";
 import {
   fetchAllDailyData,
   userCanSee,
@@ -21,12 +22,6 @@ import {
  *
  * Data fetching is shared with generate-daily-actions via _shared/daily-data-fetchers.ts.
  */
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
 
 const VERSION = "process-logistics-reminders@6.0.0";
 

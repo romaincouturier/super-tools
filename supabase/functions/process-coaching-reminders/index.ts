@@ -1,6 +1,8 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+import { corsHeaders } from "../_shared/cors.ts";
+
 /**
  * Process Coaching Reminders
  *
@@ -12,12 +14,6 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
  * Only schedules emails if coaching_sessions_completed < coaching_sessions_total
  * and no duplicate email of the same type is already pending.
  */
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
 
 serve(async (req) => {
   console.log("[process-coaching-reminders] Starting...");

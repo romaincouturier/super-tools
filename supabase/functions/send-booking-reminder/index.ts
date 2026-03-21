@@ -5,11 +5,7 @@ import { getSigniticSignature } from "../_shared/signitic.ts";
 import { processTemplate } from "../_shared/templates.ts";
 import { sendEmail } from "../_shared/resend.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
+import { corsHeaders } from "../_shared/cors.ts";
 
 function formatDate(dateString: string): string {
   const date = new Date(dateString);

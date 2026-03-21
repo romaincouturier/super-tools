@@ -5,12 +5,7 @@ import { getSigniticSignature } from "../_shared/signitic.ts";
 import { processTemplate, textToHtml } from "../_shared/templates.ts";
 import { sendEmail } from "../_shared/resend.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
-
+import { corsHeaders } from "../_shared/cors.ts";
 // Default templates
 const DEFAULT_SUBJECT_TU = "Tes besoins spécifiques pour la formation \"{{training_name}}\"";
 const DEFAULT_SUBJECT_VOUS = "Vos besoins spécifiques pour la formation \"{{training_name}}\"";
