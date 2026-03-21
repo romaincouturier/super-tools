@@ -1,5 +1,7 @@
 import React, { useState } from "react";
-import { MoreHorizontal, Pencil, Trash2, Eye } from "lucide-react";
+import { MoreHorizontal, Pencil, Trash2, Eye, Clock } from "lucide-react";
+import { differenceInCalendarDays, format } from "date-fns";
+import { fr } from "date-fns/locale";
 import ImageLightbox from "@/components/ui/image-lightbox";
 import type { ContentTypeColors } from "./KanbanBoard";
 import { Button } from "@/components/ui/button";
@@ -169,6 +171,23 @@ const ContentCard = ({ card, isDragging: isDraggingProp, typeColors, onEdit, onD
         )}
 
         <CardTagList tags={tags} className="mt-2" />
+
+        {card.deadline && (() => {
+          const daysLeft = differenceInCalendarDays(new Date(card.deadline), new Date());
+          const isOverdue = daysLeft < 0;
+          const isUrgent = daysLeft >= 0 && daysLeft <= 2;
+          const colorClass = isOverdue
+            ? "text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-950"
+            : isUrgent
+              ? "text-orange-600 bg-orange-50 dark:text-orange-400 dark:bg-orange-950"
+              : "text-muted-foreground bg-muted";
+          return (
+            <div className={`flex items-center gap-1 mt-2 text-xs px-1.5 py-0.5 rounded w-fit ${colorClass}`}>
+              <Clock className="h-3 w-3" />
+              <span>{format(new Date(card.deadline), "d MMM", { locale: fr })}</span>
+            </div>
+          );
+        })()}
         </div>
     </div>
   );

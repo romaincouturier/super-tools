@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Upload, X, Plus, Maximize2, Minimize2, RefreshCw, FileText, Linkedin, Instagram, Loader2, Save, Mail, Check, MessageSquare, ZoomIn, ChevronDown } from "lucide-react";
+import { Upload, X, Plus, Maximize2, Minimize2, RefreshCw, FileText, Linkedin, Instagram, Loader2, Save, Mail, Check, MessageSquare, ZoomIn, ChevronDown, Clock } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -69,6 +69,7 @@ const ContentCardDialog = ({
   const [newTag, setNewTag] = useState("");
   const [cardType, setCardType] = useState<ContentCardType>("article");
   const [emoji, setEmoji] = useState<string | null>(null);
+  const [deadline, setDeadline] = useState("");
   const [uploading, setUploading] = useState(false);
   const [imageLightboxOpen, setImageLightboxOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -95,6 +96,7 @@ const ContentCardDialog = ({
       setTags(card.tags || []);
       setCardType(card.card_type || "article");
       setEmoji(card.emoji || null);
+      setDeadline(card.deadline || "");
       setCurrentColumnId(card.column_id);
     } else {
       setTitle("");
@@ -103,6 +105,7 @@ const ContentCardDialog = ({
       setTags([]);
       setCardType("article");
       setEmoji(null);
+      setDeadline("");
       setInitialComment("");
       setCurrentColumnId(null);
     }
@@ -112,12 +115,12 @@ const ContentCardDialog = ({
 
   // Always keep latest values in ref
   formValuesRef.current = {
-    title, description, imageUrl, tags, cardType, emoji,
+    title, description, imageUrl, tags, cardType, emoji, deadline,
   };
 
   // Form hash for change detection
   const formHash = JSON.stringify({
-    title, description, imageUrl, tags, cardType, emoji,
+    title, description, imageUrl, tags, cardType, emoji, deadline,
   });
 
   // Auto-save for existing cards
@@ -137,6 +140,7 @@ const ContentCardDialog = ({
       const v = formValuesRef.current as {
         title: string; description: string; imageUrl: string;
         tags: string[]; cardType: ContentCardType; emoji: string | null;
+        deadline: string;
       };
 
       if (!v.title.trim()) return;
@@ -152,6 +156,7 @@ const ContentCardDialog = ({
             tags: v.tags,
             card_type: v.cardType || "article",
             emoji: v.emoji ?? null,
+            deadline: v.deadline || null,
           })
           .eq("id", card.id);
 
@@ -325,6 +330,7 @@ const ContentCardDialog = ({
       tags,
       card_type: cardType,
       emoji,
+      deadline: deadline || null,
     }, Object.keys(options).length > 0 ? options : undefined);
   };
 
@@ -333,17 +339,18 @@ const ContentCardDialog = ({
     if (!isOpen && card) {
       if (saveTimerRef.current) {
         clearTimeout(saveTimerRef.current);
-        const v = formValuesRef.current as { title: string; description: string; image_url: string | null; tags: string[]; card_type: string; emoji: string | null };
+        const v = formValuesRef.current as { title: string; description: string; imageUrl: string; tags: string[]; cardType: string; emoji: string | null; deadline: string };
         if (v.title.trim() && formHash !== lastSavedHashRef.current) {
           supabase
             .from("content_cards")
             .update({
               title: v.title.trim(),
               description: v.description || null,
-              image_url: v.image_url || null,
+              image_url: v.imageUrl || null,
               tags: v.tags,
-              card_type: v.card_type || "article",
+              card_type: v.cardType || "article",
               emoji: v.emoji ?? null,
+              deadline: v.deadline || null,
             })
             .eq("id", card.id)
             .then(() => {});
@@ -567,6 +574,28 @@ const ContentCardDialog = ({
                   )}
                 </div>
               )}
+            </div>
+
+            {/* Date limite */}
+            <div className="space-y-2">
+              <Label htmlFor="deadline" className="flex items-center gap-1.5">
+                <Clock className="h-3.5 w-3.5" />
+                Date limite
+              </Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  id="deadline"
+                  type="date"
+                  value={deadline}
+                  onChange={(e) => setDeadline(e.target.value)}
+                  className="w-auto"
+                />
+                {deadline && (
+                  <Button type="button" variant="ghost" size="sm" onClick={() => setDeadline("")} className="h-8 px-2 text-xs text-muted-foreground">
+                    Supprimer
+                  </Button>
+                )}
+              </div>
             </div>
 
             {/* Description avec boutons IA */}

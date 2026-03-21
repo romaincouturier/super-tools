@@ -53,6 +53,7 @@ export interface Card {
   emoji?: string | null;
   newsletter_name?: string | null;
   created_at?: string;
+  deadline?: string | null;
 }
 
 export interface Column {
@@ -413,6 +414,7 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
             tags: cardData.tags,
             card_type: cardData.card_type || "article",
             emoji: cardData.emoji ?? null,
+            deadline: cardData.deadline ?? null,
           })
           .eq("id", editingCard.id);
 
@@ -428,6 +430,7 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
           tags: cardData.tags || [],
           card_type: cardData.card_type || "article",
           emoji: cardData.emoji ?? null,
+          deadline: cardData.deadline ?? null,
           display_order: columnCards.length,
         }).select().single();
 
