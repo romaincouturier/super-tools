@@ -89,7 +89,7 @@ if [ "$STAGED_MODE" = "true" ]; then
 
   # [004] Jamais file.type directement
   check "004" "Pas d'usage direct de file.type (utiliser resolveContentType)" \
-    "echo \"$STAGED_FILES\" | xargs grep -n 'file\.type' 2>/dev/null | grep -v 'file-utils.ts' | grep -v '// safe:' | grep -v 'resolveContentType'"
+    "echo \"$STAGED_FILES\" | xargs grep -n 'file\.type' 2>/dev/null | grep -v 'file-utils.ts' | grep -v 'file-utils.test.ts' | grep -v '// safe:' | grep -v 'resolveContentType'"
 
   # [005] Overlays hover — will-change
   STAGED_MEDIA=$(echo "$STAGED_FILES" | grep 'src/components/media/' || true)
@@ -119,7 +119,7 @@ else
     "grep -rn 'function getFileType\|function resolveContentType\|const getFileType\|const resolveContentType' src/ --include='*.ts' --include='*.tsx' | grep -v 'src/lib/file-utils.ts' | grep -v node_modules"
 
   check "004" "Pas d'usage direct de file.type (utiliser resolveContentType)" \
-    "grep -rn 'file\.type' src/ --include='*.ts' --include='*.tsx' | grep -v 'file-utils.ts' | grep -v '// safe:' | grep -v 'resolveContentType' | grep -v node_modules | grep -v '\.d\.ts'"
+    "grep -rn 'file\.type' src/ --include='*.ts' --include='*.tsx' | grep -v 'file-utils.ts' | grep -v 'file-utils.test.ts' | grep -v '// safe:' | grep -v 'resolveContentType' | grep -v node_modules | grep -v '\.d\.ts'"
 
   check "005" "Overlays media avec will-change (pas de transition-opacity sans GPU promotion)" \
     "grep -rln 'transition-opacity' src/components/media/ --include='*.tsx' 2>/dev/null | xargs grep -L 'will-change' 2>/dev/null"
