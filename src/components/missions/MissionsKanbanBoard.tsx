@@ -1,9 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
 import { closestCenter } from "@dnd-kit/core";
-import { Plus, Search, X, BarChart3 } from "lucide-react";
+import { Plus } from "lucide-react";
 import { startOfDay, isAfter } from "date-fns";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Mission, MissionStatus, missionStatusConfig } from "@/types/missions";
 import { useMissions, useMoveMission, useUpdateMission } from "@/hooks/useMissions";
 import MissionCard from "./MissionCard";
@@ -11,6 +10,7 @@ import MissionDetailDrawer from "./MissionDetailDrawer";
 import CreateMissionDialog from "./CreateMissionDialog";
 import GenericKanbanBoard from "@/components/shared/kanban/GenericKanbanBoard";
 import KanbanStatsDialog from "@/components/shared/kanban/KanbanStatsDialog";
+import KanbanToolbar from "@/components/shared/kanban/KanbanToolbar";
 import type { KanbanColumnDef, KanbanCardDef, KanbanStatsItem } from "@/types/kanban";
 
 type MissionKanbanCard = Mission & KanbanCardDef;
@@ -139,29 +139,13 @@ const MissionsKanbanBoard = ({ prefillFromCrm, onPrefillConsumed, openMissionId 
 
   return (
     <>
-      <div className="mb-3 flex items-center gap-2">
-        <div className="relative w-64">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Rechercher une mission..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-9 h-9"
-          />
-          {searchTerm && (
-            <button
-              onClick={() => setSearchTerm("")}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          )}
-        </div>
-        <Button variant="outline" size="sm" onClick={() => setShowStats(true)} title="Statistiques du tableau">
-          <BarChart3 className="h-4 w-4 mr-1" />
-          <span className="hidden sm:inline">Statistiques</span>
-        </Button>
-      </div>
+      <KanbanToolbar
+        searchPlaceholder="Rechercher une mission..."
+        search={searchTerm}
+        onSearchChange={setSearchTerm}
+        showStatsButton
+        onStatsClick={() => setShowStats(true)}
+      />
 
       <GenericKanbanBoard<MissionKanbanCard, MissionKanbanColumn>
         columns={columns}

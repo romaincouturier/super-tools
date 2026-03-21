@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useRef } from "react";
-import { Loader2, LifeBuoy, Bug, Lightbulb, Plus, Search, X, AlertCircle, ClipboardCopy, ImagePlus, Sparkles, BarChart3 } from "lucide-react";
+import { Loader2, LifeBuoy, Bug, Lightbulb, Plus, AlertCircle, ClipboardCopy, ImagePlus, Sparkles } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import ModuleLayout from "@/components/ModuleLayout";
 import GenericKanbanBoard from "@/components/shared/kanban/GenericKanbanBoard";
+import KanbanToolbar from "@/components/shared/kanban/KanbanToolbar";
 import SupportTicketCardComponent from "@/components/support/SupportTicketCard";
 import TicketDetail from "@/components/support/TicketDetail";
 import { useSupportTickets, useCreateSupportTicket, useUpdateSupportTicket, useMoveSupportTicket, useAnalyzeTicket } from "@/hooks/useSupport";
@@ -203,46 +204,12 @@ const Support = () => {
           subtitle="Bugs et demandes d'évolution"
           actions={
             <div className="flex flex-wrap items-center gap-2">
-              {/* Stats */}
+              {/* Stats counters */}
               <div className="hidden md:flex items-center gap-4 text-sm text-muted-foreground mr-2">
                 <span className="flex items-center gap-1"><AlertCircle className="h-3.5 w-3.5" />{stats.open} ouvert{stats.open > 1 ? "s" : ""}</span>
                 <span className="flex items-center gap-1"><Bug className="h-3.5 w-3.5 text-red-500" />{stats.bugs}</span>
                 <span className="flex items-center gap-1"><Lightbulb className="h-3.5 w-3.5 text-violet-500" />{stats.evolutions}</span>
               </div>
-
-              {/* Search */}
-              <div className="relative w-56">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Rechercher..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="pl-9 text-sm"
-                />
-                {search && (
-                  <button onClick={() => setSearch("")} className="absolute right-2.5 top-2.5">
-                    <X className="h-4 w-4 text-muted-foreground" />
-                  </button>
-                )}
-              </div>
-
-              {/* Filter */}
-              <Select value={filterType} onValueChange={(v) => setFilterType(v as typeof filterType)}>
-                <SelectTrigger className="w-32 text-sm">
-                  <SelectValue placeholder="Tous" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tous</SelectItem>
-                  <SelectItem value="bug">Bugs</SelectItem>
-                  <SelectItem value="evolution">Évolutions</SelectItem>
-                </SelectContent>
-              </Select>
-
-              {/* Stats */}
-              <Button size="sm" variant="outline" onClick={() => setShowStats(true)} title="Statistiques du tableau">
-                <BarChart3 className="h-4 w-4 mr-1" />
-                <span className="hidden sm:inline">Statistiques</span>
-              </Button>
 
               {/* Export new tickets */}
               <Button size="sm" variant="outline" onClick={exportNewTickets} title="Copier les tickets nouveaux en texte">
@@ -332,6 +299,32 @@ const Support = () => {
                 </DialogContent>
               </Dialog>
             </div>
+          }
+        />
+
+        <KanbanToolbar
+          searchPlaceholder="Rechercher un ticket..."
+          search={search}
+          onSearchChange={setSearch}
+          showStatsButton
+          onStatsClick={() => setShowStats(true)}
+          filters={
+            <Select value={filterType} onValueChange={(v) => setFilterType(v as typeof filterType)}>
+              <SelectTrigger className="w-32 text-sm h-9">
+                <SelectValue placeholder="Tous" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tous</SelectItem>
+                <SelectItem value="bug">Bugs</SelectItem>
+                <SelectItem value="evolution">Évolutions</SelectItem>
+              </SelectContent>
+            </Select>
+          }
+          actions={
+            <Button size="sm" variant="outline" className="h-9" onClick={exportNewTickets} title="Copier les tickets nouveaux">
+              <ClipboardCopy className="h-4 w-4 sm:mr-1" />
+              <span className="hidden sm:inline">Export</span>
+            </Button>
           }
         />
 

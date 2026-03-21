@@ -18,6 +18,7 @@ import { celebrateWin } from "@/lib/celebrateWin";
 import { isWonColumnName, isLostColumnName } from "@/lib/crmColumnStatus";
 import GenericKanbanBoard from "@/components/shared/kanban/GenericKanbanBoard";
 import KanbanStatsDialog from "@/components/shared/kanban/KanbanStatsDialog";
+import KanbanToolbar from "@/components/shared/kanban/KanbanToolbar";
 import type { KanbanColumnDef, KanbanCardDef, KanbanDropResult, KanbanStatsItem } from "@/types/kanban";
 
 type CrmKanbanCard = CrmCard & KanbanCardDef;
