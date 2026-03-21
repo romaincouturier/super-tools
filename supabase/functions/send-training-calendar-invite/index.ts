@@ -4,6 +4,7 @@ import { getSigniticSignature } from "../_shared/signitic.ts";
 import { getSenderFrom, getSenderEmail, getBccList } from "../_shared/email-settings.ts";
 import { getAppUrls } from "../_shared/app-urls.ts";
 import { sendEmail } from "../_shared/resend.ts";
+import { emailButton } from "../_shared/templates.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -190,11 +191,7 @@ serve(async (req: Request): Promise<Response> => {
 
         <p>Vous trouverez en piece jointe un fichier <strong>.ics</strong> que vous pouvez ouvrir pour ajouter cette formation directement a votre agenda (Outlook, Google Calendar, Apple Calendar, etc.).</p>
 
-        <p style="margin-top: 24px;">
-          <a href="${appUrl}/formations/${trainingId}" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">
-            Voir les details de la formation
-          </a>
-        </p>
+        ${emailButton("Voir les details de la formation", `${appUrl}/formations/${trainingId}`)}
 
         ${emailSignature}
       </div>

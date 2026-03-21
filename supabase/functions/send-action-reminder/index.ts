@@ -4,6 +4,7 @@ import { getSenderFrom, getBccList } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
 import { getAppUrls } from "../_shared/app-urls.ts";
 import { sendEmail } from "../_shared/resend.ts";
+import { emailButton } from "../_shared/templates.ts";
 
 const VERSION = "send-action-reminder@2026-02-02.3";
 
@@ -76,11 +77,7 @@ serve(async (req) => {
         <strong>${description}</strong>
       </div>
       <p>Merci de traiter cette action dès que possible.</p>
-      <p style="margin: 20px 0;">
-        <a href="${trainingLink}" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">
-          Voir la formation
-        </a>
-      </p>
+      ${emailButton("Voir la formation", trainingLink)}
       ${signature}
     `;
 

@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { getSigniticSignature } from "../_shared/signitic.ts";
 import { getBccSettings } from "../_shared/bcc-settings.ts";
 import { sendEmail } from "../_shared/resend.ts";
+import { emailButton } from "../_shared/templates.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -152,12 +153,7 @@ serve(async (req: Request): Promise<Response> => {
         htmlBody = htmlBody.replace(signatureLinkRegex, "$1");
       } else {
         // If no conditional block found, append the signature button
-        htmlBody += `
-<p style="margin-top: 20px;">
-  <a href="${signatureUrl}" style="display: inline-block; padding: 12px 24px; background-color: #e6bc00; color: #000; text-decoration: none; border-radius: 6px; font-weight: bold;">
-    ✍️ Signer la convention en ligne
-  </a>
-</p>`;
+        htmlBody += emailButton("✍️ Signer la convention en ligne", signatureUrl);
       }
     } else {
       // Remove conditional signature block if present

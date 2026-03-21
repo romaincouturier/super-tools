@@ -9,6 +9,7 @@ import {
   escapeHtml,
   formatDateWithDayFr,
   formatTime,
+  emailButton,
 } from "../_shared/mod.ts";
 import { getBccList } from "../_shared/email-settings.ts";
 
@@ -171,14 +172,7 @@ serve(async (req) => {
 
     ${imagesHtml}
 
-    <div style="margin: 24px 0; text-align: left;">
-      <a
-        href="${eventLink}"
-        style="display: inline-block; background-color: #e6bc00; color: #000; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 14px;"
-      >
-        Voir l'événement →
-      </a>
-    </div>
+    ${emailButton("Voir l'événement →", eventLink)}
 
     <p style="margin: 20px 0 0 0; color: #999; font-size: 12px;">
       Cet email a été envoyé depuis SuperTools.

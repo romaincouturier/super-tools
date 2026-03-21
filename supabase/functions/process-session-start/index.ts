@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getSenderFrom, getBccList, getSenderEmail } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
 import { sendEmail } from "../_shared/resend.ts";
+import { emailButton } from "../_shared/templates.ts";
 
 /**
  * Process Session Start
@@ -246,11 +247,7 @@ serve(async (req) => {
                 <li>📅 <strong>Date :</strong> ${formattedDate}</li>
                 <li>🕐 <strong>Horaire :</strong> ${periodLabel} (${timeRange})</li>
               </ul>
-              <p style="margin: 25px 0;">
-                <a href="${signatureUrl}" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold;">
-                  ✍️ Signer ma présence
-                </a>
-              </p>
+              ${emailButton("✍️ Signer ma présence", signatureUrl)}
               <p style="font-size: 12px; color: #666;">
                 Cette signature électronique a valeur légale conformément au règlement européen eIDAS.
               </p>
@@ -524,11 +521,7 @@ serve(async (req) => {
                   <li>📺 <strong>Live :</strong> ${live.title || "Session live"}</li>
                   <li>📅 <strong>Date :</strong> ${formattedDate} à ${liveTime}</li>
                 </ul>
-                <p style="margin: 25px 0;">
-                  <a href="${signatureUrl}" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold;">
-                    ✍️ Signer ma présence
-                  </a>
-                </p>
+                ${emailButton("✍️ Signer ma présence", signatureUrl)}
                 <p style="font-size: 12px; color: #666;">
                   Cette signature électronique a valeur légale conformément au règlement européen eIDAS.
                 </p>

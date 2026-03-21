@@ -8,6 +8,7 @@ import {
   getSupabaseClient,
   sendEmail,
   formatDateWithDayFr,
+  emailButton,
 } from "../_shared/mod.ts";
 
 /**
@@ -175,12 +176,7 @@ serve(async (req) => {
         : `Rappel : convention de formation "${training.training_name}"`;
 
       const signatureBlock = signatureUrl
-        ? `
-<p style="margin: 24px 0;">
-  <a href="${signatureUrl}" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
-    ✍️ Signer la convention en ligne
-  </a>
-</p>`
+        ? emailButton("✍️ Signer la convention en ligne", signatureUrl)
         : "";
 
       if (useFormal) {

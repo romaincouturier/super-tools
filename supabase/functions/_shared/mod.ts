@@ -56,6 +56,9 @@ export {
   replaceVariables,
   textToHtml,
   wrapEmailHtml,
+  emailButton,
+  emailInfoBox,
+  emailSuccessBox,
   type TemplateVariables,
 } from "./templates.ts";
 
