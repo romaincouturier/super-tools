@@ -759,7 +759,7 @@ const ColorSettingsDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-sm">
+      <DialogContent className="w-full sm:max-w-sm">
         <DialogHeader>
           <DialogTitle>Couleurs des types de contenu</DialogTitle>
         </DialogHeader>

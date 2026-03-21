@@ -488,7 +488,7 @@ const BesoinsParticipants = () => {
         onOpenChange={setParticipantDrawerOpen}
       />
       <Dialog open={analysisOpen} onOpenChange={setAnalysisOpen}>
-        <DialogContent className="max-w-3xl max-h-[85vh]">
+        <DialogContent className="w-full sm:max-w-3xl max-h-[85vh]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-primary" />

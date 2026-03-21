@@ -519,7 +519,7 @@ const Evaluations = () => {
 
         {/* Analysis Dialog */}
         <Dialog open={showAnalysis} onOpenChange={setShowAnalysis}>
-          <DialogContent className="max-w-4xl max-h-[85vh]">
+          <DialogContent className="w-full sm:max-w-4xl max-h-[85vh]">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <Sparkles className="h-5 w-5 text-primary" />

@@ -272,7 +272,7 @@ export default function InboundEmails() {
 
         {/* Email detail dialog */}
         <Dialog open={!!selectedEmail} onOpenChange={() => setSelectedEmail(null)}>
-          <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogContent className="w-full sm:max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
             <DialogHeader>
               <DialogTitle className="pr-8">{selectedEmail?.subject || "(Sans sujet)"}</DialogTitle>
               <DialogDescription>

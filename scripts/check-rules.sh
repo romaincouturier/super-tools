@@ -102,6 +102,13 @@ if [ "$STAGED_MODE" = "true" ]; then
   check "006" "Pas de refetchOnWindowFocus: true" \
     "echo \"$STAGED_FILES\" | xargs grep -n 'refetchOnWindowFocus:\s*true' 2>/dev/null"
 
+  # [007] DialogContent/SheetContent doivent avoir w-full pour mobile
+  STAGED_TSX=$(echo "$STAGED_FILES" | grep '\.tsx$' || true)
+  if [ -n "$STAGED_TSX" ]; then
+    check "007" "DialogContent/SheetContent avec w-full pour le mobile" \
+      "echo \"$STAGED_TSX\" | xargs grep -n 'DialogContent\|AlertDialogContent\|SheetContent' 2>/dev/null | grep 'max-w-' | grep -v 'w-full'"
+  fi
+
 else
   # --- Mode complet : audit de toute la codebase ---
 
@@ -123,6 +130,15 @@ else
   check "006" "QueryClient a refetchOnWindowFocus: false dans App.tsx" \
     "grep -n 'refetchOnWindowFocus:\s*false' src/App.tsx" \
     "false"
+
+  check "007" "DialogContent/SheetContent avec w-full pour le mobile" \
+    "grep -rn 'DialogContent\|AlertDialogContent\|SheetContent' src/components/ src/pages/ --include='*.tsx' | grep 'max-w-' | grep -v 'w-full' | grep -v 'sm:max-w-md' | grep -v node_modules"
+
+  # [008] CORS — informatif seulement (chantier séparé pour migrer 50+ fonctions vers _shared/cors.ts)
+  CORS_VIOLATIONS=$(grep -rn '"Access-Control-Allow-Origin": "\*"' supabase/functions/ --include='*.ts' 2>/dev/null | grep -v '_shared/cors.ts' | grep -v node_modules | wc -l)
+  if [ "$CORS_VIOLATIONS" -gt 0 ]; then
+    echo -e "INFO [008] $CORS_VIOLATIONS edge function(s) avec CORS wildcard hors _shared/cors.ts (migration à planifier)"
+  fi
 fi
 
 echo ""

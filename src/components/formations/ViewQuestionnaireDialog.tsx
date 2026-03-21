@@ -224,7 +224,7 @@ const ViewQuestionnaireDialog = ({ participantId, participantName, trainingId }:
           <p>Voir les réponses</p>
         </TooltipContent>
       </Tooltip>
-      <DialogContent className="max-w-2xl max-h-[85vh]">
+      <DialogContent className="w-full sm:max-w-2xl max-h-[85vh]">
         <DialogHeader>
           <DialogTitle>Recueil des besoins - {participantName}</DialogTitle>
         </DialogHeader>

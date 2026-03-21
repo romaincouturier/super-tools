@@ -531,7 +531,7 @@ const LiveMeetingsSection = ({ trainingId }: LiveMeetingsSectionProps) => {
         }
         setNotesDialogOpen(open);
       }}>
-        <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col">
+        <DialogContent className="w-full sm:max-w-4xl max-h-[85vh] flex flex-col">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5" />

@@ -42,7 +42,7 @@ export default function DevisHistoryDialog({
           Historique
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+      <DialogContent className="w-full sm:max-w-3xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Historique des devis envoyés</DialogTitle>
           <DialogDescription>

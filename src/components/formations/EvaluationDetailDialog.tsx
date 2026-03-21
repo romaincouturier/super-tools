@@ -70,7 +70,7 @@ const EvaluationDetailDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[85vh]">
+      <DialogContent className="w-full sm:max-w-3xl max-h-[85vh]">
         <DialogHeader>
           <DialogTitle>Détail de l'évaluation</DialogTitle>
           <DialogDescription>

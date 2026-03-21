@@ -159,7 +159,7 @@ const PageTemplateManager = () => {
         )}
 
         <Dialog open={showEditor} onOpenChange={setShowEditor}>
-          <DialogContent className="max-w-xl max-h-[80vh] overflow-y-auto">
+          <DialogContent className="w-full sm:max-w-xl max-h-[80vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
                 {editingTemplate ? "Modifier le modèle" : "Nouveau modèle de page"}

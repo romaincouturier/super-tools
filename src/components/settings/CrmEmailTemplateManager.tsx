@@ -178,7 +178,7 @@ const CrmEmailTemplateManager = () => {
 
       {/* Create / Edit dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="w-full sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>{editingTemplate ? "Modifier le modèle" : "Nouveau modèle d'email"}</DialogTitle>
             <DialogDescription>

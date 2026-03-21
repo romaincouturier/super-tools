@@ -123,7 +123,7 @@ const FormationDetail = () => {
 
       {/* Map Dialog */}
       <Dialog open={fd.mapDialogOpen} onOpenChange={fd.setMapDialogOpen}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="w-full sm:max-w-3xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <MapPin className="h-5 w-5" />Localisation de la formation

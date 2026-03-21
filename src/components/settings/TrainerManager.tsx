@@ -433,7 +433,7 @@ export default function TrainerManager() {
 
       {/* Edit/Create Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="w-full sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingTrainer ? "Modifier le formateur" : "Ajouter un formateur"}</DialogTitle>
             <DialogDescription>Renseignez les informations du formateur.</DialogDescription>
