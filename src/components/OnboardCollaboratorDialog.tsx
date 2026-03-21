@@ -126,7 +126,7 @@ const OnboardCollaboratorDialog = ({ isAdmin }: OnboardCollaboratorDialogProps) 
           Ajouter un collaborateur
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-md">
+      <DialogContent className="w-full sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Ajouter un collaborateur</DialogTitle>
           <DialogDescription>
@@ -136,7 +136,7 @@ const OnboardCollaboratorDialog = ({ isAdmin }: OnboardCollaboratorDialogProps) 
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="space-y-4 py-4">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label htmlFor="collaboratorFirstName">Prénom</Label>
                 <Input
@@ -186,7 +186,7 @@ const OnboardCollaboratorDialog = ({ isAdmin }: OnboardCollaboratorDialogProps) 
                     : "Tout sélectionner"}
                 </Button>
               </div>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {ALL_MODULES.map((module) => (
                   <div
                     key={module}

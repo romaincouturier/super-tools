@@ -162,7 +162,7 @@ const CardDetailDialogs = (props: Props) => {
       />
 
       <AlertDialog open={showWinChoiceDialog} onOpenChange={setShowWinChoiceDialog}>
-        <AlertDialogContent className="max-w-lg max-h-[85vh] flex flex-col">
+        <AlertDialogContent className="w-full sm:max-w-lg max-h-[85vh] flex flex-col">
           <AlertDialogHeader>
             <div className="flex items-center gap-3 mb-2">
               <div className="p-2 rounded-full bg-green-100 text-green-600">
@@ -176,7 +176,7 @@ const CardDetailDialogs = (props: Props) => {
               Que souhaitez-vous créer à partir de cette opportunité ?
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <div className="grid grid-cols-2 gap-3 py-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 py-2">
             <Button
               variant="outline"
               className="h-auto flex flex-col items-center gap-2 p-4 hover:border-primary hover:bg-primary/5"
