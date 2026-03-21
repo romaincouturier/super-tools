@@ -4,7 +4,7 @@ import { Trash2, CheckCircle, Upload } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { sanitizeFileName } from "@/lib/file-utils";
+import { sanitizeFileName, resolveContentType } from "@/lib/file-utils";
 
 interface SignedConventionFilesProps {
   trainingId: string;
@@ -30,7 +30,7 @@ const SignedConventionFiles = ({
     try {
       const newUrls: string[] = [];
       for (const file of Array.from(files)) {
-        if (!file.type.includes("pdf") && !file.type.includes("image")) {
+        if (!resolveContentType(file).includes("pdf") && !resolveContentType(file).includes("image")) {
           toast({ title: "Format non supporté", description: "Seuls les fichiers PDF et images sont acceptés.", variant: "destructive" });
           continue;
         }

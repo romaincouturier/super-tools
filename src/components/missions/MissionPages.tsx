@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from "react";
+import { useAutoSaveForm } from "@/hooks/useAutoSaveForm";
 import { formatFileSize } from "@/lib/file-utils";
 import { useEditor, EditorContent, Node, mergeAttributes } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
@@ -282,10 +283,28 @@ const PageEditor = ({
   const [fileUploading, setFileUploading] = useState(false);
   const [aiSummary, setAiSummary] = useState<string | null>(null);
   const [aiSummaryLoading, setAiSummaryLoading] = useState(false);
-  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [editorValues, setEditorValues] = useState({ content: page.content || "", title: page.title || "" });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
+
+  useAutoSaveForm({
+    open: true,
+    formValues: editorValues,
+    debounceMs: 800,
+    onSave: async (values) => {
+      try {
+        await updatePage.mutateAsync({
+          id: page.id,
+          missionId,
+          updates: { content: values.content as string, title: values.title as string },
+        });
+        return true;
+      } catch {
+        return false;
+      }
+    },
+  });
 
   const handleGeneratePageSummary = async () => {
     setAiSummaryLoading(true);
@@ -461,21 +480,10 @@ const PageEditor = ({
       },
     },
     onUpdate: ({ editor: ed }) => {
-      // Update title immediately in sidebar (real-time)
       const firstLineText = ed.state.doc.firstChild?.textContent?.trim() || "Sans titre";
       const title = firstLineText.substring(0, 100) || "Sans titre";
       onPageUpdated({ ...page, title, content: ed.getHTML() });
-
-      // Debounce save to database
-      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
-      saveTimeoutRef.current = setTimeout(() => {
-        const html = ed.getHTML();
-        updatePage.mutate({
-          id: page.id,
-          missionId,
-          updates: { content: html, title },
-        });
-      }, 800);
+      setEditorValues({ content: ed.getHTML(), title });
     },
   });
 
@@ -488,10 +496,6 @@ const PageEditor = ({
       }
     }
   }, [page.id]);
-
-  useEffect(() => {
-    return () => { if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current); };
-  }, []);
 
   const handleImageUpload = async (files: FileList) => {
     if (!editor) return;

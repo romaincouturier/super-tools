@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { resolveContentType } from "@/lib/file-utils";
 import { supabase } from "@/integrations/supabase/client";
 import PageTemplateManager from "@/components/missions/PageTemplateManager";
 import { AutoSaveIndicator } from "@/components/settings/SettingsAutoSaveIndicator";
@@ -186,7 +187,7 @@ const SettingsGeneral = ({ settings, updateSetting, autoSaveStatus }: SettingsGe
                   <input id="reglement-upload" type="file" accept=".pdf" className="hidden" onChange={async (e) => {
                     const file = e.target.files?.[0];
                     if (!file) return;
-                    if (file.type !== "application/pdf") { toast({ title: "Format invalide", description: "Seuls les fichiers PDF sont acceptés.", variant: "destructive" }); return; }
+                    if (resolveContentType(file) !== "application/pdf") { toast({ title: "Format invalide", description: "Seuls les fichiers PDF sont acceptés.", variant: "destructive" }); return; }
                     setUploadingReglement(true);
                     try {
                       const ext = file.name.split(".").pop();

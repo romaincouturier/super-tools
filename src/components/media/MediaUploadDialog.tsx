@@ -4,7 +4,7 @@ import { Mission } from "@/types/missions";
 import { useAddMedia, uploadMediaFile, MediaSourceType } from "@/hooks/useMedia";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { resolveContentType } from "@/lib/file-utils";
+import { getFileType, resolveContentType } from "@/lib/file-utils";
 import {
   Dialog,
   DialogContent,
@@ -42,13 +42,6 @@ const MediaUploadDialog = ({ missions, trainings = [], events = [], crmCards = [
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const addMedia = useAddMedia();
-
-  const getFileType = (file: File): "image" | "video" | null => {
-    const mime = resolveContentType(file);
-    if (mime.startsWith("image/")) return "image";
-    if (mime.startsWith("video/")) return "video";
-    return null;
-  };
 
   const currentEntities = (): EntityOption[] => {
     switch (selectedSourceType) {
@@ -88,7 +81,7 @@ const MediaUploadDialog = ({ missions, trainings = [], events = [], crmCards = [
             file_url: fileUrl,
             file_name: file.name,
             file_type: fileType,
-            mime_type: file.type,
+            mime_type: resolveContentType(file),
             file_size: file.size,
             position: 0,
             source_type: selectedSourceType,

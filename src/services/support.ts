@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import { sanitizeFileName } from "@/lib/file-utils";
+import { sanitizeFileName, resolveContentType } from "@/lib/file-utils";
 import type { SupportTicket, TicketStatus, TicketAiAnalysis } from "@/types/support";
 
 export async function fetchSupportTickets(): Promise<SupportTicket[]> {
@@ -50,7 +50,7 @@ export async function createSupportTicket(
         file_name: file.name,
         file_path: filePath,
         file_size: file.size,
-        mime_type: file.type,
+        mime_type: resolveContentType(file),
       });
     }
   }

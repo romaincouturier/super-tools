@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { resolveContentType } from "@/lib/file-utils";
 import { Badge } from "@/components/ui/badge";
 import {
   Select,
@@ -243,7 +244,7 @@ const ContentCardDialog = ({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!file.type.startsWith("image/")) {
+    if (!resolveContentType(file).startsWith("image/")) {
       toast.error("Veuillez sélectionner une image");
       return;
     }
@@ -273,7 +274,7 @@ const ContentCardDialog = ({
           file_url: publicUrl,
           file_name: file.name,
           file_type: "image",
-          mime_type: file.type,
+          mime_type: resolveContentType(file),
           file_size: file.size,
           source_type: "content",
           source_id: card.id,

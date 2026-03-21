@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { formatSentDateTime } from "@/lib/dateFormatters";
-import { sanitizeFileName } from "@/lib/file-utils";
+import { sanitizeFileName, resolveContentType } from "@/lib/file-utils";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -52,7 +52,7 @@ const InvoiceSection = ({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!file.type.includes("pdf")) {
+    if (!resolveContentType(file).includes("pdf")) {
       toast({
         title: "Format non supporté",
         description: "Seuls les fichiers PDF sont acceptés.",

@@ -75,6 +75,17 @@ export function resolveContentType(file: File): string {
 }
 
 /**
+ * Determine if a file is an image or video based on its resolved MIME type.
+ * Returns null if the file is neither.
+ */
+export function getFileType(file: File): "image" | "video" | null {
+  const mime = resolveContentType(file);
+  if (mime.startsWith("image/")) return "image";
+  if (mime.startsWith("video/")) return "video";
+  return null;
+}
+
+/**
  * Build a storage path for a file upload.
  * Format: {entityType}/{entityId}/{timestamp}_{sanitizedName}
  */
