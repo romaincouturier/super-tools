@@ -1,34 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { rpc } from "@/lib/supabase-rpc";
 
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import { formatDateWithDayOfWeek, formatDateLong } from "@/lib/dateFormatters";
-import {
-  MapPin,
-  Calendar,
-  Clock,
-  Navigation,
-  FileText,
-  ScrollText,
-  User,
-  Mail,
-  Phone,
-  Loader2,
-  ExternalLink,
-  Target,
-  CheckCircle2,
-  ChevronDown,
-  Linkedin,
-  MessageCircle,
-  Video,
-  Globe,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Loader2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Separator } from "@/components/ui/separator";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -37,6 +15,29 @@ import {
 } from "@/components/ui/dropdown-menu";
 import SupertiltLogo from "@/components/SupertiltLogo";
 import { getGoogleMapsDirectionsUrl, getGoogleMapsEmbedUrl } from "@/lib/googleMaps";
+
+// ── Material Symbol helper ──────────────────────────────────────────────────
+
+function MIcon({
+  icon,
+  className = "",
+  fill = false,
+}: {
+  icon: string;
+  className?: string;
+  fill?: boolean;
+}) {
+  return (
+    <span
+      className={`material-symbols-outlined ${className}`}
+      style={fill ? { fontVariationSettings: "'FILL' 1" } : undefined}
+    >
+      {icon}
+    </span>
+  );
+}
+
+// ── Types ───────────────────────────────────────────────────────────────────
 
 interface Training {
   id: string;
@@ -72,6 +73,29 @@ interface Trainer {
   cv_url: string | null;
 }
 
+// ── MD3-inspired color palette (Stitch design) ─────────────────────────────
+
+const c = {
+  background: "#fff8f0",
+  surface: "#fff8f0",
+  surfaceContainerLowest: "#ffffff",
+  surfaceContainerLow: "#fcf3e0",
+  surfaceContainer: "#f6eddb",
+  surfaceContainerHigh: "#f0e7d5",
+  surfaceContainerHighest: "#ebe2cf",
+  onSurface: "#1f1b10",
+  onSurfaceVariant: "#4d4632",
+  outlineVariant: "#d1c6ab",
+  primary: "#725c00",
+  primaryContainer: "#ffd100",
+  onPrimaryContainer: "#6f5a00",
+  onPrimary: "#ffffff",
+  tertiary: "#006972",
+  onTertiaryContainer: "#006670",
+} as const;
+
+// ── Component ───────────────────────────────────────────────────────────────
+
 const TrainingSummary = () => {
   const { trainingId } = useParams<{ trainingId: string }>();
   const [googleMapsApiKey, setGoogleMapsApiKey] = useState("AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8");
@@ -81,7 +105,13 @@ const TrainingSummary = () => {
   const [reglementInterieurUrl, setReglementInterieurUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+  const [activeNav, setActiveNav] = useState("infos");
+
+  // Section refs for bottom nav scroll
+  const sectionInfos = useRef<HTMLElement>(null);
+  const sectionDocuments = useRef<HTMLElement>(null);
+  const sectionLieu = useRef<HTMLElement>(null);
+  const sectionFormateur = useRef<HTMLElement>(null);
 
   useEffect(() => {
     if (trainingId) {
@@ -89,9 +119,35 @@ const TrainingSummary = () => {
     }
   }, [trainingId]);
 
+  // Intersection observer for active nav
+  useEffect(() => {
+    const sections = [
+      { ref: sectionInfos, id: "infos" },
+      { ref: sectionDocuments, id: "documents" },
+      { ref: sectionLieu, id: "lieu" },
+      { ref: sectionFormateur, id: "formateur" },
+    ];
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            const match = sections.find((s) => s.ref.current === entry.target);
+            if (match) setActiveNav(match.id);
+          }
+        }
+      },
+      { rootMargin: "-40% 0px -55% 0px" },
+    );
+
+    for (const s of sections) {
+      if (s.ref.current) observer.observe(s.ref.current);
+    }
+    return () => observer.disconnect();
+  }, [training]);
+
   const fetchTrainingData = async () => {
     try {
-      // Fetch training via RPC
       const { data: trainingData, error: trainingError } = await rpc.getTrainingSummaryInfo(trainingId!);
 
       if (trainingError) throw trainingError;
@@ -102,30 +158,21 @@ const TrainingSummary = () => {
 
       setTraining(trainingData);
 
-      // Fetch schedules via RPC
       const { data: schedulesData } = await rpc.getTrainingSchedulesPublic(trainingId!);
+      setSchedules(Array.isArray(schedulesData) ? (schedulesData as Schedule[]) : []);
 
-      setSchedules(Array.isArray(schedulesData) ? schedulesData as Schedule[] : []);
-
-      // Fetch trainer if exists via RPC
       if (trainingData.trainer_id) {
         const { data: trainerData } = await rpc.getTrainerPublic(trainingData.trainer_id);
         setTrainer(trainerData);
       }
 
-      // Fetch règlement intérieur URL via RPC
       const [{ data: settingValue }, { data: mapsKey }] = await Promise.all([
         rpc.getAppSettingPublic("reglement_interieur_url"),
         rpc.getAppSettingPublic("google_maps_api_key"),
       ]);
 
-      if (settingValue) {
-        setReglementInterieurUrl(settingValue);
-      }
-      if (mapsKey) {
-        setGoogleMapsApiKey(mapsKey);
-      }
-
+      if (settingValue) setReglementInterieurUrl(settingValue);
+      if (mapsKey) setGoogleMapsApiKey(mapsKey);
     } catch (err) {
       console.error("Error fetching training data:", err);
       setError("Erreur lors du chargement des données");
@@ -135,12 +182,8 @@ const TrainingSummary = () => {
   };
 
   const formatScheduleDate = formatDateWithDayOfWeek;
+  const formatTime = (time: string) => time.substring(0, 5);
 
-  const formatTime = (time: string) => {
-    return time.substring(0, 5);
-  };
-
-  // Check if location is online (visio/distanciel)
   const isOnlineLocation = () => {
     if (!training) return false;
     const location = training.location.toLowerCase();
@@ -157,7 +200,6 @@ const TrainingSummary = () => {
     );
   };
 
-  // Extract URL from location if it's a link
   const extractUrlFromLocation = () => {
     if (!training) return null;
     const urlMatch = training.location.match(/(https?:\/\/[^\s]+)/);
@@ -169,18 +211,15 @@ const TrainingSummary = () => {
     return getGoogleMapsDirectionsUrl(training.location);
   };
 
-  // Build calendar event title: (ENTREPRISE) NOM_DE_LA_FORMATION
   const getEventTitle = () => {
     if (!training) return "";
     return `(${training.client_name}) ${training.training_name}`;
   };
 
-  // Summary page URL to include in calendar invites
   const getSummaryPageUrl = () => {
     return `${window.location.origin}/formation-info/${trainingId}`;
   };
 
-  // Build description for calendar events including summary page link
   const getEventDescription = () => {
     const summaryUrl = getSummaryPageUrl();
     let desc = `Formation ${training?.training_name || ""}`;
@@ -191,7 +230,6 @@ const TrainingSummary = () => {
     return desc;
   };
 
-  // Generate ICS for a single day
   const generateIcsForDay = (schedule: Schedule) => {
     if (!training) return "";
     const startDate = schedule.day_date.replace(/-/g, "");
@@ -288,396 +326,543 @@ END:VCALENDAR`;
     return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
   };
 
+  const scrollTo = (ref: React.RefObject<HTMLElement | null>) => {
+    ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  const isElearning =
+    training?.format_formation === "e_learning" ||
+    training?.session_format === "distanciel_asynchrone";
+
+  // ── Loading / Error states ──────────────────────────────────────────────
+
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="min-h-screen flex items-center justify-center" style={{ background: c.background }}>
+        <Loader2 className="h-8 w-8 animate-spin" style={{ color: c.primary }} />
       </div>
     );
   }
 
   if (error || !training) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Card className="max-w-md">
-          <CardContent className="pt-6 text-center">
-            <p className="text-muted-foreground">{error || "Formation introuvable"}</p>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: c.background }}>
+        <div className="rounded-xl p-6 text-center shadow-sm" style={{ background: c.surfaceContainerLowest, color: c.onSurfaceVariant }}>
+          <p>{error || "Formation introuvable"}</p>
+        </div>
       </div>
     );
   }
 
+  // ── Render ────────────────────────────────────────────────────────────────
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
-      {/* Header */}
-      <header className="bg-card border-b">
-        <div className="container max-w-4xl mx-auto px-4 py-6">
-          <div className="flex items-center justify-center">
-            <a href="https://www.supertilt.fr" target="_blank" rel="noopener noreferrer">
-              <SupertiltLogo className="h-12" />
-            </a>
-          </div>
-        </div>
+    <div className="min-h-screen pb-24" style={{ background: c.background, color: c.onSurface }}>
+      {/* TopAppBar */}
+      <header
+        className="sticky top-0 z-50 flex justify-center items-center px-4 h-16 w-full border-b shadow-sm"
+        style={{ background: c.surfaceContainerLowest, borderColor: `${c.outlineVariant}30` }}
+      >
+        <a href="https://www.supertilt.fr" target="_blank" rel="noopener noreferrer">
+          <SupertiltLogo className="h-10" />
+        </a>
       </header>
 
-      <main className="container max-w-4xl mx-auto px-4 py-8 space-y-6">
-        {/* Training Title */}
-        <div className="text-center space-y-2">
-          <h1 className="text-3xl font-bold">{training.training_name}</h1>
-          <p className="text-muted-foreground">
-            Bienvenue à cette formation ! Retrouvez ci-dessous toutes les informations pratiques.
-          </p>
-        </div>
+      <main className="max-w-md mx-auto px-4 pt-6 space-y-6">
+        {/* ═══ SECTION: Infos ═══ */}
+        <section ref={sectionInfos} className="space-y-4" id="section-infos">
+          {/* Badge format */}
+          {training.format_formation && (
+            <div
+              className="inline-flex items-center px-2 py-1 rounded text-xs font-bold uppercase tracking-wider"
+              style={{ background: c.primaryContainer, color: c.onPrimaryContainer }}
+            >
+              {training.format_formation === "e_learning"
+                ? "E-LEARNING"
+                : training.session_format === "distanciel_synchrone"
+                  ? "CLASSE VIRTUELLE"
+                  : training.session_format === "distanciel_asynchrone"
+                    ? "E-LEARNING ASYNCHRONE"
+                    : "FORMATION"}
+            </div>
+          )}
 
-        {/* Documents: Programme + Règlement intérieur */}
-        {(training.program_file_url || training.supports_url || reglementInterieurUrl) && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5 text-primary" />
-                Documents
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap gap-3">
-                {training.program_file_url && (
-                  <Button variant="outline" asChild>
-                    <a
-                      href={training.program_file_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      <FileText className="h-4 w-4 mr-2" />
-                      Consulter le programme
-                    </a>
-                  </Button>
-                )}
-                {training.supports_url && (
-                  <Button variant="outline" asChild>
-                    <a
-                      href={training.supports_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      <ExternalLink className="h-4 w-4 mr-2" />
-                      Accéder aux supports
-                    </a>
-                  </Button>
-                )}
-                {reglementInterieurUrl && (
-                  <Button variant="outline" asChild>
-                    <a
-                      href={reglementInterieurUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      <ScrollText className="h-4 w-4 mr-2" />
-                      Règlement intérieur
-                    </a>
-                  </Button>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        )}
+          <h1
+            className="text-3xl font-black leading-tight tracking-tight"
+            style={{ color: c.onSurface }}
+          >
+            {training.training_name}
+          </h1>
+        </section>
 
-        {/* Objectives */}
-        {training.objectives && training.objectives.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Target className="h-5 w-5 text-primary" />
-                Objectifs de la formation
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-2">
-                {training.objectives.map((objective, index) => (
-                  <li key={index} className="flex items-start gap-2">
-                    <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5 shrink-0" />
-                    <span>{objective}</span>
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Prerequisites */}
-        {training.prerequisites && training.prerequisites.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <CheckCircle2 className="h-5 w-5 text-primary" />
-                Prérequis
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-2">
-                {training.prerequisites.map((prerequisite, index) => (
-                  <li key={index} className="flex items-start gap-2">
-                    <span className="text-primary font-medium">•</span>
-                    <span>{prerequisite}</span>
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Dates and Schedule */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5 text-primary" />
-              {(training.format_formation === "e_learning" || training.session_format === "distanciel_asynchrone") ? "Période de formation" : "Dates et horaires"}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {(training.format_formation === "e_learning" || training.session_format === "distanciel_asynchrone") ? (
-              <div className="space-y-3">
-                <div className="p-3 bg-muted/50 rounded-lg">
-                  <p className="font-medium">
+        {/* ═══ Dates / Schedule ═══ */}
+        <section className="space-y-4">
+          {isElearning ? (
+            /* E-learning: single card with date range */
+            <div
+              className="rounded-xl p-5 shadow-sm border"
+              style={{ background: c.surfaceContainerLowest, borderColor: `${c.outlineVariant}30` }}
+            >
+              <div className="flex items-start gap-4 mb-3">
+                <div className="p-3 rounded-lg" style={{ background: c.primaryContainer, color: c.onPrimaryContainer }}>
+                  <MIcon icon="school" />
+                </div>
+                <div>
+                  <h2 className="font-black text-xl leading-tight" style={{ color: c.onSurface }}>
+                    Période de formation
+                  </h2>
+                  <p className="text-sm font-medium" style={{ color: c.onSurfaceVariant }}>
                     Du {formatDateLong(training.start_date)}
-                    {training.end_date &&
-                      ` au ${formatDateLong(training.end_date)}`}
+                    {training.end_date && ` au ${formatDateLong(training.end_date)}`}
                   </p>
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  Formation en e-learning accessible à votre rythme pendant cette période.
-                </p>
               </div>
-            ) : schedules.length > 0 ? (
-              <div className="space-y-3">
-                {schedules.map((schedule) => (
-                  <div
-                    key={schedule.id}
-                    className="flex items-center justify-between p-3 bg-muted/50 rounded-lg gap-3"
-                  >
-                    <div className="flex-1">
-                      <div className="font-medium capitalize">
-                        {formatScheduleDate(schedule.day_date)}
-                      </div>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
-                        <Clock className="h-4 w-4" />
-                        {formatTime(schedule.start_time)} - {formatTime(schedule.end_time)}
-                      </div>
-                    </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="outline" size="sm">
-                          <Calendar className="h-4 w-4 mr-2" />
-                          <span className="hidden sm:inline">Ajouter à mon agenda</span>
-                          <span className="sm:hidden">Agenda</span>
-                          <ChevronDown className="h-4 w-4 ml-1" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-56">
-                        <DropdownMenuItem onClick={() => handleAddToGoogleCalendar(schedule)}>
-                          <img src="https://www.google.com/favicon.ico" alt="Google" className="h-4 w-4 mr-2" />
-                          Google Calendar
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleAddToAppleCalendar(schedule)}>
-                          <Calendar className="h-4 w-4 mr-2" />
-                          Apple Calendar (iCal)
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleAddToOutlook(schedule)}>
-                          <img src="https://outlook.live.com/favicon.ico" alt="Outlook" className="h-4 w-4 mr-2" />
-                          Outlook.com
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleAddToAppleCalendar(schedule)}>
-                          <Calendar className="h-4 w-4 mr-2" />
-                          Outlook (Desktop)
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleAddToYahoo(schedule)}>
-                          <img src="https://www.yahoo.com/favicon.ico" alt="Yahoo" className="h-4 w-4 mr-2" />
-                          Yahoo Calendar
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+              <p className="text-sm" style={{ color: c.onSurfaceVariant }}>
+                Formation en e-learning accessible à votre rythme pendant cette période.
+              </p>
+            </div>
+          ) : schedules.length > 0 ? (
+            /* Synchronous: one card per day with calendar dropdown */
+            schedules.map((schedule) => (
+              <div
+                key={schedule.id}
+                className="rounded-xl p-5 shadow-sm border"
+                style={{ background: c.surfaceContainerLowest, borderColor: `${c.outlineVariant}30` }}
+              >
+                <div className="flex items-start gap-4 mb-4">
+                  <div className="p-3 rounded-lg" style={{ background: c.primaryContainer, color: c.onPrimaryContainer }}>
+                    <MIcon icon="calendar_today" />
                   </div>
-                ))}
-                <div className="flex items-center gap-2 text-sm text-muted-foreground mt-2">
-                  <Globe className="h-4 w-4" />
-                  <span>Horaires de Paris (Europe/Paris)</span>
-                  <span>•</span>
+                  <div>
+                    <h2 className="font-black text-xl leading-tight capitalize" style={{ color: c.onSurface }}>
+                      {formatScheduleDate(schedule.day_date)}
+                    </h2>
+                    <p className="text-sm font-medium" style={{ color: c.onSurfaceVariant }}>
+                      {formatTime(schedule.start_time)} - {formatTime(schedule.end_time)}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Calendar dropdown */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      className="w-full py-4 rounded-xl font-black flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
+                      style={{ background: c.primaryContainer, color: c.onPrimaryContainer }}
+                    >
+                      <MIcon icon="event" />
+                      Ajouter à mon agenda
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="center" className="w-56">
+                    <DropdownMenuItem onClick={() => handleAddToGoogleCalendar(schedule)}>
+                      Google Calendar
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleAddToAppleCalendar(schedule)}>
+                      Apple Calendar (iCal)
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleAddToOutlook(schedule)}>
+                      Outlook.com
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleAddToAppleCalendar(schedule)}>
+                      Outlook (Desktop)
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleAddToYahoo(schedule)}>
+                      Yahoo Calendar
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            ))
+          ) : (
+            /* Fallback: simple date display */
+            <div
+              className="rounded-xl p-5 shadow-sm border"
+              style={{ background: c.surfaceContainerLowest, borderColor: `${c.outlineVariant}30` }}
+            >
+              <div className="flex items-start gap-4">
+                <div className="p-3 rounded-lg" style={{ background: c.primaryContainer, color: c.onPrimaryContainer }}>
+                  <MIcon icon="calendar_today" />
+                </div>
+                <div>
+                  <h2 className="font-black text-xl leading-tight" style={{ color: c.onSurface }}>
+                    {formatDateLong(training.start_date)}
+                    {training.end_date && ` - ${formatDateLong(training.end_date)}`}
+                  </h2>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Timezone info for synchronous */}
+          {!isElearning && schedules.length > 0 && (
+            <div className="flex items-center gap-2 text-sm px-1" style={{ color: c.onSurfaceVariant }}>
+              <MIcon icon="public" className="text-base" />
+              <span>Horaires de Paris (Europe/Paris)</span>
+              <span>·</span>
+              <a
+                href="https://www.worldtimebuddy.com/?pl=1&lid=2988507&h=2988507"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline"
+                style={{ color: c.primary }}
+              >
+                Convertir
+              </a>
+            </div>
+          )}
+        </section>
+
+        {/* ═══ Objectifs ═══ */}
+        {training.objectives && training.objectives.length > 0 && (
+          <section
+            className="rounded-xl p-5 border shadow-sm space-y-4"
+            style={{ background: c.surfaceContainerLowest, borderColor: `${c.outlineVariant}30` }}
+          >
+            <h2 className="font-black text-lg uppercase tracking-tight" style={{ color: c.onSurface }}>
+              Objectifs de la formation
+            </h2>
+            <ul className="space-y-3">
+              {training.objectives.map((objective, index) => (
+                <li key={index} className="flex items-start gap-3">
+                  <MIcon icon="check_circle" className="text-xl" style={{ color: c.primary }} />
+                  <span className="text-sm font-medium leading-snug" style={{ color: c.onSurfaceVariant }}>
+                    {objective}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        {/* ═══ Prérequis ═══ */}
+        {training.prerequisites && training.prerequisites.length > 0 && (
+          <section
+            className="rounded-xl p-5 border space-y-2"
+            style={{ background: c.surfaceContainerLow, borderColor: `${c.outlineVariant}20` }}
+          >
+            <h2 className="font-black text-sm uppercase tracking-tight flex items-center gap-2" style={{ color: c.onSurface }}>
+              <MIcon icon="info" className="text-sm" />
+              Prérequis
+            </h2>
+            <ul className="space-y-1">
+              {training.prerequisites.map((prerequisite, index) => (
+                <p key={index} className="text-sm leading-relaxed" style={{ color: c.onSurfaceVariant }}>
+                  {prerequisite}
+                </p>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        {/* ═══ SECTION: Lieu ═══ */}
+        {training.format_formation !== "e_learning" && (
+          <section ref={sectionLieu} id="section-lieu">
+            {isOnlineLocation() ? (
+              /* Online / Visio */
+              <div
+                className="rounded-xl p-5 shadow-sm border space-y-4"
+                style={{ background: c.surfaceContainerLowest, borderColor: `${c.outlineVariant}30` }}
+              >
+                <div className="flex items-start gap-4">
+                  <div className="p-3 rounded-lg" style={{ background: c.primaryContainer, color: c.onPrimaryContainer }}>
+                    <MIcon icon="videocam" />
+                  </div>
+                  <div>
+                    <h2 className="font-black text-xl leading-tight" style={{ color: c.onSurface }}>
+                      Formation à distance
+                    </h2>
+                  </div>
+                </div>
+                {extractUrlFromLocation() ? (
                   <a
-                    href="https://www.worldtimebuddy.com/?pl=1&lid=2988507&h=2988507"
+                    href={extractUrlFromLocation()!}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-primary hover:underline"
+                    className="w-full py-4 rounded-xl font-black flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
+                    style={{ background: c.primaryContainer, color: c.onPrimaryContainer }}
                   >
-                    Convertir dans mon fuseau horaire
+                    <MIcon icon="videocam" />
+                    Se connecter à la visio
+                  </a>
+                ) : (
+                  <>
+                    <p className="text-base font-medium" style={{ color: c.onSurface }}>{training.location}</p>
+                    <p className="text-sm" style={{ color: c.onSurfaceVariant }}>
+                      Le lien de connexion vous sera communiqué par email avant la formation.
+                    </p>
+                  </>
+                )}
+              </div>
+            ) : (
+              /* In-person with map */
+              <div
+                className="rounded-xl overflow-hidden border shadow-sm"
+                style={{ background: c.surfaceContainerHighest, borderColor: `${c.outlineVariant}20` }}
+              >
+                {/* Map embed */}
+                <div className="relative h-32">
+                  <iframe
+                    width="100%"
+                    height="100%"
+                    style={{ border: 0 }}
+                    loading="lazy"
+                    allowFullScreen
+                    referrerPolicy="no-referrer-when-downgrade"
+                    src={getGoogleMapsEmbedUrl(training.location, googleMapsApiKey)}
+                  />
+                  <div
+                    className="absolute inset-0"
+                    style={{ background: `linear-gradient(to top, ${c.surfaceContainerHighest}, transparent)` }}
+                  />
+                  <div className="absolute bottom-3 left-3 flex items-center gap-2 bg-white/90 backdrop-blur px-3 py-1.5 rounded-full shadow-sm">
+                    <MIcon icon="location_on" className="text-sm" style={{ color: c.primary }} />
+                    <span className="text-xs font-bold">
+                      {training.location.split(",").pop()?.trim() || training.location}
+                    </span>
+                  </div>
+                </div>
+                <div className="p-4 flex justify-between items-center">
+                  <div className="flex-1 pr-4">
+                    <p className="text-sm font-bold leading-snug" style={{ color: c.onSurface }}>
+                      {training.location}
+                    </p>
+                  </div>
+                  <a
+                    href={getDirectionsUrl()}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-3 rounded-full shadow-md active:scale-90 transition-transform"
+                    style={{ background: c.surfaceContainerLowest, color: c.primary }}
+                  >
+                    <MIcon icon="near_me" />
                   </a>
                 </div>
               </div>
-            ) : (
-              <p className="text-muted-foreground">
-                {formatDateLong(training.start_date)}
-                {training.end_date &&
-                  ` - ${formatDateLong(training.end_date)}`}
-              </p>
             )}
-          </CardContent>
-        </Card>
-
-        {/* Location - Hide for e-learning */}
-        {training.format_formation !== "e_learning" && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                {isOnlineLocation() ? (
-                  <Video className="h-5 w-5 text-primary" />
-                ) : (
-                  <MapPin className="h-5 w-5 text-primary" />
-                )}
-                {isOnlineLocation() ? "Formation à distance" : "Lieu de formation"}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {isOnlineLocation() ? (
-                <>
-                  {extractUrlFromLocation() ? (
-                    <Button size="lg" asChild className="w-full sm:w-auto">
-                      <a
-                        href={extractUrlFromLocation()!}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        <Video className="h-5 w-5 mr-2" />
-                        Se connecter à la visio
-                      </a>
-                    </Button>
-                  ) : (
-                    <>
-                      <p className="text-lg">{training.location}</p>
-                      <p className="text-sm text-muted-foreground">
-                        Le lien de connexion vous sera communiqué par email avant la formation.
-                      </p>
-                    </>
-                  )}
-                </>
-              ) : (
-                <>
-                  <div className="flex items-center gap-3">
-                    <p className="text-lg">{training.location}</p>
-                    <Button size="sm" asChild>
-                      <a href={getDirectionsUrl()} target="_blank" rel="noopener noreferrer">
-                        <Navigation className="h-4 w-4 mr-2" />
-                        Venir
-                      </a>
-                    </Button>
-                  </div>
-
-                  {/* Google Maps embed */}
-                  <div className="aspect-video w-full rounded-lg overflow-hidden border">
-                    <iframe
-                      width="100%"
-                      height="100%"
-                      style={{ border: 0 }}
-                      loading="lazy"
-                      allowFullScreen
-                      referrerPolicy="no-referrer-when-downgrade"
-                      src={getGoogleMapsEmbedUrl(training.location, googleMapsApiKey)}
-                    />
-                  </div>
-                </>
-              )}
-            </CardContent>
-          </Card>
+          </section>
         )}
 
-        {/* Trainer Contact - LAST */}
+        {/* ═══ SECTION: Documents ═══ */}
+        {(training.program_file_url || training.supports_url || reglementInterieurUrl) && (
+          <section ref={sectionDocuments} id="section-documents" className="grid grid-cols-2 gap-3">
+            {training.program_file_url && (
+              <a
+                href={training.program_file_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex flex-col items-center justify-center p-4 border rounded-xl transition-colors"
+                style={{
+                  background: c.surfaceContainerLowest,
+                  borderColor: `${c.outlineVariant}30`,
+                  color: c.onTertiaryContainer,
+                }}
+              >
+                <MIcon icon="description" className="mb-2" />
+                <span className="text-xs font-bold text-center">Consulter le programme</span>
+              </a>
+            )}
+            {training.supports_url && (
+              <a
+                href={training.supports_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex flex-col items-center justify-center p-4 border rounded-xl transition-colors"
+                style={{
+                  background: c.surfaceContainerLowest,
+                  borderColor: `${c.outlineVariant}30`,
+                  color: c.onTertiaryContainer,
+                }}
+              >
+                <MIcon icon="folder_open" className="mb-2" />
+                <span className="text-xs font-bold text-center">Accéder aux supports</span>
+              </a>
+            )}
+            {reglementInterieurUrl && (
+              <a
+                href={reglementInterieurUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex flex-col items-center justify-center p-4 border rounded-xl transition-colors"
+                style={{
+                  background: c.surfaceContainerLowest,
+                  borderColor: `${c.outlineVariant}30`,
+                  color: c.onTertiaryContainer,
+                }}
+              >
+                <MIcon icon="gavel" className="mb-2" />
+                <span className="text-xs font-bold text-center">Règlement intérieur</span>
+              </a>
+            )}
+          </section>
+        )}
+
+        {/* ═══ SECTION: Formateur ═══ */}
         {trainer && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <User className="h-5 w-5 text-primary" />
-                Votre formateur
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-start gap-4">
-                <Avatar className="h-20 w-20">
-                  <AvatarImage 
-                    src={trainer.photo_url || undefined} 
-                    className="object-cover"
-                  />
+          <section
+            ref={sectionFormateur}
+            id="section-formateur"
+            className="rounded-xl p-5 border mb-8"
+            style={{ background: c.surfaceContainerLowest, borderColor: `${c.outlineVariant}30` }}
+          >
+            <div className="flex items-center gap-4 mb-5">
+              <div className="relative">
+                <Avatar className="w-16 h-16 border-2" style={{ borderColor: c.primaryContainer }}>
+                  <AvatarImage src={trainer.photo_url || undefined} className="object-cover" />
                   <AvatarFallback className="text-xl">
                     {getInitials(trainer.first_name, trainer.last_name)}
                   </AvatarFallback>
                 </Avatar>
-                <div className="flex-1 space-y-3">
-                  <h3 className="text-xl font-semibold">
-                    {trainer.first_name} {trainer.last_name}
-                  </h3>
-                  
-                  {/* Contact buttons */}
-                  <div className="flex flex-wrap gap-2">
-                    <Button variant="outline" size="sm" asChild>
-                      <a href={`mailto:${trainer.email}`}>
-                        <Mail className="h-4 w-4 mr-2" />
-                        Email
-                      </a>
-                    </Button>
-                    
-                    {trainer.phone && (
-                      <>
-                        <Button variant="outline" size="sm" asChild>
-                          <a href={`tel:${trainer.phone}`}>
-                            <Phone className="h-4 w-4 mr-2" />
-                            Téléphone
-                          </a>
-                        </Button>
-                        <Button variant="outline" size="sm" asChild>
-                          <a href={getWhatsAppUrl(trainer.phone)} target="_blank" rel="noopener noreferrer">
-                            <MessageCircle className="h-4 w-4 mr-2" />
-                            WhatsApp
-                          </a>
-                        </Button>
-                      </>
-                    )}
-                    
-                    {trainer.linkedin_url && (
-                      <Button variant="outline" size="sm" onClick={() => window.open(trainer.linkedin_url!, '_blank', 'noopener')}>
-                          <Linkedin className="h-4 w-4 mr-2" />
-                          LinkedIn
-                      </Button>
-                    )}
-
-                    {trainer.cv_url && (
-                      <Button variant="outline" size="sm" asChild>
-                        <a href={trainer.cv_url} target="_blank" rel="noopener noreferrer">
-                          <FileText className="h-4 w-4 mr-2" />
-                          CV
-                        </a>
-                      </Button>
-                    )}
-                  </div>
-
-                  {/* Contact info details */}
-                  <div className="text-sm text-muted-foreground space-y-1">
-                    <p>{trainer.email}</p>
-                    {trainer.phone && <p>{trainer.phone}</p>}
-                  </div>
+                <div
+                  className="absolute -bottom-1 -right-1 p-1 rounded-full border-2 border-white"
+                  style={{ background: c.primary, color: c.onPrimary }}
+                >
+                  <MIcon icon="verified" fill className="text-[10px]" />
                 </div>
               </div>
-              <Separator className="my-4" />
-              <p className="text-sm text-muted-foreground">
-                En cas de problème le jour de la formation, n'hésitez pas à contacter votre formateur directement.
-              </p>
-            </CardContent>
-          </Card>
-        )}
+              <div>
+                <h3 className="font-black text-lg leading-none" style={{ color: c.onSurface }}>
+                  {trainer.first_name} {trainer.last_name}
+                </h3>
+                <p className="text-sm" style={{ color: c.onSurfaceVariant }}>Votre formateur</p>
+              </div>
+            </div>
 
-        {/* Footer */}
-        <div className="text-center text-sm text-muted-foreground py-8">
-          <p>À bientôt pour cette formation !</p>
-        </div>
+            {/* Contact buttons */}
+            <div className="flex flex-wrap gap-2">
+              <a
+                href={`mailto:${trainer.email}`}
+                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-lg font-bold text-sm min-w-[80px] transition-colors"
+                style={{ background: c.surfaceContainer, color: c.onSurface }}
+              >
+                <MIcon icon="mail" className="text-sm" />
+                Email
+              </a>
+              {trainer.phone && (
+                <>
+                  <a
+                    href={`tel:${trainer.phone}`}
+                    className="flex-1 flex items-center justify-center gap-2 py-3 rounded-lg font-bold text-sm min-w-[80px] transition-colors"
+                    style={{ background: c.surfaceContainer, color: c.onSurface }}
+                  >
+                    <MIcon icon="call" className="text-sm" />
+                    Téléphone
+                  </a>
+                  <a
+                    href={getWhatsAppUrl(trainer.phone)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 flex items-center justify-center gap-2 py-3 rounded-lg font-bold text-sm min-w-[80px] transition-colors"
+                    style={{ background: c.surfaceContainer, color: c.onSurface }}
+                  >
+                    <MIcon icon="chat" className="text-sm" />
+                    WhatsApp
+                  </a>
+                </>
+              )}
+              {trainer.linkedin_url && (
+                <a
+                  href={trainer.linkedin_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 flex items-center justify-center gap-2 py-3 rounded-lg font-bold text-sm min-w-[80px] transition-colors"
+                  style={{ background: c.surfaceContainer, color: c.onSurface }}
+                >
+                  <MIcon icon="person" className="text-sm" />
+                  LinkedIn
+                </a>
+              )}
+              {trainer.cv_url && (
+                <a
+                  href={trainer.cv_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 flex items-center justify-center gap-2 py-3 rounded-lg font-bold text-sm min-w-[80px] transition-colors"
+                  style={{ background: c.surfaceContainer, color: c.onSurface }}
+                >
+                  <MIcon icon="description" className="text-sm" />
+                  CV
+                </a>
+              )}
+            </div>
+
+            {/* Contact info */}
+            <div className="mt-4 pt-4 border-t text-sm space-y-1" style={{ borderColor: `${c.outlineVariant}30`, color: c.onSurfaceVariant }}>
+              <p>En cas de problème le jour de la formation, n'hésitez pas à contacter votre formateur directement.</p>
+            </div>
+          </section>
+        )}
       </main>
+
+      {/* ═══ Bottom Navigation Bar ═══ */}
+      <nav
+        className="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-2 py-3 backdrop-blur-md shadow-[0_-2px_10px_rgba(0,0,0,0.05)] border-t"
+        style={{
+          background: "rgba(255,255,255,0.9)",
+          borderColor: `${c.outlineVariant}30`,
+          paddingBottom: "env(safe-area-inset-bottom, 12px)",
+        }}
+      >
+        <NavItem
+          icon="info"
+          label="Infos"
+          active={activeNav === "infos"}
+          onClick={() => scrollTo(sectionInfos)}
+        />
+        <NavItem
+          icon="description"
+          label="Documents"
+          active={activeNav === "documents"}
+          onClick={() => scrollTo(sectionDocuments)}
+        />
+        {training.format_formation !== "e_learning" && (
+          <NavItem
+            icon="location_on"
+            label="Lieu"
+            active={activeNav === "lieu"}
+            onClick={() => scrollTo(sectionLieu)}
+          />
+        )}
+        {trainer && (
+          <NavItem
+            icon="school"
+            label="Formateur"
+            active={activeNav === "formateur"}
+            onClick={() => scrollTo(sectionFormateur)}
+          />
+        )}
+      </nav>
     </div>
   );
 };
+
+// ── Bottom nav item ─────────────────────────────────────────────────────────
+
+function NavItem({
+  icon,
+  label,
+  active,
+  onClick,
+}: {
+  icon: string;
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className="flex flex-col items-center justify-center px-3 py-1 text-[11px] font-semibold transition-transform active:scale-90"
+      style={{
+        color: active ? "#92750a" : "#9ca3af",
+        background: active ? "#fef9c333" : "transparent",
+        borderRadius: "0.75rem",
+      }}
+    >
+      <MIcon icon={icon} />
+      {label}
+    </button>
+  );
+}
 
 export default TrainingSummary;
