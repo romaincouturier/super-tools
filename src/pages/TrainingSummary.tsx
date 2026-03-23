@@ -404,9 +404,7 @@ END:VCALENDAR`;
               style={{ background: c.surfaceContainerLowest, borderColor: `${c.outlineVariant}30` }}
             >
               <div className="flex items-start gap-4 mb-3">
-                <div className="p-3 rounded-lg" style={{ background: c.primaryContainer, color: c.onPrimaryContainer }}>
-                  <MIcon icon="school" />
-                </div>
+                <MIcon icon="school" className="text-2xl mt-0.5" style={{ color: c.primary }} />
                 <div>
                   <h2 className="font-black text-xl leading-tight" style={{ color: c.onSurface }}>
                     Période de formation
@@ -430,9 +428,7 @@ END:VCALENDAR`;
                 style={{ background: c.surfaceContainerLowest, borderColor: `${c.outlineVariant}30` }}
               >
                 <div className="flex items-start gap-4 mb-4">
-                  <div className="p-3 rounded-lg" style={{ background: c.primaryContainer, color: c.onPrimaryContainer }}>
-                    <MIcon icon="calendar_today" />
-                  </div>
+                  <MIcon icon="calendar_today" className="text-2xl mt-0.5" style={{ color: c.primary }} />
                   <div>
                     <h2 className="font-black text-xl leading-tight capitalize" style={{ color: c.onSurface }}>
                       {formatScheduleDate(schedule.day_date)}
@@ -481,9 +477,7 @@ END:VCALENDAR`;
               style={{ background: c.surfaceContainerLowest, borderColor: `${c.outlineVariant}30` }}
             >
               <div className="flex items-start gap-4">
-                <div className="p-3 rounded-lg" style={{ background: c.primaryContainer, color: c.onPrimaryContainer }}>
-                  <MIcon icon="calendar_today" />
-                </div>
+                <MIcon icon="calendar_today" className="text-2xl mt-0.5" style={{ color: c.primary }} />
                 <div>
                   <h2 className="font-black text-xl leading-tight" style={{ color: c.onSurface }}>
                     {formatDateLong(training.start_date)}
@@ -632,10 +626,11 @@ END:VCALENDAR`;
                     href={getDirectionsUrl()}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="p-3 rounded-full shadow-md active:scale-90 transition-transform"
-                    style={{ background: c.surfaceContainerLowest, color: c.primary }}
+                    className="flex items-center gap-1.5 text-sm font-bold underline active:scale-95 transition-transform"
+                    style={{ color: c.primary }}
                   >
-                    <MIcon icon="near_me" />
+                    <MIcon icon="near_me" className="text-base" />
+                    Voir sur la carte
                   </a>
                 </div>
               </div>
@@ -655,7 +650,7 @@ END:VCALENDAR`;
                 style={{
                   background: c.surfaceContainerLowest,
                   borderColor: `${c.outlineVariant}30`,
-                  color: c.onTertiaryContainer,
+                  color: c.onSurface,
                 }}
               >
                 <MIcon icon="description" className="mb-2" />
@@ -671,7 +666,7 @@ END:VCALENDAR`;
                 style={{
                   background: c.surfaceContainerLowest,
                   borderColor: `${c.outlineVariant}30`,
-                  color: c.onTertiaryContainer,
+                  color: c.onSurface,
                 }}
               >
                 <MIcon icon="folder_open" className="mb-2" />
@@ -687,7 +682,7 @@ END:VCALENDAR`;
                 style={{
                   background: c.surfaceContainerLowest,
                   borderColor: `${c.outlineVariant}30`,
-                  color: c.onTertiaryContainer,
+                  color: c.onSurface,
                 }}
               >
                 <MIcon icon="gavel" className="mb-2" />
@@ -706,20 +701,12 @@ END:VCALENDAR`;
             style={{ background: c.surfaceContainerLowest, borderColor: `${c.outlineVariant}30` }}
           >
             <div className="flex items-center gap-4 mb-5">
-              <div className="relative">
-                <Avatar className="w-16 h-16 border-2" style={{ borderColor: c.primaryContainer }}>
-                  <AvatarImage src={trainer.photo_url || undefined} className="object-cover" />
-                  <AvatarFallback className="text-xl">
-                    {getInitials(trainer.first_name, trainer.last_name)}
-                  </AvatarFallback>
-                </Avatar>
-                <div
-                  className="absolute -bottom-1 -right-1 p-1 rounded-full border-2 border-white"
-                  style={{ background: c.primary, color: c.onPrimary }}
-                >
-                  <MIcon icon="verified" fill className="text-[10px]" />
-                </div>
-              </div>
+              <Avatar className="w-16 h-16 border-2" style={{ borderColor: c.primaryContainer }}>
+                <AvatarImage src={trainer.photo_url || undefined} className="object-cover" />
+                <AvatarFallback className="text-xl">
+                  {getInitials(trainer.first_name, trainer.last_name)}
+                </AvatarFallback>
+              </Avatar>
               <div>
                 <h3 className="font-black text-lg leading-none" style={{ color: c.onSurface }}>
                   {trainer.first_name} {trainer.last_name}
@@ -852,7 +839,7 @@ function NavItem({
   return (
     <button
       onClick={onClick}
-      className="flex flex-col items-center justify-center px-3 py-1 text-[11px] font-semibold transition-transform active:scale-90"
+      className="flex flex-col items-center justify-center px-3 py-1 text-[9px] font-medium transition-transform active:scale-90"
       style={{
         color: active ? "#92750a" : "#9ca3af",
         background: active ? "#fef9c333" : "transparent",
