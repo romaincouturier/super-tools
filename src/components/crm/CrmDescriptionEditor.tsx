@@ -1,8 +1,6 @@
-import { useEditor, EditorContent } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
-import LinkExtension from "@tiptap/extension-link";
-import Underline from "@tiptap/extension-underline";
+import { EditorContent } from "@tiptap/react";
 import Image from "@tiptap/extension-image";
+import { useTiptapEditor } from "@/hooks/useTiptapEditor";
 import {
   Bold,
   Italic,
@@ -21,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
 import { cn } from "@/lib/utils";
 import { useEffect, useCallback, useState, useRef } from "react";
+import type { Editor } from "@tiptap/react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
@@ -78,19 +77,10 @@ const CrmDescriptionEditor = ({
     [cardId]
   );
 
-  const editor = useEditor({
-    extensions: [
-      StarterKit.configure({
-        bulletList: { keepMarks: true, keepAttributes: false },
-        orderedList: { keepMarks: true, keepAttributes: false },
-      }),
-      LinkExtension.configure({
-        openOnClick: false,
-        HTMLAttributes: {
-          class: "text-primary underline cursor-pointer",
-        },
-      }),
-      Underline,
+  const { editor, setLink } = useTiptapEditor({
+    content,
+    onChange,
+    extraExtensions: [
       Image.configure({
         inline: true,
         allowBase64: true,
@@ -99,7 +89,6 @@ const CrmDescriptionEditor = ({
         },
       }),
     ],
-    content,
     editorProps: {
       attributes: {
         class:
@@ -140,10 +129,7 @@ const CrmDescriptionEditor = ({
         return false;
       },
     },
-    onUpdate: ({ editor }) => {
-      onChange(editor.getHTML());
-    },
-    onFocus: ({ editor }) => {
+    onFocus: ({ editor }: { editor: Editor }) => {
       if (timestampInsertedRef.current) return;
       timestampInsertedRef.current = true;
       const now = format(new Date(), "EEEE d MMMM yyyy 'à' HH:mm", { locale: fr });
@@ -157,18 +143,6 @@ const CrmDescriptionEditor = ({
       editor.commands.setContent(content, { emitUpdate: false });
     }
   }, [content, editor]);
-
-  const setLink = useCallback(() => {
-    if (!editor) return;
-    const previousUrl = editor.getAttributes("link").href;
-    const url = window.prompt("URL du lien:", previousUrl);
-    if (url === null) return;
-    if (url === "") {
-      editor.chain().focus().extendMarkRange("link").unsetLink().run();
-      return;
-    }
-    editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
-  }, [editor]);
 
   const insertStamp = useCallback((label: string) => {
     if (!editor) return;

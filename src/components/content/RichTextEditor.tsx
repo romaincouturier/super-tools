@@ -1,9 +1,7 @@
-import { useEditor, EditorContent, ReactRenderer } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
-import Link from "@tiptap/extension-link";
+import { EditorContent, ReactRenderer } from "@tiptap/react";
 import TextAlign from "@tiptap/extension-text-align";
-import Underline from "@tiptap/extension-underline";
 import Mention from "@tiptap/extension-mention";
+import { useTiptapEditor } from "@/hooks/useTiptapEditor";
 import tippy, { type Instance as TippyInstance } from "tippy.js";
 import {
   Bold,
@@ -26,7 +24,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
 import { cn } from "@/lib/utils";
-import { useEffect, useCallback, useState, forwardRef, useImperativeHandle } from "react";
+import { useEffect, useState, forwardRef, useImperativeHandle } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 // ── Mention suggestion list ──────────────────────────────────────────
@@ -174,28 +172,13 @@ const RichTextEditor = ({
   className,
   minHeight = "200px",
 }: RichTextEditorProps) => {
-  const editor = useEditor({
-    extensions: [
-      StarterKit.configure({
-        bulletList: {
-          keepMarks: true,
-          keepAttributes: false,
-        },
-        orderedList: {
-          keepMarks: true,
-          keepAttributes: false,
-        },
-      }),
-      Link.configure({
-        openOnClick: false,
-        HTMLAttributes: {
-          class: "text-primary underline cursor-pointer",
-        },
-      }),
+  const { editor, setLink } = useTiptapEditor({
+    content,
+    onChange,
+    extraExtensions: [
       TextAlign.configure({
         types: ["heading", "paragraph"],
       }),
-      Underline,
       Mention.configure({
         HTMLAttributes: {
           class: "text-primary font-medium bg-primary/10 rounded px-0.5",
@@ -203,44 +186,13 @@ const RichTextEditor = ({
         suggestion: mentionSuggestion,
       }),
     ],
-    content,
     editorProps: {
       attributes: {
-        class:
-          `prose prose-sm dark:prose-invert max-w-none focus:outline-none p-3`,
+        class: `prose prose-sm dark:prose-invert max-w-none focus:outline-none p-3`,
         style: `min-height: ${minHeight}`,
       },
     },
-    onUpdate: ({ editor }) => {
-      onChange(editor.getHTML());
-    },
   });
-
-  // Content sync is handled via key prop on the parent component.
-  // Avoid syncing content → editor here to prevent overwriting user input.
-
-  const setLink = useCallback(() => {
-    if (!editor) return;
-
-    const previousUrl = editor.getAttributes("link").href;
-    const url = window.prompt("URL du lien:", previousUrl);
-
-    if (url === null) {
-      return;
-    }
-
-    if (url === "") {
-      editor.chain().focus().extendMarkRange("link").unsetLink().run();
-      return;
-    }
-
-    editor
-      .chain()
-      .focus()
-      .extendMarkRange("link")
-      .setLink({ href: url })
-      .run();
-  }, [editor]);
 
   if (!editor) {
     return null;

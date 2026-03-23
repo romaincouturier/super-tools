@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Upload, X, Plus, Maximize2, Minimize2, RefreshCw, FileText, Linkedin, Instagram, Loader2, Save, Mail, Check, MessageSquare, ZoomIn, ChevronDown, Clock } from "lucide-react";
 import {
   Dialog,
@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { resolveContentType } from "@/lib/file-utils";
 import { Badge } from "@/components/ui/badge";
 import {
   Select,
@@ -23,7 +22,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -33,6 +31,8 @@ import RichTextEditor from "./RichTextEditor";
 import EmojiPickerButton from "@/components/ui/emoji-picker-button";
 import { cn } from "@/lib/utils";
 import ImageLightbox from "@/components/ui/image-lightbox";
+import { useAutoSaveForm, type AutoSaveFormValues } from "@/hooks/useAutoSaveForm";
+import { useContentCardData } from "@/hooks/useContentCardData";
 
 type AiActionType = "reformulate" | "adapt_blog" | "adapt_linkedin" | "adapt_instagram";
 
@@ -70,23 +70,39 @@ const ContentCardDialog = ({
   const [cardType, setCardType] = useState<ContentCardType>("article");
   const [emoji, setEmoji] = useState<string | null>(null);
   const [deadline, setDeadline] = useState("");
-  const [uploading, setUploading] = useState(false);
   const [imageLightboxOpen, setImageLightboxOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [aiLoading, setAiLoading] = useState<AiActionType | null>(null);
-  const [draftNewsletters, setDraftNewsletters] = useState<{ id: string; title: string | null; scheduled_date: string }[]>([]);
-  const [attachedNewsletterId, setAttachedNewsletterId] = useState<string | null>(null);
-  const [attachingNewsletter, setAttachingNewsletter] = useState(false);
-  const [autoSaving, setAutoSaving] = useState(false);
-  const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [initialComment, setInitialComment] = useState("");
   const [currentColumnId, setCurrentColumnId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Auto-save refs
-  const saveTimerRef = useRef<ReturnType<typeof setTimeout>>();
-  const lastSavedHashRef = useRef("");
-  const formValuesRef = useRef<Record<string, unknown>>({});
+  const {
+    draftNewsletters,
+    attachedNewsletterId,
+    setAttachedNewsletterId,
+    attachingNewsletter,
+    aiLoading,
+    uploading,
+    handleAiAction: doAiAction,
+    handleImageUpload: doImageUpload,
+    handleNewsletterChange: doNewsletterChange,
+    performAutoSave,
+  } = useContentCardData({ open, card, onNewsletterChange });
+
+  const handleAutoSave = useCallback(async (values: AutoSaveFormValues): Promise<boolean> => {
+    if (!card) return false;
+    return performAutoSave(card.id, values as {
+      title: string; description: string; imageUrl: string;
+      tags: string[]; cardType: ContentCardType; emoji: string | null;
+      deadline: string;
+    });
+  }, [card, performAutoSave]);
+
+  const { autoSaving, lastSaved, resetTracking, flushAndGetPending } = useAutoSaveForm({
+    open: open && !!card,
+    formValues: { title, description, imageUrl, tags, cardType, emoji, deadline },
+    onSave: handleAutoSave,
+  });
 
   useEffect(() => {
     if (card) {
@@ -109,192 +125,23 @@ const ContentCardDialog = ({
       setInitialComment("");
       setCurrentColumnId(null);
     }
-    lastSavedHashRef.current = "";
-    setLastSaved(null);
-  }, [card, open]);
+    resetTracking();
+  }, [card, open, resetTracking]);
 
-  // Always keep latest values in ref
-  formValuesRef.current = {
-    title, description, imageUrl, tags, cardType, emoji, deadline,
-  };
-
-  // Form hash for change detection
-  const formHash = JSON.stringify({
-    title, description, imageUrl, tags, cardType, emoji, deadline,
-  });
-
-  // Auto-save for existing cards
   useEffect(() => {
-    if (!open || !card) return;
-
-    if (formHash === lastSavedHashRef.current) return;
-
-    if (!lastSavedHashRef.current) {
-      lastSavedHashRef.current = formHash;
-      return;
-    }
-
-    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-
-    saveTimerRef.current = setTimeout(async () => {
-      const v = formValuesRef.current as {
-        title: string; description: string; imageUrl: string;
-        tags: string[]; cardType: ContentCardType; emoji: string | null;
-        deadline: string;
-      };
-
-      if (!v.title.trim()) return;
-
-      setAutoSaving(true);
-      try {
-        const { error } = await supabase
-          .from("content_cards")
-          .update({
-            title: v.title.trim(),
-            description: v.description || null,
-            image_url: v.imageUrl || null,
-            tags: v.tags,
-            card_type: v.cardType || "article",
-            emoji: v.emoji ?? null,
-            deadline: v.deadline || null,
-          })
-          .eq("id", card.id);
-
-        if (error) throw error;
-
-        lastSavedHashRef.current = formHash;
-        setLastSaved(new Date());
-      } catch (error) {
-        console.error("Auto-save error:", error);
-      } finally {
-        setAutoSaving(false);
-      }
-    }, 800);
-
-    return () => {
-      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [formHash, open, card]);
-
-  // Fetch newsletters and current attachment when dialog opens
-  useEffect(() => {
-    if (!open) {
-      setIsFullscreen(false);
-      setAiLoading(null);
-      return;
-    }
-
-    const fetchNewsletters = async () => {
-      try {
-        const { data } = await supabase
-          .from("newsletters")
-          .select("id, title, scheduled_date")
-          .eq("status", "draft")
-          .order("scheduled_date", { ascending: true });
-        setDraftNewsletters(data || []);
-      } catch {
-        setDraftNewsletters([]);
-      }
-    };
-
-    const fetchAttachment = async () => {
-      if (!card) {
-        setAttachedNewsletterId(null);
-        return;
-      }
-      try {
-        const { data } = await supabase
-          .from("newsletter_cards")
-          .select("newsletter_id")
-          .eq("card_id", card.id)
-          .limit(1);
-        setAttachedNewsletterId(data?.[0]?.newsletter_id || null);
-      } catch {
-        setAttachedNewsletterId(null);
-      }
-    };
-
-    fetchNewsletters();
-    fetchAttachment();
-  }, [open, card]);
+    if (!open) setIsFullscreen(false);
+  }, [open]);
 
   const handleAiAction = async (action: AiActionType) => {
-    if (!description.trim()) {
-      toast.error("Le contenu est vide");
-      return;
-    }
-
-    setAiLoading(action);
-    try {
-      const { data, error } = await supabase.functions.invoke("ai-content-assist", {
-        body: { action, content: description },
-      });
-
-      if (error) throw error;
-
-      if (data.result) {
-        setDescription(data.result);
-        toast.success("Contenu modifié");
-      }
-    } catch (error) {
-      console.error("Error with AI assist:", error);
-      toast.error("Erreur lors du traitement IA");
-    } finally {
-      setAiLoading(null);
-    }
+    const result = await doAiAction(action, description);
+    if (result) setDescription(result);
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    if (!resolveContentType(file).startsWith("image/")) {
-      toast.error("Veuillez sélectionner une image");
-      return;
-    }
-
-    setUploading(true);
-    try {
-      const fileExt = file.name.split(".").pop();
-      const fileName = `${crypto.randomUUID()}.${fileExt}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from("content-images")
-        .upload(fileName, file);
-
-      if (uploadError) throw uploadError;
-
-      const { data: urlData } = supabase.storage
-        .from("content-images")
-        .getPublicUrl(fileName);
-
-      const publicUrl = urlData.publicUrl;
-      setImageUrl(publicUrl);
-
-      // Register in media library if card exists
-      if (card) {
-        const session = await supabase.auth.getSession();
-        await supabase.from("media").insert({
-          file_url: publicUrl,
-          file_name: file.name,
-          file_type: "image",
-          mime_type: resolveContentType(file),
-          file_size: file.size,
-          source_type: "content",
-          source_id: card.id,
-          position: 0,
-          created_by: session.data.session?.user?.id || null,
-        });
-      }
-
-      toast.success("Image téléchargée");
-    } catch (error) {
-      console.error("Error uploading image:", error);
-      toast.error("Erreur lors du téléchargement");
-    } finally {
-      setUploading(false);
-    }
+    const url = await doImageUpload(file, card?.id || null);
+    if (url) setImageUrl(url);
   };
 
   const handleAddTag = () => {
@@ -337,78 +184,17 @@ const ContentCardDialog = ({
   // Flush auto-save and close
   const handleClose = (isOpen: boolean) => {
     if (!isOpen && card) {
-      if (saveTimerRef.current) {
-        clearTimeout(saveTimerRef.current);
-        const v = formValuesRef.current as { title: string; description: string; imageUrl: string; tags: string[]; cardType: string; emoji: string | null; deadline: string };
-        if (v.title.trim() && formHash !== lastSavedHashRef.current) {
-          supabase
-            .from("content_cards")
-            .update({
-              title: v.title.trim(),
-              description: v.description || null,
-              image_url: v.imageUrl || null,
-              tags: v.tags,
-              card_type: v.cardType || "article",
-              emoji: v.emoji ?? null,
-              deadline: v.deadline || null,
-            })
-            .eq("id", card.id)
-            .then(() => {});
-        }
+      const pending = flushAndGetPending();
+      if (pending) {
+        handleAutoSave(pending).catch(() => {});
       }
     }
     onOpenChange(isOpen);
   };
 
-  const handleNewsletterChange = async (newsletterId: string) => {
+  const handleNewsletterChange = (newsletterId: string) => {
     if (!card) return;
-
-    setAttachingNewsletter(true);
-    try {
-      // Remove existing attachment
-      if (attachedNewsletterId) {
-        await supabase
-          .from("newsletter_cards")
-          .delete()
-          .eq("card_id", card.id)
-          .eq("newsletter_id", attachedNewsletterId);
-      }
-
-      if (newsletterId === "none") {
-        setAttachedNewsletterId(null);
-        toast.success("Carte retirée de la newsletter");
-        onNewsletterChange?.();
-      } else {
-        // Get max display_order for this newsletter
-        const { data: existing } = await supabase
-          .from("newsletter_cards")
-          .select("display_order")
-          .eq("newsletter_id", newsletterId)
-          .order("display_order", { ascending: false })
-          .limit(1);
-
-        const nextOrder = (existing?.[0]?.display_order ?? -1) + 1;
-
-        const { error } = await supabase
-          .from("newsletter_cards")
-          .insert({
-            newsletter_id: newsletterId,
-            card_id: card.id,
-            display_order: nextOrder,
-          });
-
-        if (error) throw error;
-
-        setAttachedNewsletterId(newsletterId);
-        toast.success("Carte ajoutée à la newsletter");
-        onNewsletterChange?.();
-      }
-    } catch (error) {
-      console.error("Error updating newsletter attachment:", error);
-      toast.error("Erreur lors de la mise à jour");
-    } finally {
-      setAttachingNewsletter(false);
-    }
+    doNewsletterChange(newsletterId, card.id);
   };
 
   const toggleFullscreen = () => {
