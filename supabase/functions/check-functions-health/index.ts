@@ -122,6 +122,7 @@ const FUNCTION_NAMES = [
   "submit-devis-signature",
   "summarize-coaching",
   "summarize-needs-survey",
+  "send-support-notification",
   "support-analyze-ticket",
   "transcribe-audio",
   "verify-attendance-signature",
