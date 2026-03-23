@@ -33,9 +33,9 @@ interface Training {
   id: string;
   start_date: string;
   end_date: string | null;
-  training_name: string;
-  location: string;
-  client_name: string;
+  training_name: string | null;
+  location: string | null;
+  client_name: string | null;
   created_at: string;
   session_type: string | null;
   session_format: string | null;
@@ -134,6 +134,8 @@ const Formations = () => {
     setDataLoading(false);
   };
 
+  const asText = (value: string | null | undefined) => value ?? "";
+
   // Filter helper: does a training match search + dropdown filters?
   const matchesFilters = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -147,8 +149,8 @@ const Formations = () => {
 
       // Text search
       if (!q) return true;
-      if (t.training_name.toLowerCase().includes(q)) return true;
-      if (t.client_name.toLowerCase().includes(q)) return true;
+      if (asText(t.training_name).toLowerCase().includes(q)) return true;
+      if (asText(t.client_name).toLowerCase().includes(q)) return true;
 
       // Match on training-level sponsor
       const tSponsor = [
@@ -243,13 +245,13 @@ const Formations = () => {
           comparison = (a.start_date ? new Date(a.start_date).getTime() : 0) - (b.start_date ? new Date(b.start_date).getTime() : 0);
           break;
         case "title":
-          comparison = a.training_name.localeCompare(b.training_name, "fr");
+          comparison = asText(a.training_name).localeCompare(asText(b.training_name), "fr");
           break;
         case "client":
-          comparison = a.client_name.localeCompare(b.client_name, "fr");
+          comparison = asText(a.client_name).localeCompare(asText(b.client_name), "fr");
           break;
         case "location":
-          comparison = a.location.localeCompare(b.location, "fr");
+          comparison = asText(a.location).localeCompare(asText(b.location), "fr");
           break;
       }
 
@@ -501,7 +503,7 @@ const Formations = () => {
                       >
                         <div className="flex items-start justify-between gap-2 mb-1.5">
                           <p className="font-medium text-sm leading-tight">
-                            {training.training_name}
+                            {asText(training.training_name) || "Sans titre"}
                           </p>
                           <div className="flex items-center gap-1.5 shrink-0">
                             {(training.participant_count ?? 0) > 0 && (
@@ -534,7 +536,7 @@ const Formations = () => {
                         <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                           <Badge variant="outline" className="text-xs flex items-center gap-1">
                             <Building className="h-3 w-3" />
-                            {training.client_name}
+                            {asText(training.client_name) || "Client non renseigné"}
                           </Badge>
                           {training.location && (
                             <span className="text-xs text-muted-foreground flex items-center gap-1">
@@ -617,11 +619,11 @@ const Formations = () => {
                             </div>
                           </TableCell>
                           <TableCell>
-                            <Badge variant="outline">{training.client_name}</Badge>
+                            <Badge variant="outline">{asText(training.client_name) || "Client non renseigné"}</Badge>
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
-                              {training.training_name}
+                              {asText(training.training_name) || "Sans titre"}
                               {(training.participant_count ?? 0) > 0 && (
                                 <Badge variant="secondary" className="text-xs px-1.5 py-0">
                                   {training.participant_count}
@@ -635,7 +637,7 @@ const Formations = () => {
                               )}
                             </div>
                           </TableCell>
-                          <TableCell>{training.location}</TableCell>
+                          <TableCell>{asText(training.location) || "—"}</TableCell>
                         </TableRow>
                       );
                     })}
