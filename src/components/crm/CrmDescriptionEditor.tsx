@@ -108,7 +108,7 @@ const CrmDescriptionEditor = ({
         const items = event.clipboardData?.items;
         if (!items || !cardId) return false;
 
-        for (const item of Array.from(items)) {
+        for (const item of Array.from(items) as DataTransferItem[]) {
           if (item.type.startsWith("image/")) {
             event.preventDefault();
             const file = item.getAsFile();

@@ -302,7 +302,6 @@ verify_jwt = false
 
 [functions.arena-suggest-experts]
 verify_jwt = false
-verify_jwt = false
 
 [functions.generate-quote-email]
 verify_jwt = false
@@ -341,4 +340,7 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.support-analyze-ticket]
+verify_jwt = false
+
+[functions.send-support-notification]
 verify_jwt = false

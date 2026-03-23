@@ -533,6 +533,7 @@ export type Database = {
           column_id: string
           created_at: string
           created_by: string | null
+          deadline: string | null
           description: string | null
           display_order: number
           emoji: string | null
@@ -548,6 +549,7 @@ export type Database = {
           column_id: string
           created_at?: string
           created_by?: string | null
+          deadline?: string | null
           description?: string | null
           display_order?: number
           emoji?: string | null
@@ -563,6 +565,7 @@ export type Database = {
           column_id?: string
           created_at?: string
           created_by?: string | null
+          deadline?: string | null
           description?: string | null
           display_order?: number
           emoji?: string | null
@@ -6571,6 +6574,7 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      get_learner_email: { Args: never; Returns: string }
       get_learner_portal_data: { Args: { p_email: string }; Returns: Json }
       get_mission_actions_public: {
         Args: { p_mission_id: string }

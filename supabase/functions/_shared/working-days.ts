@@ -1,5 +1,3 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
 /**
  * Default working days: Mon–Fri (index 0 = Sunday)
  */
@@ -9,8 +7,9 @@ const DEFAULT_WORKING_DAYS = [false, true, true, true, true, true, false];
  * Fetches the working_days configuration from app_settings.
  * Returns an array of 7 booleans [Sun, Mon, Tue, Wed, Thu, Fri, Sat].
  */
+// deno-lint-ignore no-explicit-any
 export async function fetchWorkingDays(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
 ): Promise<boolean[]> {
   try {
     const { data } = await supabase
@@ -36,8 +35,9 @@ export async function fetchWorkingDays(
  * Checks if the current date (in Europe/Paris timezone) is a working day.
  * Returns true if today is a working day, false otherwise.
  */
+// deno-lint-ignore no-explicit-any
 export async function isTodayWorkingDay(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
 ): Promise<boolean> {
   const workingDays = await fetchWorkingDays(supabase);
 
@@ -66,8 +66,9 @@ export async function isTodayWorkingDay(
  * if (skip) return skip;
  * ```
  */
+// deno-lint-ignore no-explicit-any
 export async function skipIfNonWorkingDay(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   functionName: string,
   corsHeaders: Record<string, string> = {},
 ): Promise<Response | null> {
