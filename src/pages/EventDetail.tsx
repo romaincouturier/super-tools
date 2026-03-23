@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { formatDateWithDayOfWeek } from "@/lib/dateFormatters";
 import {
@@ -13,7 +13,6 @@ import {
   ExternalLink,
   Copy,
   StickyNote,
-  Save,
   Ban,
   RotateCcw,
   Globe,
@@ -54,6 +53,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { useAutoSaveForm } from "@/hooks/useAutoSaveForm";
 import {
   useEvent,
   useUpdateEvent,
@@ -75,13 +75,30 @@ const EventDetail = () => {
   const [videoUrl, setVideoUrl] = useState("");
   const [videoName, setVideoName] = useState("");
   const [notes, setNotes] = useState(event?.notes || "");
-  const [savingNotes, setSavingNotes] = useState(false);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [cancellationReason, setCancellationReason] = useState("");
 
   useEffect(() => {
     if (event) setNotes(event.notes || "");
   }, [event]);
+
+  const notesFormValues = useMemo(() => ({ notes }), [notes]);
+
+  const { autoSaving: savingNotes } = useAutoSaveForm({
+    open: !!event,
+    formValues: notesFormValues,
+    onSave: async (values) => {
+      if (!id) return false;
+      const trimmed = (values.notes as string).trim() || null;
+      try {
+        await updateEvent.mutateAsync({ id, notes: trimmed });
+        return true;
+      } catch {
+        toast({ title: "Erreur", description: "Impossible de sauvegarder les notes.", variant: "destructive" });
+        return false;
+      }
+    },
+  });
 
 
   const handleAddVideoLink = async () => {
@@ -113,21 +130,6 @@ const EventDetail = () => {
       toast({ title: "Lien vidéo supprimé" });
     } catch {
       toast({ title: "Erreur", variant: "destructive" });
-    }
-  };
-
-  const handleSaveNotes = async () => {
-    if (!id) return;
-    setSavingNotes(true);
-    try {
-      await supabase
-        .from("events")
-        .update({ notes: notes.trim() || null })
-        .eq("id", id);
-    } catch {
-      toast({ title: "Erreur", description: "Impossible de sauvegarder les notes.", variant: "destructive" });
-    } finally {
-      setSavingNotes(false);
     }
   };
 
@@ -488,11 +490,11 @@ const EventDetail = () => {
                 <StickyNote className="h-5 w-5" />
                 Notes
               </CardTitle>
-              {notes !== (event.notes || "") && (
-                <Button size="sm" onClick={handleSaveNotes} disabled={savingNotes}>
-                  {savingNotes ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
-                  Enregistrer
-                </Button>
+              {savingNotes && (
+                <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  Enregistrement…
+                </span>
               )}
             </div>
           </CardHeader>
@@ -502,9 +504,6 @@ const EventDetail = () => {
               value={notes}
               onValueChange={setNotes}
               onChange={(e) => setNotes(e.target.value)}
-              onBlur={() => {
-                if (notes !== (event.notes || "")) handleSaveNotes();
-              }}
               className="min-h-[100px] resize-y"
             />
           </CardContent>
