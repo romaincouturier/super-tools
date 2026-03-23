@@ -66,8 +66,9 @@ export async function isTodayWorkingDay(
  * if (skip) return skip;
  * ```
  */
+// deno-lint-ignore no-explicit-any
 export async function skipIfNonWorkingDay(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   functionName: string,
   corsHeaders: Record<string, string> = {},
 ): Promise<Response | null> {

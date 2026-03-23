@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useRef } from "react";
-import { Loader2, LifeBuoy, Bug, Lightbulb, Plus, AlertCircle, ClipboardCopy, ImagePlus, Sparkles } from "lucide-react";
+import { Loader2, LifeBuoy, Bug, Lightbulb, Plus, AlertCircle, ClipboardCopy, ImagePlus, Sparkles, X } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
