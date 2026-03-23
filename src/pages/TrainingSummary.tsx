@@ -22,10 +22,12 @@ function MIcon({
   icon,
   className = "",
   fill = false,
+  style,
 }: {
   icon: string;
   className?: string;
   fill?: boolean;
+  style?: React.CSSProperties;
 }) {
   return (
     <span
