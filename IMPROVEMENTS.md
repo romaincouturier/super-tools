@@ -100,4 +100,18 @@ Ce ne sont pas des tickets : ce sont des **invariants** à vérifier en permanen
 
 ## DX
 
-_(aucune règle pour le moment)_
+### [012] Lovable scaffolding — auditer et supprimer le code mort après chaque génération
+- **Constat** : Lovable génère systématiquement du code scaffolding jamais utilisé : 13 composants UI Radix (hover-card, sidebar, menubar…), des wrappers à 1 import (ReviewSection.tsx), du CSS legacy (App.css), et des imports inutilisés (useTranslation dans Landing.tsx). Au total 1947 lignes mortes accumulées en quelques semaines de génération.
+- **Règle** : Après chaque session Lovable, vérifier les fichiers générés/modifiés. Supprimer tout composant UI avec 0 imports, tout wrapper qui ne fait que passer des props à un enfant unique, tout fichier CSS non importé, et tout import non utilisé. Ne jamais laisser du code mort "au cas où".
+- **Vérification** : `for f in src/components/ui/*.tsx; do name=$(basename "$f" .tsx); count=$(grep -r "from.*ui/$name" src/ --include='*.tsx' --include='*.ts' -l | grep -v "ui/$name.tsx" | wc -l); [ "$count" -eq 0 ] && echo "DEAD: $name"; done` — aucun résultat ne devrait apparaître.
+- **Fichiers de référence** : `src/components/ui/` (composants gardés = composants importés)
+- **Origine** : audit de simplification — 15 fichiers morts supprimés (1947 lignes)
+- **Date** : 2026-03-23
+
+### [011] PWA — ne jamais précacher les JS chunks, utiliser NetworkFirst pour les scripts
+- **Constat** : `globPatterns: ["**/*.{js,css,html,ico,svg}"]` dans la config Vite PWA précachait tous les JS chunks (279 fichiers, 5.3 Mo). Après chaque deploy, le Service Worker servait des chunks avec des hashes périmés → erreur "Failed to fetch dynamically imported module" → écran blanc. Lovable a empilé 6 commits de "runtime recovery" (clear SW, cache buster, session flags) sans jamais traiter la cause racine.
+- **Règle** : Les JS chunks ne doivent JAMAIS être dans `globPatterns` du Service Worker. Utiliser `globPatterns: ["**/*.{css,html,ico,svg}"]` et une stratégie `NetworkFirst` pour les scripts dans `runtimeCaching`. Ne jamais ajouter de logique de "runtime recovery" pour contourner un problème de cache SW — corriger la config à la source.
+- **Vérification** : `grep 'globPatterns' vite.config.ts` ne doit PAS contenir `js`. `grep -A2 'destination.*script' vite.config.ts` doit montrer `NetworkFirst`.
+- **Fichiers de référence** : `vite.config.ts` (config workbox corrigée)
+- **Origine** : production cassée — écran blanc après chaque deploy, Lovable en boucle sur 6 commits de recovery
+- **Date** : 2026-03-23
