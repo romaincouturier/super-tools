@@ -1,35 +1,36 @@
 import { useEffect } from "react";
 import { toast } from "sonner";
-import { isChunkLoadLikeError, recoverFromStaleBuildOnce } from "@/lib/runtimeRecovery";
 
-const CHUNK_RELOAD_FLAG = "__st_chunk_reload_attempted";
+function isChunkLoadError(reason: unknown) {
+  const message = String((reason instanceof Error ? reason.message : reason) ?? "");
+  return (
+    message.includes("Failed to fetch dynamically imported module") ||
+    message.includes("Importing a module script failed") ||
+    message.includes("Loading chunk")
+  );
+}
 
 /**
- * Prevents a blank screen when a lazy-loaded route chunk fails to load.
- * Common cause: the app updated and the old tab tries to load a now-missing chunk.
+ * Catches unhandled chunk-load failures (e.g. after a deploy while a tab is
+ * still open) and shows a reload toast instead of a blank screen.
  */
 export function GlobalChunkErrorHandler() {
   useEffect(() => {
     const onUnhandledRejection = (event: PromiseRejectionEvent) => {
-      if (!isChunkLoadLikeError(event.reason)) return;
+      if (!isChunkLoadError(event.reason)) return;
 
-      // Prevent the default browser handler (which can leave the app blank)
       event.preventDefault();
 
-      // Recover once by clearing caches/service workers then forcing a cache-busted reload.
-      void recoverFromStaleBuildOnce(CHUNK_RELOAD_FLAG).then((didRecover) => {
-        if (!didRecover) {
-          toast.error(
-            "Une mise à jour est disponible. Veuillez recharger la page.",
-            {
-              action: {
-                label: "Recharger",
-                onClick: () => window.location.reload(),
-              },
-            }
-          );
+      toast.error(
+        "Une mise à jour est disponible. Veuillez recharger la page.",
+        {
+          duration: Infinity,
+          action: {
+            label: "Recharger",
+            onClick: () => window.location.reload(),
+          },
         }
-      });
+      );
     };
 
     window.addEventListener("unhandledrejection", onUnhandledRejection);

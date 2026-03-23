@@ -1,14 +1,11 @@
 import { lazy } from "react";
 import type { ComponentType } from "react";
-import { recoverFromStaleBuildOnce } from "@/lib/runtimeRecovery";
 
 type LazyFactory<T extends ComponentType<Record<string, unknown>>> = () => Promise<{ default: T }>;
 
-const LAZY_RELOAD_FLAG = "__st_lazy_chunk_reload_attempted";
-
 /**
- * Helps recover from transient chunk-load failures (e.g. after a new deploy while
- * a tab is still open) by retrying the dynamic import.
+ * Wraps React.lazy with a simple retry (useful for transient network hiccups).
+ * No complex recovery logic — the SW NetworkFirst strategy handles stale builds.
  */
 export function lazyWithRetry<T extends ComponentType<Record<string, unknown>>>(
   factory: LazyFactory<T>,
@@ -32,11 +29,6 @@ export function lazyWithRetry<T extends ComponentType<Record<string, unknown>>>(
           await new Promise((r) => setTimeout(r, retryDelayMs));
         }
       }
-    }
-
-    // In production, a hard reload usually fixes stale chunk URLs after an update.
-    if (!import.meta.env.DEV && typeof window !== "undefined") {
-      await recoverFromStaleBuildOnce(LAZY_RELOAD_FLAG);
     }
 
     throw lastError;
