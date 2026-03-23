@@ -1,36 +1,19 @@
 import { createRoot } from "react-dom/client";
 import { registerSW } from "virtual:pwa-register";
 import "./index.css";
+import {
+  clearServiceWorkersAndCaches,
+  isChunkLoadLikeError,
+  recoverFromStaleBuildOnce,
+} from "@/lib/runtimeRecovery";
 
 const BOOTSTRAP_RELOAD_FLAG = "__st_bootstrap_reload_attempted";
-const SW_CLEANUP_RELOAD_FLAG = "__st_sw_cleanup_reload_attempted";
 const isPreviewHost =
   typeof window !== "undefined" && window.location.hostname.includes("lovableproject.com");
 
 function shouldReloadForBootstrapError(error: unknown) {
   const message = String((error as any)?.message ?? error ?? "");
-  return (
-    message.includes("can't detect preamble") ||
-    message.includes("Importing a module script failed") ||
-    message.includes("Failed to fetch dynamically imported module")
-  );
-}
-
-async function cleanupServiceWorkersAndCaches() {
-  if (!("serviceWorker" in navigator)) return;
-
-  const registrations = await navigator.serviceWorker.getRegistrations();
-  await Promise.allSettled(registrations.map((registration) => registration.unregister()));
-
-  if ("caches" in window) {
-    const cacheKeys = await caches.keys();
-    await Promise.allSettled(cacheKeys.map((key) => caches.delete(key)));
-  }
-
-  if (navigator.serviceWorker.controller && !sessionStorage.getItem(SW_CLEANUP_RELOAD_FLAG)) {
-    sessionStorage.setItem(SW_CLEANUP_RELOAD_FLAG, "1");
-    window.location.reload();
-  }
+  return message.includes("can't detect preamble") || isChunkLoadLikeError(error);
 }
 
 if (import.meta.env.PROD && !isPreviewHost) {
@@ -44,7 +27,7 @@ if (import.meta.env.PROD && !isPreviewHost) {
     },
   });
 } else {
-  void cleanupServiceWorkersAndCaches();
+  void clearServiceWorkersAndCaches();
 }
 
 async function bootstrap() {
@@ -78,10 +61,8 @@ async function bootstrap() {
 
     if (
       shouldReloadForBootstrapError(error) &&
-      !sessionStorage.getItem(BOOTSTRAP_RELOAD_FLAG)
+      (await recoverFromStaleBuildOnce(BOOTSTRAP_RELOAD_FLAG))
     ) {
-      sessionStorage.setItem(BOOTSTRAP_RELOAD_FLAG, "1");
-      window.location.reload();
       return;
     }
 
