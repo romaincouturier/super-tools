@@ -9,7 +9,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import SupertiltLogo from "@/components/SupertiltLogo";
-import { useTranslation } from "react-i18next";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
@@ -51,7 +50,6 @@ const testimonials = [
 
 export default function Landing() {
   const navigate = useNavigate();
-  const { t } = useTranslation();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {

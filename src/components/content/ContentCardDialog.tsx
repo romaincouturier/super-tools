@@ -26,7 +26,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import type { Card, Column, ContentCardType } from "./KanbanBoard";
-import ReviewSection from "./ReviewSection";
+import CommentThread from "./CommentThread";
 import RichTextEditor from "./RichTextEditor";
 import EmojiPickerButton from "@/components/ui/emoji-picker-button";
 import { cn } from "@/lib/utils";
@@ -530,7 +530,7 @@ const ContentCardDialog = ({
             {card && (
               <div className="space-y-2 border rounded-lg p-4">
                 <h3 className="font-medium">Relecture</h3>
-                <ReviewSection cardId={card.id} cardTitle={card.title} />
+                <CommentThread cardId={card.id} cardTitle={card.title} />
               </div>
             )}
           </div>
