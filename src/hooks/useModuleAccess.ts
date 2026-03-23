@@ -23,7 +23,8 @@ export type AppModule =
   | "reclamations"
   | "support"
   | "reseau"
-  | "lms";
+  | "lms"
+  | "screenshots";
 
 export const ALL_MODULES: AppModule[] = [
   "micro_devis",
@@ -48,6 +49,7 @@ export const ALL_MODULES: AppModule[] = [
   "support",
   "reseau",
   "lms",
+  "screenshots",
 ];
 
 export const MODULE_LABELS: Record<AppModule, string> = {
@@ -73,6 +75,7 @@ export const MODULE_LABELS: Record<AppModule, string> = {
   support: "Support",
   reseau: "Réseau",
   lms: "E-learning",
+  screenshots: "Screenshots",
 };
 
 export function useModuleAccess() {
