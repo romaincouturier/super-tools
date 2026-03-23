@@ -2,6 +2,10 @@ import { createRoot } from "react-dom/client";
 import { registerSW } from "virtual:pwa-register";
 import App from "./App";
 import "./index.css";
+import {
+  installGlobalChunkRecovery,
+  recoverFromStaleBuildOnce,
+} from "@/lib/runtimeRecovery";
 
 const isPreviewHost =
   typeof window !== "undefined" && window.location.hostname.includes("lovableproject.com");
@@ -17,5 +21,16 @@ if (import.meta.env.PROD && !isPreviewHost) {
   });
 }
 
+installGlobalChunkRecovery();
+
 const rootElement = document.getElementById("root")!;
-createRoot(rootElement).render(<App />);
+
+try {
+  createRoot(rootElement).render(<App />);
+} catch (error) {
+  void recoverFromStaleBuildOnce("bootstrap", error).then((recovered) => {
+    if (!recovered) {
+      console.error("[main] Fatal bootstrap error:", error);
+    }
+  });
+}

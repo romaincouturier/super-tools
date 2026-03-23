@@ -1,22 +1,17 @@
 import React from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-
-function isChunkLoadError(error: unknown) {
-  const message = String((error instanceof Error ? error.message : error) ?? "");
-  return (
-    message.includes("Failed to fetch dynamically imported module") ||
-    message.includes("Importing a module script failed") ||
-    message.includes("Loading chunk")
-  );
-}
+import {
+  isChunkLoadError,
+  recoverFromStaleBuildOnce,
+} from "@/lib/runtimeRecovery";
 
 type Props = { children: React.ReactNode };
 type State = { hasError: boolean; error?: unknown };
 
 /**
  * Catches both render errors and chunk-load failures.
- * For chunk errors a reload toast is shown; for other errors a fallback UI.
+ * For chunk errors we auto-recover stale builds first, then fallback to manual reload UI.
  */
 export class RouteErrorBoundary extends React.Component<Props, State> {
   state: State = { hasError: false };
@@ -29,13 +24,14 @@ export class RouteErrorBoundary extends React.Component<Props, State> {
     console.error("RouteErrorBoundary caught:", error);
 
     if (isChunkLoadError(error)) {
-      toast.error(
-        "Une mise à jour est disponible. Veuillez recharger la page.",
-        {
-          duration: Infinity,
-          action: { label: "Recharger", onClick: () => window.location.reload() },
+      void recoverFromStaleBuildOnce("route-boundary", error).then((recovered) => {
+        if (!recovered) {
+          toast.error("Une mise à jour est disponible. Veuillez recharger la page.", {
+            duration: Infinity,
+            action: { label: "Recharger", onClick: () => window.location.reload() },
+          });
         }
-      );
+      });
     }
   }
 
@@ -47,11 +43,21 @@ export class RouteErrorBoundary extends React.Component<Props, State> {
         <div className="w-full max-w-md rounded-lg border bg-card text-card-foreground p-6 space-y-3">
           <h1 className="text-lg font-semibold">Erreur de chargement</h1>
           <p className="text-sm text-muted-foreground">
-            Un module n'a pas pu être chargé (souvent après une mise à jour). Un rechargement corrige
+            Un module n&apos;a pas pu être chargé (souvent après une mise à jour). Un rechargement corrige
             généralement le problème.
           </p>
           <div className="flex gap-2">
-            <Button onClick={() => window.location.reload()}>Recharger</Button>
+            <Button
+              onClick={() => {
+                void recoverFromStaleBuildOnce("route-boundary-reload", this.state.error).then(
+                  (recovered) => {
+                    if (!recovered) window.location.reload();
+                  }
+                );
+              }}
+            >
+              Recharger
+            </Button>
             <Button
               variant="outline"
               onClick={() => this.setState({ hasError: false, error: undefined })}
