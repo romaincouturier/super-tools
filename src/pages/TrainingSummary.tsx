@@ -22,15 +22,17 @@ function MIcon({
   icon,
   className = "",
   fill = false,
+  style,
 }: {
   icon: string;
   className?: string;
   fill?: boolean;
+  style?: React.CSSProperties;
 }) {
   return (
     <span
       className={`material-symbols-outlined ${className}`}
-      style={fill ? { fontVariationSettings: "'FILL' 1" } : undefined}
+      style={{ ...(fill ? { fontVariationSettings: "'FILL' 1" } : {}), ...style }}
     >
       {icon}
     </span>
