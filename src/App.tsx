@@ -1,4 +1,4 @@
-import { Suspense } from "react";
+import { Suspense, lazy } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -7,10 +7,8 @@ import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { ChatbotProvider } from "@/components/chatbot/ChatbotProvider";
-import { GlobalChunkErrorHandler } from "@/components/GlobalChunkErrorHandler";
 import { PageViewTracker } from "@/components/PageViewTracker";
 import { RouteErrorBoundary } from "@/components/RouteErrorBoundary";
-import { lazyWithRetry } from "@/lib/lazyWithRetry";
 import "@/i18n";
 import { registerToast } from "@/lib/offlineMutationGuard";
 import { toast } from "@/hooks/use-toast";
@@ -21,67 +19,67 @@ import { createIDBPersister } from "@/lib/queryPersister";
 import OfflineBanner from "@/components/OfflineBanner";
 
 // Lazy load all pages with retry for chunk-load resilience
-const Dashboard = lazyWithRetry(() => import("./pages/Dashboard"));
-const CertificateGenerator = lazyWithRetry(() => import("./pages/CertificateGenerator"));
-const MicroDevis = lazyWithRetry(() => import("./pages/MicroDevis"));
-const Historique = lazyWithRetry(() => import("./pages/Historique"));
-const Parametres = lazyWithRetry(() => import("./pages/Parametres"));
-const Formations = lazyWithRetry(() => import("./pages/Formations"));
-const FormationCreate = lazyWithRetry(() => import("./pages/FormationCreate"));
-const FormationEdit = lazyWithRetry(() => import("./pages/FormationEdit"));
-const FormationDetail = lazyWithRetry(() => import("./pages/FormationDetail"));
-const Questionnaire = lazyWithRetry(() => import("./pages/Questionnaire"));
-const Evaluation = lazyWithRetry(() => import("./pages/Evaluation"));
-const SponsorEvaluation = lazyWithRetry(() => import("./pages/SponsorEvaluation"));
-const Evaluations = lazyWithRetry(() => import("./pages/Evaluations"));
-const FormulaireRedirect = lazyWithRetry(() => import("./pages/FormulaireRedirect"));
-const Ameliorations = lazyWithRetry(() => import("./pages/Ameliorations"));
-const PolitiqueConfidentialite = lazyWithRetry(() => import("./pages/PolitiqueConfidentialite"));
-const Auth = lazyWithRetry(() => import("./pages/Auth"));
-const ResetPassword = lazyWithRetry(() => import("./pages/ResetPassword"));
-const ForcePasswordChange = lazyWithRetry(() => import("./pages/ForcePasswordChange"));
-const Emargement = lazyWithRetry(() => import("./pages/Emargement"));
-const SignatureDevis = lazyWithRetry(() => import("./pages/SignatureDevis"));
-const SignatureConvention = lazyWithRetry(() => import("./pages/SignatureConvention"));
-const ContentBoard = lazyWithRetry(() => import("./pages/ContentBoard"));
-const BesoinsParticipants = lazyWithRetry(() => import("./pages/BesoinsParticipants"));
-const TrainingSummary = lazyWithRetry(() => import("./pages/TrainingSummary"));
-const ChatbotAdmin = lazyWithRetry(() => import("./pages/ChatbotAdmin"));
-const InboundEmails = lazyWithRetry(() => import("./pages/InboundEmails"));
-const Statistiques = lazyWithRetry(() => import("./pages/Statistiques"));
-const Crm = lazyWithRetry(() => import("./pages/Crm"));
-const CrmReports = lazyWithRetry(() => import("./pages/CrmReports"));
-const Missions = lazyWithRetry(() => import("./pages/Missions"));
-const MissionSummary = lazyWithRetry(() => import("./pages/MissionSummary"));
-const OKR = lazyWithRetry(() => import("./pages/OKR"));
-const MediaLibrary = lazyWithRetry(() => import("./pages/MediaLibrary"));
-const Events = lazyWithRetry(() => import("./pages/Events"));
-const EventCreate = lazyWithRetry(() => import("./pages/EventCreate"));
-const EventDetail = lazyWithRetry(() => import("./pages/EventDetail"));
-const EventEdit = lazyWithRetry(() => import("./pages/EventEdit"));
-const Monitoring = lazyWithRetry(() => import("./pages/Monitoring"));
-const FailedEmails = lazyWithRetry(() => import("./pages/FailedEmails"));
-const ArenaSetup = lazyWithRetry(() => import("./pages/ArenaSetup"));
-const ArenaDiscussion = lazyWithRetry(() => import("./pages/ArenaDiscussion"));
-const ArenaResults = lazyWithRetry(() => import("./pages/ArenaResults"));
-const Catalogue = lazyWithRetry(() => import("./pages/Catalogue"));
-const ReclamationPublic = lazyWithRetry(() => import("./pages/ReclamationPublic"));
-const TrainerEvaluation = lazyWithRetry(() => import("./pages/TrainerEvaluation"));
-const Reclamations = lazyWithRetry(() => import("./pages/Reclamations"));
-const Support = lazyWithRetry(() => import("./pages/Support"));
-const QuoteWorkflowPage = lazyWithRetry(() => import("./pages/QuoteWorkflow"));
-const NotFound = lazyWithRetry(() => import("./pages/NotFound"));
-const Admin = lazyWithRetry(() => import("./pages/Admin"));
-const Landing = lazyWithRetry(() => import("./pages/Landing"));
-const Signup = lazyWithRetry(() => import("./pages/Signup"));
-const Onboarding = lazyWithRetry(() => import("./pages/Onboarding"));
-const LearnerAccess = lazyWithRetry(() => import("./pages/LearnerAccess"));
-const LearnerPortal = lazyWithRetry(() => import("./pages/LearnerPortal"));
-const AiTools = lazyWithRetry(() => import("./pages/AiTools"));
-const LmsCourses = lazyWithRetry(() => import("./pages/LmsCourses"));
-const LmsCourseBuilder = lazyWithRetry(() => import("./pages/LmsCourseBuilder"));
-const LmsCoursePlayer = lazyWithRetry(() => import("./pages/LmsCoursePlayer"));
-const Reseau = lazyWithRetry(() => import("./pages/Reseau"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const CertificateGenerator = lazy(() => import("./pages/CertificateGenerator"));
+const MicroDevis = lazy(() => import("./pages/MicroDevis"));
+const Historique = lazy(() => import("./pages/Historique"));
+const Parametres = lazy(() => import("./pages/Parametres"));
+const Formations = lazy(() => import("./pages/Formations"));
+const FormationCreate = lazy(() => import("./pages/FormationCreate"));
+const FormationEdit = lazy(() => import("./pages/FormationEdit"));
+const FormationDetail = lazy(() => import("./pages/FormationDetail"));
+const Questionnaire = lazy(() => import("./pages/Questionnaire"));
+const Evaluation = lazy(() => import("./pages/Evaluation"));
+const SponsorEvaluation = lazy(() => import("./pages/SponsorEvaluation"));
+const Evaluations = lazy(() => import("./pages/Evaluations"));
+const FormulaireRedirect = lazy(() => import("./pages/FormulaireRedirect"));
+const Ameliorations = lazy(() => import("./pages/Ameliorations"));
+const PolitiqueConfidentialite = lazy(() => import("./pages/PolitiqueConfidentialite"));
+const Auth = lazy(() => import("./pages/Auth"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+const ForcePasswordChange = lazy(() => import("./pages/ForcePasswordChange"));
+const Emargement = lazy(() => import("./pages/Emargement"));
+const SignatureDevis = lazy(() => import("./pages/SignatureDevis"));
+const SignatureConvention = lazy(() => import("./pages/SignatureConvention"));
+const ContentBoard = lazy(() => import("./pages/ContentBoard"));
+const BesoinsParticipants = lazy(() => import("./pages/BesoinsParticipants"));
+const TrainingSummary = lazy(() => import("./pages/TrainingSummary"));
+const ChatbotAdmin = lazy(() => import("./pages/ChatbotAdmin"));
+const InboundEmails = lazy(() => import("./pages/InboundEmails"));
+const Statistiques = lazy(() => import("./pages/Statistiques"));
+const Crm = lazy(() => import("./pages/Crm"));
+const CrmReports = lazy(() => import("./pages/CrmReports"));
+const Missions = lazy(() => import("./pages/Missions"));
+const MissionSummary = lazy(() => import("./pages/MissionSummary"));
+const OKR = lazy(() => import("./pages/OKR"));
+const MediaLibrary = lazy(() => import("./pages/MediaLibrary"));
+const Events = lazy(() => import("./pages/Events"));
+const EventCreate = lazy(() => import("./pages/EventCreate"));
+const EventDetail = lazy(() => import("./pages/EventDetail"));
+const EventEdit = lazy(() => import("./pages/EventEdit"));
+const Monitoring = lazy(() => import("./pages/Monitoring"));
+const FailedEmails = lazy(() => import("./pages/FailedEmails"));
+const ArenaSetup = lazy(() => import("./pages/ArenaSetup"));
+const ArenaDiscussion = lazy(() => import("./pages/ArenaDiscussion"));
+const ArenaResults = lazy(() => import("./pages/ArenaResults"));
+const Catalogue = lazy(() => import("./pages/Catalogue"));
+const ReclamationPublic = lazy(() => import("./pages/ReclamationPublic"));
+const TrainerEvaluation = lazy(() => import("./pages/TrainerEvaluation"));
+const Reclamations = lazy(() => import("./pages/Reclamations"));
+const Support = lazy(() => import("./pages/Support"));
+const QuoteWorkflowPage = lazy(() => import("./pages/QuoteWorkflow"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const Admin = lazy(() => import("./pages/Admin"));
+const Landing = lazy(() => import("./pages/Landing"));
+const Signup = lazy(() => import("./pages/Signup"));
+const Onboarding = lazy(() => import("./pages/Onboarding"));
+const LearnerAccess = lazy(() => import("./pages/LearnerAccess"));
+const LearnerPortal = lazy(() => import("./pages/LearnerPortal"));
+const AiTools = lazy(() => import("./pages/AiTools"));
+const LmsCourses = lazy(() => import("./pages/LmsCourses"));
+const LmsCourseBuilder = lazy(() => import("./pages/LmsCourseBuilder"));
+const LmsCoursePlayer = lazy(() => import("./pages/LmsCoursePlayer"));
+const Reseau = lazy(() => import("./pages/Reseau"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -111,7 +109,6 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <GlobalChunkErrorHandler />
       <OfflineBanner />
       <BrowserRouter>
         <PageViewTracker />
