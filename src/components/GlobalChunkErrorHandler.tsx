@@ -38,14 +38,3 @@ export function GlobalChunkErrorHandler() {
 
   return null;
 }
-          },
-        }
-      );
-    };
-
-    window.addEventListener("unhandledrejection", onUnhandledRejection);
-    return () => window.removeEventListener("unhandledrejection", onUnhandledRejection);
-  }, []);
-
-  return null;
-}
