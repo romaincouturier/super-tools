@@ -6,7 +6,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { VoiceTextarea } from "@/components/ui/voice-textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -26,7 +26,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import type { Card, Column, ContentCardType } from "./KanbanBoard";
-import ReviewSection from "./ReviewSection";
+import CommentThread from "./CommentThread";
 import RichTextEditor from "./RichTextEditor";
 import EmojiPickerButton from "@/components/ui/emoji-picker-button";
 import { cn } from "@/lib/utils";
@@ -516,8 +516,9 @@ const ContentCardDialog = ({
                   <MessageSquare className="h-3.5 w-3.5" />
                   Commentaire
                 </Label>
-                <Textarea
+                <VoiceTextarea
                   value={initialComment}
+                  onValueChange={setInitialComment}
                   onChange={(e) => setInitialComment(e.target.value)}
                   placeholder="Ajouter un commentaire à la carte..."
                   rows={3}
@@ -529,7 +530,7 @@ const ContentCardDialog = ({
             {card && (
               <div className="space-y-2 border rounded-lg p-4">
                 <h3 className="font-medium">Relecture</h3>
-                <ReviewSection cardId={card.id} cardTitle={card.title} />
+                <CommentThread cardId={card.id} cardTitle={card.title} />
               </div>
             )}
           </div>

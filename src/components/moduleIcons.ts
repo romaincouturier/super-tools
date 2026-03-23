@@ -20,6 +20,7 @@ import {
   MessageSquareWarning,
   LifeBuoy,
   Users,
+  GraduationCap,
   type LucideIcon,
 } from "lucide-react";
 
@@ -51,4 +52,5 @@ export const MODULE_ICONS: Record<string, ModuleIconInfo> = {
   reclamations: { icon: MessageSquareWarning, label: "Réclamations", path: "/reclamations" },
   support: { icon: LifeBuoy, label: "Support", path: "/support" },
   reseau: { icon: Users, label: "Réseau", path: "/reseau" },
+  lms: { icon: GraduationCap, label: "E-learning", path: "/lms" },
 };

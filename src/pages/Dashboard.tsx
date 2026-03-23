@@ -28,6 +28,7 @@ import {
   Star,
   LayoutDashboard,
   Users,
+  GraduationCap,
 } from "lucide-react";
 import {
   DndContext,
@@ -252,6 +253,14 @@ const tools: Tool[] = [
     icon: <Users />,
     path: "/reseau",
     module: "reseau",
+  },
+  {
+    id: "lms",
+    name: "E-learning",
+    description: "Créez et gérez vos parcours de formation en ligne",
+    icon: <GraduationCap />,
+    path: "/lms",
+    module: "lms",
   },
 ];
 

@@ -8,7 +8,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import { VoiceTextarea } from "@/components/ui/voice-textarea";
 import { LossReason, lossReasonConfig } from "@/types/crm";
 import { cn } from "@/lib/utils";
 
@@ -63,9 +63,10 @@ const LossReasonDialog = ({ open, onConfirm, onCancel }: LossReasonDialogProps) 
         </div>
 
         {selectedReason && (
-          <Textarea
+          <VoiceTextarea
             placeholder="Détails supplémentaires (optionnel)..."
             value={detail}
+            onValueChange={setDetail}
             onChange={(e) => setDetail(e.target.value)}
             rows={2}
             className="resize-none"

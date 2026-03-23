@@ -3,7 +3,7 @@ import { supabase, createLearnerClient } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { VoiceTextarea } from "@/components/ui/voice-textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, Clock, Video, Check, X, Loader2 } from "lucide-react";
@@ -214,8 +214,9 @@ export default function CoachingBooking({
             </div>
             <div>
               <Label>Notes (optionnel)</Label>
-              <Textarea
+              <VoiceTextarea
                 value={notes}
+                onValueChange={setNotes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="Sujet ou questions pour cette séance..."
                 rows={2}

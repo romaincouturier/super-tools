@@ -5,7 +5,7 @@ import { rpc } from "@/lib/supabase-rpc";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { VoiceTextarea } from "@/components/ui/voice-textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Loader2, CheckCircle2, Calendar, Building2, User, Mail } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -421,8 +421,9 @@ const SponsorEvaluation = () => {
 
             <div className="space-y-2">
               <Label>Pouvez-vous décrire les impacts observés ?</Label>
-              <Textarea
+              <VoiceTextarea
                 value={descriptionImpact}
+                onValueChange={setDescriptionImpact}
                 onChange={(e) => setDescriptionImpact(e.target.value)}
                 placeholder="Décrivez les changements ou améliorations constatés..."
                 rows={3}
@@ -508,8 +509,9 @@ const SponsorEvaluation = () => {
 
             <div className="space-y-2">
               <Label>Si oui, souhaitez-vous laisser un témoignage ?</Label>
-              <Textarea
+              <VoiceTextarea
                 value={messageRecommandation}
+                onValueChange={setMessageRecommandation}
                 onChange={(e) => setMessageRecommandation(e.target.value)}
                 placeholder="Votre témoignage..."
                 rows={3}
@@ -547,8 +549,9 @@ const SponsorEvaluation = () => {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label>Quels sont les points forts de cette formation ?</Label>
-              <Textarea
+              <VoiceTextarea
                 value={pointsForts}
+                onValueChange={setPointsForts}
                 onChange={(e) => setPointsForts(e.target.value)}
                 placeholder="Ce que vous avez particulièrement apprécié..."
                 rows={3}
@@ -557,8 +560,9 @@ const SponsorEvaluation = () => {
 
             <div className="space-y-2">
               <Label>Quels axes d'amélioration suggérez-vous ?</Label>
-              <Textarea
+              <VoiceTextarea
                 value={axesAmelioration}
+                onValueChange={setAxesAmelioration}
                 onChange={(e) => setAxesAmelioration(e.target.value)}
                 placeholder="Vos suggestions d'amélioration..."
                 rows={3}
@@ -567,8 +571,9 @@ const SponsorEvaluation = () => {
 
             <div className="space-y-2">
               <Label>Commentaires libres</Label>
-              <Textarea
+              <VoiceTextarea
                 value={commentairesLibres}
+                onValueChange={setCommentairesLibres}
                 onChange={(e) => setCommentairesLibres(e.target.value)}
                 placeholder="Tout autre commentaire que vous souhaitez partager..."
                 rows={3}

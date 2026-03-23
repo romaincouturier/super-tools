@@ -35,7 +35,7 @@ import PageNotFound from "@/components/PageNotFound";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { VoiceTextarea } from "@/components/ui/voice-textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -497,9 +497,10 @@ const EventDetail = () => {
             </div>
           </CardHeader>
           <CardContent>
-            <Textarea
+            <VoiceTextarea
               placeholder="Ajoutez des notes sur cet événement..."
               value={notes}
+              onValueChange={setNotes}
               onChange={(e) => setNotes(e.target.value)}
               onBlur={() => {
                 if (notes !== (event.notes || "")) handleSaveNotes();

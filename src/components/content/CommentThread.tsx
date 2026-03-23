@@ -4,17 +4,19 @@ import { toast } from "sonner";
 import { notifyContentUser } from "@/services/contentNotifications";
 import {
   Send, Loader2, MessageSquare, X, Pencil, Image,
-  FileText, Palette, Trash2, Copy, Mic, MicOff, Reply, CheckCheck,
+  FileText, Palette, Trash2, Copy, Reply, CheckCheck,
   ChevronDown, ChevronRight, UserPlus
 } from "lucide-react";
-import { useVoiceDictation } from "@/hooks/useVoiceDictation";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import MentionTextarea from "./MentionTextarea";
+import { useVoiceDictation } from "@/hooks/useVoiceDictation";
+import { Mic, MicOff } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { resolveContentType } from "@/lib/file-utils";
-import MentionTextarea, { MentionUser } from "./MentionTextarea";
+import type { MentionUser } from "./MentionTextarea";
 import {
   Select,
   SelectContent,
@@ -77,6 +79,13 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
   const [submitting, setSubmitting] = useState(false);
   const [pendingMentions, setPendingMentions] = useState<MentionUser[]>([]);
 
+  const { isRecording, isTranscribing, isSupported: voiceSupported, startRecording, stopRecording } =
+    useVoiceDictation({
+      onTranscript: (text) => {
+        setNewComment((prev) => (prev ? prev + " " + text : text));
+      },
+    });
+
   // Reply state
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyText, setReplyText] = useState("");
@@ -88,16 +97,7 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
   const [editCorrection, setEditCorrection] = useState("");
   const [submittingEdit, setSubmittingEdit] = useState(false);
 
-  // Voice
-  const [analyzingVoice, setAnalyzingVoice] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const { isRecording: isListening, isTranscribing, isSupported: speechSupported, startRecording, stopRecording } =
-    useVoiceDictation({
-      onTranscript: (transcript) => {
-        setNewComment((prev) => (prev ? prev + " " + transcript : transcript));
-      },
-    });
 
   const [showCorrection, setShowCorrection] = useState(false);
 
@@ -426,32 +426,6 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
     }
   };
 
-  const handleVoiceToggle = () => {
-    if (isListening) {
-      stopRecording();
-    } else {
-      startRecording();
-    }
-  };
-
-  const analyzeVoiceTranscript = async (transcript: string) => {
-    setAnalyzingVoice(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("analyze-voice-review", {
-        body: { transcript },
-      });
-      if (error) throw error;
-      if (data?.problem) setNewComment(data.problem);
-      if (data?.correction) { setProposedCorrection(data.correction); setShowCorrection(true); }
-      if (data?.comment_type === "fond" || data?.comment_type === "forme") setCommentType(data.comment_type);
-      toast.success("Retour vocal analysé");
-    } catch {
-      setNewComment(transcript);
-      toast.error("Erreur d'analyse — transcription brute insérée");
-    } finally {
-      setAnalyzingVoice(false);
-    }
-  };
 
   const renderTextWithLinks = (text: string) => {
     // Split on mentions and URLs
@@ -848,7 +822,7 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
           onChange={setNewComment}
           onMentionsChange={setPendingMentions}
           onPaste={handlePaste}
-          placeholder="Ajouter un commentaire… (@nom pour mentionner)"
+          placeholder="Ajouter un commentaire… (@mention)"
           rows={2}
           className="text-sm"
           onKeyDown={(e) => {
@@ -875,14 +849,6 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
             rows={2}
             className="resize-none text-sm"
           />
-        )}
-
-        {/* Listening / transcribing indicator */}
-        {(isListening || isTranscribing) && (
-          <div className="flex items-center gap-2 text-sm text-destructive animate-pulse">
-            <Mic className="h-4 w-4" />
-            <span>{isTranscribing ? "Transcription en cours…" : "Écoute en cours…"}</span>
-          </div>
         )}
 
         {/* Action bar */}
@@ -948,19 +914,29 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
               <Pencil className="h-3.5 w-3.5" />
             </Button>
 
-            {speechSupported && (
-              <Button
-                type="button"
-                size="icon"
-                variant={isListening ? "destructive" : "ghost"}
-                className="h-7 w-7"
-                onClick={handleVoiceToggle}
-                disabled={analyzingVoice}
-                title={isListening ? "Arrêter" : "Retour vocal"}
-              >
-                {analyzingVoice ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : isListening ? <MicOff className="h-3.5 w-3.5" /> : <Mic className="h-3.5 w-3.5" />}
-              </Button>
+            {voiceSupported && (
+              <>
+                <div className="w-px h-4 bg-border mx-1" />
+                <Button
+                  type="button"
+                  size="icon"
+                  variant={isRecording ? "destructive" : "ghost"}
+                  className="h-7 w-7"
+                  onClick={() => isRecording ? stopRecording() : startRecording()}
+                  disabled={isTranscribing}
+                  title={isRecording ? "Arrêter la dictée" : "Dicter"}
+                >
+                  {isTranscribing ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : isRecording ? (
+                    <MicOff className="h-3.5 w-3.5" />
+                  ) : (
+                    <Mic className="h-3.5 w-3.5" />
+                  )}
+                </Button>
+              </>
             )}
+
           </div>
 
           <Button size="sm" className="h-7" onClick={handleSubmit} disabled={submitting || !newComment.trim()}>

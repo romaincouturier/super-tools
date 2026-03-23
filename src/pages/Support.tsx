@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { VoiceTextarea } from "@/components/ui/voice-textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import ModuleLayout from "@/components/ModuleLayout";
@@ -232,8 +232,9 @@ const Support = () => {
                   <div className="space-y-4">
                     <div className="space-y-2">
                       <Label>Décrivez votre problème ou votre idée *</Label>
-                      <Textarea
+                      <VoiceTextarea
                         value={newDescription}
+                        onValueChange={setNewDescription}
                         onChange={(e) => setNewDescription(e.target.value)}
                         rows={6}
                         placeholder="Décrivez ce qui ne fonctionne pas, ou l'amélioration que vous souhaitez..."

@@ -23,14 +23,27 @@ export default defineConfig(({ mode }) => ({
         cleanupOutdatedCaches: true,
         skipWaiting: true,
         clientsClaim: true,
-        // Cache pages and assets with a network-first strategy
+        // Do NOT precache JS chunks — their content-hashed filenames change
+        // every build. Precaching them causes stale-chunk errors after deploy
+        // because the old SW serves outdated hashes before the new SW activates.
+        globPatterns: ["**/*.{css,html,ico,svg}"],
         runtimeCaching: [
           {
             urlPattern: ({ request }) => request.destination === "document",
             handler: "NetworkFirst",
             options: {
               cacheName: "pages-cache",
-              expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 * 24 }, // 24h
+              expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 * 24 },
+            },
+          },
+          {
+            // JS chunks: network-first so deploys are picked up immediately,
+            // with a cache fallback for offline resilience.
+            urlPattern: ({ request }) => request.destination === "script",
+            handler: "NetworkFirst",
+            options: {
+              cacheName: "js-cache",
+              expiration: { maxEntries: 120, maxAgeSeconds: 60 * 60 * 24 * 7 },
             },
           },
           {
@@ -38,12 +51,10 @@ export default defineConfig(({ mode }) => ({
             handler: "CacheFirst",
             options: {
               cacheName: "images-cache",
-              expiration: { maxEntries: 60, maxAgeSeconds: 60 * 60 * 24 * 30 }, // 30 days
+              expiration: { maxEntries: 60, maxAgeSeconds: 60 * 60 * 24 * 30 },
             },
           },
         ],
-        // Pre-cache the app shell
-        globPatterns: ["**/*.{js,css,html,ico,svg}"],
       },
     }),
   ].filter(Boolean),

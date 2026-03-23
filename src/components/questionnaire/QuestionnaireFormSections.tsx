@@ -1,6 +1,6 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { VoiceTextarea } from "@/components/ui/voice-textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Slider } from "@/components/ui/slider";
@@ -96,7 +96,7 @@ const QuestionnaireFormSections = ({
           {questionnaire.experience_sujet && questionnaire.experience_sujet !== "aucune" && (
             <div className="space-y-2">
               <Label htmlFor="experience_details">Précisez votre expérience</Label>
-              <Textarea id="experience_details" value={questionnaire.experience_details || ""} onChange={(e) => updateField("experience_details", e.target.value)} rows={3} placeholder="Décrivez votre contexte, vos enjeux..." />
+              <VoiceTextarea id="experience_details" value={questionnaire.experience_details || ""} onValueChange={(v) => updateField("experience_details", v)} onChange={(e) => updateField("experience_details", e.target.value)} rows={3} placeholder="Décrivez votre contexte, vos enjeux..." />
             </div>
           )}
         </CardContent>
@@ -145,7 +145,7 @@ const QuestionnaireFormSections = ({
               {hasUnvalidatedPrerequisites() && (
                 <div className="space-y-2">
                   <Label htmlFor="prerequis_details">Lesquels vous manquent-ils ?</Label>
-                  <Textarea id="prerequis_details" value={questionnaire.prerequis_details || ""} onChange={(e) => updateField("prerequis_details", e.target.value)} rows={3} placeholder="Précisez ce qui vous manque..." />
+                  <VoiceTextarea id="prerequis_details" value={questionnaire.prerequis_details || ""} onValueChange={(v) => updateField("prerequis_details", v)} onChange={(e) => updateField("prerequis_details", e.target.value)} rows={3} placeholder="Précisez ce qui vous manque..." />
                 </div>
               )}
             </div>
@@ -174,7 +174,7 @@ const QuestionnaireFormSections = ({
         <CardHeader><CardTitle className="text-lg">4. Compétences visées et objectifs</CardTitle></CardHeader>
         <CardContent className="space-y-2">
           <Label htmlFor="competences_visees">Quelles compétences concrètes souhaitez-vous acquérir et comment s'inscrivent-elles dans votre mission ?</Label>
-          <Textarea id="competences_visees" value={questionnaire.competences_visees || ""} onChange={(e) => updateField("competences_visees", e.target.value)} rows={4} placeholder="Décrivez les compétences que vous souhaitez développer et leur lien avec votre activité..." />
+          <VoiceTextarea id="competences_visees" value={questionnaire.competences_visees || ""} onValueChange={(v) => updateField("competences_visees", v)} onChange={(e) => updateField("competences_visees", e.target.value)} rows={4} placeholder="Décrivez les compétences que vous souhaitez développer et leur lien avec votre activité..." />
         </CardContent>
       </Card>
 
@@ -200,7 +200,7 @@ const QuestionnaireFormSections = ({
           <CardHeader><CardTitle className="text-lg">6. Contraintes d'organisation</CardTitle></CardHeader>
           <CardContent className="space-y-2">
             <Label htmlFor="contraintes">Avez-vous des contraintes horaires ou organisationnelles à signaler ?</Label>
-            <Textarea id="contraintes" value={questionnaire.contraintes_orga || ""} onChange={(e) => updateField("contraintes_orga", e.target.value)} rows={3} placeholder="Horaires, déplacements, matériel..." />
+            <VoiceTextarea id="contraintes" value={questionnaire.contraintes_orga || ""} onValueChange={(v) => updateField("contraintes_orga", v)} onChange={(e) => updateField("contraintes_orga", e.target.value)} rows={3} placeholder="Horaires, déplacements, matériel..." />
           </CardContent>
         </Card>
       )}
@@ -221,7 +221,7 @@ const QuestionnaireFormSections = ({
             {accessibiliteChoice === "oui" && (
               <div className="space-y-2 pl-6 border-l-2 border-primary/30">
                 <Label htmlFor="accessibilite">Décrivez vos besoins :</Label>
-                <Textarea id="accessibilite" value={questionnaire.besoins_accessibilite || ""} onChange={(e) => updateField("besoins_accessibilite", e.target.value)} rows={3} placeholder="Décrivez vos besoins..." />
+                <VoiceTextarea id="accessibilite" value={questionnaire.besoins_accessibilite || ""} onValueChange={(v) => updateField("besoins_accessibilite", v)} onChange={(e) => updateField("besoins_accessibilite", e.target.value)} rows={3} placeholder="Décrivez vos besoins..." />
               </div>
             )}
           </div>
@@ -239,7 +239,7 @@ const QuestionnaireFormSections = ({
         </CardHeader>
         <CardContent className="space-y-2">
           <Label htmlFor="commentaires">Autres éléments à partager pour optimiser votre expérience ?</Label>
-          <Textarea id="commentaires" value={questionnaire.commentaires_libres || ""} onChange={(e) => updateField("commentaires_libres", e.target.value)} rows={3} />
+          <VoiceTextarea id="commentaires" value={questionnaire.commentaires_libres || ""} onValueChange={(v) => updateField("commentaires_libres", v)} onChange={(e) => updateField("commentaires_libres", e.target.value)} rows={3} />
         </CardContent>
       </Card>
 

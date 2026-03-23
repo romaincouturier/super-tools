@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import { VoiceTextarea } from "@/components/ui/voice-textarea";
 import { Separator } from "@/components/ui/separator";
 import {
   Select,
@@ -170,8 +170,9 @@ export default function ImprovementDetailDrawer({
 
             {/* Add note */}
             <div className="flex gap-2 mb-4">
-              <Textarea
+              <VoiceTextarea
                 value={newNote}
+                onValueChange={setNewNote}
                 onChange={(e) => setNewNote(e.target.value)}
                 placeholder="Ajouter une note de suivi..."
                 rows={2}

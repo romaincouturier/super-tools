@@ -4,7 +4,7 @@ import ModuleLayout from "@/components/ModuleLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { VoiceTextarea } from "@/components/ui/voice-textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -311,7 +311,7 @@ function CourseSettings({ course }: { course: { id: string; title: string; descr
         </div>
         <div>
           <Label>Description</Label>
-          <Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3} />
+          <VoiceTextarea value={form.description} onValueChange={(v) => setForm({ ...form, description: v })} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3} />
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>

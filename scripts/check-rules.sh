@@ -109,6 +109,18 @@ if [ "$STAGED_MODE" = "true" ]; then
       "echo \"$STAGED_TSX\" | xargs grep -n 'DialogContent\|AlertDialogContent\|SheetContent' 2>/dev/null | grep 'max-w-' | grep -v 'w-full'"
   fi
 
+  # [010] registerMediaEntry sans deleteMediaFile = fichiers orphelins potentiels
+  # Known pre-existing: MissionPages.tsx, CrmDescriptionEditor.tsx, useLms.ts
+  check "010" "registerMediaEntry doit avoir un deleteMediaFile dans le même fichier (nouveaux fichiers)" \
+    "echo \"$STAGED_FILES\" | xargs grep -l 'registerMediaEntry' 2>/dev/null | grep -v 'MissionPages.tsx' | grep -v 'CrmDescriptionEditor.tsx' | grep -v 'useLms.ts' | xargs grep -L 'deleteMediaFile' 2>/dev/null"
+
+  # [011] PWA — globPatterns ne doit pas contenir js (staged vite.config.ts)
+  STAGED_VITE=$(echo "$STAGED_FILES" | grep 'vite.config.ts' || true)
+  if [ -n "$STAGED_VITE" ]; then
+    check "011" "globPatterns dans vite.config.ts ne contient pas 'js'" \
+      "grep 'globPatterns' vite.config.ts | grep '\.js'"
+  fi
+
 else
   # --- Mode complet : audit de toute la codebase ---
 
@@ -134,6 +146,11 @@ else
   check "007" "DialogContent/SheetContent avec w-full pour le mobile" \
     "grep -rn 'DialogContent\|AlertDialogContent\|SheetContent' src/components/ src/pages/ --include='*.tsx' | grep 'max-w-' | grep -v 'w-full' | grep -v 'sm:max-w-md' | grep -v node_modules"
 
+  # [010] registerMediaEntry sans deleteMediaFile = fichiers orphelins potentiels
+  # Known pre-existing: MissionPages.tsx, CrmDescriptionEditor.tsx, useLms.ts
+  check "010" "registerMediaEntry doit avoir un deleteMediaFile dans le même fichier (nouveaux fichiers)" \
+    "grep -rln 'registerMediaEntry' src/ --include='*.ts' --include='*.tsx' 2>/dev/null | grep -v 'MissionPages.tsx' | grep -v 'CrmDescriptionEditor.tsx' | grep -v 'useLms.ts' | xargs grep -L 'deleteMediaFile' 2>/dev/null"
+
   # [008] CORS centralisé — toutes les fonctions doivent importer depuis _shared/cors.ts
   check "008" "Pas de CORS headers définis localement dans les edge functions" \
     "grep -rn '\"Access-Control-Allow-Origin\": \"\*\"' supabase/functions/ --include='*.ts' | grep -v '_shared/cors.ts' | grep -v node_modules"
@@ -142,6 +159,14 @@ else
   # Exclude old migrations whose policies are dropped by later fix migrations
   check "009" "Pas de FOR ALL TO anon USING(true) dans les migrations" \
     "grep -rn 'FOR ALL TO anon USING (true)' supabase/migrations/ --include='*.sql' | grep -v '20260308224610' | grep -v '20260308225436'"
+
+  # [011] PWA — JS chunks ne doivent pas être précachés
+  check "011" "globPatterns dans vite.config.ts ne contient pas 'js'" \
+    "grep 'globPatterns' vite.config.ts | grep '\.js'"
+
+  # [012] Composants UI morts (0 imports hors de leur propre fichier)
+  check "012" "Pas de composants UI non importés" \
+    "for f in src/components/ui/*.tsx; do name=\$(basename \"\$f\" .tsx); count=\$(grep -r \"from.*ui/\$name\" src/ --include='*.tsx' --include='*.ts' -l 2>/dev/null | grep -v \"ui/\$name.tsx\" | wc -l); [ \"\$count\" -eq 0 ] && echo \"DEAD: \$name\"; done"
 fi
 
 echo ""

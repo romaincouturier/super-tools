@@ -3,9 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Sparkles, RefreshCw, Pencil, Eye, Copy, Check, Mic, MicOff, FileText, Swords } from "lucide-react";
+import { Loader2, Sparkles, RefreshCw, Pencil, Eye, Copy, Check, FileText, Swords } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useVoiceDictation } from "@/hooks/useVoiceDictation";
+import { VoiceTextarea } from "@/components/ui/voice-textarea";
 import { toast } from "sonner";
 import type { CrmCard } from "@/types/crm";
 import { htmlToPlainText, cleanHtmlOutput } from "@/lib/htmlUtils";
@@ -42,21 +42,6 @@ export default function Step1Synthesis({
   const [challengeHtml, setChallengeHtml] = useState(initialChallengeHtml || "");
   const [isChallenging, setIsChallenging] = useState(false);
   const [challengeDone, setChallengeDone] = useState(!!initialChallengeHtml);
-
-  const { isRecording, isTranscribing, isSupported, startRecording, stopRecording } =
-    useVoiceDictation({
-      onTranscript: (text) => {
-        setInstructions((prev) => (prev ? prev + "\n" + text : text));
-      },
-    });
-
-  const handleToggleMic = () => {
-    if (isRecording) {
-      stopRecording();
-    } else {
-      startRecording();
-    }
-  };
 
   const generateSynthesis = async () => {
     setIsGenerating(true);
@@ -289,48 +274,13 @@ export default function Step1Synthesis({
             </AlertDescription>
           </Alert>
 
-          <div className="relative">
-            <Textarea
-              value={instructions}
-              onChange={(e) => setInstructions(e.target.value)}
-              rows={8}
-              placeholder="Ex: Formation React avancé, 3 jours, 1500€ HT/jour, 6 participants max..."
-              className="pr-14"
-            />
-            {isSupported && (
-              <Button
-                type="button"
-                variant={isRecording ? "destructive" : "outline"}
-                size="icon"
-                className="absolute top-3 right-3"
-                onClick={handleToggleMic}
-                disabled={isTranscribing}
-                title={isRecording ? "Arrêter la dictée" : "Dicter les instructions"}
-              >
-                {isTranscribing ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : isRecording ? (
-                  <MicOff className="w-4 h-4" />
-                ) : (
-                  <Mic className="w-4 h-4" />
-                )}
-              </Button>
-            )}
-          </div>
-
-          {isRecording && (
-            <div className="flex items-center gap-2 text-sm text-destructive animate-pulse">
-              <div className="w-2 h-2 bg-destructive rounded-full" />
-              Enregistrement en cours... Parlez puis cliquez pour arrêter.
-            </div>
-          )}
-
-          {isTranscribing && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Loader2 className="w-3 h-3 animate-spin" />
-              Transcription en cours...
-            </div>
-          )}
+          <VoiceTextarea
+            value={instructions}
+            onValueChange={setInstructions}
+            onChange={(e) => setInstructions(e.target.value)}
+            rows={8}
+            placeholder="Ex: Formation React avancé, 3 jours, 1500€ HT/jour, 6 participants max..."
+          />
         </CardContent>
       </Card>
 

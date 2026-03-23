@@ -8,7 +8,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import { VoiceTextarea } from "@/components/ui/voice-textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -322,7 +322,7 @@ export function NewOpportunityDialog({ open, onOpenChange, userEmail }: NewOppor
           <div className="space-y-4">
             <div>
               <Label htmlFor="raw-input">Informations du prospect</Label>
-              <Textarea
+              <VoiceTextarea
                 id="raw-input"
                 placeholder="Collez ici l'email, le message ou les notes concernant le prospect...
 
@@ -333,6 +333,7 @@ Mon email: jean.dupont@acme.fr
 Tel: 06 12 34 56 78"
                 className="mt-2 min-h-[200px]"
                 value={rawInput}
+                onValueChange={setRawInput}
                 onChange={(e) => setRawInput(e.target.value)}
               />
             </div>

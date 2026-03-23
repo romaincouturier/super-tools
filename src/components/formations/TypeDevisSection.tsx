@@ -1,5 +1,5 @@
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { VoiceTextarea } from "@/components/ui/voice-textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 interface TypeDevisSectionProps {
@@ -55,7 +55,7 @@ export default function TypeDevisSection({
           Note à faire figurer impérativement sur le devis
           <span className="text-muted-foreground font-normal text-sm ml-1">(facultatif)</span>
         </Label>
-        <Textarea id="noteDevis" placeholder="Notes ou mentions spéciales à inclure dans le devis..." value={noteDevis} onChange={(e) => setNoteDevis(e.target.value)} className="min-h-[80px]" />
+        <VoiceTextarea id="noteDevis" placeholder="Notes ou mentions spéciales à inclure dans le devis..." value={noteDevis} onValueChange={setNoteDevis} onChange={(e) => setNoteDevis(e.target.value)} className="min-h-[80px]" />
       </div>
     </div>
   );

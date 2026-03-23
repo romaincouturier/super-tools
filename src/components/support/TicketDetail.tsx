@@ -1,12 +1,12 @@
 import { useState, useCallback } from "react";
-import { Bug, Lightbulb, Mic, MicOff, Loader2, Sparkles, Copy, Check } from "lucide-react";
+import { Bug, Lightbulb, Loader2, Sparkles, Copy, Check } from "lucide-react";
 import { SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { VoiceTextarea } from "@/components/ui/voice-textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
@@ -26,9 +26,7 @@ import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
 import AiAnalysisSection from "./AiAnalysisSection";
 import AssignedUserSelector from "@/components/formations/AssignedUserSelector";
-import { useVoiceDictation } from "@/hooks/useVoiceDictation";
 import { analyzeTicket } from "@/services/support";
-import { cn } from "@/lib/utils";
 
 interface Props {
   ticket: SupportTicket;
@@ -42,18 +40,6 @@ export default function TicketDetail({ ticket, onUpdate }: Props) {
   const [type, setType] = useState<TicketType>(ticket.type);
   const [pageUrl, setPageUrl] = useState(ticket.page_url || "");
   const [reanalyzing, setReanalyzing] = useState(false);
-
-  // Voice dictation for resolution notes
-  const handleTranscript = useCallback((text: string) => {
-    setResolutionNotes((prev) => {
-      const separator = prev.trim() ? "\n" : "";
-      return prev + separator + text;
-    });
-  }, []);
-
-  const { isRecording, isTranscribing, isSupported, startRecording, stopRecording } = useVoiceDictation({
-    onTranscript: handleTranscript,
-  });
 
   // AI analysis handlers
   const handleUpdateAnalysis = (analysis: TicketAiAnalysis) => {
@@ -267,33 +253,10 @@ export default function TicketDetail({ ticket, onUpdate }: Props) {
 
         {/* Resolution notes with voice dictation */}
         <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label className="text-sm">Notes de résolution</Label>
-            {isSupported && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className={cn(
-                  "h-7 px-2 gap-1.5 text-xs",
-                  isRecording && "text-red-600 hover:text-red-700",
-                )}
-                onClick={isRecording ? stopRecording : startRecording}
-                disabled={isTranscribing}
-                title={isRecording ? "Arrêter l'enregistrement" : "Dicter par micro"}
-              >
-                {isTranscribing ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                ) : isRecording ? (
-                  <MicOff className="h-3.5 w-3.5" />
-                ) : (
-                  <Mic className="h-3.5 w-3.5" />
-                )}
-                {isTranscribing ? "Transcription…" : isRecording ? "Arrêter" : "Dicter"}
-              </Button>
-            )}
-          </div>
-          <Textarea
+          <Label className="text-sm">Notes de résolution</Label>
+          <VoiceTextarea
             value={resolutionNotes}
+            onValueChange={setResolutionNotes}
             onChange={(e) => setResolutionNotes(e.target.value)}
             placeholder="Explication de la résolution, lien vers le fix..."
             rows={3}

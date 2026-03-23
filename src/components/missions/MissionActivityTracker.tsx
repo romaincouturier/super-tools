@@ -15,7 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { VoiceTextarea } from "@/components/ui/voice-textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
@@ -390,8 +390,9 @@ const MissionActivityTracker = ({ mission, onCreatePageForActivity }: MissionAct
           <div className="space-y-4">
             <div>
               <Label>Description *</Label>
-              <Textarea
+              <VoiceTextarea
                 value={description}
+                onValueChange={setDescription}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Description de l'activité"
                 rows={2}
@@ -475,8 +476,9 @@ const MissionActivityTracker = ({ mission, onCreatePageForActivity }: MissionAct
 
             <div>
               <Label>Notes</Label>
-              <Textarea
+              <VoiceTextarea
                 value={notes}
+                onValueChange={setNotes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="Notes additionnelles..."
                 rows={2}

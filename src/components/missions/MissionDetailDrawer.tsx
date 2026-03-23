@@ -4,7 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import { VoiceTextarea } from "@/components/ui/voice-textarea";
 import {
   Select,
   SelectContent,
@@ -458,8 +458,9 @@ const MissionDetailDrawer = ({
             {/* Description */}
             <div>
               <Label>Description</Label>
-              <Textarea
+              <VoiceTextarea
                 value={description}
+                onValueChange={setDescription}
                 onChange={(e) => setDescription(e.target.value)}
                 rows={6}
                 placeholder="Description de la mission..."

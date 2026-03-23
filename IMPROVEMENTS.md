@@ -18,6 +18,22 @@ Ce ne sont pas des tickets : ce sont des **invariants** à vérifier en permanen
 
 ## Architecture
 
+### [013] Lovable over-engineering — simplifier systématiquement les couches d'abstraction générées
+- **Constat** : Lovable empile des abstractions pour contourner les problèmes au lieu de traiter la cause racine. Exemples concrets sur ce projet : (1) 6 commits de "runtime recovery" (runtimeRecovery.ts, cache buster, session flags, SW unregister) au lieu de corriger `globPatterns` dans la config PWA ; (2) `lazyWithRetry` wrappant `React.lazy` avec retry applicatif alors que le SW NetworkFirst gère déjà les retries réseau ; (3) `GlobalChunkErrorHandler` + `RouteErrorBoundary` faisant le même job séparément ; (4) `main.tsx` avec dynamic import + try/catch + recovery au lieu d'un import statique. Au total ~350 lignes de code de contournement pour un problème de 1 ligne dans vite.config.ts.
+- **Règle** : Après chaque intervention de Lovable, auditer les changements pour détecter : (a) les wrappers qui ne font que passer des props à un enfant unique → inliner ; (b) les mécanismes de recovery/retry qui traitent un symptôme → trouver et corriger la cause racine ; (c) les fichiers utilitaires avec ≤2 imports → candidats à l'inlining ; (d) les composants dupliqués qui font le même job → fusionner. Préférer `React.lazy` natif à un wrapper custom quand le SW gère les erreurs réseau.
+- **Vérification** : Après chaque merge de branche Lovable, vérifier : `git diff --stat main...HEAD | grep '+' | sort -t'+' -k2 -rn | head -10` — tout nouveau fichier utilitaire de <30 lignes avec ≤2 imports est suspect. Vérifier que `src/lib/runtimeRecovery.ts` n'a pas été recréé.
+- **Fichiers de référence** : `vite.config.ts` (config corrigée), `src/main.tsx` (bootstrap simplifié), `src/App.tsx` (React.lazy natif)
+- **Origine** : production cassée — Lovable en boucle sur 6 commits de recovery, audit de simplification supprimant ~2400 lignes
+- **Date** : 2026-03-23
+
+### [010] Éditeur Tiptap missions — supprimer une image doit aussi nettoyer le storage
+- **Constat** : Les images insérées dans l'éditeur Tiptap des pages mission (upload, drag-drop, coller) sont enregistrées dans le media library via `registerMediaEntry()`, mais il n'existe aucun mécanisme de suppression. Pas de bubble menu, pas de menu contextuel. Si l'utilisateur supprime une image au clavier (Backspace/Suppr), le nœud est retiré du HTML mais le fichier reste orphelin dans le bucket `mission-media` et l'entrée persiste en base. Seul l'onglet Galerie (`EntityMediaManager`) offre une suppression complète (storage + BDD).
+- **Règle** : Toute insertion d'image dans un éditeur riche doit avoir un mécanisme de suppression symétrique qui nettoie le fichier storage ET l'entrée en base. L'éditeur Tiptap des missions doit proposer un bubble menu sur les images avec au minimum un bouton supprimer. La suppression doit appeler `deleteMediaFile()` + `useDeleteMedia()` comme le fait `EntityMediaManager`.
+- **Vérification** : Vérifier que `MissionPages.tsx` inclut un `BubbleMenu` ou un `NodeViewWrapper` pour les images avec une action de suppression. Chercher les appels `registerMediaEntry` sans `deleteMediaFile` correspondant dans le même fichier.
+- **Fichiers de référence** : `src/components/missions/MissionPages.tsx` (upload sans delete), `src/components/media/EntityMediaManager.tsx` (bon pattern avec delete complet), `src/hooks/useMedia.ts` (`deleteMediaFile`, `useDeleteMedia`)
+- **Origine** : question "est-ce qu'on peut supprimer une image dans une mission ?"
+- **Date** : 2026-03-23
+
 ### [006] React Query — désactiver refetchOnWindowFocus pour ne jamais perdre l'état des formulaires
 - **Constat** : Sur quasiment tous les formulaires avec des dropdowns, changer d'onglet/application et revenir faisait disparaître les choix sélectionnés. React Query a `refetchOnWindowFocus: true` par défaut : chaque retour d'onglet déclenchait un refetch de toutes les queries, les options des selects se rechargaient, et la valeur sélectionnée était perdue (Radix UI valide la sélection contre la liste d'options). Bug récurrent depuis 1 mois malgré des corrections ponctuelles qui ne ciblaient jamais la config globale.
 - **Règle** : `refetchOnWindowFocus: false` doit être défini globalement dans le QueryClient. Ne jamais ajouter `refetchOnWindowFocus: true` sur des queries qui alimentent des formulaires. Les `useEffect` qui initialisent un formulaire depuis des données query doivent être gardés par un ID (ex: `entity.id !== prevIdRef.current`) pour ne pas écraser les modifications en cours lors d'un refetch.
@@ -92,4 +108,18 @@ Ce ne sont pas des tickets : ce sont des **invariants** à vérifier en permanen
 
 ## DX
 
-_(aucune règle pour le moment)_
+### [012] Lovable scaffolding — auditer et supprimer le code mort après chaque génération
+- **Constat** : Lovable génère systématiquement du code scaffolding jamais utilisé : 13 composants UI Radix (hover-card, sidebar, menubar…), des wrappers à 1 import (ReviewSection.tsx), du CSS legacy (App.css), et des imports inutilisés (useTranslation dans Landing.tsx). Au total 1947 lignes mortes accumulées en quelques semaines de génération.
+- **Règle** : Après chaque session Lovable, vérifier les fichiers générés/modifiés. Supprimer tout composant UI avec 0 imports, tout wrapper qui ne fait que passer des props à un enfant unique, tout fichier CSS non importé, et tout import non utilisé. Ne jamais laisser du code mort "au cas où".
+- **Vérification** : `for f in src/components/ui/*.tsx; do name=$(basename "$f" .tsx); count=$(grep -r "from.*ui/$name" src/ --include='*.tsx' --include='*.ts' -l | grep -v "ui/$name.tsx" | wc -l); [ "$count" -eq 0 ] && echo "DEAD: $name"; done` — aucun résultat ne devrait apparaître.
+- **Fichiers de référence** : `src/components/ui/` (composants gardés = composants importés)
+- **Origine** : audit de simplification — 15 fichiers morts supprimés (1947 lignes)
+- **Date** : 2026-03-23
+
+### [011] PWA — ne jamais précacher les JS chunks, utiliser NetworkFirst pour les scripts
+- **Constat** : `globPatterns: ["**/*.{js,css,html,ico,svg}"]` dans la config Vite PWA précachait tous les JS chunks (279 fichiers, 5.3 Mo). Après chaque deploy, le Service Worker servait des chunks avec des hashes périmés → erreur "Failed to fetch dynamically imported module" → écran blanc. Lovable a empilé 6 commits de "runtime recovery" (clear SW, cache buster, session flags) sans jamais traiter la cause racine.
+- **Règle** : Les JS chunks ne doivent JAMAIS être dans `globPatterns` du Service Worker. Utiliser `globPatterns: ["**/*.{css,html,ico,svg}"]` et une stratégie `NetworkFirst` pour les scripts dans `runtimeCaching`. Ne jamais ajouter de logique de "runtime recovery" pour contourner un problème de cache SW — corriger la config à la source.
+- **Vérification** : `grep 'globPatterns' vite.config.ts` ne doit PAS contenir `js`. `grep -A2 'destination.*script' vite.config.ts` doit montrer `NetworkFirst`.
+- **Fichiers de référence** : `vite.config.ts` (config workbox corrigée)
+- **Origine** : production cassée — écran blanc après chaque deploy, Lovable en boucle sur 6 commits de recovery
+- **Date** : 2026-03-23
