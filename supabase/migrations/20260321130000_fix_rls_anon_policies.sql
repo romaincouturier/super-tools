@@ -107,13 +107,10 @@ CREATE POLICY "anon_read_assignments" ON lms_assignments
     WHERE c.id = lms_assignments.course_id AND c.status = 'published'
   ));
 
--- Badges: only for published courses
+-- Badges: readable by anon (badge definitions are public, no course_id column)
 CREATE POLICY "anon_read_badges" ON lms_badges
   FOR SELECT TO anon
-  USING (EXISTS (
-    SELECT 1 FROM lms_courses c
-    WHERE c.id = lms_badges.course_id AND c.status = 'published'
-  ));
+  USING (true);
 
 -- User badges: only own badges (by learner email)
 CREATE POLICY "anon_read_user_badges" ON lms_user_badges
