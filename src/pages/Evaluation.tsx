@@ -5,7 +5,7 @@ import { rpc } from "@/lib/supabase-rpc";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { VoiceTextarea } from "@/components/ui/voice-textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Loader2, CheckCircle2, Star, Calendar, Building2, User, Mail } from "lucide-react";
@@ -522,9 +522,10 @@ const Evaluation = () => {
                 Qu'est-ce qui pourrait vous empêcher de mettre en pratique ces compétences ?
               </Label>
               <p className="text-xs text-muted-foreground">Optionnel</p>
-              <Textarea
+              <VoiceTextarea
                 id="freins"
                 value={freinsApplication}
+                onValueChange={setFreinsApplication}
                 onChange={(e) => setFreinsApplication(e.target.value)}
                 placeholder="Indiquez les éventuels freins..."
                 rows={3}
@@ -583,9 +584,10 @@ const Evaluation = () => {
               <Label htmlFor="amelioration">
                 Si vous deviez améliorer UN seul élément de cette formation, lequel serait-ce ?
               </Label>
-              <Textarea
+              <VoiceTextarea
                 id="amelioration"
                 value={ameliorationSuggeree}
+                onValueChange={setAmeliorationSuggeree}
                 onChange={(e) => setAmeliorationSuggeree(e.target.value)}
                 placeholder="Votre suggestion..."
                 rows={2}
@@ -697,9 +699,10 @@ const Evaluation = () => {
               <p className="text-xs text-muted-foreground">
                 Il sera publié sur le site Web www.supertilt.fr (2-3 phrases maximum)
               </p>
-              <Textarea
+              <VoiceTextarea
                 id="message-reco"
                 value={messageRecommandation}
+                onValueChange={setMessageRecommandation}
                 onChange={(e) => setMessageRecommandation(e.target.value)}
                 placeholder="Votre témoignage..."
                 rows={3}
@@ -736,9 +739,10 @@ const Evaluation = () => {
                 Avez-vous une remarque à partager (zone de libre expression) ?
               </Label>
               <p className="text-xs text-muted-foreground">Optionnel</p>
-              <Textarea
+              <VoiceTextarea
                 id="remarques"
                 value={remarquesLibres}
+                onValueChange={setRemarquesLibres}
                 onChange={(e) => setRemarquesLibres(e.target.value)}
                 placeholder="Vos remarques..."
                 rows={3}

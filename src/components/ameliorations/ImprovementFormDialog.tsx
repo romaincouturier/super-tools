@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { VoiceTextarea } from "@/components/ui/voice-textarea";
 import {
   Select,
   SelectContent,
@@ -137,8 +137,9 @@ export default function ImprovementFormDialog({
 
           <div className="space-y-2">
             <Label>Description *</Label>
-            <Textarea
+            <VoiceTextarea
               value={form.description}
+              onValueChange={(v) => set("description", v)}
               onChange={(e) => set("description", e.target.value)}
               placeholder="Décrivez l'amélioration à apporter..."
               rows={4}

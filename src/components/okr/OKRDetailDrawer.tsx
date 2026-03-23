@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { VoiceTextarea } from "@/components/ui/voice-textarea";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -230,8 +230,9 @@ const OKRDetailDrawer = ({ objective, open, onOpenChange }: OKRDetailDrawerProps
 
             <div className="p-4 border rounded-lg">
               <Label className="text-sm font-medium">Ordre du jour du prochain suivi</Label>
-              <Textarea
+              <VoiceTextarea
                 value={nextReviewAgenda}
+                onValueChange={setNextReviewAgenda}
                 onChange={(e) => setNextReviewAgenda(e.target.value)}
                 placeholder="Points à aborder lors du prochain suivi..."
                 rows={3}
@@ -297,7 +298,7 @@ const OKRDetailDrawer = ({ objective, open, onOpenChange }: OKRDetailDrawerProps
             </div>
             <div>
               <Label>Description</Label>
-              <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
+              <VoiceTextarea value={description} onValueChange={setDescription} onChange={(e) => setDescription(e.target.value)} rows={3} />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>

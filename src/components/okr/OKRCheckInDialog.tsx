@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { VoiceTextarea } from "@/components/ui/voice-textarea";
 import { Slider } from "@/components/ui/slider";
 import {
   Dialog,
@@ -82,8 +82,9 @@ export function OKRCheckInDialog({ open, onOpenChange, objective }: CheckInDialo
           </div>
           <div>
             <Label>Notes</Label>
-            <Textarea
+            <VoiceTextarea
               value={notes}
+              onValueChange={setNotes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Commentaires, obstacles rencontrés, prochaines étapes..."
               rows={4}

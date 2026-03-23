@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import { VoiceTextarea } from "@/components/ui/voice-textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Plus,
@@ -69,7 +69,7 @@ const CardDetailTabs = ({ state, handlers, details, detailsLoading }: Props) => 
       {/* Comments */}
       <TabsContent value="comments" className="space-y-4 mt-4">
         <div className="flex gap-2">
-          <Textarea placeholder="Ajouter un commentaire..." value={newComment} onChange={(e) => setNewComment(e.target.value)} rows={2} />
+          <VoiceTextarea placeholder="Ajouter un commentaire..." value={newComment} onValueChange={setNewComment} onChange={(e) => setNewComment(e.target.value)} rows={2} />
           <Button onClick={handlers.handleAddComment} disabled={!newComment.trim()}>
             <Plus className="h-4 w-4" />
           </Button>

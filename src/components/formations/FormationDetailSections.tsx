@@ -1,6 +1,6 @@
 import { Loader2, Save, StickyNote, Euro, CheckCircle2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
+import { VoiceTextarea } from "@/components/ui/voice-textarea";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import DocumentsManager from "@/components/formations/DocumentsManager";
@@ -188,9 +188,10 @@ const FormationDetailSections = ({
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <Textarea
+          <VoiceTextarea
             placeholder="Retour du financeur (OPCO, France Travail…) sur cette formation..."
             value={(training as unknown as { funder_appreciation?: string | null }).funder_appreciation || ""}
+            onValueChange={(v) => setTraining({ ...training, funder_appreciation: v } as Training)}
             onChange={(e) => setTraining({ ...training, funder_appreciation: e.target.value } as Training)}
             onBlur={async () => {
               const val = ((training as unknown as { funder_appreciation?: string | null }).funder_appreciation || "").trim();
@@ -221,9 +222,10 @@ const FormationDetailSections = ({
           </div>
         </CardHeader>
         <CardContent>
-          <Textarea
+          <VoiceTextarea
             placeholder="Ajoutez des notes libres sur cette formation..."
             value={notes}
+            onValueChange={(v) => { setNotes(v); setNotesChanged(true); }}
             onChange={(e) => { setNotes(e.target.value); setNotesChanged(true); }}
             onBlur={() => { if (notesChanged) handleSaveNotes(); }}
             className="min-h-[120px] resize-y"

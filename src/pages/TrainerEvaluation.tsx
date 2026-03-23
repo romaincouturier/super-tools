@@ -3,7 +3,7 @@ import { useParams } from "react-router-dom";
 import { rpc, type TrainerEvaluationByToken } from "@/lib/supabase-rpc";
 import { Loader2, CheckCircle2, Star, CalendarDays, MapPin, Users, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import { VoiceTextarea } from "@/components/ui/voice-textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
@@ -225,8 +225,9 @@ const TrainerEvaluation = () => {
           {/* Points forts */}
           <div className="space-y-2">
             <Label>Points forts de la formation</Label>
-            <Textarea
+            <VoiceTextarea
               value={pointsForts}
+              onValueChange={setPointsForts}
               onChange={(e) => setPointsForts(e.target.value)}
               placeholder="Ce qui a bien fonctionné..."
               className="min-h-[100px]"
@@ -256,8 +257,9 @@ const TrainerEvaluation = () => {
           {/* Axes d'amélioration */}
           <div className="space-y-2">
             <Label>Axes d'amélioration</Label>
-            <Textarea
+            <VoiceTextarea
               value={axesAmelioration}
+              onValueChange={setAxesAmelioration}
               onChange={(e) => setAxesAmelioration(e.target.value)}
               placeholder="Ce qui pourrait être amélioré..."
               className="min-h-[100px]"
@@ -287,8 +289,9 @@ const TrainerEvaluation = () => {
           {/* Commentaires */}
           <div className="space-y-2">
             <Label>Commentaires libres</Label>
-            <Textarea
+            <VoiceTextarea
               value={commentaires}
+              onValueChange={setCommentaires}
               onChange={(e) => setCommentaires(e.target.value)}
               placeholder="Remarques complémentaires..."
               className="min-h-[80px]"
