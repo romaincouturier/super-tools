@@ -29,6 +29,7 @@ import {
   LayoutDashboard,
   Users,
   GraduationCap,
+  Camera,
 } from "lucide-react";
 import {
   DndContext,
@@ -261,6 +262,14 @@ const tools: Tool[] = [
     icon: <GraduationCap />,
     path: "/lms",
     module: "lms",
+  },
+  {
+    id: "screenshots",
+    name: "Screenshots",
+    description: "Évolution visuelle de l'application jour après jour",
+    icon: <Camera />,
+    path: "/screenshots",
+    module: "screenshots",
   },
 ];
 
