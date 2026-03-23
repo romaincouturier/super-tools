@@ -6,7 +6,7 @@ import Underline from "@tiptap/extension-underline";
 import type { AnyExtension } from "@tiptap/core";
 
 interface UseTiptapEditorOptions {
-  content: string;
+  content: string | null | undefined;
   onChange: (html: string) => void;
   extraExtensions?: AnyExtension[];
   editorProps?: Record<string, unknown>;
@@ -26,6 +26,7 @@ export function useTiptapEditor({
 }: UseTiptapEditorOptions) {
   // Track whether the update came from the editor itself
   const isInternalUpdate = useRef(false);
+  const safeContent = content ?? "";
 
   const editor = useEditor({
     extensions: [
@@ -42,7 +43,7 @@ export function useTiptapEditor({
       Underline,
       ...extraExtensions,
     ],
-    content,
+    content: safeContent,
     editorProps: editorProps as any,
     onUpdate: ({ editor }) => {
       isInternalUpdate.current = true;
@@ -59,10 +60,10 @@ export function useTiptapEditor({
       return;
     }
     const currentHTML = editor.getHTML();
-    if (currentHTML !== content) {
-      editor.commands.setContent(content, { emitUpdate: false });
+    if (currentHTML !== safeContent) {
+      editor.commands.setContent(safeContent, { emitUpdate: false });
     }
-  }, [content, editor]);
+  }, [editor, safeContent]);
 
   const setLink = useCallback(() => {
     if (!editor) return;
