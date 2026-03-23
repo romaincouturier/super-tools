@@ -31,6 +31,10 @@ interface KanbanStatsDialogProps {
   items: KanbanStatsItem[];
   /** Column IDs considered as "done" for cycle time calculation. */
   doneColumnIds?: string[];
+  /** Column IDs representing "won" outcomes (shown in green on CFD). */
+  wonColumnIds?: string[];
+  /** Column IDs representing "lost" outcomes (shown in red on CFD). */
+  lostColumnIds?: string[];
 }
 
 const CHART_COLORS = [
@@ -136,17 +140,25 @@ function buildControlChartData(
   return { points, mean, ucl, lcl };
 }
 
+const WON_COLOR = "#22c55e";
+const LOST_COLOR = "#ef4444";
+
 export default function KanbanStatsDialog({
   open,
   onOpenChange,
   columns,
   items,
   doneColumnIds,
+  wonColumnIds = [],
+  lostColumnIds = [],
 }: KanbanStatsDialogProps) {
   const sortedCols = useMemo(
     () => [...columns].sort((a, b) => a.position - b.position),
     [columns],
   );
+
+  // For CFD stacking: reverse so early pipeline stages sit on top (standard CFD convention)
+  const reversedCols = useMemo(() => [...sortedCols].reverse(), [sortedCols]);
 
   const resolvedDoneIds = useMemo(() => {
     if (doneColumnIds && doneColumnIds.length > 0) return doneColumnIds;
@@ -193,18 +205,28 @@ export default function KanbanStatsDialog({
                       contentStyle={{ fontSize: 12 }}
                       labelStyle={{ fontWeight: "bold" }}
                     />
-                    {sortedCols.map((col, i) => (
-                      <Area
-                        key={col.id}
-                        type="monotone"
-                        dataKey={col.id}
-                        name={col.name}
-                        stackId="1"
-                        stroke={col.color || CHART_COLORS[i % CHART_COLORS.length]}
-                        fill={col.color || CHART_COLORS[i % CHART_COLORS.length]}
-                        fillOpacity={0.6}
-                      />
-                    ))}
+                    {reversedCols.map((col) => {
+                      const isWon = wonColumnIds.includes(col.id);
+                      const isLost = lostColumnIds.includes(col.id);
+                      const originalIndex = sortedCols.findIndex((c) => c.id === col.id);
+                      const color = isWon
+                        ? WON_COLOR
+                        : isLost
+                          ? LOST_COLOR
+                          : col.color || CHART_COLORS[originalIndex % CHART_COLORS.length];
+                      return (
+                        <Area
+                          key={col.id}
+                          type="monotone"
+                          dataKey={col.id}
+                          name={col.name}
+                          stackId="1"
+                          stroke={color}
+                          fill={color}
+                          fillOpacity={isWon || isLost ? 0.75 : 0.6}
+                        />
+                      );
+                    })}
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
