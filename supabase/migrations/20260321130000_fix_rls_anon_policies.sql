@@ -82,32 +82,29 @@ CREATE POLICY "anon_read_lessons" ON lms_lessons
     WHERE m.id = lms_lessons.module_id AND c.status = 'published'
   ));
 
--- Quizzes: only for published courses (via module)
+-- Quizzes: only for published courses (via course_id)
 CREATE POLICY "anon_read_quizzes" ON lms_quizzes
   FOR SELECT TO anon
   USING (EXISTS (
-    SELECT 1 FROM lms_modules m
-    JOIN lms_courses c ON c.id = m.course_id
-    WHERE m.id = lms_quizzes.module_id AND c.status = 'published'
+    SELECT 1 FROM lms_courses c
+    WHERE c.id = lms_quizzes.course_id AND c.status = 'published'
   ));
 
--- Quiz questions: only for published courses (via quiz -> module)
+-- Quiz questions: only for published courses (via quiz -> course)
 CREATE POLICY "anon_read_quiz_questions" ON lms_quiz_questions
   FOR SELECT TO anon
   USING (EXISTS (
     SELECT 1 FROM lms_quizzes q
-    JOIN lms_modules m ON m.id = q.module_id
-    JOIN lms_courses c ON c.id = m.course_id
+    JOIN lms_courses c ON c.id = q.course_id
     WHERE q.id = lms_quiz_questions.quiz_id AND c.status = 'published'
   ));
 
--- Assignments: only for published courses (via module)
+-- Assignments: only for published courses (via course_id)
 CREATE POLICY "anon_read_assignments" ON lms_assignments
   FOR SELECT TO anon
   USING (EXISTS (
-    SELECT 1 FROM lms_modules m
-    JOIN lms_courses c ON c.id = m.course_id
-    WHERE m.id = lms_assignments.module_id AND c.status = 'published'
+    SELECT 1 FROM lms_courses c
+    WHERE c.id = lms_assignments.course_id AND c.status = 'published'
   ));
 
 -- Badges: only for published courses
