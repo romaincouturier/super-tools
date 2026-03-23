@@ -9,7 +9,9 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { VoiceTextarea } from "@/components/ui/voice-textarea";
+import MentionTextarea from "./MentionTextarea";
+import { useVoiceDictation } from "@/hooks/useVoiceDictation";
+import { Mic, MicOff } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -76,6 +78,13 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [pendingMentions, setPendingMentions] = useState<MentionUser[]>([]);
+
+  const { isRecording, isTranscribing, isSupported: voiceSupported, startRecording, stopRecording } =
+    useVoiceDictation({
+      onTranscript: (text) => {
+        setNewComment((prev) => (prev ? prev + " " + text : text));
+      },
+    });
 
   // Reply state
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
@@ -808,12 +817,12 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
 
       {/* New comment input */}
       <div className="border rounded-lg p-3 space-y-2 bg-muted/10">
-        <VoiceTextarea
+        <MentionTextarea
           value={newComment}
-          onValueChange={setNewComment}
-          onChange={(e) => setNewComment(e.target.value)}
+          onChange={setNewComment}
+          onMentionsChange={setPendingMentions}
           onPaste={handlePaste}
-          placeholder="Ajouter un commentaire…"
+          placeholder="Ajouter un commentaire… (@mention)"
           rows={2}
           className="text-sm"
           onKeyDown={(e) => {
@@ -904,6 +913,29 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
             >
               <Pencil className="h-3.5 w-3.5" />
             </Button>
+
+            {voiceSupported && (
+              <>
+                <div className="w-px h-4 bg-border mx-1" />
+                <Button
+                  type="button"
+                  size="icon"
+                  variant={isRecording ? "destructive" : "ghost"}
+                  className="h-7 w-7"
+                  onClick={() => isRecording ? stopRecording() : startRecording()}
+                  disabled={isTranscribing}
+                  title={isRecording ? "Arrêter la dictée" : "Dicter"}
+                >
+                  {isTranscribing ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : isRecording ? (
+                    <MicOff className="h-3.5 w-3.5" />
+                  ) : (
+                    <Mic className="h-3.5 w-3.5" />
+                  )}
+                </Button>
+              </>
+            )}
 
           </div>
 
