@@ -49,6 +49,7 @@ export const ALL_MODULES: AppModule[] = [
   "support",
   "reseau",
   "lms",
+  "screenshots",
 ];
 
 export const MODULE_LABELS: Record<AppModule, string> = {
