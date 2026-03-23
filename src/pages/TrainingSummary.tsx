@@ -525,7 +525,7 @@ END:VCALENDAR`;
             <ul className="space-y-3">
               {training.objectives.map((objective, index) => (
                 <li key={index} className="flex items-start gap-3">
-                  <MIcon icon="check_circle" className="text-xl" style={{ color: c.primary }} />
+                  <MIcon icon="check_circle" className="text-xl" />
                   <span className="text-sm font-medium leading-snug" style={{ color: c.onSurfaceVariant }}>
                     {objective}
                   </span>
