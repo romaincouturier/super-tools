@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { VoiceTextarea } from "@/components/ui/voice-textarea";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -323,7 +323,7 @@ const Reclamations = () => {
                     </div>
                     <div className="space-y-1">
                       <Label>Description *</Label>
-                      <Textarea value={newDescription} onChange={(e) => setNewDescription(e.target.value)} rows={4} />
+                      <VoiceTextarea value={newDescription} onValueChange={setNewDescription} onChange={(e) => setNewDescription(e.target.value)} rows={4} />
                     </div>
                     <div className="space-y-1">
                       <Label>Gravité</Label>
@@ -508,8 +508,9 @@ const Reclamations = () => {
                 {/* Actions decided */}
                 <div className="space-y-2">
                   <Label>Actions décidées</Label>
-                  <Textarea
+                  <VoiceTextarea
                     value={selectedRec.actions_decided || ""}
+                    onValueChange={(v) => setSelectedRec((prev) => prev ? { ...prev, actions_decided: v } : prev)}
                     onChange={(e) => setSelectedRec((prev) => prev ? { ...prev, actions_decided: e.target.value } : prev)}
                     onBlur={() => selectedRec.actions_decided !== null && updateReclamation(selectedRec.id, { actions_decided: selectedRec.actions_decided })}
                     rows={3}
@@ -520,8 +521,9 @@ const Reclamations = () => {
                 {/* Response sent */}
                 <div className="space-y-2">
                   <Label>Réponse envoyée au client</Label>
-                  <Textarea
+                  <VoiceTextarea
                     value={selectedRec.response_sent || ""}
+                    onValueChange={(v) => setSelectedRec((prev) => prev ? { ...prev, response_sent: v } : prev)}
                     onChange={(e) => setSelectedRec((prev) => prev ? { ...prev, response_sent: e.target.value } : prev)}
                     onBlur={() => updateReclamation(selectedRec.id, { response_sent: selectedRec.response_sent, response_date: selectedRec.response_sent ? new Date().toISOString().split("T")[0] : null })}
                     rows={3}
@@ -532,8 +534,9 @@ const Reclamations = () => {
                 {/* Qualiopi summary */}
                 <div className="space-y-2">
                   <Label>Résumé Qualiopi</Label>
-                  <Textarea
+                  <VoiceTextarea
                     value={selectedRec.qualiopi_summary || ""}
+                    onValueChange={(v) => setSelectedRec((prev) => prev ? { ...prev, qualiopi_summary: v } : prev)}
                     onChange={(e) => setSelectedRec((prev) => prev ? { ...prev, qualiopi_summary: e.target.value } : prev)}
                     onBlur={() => updateReclamation(selectedRec.id, { qualiopi_summary: selectedRec.qualiopi_summary })}
                     rows={3}

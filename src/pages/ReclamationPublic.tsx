@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { VoiceTextarea } from "@/components/ui/voice-textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, CheckCircle2, AlertTriangle } from "lucide-react";
@@ -246,9 +246,10 @@ const ReclamationPublic = () => {
             {/* Attendu initial (Indicateur 30) */}
             <div className="space-y-2">
               <Label htmlFor="attendu_initial">Attendu initial</Label>
-              <Textarea
+              <VoiceTextarea
                 id="attendu_initial"
                 value={attenduInitial}
+                onValueChange={setAttenduInitial}
                 onChange={(e) => setAttenduInitial(e.target.value)}
                 placeholder="Ce que vous attendiez de la formation ou de la prestation..."
                 rows={3}
@@ -258,9 +259,10 @@ const ReclamationPublic = () => {
             {/* Résultat constaté (Indicateur 30) */}
             <div className="space-y-2">
               <Label htmlFor="resultat_constate">Résultat constaté</Label>
-              <Textarea
+              <VoiceTextarea
                 id="resultat_constate"
                 value={resultatConstate}
+                onValueChange={setResultatConstate}
                 onChange={(e) => setResultatConstate(e.target.value)}
                 placeholder="Ce qui s'est réellement passé..."
                 rows={3}
@@ -270,9 +272,10 @@ const ReclamationPublic = () => {
             {/* Description */}
             <div className="space-y-2">
               <Label htmlFor="description">Description détaillée *</Label>
-              <Textarea
+              <VoiceTextarea
                 id="description"
                 value={description}
+                onValueChange={setDescription}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Décrivez le problème rencontré avec le plus de détails possible..."
                 rows={5}

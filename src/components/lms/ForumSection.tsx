@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { VoiceTextarea } from "@/components/ui/voice-textarea";
 import { Badge } from "@/components/ui/badge";
 import { useCourseForums, useForumPosts, useCreateForumPost } from "@/hooks/useLms";
 import { supabase } from "@/integrations/supabase/client";
@@ -137,8 +137,9 @@ function ForumThread({ forumId, onBack }: { forumId: string; onBack: () => void 
       {/* Reply form */}
       <Card>
         <CardContent className="py-3 space-y-2">
-          <Textarea
+          <VoiceTextarea
             value={content}
+            onValueChange={setContent}
             onChange={(e) => setContent(e.target.value)}
             placeholder="Écrire un message..."
             rows={3}

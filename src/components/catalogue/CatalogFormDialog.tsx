@@ -4,6 +4,7 @@ import { Loader2, Plus, Trash2, ChevronDown, ChevronUp, Check } from "lucide-rea
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { VoiceTextarea } from "@/components/ui/voice-textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
@@ -450,9 +451,10 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
 
             <div className="space-y-2">
               <Label htmlFor="description">Description</Label>
-              <Textarea
+              <VoiceTextarea
                 id="description"
                 value={description}
+                onValueChange={setDescription}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Description courte de la formation..."
                 rows={2}
