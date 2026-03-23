@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useEditor, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import LinkExtension from "@tiptap/extension-link";
@@ -24,6 +24,9 @@ export function useTiptapEditor({
   editorProps,
   onFocus,
 }: UseTiptapEditorOptions) {
+  // Track whether the update came from the editor itself
+  const isInternalUpdate = useRef(false);
+
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -42,10 +45,24 @@ export function useTiptapEditor({
     content,
     editorProps: editorProps as any,
     onUpdate: ({ editor }) => {
+      isInternalUpdate.current = true;
       onChange(editor.getHTML());
     },
     onFocus,
   });
+
+  // Sync editor content when the prop changes externally
+  useEffect(() => {
+    if (!editor || editor.isDestroyed) return;
+    if (isInternalUpdate.current) {
+      isInternalUpdate.current = false;
+      return;
+    }
+    const currentHTML = editor.getHTML();
+    if (currentHTML !== content) {
+      editor.commands.setContent(content, { emitUpdate: false });
+    }
+  }, [content, editor]);
 
   const setLink = useCallback(() => {
     if (!editor) return;
