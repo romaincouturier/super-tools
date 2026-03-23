@@ -1,4 +1,5 @@
 import { useState } from "react";
+import DOMPurify from "dompurify";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -128,7 +129,7 @@ function ForumThread({ forumId, onBack }: { forumId: string; onBack: () => void 
                 </span>
                 {post.is_pinned && <Pin className="w-3 h-3 text-primary" />}
               </div>
-              <div className="text-sm" dangerouslySetInnerHTML={{ __html: post.content_html }} />
+              <div className="text-sm" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(post.content_html) }} />
             </CardContent>
           </Card>
         ))}
