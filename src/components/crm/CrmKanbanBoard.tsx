@@ -189,12 +189,20 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
     }));
   }, [boardData?.cards]);
 
-  const doneColumnIds = useMemo(() => {
+  const wonColumnIds = useMemo(() => {
     if (!boardData?.columns) return [];
-    return boardData.columns
-      .filter((col) => isWonColumnName(col.name) || isLostColumnName(col.name))
-      .map((col) => col.id);
+    return boardData.columns.filter((col) => isWonColumnName(col.name)).map((col) => col.id);
   }, [boardData?.columns]);
+
+  const lostColumnIds = useMemo(() => {
+    if (!boardData?.columns) return [];
+    return boardData.columns.filter((col) => isLostColumnName(col.name)).map((col) => col.id);
+  }, [boardData?.columns]);
+
+  const doneColumnIds = useMemo(
+    () => [...wonColumnIds, ...lostColumnIds],
+    [wonColumnIds, lostColumnIds],
+  );
 
   // Handle loss reason dialog confirmation from drag
   const handleDragLossReasonConfirm = async (reason: LossReason, detail: string) => {
@@ -567,6 +575,8 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
         columns={kanbanColumns}
         items={statsItems}
         doneColumnIds={doneColumnIds}
+        wonColumnIds={wonColumnIds}
+        lostColumnIds={lostColumnIds}
       />
     </div>
   );
