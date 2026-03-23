@@ -504,7 +504,7 @@ const EventDetail = () => {
               value={notes}
               onValueChange={setNotes}
               onChange={(e) => setNotes(e.target.value)}
-              className="min-h-[100px] resize-y"
+              className="min-h-[400px] resize-y"
             />
           </CardContent>
         </Card>
