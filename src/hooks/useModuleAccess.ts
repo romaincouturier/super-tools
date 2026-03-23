@@ -23,7 +23,8 @@ export type AppModule =
   | "reclamations"
   | "support"
   | "reseau"
-  | "lms";
+  | "lms"
+  | "screenshots";
 
 export const ALL_MODULES: AppModule[] = [
   "micro_devis",
