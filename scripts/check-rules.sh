@@ -109,6 +109,11 @@ if [ "$STAGED_MODE" = "true" ]; then
       "echo \"$STAGED_TSX\" | xargs grep -n 'DialogContent\|AlertDialogContent\|SheetContent' 2>/dev/null | grep 'max-w-' | grep -v 'w-full'"
   fi
 
+  # [010] registerMediaEntry sans deleteMediaFile = fichiers orphelins potentiels
+  # Known pre-existing: MissionPages.tsx, CrmDescriptionEditor.tsx, useLms.ts
+  check "010" "registerMediaEntry doit avoir un deleteMediaFile dans le même fichier (nouveaux fichiers)" \
+    "echo \"$STAGED_FILES\" | xargs grep -l 'registerMediaEntry' 2>/dev/null | grep -v 'MissionPages.tsx' | grep -v 'CrmDescriptionEditor.tsx' | grep -v 'useLms.ts' | xargs grep -L 'deleteMediaFile' 2>/dev/null"
+
 else
   # --- Mode complet : audit de toute la codebase ---
 
@@ -133,6 +138,11 @@ else
 
   check "007" "DialogContent/SheetContent avec w-full pour le mobile" \
     "grep -rn 'DialogContent\|AlertDialogContent\|SheetContent' src/components/ src/pages/ --include='*.tsx' | grep 'max-w-' | grep -v 'w-full' | grep -v 'sm:max-w-md' | grep -v node_modules"
+
+  # [010] registerMediaEntry sans deleteMediaFile = fichiers orphelins potentiels
+  # Known pre-existing: MissionPages.tsx, CrmDescriptionEditor.tsx, useLms.ts
+  check "010" "registerMediaEntry doit avoir un deleteMediaFile dans le même fichier (nouveaux fichiers)" \
+    "grep -rln 'registerMediaEntry' src/ --include='*.ts' --include='*.tsx' 2>/dev/null | grep -v 'MissionPages.tsx' | grep -v 'CrmDescriptionEditor.tsx' | grep -v 'useLms.ts' | xargs grep -L 'deleteMediaFile' 2>/dev/null"
 
   # [008] CORS centralisé — toutes les fonctions doivent importer depuis _shared/cors.ts
   check "008" "Pas de CORS headers définis localement dans les edge functions" \
