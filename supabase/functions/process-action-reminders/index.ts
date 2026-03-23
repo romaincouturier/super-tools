@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 import { corsHeaders } from "../_shared/cors.ts";
+import { skipIfNonWorkingDay } from "../_shared/working-days.ts";
 
 /**
  * Process Action Reminders
@@ -24,6 +25,10 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Skip on non-working days (weekends by default)
+    const skip = await skipIfNonWorkingDay(supabase, VERSION, corsHeaders);
+    if (skip) return skip;
 
     // Get today's date in YYYY-MM-DD format (UTC)
     const today = new Date().toISOString().split("T")[0];

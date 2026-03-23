@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getSenderFrom, getBccList } from "../_shared/email-settings.ts";
 import { sendEmail } from "../_shared/resend.ts";
 import { corsHeaders } from "../_shared/cors.ts";
+import { skipIfNonWorkingDay } from "../_shared/working-days.ts";
 import {
   fetchAllDailyData,
   userCanSee,
@@ -116,6 +117,11 @@ serve(async (req) => {
     const urls = await getAppUrls();
     const appUrl = urls.app_url;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Skip on non-working days (weekends by default)
+    const skip = await skipIfNonWorkingDay(supabase, VERSION, corsHeaders);
+    if (skip) return skip;
+
     const today = new Date().toISOString().split("T")[0];
 
     // ── Fetch all data using shared fetchers ──

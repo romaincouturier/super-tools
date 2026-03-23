@@ -5,6 +5,7 @@ import {
   createJsonResponse,
   createErrorResponse,
 } from "../_shared/mod.ts";
+import { skipIfNonWorkingDay } from "../_shared/working-days.ts";
 
 /**
  * Process Daily Summary
@@ -47,6 +48,10 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Skip on non-working days (weekends by default, configurable in app_settings)
+    const skip = await skipIfNonWorkingDay(supabase, VERSION);
+    if (skip) return skip;
 
     const today = new Date().toISOString().split("T")[0];
 
