@@ -75,6 +75,7 @@ export const MODULE_LABELS: Record<AppModule, string> = {
   support: "Support",
   reseau: "Réseau",
   lms: "E-learning",
+  screenshots: "Screenshots",
 };
 
 export function useModuleAccess() {
