@@ -1,5 +1,4 @@
 import { createRoot } from "react-dom/client";
-import { registerSW } from "virtual:pwa-register";
 import App from "./App";
 import "./index.css";
 import {
@@ -7,18 +6,15 @@ import {
   recoverFromStaleBuildOnce,
 } from "@/lib/runtimeRecovery";
 
-const isPreviewHost =
-  typeof window !== "undefined" && window.location.hostname.includes("lovableproject.com");
-
-if (import.meta.env.PROD && !isPreviewHost) {
-  registerSW({
-    onNeedRefresh() {
-      console.log("[SW] Nouvelle version disponible, mise à jour…");
-    },
-    onOfflineReady() {
-      console.log("[SW] Application prête pour le mode hors ligne");
-    },
+// Force-unregister any existing Service Worker to fix white-screen issues
+// caused by stale cached assets from the old PWA setup.
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.getRegistrations().then((registrations) => {
+    registrations.forEach((r) => r.unregister());
   });
+  if ("caches" in window) {
+    caches.keys().then((keys) => keys.forEach((k) => caches.delete(k)));
+  }
 }
 
 installGlobalChunkRecovery();
