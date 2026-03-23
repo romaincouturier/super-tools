@@ -1,5 +1,6 @@
 import { lazy } from "react";
 import type { ComponentType } from "react";
+import { recoverFromStaleBuildOnce } from "@/lib/runtimeRecovery";
 
 type LazyFactory<T extends ComponentType<Record<string, unknown>>> = () => Promise<{ default: T }>;
 
@@ -35,14 +36,7 @@ export function lazyWithRetry<T extends ComponentType<Record<string, unknown>>>(
 
     // In production, a hard reload usually fixes stale chunk URLs after an update.
     if (!import.meta.env.DEV && typeof window !== "undefined") {
-      try {
-        if (!sessionStorage.getItem(LAZY_RELOAD_FLAG)) {
-          sessionStorage.setItem(LAZY_RELOAD_FLAG, "1");
-          window.location.reload();
-        }
-      } catch {
-        // ignore
-      }
+      await recoverFromStaleBuildOnce(LAZY_RELOAD_FLAG);
     }
 
     throw lastError;
