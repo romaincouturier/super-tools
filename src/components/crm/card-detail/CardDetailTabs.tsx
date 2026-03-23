@@ -58,7 +58,7 @@ const CardDetailTabs = ({ state, handlers, details, detailsLoading }: Props) => 
       <h4 className="font-medium text-xs text-muted-foreground uppercase tracking-wider mb-3">
         Compléments
       </h4>
-      <TabsList className="grid grid-cols-5 w-full">
+      <TabsList className="grid grid-cols-3 sm:grid-cols-5 w-full">
         <TabsTrigger value="comments"><MessageSquare className="h-4 w-4" /></TabsTrigger>
         <TabsTrigger value="attachments"><Paperclip className="h-4 w-4" /></TabsTrigger>
         <TabsTrigger value="quotes"><FileText className="h-4 w-4" /></TabsTrigger>

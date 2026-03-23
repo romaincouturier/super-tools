@@ -305,7 +305,7 @@ export function NewOpportunityDialog({ open, onOpenChange, userEmail }: NewOppor
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="w-full sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-primary" />
@@ -471,7 +471,7 @@ Tel: 06 12 34 56 78"
             </div>
 
             {/* Contact info */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label className="flex items-center gap-1">
                   <User className="h-3 w-3" />
@@ -581,7 +581,7 @@ Tel: 06 12 34 56 78"
                 </Label>
               </div>
               {scheduleAction && (
-                <div className="grid grid-cols-2 gap-3 pl-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pl-6">
                   <div>
                     <Label htmlFor="next-action-date" className="text-xs">Date *</Label>
                     <Input

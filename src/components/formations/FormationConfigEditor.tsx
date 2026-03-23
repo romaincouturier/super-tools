@@ -38,7 +38,7 @@ export default function FormationConfigEditor({
   onMove,
 }: FormationConfigEditorProps) {
   return (
-    <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+    <DialogContent className="w-full sm:max-w-3xl max-h-[85vh] overflow-y-auto">
       <DialogHeader>
         <DialogTitle>Configuration des formations</DialogTitle>
         <DialogDescription>

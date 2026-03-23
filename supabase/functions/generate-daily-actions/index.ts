@@ -5,6 +5,7 @@ import {
   createJsonResponse,
   createErrorResponse,
 } from "../_shared/mod.ts";
+import { skipIfNonWorkingDay } from "../_shared/working-days.ts";
 import {
   fetchAllDailyData,
   userCanSee,
@@ -47,6 +48,11 @@ serve(async (req) => {
     const urls = await getAppUrls();
     const appUrl = urls.app_url;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Skip on non-working days (weekends by default, configurable in app_settings)
+    const skip = await skipIfNonWorkingDay(supabase, VERSION);
+    if (skip) return skip;
+
     const today = new Date().toISOString().split("T")[0];
 
     // ── Fetch all data using shared fetchers ──

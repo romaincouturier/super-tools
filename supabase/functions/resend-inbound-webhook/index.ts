@@ -4,11 +4,12 @@ import { crypto } from "https://deno.land/std@0.190.0/crypto/mod.ts";
 import { encode as hexEncode } from "https://deno.land/std@0.190.0/encoding/hex.ts";
 import { decode as base64Decode } from "https://deno.land/std@0.190.0/encoding/base64.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
+import { extendCorsHeaders } from "../_shared/cors.ts";
+
+const corsHeaders = extendCorsHeaders({
   "Access-Control-Allow-Headers": "content-type, svix-id, svix-timestamp, svix-signature",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
+});
 
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
 

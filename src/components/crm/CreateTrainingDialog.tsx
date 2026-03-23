@@ -86,7 +86,7 @@ export function CreateTrainingDialog({
   if (mode === "choice") {
     return (
       <AlertDialog open={open} onOpenChange={onOpenChange}>
-        <AlertDialogContent className="max-w-md">
+        <AlertDialogContent className="w-full sm:max-w-md">
           <AlertDialogHeader>
             <div className="flex items-center gap-3 mb-2">
               <div className="p-2 rounded-full bg-primary/10 text-primary">
@@ -153,7 +153,7 @@ export function CreateTrainingDialog({
   // Select existing training screen
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent className="max-w-lg max-h-[80vh] flex flex-col">
+      <AlertDialogContent className="w-full sm:max-w-lg max-h-[80vh] flex flex-col">
         <AlertDialogHeader>
           <div className="flex items-center gap-3 mb-2">
             <div className="p-2 rounded-full bg-primary/10 text-primary">

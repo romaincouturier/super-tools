@@ -3,7 +3,9 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { sendEmail } from "../_shared/resend.ts";
 import { getBccList } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
-import { processTemplate } from "../_shared/templates.ts";
+import { processTemplate, emailButton } from "../_shared/templates.ts";
+
+import { corsHeaders } from "../_shared/cors.ts";
 
 /**
  * Process Live Reminders
@@ -16,12 +18,6 @@ import { processTemplate } from "../_shared/templates.ts";
  *
  * Uses activity_logs to prevent duplicate sends.
  */
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -189,7 +185,7 @@ serve(async (req) => {
         if (liveEmailContent) {
           const customBody = liveEmailContent.replace(/\n/g, "<br>");
           const meetingUrlSection = liveMeetingUrl
-            ? `<p><a href="${liveMeetingUrl}" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Rejoindre le live</a></p>`
+            ? emailButton("Rejoindre le live", liveMeetingUrl)
             : "";
           subject = `📺 Rappel : Live "${liveTitle}" aujourd'hui – ${training.training_name}`;
           htmlContent = `
@@ -220,7 +216,7 @@ serve(async (req) => {
         } else {
           // Fallback
           const meetingUrlSection = liveMeetingUrl
-            ? `<p><a href="${liveMeetingUrl}" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Rejoindre le live</a></p>`
+            ? emailButton("Rejoindre le live", liveMeetingUrl)
             : "";
           const supportsSection = supportsUrl
             ? `<p>📚 Pour rappel, ${useFormal ? "vous pouvez retrouver" : "tu peux retrouver"} les supports de la formation ici : <a href="${supportsUrl}" style="color: #e6bc00; font-weight: bold;">Accéder aux supports</a></p>`

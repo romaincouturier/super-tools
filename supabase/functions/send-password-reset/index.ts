@@ -3,14 +3,12 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { getSenderFrom, getBccList } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
 import { sendEmail } from "../_shared/resend.ts";
+import { emailButton } from "../_shared/templates.ts";
+
+import { corsHeaders } from "../_shared/cors.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
 
 interface RequestBody {
   email: string;
@@ -78,12 +76,7 @@ serve(async (req: Request) => {
         <p>Bonjour,</p>
         <p>Vous avez demandé à réinitialiser votre mot de passe SuperTools.</p>
         <p>Cliquez sur le bouton ci-dessous pour définir un nouveau mot de passe :</p>
-        <p style="margin: 30px 0;">
-          <a href="${data.properties.action_link}" 
-             style="background-color: #eab308; color: #1a1a1a; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold;">
-            Réinitialiser mon mot de passe
-          </a>
-        </p>
+        ${emailButton("Réinitialiser mon mot de passe", data.properties.action_link)}
         <p style="color: #666; font-size: 14px;">Ce lien expire dans 1 heure.</p>
         <p style="color: #666; font-size: 14px;">Si vous n'avez pas demandé cette réinitialisation, ignorez cet email.</p>
         ${signature}

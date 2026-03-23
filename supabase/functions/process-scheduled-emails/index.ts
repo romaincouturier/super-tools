@@ -1,6 +1,8 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+import { corsHeaders } from "../_shared/cors.ts";
+
 /**
  * Process Scheduled Emails
  * 
@@ -10,12 +12,6 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
  * It delegates the actual email sending to the force-send-scheduled-email function
  * which handles all email types.
  */
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
 
 const FUNCTION_VERSION = "1.0.0";
 

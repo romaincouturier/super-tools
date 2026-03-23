@@ -265,7 +265,7 @@ const FailedEmails = () => {
 
       {/* Email preview dialog */}
       <Dialog open={!!previewEmail} onOpenChange={() => setPreviewEmail(null)}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="w-full sm:max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Mail className="h-5 w-5" />

@@ -279,7 +279,7 @@ const Reclamations = () => {
                   <DialogTrigger asChild>
                     <Button size="sm"><Plus className="h-4 w-4 mr-1" /> Nouvelle réclamation</Button>
                   </DialogTrigger>
-                <DialogContent className="max-w-lg">
+                <DialogContent className="w-full sm:max-w-lg">
                   <DialogHeader><DialogTitle>Nouvelle réclamation</DialogTitle></DialogHeader>
                   <div className="space-y-4">
                     <div className="space-y-1">

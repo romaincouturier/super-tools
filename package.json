@@ -52,6 +52,7 @@
     "@tiptap/extension-highlight": "^3.19.0",
     "@tiptap/extension-image": "^3.19.0",
     "@tiptap/extension-link": "^3.18.0",
+    "@tiptap/extension-mention": "^3.20.4",
     "@tiptap/extension-placeholder": "^3.19.0",
     "@tiptap/extension-task-item": "^3.19.0",
     "@tiptap/extension-task-list": "^3.19.0",
@@ -60,6 +61,7 @@
     "@tiptap/extension-underline": "^3.18.0",
     "@tiptap/react": "^3.18.0",
     "@tiptap/starter-kit": "^3.18.0",
+    "@tiptap/suggestion": "^3.20.4",
     "@types/dompurify": "^3.0.5",
     "canvas-confetti": "^1.9.4",
     "class-variance-authority": "^0.7.1",
@@ -92,6 +94,7 @@
     "sonner": "^1.7.4",
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
+    "tippy.js": "^6.3.7",
     "uuid": "^13.0.0",
     "vaul": "^0.9.9",
     "zod": "^3.25.76"

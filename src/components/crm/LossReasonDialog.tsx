@@ -45,7 +45,7 @@ const LossReasonDialog = ({ open, onConfirm, onCancel }: LossReasonDialogProps) 
           </AlertDialogDescription>
         </AlertDialogHeader>
 
-        <div className="grid grid-cols-2 gap-2 my-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 my-4">
           {(Object.entries(lossReasonConfig) as [LossReason, string][]).map(([key, label]) => (
             <Button
               key={key}

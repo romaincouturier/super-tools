@@ -297,6 +297,7 @@ export default function LearnerPortal() {
                         <CoachingBooking
                           trainingId={training.training_id}
                           participantId={training.participant_id}
+                          learnerEmail={data.email}
                         />
                       </TabsContent>
                     </Tabs>

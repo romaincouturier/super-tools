@@ -87,7 +87,7 @@ const BulkAddParticipantsDialog = ({
       <DialogTrigger asChild>
         <Button variant="outline"><Users className="h-4 w-4 mr-2" />Ajout en lot</Button>
       </DialogTrigger>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="w-full sm:max-w-2xl">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle>

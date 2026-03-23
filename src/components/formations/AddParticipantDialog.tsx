@@ -224,7 +224,7 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
           )}
 
           <div className="space-y-4 py-4 overflow-y-auto flex-1 pr-1">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="firstName">Prénom</Label>
                 <Input
@@ -328,7 +328,7 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
                 </div>
                 {!sponsorSameAsParticipant && (
                   <>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="sponsorFirstName">Prénom</Label>
                         <Input

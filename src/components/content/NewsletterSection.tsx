@@ -572,7 +572,7 @@ const NewsletterSection = ({ onCardClick, refreshKey }: NewsletterSectionProps) 
 
       {/* Create newsletter dialog */}
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="w-full sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>Programmer une newsletter</DialogTitle>
           </DialogHeader>

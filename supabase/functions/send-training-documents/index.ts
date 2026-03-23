@@ -6,12 +6,7 @@ import { getSigniticSignature } from "../_shared/signitic.ts";
 import { processTemplate, textToHtml } from "../_shared/templates.ts";
 import { sendEmail } from "../_shared/resend.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
-
+import { corsHeaders } from "../_shared/cors.ts";
 // Format date range for display (e.g., "du 15 au 17 janvier 2025")
 function formatDateRangeForDisplay(startDate: string, endDate: string | null): string {
   const start = new Date(startDate);

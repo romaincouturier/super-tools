@@ -7,6 +7,7 @@
 // CORS utilities
 export {
   corsHeaders,
+  extendCorsHeaders,
   handleCorsPreflightIfNeeded,
   createErrorResponse,
   createJsonResponse,
@@ -56,11 +57,21 @@ export {
   replaceVariables,
   textToHtml,
   wrapEmailHtml,
+  emailButton,
+  emailInfoBox,
+  emailSuccessBox,
   type TemplateVariables,
 } from "./templates.ts";
 
 // App URLs
 export { getAppUrls } from "./app-urls.ts";
+
+// Working days
+export {
+  fetchWorkingDays,
+  isTodayWorkingDay,
+  skipIfNonWorkingDay,
+} from "./working-days.ts";
 
 // Daily data fetchers (shared between digest email & daily actions)
 export {

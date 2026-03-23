@@ -2,14 +2,12 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { getSenderFrom, getSenderEmail, getSenderName, getBccList } from "../_shared/email-settings.ts";
 import { sendEmail } from "../_shared/resend.ts";
+import { emailButton } from "../_shared/templates.ts";
+
+import { corsHeaders } from "../_shared/cors.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
 
 const MODULE_LABELS: Record<string, string> = {
   micro_devis: "Micro-devis",
@@ -187,11 +185,7 @@ serve(async (req: Request) => {
         <p>Vous avez accès aux modules suivants :</p>
         <ul>${moduleListHtml}</ul>
         
-        <p style="margin: 24px 0;">
-          <a href="${APP_URL}/auth" style="display: inline-block; background-color: #e6bc00; color: #101820; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 600;">
-            Se connecter à SuperTools
-          </a>
-        </p>
+        ${emailButton("Se connecter à SuperTools", `${APP_URL}/auth`)}
         
         <p>Le nouveau mot de passe doit respecter les critères suivants :</p>
         <ul>

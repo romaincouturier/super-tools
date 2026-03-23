@@ -170,7 +170,7 @@ function ModuleBlock({ mod, courseId }: { mod: LmsModule; courseId: string }) {
       {/* Lesson Editor Dialog */}
       {selectedLesson && (
         <Dialog open={!!selectedLesson} onOpenChange={() => setSelectedLesson(null)}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="w-full sm:max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <Pencil className="w-4 h-4" />

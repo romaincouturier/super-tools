@@ -4,14 +4,12 @@ import { getSenderFrom, getBccList } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
 import { getAppUrls } from "../_shared/app-urls.ts";
 import { sendEmail } from "../_shared/resend.ts";
+import { emailButton } from "../_shared/templates.ts";
+
+import { corsHeaders } from "../_shared/cors.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
 
 interface RequestBody {
   activityLogId: string; // Reference to the activity_logs entry for the devis
@@ -123,11 +121,7 @@ serve(async (req: Request): Promise<Response> => {
 
         <p>Pour signer ce devis, veuillez cliquer sur le bouton ci-dessous :</p>
 
-        <p style="margin: 24px 0;">
-          <a href="${signatureUrl}" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold;">
-            Signer le devis
-          </a>
-        </p>
+        ${emailButton("Signer le devis", signatureUrl)}
 
         <p style="font-size: 14px; color: #666;">
           Ce lien est valable pendant ${expiresInDays} jours. Vous pouvez egalement consulter le devis PDF avant de le signer.

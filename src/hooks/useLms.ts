@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, createLearnerClient } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { registerMediaEntry } from "@/hooks/useMedia";
 import { resolveContentType } from "@/lib/file-utils";
@@ -282,7 +282,8 @@ export function useLearnerProgress(courseId: string | undefined, email: string |
     queryKey: ["lms-progress", courseId, email],
     enabled: !!courseId && !!email,
     queryFn: async () => {
-      const { data, error } = await supabase
+      const client = createLearnerClient(email!);
+      const { data, error } = await client
         .from("lms_progress")
         .select("*")
         .eq("course_id", courseId!)
@@ -546,7 +547,8 @@ export function useSubmitQuizAttempt() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: Partial<LmsQuizAttempt> & { quiz_id: string; learner_email: string }) => {
-      const { data, error } = await supabase
+      const client = createLearnerClient(input.learner_email);
+      const { data, error } = await client
         .from("lms_quiz_attempts")
         .insert(input as LmsQuizAttemptInsert)
         .select()
@@ -565,7 +567,8 @@ export function useMarkLessonComplete() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: { course_id: string; lesson_id: string; learner_email: string }) => {
-      const { data, error } = await supabase
+      const client = createLearnerClient(input.learner_email);
+      const { data, error } = await client
         .from("lms_progress")
         .upsert(
           {
@@ -594,7 +597,8 @@ export function useEnrollLearner() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: { course_id: string; learner_email: string }) => {
-      const { data, error } = await supabase
+      const client = createLearnerClient(input.learner_email);
+      const { data, error } = await client
         .from("lms_enrollments")
         .upsert(input as LmsEnrollmentInsert, { onConflict: "course_id,learner_email" })
         .select()
@@ -629,7 +633,8 @@ export function useSubmitAssignment() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: { lesson_id: string; learner_email: string; comment?: string; file_url?: string; file_name?: string; file_size?: number }) => {
-      const { data, error } = await supabase
+      const client = createLearnerClient(input.learner_email);
+      const { data, error } = await client
         .from("lms_assignment_submissions")
         .insert(input as LmsAssignmentSubmissionInsert)
         .select()
@@ -648,7 +653,8 @@ export function useLearnerSubmissions(lessonId: string | undefined, email: strin
     queryKey: ["lms-assignment-submissions", lessonId, email],
     enabled: !!lessonId && !!email,
     queryFn: async () => {
-      const { data, error } = await supabase
+      const client = createLearnerClient(email!);
+      const { data, error } = await client
         .from("lms_assignment_submissions")
         .select("*")
         .eq("lesson_id", lessonId!)
@@ -677,7 +683,8 @@ export function useLearnerBadges(email: string | undefined) {
     queryKey: ["lms-badge-awards", email],
     enabled: !!email,
     queryFn: async () => {
-      const { data, error } = await supabase
+      const client = createLearnerClient(email!);
+      const { data, error } = await client
         .from("lms_badge_awards")
         .select("*")
         .eq("learner_email", email!)
@@ -727,7 +734,8 @@ export function useCreateForumPost() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: Partial<LmsForumPost> & { forum_id: string; author_email: string; content_html: string }) => {
-      const { data, error } = await supabase
+      const client = createLearnerClient(input.author_email);
+      const { data, error } = await client
         .from("lms_forum_posts")
         .insert(input as LmsForumPostInsert)
         .select()

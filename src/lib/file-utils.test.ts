@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { formatFileSize, sanitizeFileName, buildStoragePath, extractStoragePath } from "./file-utils";
+import { formatFileSize, sanitizeFileName, buildStoragePath, extractStoragePath, resolveContentType, getFileType } from "./file-utils";
 
 // ── formatFileSize ───────────────────────────────────────────────────
 
@@ -85,5 +85,58 @@ describe("extractStoragePath", () => {
   it("decodes URL-encoded characters", () => {
     const url = "https://example.supabase.co/storage/v1/object/public/media/mission/abc/123_hello%20world.pdf";
     expect(extractStoragePath(url, "media")).toBe("mission/abc/123_hello world.pdf");
+  });
+});
+
+// ── resolveContentType ───────────────────────────────────────────────
+
+describe("resolveContentType", () => {
+  it("returns file.type when present", () => {
+    const file = new File([""], "photo.png", { type: "image/png" });
+    expect(resolveContentType(file)).toBe("image/png");
+  });
+
+  it("falls back to extension when file.type is empty", () => {
+    const file = new File([""], "icon.svg");
+    // File constructor without type yields empty string
+    Object.defineProperty(file, "type", { value: "" });
+    expect(resolveContentType(file)).toBe("image/svg+xml");
+  });
+
+  it("returns application/octet-stream for unknown extensions", () => {
+    const file = new File([""], "data.xyz");
+    Object.defineProperty(file, "type", { value: "" });
+    expect(resolveContentType(file)).toBe("application/octet-stream");
+  });
+
+  it("handles video extensions", () => {
+    const file = new File([""], "clip.mp4");
+    Object.defineProperty(file, "type", { value: "" });
+    expect(resolveContentType(file)).toBe("video/mp4");
+  });
+});
+
+// ── getFileType ──────────────────────────────────────────────────────
+
+describe("getFileType", () => {
+  it("returns 'image' for image files", () => {
+    const file = new File([""], "photo.jpg", { type: "image/jpeg" });
+    expect(getFileType(file)).toBe("image");
+  });
+
+  it("returns 'video' for video files", () => {
+    const file = new File([""], "clip.mp4", { type: "video/mp4" });
+    expect(getFileType(file)).toBe("video");
+  });
+
+  it("returns null for non-media files", () => {
+    const file = new File([""], "doc.pdf", { type: "application/pdf" });
+    expect(getFileType(file)).toBeNull();
+  });
+
+  it("falls back to extension for SVG with empty type", () => {
+    const file = new File([""], "icon.svg");
+    Object.defineProperty(file, "type", { value: "" });
+    expect(getFileType(file)).toBe("image");
   });
 });

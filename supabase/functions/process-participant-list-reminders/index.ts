@@ -4,6 +4,8 @@ import { getSenderFrom, getSenderEmail, getSenderName, getBccList } from "../_sh
 import { getSigniticSignature } from "../_shared/signitic.ts";
 import { sendEmail } from "../_shared/resend.ts";
 
+import { corsHeaders } from "../_shared/cors.ts";
+
 /**
  * Process Participant List Reminders
  *
@@ -11,12 +13,6 @@ import { sendEmail } from "../_shared/resend.ts";
  * sends an alert email to the trainer every 2 working days.
  * Stops when participants are added or training starts.
  */
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
 
 const DAYS_FR = ["dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi"];
 const MONTHS_FR = [

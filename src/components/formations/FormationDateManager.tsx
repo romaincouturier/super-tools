@@ -36,7 +36,7 @@ export default function FormationDateManager({
   onSave,
 }: FormationDateManagerProps) {
   return (
-    <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+    <DialogContent className="w-full sm:max-w-2xl max-h-[85vh] overflow-y-auto">
       <DialogHeader>
         <DialogTitle>Configuration des dates de formation</DialogTitle>
         <DialogDescription>

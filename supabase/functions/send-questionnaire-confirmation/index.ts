@@ -6,12 +6,7 @@ import { processTemplate } from "../_shared/templates.ts";
 import { sendEmail } from "../_shared/resend.ts";
 import { getAppUrls } from "../_shared/app-urls.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
-
+import { corsHeaders } from "../_shared/cors.ts";
 // Format date to Google Calendar format: YYYYMMDDTHHMMSS
 function formatDateForCalendar(dateStr: string, timeStr: string): string {
   const [year, month, day] = dateStr.split('-').map(Number);
@@ -169,7 +164,6 @@ serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;

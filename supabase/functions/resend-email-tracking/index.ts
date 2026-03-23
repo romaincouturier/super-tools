@@ -3,11 +3,12 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { crypto } from "https://deno.land/std@0.190.0/crypto/mod.ts";
 import { decode as base64Decode } from "https://deno.land/std@0.190.0/encoding/base64.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
+import { extendCorsHeaders } from "../_shared/cors.ts";
+
+const corsHeaders = extendCorsHeaders({
   "Access-Control-Allow-Headers": "content-type, svix-id, svix-timestamp, svix-signature",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
+});
 
 // Resend webhook events for sent email tracking
 type ResendEventType =

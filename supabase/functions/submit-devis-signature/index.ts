@@ -3,15 +3,12 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { getSigniticSignature } from "../_shared/signitic.ts";
 import { getBccSettings } from "../_shared/bcc-settings.ts";
 import { sendEmail } from "../_shared/resend.ts";
+import { emailButton } from "../_shared/templates.ts";
+
+import { corsHeaders } from "../_shared/cors.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
 
 interface JourneyEvent {
   event: string;
@@ -351,11 +348,7 @@ serve(async (req: Request): Promise<Response> => {
   <li><strong>Signé le :</strong> ${formatDateFr(signedAt)}</li>
 </ul>
 <p>Vous pouvez consulter le devis en cliquant sur le lien ci-dessous :</p>
-<p>
-  <a href="${devisSignature.pdf_url}" style="display: inline-block; padding: 10px 20px; background-color: #e6bc00; color: #000; text-decoration: none; border-radius: 6px; font-weight: bold;">
-    📄 Télécharger le devis
-  </a>
-</p>
+${emailButton("📄 Télécharger le devis", devisSignature.pdf_url)}
 <p style="margin-top: 16px; font-size: 12px; color: #666;">
   <strong>Informations de traçabilité :</strong><br>
   Empreinte de signature : <code>${signatureHash.substring(0, 16)}...</code><br>

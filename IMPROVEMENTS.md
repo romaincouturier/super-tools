@@ -62,9 +62,33 @@ Ce ne sont pas des tickets : ce sont des **invariants** à vérifier en permanen
 - **Origine** : bug SVG — `file.type` vide sur certains navigateurs
 - **Date** : 2026-03-20
 
+## Responsive
+
+### [007] Modales et dialogues — toujours `w-full sm:max-w-{size}` pour le mobile
+- **Constat** : 11 modales (CRM, formations, onboarding) avaient des largeurs fixes (`max-w-2xl`, `max-w-lg`, etc.) sans `w-full` mobile. Sur un écran < 480px, la partie gauche était tronquée et le contenu inaccessible. Même problème sur les `SheetContent` (ex: Support `w-[480px]` sans `w-full`).
+- **Règle** : Tout `DialogContent`, `AlertDialogContent` ou `SheetContent` doit utiliser `w-full sm:max-w-{size}`. Toute grille de formulaire (`grid-cols-2`, `grid-cols-3`) doit avoir un fallback mobile `grid-cols-1 sm:grid-cols-N`.
+- **Vérification** : Chercher `DialogContent.*max-w-` et `SheetContent.*w-\[` sans `w-full` précédent. Chercher `grid-cols-[2-9]` sans `grid-cols-1 sm:` dans les composants formulaire.
+- **Fichiers de référence** : tous les `DialogContent` dans `src/components/`
+- **Origine** : modale ticket support tronquée sur mobile — audit de 11 modales
+- **Date** : 2026-03-21
+
 ## Sécurité
 
-_(aucune règle pour le moment)_
+### [008] CORS — ne jamais utiliser `Access-Control-Allow-Origin: *` en production
+- **Constat** : Toutes les edge functions Supabase (50+) utilisent un header CORS wildcard `"Access-Control-Allow-Origin": "*"` via `_shared/cors.ts`. Cela expose les API à des appels depuis n'importe quel site externe (risque CSRF, abus de quotas API).
+- **Règle** : Les headers CORS doivent restreindre l'origine aux domaines légitimes. Utiliser la configuration centralisée dans `_shared/cors.ts` avec le domaine de production.
+- **Vérification** : `grep -r '"Access-Control-Allow-Origin": "\*"' supabase/functions/` — aucun résultat ne devrait apparaître.
+- **Fichiers de référence** : `supabase/functions/_shared/cors.ts`
+- **Origine** : audit de sécurité approfondi
+- **Date** : 2026-03-21
+
+### [009] RLS — les policies publiques (anon) doivent toujours valider un token
+- **Constat** : Plusieurs policies RLS pour les formulaires publics (questionnaire, émargement, évaluation) utilisent `USING (true)` au lieu de valider le token d'accès. Tout utilisateur anonyme peut lire/modifier les données de tous les participants.
+- **Règle** : Toute policy RLS pour le rôle `anon` doit inclure une validation de token dans la clause `USING`. Ne jamais utiliser `USING (true)` pour des données sensibles accessibles publiquement.
+- **Vérification** : `grep -rn "TO anon" supabase/migrations/ | grep -i "USING (true)"` — tout résultat est une violation.
+- **Fichiers de référence** : `supabase/migrations/20260130*.sql`, `supabase/migrations/20260202180500*.sql`
+- **Origine** : audit de sécurité approfondi
+- **Date** : 2026-03-21
 
 ## DX
 

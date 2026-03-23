@@ -1,16 +1,17 @@
 import { useState, useEffect, useMemo } from "react";
 import { closestCenter } from "@dnd-kit/core";
-import { Plus, Search, X } from "lucide-react";
+import { Plus } from "lucide-react";
 import { startOfDay, isAfter } from "date-fns";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Mission, MissionStatus, missionStatusConfig } from "@/types/missions";
 import { useMissions, useMoveMission, useUpdateMission } from "@/hooks/useMissions";
 import MissionCard from "./MissionCard";
 import MissionDetailDrawer from "./MissionDetailDrawer";
 import CreateMissionDialog from "./CreateMissionDialog";
 import GenericKanbanBoard from "@/components/shared/kanban/GenericKanbanBoard";
-import type { KanbanColumnDef, KanbanCardDef } from "@/types/kanban";
+import KanbanStatsDialog from "@/components/shared/kanban/KanbanStatsDialog";
+import KanbanToolbar from "@/components/shared/kanban/KanbanToolbar";
+import type { KanbanColumnDef, KanbanCardDef, KanbanStatsItem } from "@/types/kanban";
 
 type MissionKanbanCard = Mission & KanbanCardDef;
 type MissionKanbanColumn = KanbanColumnDef & { statusColor: string };
@@ -52,6 +53,7 @@ const MissionsKanbanBoard = ({ prefillFromCrm, onPrefillConsumed, openMissionId 
   const [createDialogStatus, setCreateDialogStatus] = useState<MissionStatus>("not_started");
   const [prefillData, setPrefillData] = useState<CrmPrefill | undefined>(undefined);
   const [searchTerm, setSearchTerm] = useState("");
+  const [showStats, setShowStats] = useState(false);
 
   // Auto-open mission drawer when openMissionId is provided (deep link from emails)
   useEffect(() => {
@@ -109,6 +111,15 @@ const MissionsKanbanBoard = ({ prefillFromCrm, onPrefillConsumed, openMissionId 
     }));
   }, [missions, normalizedSearch]);
 
+  const statsItems: KanbanStatsItem[] = useMemo(() => {
+    return missions.map((m) => ({
+      id: m.id,
+      columnId: m.status,
+      createdAt: m.created_at,
+      completedAt: m.status === "completed" ? m.updated_at : null,
+    }));
+  }, [missions]);
+
   const handleAddMission = (status: MissionStatus) => {
     setCreateDialogStatus(status);
     setShowCreateDialog(true);
@@ -128,25 +139,13 @@ const MissionsKanbanBoard = ({ prefillFromCrm, onPrefillConsumed, openMissionId 
 
   return (
     <>
-      <div className="mb-3">
-        <div className="relative w-64">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Rechercher une mission..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-9 h-9"
-          />
-          {searchTerm && (
-            <button
-              onClick={() => setSearchTerm("")}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          )}
-        </div>
-      </div>
+      <KanbanToolbar
+        searchPlaceholder="Rechercher une mission..."
+        search={searchTerm}
+        onSearchChange={setSearchTerm}
+        showStatsButton
+        onStatsClick={() => setShowStats(true)}
+      />
 
       <GenericKanbanBoard<MissionKanbanCard, MissionKanbanColumn>
         columns={columns}
@@ -218,6 +217,14 @@ const MissionsKanbanBoard = ({ prefillFromCrm, onPrefillConsumed, openMissionId 
         mission={selectedMission}
         open={!!selectedMission}
         onOpenChange={(open) => !open && setSelectedMission(null)}
+      />
+
+      <KanbanStatsDialog
+        open={showStats}
+        onOpenChange={setShowStats}
+        columns={columns}
+        items={statsItems}
+        doneColumnIds={["completed", "cancelled"]}
       />
     </>
   );

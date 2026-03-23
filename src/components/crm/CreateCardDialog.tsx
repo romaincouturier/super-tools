@@ -90,7 +90,7 @@ const CreateCardDialog = ({ open, onOpenChange, columnId, columns }: CreateCardD
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="w-full sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Nouvelle opportunité</DialogTitle>
         </DialogHeader>

@@ -3,14 +3,11 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getSenderFrom, getBccList } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
 import { sendEmail } from "../_shared/resend.ts";
+import { emailButton, emailInfoBox } from "../_shared/templates.ts";
 
+import { corsHeaders } from "../_shared/cors.ts";
 // Bump this when you deploy to confirm the latest code is running.
 const VERSION = "send-content-notification@2026-02-05.1";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -77,15 +74,9 @@ serve(async (req) => {
         htmlContent = `
           <p>Bonjour,</p>
           <p>Tu as reçu une demande de relecture pour le contenu :</p>
-          <div style="background-color: #f5f5f5; padding: 15px; border-radius: 8px; margin: 20px 0;">
-            <strong>${cardTitle}</strong>
-          </div>
+          ${emailInfoBox(`<strong>${cardTitle}</strong>`)}
           ${externalUrl ? `<p>Lien externe : <a href="${externalUrl}">${externalUrl}</a></p>` : ""}
-          <p style="margin: 20px 0;">
-            <a href="${cardLink}" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">
-              Commencer la relecture
-            </a>
-          </p>
+          ${emailButton("Commencer la relecture", cardLink)}
           ${signature}
         `;
         break;
@@ -95,15 +86,9 @@ serve(async (req) => {
         htmlContent = `
           <p>Bonjour,</p>
           <p>Petit rappel courtois : une relecture est toujours en attente sur :</p>
-          <div style="background-color: #f5f5f5; padding: 15px; border-radius: 8px; margin: 20px 0;">
-            <strong>${cardTitle}</strong>
-          </div>
+          ${emailInfoBox(`<strong>${cardTitle}</strong>`)}
           <p>Si tu es disponible, merci de traiter cette relecture dès que possible. Si ce n'est pas le bon moment, un simple retour (même bref) nous aide à nous organiser.</p>
-          <p style="margin: 20px 0;">
-            <a href="${cardLink}" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">
-              Ouvrir la carte
-            </a>
-          </p>
+          ${emailButton("Ouvrir la carte", cardLink)}
           ${signature}
         `;
         break;
@@ -113,14 +98,8 @@ serve(async (req) => {
         htmlContent = `
           <p>Bonjour,</p>
           <p>Un nouveau commentaire a été ajouté sur la relecture :</p>
-          <div style="background-color: #f5f5f5; padding: 15px; border-radius: 8px; margin: 20px 0;">
-            <strong>${cardTitle}</strong>
-          </div>
-          <p style="margin: 20px 0;">
-            <a href="${cardLink}" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">
-              Voir le commentaire
-            </a>
-          </p>
+          ${emailInfoBox(`<strong>${cardTitle}</strong>`)}
+          ${emailButton("Voir le commentaire", cardLink)}
           ${signature}
         `;
         break;
@@ -130,14 +109,8 @@ serve(async (req) => {
         htmlContent = `
           <p>Bonjour,</p>
           <p>Le statut de la relecture a été mis à jour pour :</p>
-          <div style="background-color: #f5f5f5; padding: 15px; border-radius: 8px; margin: 20px 0;">
-            <strong>${cardTitle}</strong>
-          </div>
-          <p style="margin: 20px 0;">
-            <a href="${cardLink}" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">
-              Voir les détails
-            </a>
-          </p>
+          ${emailInfoBox(`<strong>${cardTitle}</strong>`)}
+          ${emailButton("Voir les détails", cardLink)}
           ${signature}
         `;
         break;
@@ -147,19 +120,13 @@ serve(async (req) => {
         htmlContent = `
           <p>Bonjour,</p>
           <p><strong>${authorName || "Un utilisateur"}</strong> vous a mentionné dans un commentaire sur :</p>
-          <div style="background-color: #f5f5f5; padding: 15px; border-radius: 8px; margin: 20px 0;">
-            <strong>${cardTitle}</strong>
-          </div>
+          ${emailInfoBox(`<strong>${cardTitle}</strong>`)}
           ${commentText ? `
           <div style="background-color: #f0f4ff; padding: 15px; border-left: 4px solid #3b82f6; border-radius: 4px; margin: 20px 0;">
             <p style="margin: 0; color: #1e3a5f; font-style: italic;">"${commentText}"</p>
           </div>
           ` : ""}
-          <p style="margin: 20px 0;">
-            <a href="${cardLink}" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">
-              Voir le commentaire
-            </a>
-          </p>
+          ${emailButton("Voir le commentaire", cardLink)}
           ${signature}
         `;
         break;
