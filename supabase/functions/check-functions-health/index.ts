@@ -26,7 +26,7 @@ const FUNCTION_NAMES = [
   "backup-export",
   "backup-import",
   "business-health-score",
-  "chatbot-query",
+  "check-functions-health",
   "check-convention-status",
   "check-daily-actions-completion",
   "check-login-attempt",
