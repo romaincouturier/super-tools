@@ -1,5 +1,8 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
+import { recoverFromStaleBuildOnce } from "@/lib/runtimeRecovery";
+
+const ROUTE_RELOAD_FLAG = "__st_route_reload_attempted";
 
 type Props = {
   children: React.ReactNode;
@@ -33,7 +36,9 @@ export class RouteErrorBoundary extends React.Component<Props, State> {
             généralement le problème.
           </p>
           <div className="flex gap-2">
-            <Button onClick={() => window.location.reload()}>Recharger</Button>
+            <Button onClick={() => void recoverFromStaleBuildOnce(ROUTE_RELOAD_FLAG)}>
+              Recharger
+            </Button>
             <Button
               variant="outline"
               onClick={() => this.setState({ hasError: false, error: undefined })}
