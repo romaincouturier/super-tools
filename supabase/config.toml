@@ -341,3 +341,6 @@ verify_jwt = false
 
 [functions.support-analyze-ticket]
 verify_jwt = false
+
+[functions.send-support-notification]
+verify_jwt = false
