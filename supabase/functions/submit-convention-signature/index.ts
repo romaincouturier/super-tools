@@ -1,20 +1,21 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { getSigniticSignature } from "../_shared/signitic.ts";
 import { getBccSettings } from "../_shared/bcc-settings.ts";
 import { sendEmail } from "../_shared/resend.ts";
 import { generateSignedPdf } from "../_shared/generate-signed-pdf.ts";
 
-import { corsHeaders } from "../_shared/cors.ts";
-
-const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-
-interface JourneyEvent {
-  event: string;
-  timestamp: string;
-  details?: Record<string, unknown>;
-}
+import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { formatDateTime } from "../_shared/date-utils.ts";
+import { generateHash, hashArrayBuffer, getClientIp } from "../_shared/crypto.ts";
+import { getSupabaseClient } from "../_shared/supabase-client.ts";
+import {
+  type JourneyEvent,
+  type DeviceInfo,
+  buildJourneyEvents,
+  LEGAL_BLOCK,
+  storeProofFile,
+} from "../_shared/signature-helpers.ts";
+import { logEmailActivity } from "../_shared/email-helpers.ts";
 
 interface RequestBody {
   token: string;
@@ -23,60 +24,15 @@ interface RequestBody {
   consent: boolean;
   signerName: string;
   signerFunction?: string;
-  deviceInfo?: {
-    screenWidth?: number;
-    screenHeight?: number;
-    timezone?: string;
-    language?: string;
-    colorDepth?: number;
-    pixelRatio?: number;
-    platform?: string;
-    cookiesEnabled?: boolean;
-    onLine?: boolean;
-  };
+  deviceInfo?: DeviceInfo;
   journeyEvents?: JourneyEvent[];
 }
 
-async function generateHash(data: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const dataBuffer = encoder.encode(data);
-  const hashBuffer = await crypto.subtle.digest("SHA-256", dataBuffer);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
-}
-
-async function hashArrayBuffer(buffer: ArrayBuffer): Promise<string> {
-  const hashBuffer = await crypto.subtle.digest("SHA-256", buffer);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
-}
-
-function getClientIp(req: Request): string {
-  // cf-connecting-ip is the real client IP from Cloudflare (most reliable)
-  return (
-    req.headers.get("cf-connecting-ip") ||
-    req.headers.get("x-real-ip") ||
-    req.headers.get("x-forwarded-for")?.split(",")[0].trim() ||
-    "unknown"
-  );
-}
-
-function formatDateFr(dateStr: string): string {
-  const date = new Date(dateStr);
-  return new Intl.DateTimeFormat("fr-FR", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: "Europe/Paris",
-  }).format(date);
-}
 
 serve(async (req: Request): Promise<Response> => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const corsResponse = handleCorsPreflightIfNeeded(req);
+
+  if (corsResponse) return corsResponse;
 
   try {
     const body: RequestBody = await req.json();
@@ -96,7 +52,7 @@ serve(async (req: Request): Promise<Response> => {
       );
     }
 
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    const supabase = getSupabaseClient();
 
     // Verify token
     const { data: conventionSig, error: fetchError } = await supabase
@@ -202,19 +158,11 @@ serve(async (req: Request): Promise<Response> => {
       console.warn("Could not download PDF for hash verification:", pdfErr);
     }
 
-    // Build the complete journey timeline
-    // Merge client-side events with server-side events
-    const serverJourneyEvents: JourneyEvent[] = [
-      ...(journeyEvents || []),
-      {
-        event: "signature_submitted_server",
-        timestamp: signedAt,
-        details: {
-          ip_address: ipAddress,
-          pdf_integrity_verified: conventionSig.pdf_hash ? conventionSig.pdf_hash === pdfHashAtSignature : null,
-        },
-      },
-    ];
+    // Build the complete journey timeline using shared helper
+    const serverJourneyEvents = buildJourneyEvents(journeyEvents, signedAt, {
+      ip_address: ipAddress,
+      pdf_integrity_verified: conventionSig.pdf_hash ? conventionSig.pdf_hash === pdfHashAtSignature : null,
+    });
 
     const consentText =
       "En signant cette convention, j'accepte les conditions de formation proposées et je reconnais que cette signature électronique a valeur légale conformément au règlement européen eIDAS (UE n° 910/2014) et aux articles 1366 et 1367 du Code civil français.";
@@ -264,89 +212,75 @@ serve(async (req: Request): Promise<Response> => {
       );
     }
 
-    // Generate comprehensive proof file and store in PRIVATE bucket
-    let proofFileUrl: string | null = null;
-    let proofHash: string | null = null;
-    try {
-      const proofFile = {
-        version: "2.0",
-        type: "convention_signature_proof",
-        generated_at: new Date().toISOString(),
-        signature: {
-          id: conventionSig.id,
-          token: token,
-          signed_at: signedAt,
-          signer_name: signerName,
-          signer_function: signerFunction || null,
-          ip_address: ipAddress,
-          user_agent: userAgent,
-          signature_image_hash: signatureHash,
-        },
-        document: {
-          type: "convention_de_formation",
-          formation_name: conventionSig.formation_name,
-          client_name: conventionSig.client_name,
-          training_id: conventionSig.training_id,
-          pdf_url: conventionSig.pdf_url,
-          pdf_hash_at_creation: conventionSig.pdf_hash || null,
-          pdf_hash_at_signature: pdfHashAtSignature,
-          integrity_verified: conventionSig.pdf_hash ? conventionSig.pdf_hash === pdfHashAtSignature : null,
-        },
-        consent: {
-          given: true,
-          timestamp: signedAt,
-          text: consentText,
-        },
-        device: deviceInfo || {},
-        journey_timeline: serverJourneyEvents,
-        identification: {
-          method: "email_link",
-          email_sent_to: conventionSig.recipient_email,
-          email_sent_at: conventionSig.email_sent_at,
-          link_first_opened_at: conventionSig.email_opened_at,
-          token_expires_at: conventionSig.expires_at,
-          note: "Signature Électronique Simple (SES) : le lien unique est envoyé à l'adresse email du signataire désigné. L'accès au lien constitue le principal facteur d'identification.",
-        },
-        legal: {
-          regulation: "Règlement eIDAS (UE n° 910/2014)",
-          civil_code: "Code Civil français, articles 1366 et 1367",
-          signature_level: "SES (Signature Électronique Simple)",
-          probative_value: "La charge de la preuve de l'authenticité incombe à l'émetteur en cas de contestation.",
-          retention_period: "5 ans minimum après fin de relation contractuelle",
-          data_protection: "Les données personnelles sont traitées conformément au RGPD (UE 2016/679).",
-        },
-        non_repudiation_elements: {
-          email_dispatch_logged: true,
-          link_opening_logged: !!conventionSig.email_opened_at,
-          full_journey_tracked: serverJourneyEvents.length > 0,
-          consent_explicitly_given: true,
-          consent_and_submit_separate_actions: true,
-          signature_image_captured: true,
-          document_integrity_verified: conventionSig.pdf_hash ? conventionSig.pdf_hash === pdfHashAtSignature : null,
-          confirmation_email_sent: false, // updated after sending
-          ip_address_captured: ipAddress !== "unknown",
-        },
-      };
+    // Generate comprehensive proof file and store using shared helper
+    const proofFileContent = {
+      version: "2.0",
+      type: "convention_signature_proof",
+      generated_at: new Date().toISOString(),
+      signature: {
+        id: conventionSig.id,
+        token: token,
+        signed_at: signedAt,
+        signer_name: signerName,
+        signer_function: signerFunction || null,
+        ip_address: ipAddress,
+        user_agent: userAgent,
+        signature_image_hash: signatureHash,
+      },
+      document: {
+        type: "convention_de_formation",
+        formation_name: conventionSig.formation_name,
+        client_name: conventionSig.client_name,
+        training_id: conventionSig.training_id,
+        pdf_url: conventionSig.pdf_url,
+        pdf_hash_at_creation: conventionSig.pdf_hash || null,
+        pdf_hash_at_signature: pdfHashAtSignature,
+        integrity_verified: conventionSig.pdf_hash ? conventionSig.pdf_hash === pdfHashAtSignature : null,
+      },
+      consent: {
+        given: true,
+        timestamp: signedAt,
+        text: consentText,
+      },
+      device: deviceInfo || {},
+      journey_timeline: serverJourneyEvents,
+      identification: {
+        method: "email_link",
+        email_sent_to: conventionSig.recipient_email,
+        email_sent_at: conventionSig.email_sent_at,
+        link_first_opened_at: conventionSig.email_opened_at,
+        token_expires_at: conventionSig.expires_at,
+        note: "Signature Électronique Simple (SES) : le lien unique est envoyé à l'adresse email du signataire désigné. L'accès au lien constitue le principal facteur d'identification.",
+      },
+      legal: LEGAL_BLOCK,
+      non_repudiation_elements: {
+        email_dispatch_logged: true,
+        link_opening_logged: !!conventionSig.email_opened_at,
+        full_journey_tracked: serverJourneyEvents.length > 0,
+        consent_explicitly_given: true,
+        consent_and_submit_separate_actions: true,
+        signature_image_captured: true,
+        document_integrity_verified: conventionSig.pdf_hash ? conventionSig.pdf_hash === pdfHashAtSignature : null,
+        confirmation_email_sent: false, // updated after sending
+        ip_address_captured: ipAddress !== "unknown",
+      },
+    };
 
-      const proofContent = JSON.stringify(proofFile, null, 2);
-      const proofBytes = new TextEncoder().encode(proofContent);
+    // Use shared helper for primary upload to signature-proofs bucket
+    let { proofFileUrl, proofHash } = await storeProofFile(
+      supabase,
+      "convention_signatures",
+      conventionSig.id,
+      "convention",
+      token,
+      proofFileContent,
+    );
 
-      // Hash the proof file itself for tamper detection
-      proofHash = await hashArrayBuffer(proofBytes.buffer);
-
-      const proofFileName = `convention_${conventionSig.id}_${token}.json`;
-
-      // Store in PRIVATE bucket (signature-proofs)
-      const { error: uploadError } = await supabase.storage
-        .from("signature-proofs")
-        .upload(proofFileName, proofBytes, {
-          contentType: "application/json",
-          upsert: true,
-        });
-
-      if (uploadError) {
-        console.warn("Failed to upload proof file to private bucket:", uploadError);
-        // Fallback: still try public bucket
+    // Convention-specific fallback: if private bucket upload failed, try public bucket
+    if (!proofFileUrl) {
+      try {
+        const proofContent = JSON.stringify(proofFileContent, null, 2);
+        const proofBytes = new TextEncoder().encode(proofContent);
         const fallbackName = `proofs/convention_${conventionSig.training_id}_${token}.json`;
         const { error: fallbackErr } = await supabase.storage
           .from("training-documents")
@@ -359,24 +293,16 @@ serve(async (req: Request): Promise<Response> => {
             .from("training-documents")
             .getPublicUrl(fallbackName);
           proofFileUrl = publicUrl;
+
+          // Update the record with the fallback URL
+          await supabase
+            .from("convention_signatures")
+            .update({ proof_file_url: proofFileUrl })
+            .eq("id", conventionSig.id);
         }
-      } else {
-        // Private bucket - store the path (not a public URL)
-        proofFileUrl = `signature-proofs/${proofFileName}`;
+      } catch (fallbackErr) {
+        console.warn("Fallback proof file upload also failed:", fallbackErr);
       }
-
-      // Store proof file URL and hash
-      await supabase
-        .from("convention_signatures")
-        .update({
-          proof_file_url: proofFileUrl,
-          proof_hash: proofHash,
-        })
-        .eq("id", conventionSig.id);
-
-      console.log("Proof file stored. Hash:", proofHash);
-    } catch (proofErr) {
-      console.warn("Failed to generate proof file:", proofErr);
     }
 
     // Generate signed PDF (original + signature page) and upload to storage
@@ -443,29 +369,21 @@ serve(async (req: Request): Promise<Response> => {
       console.warn("Failed to generate signed PDF:", signedPdfErr);
     }
 
-    // Log the signature event
-    try {
-      await supabase.from("activity_logs").insert({
-        action_type: "convention_signature_submitted",
-        recipient_email: conventionSig.recipient_email,
-        details: {
-          training_id: conventionSig.training_id,
-          formation_name: conventionSig.formation_name,
-          client_name: conventionSig.client_name,
-          signer_name: signerName,
-          signer_function: signerFunction,
-          ip_address: ipAddress,
-          signature_hash: signatureHash,
-          pdf_hash_at_signature: pdfHashAtSignature,
-          proof_file_url: proofFileUrl,
-          proof_hash: proofHash,
-          signed_pdf_url: signedPdfUrl,
-          journey_events_count: serverJourneyEvents.length,
-        },
-      });
-    } catch (logError) {
-      console.warn("Failed to log convention signature activity:", logError);
-    }
+    // Log the signature event using shared helper
+    await logEmailActivity(supabase, "convention_signature_submitted", conventionSig.recipient_email, {
+      training_id: conventionSig.training_id,
+      formation_name: conventionSig.formation_name,
+      client_name: conventionSig.client_name,
+      signer_name: signerName,
+      signer_function: signerFunction,
+      ip_address: ipAddress,
+      signature_hash: signatureHash,
+      pdf_hash_at_signature: pdfHashAtSignature,
+      proof_file_url: proofFileUrl,
+      proof_hash: proofHash,
+      signed_pdf_url: signedPdfUrl,
+      journey_events_count: serverJourneyEvents.length,
+    });
 
     // Send confirmation email to signataire
     try {
@@ -480,7 +398,7 @@ serve(async (req: Request): Promise<Response> => {
 <ul>
   <li><strong>Formation :</strong> ${conventionSig.formation_name}</li>
   <li><strong>Client :</strong> ${conventionSig.client_name}</li>
-  <li><strong>Signée le :</strong> ${formatDateFr(signedAt)}</li>
+  <li><strong>Signée le :</strong> ${formatDateTime(signedAt)}</li>
 </ul>
 <p>Vous pouvez consulter la convention signée en cliquant sur le lien ci-dessous :</p>
 <p>

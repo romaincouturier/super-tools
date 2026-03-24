@@ -1,20 +1,20 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { getSigniticSignature } from "../_shared/signitic.ts";
 import { getBccSettings } from "../_shared/bcc-settings.ts";
 import { sendEmail } from "../_shared/resend.ts";
 import { emailButton } from "../_shared/templates.ts";
 
-import { corsHeaders } from "../_shared/cors.ts";
-
-const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-
-interface JourneyEvent {
-  event: string;
-  timestamp: string;
-  details?: Record<string, unknown>;
-}
+import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { formatDateTime } from "../_shared/date-utils.ts";
+import { generateHash, hashArrayBuffer, getClientIp } from "../_shared/crypto.ts";
+import { getSupabaseClient } from "../_shared/supabase-client.ts";
+import {
+  type JourneyEvent,
+  buildJourneyEvents,
+  LEGAL_BLOCK,
+  storeProofFile,
+} from "../_shared/signature-helpers.ts";
+import { logEmailActivity } from "../_shared/email-helpers.ts";
 
 interface RequestBody {
   token: string;
@@ -37,45 +37,11 @@ interface RequestBody {
   journeyEvents?: JourneyEvent[];
 }
 
-async function generateHash(data: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const dataBuffer = encoder.encode(data);
-  const hashBuffer = await crypto.subtle.digest("SHA-256", dataBuffer);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
-}
-
-async function hashArrayBuffer(buffer: ArrayBuffer): Promise<string> {
-  const hashBuffer = await crypto.subtle.digest("SHA-256", buffer);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
-}
-
-function getClientIp(req: Request): string {
-  return (
-    req.headers.get("cf-connecting-ip") ||
-    req.headers.get("x-real-ip") ||
-    req.headers.get("x-forwarded-for")?.split(",")[0].trim() ||
-    "unknown"
-  );
-}
-
-function formatDateFr(dateStr: string): string {
-  const date = new Date(dateStr);
-  return new Intl.DateTimeFormat("fr-FR", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: "Europe/Paris",
-  }).format(date);
-}
 
 serve(async (req: Request): Promise<Response> => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const corsResponse = handleCorsPreflightIfNeeded(req);
+
+  if (corsResponse) return corsResponse;
 
   try {
     const body: RequestBody = await req.json();
@@ -95,7 +61,7 @@ serve(async (req: Request): Promise<Response> => {
       );
     }
 
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    const supabase = getSupabaseClient();
 
     // Verify token
     const { data: devisSignature, error: fetchError } = await supabase
@@ -152,17 +118,10 @@ serve(async (req: Request): Promise<Response> => {
     }
 
     // Build the complete journey timeline
-    const serverJourneyEvents: JourneyEvent[] = [
-      ...(journeyEvents || []),
-      {
-        event: "signature_submitted_server",
-        timestamp: signedAt,
-        details: {
-          ip_address: ipAddress,
-          pdf_hash_computed: !!pdfHashAtSignature,
-        },
-      },
-    ];
+    const serverJourneyEvents = buildJourneyEvents(journeyEvents, signedAt, {
+      ip_address: ipAddress,
+      pdf_hash_computed: !!pdfHashAtSignature,
+    });
 
     const consentText =
       "En signant ce devis, j'accepte les conditions proposées et je reconnais que cette signature électronique a valeur légale conformément au règlement européen eIDAS (UE n° 910/2014) et aux articles 1366 et 1367 du Code civil français.";
@@ -211,121 +170,79 @@ serve(async (req: Request): Promise<Response> => {
     }
 
     // Generate comprehensive proof file and store in PRIVATE bucket
-    let proofFileUrl: string | null = null;
-    let proofHash: string | null = null;
-    try {
-      const proofFile = {
-        version: "2.0",
-        type: "devis_signature_proof",
-        generated_at: new Date().toISOString(),
-        signature: {
-          id: devisSignature.id,
-          token: token,
-          signed_at: signedAt,
-          signer_name: signerName,
-          signer_function: signerFunction || null,
-          ip_address: ipAddress,
-          user_agent: userAgent,
-          signature_image_hash: signatureHash,
-        },
-        document: {
-          type: "devis",
-          formation_name: devisSignature.formation_name,
-          client_name: devisSignature.client_name,
-          devis_type: devisSignature.devis_type,
-          pdf_url: devisSignature.pdf_url,
-          pdf_hash_at_signature: pdfHashAtSignature,
-        },
-        consent: {
-          given: true,
-          timestamp: signedAt,
-          text: consentText,
-        },
-        device: deviceInfo || {},
-        journey_timeline: serverJourneyEvents,
-        identification: {
-          method: "email_link",
-          email_sent_to: devisSignature.recipient_email,
-          email_sent_at: devisSignature.email_sent_at,
-          link_first_opened_at: devisSignature.email_opened_at,
-          token_expires_at: devisSignature.expires_at,
-          note: "Signature Électronique Simple (SES) : le lien unique est envoyé à l'adresse email du signataire désigné.",
-        },
-        legal: {
-          regulation: "Règlement eIDAS (UE n° 910/2014)",
-          civil_code: "Code Civil français, articles 1366 et 1367",
-          signature_level: "SES (Signature Électronique Simple)",
-          probative_value: "La charge de la preuve de l'authenticité incombe à l'émetteur en cas de contestation.",
-          retention_period: "5 ans minimum après fin de relation contractuelle",
-          data_protection: "Les données personnelles sont traitées conformément au RGPD (UE 2016/679).",
-        },
-        non_repudiation_elements: {
-          email_dispatch_logged: true,
-          link_opening_logged: !!devisSignature.email_opened_at,
-          full_journey_tracked: serverJourneyEvents.length > 0,
-          consent_explicitly_given: true,
-          consent_and_submit_separate_actions: true,
-          signature_image_captured: true,
-          document_hash_computed: !!pdfHashAtSignature,
-          ip_address_captured: ipAddress !== "unknown",
-        },
-      };
+    const proofFileContent = {
+      version: "2.0",
+      type: "devis_signature_proof",
+      generated_at: new Date().toISOString(),
+      signature: {
+        id: devisSignature.id,
+        token: token,
+        signed_at: signedAt,
+        signer_name: signerName,
+        signer_function: signerFunction || null,
+        ip_address: ipAddress,
+        user_agent: userAgent,
+        signature_image_hash: signatureHash,
+      },
+      document: {
+        type: "devis",
+        formation_name: devisSignature.formation_name,
+        client_name: devisSignature.client_name,
+        devis_type: devisSignature.devis_type,
+        pdf_url: devisSignature.pdf_url,
+        pdf_hash_at_signature: pdfHashAtSignature,
+      },
+      consent: {
+        given: true,
+        timestamp: signedAt,
+        text: consentText,
+      },
+      device: deviceInfo || {},
+      journey_timeline: serverJourneyEvents,
+      identification: {
+        method: "email_link",
+        email_sent_to: devisSignature.recipient_email,
+        email_sent_at: devisSignature.email_sent_at,
+        link_first_opened_at: devisSignature.email_opened_at,
+        token_expires_at: devisSignature.expires_at,
+        note: "Signature Électronique Simple (SES) : le lien unique est envoyé à l'adresse email du signataire désigné.",
+      },
+      legal: LEGAL_BLOCK,
+      non_repudiation_elements: {
+        email_dispatch_logged: true,
+        link_opening_logged: !!devisSignature.email_opened_at,
+        full_journey_tracked: serverJourneyEvents.length > 0,
+        consent_explicitly_given: true,
+        consent_and_submit_separate_actions: true,
+        signature_image_captured: true,
+        document_hash_computed: !!pdfHashAtSignature,
+        ip_address_captured: ipAddress !== "unknown",
+      },
+    };
 
-      const proofContent = JSON.stringify(proofFile, null, 2);
-      const proofBytes = new TextEncoder().encode(proofContent);
-      proofHash = await hashArrayBuffer(proofBytes.buffer);
-
-      const proofFileName = `devis_${devisSignature.id}_${token}.json`;
-
-      const { error: uploadError } = await supabase.storage
-        .from("signature-proofs")
-        .upload(proofFileName, proofBytes, {
-          contentType: "application/json",
-          upsert: true,
-        });
-
-      if (uploadError) {
-        console.warn("Failed to upload proof file:", uploadError);
-      } else {
-        proofFileUrl = `signature-proofs/${proofFileName}`;
-      }
-
-      // Store proof file URL and hash
-      await supabase
-        .from("devis_signatures")
-        .update({
-          proof_file_url: proofFileUrl,
-          proof_hash: proofHash,
-        })
-        .eq("id", devisSignature.id);
-
-      console.log("Devis proof file stored. Hash:", proofHash);
-    } catch (proofErr) {
-      console.warn("Failed to generate proof file:", proofErr);
-    }
+    const { proofFileUrl, proofHash } = await storeProofFile(
+      supabase,
+      "devis_signatures",
+      devisSignature.id,
+      "devis",
+      token,
+      proofFileContent,
+    );
 
     // Log the signature event
-    try {
-      await supabase.from("activity_logs").insert({
-        action_type: "devis_signature_submitted",
-        recipient_email: devisSignature.recipient_email,
-        details: {
-          formation_name: devisSignature.formation_name,
-          client_name: devisSignature.client_name,
-          signer_name: signerName,
-          signer_function: signerFunction,
-          devis_type: devisSignature.devis_type,
-          ip_address: ipAddress,
-          signature_hash: signatureHash,
-          pdf_hash_at_signature: pdfHashAtSignature,
-          proof_file_url: proofFileUrl,
-          proof_hash: proofHash,
-          journey_events_count: serverJourneyEvents.length,
-        },
-      });
-    } catch (logError) {
-      console.warn("Failed to log signature activity:", logError);
-    }
+    await logEmailActivity(supabase, "devis_signature_submitted", devisSignature.recipient_email, {
+      formation_name: devisSignature.formation_name,
+      client_name: devisSignature.client_name,
+      signer_name: signerName,
+      signer_function: signerFunction,
+      devis_type: devisSignature.devis_type,
+      ip_address: ipAddress,
+      signature_hash: signatureHash,
+      pdf_hash_at_signature: pdfHashAtSignature,
+      proof_file_url: proofFileUrl,
+      proof_hash: proofHash,
+      journey_events_count: serverJourneyEvents.length,
+    });
 
     // Send confirmation email
     try {
@@ -345,7 +262,7 @@ serve(async (req: Request): Promise<Response> => {
   <li><strong>Formation :</strong> ${devisSignature.formation_name}</li>
   <li><strong>Client :</strong> ${devisSignature.client_name}</li>
   <li><strong>Type de devis :</strong> ${devisTypeLabel}</li>
-  <li><strong>Signé le :</strong> ${formatDateFr(signedAt)}</li>
+  <li><strong>Signé le :</strong> ${formatDateTime(signedAt)}</li>
 </ul>
 <p>Vous pouvez consulter le devis en cliquant sur le lien ci-dessous :</p>
 ${emailButton("📄 Télécharger le devis", devisSignature.pdf_url)}

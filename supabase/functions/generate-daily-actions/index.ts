@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import {
   handleCorsPreflightIfNeeded,
   createJsonResponse,
@@ -12,6 +11,7 @@ import {
   REVIEW_COLUMN_ASSIGNMENTS,
   type Recipient,
 } from "../_shared/daily-data-fetchers.ts";
+import { getSupabaseClient } from "../_shared/supabase-client.ts";
 
 /**
  * Generate Daily Actions
@@ -42,12 +42,10 @@ serve(async (req) => {
   if (corsResponse) return corsResponse;
 
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const { getAppUrls } = await import("../_shared/app-urls.ts");
     const urls = await getAppUrls();
     const appUrl = urls.app_url;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabase = getSupabaseClient();
 
     // Skip on non-working days (weekends by default, configurable in app_settings)
     const skip = await skipIfNonWorkingDay(supabase, VERSION);

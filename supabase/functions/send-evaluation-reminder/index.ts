@@ -3,17 +3,22 @@ import {
   handleCorsPreflightIfNeeded,
   createErrorResponse,
   createJsonResponse,
-  getSigniticSignature,
-  getBccSettings,
   getSupabaseClient,
-  sendEmail,
-  processTemplate,
-  textToHtml,
 } from "../_shared/mod.ts";
+import {
+  tuVousSuffix,
+  sendTemplatedEmail,
+  logEmailActivity,
+} from "../_shared/email-helpers.ts";
 
 // Default templates - Reminder 1
-const DEFAULT_SUBJECT_REMINDER_1_TU = "📝 Petit rappel : ton avis compte pour \"{{training_name}}\"";
-const DEFAULT_CONTENT_REMINDER_1_TU = `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
+const DEFAULT_SUBJECTS_REMINDER_1: Record<string, string> = {
+  tu: '📝 Petit rappel : ton avis compte pour "{{training_name}}"',
+  vous: '📝 Petit rappel : votre avis compte pour "{{training_name}}"',
+};
+
+const DEFAULT_CONTENTS_REMINDER_1: Record<string, string> = {
+  tu: `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
 
 J'espère que tu vas bien et que tu as pu commencer à mettre en pratique ce que nous avons vu ensemble lors de la formation "{{training_name}}" !
 
@@ -24,10 +29,8 @@ Cela ne prend que 2-3 minutes :
 
 Un grand merci d'avance pour ta contribution !
 
-Belle journée à toi`;
-
-const DEFAULT_SUBJECT_REMINDER_1_VOUS = "📝 Petit rappel : votre avis compte pour \"{{training_name}}\"";
-const DEFAULT_CONTENT_REMINDER_1_VOUS = `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
+Belle journée à toi`,
+  vous: `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
 
 J'espère que vous allez bien et que vous avez pu commencer à mettre en pratique ce que nous avons vu ensemble lors de la formation "{{training_name}}" !
 
@@ -38,11 +41,17 @@ Cela ne prend que 2-3 minutes :
 
 Un grand merci d'avance pour votre contribution !
 
-Belle journée à vous`;
+Belle journée à vous`,
+};
 
 // Default templates - Reminder 2
-const DEFAULT_SUBJECT_REMINDER_2_TU = "🙏 Dernière relance : ta contribution pour \"{{training_name}}\"";
-const DEFAULT_CONTENT_REMINDER_2_TU = `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
+const DEFAULT_SUBJECTS_REMINDER_2: Record<string, string> = {
+  tu: '🙏 Dernière relance : ta contribution pour "{{training_name}}"',
+  vous: '🙏 Dernière relance : votre contribution pour "{{training_name}}"',
+};
+
+const DEFAULT_CONTENTS_REMINDER_2: Record<string, string> = {
+  tu: `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
 
 Je reviens vers toi une dernière fois concernant l'évaluation de la formation "{{training_name}}".
 
@@ -53,10 +62,8 @@ Si tu as 2 minutes, voici le lien :
 
 Je te remercie sincèrement pour ton aide et te souhaite une excellente continuation dans tes projets !
 
-À bientôt`;
-
-const DEFAULT_SUBJECT_REMINDER_2_VOUS = "🙏 Dernière relance : votre contribution pour \"{{training_name}}\"";
-const DEFAULT_CONTENT_REMINDER_2_VOUS = `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
+À bientôt`,
+  vous: `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
 
 Je reviens vers vous une dernière fois concernant l'évaluation de la formation "{{training_name}}".
 
@@ -67,7 +74,8 @@ Si vous avez 2 minutes, voici le lien :
 
 Je vous remercie sincèrement pour votre aide et vous souhaite une excellente continuation dans vos projets !
 
-À bientôt`;
+À bientôt`,
+};
 
 serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
@@ -164,70 +172,41 @@ serve(async (req) => {
       return createJsonResponse({ success: true, message: "Reminder cancelled - no evaluation record" });
     }
 
-    // Determine if we should use tutoiement or vouvoiement
-    const useTutoiement = training.participants_formal_address === false;
-    const templateTypeSuffix = useTutoiement ? "_tu" : "_vous";
+    // Determine tu/vous suffix and template type
+    const suffix = tuVousSuffix(training.participants_formal_address);
     const templateType = isReminder1 ? "evaluation_reminder_1" : "evaluation_reminder_2";
 
-    // Fetch custom email template if exists
-    const { data: customTemplate } = await supabase
-      .from("email_templates")
-      .select("subject, html_content")
-      .eq("template_type", `${templateType}${templateTypeSuffix}`)
-      .single();
+    // Select defaults based on reminder type and formality
+    const defaultSubject = isReminder1
+      ? DEFAULT_SUBJECTS_REMINDER_1[suffix]
+      : DEFAULT_SUBJECTS_REMINDER_2[suffix];
+    const defaultContent = isReminder1
+      ? DEFAULT_CONTENTS_REMINDER_1[suffix]
+      : DEFAULT_CONTENTS_REMINDER_2[suffix];
 
-    // Use appropriate default based on reminder type and formality setting
-    let defaultSubject: string;
-    let defaultContent: string;
-
-    if (isReminder1) {
-      defaultSubject = useTutoiement ? DEFAULT_SUBJECT_REMINDER_1_TU : DEFAULT_SUBJECT_REMINDER_1_VOUS;
-      defaultContent = useTutoiement ? DEFAULT_CONTENT_REMINDER_1_TU : DEFAULT_CONTENT_REMINDER_1_VOUS;
-    } else {
-      defaultSubject = useTutoiement ? DEFAULT_SUBJECT_REMINDER_2_TU : DEFAULT_SUBJECT_REMINDER_2_VOUS;
-      defaultContent = useTutoiement ? DEFAULT_CONTENT_REMINDER_2_TU : DEFAULT_CONTENT_REMINDER_2_VOUS;
-    }
-
-    const subjectTemplate = customTemplate?.subject || defaultSubject;
-    const contentTemplate = customTemplate?.html_content || defaultContent;
-
-    console.log("Using template:", customTemplate ? "custom" : "default", "mode:", useTutoiement ? "tutoiement" : "vouvoiement");
-
-    // Fetch BCC settings and signature in parallel
-    const [bccList, signature] = await Promise.all([
-      getBccSettings(supabase),
-      getSigniticSignature(),
-    ]);
+    console.log("Using template type:", `${templateType}_${suffix}`);
 
     // Build evaluation link
     const evaluationLink = `${appUrl}/evaluation/${evaluation.token}`;
 
-    // Process templates with variables (don't escape - templates contain the content)
     const variables = {
       first_name: participant.first_name,
       training_name: training.training_name,
       evaluation_link: evaluationLink,
     };
 
-    const subject = processTemplate(subjectTemplate, variables, false);
-    const contentText = processTemplate(contentTemplate, variables, false);
-    const contentHtml = textToHtml(contentText);
-
-    const htmlContent = `
-      ${contentHtml}
-      ${signature}
-    `;
-
     console.log(`Sending ${templateType} to:`, participant.email);
 
-    const result = await sendEmail({
-      to: [participant.email],
-      bcc: bccList,
-      subject,
-      html: htmlContent,
-      _emailType: "evaluation_reminder",
-      _trainingId: trainingId,
-      _participantId: participantId,
+    const result = await sendTemplatedEmail({
+      supabase,
+      to: participant.email,
+      templateType: `${templateType}_${suffix}`,
+      defaultSubject,
+      defaultContent,
+      variables,
+      emailType: "evaluation_reminder",
+      trainingId,
+      participantId,
     });
 
     if (!result.success) {
@@ -247,21 +226,12 @@ serve(async (req) => {
       .eq("id", scheduledEmailId);
 
     // Log activity
-    try {
-      await supabase.from("activity_logs").insert({
-        action_type: `${templateType}_sent`,
-        recipient_email: participant.email,
-        details: {
-          training_id: trainingId,
-          training_name: training.training_name,
-          participant_name: `${participant.first_name || ""} ${participant.last_name || ""}`.trim() || null,
-          email_subject: subject,
-          email_content: contentText,
-        },
-      });
-    } catch (logError) {
-      console.warn("Failed to log activity:", logError);
-    }
+    await logEmailActivity(supabase, `${templateType}_sent`, participant.email, {
+      training_id: trainingId,
+      training_name: training.training_name,
+      participant_name: `${participant.first_name || ""} ${participant.last_name || ""}`.trim() || null,
+      email_subject: defaultSubject,
+    });
 
     console.log(`${templateType} sent successfully to ${participant.email}`);
 

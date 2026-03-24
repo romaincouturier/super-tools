@@ -1,9 +1,10 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getSupabaseClient } from "../_shared/supabase-client.ts";
 import { getSenderFrom, getBccList } from "../_shared/email-settings.ts";
 import { sendEmail } from "../_shared/resend.ts";
-import { corsHeaders } from "../_shared/cors.ts";
+import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { skipIfNonWorkingDay } from "../_shared/working-days.ts";
+import { formatDateFr, formatDateWithDayFr } from "../_shared/date-utils.ts";
 import {
   fetchAllDailyData,
   userCanSee,
@@ -87,13 +88,6 @@ function formatReservationItems(r: ReservationItem): string {
   return items.join(" + ");
 }
 
-function formatDateFr(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString("fr-FR", { day: "numeric", month: "long" });
-}
-
-function formatDateWithDayFr(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" });
-}
 
 function conventionIssueLabel(issue: TrainingConventionItem["issue"]): string {
   switch (issue) {
@@ -106,17 +100,14 @@ function conventionIssueLabel(issue: TrainingConventionItem["issue"]): string {
 serve(async (req) => {
   console.log(`[${VERSION}] Starting consolidated daily digest...`);
 
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const corsResponse = handleCorsPreflightIfNeeded(req);
+  if (corsResponse) return corsResponse;
 
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const { getAppUrls } = await import("../_shared/app-urls.ts");
     const urls = await getAppUrls();
     const appUrl = urls.app_url;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabase = getSupabaseClient();
 
     // Skip on non-working days (weekends by default)
     const skip = await skipIfNonWorkingDay(supabase, VERSION, corsHeaders);

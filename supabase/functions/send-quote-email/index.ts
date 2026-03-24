@@ -4,11 +4,11 @@ import { getBccList } from "../_shared/email-settings.ts";
 import { guessMimeType } from "../_shared/mime-types.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
 
-import { corsHeaders } from "../_shared/cors.ts";
+import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const corsResponse = handleCorsPreflightIfNeeded(req);
+
+  if (corsResponse) return corsResponse;
 
   try {
     const { quoteId, to, subject, body, isTest } = await req.json();

@@ -1,11 +1,12 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getSupabaseClient } from "../_shared/supabase-client.ts";
 import { getSenderFrom, getBccList, getSenderEmail } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
 import { processTemplate, textToHtml } from "../_shared/templates.ts";
 import { sendEmail } from "../_shared/resend.ts";
 
-import { corsHeaders } from "../_shared/cors.ts";
+import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { formatDateFr } from "../_shared/date-utils.ts";
 
 const PDFMONKEY_API_KEY = Deno.env.get("PDFMONKEY_API_KEY");
 const GOOGLE_SERVICE_ACCOUNT_JSON = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_JSON");
@@ -24,16 +25,6 @@ const formatName = (firstName: string | null, lastName: string | null): string =
     return `${firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase()} ${lastName.charAt(0).toUpperCase() + lastName.slice(1).toLowerCase()}`;
   }
   return (firstName || lastName || "").charAt(0).toUpperCase() + (firstName || lastName || "").slice(1).toLowerCase();
-};
-
-// Helper to format date in French
-const formatDateFr = (dateStr: string): string => {
-  const date = new Date(dateStr);
-  return date.toLocaleDateString("fr-FR", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
 };
 
 // Helper to get Google access token from service account
@@ -169,14 +160,11 @@ const uploadToDrive = async (
 const handler = async (req: Request): Promise<Response> => {
   console.log("Process evaluation submission function called");
 
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const corsResponse = handleCorsPreflightIfNeeded(req);
+  if (corsResponse) return corsResponse;
 
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabase = getSupabaseClient();
 
     // Fetch evaluation notification email from settings
     const { data: evalNotifSetting } = await supabase

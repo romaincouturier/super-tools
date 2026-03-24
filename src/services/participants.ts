@@ -5,7 +5,7 @@ import { capitalizeName } from "@/lib/stringUtils";
 import { logActivity, scheduleEmail } from "@/services/activityLog";
 
 /** Sanitize a filename by removing accents and special characters (preserving case). */
-function sanitizeUploadName(name: string): string {
+export function sanitizeUploadName(name: string): string {
   return name
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
@@ -13,7 +13,7 @@ function sanitizeUploadName(name: string): string {
 }
 
 // Re-usable helper: capitalizeName returns string|null, but createParticipant needs string
-const capitalizeOrEmpty = (name: string): string => capitalizeName(name) ?? "";
+export const capitalizeOrEmpty = (name: string): string => capitalizeName(name) ?? "";
 
 export interface CreateParticipantInput {
   trainingId: string;

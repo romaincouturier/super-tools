@@ -1,286 +1,32 @@
-import { useState, useEffect, useCallback } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { v4 as uuidv4 } from "uuid";
-import type { SessionConfig, AgentConfig, DiscussionMode, UserMode, ApiKeys, Template } from "@/lib/arena/types";
-import { AGENT_COLORS } from "@/lib/arena/types";
+import type { DiscussionMode } from "@/lib/arena/types";
 import { TEMPLATES } from "@/lib/arena/templates";
-import { getSavedSessions, deleteSession, type SavedSession } from "@/lib/arena/history";
-import { getCustomTemplates, saveCustomTemplate, deleteCustomTemplate, type CustomTemplate } from "@/lib/arena/customTemplates";
-import { EXPERT_POOL, type ExpertProfile } from "@/lib/arena/experts";
+import type { CustomTemplate } from "@/lib/arena/customTemplates";
+import { EXPERT_POOL } from "@/lib/arena/experts";
 import AgentCard from "@/components/arena/AgentCard";
-import { createDefaultAgent } from "@/lib/arena/store";
-import { callSuggestExperts, loadArenaApiKeys, saveArenaApiKeys } from "@/lib/arena/api";
-import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
+import { useArenaSetup } from "@/hooks/useArenaSetup";
 import ModuleLayout from "@/components/ModuleLayout";
-import { Button } from "@/components/ui/button";
 import { Sparkles } from "lucide-react";
 
 export default function ArenaSetup() {
-  const navigate = useNavigate();
-  const [topic, setTopic] = useState("");
-  const [additionalContext, setAdditionalContext] = useState("");
-  const [mode, setMode] = useState<DiscussionMode>("exploration");
-  const [userMode, setUserMode] = useState<UserMode>("observer");
-  const [maxTurns, setMaxTurns] = useState(10);
-  const [maxTokensPerTurn, setMaxTokensPerTurn] = useState(1500);
-  const [language, setLanguage] = useState("fr");
-  const [apiKeys, setApiKeys] = useState<ApiKeys>({ claude: "", openai: "", gemini: "" });
-  const [showApiKeys, setShowApiKeys] = useState(false);
-  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
-  const [showAdvanced, setShowAdvanced] = useState(false);
-  const [agents, setAgents] = useState<AgentConfig[]>([
-    createDefaultAgent(0),
-    createDefaultAgent(1),
-  ]);
-  const [history, setHistory] = useState<SavedSession[]>([]);
-  const [customTemplates, setCustomTemplates] = useState<CustomTemplate[]>([]);
-  const [showSaveTemplate, setShowSaveTemplate] = useState(false);
-  const [newTemplateName, setNewTemplateName] = useState("");
-  const [newTemplateDesc, setNewTemplateDesc] = useState("");
-  const [isSuggesting, setIsSuggesting] = useState(false);
-  const [suggestions, setSuggestions] = useState<{ id: string; reason: string; suggestedStance?: string }[]>([]);
-  const [showExpertPool, setShowExpertPool] = useState(false);
-  const [expertFilter, setExpertFilter] = useState("");
-  const [feedbackHistory, setFeedbackHistory] = useState<{ date: string; topic: string; mode: string; rating: number; feedback?: string; cost: number; turns: number }[]>([]);
-  const [showSidebar, setShowSidebar] = useState(false);
-  const [isLoading, setIsLoading] = useState(true); // true until keys are loaded
-  const [isFirstVisit, setIsFirstVisit] = useState(true); // true until we load keys
-  const [step, setStep] = useState(0); // 0=onboarding, 1=topic, 2=agents/templates
-  const [userId, setUserId] = useState<string | undefined>(undefined);
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      const uid = session?.user?.id;
-      setUserId(uid);
-      setHistory(getSavedSessions(uid));
-    });
-    setCustomTemplates(getCustomTemplates());
-    try {
-      const fb = JSON.parse(localStorage.getItem("ai-arena-feedback") || "[]");
-      setFeedbackHistory(fb.reverse());
-    } catch { /* ignore */ }
-    // Load persisted API keys via loadArenaApiKeys
-    loadArenaApiKeys().then((saved) => {
-      setApiKeys(saved);
-      // Claude is always available via server-side key, skip onboarding
-      setShowApiKeys(false);
-      setIsFirstVisit(false);
-      setStep(1); // go straight to topic
-      // Adapt default agents to available provider if user has OpenAI/Gemini keys
-      if (saved.openai || saved.gemini) {
-        const p: "claude" | "openai" | "gemini" = saved.openai ? "openai" : "gemini";
-        // Keep claude as default, just load saved keys
-      }
-      setIsLoading(false);
-    }).catch(() => {
-      // Claude is still available server-side even on error
-      setShowApiKeys(false);
-      setIsFirstVisit(false);
-      setStep(1);
-      setIsLoading(false);
-    });
-  }, []);
-
-  const { isListening, isSupported: micSupported, startListening, stopListening } = useSpeechRecognition(language === "fr" ? "fr-FR" : "en-US");
-
-  const voiceToTopic = useCallback(() => {
-    if (isListening) { stopListening(); return; }
-    startListening((text) => setTopic((prev) => prev ? prev + " " + text : text));
-  }, [isListening, startListening, stopListening]);
-
-  const addAgent = () => {
-    if (agents.length >= 6) return;
-    setAgents([...agents, createDefaultAgent(agents.length)]);
-  };
-
-  const removeAgent = (index: number) => {
-    if (agents.length <= 2) return;
-    setAgents(agents.filter((_, i) => i !== index));
-  };
-
-  const updateAgent = (index: number, agent: AgentConfig) => {
-    const updated = [...agents];
-    updated[index] = agent;
-    setAgents(updated);
-  };
-
-  const applyTemplate = (templateId: string) => {
-    const template: Template | undefined = TEMPLATES.find((t) => t.id === templateId) || customTemplates.find((t) => t.id === templateId);
-    if (!template) return;
-    setSelectedTemplate(templateId);
-    setMode(template.mode);
-    setMaxTurns(template.rules.maxTurns);
-    setMaxTokensPerTurn(template.rules.maxTokensPerTurn);
-    setLanguage(template.rules.language);
-    // Adapt agents to available provider
-    const availableProvider: "claude" | "openai" | "gemini" = "claude";
-    const defaultModel = "claude-haiku-4-5-20251001";
-    setAgents(
-      template.agents.map((a, i) => ({
-        ...a,
-        id: uuidv4(),
-        provider: availableProvider,
-        model: defaultModel,
-        color: a.color || AGENT_COLORS[i % AGENT_COLORS.length],
-      }))
-    );
-  };
-
-  const handleSaveTemplate = () => {
-    if (!newTemplateName.trim()) return;
-    const id = "custom-" + Date.now().toString(36);
-    const template = saveCustomTemplate({
-      id,
-      name: newTemplateName.trim(),
-      description: newTemplateDesc.trim() || `Template personnalise avec ${agents.length} agents`,
-      mode,
-      agents: agents.map(({ id: _id, ...rest }) => rest),
-      rules: { maxTurns, maxTokensPerTurn, language },
-    });
-    setCustomTemplates([template, ...customTemplates.filter((t) => t.id !== id)]);
-    setShowSaveTemplate(false);
-    setNewTemplateName("");
-    setNewTemplateDesc("");
-    setSelectedTemplate(id);
-  };
-
-  const handleDeleteCustomTemplate = (id: string) => {
-    deleteCustomTemplate(id);
-    setCustomTemplates((prev) => prev.filter((t) => t.id !== id));
-    if (selectedTemplate === id) setSelectedTemplate(null);
-  };
-
-  const handleViewSession = (session: SavedSession) => {
-    sessionStorage.setItem("ai-arena-config", JSON.stringify(session.config));
-    sessionStorage.setItem("ai-arena-result", JSON.stringify(session.result));
-    sessionStorage.setItem("ai-arena-start-time", String(new Date(session.date).getTime()));
-    navigate("/arena/results");
-  };
-
-  const handleReuseSession = (session: SavedSession) => {
-    const c = session.config;
-    setTopic(c.topic);
-    setAdditionalContext(c.additionalContext || "");
-    setMode(c.mode);
-    setUserMode(c.userMode);
-    setMaxTurns(c.rules.maxTurns);
-    setMaxTokensPerTurn(c.rules.maxTokensPerTurn);
-    setLanguage(c.rules.language);
-    setAgents(c.agents.map((a, i) => ({ ...a, id: uuidv4(), color: a.color || AGENT_COLORS[i % AGENT_COLORS.length] })));
-    setSelectedTemplate(null);
-  };
-
-  const handleDeleteSession = (id: string) => {
-    deleteSession(id, userId);
-    setHistory((prev) => prev.filter((s) => s.id !== id));
-  };
-
-  const expertToAgent = (expert: ExpertProfile, index: number, stance?: string): AgentConfig => {
-    const p: "claude" | "openai" | "gemini" = "claude";
-    const m = "claude-haiku-4-5-20251001";
-    return {
-    id: uuidv4(),
-    name: expert.name,
-    provider: p,
-    model: m,
-    role: `${expert.title} - ${expert.expertise.slice(0, 80)}`,
-    personality: expert.personality,
-    stance: (stance as AgentConfig["stance"]) || expert.defaultStance,
-    color: AGENT_COLORS[index % AGENT_COLORS.length],
-    expertId: expert.id,
-    frameworks: expert.frameworks,
-    biases: expert.biases,
-    style: expert.style,
-  };
-  };
-
-  const handleSuggestExperts = async () => {
-    const suggestKey = "server-managed"; // Claude key is server-side
-    const suggestProvider = "claude" as const;
-    if (!topic.trim()) return;
-    setIsSuggesting(true);
-    setSuggestions([]);
-    try {
-      const res = await callSuggestExperts({
-        apiKey: suggestKey,
-        provider: suggestProvider,
-        topic,
-        mode,
-        language,
-      });
-      const data = await res.json();
-      if (data.experts && data.experts.length > 0) {
-        setSuggestions(data.experts);
-        // Auto-apply suggestions
-        const newAgents = data.experts.map((s: { id: string; suggestedStance?: string }, i: number) => {
-          const expert = EXPERT_POOL.find((e) => e.id === s.id);
-          if (!expert) return createDefaultAgent(i);
-          return expertToAgent(expert, i, s.suggestedStance);
-        });
-        setAgents(newAgents);
-        setSelectedTemplate(null);
-        if (data.suggestedMode && data.suggestedMode !== mode) {
-          setMode(data.suggestedMode);
-        }
-      }
-    } catch { /* ignore */ }
-    setIsSuggesting(false);
-  };
-
-  const addExpertFromPool = (expert: ExpertProfile) => {
-    if (agents.length >= 6) return;
-    setAgents([...agents, expertToAgent(expert, agents.length)]);
-    setShowExpertPool(false);
-    setSelectedTemplate(null);
-  };
-
-  const filteredExperts = expertFilter.trim()
-    ? EXPERT_POOL.filter((e) => {
-        const q = expertFilter.toLowerCase();
-        return e.name.toLowerCase().includes(q) ||
-          e.title.toLowerCase().includes(q) ||
-          e.domain.includes(q) ||
-          e.tags.some((t) => t.includes(q));
-      })
-    : EXPERT_POOL;
-
-  // At least one provider key + topic + agents named
-  const hasRequiredKey = agents.every((a) => {
-    if (a.provider === "claude") return true; // Server-side key
-    if (a.provider === "openai") return !!apiKeys.openai?.trim();
-    if (a.provider === "gemini") return !!apiKeys.gemini?.trim();
-    return false;
-  });
-  const canStart = topic.trim().length > 0 && hasRequiredKey && agents.every((a) => a.name.trim().length > 0);
-  const hasAnyKey = true; // Claude is always available via server key
-
-  const startDiscussion = () => {
-    if (!canStart) return;
-    const config: SessionConfig = {
-      topic,
-      additionalContext: additionalContext || undefined,
-      mode,
-      userMode,
-      agents,
-      rules: { maxTurns, maxTokensPerTurn, language },
-    };
-    sessionStorage.setItem("ai-arena-config", JSON.stringify(config));
-    sessionStorage.setItem("ai-arena-api-keys", JSON.stringify(apiKeys));
-    // Persist keys via saveArenaApiKeys
-    saveArenaApiKeys(apiKeys);
-    setIsFirstVisit(false);
-    navigate("/arena/discussion");
-  };
-
-  const modeLabel: Record<DiscussionMode, string> = {
-    exploration: "Exploration",
-    decision: "Decision",
-    deliverable: "Livrable",
-  };
-
-  const usedProviders = new Set(agents.map((a) => a.provider));
-
+  const s = useArenaSetup();
+  const {
+    topic, setTopic, additionalContext, setAdditionalContext,
+    mode, setMode, userMode, setUserMode, maxTurns, setMaxTurns,
+    maxTokensPerTurn, language, setLanguage, apiKeys, setApiKeys,
+    showApiKeys, setShowApiKeys, selectedTemplate, showAdvanced, setShowAdvanced,
+    agents, history, customTemplates, showSaveTemplate, setShowSaveTemplate,
+    newTemplateName, setNewTemplateName, newTemplateDesc, setNewTemplateDesc,
+    isSuggesting, suggestions, showExpertPool, setShowExpertPool,
+    expertFilter, setExpertFilter, feedbackHistory, showSidebar, setShowSidebar,
+    isLoading, isFirstVisit, setIsFirstVisit, step, setStep,
+    isListening, micSupported, voiceToTopic,
+    filteredExperts, hasRequiredKey, canStart, hasAnyKey, usedProviders, modeLabel,
+    addAgent, removeAgent, updateAgent, applyTemplate,
+    handleSaveTemplate, handleDeleteCustomTemplate,
+    handleViewSession, handleReuseSession, handleDeleteSession,
+    handleSuggestExperts, addExpertFromPool, startDiscussion,
+    saveFirstVisitKeys, updateApiKeyAndSave,
+  } = s;
   return (
     <ModuleLayout>
 

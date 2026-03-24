@@ -146,6 +146,58 @@ export function emailInfoBox(content: string): string {
 /**
  * Generate a success/resolution box for emails.
  */
+/**
+ * Convert template text to HTML with bullet list support.
+ * Lines starting with • or - are grouped into <ul><li> elements.
+ */
+export function templateTextToHtml(text: string): string {
+  if (!text) return "";
+
+  const paragraphs = text.split(/\n\n+/).filter((p) => p.trim() !== "");
+  const htmlParts: string[] = [];
+
+  for (const para of paragraphs) {
+    const lines = para.split(/\n/).map((l) => l.trim()).filter(Boolean);
+    if (lines.length === 0) continue;
+
+    let currentText: string[] = [];
+    let currentBullets: string[] = [];
+
+    const flushText = () => {
+      if (currentText.length > 0) {
+        htmlParts.push(`<p>${currentText.join("<br>")}</p>`);
+        currentText = [];
+      }
+    };
+
+    const flushBullets = () => {
+      if (currentBullets.length > 0) {
+        const items = currentBullets.map((b) => `<li>${b}</li>`).join("\n");
+        htmlParts.push(`<ul style="margin: 8px 0; padding-left: 20px;">\n${items}\n</ul>`);
+        currentBullets = [];
+      }
+    };
+
+    for (const line of lines) {
+      if (/^[•\-]\s/.test(line)) {
+        flushText();
+        currentBullets.push(line.replace(/^[•\-]\s*/, ""));
+      } else {
+        flushBullets();
+        currentText.push(line);
+      }
+    }
+
+    flushText();
+    flushBullets();
+  }
+
+  return htmlParts.join("\n");
+}
+
+/**
+ * Generate a success/resolution box for emails.
+ */
 export function emailSuccessBox(title: string, content: string): string {
   return `<div style="background-color: #f0fdf4; padding: 15px; border-left: 4px solid #22c55e; border-radius: 4px; margin: 20px 0;">
   <p style="margin: 0 0 5px 0; font-weight: bold; color: #166534;">${title}</p>

@@ -59,9 +59,36 @@ export {
   wrapEmailHtml,
   emailButton,
   emailInfoBox,
+  templateTextToHtml,
   emailSuccessBox,
   type TemplateVariables,
 } from "./templates.ts";
+
+// Email helpers
+export {
+  tuVousSuffix,
+  fetchTemplateOrDefault,
+  prepareTemplatedEmail,
+  sendTemplatedEmail,
+  logEmailActivity,
+  type PreparedEmail,
+} from "./email-helpers.ts";
+
+// Signature helpers
+export {
+  buildJourneyEvents,
+  storeProofFile,
+  LEGAL_BLOCK,
+  type JourneyEvent,
+  type DeviceInfo,
+} from "./signature-helpers.ts";
+
+// Crypto utilities
+export {
+  generateHash,
+  hashArrayBuffer,
+  getClientIp,
+} from "./crypto.ts";
 
 // App URLs
 export { getAppUrls } from "./app-urls.ts";

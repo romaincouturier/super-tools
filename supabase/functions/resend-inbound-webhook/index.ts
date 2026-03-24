@@ -4,7 +4,7 @@ import { crypto } from "https://deno.land/std@0.190.0/crypto/mod.ts";
 import { encode as hexEncode } from "https://deno.land/std@0.190.0/encoding/hex.ts";
 import { decode as base64Decode } from "https://deno.land/std@0.190.0/encoding/base64.ts";
 
-import { extendCorsHeaders } from "../_shared/cors.ts";
+import { extendCorsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 
 const corsHeaders = extendCorsHeaders({
   "Access-Control-Allow-Headers": "content-type, svix-id, svix-timestamp, svix-signature",
@@ -431,9 +431,9 @@ function parseEmailAddress(address: string): { email: string; name: string | nul
 
 serve(async (req) => {
   // Handle CORS
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const corsResponse = handleCorsPreflightIfNeeded(req);
+
+  if (corsResponse) return corsResponse;
 
   if (req.method !== "POST") {
     return new Response(JSON.stringify({ error: "Method not allowed" }), {

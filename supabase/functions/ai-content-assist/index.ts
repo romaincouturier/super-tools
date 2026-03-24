@@ -1,11 +1,11 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 
-import { corsHeaders } from "../_shared/cors.ts";
+import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { getSupabaseClient } from "../_shared/supabase-client.ts";
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const corsResponse = handleCorsPreflightIfNeeded(req);
+  if (corsResponse) return corsResponse;
 
   try {
     const { action, content, userId } = await req.json();
@@ -23,33 +23,22 @@ serve(async (req) => {
     }
 
     // Fetch brand voice settings from database
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = getSupabaseClient();
 
-    const settingsRes = await fetch(`${supabaseUrl}/rest/v1/ai_brand_settings?select=setting_type,content`, {
-      headers: {
-        "apikey": supabaseKey,
-        "Authorization": `Bearer ${supabaseKey}`,
-      },
-    });
+    const { data: settings } = await supabase
+      .from("ai_brand_settings")
+      .select("setting_type, content");
 
-    const settings = await settingsRes.json();
-    const supertiltVoice = settings.find((s: any) => s.setting_type === "supertilt_voice")?.content || "";
-    const romainVoice = settings.find((s: any) => s.setting_type === "romain_voice")?.content || "";
+    const supertiltVoice = (settings || []).find((s: any) => s.setting_type === "supertilt_voice")?.content || "";
+    const romainVoice = (settings || []).find((s: any) => s.setting_type === "romain_voice")?.content || "";
 
     // Fetch calling user's editorial voice from profiles
     let userVoice = "";
     if (userId) {
-      const profileRes = await fetch(
-        `${supabaseUrl}/rest/v1/profiles?select=voice_description&user_id=eq.${userId}`,
-        {
-          headers: {
-            "apikey": supabaseKey,
-            "Authorization": `Bearer ${supabaseKey}`,
-          },
-        }
-      );
-      const profiles = await profileRes.json();
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("voice_description")
+        .eq("user_id", userId);
       userVoice = profiles?.[0]?.voice_description || "";
     }
 

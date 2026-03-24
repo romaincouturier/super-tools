@@ -1,35 +1,13 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getSupabaseClient } from "../_shared/supabase-client.ts";
 import { sendEmail } from "../_shared/resend.ts";
 import { getBccList } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
 import { getAppUrls } from "../_shared/app-urls.ts";
-import { processTemplate, emailButton } from "../_shared/templates.ts";
+import { processTemplate, emailButton, templateTextToHtml } from "../_shared/templates.ts";
+import { tuVousSuffix, fetchTemplateOrDefault, logEmailActivity } from "../_shared/email-helpers.ts";
 
-import { corsHeaders } from "../_shared/cors.ts";
-
-/**
- * Convert template text to HTML, properly handling bullet lists (• or - prefix).
- */
-function templateTextToHtml(text: string): string {
-  if (!text) return "";
-  const paragraphs = text.split(/\n\n+/).filter((p) => p.trim() !== "");
-  const htmlParts: string[] = [];
-  for (const para of paragraphs) {
-    const lines = para.split(/\n/).map((l) => l.trim()).filter(Boolean);
-    if (lines.length === 0) continue;
-    let currentText: string[] = [];
-    let currentBullets: string[] = [];
-    const flushText = () => { if (currentText.length > 0) { htmlParts.push(`<p>${currentText.join("<br>")}</p>`); currentText = []; } };
-    const flushBullets = () => { if (currentBullets.length > 0) { htmlParts.push(`<ul style="margin: 8px 0; padding-left: 20px;">\n${currentBullets.map((b) => `<li>${b}</li>`).join("\n")}\n</ul>`); currentBullets = []; } };
-    for (const line of lines) {
-      if (/^[•\-]\s/.test(line)) { flushText(); currentBullets.push(line.replace(/^[•\-]\s*/, "")); }
-      else { flushBullets(); currentText.push(line); }
-    }
-    flushText(); flushBullets();
-  }
-  return htmlParts.join("\n");
-}
+import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 
 /**
  * Process Today Reminders
@@ -44,14 +22,11 @@ function templateTextToHtml(text: string): string {
  */
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const corsResponse = handleCorsPreflightIfNeeded(req);
+  if (corsResponse) return corsResponse;
 
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabase = getSupabaseClient();
 
     // Use Paris timezone for "today"
     const now = new Date();
@@ -118,16 +93,18 @@ serve(async (req) => {
       );
     }
 
-    // Fetch templates (participant + trainer)
-    const { data: templates } = await supabase
-      .from("email_templates")
-      .select("template_type, subject, html_content")
-      .in("template_type", ["today_reminder_tu", "today_reminder_vous", "trainer_today_reminder"]);
+    // Fetch templates (participant tu/vous + trainer) using shared helper
+    const [templateTu, templateVous, trainerTemplateData] = await Promise.all([
+      fetchTemplateOrDefault(supabase, "today_reminder_tu", "", ""),
+      fetchTemplateOrDefault(supabase, "today_reminder_vous", "", ""),
+      fetchTemplateOrDefault(supabase, "trainer_today_reminder", "", ""),
+    ]);
 
-    const templateMap: Record<string, { subject: string; html_content: string }> = {};
-    for (const t of templates || []) {
-      templateMap[t.template_type] = { subject: t.subject, html_content: t.html_content };
-    }
+    const templateMap: Record<string, { subject: string; content: string }> = {
+      today_reminder_tu: templateTu,
+      today_reminder_vous: templateVous,
+      trainer_today_reminder: trainerTemplateData,
+    };
 
     // Build trainer lookup for all trainings that have a trainer_id
     const trainerIds = [...new Set(trainings.filter((t: any) => t.trainer_id).map((t: any) => t.trainer_id))];
@@ -209,12 +186,11 @@ serve(async (req) => {
         }
       }
 
-      // Determine tu/vous
-      const useFormal = !!training.participants_formal_address;
-      const templateKey = useFormal ? "today_reminder_vous" : "today_reminder_tu";
+      // Determine tu/vous using shared helper
+      const templateKey = `today_reminder_${tuVousSuffix(!!training.participants_formal_address)}`;
       const template = templateMap[templateKey];
 
-      if (!template) {
+      if (!template || !template.subject) {
         console.warn(`[process-today-reminders] Template ${templateKey} not found, skipping training ${trainingId}`);
         continue;
       }
@@ -273,7 +249,7 @@ serve(async (req) => {
 
         const summaryUrl = `${APP_URL}/formation-info/${trainingId}`;
         const resolvedSubject = processTemplate(template.subject, variables, false);
-        const body = processTemplate(template.html_content, variables, false);
+        const body = processTemplate(template.content, variables, false);
         const resolvedHtml = templateTextToHtml(body)
           + "\n" + emailButton("Infos & documents de la formation", summaryUrl)
           + "\n" + signatureHtml;
@@ -293,20 +269,12 @@ serve(async (req) => {
           alreadySentParticipants.add(participantLogKey);
           console.log(`[process-today-reminders] Sent to ${p.email}`);
 
-          try {
-            await supabase.from("activity_logs").insert({
-              action_type: "today_reminder_participant_sent",
-              recipient_email: participantLogKey,
-              details: {
-                training_id: trainingId,
-                training_name: training.training_name,
-                participant_id: p.id,
-                participant_email: p.email,
-              },
-            });
-          } catch (logErr) {
-            console.warn("[process-today-reminders] Failed to log participant send:", logErr);
-          }
+          await logEmailActivity(supabase, "today_reminder_participant_sent", participantLogKey, {
+            training_id: trainingId,
+            training_name: training.training_name,
+            participant_id: p.id,
+            participant_email: p.email,
+          });
         }
       }
 
@@ -316,7 +284,7 @@ serve(async (req) => {
       const trainerTemplate = templateMap["trainer_today_reminder"];
       const trainer = training.trainer_id ? trainerMap[training.trainer_id] : null;
 
-      if (trainerTemplate && trainer?.email) {
+      if (trainerTemplate?.subject && trainer?.email) {
         // Check if trainer reminder already sent
         const { data: trainerLog } = await supabase
           .from("activity_logs")
@@ -345,7 +313,7 @@ serve(async (req) => {
 
           const trainerSummaryUrl = `${APP_URL}/formation-info/${trainingId}`;
           const trainerSubject = processTemplate(trainerTemplate.subject, trainerVars, false);
-          const trainerBody = processTemplate(trainerTemplate.html_content, trainerVars, false);
+          const trainerBody = processTemplate(trainerTemplate.content, trainerVars, false);
           const trainerHtml = templateTextToHtml(trainerBody)
             + "\n" + emailButton("Infos & documents de la formation", trainerSummaryUrl)
             + "\n" + signatureHtml;
@@ -364,37 +332,21 @@ serve(async (req) => {
             console.log(`[process-today-reminders] Trainer reminder sent to ${trainer.email}`);
           }
 
-          try {
-            await supabase.from("activity_logs").insert({
-              action_type: "trainer_today_reminder_sent",
-              recipient_email: trainer.email,
-              details: {
-                training_id: trainingId,
-                training_name: training.training_name,
-                session_date: today,
-              },
-            });
-          } catch (logErr) {
-            console.warn("[process-today-reminders] Failed to log trainer reminder:", logErr);
-          }
+          await logEmailActivity(supabase, "trainer_today_reminder_sent", trainer.email, {
+            training_id: trainingId,
+            training_name: training.training_name,
+            session_date: today,
+          });
         }
       }
 
-      // Log participant reminder to prevent duplicates
-      try {
-        await supabase.from("activity_logs").insert({
-          action_type: "today_reminder_sent",
-          recipient_email: trainingId,
-          details: {
-            training_name: training.training_name,
-            participants_notified: sentCount,
-            format: format,
-            session_date: today,
-          },
-        });
-      } catch (logErr) {
-        console.warn("[process-today-reminders] Failed to log:", logErr);
-      }
+      // Log training-level reminder to prevent duplicates
+      await logEmailActivity(supabase, "today_reminder_sent", trainingId, {
+        training_name: training.training_name,
+        participants_notified: sentCount,
+        format: format,
+        session_date: today,
+      });
     }
 
     console.log(`[process-today-reminders] Done. Sent ${totalSent} email(s).`);

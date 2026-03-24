@@ -6,9 +6,11 @@ import {
   handleCorsPreflightIfNeeded,
 } from "../_shared/cors.ts";
 import { getSupabaseClient, verifyAuth } from "../_shared/supabase-client.ts";
-import { getSigniticSignature } from "../_shared/signitic.ts";
-import { getSenderFrom, getBccList } from "../_shared/email-settings.ts";
-import { processTemplate, textToHtml } from "../_shared/templates.ts";
+import {
+  tuVousSuffix,
+  prepareTemplatedEmail,
+  logEmailActivity,
+} from "../_shared/email-helpers.ts";
 import { sendEmail } from "../_shared/resend.ts";
 
 // Default templates
@@ -72,44 +74,15 @@ serve(async (req: Request): Promise<Response> => {
       return createErrorResponse("Training not found", 404);
     }
 
-    // Determine tu/vous - for manual send to sponsor, default to vous
-    const useTutoiement = training.participants_formal_address === false;
-    const templateTypeSuffix = useTutoiement ? "_tu" : "_vous";
-    const templateType = `certificate_sponsor${templateTypeSuffix}`;
-
-    // Fetch template, signature, sender, and BCC in parallel
-    const [templateResult, signatureHtml, senderFrom, bccList] = await Promise.all([
-      supabase
-        .from("email_templates")
-        .select("subject, html_content")
-        .eq("template_type", templateType)
-        .maybeSingle(),
-      getSigniticSignature(),
-      getSenderFrom(),
-      getBccList(),
-    ]);
-
-    const customTemplate = templateResult.data;
-    const defaultSubject = useTutoiement ? DEFAULT_SUBJECT_TU : DEFAULT_SUBJECT_VOUS;
-    const defaultContent = useTutoiement ? DEFAULT_CONTENT_TU : DEFAULT_CONTENT_VOUS;
-    const subjectTemplate = customTemplate?.subject || defaultSubject;
-    const contentTemplate = customTemplate?.html_content || defaultContent;
+    // Determine tu/vous
+    const suffix = tuVousSuffix(training.participants_formal_address);
+    const templateType = `certificate_sponsor_${suffix}`;
+    const defaultSubject = suffix === "tu" ? DEFAULT_SUBJECT_TU : DEFAULT_SUBJECT_VOUS;
+    const defaultContent = suffix === "tu" ? DEFAULT_CONTENT_TU : DEFAULT_CONTENT_VOUS;
 
     const participantName = [evaluation.first_name, evaluation.last_name]
       .filter(Boolean)
       .join(" ") || "le participant";
-
-    // Process template
-    const variables = {
-      first_name: recipientName || null,
-      training_name: training.training_name,
-      participant_name: participantName,
-    };
-
-    const subject = processTemplate(subjectTemplate, variables, false);
-    const contentText = processTemplate(contentTemplate, variables, false);
-    const contentHtml = textToHtml(contentText);
-    const emailHtml = `${contentHtml}\n${signatureHtml}`;
 
     // Download PDF from storage
     const pdfResponse = await fetch(certificateUrl);
@@ -122,30 +95,36 @@ serve(async (req: Request): Promise<Response> => {
 
     const fileName = `Certificat_${training.training_name.replace(/[^a-zA-Z0-9]/g, "_")}_${participantName.replace(/\s+/g, "_")}.pdf`;
 
-    await sendEmail({
-      from: senderFrom,
-      to: [recipientEmail],
-      bcc: bccList,
-      subject,
-      html: emailHtml,
+    // Prepare and send email using shared helpers
+    const variables = {
+      first_name: recipientName || null,
+      training_name: training.training_name,
+      participant_name: participantName,
+    };
+
+    const prepared = await prepareTemplatedEmail({
+      supabase,
+      to: recipientEmail,
+      templateType,
+      defaultSubject,
+      defaultContent,
+      variables,
+      emailType: "certificate_sponsor",
+      trainingId: evaluation.training_id,
+      participantId: (evaluation as any).participant_id || undefined,
       attachments: [{ filename: fileName, content: pdfBase64 }],
-      _emailType: "certificate_sponsor",
-      _trainingId: evaluation.training_id,
-      _participantId: (evaluation as any).participant_id || undefined,
     });
 
+    await sendEmail(prepared);
+
     // Log activity
-    await supabase.from("activity_logs").insert({
-      action_type: "certificate_sent",
-      recipient_email: recipientEmail,
-      details: {
-        evaluation_id: evaluationId,
-        training_id: evaluation.training_id,
-        training_name: training.training_name,
-        participant_name: participantName,
-        sent_to: recipientEmail,
-        email_subject: subject,
-      },
+    await logEmailActivity(supabase, "certificate_sent", recipientEmail, {
+      evaluation_id: evaluationId,
+      training_id: evaluation.training_id,
+      training_name: training.training_name,
+      participant_name: participantName,
+      sent_to: recipientEmail,
+      email_subject: prepared.subject,
     });
 
     return createJsonResponse({ success: true });

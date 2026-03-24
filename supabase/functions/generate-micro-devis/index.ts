@@ -1,15 +1,12 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { encode as base64Encode } from "https://deno.land/std@0.190.0/encoding/base64.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { getSenderFrom, getSenderEmail, getBccList } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
 import { sendEmail } from "../_shared/resend.ts";
 import { guessMimeType } from "../_shared/mime-types.ts";
 
-import { corsHeaders } from "../_shared/cors.ts";
-
-const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { getSupabaseClient } from "../_shared/supabase-client.ts";
 
 interface RequestBody {
   nomClient: string;
@@ -495,9 +492,8 @@ async function sendEmailWithResend(
 
 serve(async (req: Request): Promise<Response> => {
   // Handle CORS preflight
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const corsResponse = handleCorsPreflightIfNeeded(req);
+  if (corsResponse) return corsResponse;
 
   try {
     const body: RequestBody = await req.json();
@@ -530,7 +526,7 @@ serve(async (req: Request): Promise<Response> => {
 
     // Send email with PDFs
     console.log("Sending email with PDF(s)...");
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    const supabase = getSupabaseClient();
     const emailResult = await sendEmailWithResend(
       supabase,
       body.emailCommanditaire,

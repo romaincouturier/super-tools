@@ -1,11 +1,10 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getSupabaseClient } from "../_shared/supabase-client.ts";
 import Stripe from "https://esm.sh/stripe@14.21.0?target=deno";
 
-import { corsHeaders } from "../_shared/cors.ts";
+import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 async function getStripeKey(): Promise<string | null> {
-  const url = Deno.env.get("SUPABASE_URL")!;
-  const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-  const supabase = createClient(url, key);
+  const supabase = getSupabaseClient();
   const { data } = await supabase
     .from("app_settings")
     .select("setting_value")
@@ -15,9 +14,9 @@ async function getStripeKey(): Promise<string | null> {
 }
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const corsResponse = handleCorsPreflightIfNeeded(req);
+
+  if (corsResponse) return corsResponse;
 
   try {
     const stripeKey = await getStripeKey();
@@ -53,7 +52,7 @@ Deno.serve(async (req) => {
 
     const userId = claimsData.claims.sub as string;
 
-    const adminClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const adminClient = getSupabaseClient();
     const { data: orgId } = await adminClient.rpc("get_user_org_id", { _user_id: userId });
 
     // Get subscription with Stripe customer ID

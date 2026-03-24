@@ -21,8 +21,7 @@ export function formatDateLong(dateStr: string): string {
 
 /** `EEEE d MMMM yyyy` – e.g. "Dimanche 15 mars 2026" (only day-of-week capitalized) */
 export function formatDateWithDayOfWeek(dateStr: string): string {
-  const s = format(parseISO(dateStr), "EEEE d MMMM yyyy", { locale: fr });
-  return s.charAt(0).toUpperCase() + s.slice(1);
+  return format(parseISO(dateStr), "EEEE d MMMM yyyy", { locale: fr });
 }
 
 /** `d MMM yyyy` – e.g. "15 mars 2026" (short month) */
