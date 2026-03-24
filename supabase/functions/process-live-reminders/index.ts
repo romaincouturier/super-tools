@@ -245,6 +245,8 @@ serve(async (req) => {
         let subject: string;
         let htmlContent: string;
 
+        const summaryUrl = `${APP_URL}/formation-info/${trainingId}`;
+
         // If custom email content was set on the live meeting, use it directly
         if (liveEmailContent) {
           const customBody = liveEmailContent.replace(/\n/g, "<br>");
@@ -256,6 +258,7 @@ serve(async (req) => {
             <p>${greeting}</p>
             ${customBody}
             ${meetingUrlSection}
+            ${emailButton("Infos & documents de la formation", summaryUrl)}
             ${signatureHtml}
           `;
         } else if (template) {
@@ -272,31 +275,26 @@ serve(async (req) => {
 
           subject = processTemplate(template.subject, variables, false);
           const body = processTemplate(template.html_content, variables, false);
-          htmlContent = body
-            .split(/\n\n+/)
-            .filter((paragraph: string) => paragraph.trim() !== "")
-            .map((paragraph: string) => `<p>${paragraph.replace(/\n/g, "<br>")}</p>`)
-            .join("") + "\n" + signatureHtml;
+          htmlContent = templateTextToHtml(body)
+            + "\n" + emailButton("Infos & documents de la formation", summaryUrl)
+            + "\n" + signatureHtml;
         } else {
           // Fallback
           const meetingUrlSection = liveMeetingUrl
-            ? emailButton("Rejoindre le live", liveMeetingUrl)
-            : "";
-          const supportsSection = supportsUrl
-            ? `<p>📚 Pour rappel, ${useFormal ? "vous pouvez retrouver" : "tu peux retrouver"} les supports de la formation ici : <a href="${supportsUrl}" style="color: #e6bc00; font-weight: bold;">Accéder aux supports</a></p>`
+            ? emailButton("Rejoindre la classe virtuelle", liveMeetingUrl)
             : "";
           subject = `📺 Rappel : Live "${liveTitle}" aujourd'hui – ${training.training_name}`;
           htmlContent = `
             <p>${greeting}</p>
             <p>Pour rappel, ${useFormal ? "vous avez" : "tu as"} un live collectif prévu aujourd'hui dans le cadre de la formation <strong>"${training.training_name}"</strong> :</p>
-            <ul>
+            <ul style="margin: 8px 0; padding-left: 20px;">
               <li><strong>${liveTitle}</strong></li>
               <li>📅 ${liveDate} à ${liveTime}</li>
             </ul>
             ${meetingUrlSection}
-            ${supportsSection}
             <p>${useFormal ? "Votre" : "Ta"} présence est importante pour profiter pleinement de ce moment d'échange.</p>
             <p>À tout à l'heure !</p>
+            ${emailButton("Infos & documents de la formation", summaryUrl)}
             ${signatureHtml}
           `;
         }
