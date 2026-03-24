@@ -144,6 +144,8 @@ serve(async (req) => {
 
     const bccList = await getBccList();
     const signatureHtml = await getSigniticSignature();
+    const urls = await getAppUrls();
+    const APP_URL = urls.app_url;
 
     let totalSent = 0;
 
