@@ -3,9 +3,60 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { sendEmail } from "../_shared/resend.ts";
 import { getBccList } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
+import { getAppUrls } from "../_shared/app-urls.ts";
 import { processTemplate, emailButton } from "../_shared/templates.ts";
 
 import { corsHeaders } from "../_shared/cors.ts";
+
+/**
+ * Convert template text to HTML, properly handling bullet lists (• or - prefix).
+ * Groups consecutive bullet lines into <ul> blocks instead of wrapping them in <p>.
+ */
+function templateTextToHtml(text: string): string {
+  if (!text) return "";
+
+  const paragraphs = text.split(/\n\n+/).filter((p) => p.trim() !== "");
+  const htmlParts: string[] = [];
+
+  for (const para of paragraphs) {
+    const lines = para.split(/\n/).map((l) => l.trim()).filter(Boolean);
+    if (lines.length === 0) continue;
+
+    // Process lines, grouping consecutive bullets into <ul>
+    let currentText: string[] = [];
+    let currentBullets: string[] = [];
+
+    const flushText = () => {
+      if (currentText.length > 0) {
+        htmlParts.push(`<p>${currentText.join("<br>")}</p>`);
+        currentText = [];
+      }
+    };
+
+    const flushBullets = () => {
+      if (currentBullets.length > 0) {
+        const items = currentBullets.map((b) => `<li>${b}</li>`).join("\n");
+        htmlParts.push(`<ul style="margin: 8px 0; padding-left: 20px;">\n${items}\n</ul>`);
+        currentBullets = [];
+      }
+    };
+
+    for (const line of lines) {
+      if (/^[•\-]\s/.test(line)) {
+        flushText();
+        currentBullets.push(line.replace(/^[•\-]\s*/, ""));
+      } else {
+        flushBullets();
+        currentText.push(line);
+      }
+    }
+
+    flushText();
+    flushBullets();
+  }
+
+  return htmlParts.join("\n");
+}
 
 /**
  * Process Live Reminders
@@ -98,6 +149,8 @@ serve(async (req) => {
 
     const bccList = await getBccList();
     const signatureHtml = await getSigniticSignature();
+    const urls = await getAppUrls();
+    const APP_URL = urls.app_url;
 
     let totalSent = 0;
 
@@ -181,6 +234,8 @@ serve(async (req) => {
         let subject: string;
         let htmlContent: string;
 
+        const summaryUrl = `${APP_URL}/formation-info/${trainingId}`;
+
         // If custom email content was set on the live meeting, use it directly
         if (liveEmailContent) {
           const customBody = liveEmailContent.replace(/\n/g, "<br>");
@@ -192,6 +247,7 @@ serve(async (req) => {
             <p>${greeting}</p>
             ${customBody}
             ${meetingUrlSection}
+            ${emailButton("Infos & documents de la formation", summaryUrl)}
             ${signatureHtml}
           `;
         } else if (template) {
@@ -208,31 +264,26 @@ serve(async (req) => {
 
           subject = processTemplate(template.subject, variables, false);
           const body = processTemplate(template.html_content, variables, false);
-          htmlContent = body
-            .split(/\n\n+/)
-            .filter((paragraph: string) => paragraph.trim() !== "")
-            .map((paragraph: string) => `<p>${paragraph.replace(/\n/g, "<br>")}</p>`)
-            .join("") + "\n" + signatureHtml;
+          htmlContent = templateTextToHtml(body)
+            + "\n" + emailButton("Infos & documents de la formation", summaryUrl)
+            + "\n" + signatureHtml;
         } else {
           // Fallback
           const meetingUrlSection = liveMeetingUrl
-            ? emailButton("Rejoindre le live", liveMeetingUrl)
-            : "";
-          const supportsSection = supportsUrl
-            ? `<p>📚 Pour rappel, ${useFormal ? "vous pouvez retrouver" : "tu peux retrouver"} les supports de la formation ici : <a href="${supportsUrl}" style="color: #e6bc00; font-weight: bold;">Accéder aux supports</a></p>`
+            ? emailButton("Rejoindre la classe virtuelle", liveMeetingUrl)
             : "";
           subject = `📺 Rappel : Live "${liveTitle}" aujourd'hui – ${training.training_name}`;
           htmlContent = `
             <p>${greeting}</p>
             <p>Pour rappel, ${useFormal ? "vous avez" : "tu as"} un live collectif prévu aujourd'hui dans le cadre de la formation <strong>"${training.training_name}"</strong> :</p>
-            <ul>
+            <ul style="margin: 8px 0; padding-left: 20px;">
               <li><strong>${liveTitle}</strong></li>
               <li>📅 ${liveDate} à ${liveTime}</li>
             </ul>
             ${meetingUrlSection}
-            ${supportsSection}
             <p>${useFormal ? "Votre" : "Ta"} présence est importante pour profiter pleinement de ce moment d'échange.</p>
             <p>À tout à l'heure !</p>
+            ${emailButton("Infos & documents de la formation", summaryUrl)}
             ${signatureHtml}
           `;
         }
@@ -305,13 +356,12 @@ serve(async (req) => {
             supports_url: supportsUrl || undefined,
           };
 
+          const trainerSummaryUrl = `${APP_URL}/formation-info/${trainingId}`;
           const trainerSubject = processTemplate(trainerTemplate.subject, trainerVars, false);
           const trainerBody = processTemplate(trainerTemplate.html_content, trainerVars, false);
-          const trainerHtml = trainerBody
-            .split(/\n\n+/)
-            .filter((p: string) => p.trim() !== "")
-            .map((p: string) => `<p>${p.replace(/\n/g, "<br>")}</p>`)
-            .join("") + "\n" + signatureHtml;
+          const trainerHtml = templateTextToHtml(trainerBody)
+            + "\n" + emailButton("Infos & documents de la formation", trainerSummaryUrl)
+            + "\n" + signatureHtml;
 
           await new Promise(resolve => setTimeout(resolve, 400));
 
