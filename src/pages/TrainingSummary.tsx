@@ -139,7 +139,7 @@ const TrainingSummary = () => {
           }
         }
       },
-      { rootMargin: "-40% 0px -55% 0px" },
+      { rootMargin: "-20% 0px -70% 0px", threshold: 0 },
     );
 
     for (const s of sections) {
@@ -328,7 +328,8 @@ END:VCALENDAR`;
     return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
   };
 
-  const scrollTo = (ref: React.RefObject<HTMLElement | null>) => {
+  const scrollTo = (ref: React.RefObject<HTMLElement | null>, navId: string) => {
+    setActiveNav(navId);
     ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
@@ -372,7 +373,7 @@ END:VCALENDAR`;
 
       <main className="max-w-md mx-auto px-4 pt-6 space-y-6">
         {/* ═══ SECTION: Infos ═══ */}
-        <section ref={sectionInfos} className="space-y-4" id="section-infos">
+        <section ref={sectionInfos} className="space-y-4 scroll-mt-20" id="section-infos">
           {/* Badge format */}
           {training.format_formation && (
             <div
@@ -432,7 +433,7 @@ END:VCALENDAR`;
                 <div className="flex items-start gap-4 mb-4">
                   <MIcon icon="calendar_today" className="text-2xl mt-0.5" style={{ color: c.primary }} />
                   <div>
-                    <h2 className="font-black text-xl leading-tight capitalize" style={{ color: c.onSurface }}>
+                    <h2 className="font-black text-xl leading-tight" style={{ color: c.onSurface }}>
                       {formatScheduleDate(schedule.day_date)}
                     </h2>
                     <p className="text-sm font-medium" style={{ color: c.onSurfaceVariant }}>
@@ -553,7 +554,7 @@ END:VCALENDAR`;
 
         {/* ═══ SECTION: Lieu ═══ */}
         {training.format_formation !== "e_learning" && (
-          <section ref={sectionLieu} id="section-lieu">
+          <section ref={sectionLieu} id="section-lieu" className="scroll-mt-20">
             {isOnlineLocation() ? (
               /* Online / Visio */
               <div
@@ -628,11 +629,10 @@ END:VCALENDAR`;
                     href={getDirectionsUrl()}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 text-sm font-bold underline active:scale-95 transition-transform"
-                    style={{ color: c.primary }}
+                    className="p-3 rounded-full shadow-md active:scale-90 transition-transform"
+                    style={{ background: c.surfaceContainerLowest, color: c.primary }}
                   >
-                    <MIcon icon="near_me" className="text-base" />
-                    Voir sur la carte
+                    <MIcon icon="near_me" />
                   </a>
                 </div>
               </div>
@@ -642,7 +642,7 @@ END:VCALENDAR`;
 
         {/* ═══ SECTION: Documents ═══ */}
         {(training.program_file_url || training.supports_url || reglementInterieurUrl) && (
-          <section ref={sectionDocuments} id="section-documents" className="grid grid-cols-2 gap-3">
+          <section ref={sectionDocuments} id="section-documents" className="grid grid-cols-2 gap-3 scroll-mt-20">
             {training.program_file_url && (
               <a
                 href={training.program_file_url}
@@ -699,7 +699,7 @@ END:VCALENDAR`;
           <section
             ref={sectionFormateur}
             id="section-formateur"
-            className="rounded-xl p-5 border mb-8"
+            className="rounded-xl p-5 border mb-8 scroll-mt-20"
             style={{ background: c.surfaceContainerLowest, borderColor: `${c.outlineVariant}30` }}
           >
             <div className="flex items-center gap-4 mb-5">
@@ -796,20 +796,20 @@ END:VCALENDAR`;
           icon="info"
           label="Infos"
           active={activeNav === "infos"}
-          onClick={() => scrollTo(sectionInfos)}
+          onClick={() => scrollTo(sectionInfos, "infos")}
         />
         <NavItem
           icon="description"
           label="Documents"
           active={activeNav === "documents"}
-          onClick={() => scrollTo(sectionDocuments)}
+          onClick={() => scrollTo(sectionDocuments, "documents")}
         />
         {training.format_formation !== "e_learning" && (
           <NavItem
             icon="location_on"
             label="Lieu"
             active={activeNav === "lieu"}
-            onClick={() => scrollTo(sectionLieu)}
+            onClick={() => scrollTo(sectionLieu, "lieu")}
           />
         )}
         {trainer && (
@@ -817,7 +817,7 @@ END:VCALENDAR`;
             icon="school"
             label="Formateur"
             active={activeNav === "formateur"}
-            onClick={() => scrollTo(sectionFormateur)}
+            onClick={() => scrollTo(sectionFormateur, "formateur")}
           />
         )}
       </nav>
