@@ -5,14 +5,14 @@ import { getSigniticSignature } from "../_shared/signitic.ts";
 import { sendEmail } from "../_shared/resend.ts";
 import { emailButton, emailInfoBox } from "../_shared/templates.ts";
 
-import { corsHeaders } from "../_shared/cors.ts";
+import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 // Bump this when you deploy to confirm the latest code is running.
 const VERSION = "send-content-notification@2026-02-05.1";
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const corsResponse = handleCorsPreflightIfNeeded(req);
+
+  if (corsResponse) return corsResponse;
 
   try {
     let body: any;

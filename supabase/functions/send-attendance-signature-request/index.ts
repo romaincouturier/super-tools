@@ -5,7 +5,7 @@ import { getSigniticSignature } from "../_shared/signitic.ts";
 import { processTemplate, textToHtml } from "../_shared/templates.ts";
 import { sendEmail } from "../_shared/resend.ts";
 
-import { corsHeaders } from "../_shared/cors.ts";
+import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 // Default templates
 const DEFAULT_SUBJECT_TU = "Signature d'émargement - {{training_name}}";
 const DEFAULT_SUBJECT_VOUS = "Signature d'émargement - {{training_name}}";
@@ -31,9 +31,8 @@ Cette signature atteste de votre présence à la formation.
 Merci !`;
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
-  }
+  const corsResponse = handleCorsPreflightIfNeeded(req);
+  if (corsResponse) return corsResponse;
 
   try {
     const { trainingId, scheduleDate, period } = await req.json();

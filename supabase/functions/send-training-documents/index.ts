@@ -6,7 +6,7 @@ import { getSigniticSignature } from "../_shared/signitic.ts";
 import { processTemplate, textToHtml } from "../_shared/templates.ts";
 import { sendEmail } from "../_shared/resend.ts";
 
-import { corsHeaders } from "../_shared/cors.ts";
+import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 // Format date range for display (e.g., "du 15 au 17 janvier 2025")
 function formatDateRangeForDisplay(startDate: string, endDate: string | null): string {
   const start = new Date(startDate);
@@ -43,9 +43,9 @@ function stripHtml(html: string): string {
 }
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const corsResponse = handleCorsPreflightIfNeeded(req);
+
+  if (corsResponse) return corsResponse;
 
   try {
     const { 

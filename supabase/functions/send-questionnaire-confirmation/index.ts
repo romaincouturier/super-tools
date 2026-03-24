@@ -6,7 +6,7 @@ import { processTemplate } from "../_shared/templates.ts";
 import { sendEmail } from "../_shared/resend.ts";
 import { getAppUrls } from "../_shared/app-urls.ts";
 
-import { corsHeaders } from "../_shared/cors.ts";
+import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 // Format date to Google Calendar format: YYYYMMDDTHHMMSS
 function formatDateForCalendar(dateStr: string, timeStr: string): string {
   const [year, month, day] = dateStr.split('-').map(Number);
@@ -151,9 +151,9 @@ function generateLiveMeetingCalendarLinks(
 }
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const corsResponse = handleCorsPreflightIfNeeded(req);
+
+  if (corsResponse) return corsResponse;
 
   try {
     const { questionnaireId, trainingId, participantEmail, participantFirstName, formatFormation } = await req.json();

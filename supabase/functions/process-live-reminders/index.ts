@@ -6,7 +6,7 @@ import { getSigniticSignature } from "../_shared/signitic.ts";
 import { getAppUrls } from "../_shared/app-urls.ts";
 import { processTemplate, emailButton } from "../_shared/templates.ts";
 
-import { corsHeaders } from "../_shared/cors.ts";
+import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 
 /**
  * Convert template text to HTML, properly handling bullet lists (• or - prefix).
@@ -71,9 +71,8 @@ function templateTextToHtml(text: string): string {
  */
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const corsResponse = handleCorsPreflightIfNeeded(req);
+  if (corsResponse) return corsResponse;
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;

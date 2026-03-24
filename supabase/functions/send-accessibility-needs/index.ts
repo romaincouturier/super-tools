@@ -5,7 +5,7 @@ import { getSigniticSignature } from "../_shared/signitic.ts";
 import { processTemplate, textToHtml } from "../_shared/templates.ts";
 import { sendEmail } from "../_shared/resend.ts";
 
-import { corsHeaders } from "../_shared/cors.ts";
+import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 // Default templates
 const DEFAULT_SUBJECT_TU = "Tes besoins spécifiques pour la formation \"{{training_name}}\"";
 const DEFAULT_SUBJECT_VOUS = "Vos besoins spécifiques pour la formation \"{{training_name}}\"";
@@ -37,9 +37,9 @@ Pourriez-vous m'indiquer les adaptations nécessaires que je pourrais mettre en 
 Dans l'attente de votre retour, je reste à votre disposition pour toute question ou information complémentaire.`;
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const corsResponse = handleCorsPreflightIfNeeded(req);
+
+  if (corsResponse) return corsResponse;
 
   try {
     const { questionnaireId, trainingId, participantEmail, participantFirstName, accessibilityNeeds, trainingName, formalAddress } = await req.json();

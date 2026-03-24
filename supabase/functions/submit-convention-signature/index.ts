@@ -5,7 +5,7 @@ import { getBccSettings } from "../_shared/bcc-settings.ts";
 import { sendEmail } from "../_shared/resend.ts";
 import { generateSignedPdf } from "../_shared/generate-signed-pdf.ts";
 
-import { corsHeaders } from "../_shared/cors.ts";
+import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { formatDateTime } from "../_shared/date-utils.ts";
 import { generateHash, hashArrayBuffer, getClientIp } from "../_shared/crypto.ts";
 
@@ -41,9 +41,9 @@ interface RequestBody {
 
 
 serve(async (req: Request): Promise<Response> => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const corsResponse = handleCorsPreflightIfNeeded(req);
+
+  if (corsResponse) return corsResponse;
 
   try {
     const body: RequestBody = await req.json();
