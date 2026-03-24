@@ -269,18 +269,9 @@ const DeliverablesBlock = ({ deliverables, lang }: DeliverablesBlockProps) => {
   const handleDownloadAll = async () => {
     setDownloadingAll(true);
     try {
-      // Download files one by one (no JSZip dependency needed for summary page)
       for (const doc of deliverables) {
-        const link = document.createElement("a");
-        link.href = doc.file_url;
-        link.download = doc.file_name;
-        link.target = "_blank";
-        link.rel = "noopener noreferrer";
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        // Small delay between downloads
-        await new Promise((r) => setTimeout(r, 300));
+        await forceDownload(doc.file_url, doc.file_name);
+        await new Promise((r) => setTimeout(r, 500));
       }
     } finally {
       setDownloadingAll(false);
