@@ -20,50 +20,39 @@ function templateTextToHtml(text: string): string {
 
   for (const para of paragraphs) {
     const lines = para.split(/\n/).map((l) => l.trim()).filter(Boolean);
+    if (lines.length === 0) continue;
 
-    // Check if this paragraph is a bullet list (all lines start with • or -)
-    const isBulletList = lines.length > 0 && lines.every((l) => /^[•\-]\s/.test(l));
+    // Process lines, grouping consecutive bullets into <ul>
+    let currentText: string[] = [];
+    let currentBullets: string[] = [];
 
-    if (isBulletList) {
-      const items = lines.map((l) => `<li>${l.replace(/^[•\-]\s*/, "")}</li>`).join("\n");
-      htmlParts.push(`<ul style="margin: 8px 0; padding-left: 20px;">\n${items}\n</ul>`);
-    } else {
-      // Check for mixed content: some lines are bullets, some are not
-      let inList = false;
-      const mixed: string[] = [];
-
-      for (const line of lines) {
-        if (/^[•\-]\s/.test(line)) {
-          if (!inList) {
-            inList = true;
-            mixed.push('<ul style="margin: 8px 0; padding-left: 20px;">');
-          }
-          mixed.push(`<li>${line.replace(/^[•\-]\s*/, "")}</li>`);
-        } else {
-          if (inList) {
-            inList = false;
-            mixed.push("</ul>");
-          }
-          mixed.push(line);
-        }
+    const flushText = () => {
+      if (currentText.length > 0) {
+        htmlParts.push(`<p>${currentText.join("<br>")}</p>`);
+        currentText = [];
       }
-      if (inList) mixed.push("</ul>");
+    };
 
-      // If we had mixed content with lists, join directly
-      if (mixed.some((m) => m.startsWith("<ul") || m.startsWith("<li") || m.startsWith("</ul"))) {
-        htmlParts.push(`<p>${mixed.filter((m) => !m.startsWith("<ul") && !m.startsWith("<li") && !m.startsWith("</ul")).join("<br>")}</p>`);
-        // Re-extract the list parts
-        let buf = "";
-        for (const m of mixed) {
-          if (m.startsWith("<ul") || m.startsWith("<li") || m.startsWith("</ul")) {
-            buf += m + "\n";
-          }
-        }
-        if (buf) htmlParts.splice(htmlParts.length - 1, 0, buf.trim());
+    const flushBullets = () => {
+      if (currentBullets.length > 0) {
+        const items = currentBullets.map((b) => `<li>${b}</li>`).join("\n");
+        htmlParts.push(`<ul style="margin: 8px 0; padding-left: 20px;">\n${items}\n</ul>`);
+        currentBullets = [];
+      }
+    };
+
+    for (const line of lines) {
+      if (/^[•\-]\s/.test(line)) {
+        flushText();
+        currentBullets.push(line.replace(/^[•\-]\s*/, ""));
       } else {
-        htmlParts.push(`<p>${lines.join("<br>")}</p>`);
+        flushBullets();
+        currentText.push(line);
       }
     }
+
+    flushText();
+    flushBullets();
   }
 
   return htmlParts.join("\n");
