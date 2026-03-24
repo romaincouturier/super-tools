@@ -43,12 +43,12 @@ describe("formatDateLong", () => {
 describe("formatDateWithDayOfWeek", () => {
   it("includes day of week in French", () => {
     // 2026-03-15 is a Sunday
-    expect(formatDateWithDayOfWeek("2026-03-15")).toBe("Dimanche 15 mars 2026");
+    expect(formatDateWithDayOfWeek("2026-03-15")).toBe("dimanche 15 mars 2026");
   });
 
   it("formats Monday correctly", () => {
     // 2026-03-16 is a Monday
-    expect(formatDateWithDayOfWeek("2026-03-16")).toBe("Lundi 16 mars 2026");
+    expect(formatDateWithDayOfWeek("2026-03-16")).toBe("lundi 16 mars 2026");
   });
 });
 
