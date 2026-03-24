@@ -4,59 +4,10 @@ import { sendEmail } from "../_shared/resend.ts";
 import { getBccList } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
 import { getAppUrls } from "../_shared/app-urls.ts";
-import { processTemplate, emailButton } from "../_shared/templates.ts";
+import { processTemplate, emailButton, templateTextToHtml } from "../_shared/templates.ts";
+import { tuVousSuffix, fetchTemplateOrDefault, logEmailActivity } from "../_shared/email-helpers.ts";
 
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
-
-/**
- * Convert template text to HTML, properly handling bullet lists (• or - prefix).
- * Groups consecutive bullet lines into <ul> blocks instead of wrapping them in <p>.
- */
-function templateTextToHtml(text: string): string {
-  if (!text) return "";
-
-  const paragraphs = text.split(/\n\n+/).filter((p) => p.trim() !== "");
-  const htmlParts: string[] = [];
-
-  for (const para of paragraphs) {
-    const lines = para.split(/\n/).map((l) => l.trim()).filter(Boolean);
-    if (lines.length === 0) continue;
-
-    // Process lines, grouping consecutive bullets into <ul>
-    let currentText: string[] = [];
-    let currentBullets: string[] = [];
-
-    const flushText = () => {
-      if (currentText.length > 0) {
-        htmlParts.push(`<p>${currentText.join("<br>")}</p>`);
-        currentText = [];
-      }
-    };
-
-    const flushBullets = () => {
-      if (currentBullets.length > 0) {
-        const items = currentBullets.map((b) => `<li>${b}</li>`).join("\n");
-        htmlParts.push(`<ul style="margin: 8px 0; padding-left: 20px;">\n${items}\n</ul>`);
-        currentBullets = [];
-      }
-    };
-
-    for (const line of lines) {
-      if (/^[•\-]\s/.test(line)) {
-        flushText();
-        currentBullets.push(line.replace(/^[•\-]\s*/, ""));
-      } else {
-        flushBullets();
-        currentText.push(line);
-      }
-    }
-
-    flushText();
-    flushBullets();
-  }
-
-  return htmlParts.join("\n");
-}
 
 /**
  * Process Live Reminders
@@ -120,17 +71,6 @@ serve(async (req) => {
 
     console.log(`[process-live-reminders] Found ${liveMeetings.length} live(s) today`);
 
-    // Fetch templates (participant + trainer)
-    const { data: templates } = await supabase
-      .from("email_templates")
-      .select("template_type, subject, html_content")
-      .in("template_type", ["live_reminder_tu", "live_reminder_vous", "trainer_live_reminder"]);
-
-    const templateMap: Record<string, { subject: string; html_content: string }> = {};
-    for (const t of templates || []) {
-      templateMap[t.template_type] = { subject: t.subject, html_content: t.html_content };
-    }
-
     // Build trainer lookup
     const trainerIds = [...new Set(liveMeetings.map((l: any) => (l.trainings as any)?.trainer_id).filter(Boolean))];
     const trainerMap: Record<string, { first_name: string; email: string }> = {};
@@ -184,9 +124,9 @@ serve(async (req) => {
         (existingParticipantLogs || []).map((row: any) => row.recipient_email)
       );
 
-      const useFormal = !!training.participants_formal_address;
-      const templateKey = useFormal ? "live_reminder_vous" : "live_reminder_tu";
-      const template = templateMap[templateKey];
+      const suffix = tuVousSuffix(training.participants_formal_address);
+      const useFormal = suffix === "vous";
+      const templateKey = `live_reminder_${suffix}`;
 
       // Format live date/time in Paris timezone
       const liveDateTime = new Date(live.scheduled_at);
@@ -247,8 +187,15 @@ serve(async (req) => {
             ${emailButton("Infos & documents de la formation", summaryUrl)}
             ${signatureHtml}
           `;
-        } else if (template) {
-          // Use template
+        } else {
+          // Fetch template from DB with inline fallback
+          const defaultSubject = `📺 Rappel : Live "{{live_title}}" aujourd'hui – {{training_name}}`;
+          const defaultContent = useFormal
+            ? `Bonjour {{first_name}},\n\nPour rappel, vous avez un live collectif prévu aujourd'hui dans le cadre de la formation "{{training_name}}" :\n\n• {{live_title}}\n• 📅 {{live_date}} à {{live_time}}\n\nVotre présence est importante pour profiter pleinement de ce moment d'échange.\n\nÀ tout à l'heure !`
+            : `Bonjour {{first_name}},\n\nPour rappel, tu as un live collectif prévu aujourd'hui dans le cadre de la formation "{{training_name}}" :\n\n• {{live_title}}\n• 📅 {{live_date}} à {{live_time}}\n\nTa présence est importante pour profiter pleinement de ce moment d'échange.\n\nÀ tout à l'heure !`;
+
+          const template = await fetchTemplateOrDefault(supabase, templateKey, defaultSubject, defaultContent);
+
           const variables: Record<string, string | null | undefined> = {
             first_name: firstName,
             training_name: training.training_name,
@@ -260,29 +207,10 @@ serve(async (req) => {
           };
 
           subject = processTemplate(template.subject, variables, false);
-          const body = processTemplate(template.html_content, variables, false);
+          const body = processTemplate(template.content, variables, false);
           htmlContent = templateTextToHtml(body)
             + "\n" + emailButton("Infos & documents de la formation", summaryUrl)
             + "\n" + signatureHtml;
-        } else {
-          // Fallback
-          const meetingUrlSection = liveMeetingUrl
-            ? emailButton("Rejoindre la classe virtuelle", liveMeetingUrl)
-            : "";
-          subject = `📺 Rappel : Live "${liveTitle}" aujourd'hui – ${training.training_name}`;
-          htmlContent = `
-            <p>${greeting}</p>
-            <p>Pour rappel, ${useFormal ? "vous avez" : "tu as"} un live collectif prévu aujourd'hui dans le cadre de la formation <strong>"${training.training_name}"</strong> :</p>
-            <ul style="margin: 8px 0; padding-left: 20px;">
-              <li><strong>${liveTitle}</strong></li>
-              <li>📅 ${liveDate} à ${liveTime}</li>
-            </ul>
-            ${meetingUrlSection}
-            <p>${useFormal ? "Votre" : "Ta"} présence est importante pour profiter pleinement de ce moment d'échange.</p>
-            <p>À tout à l'heure !</p>
-            ${emailButton("Infos & documents de la formation", summaryUrl)}
-            ${signatureHtml}
-          `;
         }
 
         const result = await sendEmail({
@@ -300,31 +228,22 @@ serve(async (req) => {
           alreadySentKeys.add(participantLogKey);
           console.log(`[process-live-reminders] Sent to ${p.email}`);
 
-          try {
-            await supabase.from("activity_logs").insert({
-              action_type: "live_reminder_participant_sent",
-              recipient_email: participantLogKey,
-              details: {
-                training_id: trainingId,
-                training_name: training.training_name,
-                live_title: liveTitle,
-                participant_id: p.id,
-                participant_email: p.email,
-              },
-            });
-          } catch (logErr) {
-            console.warn("[process-live-reminders] Failed to log participant send:", logErr);
-          }
+          await logEmailActivity(supabase, "live_reminder_participant_sent", participantLogKey, {
+            training_id: trainingId,
+            training_name: training.training_name,
+            live_title: liveTitle,
+            participant_id: p.id,
+            participant_email: p.email,
+          });
         }
       }
 
       totalSent += sentCount;
 
       // ── Trainer reminder for this live ─────────────────────────────
-      const trainerTemplate = templateMap["trainer_live_reminder"];
       const trainer = training.trainer_id ? trainerMap[training.trainer_id] : null;
 
-      if (trainerTemplate && trainer?.email) {
+      if (trainer?.email) {
         const trainerLogKey = `${trainer.email}:${liveId}`;
         const { data: trainerLog } = await supabase
           .from("activity_logs")
@@ -354,8 +273,12 @@ serve(async (req) => {
           };
 
           const trainerSummaryUrl = `${APP_URL}/formation-info/${trainingId}`;
+          const trainerDefaultSubject = `📺 Rappel formateur : Live "{{live_title}}" aujourd'hui – {{training_name}}`;
+          const trainerDefaultContent = `Bonjour {{trainer_first_name}},\n\nPour rappel, vous animez un live aujourd'hui :\n\n• {{live_title}}\n• 📅 {{live_date}} à {{live_time}}`;
+          const trainerTemplate = await fetchTemplateOrDefault(supabase, "trainer_live_reminder", trainerDefaultSubject, trainerDefaultContent);
+
           const trainerSubject = processTemplate(trainerTemplate.subject, trainerVars, false);
-          const trainerBody = processTemplate(trainerTemplate.html_content, trainerVars, false);
+          const trainerBody = processTemplate(trainerTemplate.content, trainerVars, false);
           const trainerHtml = templateTextToHtml(trainerBody)
             + "\n" + emailButton("Infos & documents de la formation", trainerSummaryUrl)
             + "\n" + signatureHtml;
@@ -375,19 +298,11 @@ serve(async (req) => {
             totalSent++;
             console.log(`[process-live-reminders] Trainer reminder sent to ${trainer.email}`);
 
-            try {
-              await supabase.from("activity_logs").insert({
-                action_type: "trainer_live_reminder_sent",
-                recipient_email: trainerLogKey,
-                details: {
-                  training_id: trainingId,
-                  training_name: training.training_name,
-                  live_title: liveTitle,
-                },
-              });
-            } catch (logErr) {
-              console.warn("[process-live-reminders] Failed to log trainer reminder:", logErr);
-            }
+            await logEmailActivity(supabase, "trainer_live_reminder_sent", trainerLogKey, {
+              training_id: trainingId,
+              training_name: training.training_name,
+              live_title: liveTitle,
+            });
           } else {
             console.warn(`[process-live-reminders] Trainer reminder failed for ${trainer.email}`);
           }
@@ -395,22 +310,14 @@ serve(async (req) => {
       }
 
       // Summary log of this run (informational, not used for hard dedup)
-      try {
-        await supabase.from("activity_logs").insert({
-          action_type: "live_reminder_sent",
-          recipient_email: liveId,
-          details: {
-            training_id: trainingId,
-            training_name: training.training_name,
-            live_title: liveTitle,
-            participants_total: participants.length,
-            participants_sent_this_run: sentCount,
-            participants_already_sent: skippedAlreadySent,
-          },
-        });
-      } catch (logErr) {
-        console.warn("[process-live-reminders] Failed to log summary:", logErr);
-      }
+      await logEmailActivity(supabase, "live_reminder_sent", liveId, {
+        training_id: trainingId,
+        training_name: training.training_name,
+        live_title: liveTitle,
+        participants_total: participants.length,
+        participants_sent_this_run: sentCount,
+        participants_already_sent: skippedAlreadySent,
+      });
     }
 
     console.log(`[process-live-reminders] Done. Sent ${totalSent} reminder(s).`);
