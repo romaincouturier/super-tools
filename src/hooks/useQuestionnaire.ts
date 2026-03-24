@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { rpc } from "@/lib/supabase-rpc";
 import { useToast } from "@/hooks/use-toast";
 import { formatDateWithDayOfWeek } from "@/lib/dateFormatters";
+import { assertTransition, questionnaireMachine, type QuestionnaireStatus } from "@/lib/stateMachine";
 
 export type SaveStatus = "idle" | "saving" | "saved" | "error";
 
@@ -198,7 +199,9 @@ export function useQuestionnaire() {
       if (!qTyped.date_premiere_ouverture) {
         const nowIso = new Date().toISOString();
         try {
-          await rpc.updateQuestionnaireByToken(token, { date_premiere_ouverture: nowIso, etat: qTyped.etat === "envoye" ? "accueil_envoye" : qTyped.etat });
+          const nextEtat = qTyped.etat === "envoye" ? "accueil_envoye" as const : qTyped.etat as QuestionnaireStatus;
+          if (nextEtat !== qTyped.etat) assertTransition(questionnaireMachine, qTyped.etat as QuestionnaireStatus, nextEtat);
+          await rpc.updateQuestionnaireByToken(token, { date_premiere_ouverture: nowIso, etat: nextEtat });
           await insertEvent(qTyped.id, "opened", { source: "public_link" });
         } catch (trackingErr) { console.warn("First open tracking failed (non-blocking):", trackingErr); }
       }
@@ -257,6 +260,7 @@ export function useQuestionnaire() {
       await saveDraft({ silent: true, force: true });
       const nowIso = new Date().toISOString();
       const needsPrerequisEmail = hasUnvalidatedPrerequisites();
+      assertTransition(questionnaireMachine, questionnaire.etat as QuestionnaireStatus, "complete");
       const { error: upErr } = await supabase.rpc("update_questionnaire_by_token", {
         p_token: token!, p_data: { etat: "complete", date_soumission: nowIso, date_consentement_rgpd: questionnaire.date_consentement_rgpd || nowIso, necessite_validation_formateur: needsPrerequisEmail },
       });

@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { rpc } from "@/lib/supabase-rpc";
 import { useToast } from "@/hooks/use-toast";
 import { formatTrainingDates } from "@/lib/dateFormatters";
+import { assertTransition, evaluationMachine, type EvaluationStatus } from "@/lib/stateMachine";
 
 // ─── Types ──────────────────────────────────────────────────────────
 
@@ -192,6 +193,8 @@ export function useEvaluationForm(token: string | undefined) {
     setSubmitting(true);
     try {
       const nowIso = new Date().toISOString();
+
+      assertTransition(evaluationMachine, form.evaluation.etat as EvaluationStatus, "soumis");
 
       const { error: upErr } = await rpc.updateEvaluationByToken(token!, {
         appreciation_generale: appreciationGenerale,

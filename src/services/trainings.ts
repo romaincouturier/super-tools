@@ -3,6 +3,7 @@
  * Eliminates scattered `supabase.from("trainings")` calls across components.
  */
 import { supabase } from "@/integrations/supabase/client";
+import type { ReadRepository } from "./repository";
 
 // The generated Database type doesn't cover all tables; bypass table-name checking.
 const db = () => supabase as unknown as { from: (table: string) => ReturnType<typeof supabase.from> };
@@ -86,3 +87,11 @@ export async function fetchLinkableTrainings(fromDate: string) {
     .order("start_date", { ascending: true });
   return (throwIfError(result) || []);
 }
+
+// ── Compile-time contract check ─────────────────────────────────────
+// Trainings service is read-heavy (no create from frontend). ReadRepository
+// ensures at least fetch + fetchById are always present.
+({
+  fetch: fetchAllTrainings,
+  fetchById: getTraining,
+}) satisfies ReadRepository<Record<string, unknown>>;

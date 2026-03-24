@@ -5,6 +5,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Mission, CreateMissionInput, UpdateMissionInput, MissionStatus, MissionContact } from "@/types/missions";
 import type { MissionActivity, MissionPage, MissionPageTemplate } from "@/hooks/useMissions";
+import type { KanbanRepository } from "./repository";
 
 // ── Helpers ──────────────────────────────────────────────────────────
 
@@ -21,6 +22,11 @@ function throwIfError<T>(result: { data: T; error: { message: string } | null })
 export async function fetchMissions(): Promise<Mission[]> {
   const result = await db().from("missions").select("*").order("position", { ascending: true });
   return (throwIfError(result) || []) as Mission[];
+}
+
+export async function fetchMissionById(id: string): Promise<Mission> {
+  const result = await db().from("missions").select("*").eq("id", id).single();
+  return throwIfError(result) as Mission;
 }
 
 export async function searchMissions(term: string): Promise<Pick<Mission, "id" | "title" | "client_name" | "client_contact" | "status" | "start_date" | "end_date">[]> {
@@ -228,3 +234,15 @@ export async function deleteContact(id: string): Promise<void> {
   const result = await db().from("mission_contacts").delete().eq("id", id);
   throwIfError(result);
 }
+
+// ── Compile-time contract check ─────────────────────────────────────
+// If a required method is missing or has the wrong signature, TypeScript
+// will report an error here — not at runtime.
+({
+  fetch: fetchMissions,
+  fetchById: fetchMissionById,
+  create: createMission,
+  update: updateMission,
+  remove: deleteMission,
+  move: moveMission,
+}) satisfies KanbanRepository<Mission, CreateMissionInput, UpdateMissionInput, MissionStatus>;

@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { sanitizeFileName, resolveContentType } from "@/lib/file-utils";
 import type { SupportTicket, TicketStatus, TicketAiAnalysis } from "@/types/support";
+import type { KanbanRepository } from "./repository";
 
 export async function fetchSupportTickets(): Promise<SupportTicket[]> {
   const { data, error } = await (supabase as unknown as { from: (table: string) => ReturnType<typeof supabase.from> })
@@ -9,6 +10,24 @@ export async function fetchSupportTickets(): Promise<SupportTicket[]> {
     .order("created_at", { ascending: false });
   if (error) throw error;
   return data || [];
+}
+
+export async function fetchSupportTicketById(id: string): Promise<SupportTicket> {
+  const { data, error } = await (supabase as unknown as { from: (table: string) => ReturnType<typeof supabase.from> })
+    .from("support_tickets")
+    .select("*")
+    .eq("id", id)
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function deleteSupportTicket(id: string): Promise<void> {
+  const { error } = await (supabase as unknown as { from: (table: string) => ReturnType<typeof supabase.from> })
+    .from("support_tickets")
+    .delete()
+    .eq("id", id);
+  if (error) throw error;
 }
 
 export async function analyzeTicket(description: string): Promise<TicketAiAnalysis> {
@@ -121,3 +140,19 @@ export async function moveSupportTicket(
     notifyTicketResolved(data);
   }
 }
+
+// ── Compile-time contract check ─────────────────────────────────────
+type CreateTicketInput = Pick<SupportTicket, "type" | "title" | "description" | "priority" | "page_url"> & {
+  files?: File[];
+  ai_analysis?: TicketAiAnalysis | null;
+};
+type UpdateTicketInput = Partial<Pick<SupportTicket, "title" | "type" | "status" | "priority" | "assigned_to" | "resolution_notes" | "position" | "page_url" | "ai_analysis">>;
+
+({
+  fetch: fetchSupportTickets,
+  fetchById: fetchSupportTicketById,
+  create: createSupportTicket,
+  update: updateSupportTicket,
+  remove: deleteSupportTicket,
+  move: moveSupportTicket,
+}) satisfies KanbanRepository<SupportTicket, CreateTicketInput, UpdateTicketInput, TicketStatus>;

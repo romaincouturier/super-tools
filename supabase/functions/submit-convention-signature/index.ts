@@ -8,6 +8,7 @@ import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { formatDateTime } from "../_shared/date-utils.ts";
 import { generateHash, hashArrayBuffer, getClientIp } from "../_shared/crypto.ts";
 import { getSupabaseClient } from "../_shared/supabase-client.ts";
+import { assertConventionSignatureTransition, type ConventionSignatureStatus } from "../_shared/state-machine.ts";
 import {
   type JourneyEvent,
   type DeviceInfo,
@@ -68,26 +69,24 @@ serve(async (req: Request): Promise<Response> => {
       );
     }
 
-    if (conventionSig.status === "signed") {
-      return new Response(
-        JSON.stringify({ error: "Cette convention a déjà été signée" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    // Auto-expire if the expiry date has passed
+    const effectiveStatus: ConventionSignatureStatus =
+      conventionSig.status !== "expired" &&
+      conventionSig.expires_at &&
+      new Date(conventionSig.expires_at) < new Date()
+        ? "expired"
+        : (conventionSig.status as ConventionSignatureStatus);
 
-    if (
-      conventionSig.status === "expired" ||
-      (conventionSig.expires_at && new Date(conventionSig.expires_at) < new Date())
-    ) {
+    try {
+      assertConventionSignatureTransition(effectiveStatus, "signed");
+    } catch {
+      const messages: Record<string, string> = {
+        signed: "Cette convention a déjà été signée",
+        expired: "Ce lien de signature a expiré",
+        cancelled: "Cette convention a été annulée",
+      };
       return new Response(
-        JSON.stringify({ error: "Ce lien de signature a expiré" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    if (conventionSig.status === "cancelled") {
-      return new Response(
-        JSON.stringify({ error: "Cette convention a été annulée" }),
+        JSON.stringify({ error: messages[effectiveStatus] ?? `Statut invalide : ${effectiveStatus}` }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
