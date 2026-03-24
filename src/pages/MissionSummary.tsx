@@ -643,75 +643,77 @@ const MissionSummary = () => {
           </Card>
         )}
 
-        {/* Invoices Table */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Receipt className="h-5 w-5 text-primary" />
-              {L.invoices}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {invoicedActivities.length === 0 ? (
-              <p className="text-center text-muted-foreground py-6">{L.noInvoices}</p>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left py-2 pr-4 font-medium text-muted-foreground">{L.invoiceNumber}</th>
-                      <th className="text-left py-2 pr-4 font-medium text-muted-foreground">{L.date}</th>
-                      <th className="text-left py-2 pr-4 font-medium text-muted-foreground">{L.description}</th>
-                      <th className="text-right py-2 pr-4 font-medium text-muted-foreground">{L.amount}</th>
-                      <th className="text-center py-2 font-medium text-muted-foreground">{L.status}</th>
-                      <th></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {invoicedActivities.map((activity) => (
-                      <tr key={activity.id} className="border-b last:border-0">
-                        <td className="py-2.5 pr-4 font-medium">
-                          {activity.invoice_number || "—"}
-                        </td>
-                        <td className="py-2.5 pr-4 whitespace-nowrap">
-                          {format(parseISO(activity.activity_date), "dd/MM/yyyy")}
-                        </td>
-                        <td className="py-2.5 pr-4 max-w-[250px] truncate">
-                          {activity.description}
-                        </td>
-                        <td className="py-2.5 pr-4 text-right whitespace-nowrap font-medium">
-                          {activity.billable_amount != null
-                            ? `${formatCurrency(activity.billable_amount, lang)} €`
-                            : "—"}
-                        </td>
-                        <td className="py-2.5 text-center">
-                          <Badge
-                            variant={activity.is_billed ? "default" : "secondary"}
-                            className={activity.is_billed ? "bg-green-100 text-green-700 hover:bg-green-100" : ""}
-                          >
-                            {activity.is_billed ? L.billedBadge : L.pendingBadge}
-                          </Badge>
-                        </td>
-                        <td className="py-2.5 pl-2">
-                          {activity.invoice_url && (
-                            <a
-                              href={activity.invoice_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-primary hover:underline flex items-center gap-1 text-xs"
-                            >
-                              <ExternalLink className="h-3 w-3" />
-                            </a>
-                          )}
-                        </td>
+        {/* Invoices Table — authenticated only */}
+        {isAuthenticated && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Receipt className="h-5 w-5 text-primary" />
+                {L.invoices}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {invoicedActivities.length === 0 ? (
+                <p className="text-center text-muted-foreground py-6">{L.noInvoices}</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="text-left py-2 pr-4 font-medium text-muted-foreground">{L.invoiceNumber}</th>
+                        <th className="text-left py-2 pr-4 font-medium text-muted-foreground">{L.date}</th>
+                        <th className="text-left py-2 pr-4 font-medium text-muted-foreground">{L.description}</th>
+                        <th className="text-right py-2 pr-4 font-medium text-muted-foreground">{L.amount}</th>
+                        <th className="text-center py-2 font-medium text-muted-foreground">{L.status}</th>
+                        <th></th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                    </thead>
+                    <tbody>
+                      {invoicedActivities.map((activity) => (
+                        <tr key={activity.id} className="border-b last:border-0">
+                          <td className="py-2.5 pr-4 font-medium">
+                            {activity.invoice_number || "—"}
+                          </td>
+                          <td className="py-2.5 pr-4 whitespace-nowrap">
+                            {format(parseISO(activity.activity_date), "dd/MM/yyyy")}
+                          </td>
+                          <td className="py-2.5 pr-4 max-w-[250px] truncate">
+                            {activity.description}
+                          </td>
+                          <td className="py-2.5 pr-4 text-right whitespace-nowrap font-medium">
+                            {activity.billable_amount != null
+                              ? `${formatCurrency(activity.billable_amount, lang)} €`
+                              : "—"}
+                          </td>
+                          <td className="py-2.5 text-center">
+                            <Badge
+                              variant={activity.is_billed ? "default" : "secondary"}
+                              className={activity.is_billed ? "bg-green-100 text-green-700 hover:bg-green-100" : ""}
+                            >
+                              {activity.is_billed ? L.billedBadge : L.pendingBadge}
+                            </Badge>
+                          </td>
+                          <td className="py-2.5 pl-2">
+                            {activity.invoice_url && (
+                              <a
+                                href={activity.invoice_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-primary hover:underline flex items-center gap-1 text-xs"
+                              >
+                                <ExternalLink className="h-3 w-3" />
+                              </a>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Footer */}
         <div className="text-center text-xs text-muted-foreground py-4">
