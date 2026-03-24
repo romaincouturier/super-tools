@@ -3,13 +3,15 @@ import {
   handleCorsPreflightIfNeeded,
   createErrorResponse,
   createJsonResponse,
-  getSigniticSignature,
-  getBccSettings,
   getSupabaseClient,
-  sendEmail,
   formatDateWithDayFr,
   emailButton,
 } from "../_shared/mod.ts";
+import {
+  tuVousSuffix,
+  sendTemplatedEmail,
+  logEmailActivity,
+} from "../_shared/email-helpers.ts";
 
 /**
  * Send Convention Reminder
@@ -35,12 +37,6 @@ serve(async (req) => {
     const { getAppUrls } = await import("../_shared/app-urls.ts");
     const urls = await getAppUrls();
     const appUrl = urls.app_url;
-
-    // Fetch BCC settings and signature in parallel
-    const [bccList, signature] = await Promise.all([
-      getBccSettings(supabase),
-      getSigniticSignature(),
-    ]);
 
     // Fetch training details
     const { data: training, error: trainingError } = await supabase
@@ -125,86 +121,56 @@ serve(async (req) => {
     // Build signature URL if token exists
     const signatureUrl = signatureToken ? `${appUrl}/signature-convention/${signatureToken}` : "";
 
-    // Fetch custom template
+    // Determine tu/vous
     const useFormal = isIntra ? training.sponsor_formal_address : true;
-    const templateType = useFormal ? "convention_reminder_vous" : "convention_reminder_tu";
+    const suffix = tuVousSuffix(useFormal);
+    const templateType = `convention_reminder_${suffix}`;
 
-    const { data: template } = await supabase
-      .from("email_templates")
-      .select("subject, html_content")
-      .eq("template_type", templateType)
-      .eq("is_default", true)
-      .maybeSingle();
-
-    // Build the email content
+    // Build greeting
     const greeting = recipientFirstName
-      ? (useFormal ? `Bonjour ${recipientFirstName},` : `Bonjour ${recipientFirstName},`)
+      ? `Bonjour ${recipientFirstName},`
       : "Bonjour,";
 
-    let subject: string;
-    let htmlBody: string;
+    // Build default content based on tu/vous
+    const signatureBlock = signatureUrl
+      ? emailButton("✍️ Signer la convention en ligne", signatureUrl)
+      : "";
 
-    if (template?.subject && template?.html_content) {
-      subject = template.subject;
-      htmlBody = template.html_content;
+    const defaultSubject = `Rappel : convention de formation "${training.training_name}"`;
 
-      // Replace variables
-      const replacements: Record<string, string> = {
-        "{{first_name}}": recipientFirstName,
-        "{{training_name}}": training.training_name,
-        "{{training_date}}": formattedDate,
-        "{{signature_link}}": signatureUrl,
-      };
-
-      for (const [key, value] of Object.entries(replacements)) {
-        subject = subject.replaceAll(key, value);
-        htmlBody = htmlBody.replaceAll(key, value);
-      }
-
-      // Process conditional signature block
-      if (signatureUrl) {
-        const signatureLinkRegex = /\{\{#signature_link\}\}([\s\S]*?)\{\{\/signature_link\}\}/g;
-        htmlBody = htmlBody.replace(signatureLinkRegex, "$1");
-      } else {
-        const signatureLinkRegex = /\{\{#signature_link\}\}[\s\S]*?\{\{\/signature_link\}\}/g;
-        htmlBody = htmlBody.replace(signatureLinkRegex, "");
-      }
-    } else {
-      // Default template
-      subject = useFormal
-        ? `Rappel : convention de formation "${training.training_name}"`
-        : `Rappel : convention de formation "${training.training_name}"`;
-
-      const signatureBlock = signatureUrl
-        ? emailButton("✍️ Signer la convention en ligne", signatureUrl)
-        : "";
-
-      if (useFormal) {
-        htmlBody = `
+    const defaultContent = useFormal
+      ? `
 <p>${greeting}</p>
 <p>Je me permets de vous relancer au sujet de la <strong>convention de formation</strong> pour la formation <strong>"${training.training_name}"</strong> prévue le <strong>${formattedDate}</strong>.</p>
 <p>Pourriez-vous nous retourner la convention signée dès que possible afin que nous puissions finaliser l'inscription ?</p>
 ${signatureBlock}
 <p>Je reste à votre disposition pour toute question.</p>
-<p>Bien cordialement,</p>`;
-      } else {
-        htmlBody = `
+<p>Bien cordialement,</p>`
+      : `
 <p>${greeting}</p>
 <p>Je me permets de te relancer au sujet de la <strong>convention de formation</strong> pour la formation <strong>"${training.training_name}"</strong> prévue le <strong>${formattedDate}</strong>.</p>
 <p>Peux-tu nous retourner la convention signée dès que possible afin que nous puissions finaliser l'inscription ?</p>
 ${signatureBlock}
 <p>N'hésite pas si tu as des questions !</p>
 <p>À bientôt,</p>`;
-      }
-    }
 
-    // Send email
-    const fullHtml = `${htmlBody}${signature}`;
-    const result = await sendEmail({
-      to: [recipientEmail],
-      bcc: bccList,
-      subject,
-      html: fullHtml,
+    // Send email using shared helper
+    const result = await sendTemplatedEmail({
+      supabase,
+      to: recipientEmail,
+      templateType,
+      defaultSubject,
+      defaultContent,
+      variables: {
+        first_name: recipientFirstName,
+        training_name: training.training_name,
+        training_date: formattedDate,
+        signature_link: signatureUrl,
+      },
+      emailType: "convention_reminder",
+      trainingId,
+      participantId: participantId || undefined,
+      convertToHtml: false,
     });
 
     if (!result.success) {
@@ -213,21 +179,13 @@ ${signatureBlock}
 
     console.log("Convention reminder sent to:", recipientEmail, result);
 
-    // Log activity
-    try {
-      await supabase.from("activity_logs").insert({
-        action_type: "convention_reminder_sent",
-        recipient_email: recipientEmail,
-        details: {
-          training_id: trainingId,
-          training_name: training.training_name,
-          participant_id: participantId || null,
-          format_formation: training.format_formation,
-        },
-      });
-    } catch (logError) {
-      console.warn("Failed to log activity:", logError);
-    }
+    // Log activity using shared helper
+    await logEmailActivity(supabase, "convention_reminder_sent", recipientEmail, {
+      training_id: trainingId,
+      training_name: training.training_name,
+      participant_id: participantId || null,
+      format_formation: training.format_formation,
+    });
 
     return createJsonResponse({ success: true, messageId: result.id });
   } catch (error: unknown) {

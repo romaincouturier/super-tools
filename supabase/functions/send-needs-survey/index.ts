@@ -3,13 +3,15 @@ import {
   handleCorsPreflightIfNeeded,
   createErrorResponse,
   createJsonResponse,
-  getSigniticSignature,
-  getBccSettings,
   getSupabaseClient,
   sendEmail,
   formatDateWithDayFr,
 } from "../_shared/mod.ts";
-import { processTemplate, textToHtml } from "../_shared/templates.ts";
+import {
+  tuVousSuffix,
+  prepareTemplatedEmail,
+  logEmailActivity,
+} from "../_shared/email-helpers.ts";
 
 // Default templates (fallback if no custom template in DB)
 const DEFAULT_SUBJECT_TU = "Prépare ta formation \"{{training_name}}\"";
@@ -79,28 +81,13 @@ serve(async (req) => {
     }
 
     // Determine tu/vous
-    const useTutoiement = training.participants_formal_address === false;
-    const templateTypeSuffix = useTutoiement ? "_tu" : "_vous";
-    const templateType = `needs_survey${templateTypeSuffix}`;
-
-    // Fetch template, BCC, and signature in parallel
-    const [templateResult, bccList, signature] = await Promise.all([
-      supabase
-        .from("email_templates")
-        .select("subject, html_content")
-        .eq("template_type", templateType)
-        .maybeSingle(),
-      getBccSettings(supabase),
-      getSigniticSignature(),
-    ]);
-
-    const customTemplate = templateResult.data;
+    const suffix = tuVousSuffix(training.participants_formal_address);
+    const templateType = `needs_survey_${suffix}`;
+    const useTutoiement = suffix === "tu";
     const defaultSubject = useTutoiement ? DEFAULT_SUBJECT_TU : DEFAULT_SUBJECT_VOUS;
     const defaultContent = useTutoiement ? DEFAULT_CONTENT_TU : DEFAULT_CONTENT_VOUS;
-    const subjectTemplate = customTemplate?.subject || defaultSubject;
-    const contentTemplate = customTemplate?.html_content || defaultContent;
 
-    console.log("Using template:", customTemplate ? "custom" : "default", "mode:", useTutoiement ? "tutoiement" : "vouvoiement");
+    console.log("Using template mode:", useTutoiement ? "tutoiement" : "vouvoiement");
 
     // Check if questionnaire already exists
     const { data: existingQuestionnaire, error: fetchError } = await supabase
@@ -191,7 +178,7 @@ serve(async (req) => {
     deadlineDate.setDate(deadlineDate.getDate() - 2);
     const formattedDeadline = formatDateWithDayFr(deadlineDate.toISOString().split("T")[0]);
 
-    // Process template
+    // Prepare template variables
     const variables = {
       first_name: participant.first_name || null,
       training_name: training.training_name,
@@ -200,21 +187,21 @@ serve(async (req) => {
       deadline_date: formattedDeadline,
     };
 
-    const emailSubject = processTemplate(subjectTemplate, variables, false);
-    const contentText = processTemplate(contentTemplate, variables, false);
-    const contentHtml = textToHtml(contentText);
-    const htmlContent = `${contentHtml}\n${signature}`;
+    // Prepare email (fetches template, BCC, signature, processes template)
+    const prepared = await prepareTemplatedEmail({
+      supabase,
+      to: participant.email,
+      templateType,
+      defaultSubject,
+      defaultContent,
+      variables,
+      emailType: "needs_survey",
+      trainingId,
+      participantId,
+    });
 
     // Send email
-    const result = await sendEmail({
-      to: [participant.email],
-      bcc: bccList,
-      subject: emailSubject,
-      html: htmlContent,
-      _emailType: "needs_survey",
-      _trainingId: trainingId,
-      _participantId: participantId,
-    });
+    const result = await sendEmail(prepared);
 
     if (!result.success) {
       throw new Error(`Failed to send email: ${result.error}`);
@@ -223,21 +210,13 @@ serve(async (req) => {
     console.log("Needs survey email sent to:", participant.email, result.id);
 
     // Log activity
-    try {
-      await supabase.from("activity_logs").insert({
-        action_type: "needs_survey_sent",
-        recipient_email: participant.email,
-        details: {
-          training_id: trainingId,
-          training_name: training.training_name,
-          participant_name: `${participant.first_name || ""} ${participant.last_name || ""}`.trim() || null,
-          email_subject: emailSubject,
-          email_content: contentText,
-        },
-      });
-    } catch (logError) {
-      console.warn("Failed to log activity:", logError);
-    }
+    await logEmailActivity(supabase, "needs_survey_sent", participant.email, {
+      training_id: trainingId,
+      training_name: training.training_name,
+      participant_name: `${participant.first_name || ""} ${participant.last_name || ""}`.trim() || null,
+      email_subject: prepared.subject,
+      email_content: prepared.html,
+    });
 
     return createJsonResponse({ success: true, messageId: result.id });
   } catch (error: unknown) {

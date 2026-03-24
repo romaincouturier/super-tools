@@ -63,6 +63,16 @@ export {
   type TemplateVariables,
 } from "./templates.ts";
 
+// Email helpers
+export {
+  tuVousSuffix,
+  fetchTemplateOrDefault,
+  prepareTemplatedEmail,
+  sendTemplatedEmail,
+  logEmailActivity,
+  type PreparedEmail,
+} from "./email-helpers.ts";
+
 // Crypto utilities
 export {
   generateHash,
