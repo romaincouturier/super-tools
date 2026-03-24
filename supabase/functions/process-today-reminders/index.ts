@@ -253,13 +253,12 @@ serve(async (req) => {
           is_next_day: !isFirstDay ? "1" : undefined,
         };
 
+        const summaryUrl = `${APP_URL}/formation-info/${trainingId}`;
         const resolvedSubject = processTemplate(template.subject, variables, false);
         const body = processTemplate(template.html_content, variables, false);
-        const resolvedHtml = body
-          .split(/\n\n+/)
-          .filter((paragraph: string) => paragraph.trim() !== "")
-          .map((paragraph: string) => `<p>${paragraph.replace(/\n/g, "<br>")}</p>`)
-          .join("") + "\n" + signatureHtml;
+        const resolvedHtml = templateTextToHtml(body)
+          + "\n" + emailButton("Infos & documents de la formation", summaryUrl)
+          + "\n" + signatureHtml;
 
         const result = await sendEmail({
           to: p.email,
