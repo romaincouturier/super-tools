@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams } from "react-router-dom";
 import { rpc } from "@/lib/supabase-rpc";
+import { supabase } from "@/integrations/supabase/client";
 import { format, parseISO, isAfter, startOfDay } from "date-fns";
 import { fr, enUS } from "date-fns/locale";
 import {
@@ -243,6 +244,24 @@ interface DeliverablesBlockProps {
   lang: Lang;
 }
 
+const forceDownload = async (url: string, fileName: string) => {
+  try {
+    const response = await fetch(url);
+    const blob = await response.blob();
+    const blobUrl = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = blobUrl;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(blobUrl);
+  } catch {
+    // Fallback: open in new tab
+    window.open(url, "_blank");
+  }
+};
+
 const DeliverablesBlock = ({ deliverables, lang }: DeliverablesBlockProps) => {
   const L = t[lang];
   const [downloadingAll, setDownloadingAll] = useState(false);
@@ -250,18 +269,9 @@ const DeliverablesBlock = ({ deliverables, lang }: DeliverablesBlockProps) => {
   const handleDownloadAll = async () => {
     setDownloadingAll(true);
     try {
-      // Download files one by one (no JSZip dependency needed for summary page)
       for (const doc of deliverables) {
-        const link = document.createElement("a");
-        link.href = doc.file_url;
-        link.download = doc.file_name;
-        link.target = "_blank";
-        link.rel = "noopener noreferrer";
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        // Small delay between downloads
-        await new Promise((r) => setTimeout(r, 300));
+        await forceDownload(doc.file_url, doc.file_name);
+        await new Promise((r) => setTimeout(r, 500));
       }
     } finally {
       setDownloadingAll(false);
@@ -322,16 +332,15 @@ const DeliverablesBlock = ({ deliverables, lang }: DeliverablesBlockProps) => {
                     <span className="text-xs text-muted-foreground">
                       {formatFileSize(doc.file_size)}
                     </span>
-                    <a
-                      href={doc.file_url}
-                      download={doc.file_name}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs text-primary hover:underline flex items-center gap-1"
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-primary hover:text-primary/80"
+                      onClick={() => forceDownload(doc.file_url, doc.file_name)}
+                      title={L.download}
                     >
-                      <Download className="h-3 w-3" />
-                      {L.download}
-                    </a>
+                      <Download className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -355,6 +364,17 @@ const MissionSummary = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [lang, setLang] = useState<Lang>("fr");
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      setIsAuthenticated(!!data.session?.user);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsAuthenticated(!!session?.user);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
 
   useEffect(() => {
     if (!missionId) return;
@@ -541,55 +561,55 @@ const MissionSummary = () => {
           <DeliverablesBlock deliverables={deliverables} lang={lang} />
         )}
 
-        {/* Financial Summary */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Euro className="h-5 w-5 text-primary" />
-              {L.invoiceSummary}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <div className="p-3 bg-blue-50 rounded-lg border border-blue-100">
-                <div className="text-xs text-blue-600 font-medium">{L.totalBudget}</div>
-                <div className="text-lg font-bold text-blue-700">
-                  {formatCurrency(budget, lang)} €
+        {/* Financial Summary — authenticated only */}
+        {isAuthenticated && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Euro className="h-5 w-5 text-primary" />
+                {L.invoiceSummary}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="p-3 bg-blue-50 rounded-lg border border-blue-100">
+                  <div className="text-xs text-blue-600 font-medium">{L.totalBudget}</div>
+                  <div className="text-lg font-bold text-blue-700">
+                    {formatCurrency(budget, lang)} €
+                  </div>
+                </div>
+                <div className="p-3 bg-orange-50 rounded-lg border border-orange-100">
+                  <div className="text-xs text-orange-600 font-medium">{L.consumed}</div>
+                  <div className="text-lg font-bold text-orange-700">
+                    {formatCurrency(totalConsumed, lang)} €
+                  </div>
+                </div>
+                <div className="p-3 bg-green-50 rounded-lg border border-green-100">
+                  <div className="text-xs text-green-600 font-medium">{L.billed}</div>
+                  <div className="text-lg font-bold text-green-700">
+                    {formatCurrency(totalBilled, lang)} €
+                  </div>
+                </div>
+                <div className="p-3 bg-purple-50 rounded-lg border border-purple-100">
+                  <div className="text-xs text-purple-600 font-medium">{L.remainingToBill}</div>
+                  <div className="text-lg font-bold text-purple-700">
+                    {formatCurrency(Math.max(0, remainingToBill), lang)} €
+                  </div>
                 </div>
               </div>
-              <div className="p-3 bg-orange-50 rounded-lg border border-orange-100">
-                <div className="text-xs text-orange-600 font-medium">{L.consumed}</div>
-                <div className="text-lg font-bold text-orange-700">
-                  {formatCurrency(totalConsumed, lang)} €
-                </div>
-              </div>
-              <div className="p-3 bg-green-50 rounded-lg border border-green-100">
-                <div className="text-xs text-green-600 font-medium">{L.billed}</div>
-                <div className="text-lg font-bold text-green-700">
-                  {formatCurrency(totalBilled, lang)} €
-                </div>
-              </div>
-              <div className="p-3 bg-purple-50 rounded-lg border border-purple-100">
-                <div className="text-xs text-purple-600 font-medium">{L.remainingToBill}</div>
-                <div className="text-lg font-bold text-purple-700">
-                  {formatCurrency(Math.max(0, remainingToBill), lang)} €
-                </div>
-              </div>
-            </div>
 
-            {budget > 0 && (
-              <div className="space-y-1">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">{L.progress}</span>
-                  <span className="font-medium">{Math.round(billedPercent)}%</span>
+              {budget > 0 && (
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">{L.progress}</span>
+                    <span className="font-medium">{Math.round(billedPercent)}%</span>
+                  </div>
+                  <Progress value={billedPercent} className="h-2" />
                 </div>
-                <Progress value={billedPercent} className="h-2" />
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Actions Kanban (mission_actions, not activities) */}
+              )}
+            </CardContent>
+          </Card>
+        )}
         {actions.length > 0 && (
           <Card>
             <CardHeader>
@@ -623,75 +643,77 @@ const MissionSummary = () => {
           </Card>
         )}
 
-        {/* Invoices Table */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Receipt className="h-5 w-5 text-primary" />
-              {L.invoices}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {invoicedActivities.length === 0 ? (
-              <p className="text-center text-muted-foreground py-6">{L.noInvoices}</p>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left py-2 pr-4 font-medium text-muted-foreground">{L.invoiceNumber}</th>
-                      <th className="text-left py-2 pr-4 font-medium text-muted-foreground">{L.date}</th>
-                      <th className="text-left py-2 pr-4 font-medium text-muted-foreground">{L.description}</th>
-                      <th className="text-right py-2 pr-4 font-medium text-muted-foreground">{L.amount}</th>
-                      <th className="text-center py-2 font-medium text-muted-foreground">{L.status}</th>
-                      <th></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {invoicedActivities.map((activity) => (
-                      <tr key={activity.id} className="border-b last:border-0">
-                        <td className="py-2.5 pr-4 font-medium">
-                          {activity.invoice_number || "—"}
-                        </td>
-                        <td className="py-2.5 pr-4 whitespace-nowrap">
-                          {format(parseISO(activity.activity_date), "dd/MM/yyyy")}
-                        </td>
-                        <td className="py-2.5 pr-4 max-w-[250px] truncate">
-                          {activity.description}
-                        </td>
-                        <td className="py-2.5 pr-4 text-right whitespace-nowrap font-medium">
-                          {activity.billable_amount != null
-                            ? `${formatCurrency(activity.billable_amount, lang)} €`
-                            : "—"}
-                        </td>
-                        <td className="py-2.5 text-center">
-                          <Badge
-                            variant={activity.is_billed ? "default" : "secondary"}
-                            className={activity.is_billed ? "bg-green-100 text-green-700 hover:bg-green-100" : ""}
-                          >
-                            {activity.is_billed ? L.billedBadge : L.pendingBadge}
-                          </Badge>
-                        </td>
-                        <td className="py-2.5 pl-2">
-                          {activity.invoice_url && (
-                            <a
-                              href={activity.invoice_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-primary hover:underline flex items-center gap-1 text-xs"
-                            >
-                              <ExternalLink className="h-3 w-3" />
-                            </a>
-                          )}
-                        </td>
+        {/* Invoices Table — authenticated only */}
+        {isAuthenticated && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Receipt className="h-5 w-5 text-primary" />
+                {L.invoices}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {invoicedActivities.length === 0 ? (
+                <p className="text-center text-muted-foreground py-6">{L.noInvoices}</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="text-left py-2 pr-4 font-medium text-muted-foreground">{L.invoiceNumber}</th>
+                        <th className="text-left py-2 pr-4 font-medium text-muted-foreground">{L.date}</th>
+                        <th className="text-left py-2 pr-4 font-medium text-muted-foreground">{L.description}</th>
+                        <th className="text-right py-2 pr-4 font-medium text-muted-foreground">{L.amount}</th>
+                        <th className="text-center py-2 font-medium text-muted-foreground">{L.status}</th>
+                        <th></th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                    </thead>
+                    <tbody>
+                      {invoicedActivities.map((activity) => (
+                        <tr key={activity.id} className="border-b last:border-0">
+                          <td className="py-2.5 pr-4 font-medium">
+                            {activity.invoice_number || "—"}
+                          </td>
+                          <td className="py-2.5 pr-4 whitespace-nowrap">
+                            {format(parseISO(activity.activity_date), "dd/MM/yyyy")}
+                          </td>
+                          <td className="py-2.5 pr-4 max-w-[250px] truncate">
+                            {activity.description}
+                          </td>
+                          <td className="py-2.5 pr-4 text-right whitespace-nowrap font-medium">
+                            {activity.billable_amount != null
+                              ? `${formatCurrency(activity.billable_amount, lang)} €`
+                              : "—"}
+                          </td>
+                          <td className="py-2.5 text-center">
+                            <Badge
+                              variant={activity.is_billed ? "default" : "secondary"}
+                              className={activity.is_billed ? "bg-green-100 text-green-700 hover:bg-green-100" : ""}
+                            >
+                              {activity.is_billed ? L.billedBadge : L.pendingBadge}
+                            </Badge>
+                          </td>
+                          <td className="py-2.5 pl-2">
+                            {activity.invoice_url && (
+                              <a
+                                href={activity.invoice_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-primary hover:underline flex items-center gap-1 text-xs"
+                              >
+                                <ExternalLink className="h-3 w-3" />
+                              </a>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Footer */}
         <div className="text-center text-xs text-muted-foreground py-4">
