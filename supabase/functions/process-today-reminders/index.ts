@@ -290,7 +290,23 @@ serve(async (req) => {
 
         if (result.success) {
           sentCount++;
+          alreadySentParticipants.add(participantLogKey);
           console.log(`[process-today-reminders] Sent to ${p.email}`);
+
+          try {
+            await supabase.from("activity_logs").insert({
+              action_type: "today_reminder_participant_sent",
+              recipient_email: participantLogKey,
+              details: {
+                training_id: trainingId,
+                training_name: training.training_name,
+                participant_id: p.id,
+                participant_email: p.email,
+              },
+            });
+          } catch (logErr) {
+            console.warn("[process-today-reminders] Failed to log participant send:", logErr);
+          }
         }
       }
 
