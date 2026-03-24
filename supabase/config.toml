@@ -102,9 +102,6 @@ verify_jwt = false
 [functions.retry-failed-email]
 verify_jwt = false
 
-[functions.process-crm-reminders]
-verify_jwt = false
-
 [functions.check-convention-status]
 verify_jwt = false
 
