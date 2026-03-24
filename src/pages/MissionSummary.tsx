@@ -561,7 +561,8 @@ const MissionSummary = () => {
           <DeliverablesBlock deliverables={deliverables} lang={lang} />
         )}
 
-        {/* Financial Summary */}
+        {/* Financial Summary — authenticated only */}
+        {isAuthenticated && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
