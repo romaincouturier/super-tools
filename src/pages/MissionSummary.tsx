@@ -609,8 +609,8 @@ const MissionSummary = () => {
             )}
           </CardContent>
         </Card>
-
-        {/* Actions Kanban (mission_actions, not activities) */}
+        </>
+        )}
         {actions.length > 0 && (
           <Card>
             <CardHeader>
