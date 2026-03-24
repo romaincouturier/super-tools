@@ -74,6 +74,15 @@ export {
   type PreparedEmail,
 } from "./email-helpers.ts";
 
+// Signature helpers
+export {
+  buildJourneyEvents,
+  storeProofFile,
+  LEGAL_BLOCK,
+  type JourneyEvent,
+  type DeviceInfo,
+} from "./signature-helpers.ts";
+
 // Crypto utilities
 export {
   generateHash,
