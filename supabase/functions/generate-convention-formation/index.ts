@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
 import { corsHeaders } from "../_shared/cors.ts";
+import { formatDateFr, formatDateFr as formatDateFrench } from "../_shared/date-utils.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -27,16 +28,6 @@ interface Participant {
   first_name: string | null;
   last_name: string | null;
   email: string;
-}
-
-// Format date in French
-function formatDateFrench(dateStr: string): string {
-  const date = new Date(dateStr);
-  return date.toLocaleDateString("fr-FR", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
 }
 
 // Format date range for display

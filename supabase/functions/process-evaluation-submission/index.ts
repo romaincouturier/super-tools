@@ -6,6 +6,7 @@ import { processTemplate, textToHtml } from "../_shared/templates.ts";
 import { sendEmail } from "../_shared/resend.ts";
 
 import { corsHeaders } from "../_shared/cors.ts";
+import { formatDateFr } from "../_shared/date-utils.ts";
 
 const PDFMONKEY_API_KEY = Deno.env.get("PDFMONKEY_API_KEY");
 const GOOGLE_SERVICE_ACCOUNT_JSON = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_JSON");
@@ -24,16 +25,6 @@ const formatName = (firstName: string | null, lastName: string | null): string =
     return `${firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase()} ${lastName.charAt(0).toUpperCase() + lastName.slice(1).toLowerCase()}`;
   }
   return (firstName || lastName || "").charAt(0).toUpperCase() + (firstName || lastName || "").slice(1).toLowerCase();
-};
-
-// Helper to format date in French
-const formatDateFr = (dateStr: string): string => {
-  const date = new Date(dateStr);
-  return date.toLocaleDateString("fr-FR", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
 };
 
 // Helper to get Google access token from service account

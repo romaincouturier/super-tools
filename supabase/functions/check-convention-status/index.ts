@@ -4,6 +4,7 @@ import { sendEmail } from "../_shared/resend.ts";
 import { getSenderEmail } from "../_shared/email-settings.ts";
 
 import { corsHeaders } from "../_shared/cors.ts";
+import { formatDateFr } from "../_shared/date-utils.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -19,14 +20,6 @@ interface TrainingIssue {
   issues: string[];
 }
 
-function formatDateFr(dateStr: string): string {
-  const date = new Date(dateStr);
-  return new Intl.DateTimeFormat("fr-FR", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  }).format(date);
-}
 
 function daysUntil(dateStr: string): number {
   const today = new Date();

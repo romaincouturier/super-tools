@@ -63,6 +63,13 @@ export {
   type TemplateVariables,
 } from "./templates.ts";
 
+// Crypto utilities
+export {
+  generateHash,
+  hashArrayBuffer,
+  getClientIp,
+} from "./crypto.ts";
+
 // App URLs
 export { getAppUrls } from "./app-urls.ts";
 

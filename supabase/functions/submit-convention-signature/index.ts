@@ -6,6 +6,8 @@ import { sendEmail } from "../_shared/resend.ts";
 import { generateSignedPdf } from "../_shared/generate-signed-pdf.ts";
 
 import { corsHeaders } from "../_shared/cors.ts";
+import { formatDateTime } from "../_shared/date-utils.ts";
+import { generateHash, hashArrayBuffer, getClientIp } from "../_shared/crypto.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -37,41 +39,6 @@ interface RequestBody {
   journeyEvents?: JourneyEvent[];
 }
 
-async function generateHash(data: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const dataBuffer = encoder.encode(data);
-  const hashBuffer = await crypto.subtle.digest("SHA-256", dataBuffer);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
-}
-
-async function hashArrayBuffer(buffer: ArrayBuffer): Promise<string> {
-  const hashBuffer = await crypto.subtle.digest("SHA-256", buffer);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
-}
-
-function getClientIp(req: Request): string {
-  // cf-connecting-ip is the real client IP from Cloudflare (most reliable)
-  return (
-    req.headers.get("cf-connecting-ip") ||
-    req.headers.get("x-real-ip") ||
-    req.headers.get("x-forwarded-for")?.split(",")[0].trim() ||
-    "unknown"
-  );
-}
-
-function formatDateFr(dateStr: string): string {
-  const date = new Date(dateStr);
-  return new Intl.DateTimeFormat("fr-FR", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: "Europe/Paris",
-  }).format(date);
-}
 
 serve(async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
@@ -480,7 +447,7 @@ serve(async (req: Request): Promise<Response> => {
 <ul>
   <li><strong>Formation :</strong> ${conventionSig.formation_name}</li>
   <li><strong>Client :</strong> ${conventionSig.client_name}</li>
-  <li><strong>Signée le :</strong> ${formatDateFr(signedAt)}</li>
+  <li><strong>Signée le :</strong> ${formatDateTime(signedAt)}</li>
 </ul>
 <p>Vous pouvez consulter la convention signée en cliquant sur le lien ci-dessous :</p>
 <p>

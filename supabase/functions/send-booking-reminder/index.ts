@@ -6,15 +6,7 @@ import { processTemplate } from "../_shared/templates.ts";
 import { sendEmail } from "../_shared/resend.ts";
 
 import { corsHeaders } from "../_shared/cors.ts";
-
-function formatDate(dateString: string): string {
-  const date = new Date(dateString);
-  return date.toLocaleDateString("fr-FR", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
-}
+import { formatDateFr as formatDate } from "../_shared/date-utils.ts";
 
 interface ReminderResult {
   entity_type: "training" | "mission";

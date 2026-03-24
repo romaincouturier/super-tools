@@ -8,6 +8,7 @@ import {
   replaceVariables,
   getSupabaseClient,
   sendEmail,
+  formatDateFr,
 } from "../_shared/mod.ts";
 import { getBccList } from "../_shared/email-settings.ts";
 
@@ -67,12 +68,6 @@ serve(async (req) => {
 
     let emailSubject = template.subject;
     let emailContent = template.html_content;
-
-    // Format dates
-    const formatDateFr = (dateStr: string) => {
-      const d = new Date(dateStr);
-      return d.toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
-    };
 
     // Build access link: prefer woocommerce_cart_base_url + product_id, fallback to supertilt_link/location
     let accessLink = training.supertilt_link || training.location || "";

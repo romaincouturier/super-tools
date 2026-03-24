@@ -7,6 +7,7 @@ import { sendEmail } from "../_shared/resend.ts";
 import { emailButton } from "../_shared/templates.ts";
 
 import { corsHeaders } from "../_shared/cors.ts";
+import { formatDateWithDayFr } from "../_shared/date-utils.ts";
 
 interface TrainingSchedule {
   day_date: string;
@@ -97,17 +98,6 @@ function escapeICS(text: string): string {
     .replace(/\n/g, "\\n");
 }
 
-// Format dates for email display (force Europe/Paris timezone)
-function formatDateFrench(dateStr: string): string {
-  const date = new Date(dateStr + "T12:00:00");
-  return date.toLocaleDateString("fr-FR", {
-    timeZone: "Europe/Paris",
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
-}
 
 serve(async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
@@ -164,7 +154,7 @@ serve(async (req: Request): Promise<Response> => {
     // Build schedule list for email
     const scheduleList = schedules
       .map((s) => {
-        const date = formatDateFrench(s.day_date);
+        const date = formatDateWithDayFr(s.day_date);
         return `<li><strong>${date}</strong> : ${s.start_time.slice(0, 5)} - ${s.end_time.slice(0, 5)}</li>`;
       })
       .join("");

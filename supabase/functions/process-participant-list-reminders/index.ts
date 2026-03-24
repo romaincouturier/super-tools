@@ -5,6 +5,7 @@ import { getSigniticSignature } from "../_shared/signitic.ts";
 import { sendEmail } from "../_shared/resend.ts";
 
 import { corsHeaders } from "../_shared/cors.ts";
+import { formatDateFr, formatDateWithDayFr } from "../_shared/date-utils.ts";
 
 /**
  * Process Participant List Reminders
@@ -14,19 +15,6 @@ import { corsHeaders } from "../_shared/cors.ts";
  * Stops when participants are added or training starts.
  */
 
-const DAYS_FR = ["dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi"];
-const MONTHS_FR = [
-  "janvier", "février", "mars", "avril", "mai", "juin",
-  "juillet", "août", "septembre", "octobre", "novembre", "décembre",
-];
-
-function formatDateFr(date: Date): string {
-  return `${date.getDate()} ${MONTHS_FR[date.getMonth()]} ${date.getFullYear()}`;
-}
-
-function formatDateWithDayFr(date: Date): string {
-  return `${DAYS_FR[date.getDay()]} ${date.getDate()} ${MONTHS_FR[date.getMonth()]} ${date.getFullYear()}`;
-}
 
 function getWorkingDaysBetween(
   from: Date,

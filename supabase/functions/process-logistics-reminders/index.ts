@@ -4,6 +4,7 @@ import { getSenderFrom, getBccList } from "../_shared/email-settings.ts";
 import { sendEmail } from "../_shared/resend.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 import { skipIfNonWorkingDay } from "../_shared/working-days.ts";
+import { formatDateFr, formatDateWithDayFr } from "../_shared/date-utils.ts";
 import {
   fetchAllDailyData,
   userCanSee,
@@ -87,13 +88,6 @@ function formatReservationItems(r: ReservationItem): string {
   return items.join(" + ");
 }
 
-function formatDateFr(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString("fr-FR", { day: "numeric", month: "long" });
-}
-
-function formatDateWithDayFr(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" });
-}
 
 function conventionIssueLabel(issue: TrainingConventionItem["issue"]): string {
   switch (issue) {
