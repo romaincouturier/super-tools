@@ -3,9 +3,71 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { sendEmail } from "../_shared/resend.ts";
 import { getBccList } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
+import { getAppUrls } from "../_shared/app-urls.ts";
 import { processTemplate, emailButton } from "../_shared/templates.ts";
 
 import { corsHeaders } from "../_shared/cors.ts";
+
+/**
+ * Convert template text to HTML, properly handling bullet lists (• or - prefix).
+ * Groups consecutive bullet lines into <ul> blocks instead of wrapping them in <p>.
+ */
+function templateTextToHtml(text: string): string {
+  if (!text) return "";
+
+  const paragraphs = text.split(/\n\n+/).filter((p) => p.trim() !== "");
+  const htmlParts: string[] = [];
+
+  for (const para of paragraphs) {
+    const lines = para.split(/\n/).map((l) => l.trim()).filter(Boolean);
+
+    // Check if this paragraph is a bullet list (all lines start with • or -)
+    const isBulletList = lines.length > 0 && lines.every((l) => /^[•\-]\s/.test(l));
+
+    if (isBulletList) {
+      const items = lines.map((l) => `<li>${l.replace(/^[•\-]\s*/, "")}</li>`).join("\n");
+      htmlParts.push(`<ul style="margin: 8px 0; padding-left: 20px;">\n${items}\n</ul>`);
+    } else {
+      // Check for mixed content: some lines are bullets, some are not
+      let inList = false;
+      const mixed: string[] = [];
+
+      for (const line of lines) {
+        if (/^[•\-]\s/.test(line)) {
+          if (!inList) {
+            inList = true;
+            mixed.push('<ul style="margin: 8px 0; padding-left: 20px;">');
+          }
+          mixed.push(`<li>${line.replace(/^[•\-]\s*/, "")}</li>`);
+        } else {
+          if (inList) {
+            inList = false;
+            mixed.push("</ul>");
+          }
+          mixed.push(line);
+        }
+      }
+      if (inList) mixed.push("</ul>");
+
+      // If we had mixed content with lists, join directly
+      if (mixed.some((m) => m.startsWith("<ul") || m.startsWith("<li") || m.startsWith("</ul"))) {
+        htmlParts.push(`<p>${mixed.filter((m) => !m.startsWith("<ul") && !m.startsWith("<li") && !m.startsWith("</ul")).join("<br>")}</p>`);
+        // Re-extract the list parts
+        let buf = "";
+        for (const m of mixed) {
+          if (m.startsWith("<ul") || m.startsWith("<li") || m.startsWith("</ul")) {
+            buf += m + "\n";
+          }
+        }
+        if (buf) htmlParts.splice(htmlParts.length - 1, 0, buf.trim());
+      } else {
+        htmlParts.push(`<p>${lines.join("<br>")}</p>`);
+      }
+    }
+  }
+
+  return htmlParts.join("\n");
+}
 
 /**
  * Process Live Reminders
