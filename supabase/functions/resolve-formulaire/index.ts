@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getSupabaseClient } from "../_shared/supabase-client.ts";
 import {
   corsHeaders,
   handleCorsPreflightIfNeeded,
@@ -58,9 +58,7 @@ serve(async (req: Request): Promise<Response> => {
       "unknown";
 
     // Create Supabase client with service role (to bypass RLS for rate limiting)
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabase = getSupabaseClient();
 
     // Check rate limit
     const { data: isAllowed, error: rateLimitError } = await supabase.rpc(

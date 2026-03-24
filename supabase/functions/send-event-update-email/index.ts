@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getSupabaseClient } from "../_shared/supabase-client.ts";
 import {
   handleCorsPreflightIfNeeded,
   createErrorResponse,
@@ -55,7 +56,6 @@ serve(async (req) => {
     const token = authHeader.replace("Bearer ", "");
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
     const authClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: `Bearer ${token}` } },
@@ -68,7 +68,7 @@ serve(async (req) => {
       return createErrorResponse("event_id et changes sont requis", 400);
     }
 
-    const supabase = createClient(supabaseUrl, serviceKey);
+    const supabase = getSupabaseClient();
 
     // Fetch event
     const { data: event, error: eventError } = await supabase

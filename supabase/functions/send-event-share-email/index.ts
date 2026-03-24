@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getSupabaseClient } from "../_shared/supabase-client.ts";
 import {
   handleCorsPreflightIfNeeded,
   createErrorResponse,
@@ -36,7 +37,6 @@ serve(async (req) => {
     const token = authHeader.replace("Bearer ", "");
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
     console.log("[share-email] Env check - URL:", !!supabaseUrl, "ANON:", !!anonKey);
 
@@ -62,7 +62,7 @@ serve(async (req) => {
     }
 
     // Use service role client for data queries
-    const supabase = createClient(supabaseUrl, serviceKey);
+    const supabase = getSupabaseClient();
 
     // Fetch event details
     const { data: event, error: eventError } = await supabase
