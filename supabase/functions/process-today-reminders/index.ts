@@ -230,11 +230,29 @@ serve(async (req) => {
         continue;
       }
 
+      // Per-participant dedup: check which participants already received today
+      const participantLogKeys = participants.filter((p: any) => p.email).map((p: any) => `${trainingId}:${p.id}`);
+      const { data: existingParticipantLogs } = participantLogKeys.length > 0
+        ? await supabase
+            .from("activity_logs")
+            .select("recipient_email")
+            .eq("action_type", "today_reminder_participant_sent")
+            .in("recipient_email", participantLogKeys)
+        : { data: [] as { recipient_email: string }[] };
+      const alreadySentParticipants = new Set(
+        (existingParticipantLogs || []).map((row: any) => row.recipient_email)
+      );
+
       let sentCount = 0;
 
       for (let i = 0; i < participants.length; i++) {
         const p = participants[i];
         if (!p.email) continue;
+
+        const participantLogKey = `${trainingId}:${p.id}`;
+        if (alreadySentParticipants.has(participantLogKey)) {
+          continue;
+        }
 
         if (i > 0) {
           await new Promise(resolve => setTimeout(resolve, 400));
