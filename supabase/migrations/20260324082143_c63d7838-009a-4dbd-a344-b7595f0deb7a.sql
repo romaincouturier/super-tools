@@ -1,0 +1,1 @@
+DELETE FROM activity_logs WHERE action_type = 'today_reminder_sent' AND recipient_email = '52a6d548-c460-4317-aa44-dcf00038bdf1' AND created_at >= '2026-03-24T00:00:00';
