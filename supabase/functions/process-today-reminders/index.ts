@@ -3,9 +3,33 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { sendEmail } from "../_shared/resend.ts";
 import { getBccList } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
-import { processTemplate } from "../_shared/templates.ts";
+import { getAppUrls } from "../_shared/app-urls.ts";
+import { processTemplate, emailButton } from "../_shared/templates.ts";
 
 import { corsHeaders } from "../_shared/cors.ts";
+
+/**
+ * Convert template text to HTML, properly handling bullet lists (• or - prefix).
+ */
+function templateTextToHtml(text: string): string {
+  if (!text) return "";
+  const paragraphs = text.split(/\n\n+/).filter((p) => p.trim() !== "");
+  const htmlParts: string[] = [];
+  for (const para of paragraphs) {
+    const lines = para.split(/\n/).map((l) => l.trim()).filter(Boolean);
+    if (lines.length === 0) continue;
+    let currentText: string[] = [];
+    let currentBullets: string[] = [];
+    const flushText = () => { if (currentText.length > 0) { htmlParts.push(`<p>${currentText.join("<br>")}</p>`); currentText = []; } };
+    const flushBullets = () => { if (currentBullets.length > 0) { htmlParts.push(`<ul style="margin: 8px 0; padding-left: 20px;">\n${currentBullets.map((b) => `<li>${b}</li>`).join("\n")}\n</ul>`); currentBullets = []; } };
+    for (const line of lines) {
+      if (/^[•\-]\s/.test(line)) { flushText(); currentBullets.push(line.replace(/^[•\-]\s*/, "")); }
+      else { flushBullets(); currentText.push(line); }
+    }
+    flushText(); flushBullets();
+  }
+  return htmlParts.join("\n");
+}
 
 /**
  * Process Today Reminders
