@@ -1,258 +1,19 @@
-import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { rpc } from "@/lib/supabase-rpc";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { VoiceTextarea } from "@/components/ui/voice-textarea";
-import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Loader2, CheckCircle2, Star, Calendar, Building2, User, Mail } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { formatTrainingDates, formatDateWithTime } from "@/lib/dateFormatters";
+import { Loader2, CheckCircle2, Calendar, Building2, User, Mail } from "lucide-react";
+import { formatDateWithTime } from "@/lib/dateFormatters";
 import supertiltLogo from "@/assets/supertilt-logo-anthracite-transparent.png";
-
-type EvaluationRecord = {
-  id: string;
-  training_id: string;
-  participant_id: string;
-  token: string;
-  etat: string;
-  email: string | null;
-  first_name: string | null;
-  last_name: string | null;
-  company: string | null;
-  appreciation_generale: number | null;
-  recommandation: string | null;
-  objectifs_evaluation: { objectif: string; niveau: number }[] | null;
-  objectif_prioritaire: string | null;
-  delai_application: string | null;
-  freins_application: string | null;
-  rythme: string | null;
-  equilibre_theorie_pratique: string | null;
-  amelioration_suggeree: string | null;
-  conditions_info_satisfaisantes: boolean | null;
-  formation_adaptee_public: boolean | null;
-  qualification_intervenant_adequate: boolean | null;
-  appreciations_prises_en_compte: string | null;
-  message_recommandation: string | null;
-  consent_publication: boolean | null;
-  remarques_libres: string | null;
-  date_premiere_ouverture: string | null;
-  date_soumission: string | null;
-};
-
-type TrainingRecord = {
-  training_name: string;
-  start_date: string;
-  end_date: string | null;
-  objectives: string[] | null;
-};
+import { useEvaluationForm } from "@/hooks/useEvaluationForm";
 
 const Evaluation = () => {
   const { token } = useParams<{ token: string }>();
-  const { toast } = useToast();
+  const form = useEvaluationForm(token);
 
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [evaluation, setEvaluation] = useState<EvaluationRecord | null>(null);
-  const [training, setTraining] = useState<TrainingRecord | null>(null);
-
-  const [appreciationGenerale, setAppreciationGenerale] = useState<number | null>(null);
-  const [recommandation, setRecommandation] = useState<string | null>(null);
-  const [objectifsEvaluation, setObjectifsEvaluation] = useState<{ objectif: string; niveau: number }[]>([]);
-  const [objectifPrioritaire, setObjectifPrioritaire] = useState<string | null>(null);
-  const [delaiApplication, setDelaiApplication] = useState<string | null>(null);
-  const [freinsApplication, setFreinsApplication] = useState<string>("");
-  const [rythme, setRythme] = useState<string | null>(null);
-  const [equilibreTheoriePratique, setEquilibreTheoriePratique] = useState<string | null>(null);
-  const [ameliorationSuggeree, setAmeliorationSuggeree] = useState<string>("");
-  const [conditionsInfoSatisfaisantes, setConditionsInfoSatisfaisantes] = useState<boolean | null>(null);
-  const [formationAdapteePublic, setFormationAdapteePublic] = useState<boolean | null>(null);
-  const [qualificationIntervenantAdequate, setQualificationIntervenantAdequate] = useState<boolean | null>(null);
-  const [appreciationsPrisesEnCompte, setAppreciationsPrisesEnCompte] = useState<string | null>(null);
-  const [messageRecommandation, setMessageRecommandation] = useState<string>("");
-  const [consentPublication, setConsentPublication] = useState<boolean | null>(null);
-  const [remarquesLibres, setRemarquesLibres] = useState<string>("");
-
-  const formattedDates = useMemo(() => {
-    if (!training) return "";
-    return formatTrainingDates(training.start_date, training.end_date);
-  }, [training]);
-
-  const fetchData = async () => {
-    if (!token) {
-      setError("Lien invalide : token manquant.");
-      setLoading(false);
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const { data: evArr, error: evErr } = await rpc.getEvaluationByToken(token);
-
-      if (evErr || !evArr || evArr.length === 0) {
-        throw evErr || new Error("Évaluation introuvable");
-      }
-
-      const evTyped = evArr[0] as unknown as EvaluationRecord;
-      setEvaluation(evTyped);
-
-      // Populate form state from existing data
-      if (evTyped.appreciation_generale) setAppreciationGenerale(evTyped.appreciation_generale);
-      if (evTyped.recommandation) setRecommandation(evTyped.recommandation);
-      if (evTyped.objectifs_evaluation) setObjectifsEvaluation(evTyped.objectifs_evaluation);
-      if (evTyped.objectif_prioritaire) setObjectifPrioritaire(evTyped.objectif_prioritaire);
-      if (evTyped.delai_application) setDelaiApplication(evTyped.delai_application);
-      if (evTyped.freins_application) setFreinsApplication(evTyped.freins_application);
-      if (evTyped.rythme) setRythme(evTyped.rythme);
-      if (evTyped.equilibre_theorie_pratique) setEquilibreTheoriePratique(evTyped.equilibre_theorie_pratique);
-      if (evTyped.amelioration_suggeree) setAmeliorationSuggeree(evTyped.amelioration_suggeree);
-      if (evTyped.conditions_info_satisfaisantes !== null) setConditionsInfoSatisfaisantes(evTyped.conditions_info_satisfaisantes);
-      if (evTyped.formation_adaptee_public !== null) setFormationAdapteePublic(evTyped.formation_adaptee_public);
-      if (evTyped.qualification_intervenant_adequate !== null) setQualificationIntervenantAdequate(evTyped.qualification_intervenant_adequate);
-      if (evTyped.appreciations_prises_en_compte) setAppreciationsPrisesEnCompte(evTyped.appreciations_prises_en_compte);
-      if (evTyped.message_recommandation) setMessageRecommandation(evTyped.message_recommandation);
-      if (evTyped.consent_publication !== null) setConsentPublication(evTyped.consent_publication);
-      if (evTyped.remarques_libres) setRemarquesLibres(evTyped.remarques_libres);
-
-      // Fetch training (may be null for orphan evaluations)
-      if (evTyped.training_id) {
-        const { data: t, error: tErr } = await rpc.getTrainingPublicInfo(evTyped.training_id);
-
-        if (!tErr && t) {
-          setTraining(t as unknown as TrainingRecord);
-
-          // Initialize objectives evaluation
-          if (t.objectives && Array.isArray(t.objectives)) {
-            const existingEvals = (evTyped.objectifs_evaluation || []) as { objectif: string; niveau: number }[];
-            const objectivesWithEval = t.objectives.map((obj: string) => {
-              const existing = existingEvals.find((e) => e.objectif === obj);
-              return { objectif: obj, niveau: existing?.niveau || 0 };
-            });
-            setObjectifsEvaluation(objectivesWithEval);
-          }
-        }
-      }
-
-      // First open tracking
-      if (!evTyped.date_premiere_ouverture) {
-        const nowIso = new Date().toISOString();
-        await rpc.updateEvaluationByToken(token, { date_premiere_ouverture: nowIso });
-      }
-    } catch (e: unknown) {
-      console.error("Failed to load evaluation", e);
-      const errorMsg = "Impossible d'ouvrir cette évaluation (lien invalide, expiré, ou accès refusé).";
-      setError(errorMsg);
-      // Fire-and-forget alert to admin
-      supabase.functions.invoke("alert-form-error", {
-        body: {
-          formType: "evaluation",
-          token,
-          errorMessage: e instanceof Error ? e.message : errorMsg,
-          userAgent: navigator.userAgent,
-          url: window.location.href,
-        },
-      }).catch(() => {});
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleObjectiveRating = (index: number, niveau: number) => {
-    setObjectifsEvaluation((prev) =>
-      prev.map((o, i) => (i === index ? { ...o, niveau } : o))
-    );
-  };
-
-  const submit = async () => {
-    if (!evaluation) return;
-
-    // Validation
-    if (appreciationGenerale === null) {
-      toast({
-        title: "Champ requis",
-        description: "Veuillez indiquer votre appréciation générale.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!recommandation) {
-      toast({
-        title: "Champ requis",
-        description: "Veuillez indiquer si vous recommanderiez cette formation.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setSubmitting(true);
-    try {
-      const nowIso = new Date().toISOString();
-
-      const { error: upErr } = await rpc.updateEvaluationByToken(token!, {
-        appreciation_generale: appreciationGenerale,
-        recommandation,
-        objectifs_evaluation: objectifsEvaluation,
-        objectif_prioritaire: objectifPrioritaire,
-        delai_application: delaiApplication,
-        freins_application: freinsApplication || null,
-        rythme,
-        equilibre_theorie_pratique: equilibreTheoriePratique,
-        amelioration_suggeree: ameliorationSuggeree || null,
-        conditions_info_satisfaisantes: conditionsInfoSatisfaisantes,
-        formation_adaptee_public: formationAdapteePublic,
-        qualification_intervenant_adequate: qualificationIntervenantAdequate,
-        appreciations_prises_en_compte: appreciationsPrisesEnCompte,
-        message_recommandation: messageRecommandation || null,
-        consent_publication: consentPublication,
-        remarques_libres: remarquesLibres || null,
-        etat: "soumis",
-        date_soumission: nowIso,
-      });
-
-      if (upErr) throw upErr;
-
-      // Trigger post-evaluation processing (certificate, emails, etc.)
-      // Fire-and-forget: don't await to avoid edge function timeout blocking the UI
-      supabase.functions.invoke("process-evaluation-submission", {
-        body: { evaluationId: evaluation.id },
-      }).catch((processError) => {
-        console.error("Post-evaluation processing failed:", processError);
-      });
-
-      toast({
-        title: "Merci !",
-        description: "Votre évaluation a bien été enregistrée. Vous recevrez votre certificat par email.",
-      });
-
-      setEvaluation((prev) =>
-        prev ? { ...prev, etat: "soumis", date_soumission: nowIso } : prev
-      );
-    } catch (e: unknown) {
-      const errorDetail = e instanceof Error ? e.message : "Erreur inconnue";
-      console.error("Submit failed — detail:", errorDetail, "full:", e);
-      toast({
-        title: "Erreur",
-        description: `Impossible de soumettre l'évaluation. (${errorDetail}) Réessayez.`,
-        variant: "destructive",
-      });
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token]);
-
-  if (loading) {
+  if (form.loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center space-y-4">
@@ -263,7 +24,7 @@ const Evaluation = () => {
     );
   }
 
-  if (error) {
+  if (form.error) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
         <Card className="max-w-md w-full">
@@ -276,18 +37,18 @@ const Evaluation = () => {
             <CardTitle className="text-destructive">Accès impossible</CardTitle>
           </CardHeader>
           <CardContent className="text-center text-muted-foreground">
-            {error}
+            {form.error}
           </CardContent>
         </Card>
       </div>
     );
   }
 
-  if (!evaluation) return null;
+  if (!form.evaluation) return null;
 
   // Already submitted view
-  if (evaluation.etat === "soumis" && evaluation.date_soumission) {
-    const trainingSummaryUrl = evaluation.training_id ? `/formation-info/${evaluation.training_id}` : null;
+  if (form.evaluation.etat === "soumis" && form.evaluation.date_soumission) {
+    const trainingSummaryUrl = form.evaluation.training_id ? `/formation-info/${form.evaluation.training_id}` : null;
 
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
@@ -303,8 +64,8 @@ const Evaluation = () => {
             </div>
             <CardTitle>Merci pour votre retour !</CardTitle>
             <CardDescription>
-              Vous avez envoyé votre évaluation{training ? <> pour la formation <strong>{training.training_name}</strong></> : ""} le{" "}
-              {formatDateWithTime(evaluation.date_soumission)}.
+              Vous avez envoyé votre évaluation{form.training ? <> pour la formation <strong>{form.training.training_name}</strong></> : ""} le{" "}
+              {formatDateWithTime(form.evaluation.date_soumission)}.
             </CardDescription>
           </CardHeader>
           <CardContent className="text-center space-y-4">
@@ -340,7 +101,7 @@ const Evaluation = () => {
             <h1 className="text-2xl font-bold text-foreground">
               Questionnaire d'évaluation de formation
             </h1>
-            {training && <p className="text-muted-foreground mt-1">{training.training_name}</p>}
+            {form.training && <p className="text-muted-foreground mt-1">{form.training.training_name}</p>}
           </div>
         </div>
 
@@ -354,29 +115,29 @@ const Evaluation = () => {
               <div className="flex items-center gap-2 text-sm">
                 <Mail className="h-4 w-4 text-muted-foreground" />
                 <span className="text-muted-foreground">Email :</span>
-                <span className="font-medium">{evaluation.email || "—"}</span>
+                <span className="font-medium">{form.evaluation.email || "—"}</span>
               </div>
               <div className="flex items-center gap-2 text-sm">
                 <User className="h-4 w-4 text-muted-foreground" />
                 <span className="text-muted-foreground">Prénom :</span>
-                <span className="font-medium">{evaluation.first_name || "—"}</span>
+                <span className="font-medium">{form.evaluation.first_name || "—"}</span>
               </div>
               <div className="flex items-center gap-2 text-sm">
                 <User className="h-4 w-4 text-muted-foreground" />
                 <span className="text-muted-foreground">Nom :</span>
-                <span className="font-medium">{evaluation.last_name || "—"}</span>
+                <span className="font-medium">{form.evaluation.last_name || "—"}</span>
               </div>
               <div className="flex items-center gap-2 text-sm">
                 <Building2 className="h-4 w-4 text-muted-foreground" />
                 <span className="text-muted-foreground">Entreprise :</span>
-                <span className="font-medium">{evaluation.company || "—"}</span>
+                <span className="font-medium">{form.evaluation.company || "—"}</span>
               </div>
             </div>
-            {formattedDates && (
+            {form.formattedDates && (
               <div className="flex items-center gap-2 text-sm pt-2 border-t">
                 <Calendar className="h-4 w-4 text-muted-foreground" />
                 <span className="text-muted-foreground">Formation :</span>
-                <span className="font-medium">{formattedDates}</span>
+                <span className="font-medium">{form.formattedDates}</span>
               </div>
             )}
           </CardContent>
@@ -399,9 +160,9 @@ const Evaluation = () => {
                   <button
                     key={n}
                     type="button"
-                    onClick={() => setAppreciationGenerale(n)}
+                    onClick={() => form.setAppreciationGenerale(n)}
                     className={`flex items-center justify-center w-12 h-12 rounded-lg border-2 transition-all ${
-                      appreciationGenerale === n
+                      form.appreciationGenerale === n
                         ? "border-primary bg-primary/10 text-primary"
                         : "border-gray-200 hover:border-gray-300"
                     }`}
@@ -417,7 +178,7 @@ const Evaluation = () => {
                 Recommanderiez-vous cette formation ?
                 <span className="text-destructive ml-1">*</span>
               </Label>
-              <RadioGroup value={recommandation || ""} onValueChange={setRecommandation}>
+              <RadioGroup value={form.recommandation || ""} onValueChange={form.setRecommandation}>
                 <div className="flex flex-wrap gap-4">
                   {[
                     { value: "oui", label: "Oui" },
@@ -438,7 +199,7 @@ const Evaluation = () => {
         </Card>
 
         {/* Atteinte des objectifs pédagogiques */}
-        {training?.objectives && training.objectives.length > 0 && (
+        {form.training?.objectives && form.training.objectives.length > 0 && (
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Atteinte des objectifs pédagogiques</CardTitle>
@@ -447,7 +208,7 @@ const Evaluation = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              {objectifsEvaluation.map((obj, index) => (
+              {form.objectifsEvaluation.map((obj, index) => (
                 <div key={index} className="space-y-2 pb-4 border-b last:border-0">
                   <Label className="text-sm">{obj.objectif}</Label>
                   <div className="flex gap-2">
@@ -455,7 +216,7 @@ const Evaluation = () => {
                       <button
                         key={n}
                         type="button"
-                        onClick={() => handleObjectiveRating(index, n)}
+                        onClick={() => form.handleObjectiveRating(index, n)}
                         className={`flex items-center justify-center w-10 h-10 rounded-lg border-2 transition-all ${
                           obj.niveau === n
                             ? "border-primary bg-primary/10 text-primary"
@@ -473,9 +234,9 @@ const Evaluation = () => {
                 <Label>
                   Parmi ces objectifs, lequel allez-vous appliquer en premier dans votre pratique professionnelle ?
                 </Label>
-                <RadioGroup value={objectifPrioritaire || ""} onValueChange={setObjectifPrioritaire}>
+                <RadioGroup value={form.objectifPrioritaire || ""} onValueChange={form.setObjectifPrioritaire}>
                   <div className="space-y-2">
-                    {training.objectives.map((obj, index) => (
+                    {form.training.objectives.map((obj, index) => (
                       <div key={index} className="flex items-start gap-2">
                         <RadioGroupItem value={obj} id={`obj-prio-${index}`} className="mt-1" />
                         <Label htmlFor={`obj-prio-${index}`} className="font-normal cursor-pointer text-sm">
@@ -498,7 +259,7 @@ const Evaluation = () => {
           <CardContent className="space-y-6">
             <div className="space-y-3">
               <Label>Dans combien de temps pensez-vous appliquer ces nouvelles compétences ?</Label>
-              <RadioGroup value={delaiApplication || ""} onValueChange={setDelaiApplication}>
+              <RadioGroup value={form.delaiApplication || ""} onValueChange={form.setDelaiApplication}>
                 <div className="space-y-2">
                   {[
                     { value: "cette_semaine", label: "Cette semaine" },
@@ -524,9 +285,9 @@ const Evaluation = () => {
               <p className="text-xs text-muted-foreground">Optionnel</p>
               <VoiceTextarea
                 id="freins"
-                value={freinsApplication}
-                onValueChange={setFreinsApplication}
-                onChange={(e) => setFreinsApplication(e.target.value)}
+                value={form.freinsApplication}
+                onValueChange={form.setFreinsApplication}
+                onChange={(e) => form.setFreinsApplication(e.target.value)}
                 placeholder="Indiquez les éventuels freins..."
                 rows={3}
               />
@@ -542,7 +303,7 @@ const Evaluation = () => {
           <CardContent className="space-y-6">
             <div className="space-y-3">
               <Label>Le rythme de la formation était-il adapté ?</Label>
-              <RadioGroup value={rythme || ""} onValueChange={setRythme}>
+              <RadioGroup value={form.rythme || ""} onValueChange={form.setRythme}>
                 <div className="flex flex-wrap gap-4">
                   {[
                     { value: "trop_lent", label: "Trop lent" },
@@ -562,7 +323,7 @@ const Evaluation = () => {
 
             <div className="space-y-3">
               <Label>L'équilibre entre théorie et pratique était-il satisfaisant ?</Label>
-              <RadioGroup value={equilibreTheoriePratique || ""} onValueChange={setEquilibreTheoriePratique}>
+              <RadioGroup value={form.equilibreTheoriePratique || ""} onValueChange={form.setEquilibreTheoriePratique}>
                 <div className="flex flex-wrap gap-4">
                   {[
                     { value: "trop_theorique", label: "Trop théorique" },
@@ -586,9 +347,9 @@ const Evaluation = () => {
               </Label>
               <VoiceTextarea
                 id="amelioration"
-                value={ameliorationSuggeree}
-                onValueChange={setAmeliorationSuggeree}
-                onChange={(e) => setAmeliorationSuggeree(e.target.value)}
+                value={form.ameliorationSuggeree}
+                onValueChange={form.setAmeliorationSuggeree}
+                onChange={(e) => form.setAmeliorationSuggeree(e.target.value)}
                 placeholder="Votre suggestion..."
                 rows={2}
               />
@@ -607,8 +368,8 @@ const Evaluation = () => {
                 Les conditions d'information des stagiaires sur l'offre de formation, ses délais d'accès et les résultats obtenus étaient-ils satisfaisants ?
               </Label>
               <RadioGroup
-                value={conditionsInfoSatisfaisantes === null ? "" : conditionsInfoSatisfaisantes ? "oui" : "non"}
-                onValueChange={(v) => setConditionsInfoSatisfaisantes(v === "oui")}
+                value={form.conditionsInfoSatisfaisantes === null ? "" : form.conditionsInfoSatisfaisantes ? "oui" : "non"}
+                onValueChange={(v) => form.setConditionsInfoSatisfaisantes(v === "oui")}
               >
                 <div className="flex gap-4">
                   <div className="flex items-center gap-2">
@@ -626,8 +387,8 @@ const Evaluation = () => {
             <div className="space-y-3">
               <Label>Cette formation était-elle adaptée au public ?</Label>
               <RadioGroup
-                value={formationAdapteePublic === null ? "" : formationAdapteePublic ? "oui" : "non"}
-                onValueChange={(v) => setFormationAdapteePublic(v === "oui")}
+                value={form.formationAdapteePublic === null ? "" : form.formationAdapteePublic ? "oui" : "non"}
+                onValueChange={(v) => form.setFormationAdapteePublic(v === "oui")}
               >
                 <div className="flex gap-4">
                   <div className="flex items-center gap-2">
@@ -645,8 +406,8 @@ const Evaluation = () => {
             <div className="space-y-3">
               <Label>La qualification professionnelle de l'intervenant était-elle adéquate ?</Label>
               <RadioGroup
-                value={qualificationIntervenantAdequate === null ? "" : qualificationIntervenantAdequate ? "oui" : "non"}
-                onValueChange={(v) => setQualificationIntervenantAdequate(v === "oui")}
+                value={form.qualificationIntervenantAdequate === null ? "" : form.qualificationIntervenantAdequate ? "oui" : "non"}
+                onValueChange={(v) => form.setQualificationIntervenantAdequate(v === "oui")}
               >
                 <div className="flex gap-4">
                   <div className="flex items-center gap-2">
@@ -664,8 +425,8 @@ const Evaluation = () => {
             <div className="space-y-3">
               <Label>Les appréciations rendues par les stagiaires ont-elles été prises en compte ?</Label>
               <RadioGroup
-                value={appreciationsPrisesEnCompte || ""}
-                onValueChange={setAppreciationsPrisesEnCompte}
+                value={form.appreciationsPrisesEnCompte || ""}
+                onValueChange={form.setAppreciationsPrisesEnCompte}
               >
                 <div className="flex flex-wrap gap-4">
                   <div className="flex items-center gap-2">
@@ -701,9 +462,9 @@ const Evaluation = () => {
               </p>
               <VoiceTextarea
                 id="message-reco"
-                value={messageRecommandation}
-                onValueChange={setMessageRecommandation}
-                onChange={(e) => setMessageRecommandation(e.target.value)}
+                value={form.messageRecommandation}
+                onValueChange={form.setMessageRecommandation}
+                onChange={(e) => form.setMessageRecommandation(e.target.value)}
                 placeholder="Votre témoignage..."
                 rows={3}
               />
@@ -714,14 +475,14 @@ const Evaluation = () => {
                 Je consens à ce que ma recommandation soit publiée en mon nom sur le site SuperTilt.fr
               </Label>
               <RadioGroup
-                value={consentPublication === null ? "" : consentPublication ? "oui" : "non"}
-                onValueChange={(v) => setConsentPublication(v === "oui")}
+                value={form.consentPublication === null ? "" : form.consentPublication ? "oui" : "non"}
+                onValueChange={(v) => form.setConsentPublication(v === "oui")}
               >
                 <div className="space-y-2">
                   <div className="flex items-start gap-2">
                     <RadioGroupItem value="oui" id="consent-oui" className="mt-1" />
                     <Label htmlFor="consent-oui" className="font-normal cursor-pointer text-sm">
-                      Oui, j'accepte la publication (format : {evaluation.first_name} {evaluation.last_name?.[0]}. - {evaluation.company || "Entreprise"})
+                      Oui, j'accepte la publication (format : {form.evaluation.first_name} {form.evaluation.last_name?.[0]}. - {form.evaluation.company || "Entreprise"})
                     </Label>
                   </div>
                   <div className="flex items-center gap-2">
@@ -741,9 +502,9 @@ const Evaluation = () => {
               <p className="text-xs text-muted-foreground">Optionnel</p>
               <VoiceTextarea
                 id="remarques"
-                value={remarquesLibres}
-                onValueChange={setRemarquesLibres}
-                onChange={(e) => setRemarquesLibres(e.target.value)}
+                value={form.remarquesLibres}
+                onValueChange={form.setRemarquesLibres}
+                onChange={(e) => form.setRemarquesLibres(e.target.value)}
                 placeholder="Vos remarques..."
                 rows={3}
               />
@@ -755,11 +516,11 @@ const Evaluation = () => {
         <div className="flex justify-center pb-8">
           <Button
             size="lg"
-            onClick={submit}
-            disabled={submitting}
+            onClick={form.submit}
+            disabled={form.submitting}
             className="min-w-[200px]"
           >
-            {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {form.submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Envoyer mon évaluation
           </Button>
         </div>
