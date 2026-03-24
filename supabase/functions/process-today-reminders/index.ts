@@ -3,9 +3,33 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { sendEmail } from "../_shared/resend.ts";
 import { getBccList } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
-import { processTemplate } from "../_shared/templates.ts";
+import { getAppUrls } from "../_shared/app-urls.ts";
+import { processTemplate, emailButton } from "../_shared/templates.ts";
 
 import { corsHeaders } from "../_shared/cors.ts";
+
+/**
+ * Convert template text to HTML, properly handling bullet lists (• or - prefix).
+ */
+function templateTextToHtml(text: string): string {
+  if (!text) return "";
+  const paragraphs = text.split(/\n\n+/).filter((p) => p.trim() !== "");
+  const htmlParts: string[] = [];
+  for (const para of paragraphs) {
+    const lines = para.split(/\n/).map((l) => l.trim()).filter(Boolean);
+    if (lines.length === 0) continue;
+    let currentText: string[] = [];
+    let currentBullets: string[] = [];
+    const flushText = () => { if (currentText.length > 0) { htmlParts.push(`<p>${currentText.join("<br>")}</p>`); currentText = []; } };
+    const flushBullets = () => { if (currentBullets.length > 0) { htmlParts.push(`<ul style="margin: 8px 0; padding-left: 20px;">\n${currentBullets.map((b) => `<li>${b}</li>`).join("\n")}\n</ul>`); currentBullets = []; } };
+    for (const line of lines) {
+      if (/^[•\-]\s/.test(line)) { flushText(); currentBullets.push(line.replace(/^[•\-]\s*/, "")); }
+      else { flushBullets(); currentText.push(line); }
+    }
+    flushText(); flushBullets();
+  }
+  return htmlParts.join("\n");
+}
 
 /**
  * Process Today Reminders
@@ -120,6 +144,8 @@ serve(async (req) => {
 
     const bccList = await getBccList();
     const signatureHtml = await getSigniticSignature();
+    const urls = await getAppUrls();
+    const APP_URL = urls.app_url;
 
     let totalSent = 0;
 
@@ -204,11 +230,29 @@ serve(async (req) => {
         continue;
       }
 
+      // Per-participant dedup: check which participants already received today
+      const participantLogKeys = participants.filter((p: any) => p.email).map((p: any) => `${trainingId}:${p.id}`);
+      const { data: existingParticipantLogs } = participantLogKeys.length > 0
+        ? await supabase
+            .from("activity_logs")
+            .select("recipient_email")
+            .eq("action_type", "today_reminder_participant_sent")
+            .in("recipient_email", participantLogKeys)
+        : { data: [] as { recipient_email: string }[] };
+      const alreadySentParticipants = new Set(
+        (existingParticipantLogs || []).map((row: any) => row.recipient_email)
+      );
+
       let sentCount = 0;
 
       for (let i = 0; i < participants.length; i++) {
         const p = participants[i];
         if (!p.email) continue;
+
+        const participantLogKey = `${trainingId}:${p.id}`;
+        if (alreadySentParticipants.has(participantLogKey)) {
+          continue;
+        }
 
         if (i > 0) {
           await new Promise(resolve => setTimeout(resolve, 400));
@@ -227,13 +271,12 @@ serve(async (req) => {
           is_next_day: !isFirstDay ? "1" : undefined,
         };
 
+        const summaryUrl = `${APP_URL}/formation-info/${trainingId}`;
         const resolvedSubject = processTemplate(template.subject, variables, false);
         const body = processTemplate(template.html_content, variables, false);
-        const resolvedHtml = body
-          .split(/\n\n+/)
-          .filter((paragraph: string) => paragraph.trim() !== "")
-          .map((paragraph: string) => `<p>${paragraph.replace(/\n/g, "<br>")}</p>`)
-          .join("") + "\n" + signatureHtml;
+        const resolvedHtml = templateTextToHtml(body)
+          + "\n" + emailButton("Infos & documents de la formation", summaryUrl)
+          + "\n" + signatureHtml;
 
         const result = await sendEmail({
           to: p.email,
@@ -247,7 +290,23 @@ serve(async (req) => {
 
         if (result.success) {
           sentCount++;
+          alreadySentParticipants.add(participantLogKey);
           console.log(`[process-today-reminders] Sent to ${p.email}`);
+
+          try {
+            await supabase.from("activity_logs").insert({
+              action_type: "today_reminder_participant_sent",
+              recipient_email: participantLogKey,
+              details: {
+                training_id: trainingId,
+                training_name: training.training_name,
+                participant_id: p.id,
+                participant_email: p.email,
+              },
+            });
+          } catch (logErr) {
+            console.warn("[process-today-reminders] Failed to log participant send:", logErr);
+          }
         }
       }
 
@@ -284,13 +343,12 @@ serve(async (req) => {
             has_attendance: hasAttendance ? "1" : undefined,
           };
 
+          const trainerSummaryUrl = `${APP_URL}/formation-info/${trainingId}`;
           const trainerSubject = processTemplate(trainerTemplate.subject, trainerVars, false);
           const trainerBody = processTemplate(trainerTemplate.html_content, trainerVars, false);
-          const trainerHtml = trainerBody
-            .split(/\n\n+/)
-            .filter((p: string) => p.trim() !== "")
-            .map((p: string) => `<p>${p.replace(/\n/g, "<br>")}</p>`)
-            .join("") + "\n" + signatureHtml;
+          const trainerHtml = templateTextToHtml(trainerBody)
+            + "\n" + emailButton("Infos & documents de la formation", trainerSummaryUrl)
+            + "\n" + signatureHtml;
 
           const trainerResult = await sendEmail({
             to: trainer.email,

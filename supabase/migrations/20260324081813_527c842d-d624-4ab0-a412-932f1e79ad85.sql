@@ -1,0 +1,1 @@
+DELETE FROM activity_logs WHERE id = 'ef0455c0-3ad2-4ad6-b23b-402e785ee1eb';
