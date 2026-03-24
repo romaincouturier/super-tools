@@ -371,7 +371,7 @@ END:VCALENDAR`;
         </a>
       </header>
 
-      <main className="max-w-md mx-auto px-4 pt-6 space-y-6">
+      <main className="max-w-md mx-auto px-4 pt-6 space-y-6 overflow-hidden">
         {/* ═══ SECTION: Infos ═══ */}
         <section ref={sectionInfos} className="space-y-4 scroll-mt-20" id="section-infos">
           {/* Badge format */}
@@ -391,7 +391,7 @@ END:VCALENDAR`;
           )}
 
           <h1
-            className="text-3xl font-black leading-tight tracking-tight"
+            className="text-3xl font-black leading-tight tracking-tight break-words"
             style={{ color: c.onSurface }}
           >
             {training.training_name}
@@ -407,8 +407,8 @@ END:VCALENDAR`;
               style={{ background: c.surfaceContainerLowest, borderColor: `${c.outlineVariant}30` }}
             >
               <div className="flex items-start gap-4 mb-3">
-                <MIcon icon="school" className="text-2xl mt-0.5" style={{ color: c.primary }} />
-                <div>
+                <MIcon icon="school" className="text-2xl mt-0.5 shrink-0" style={{ color: c.primary }} />
+                <div className="min-w-0">
                   <h2 className="font-black text-xl leading-tight" style={{ color: c.onSurface }}>
                     Période de formation
                   </h2>
@@ -431,8 +431,8 @@ END:VCALENDAR`;
                 style={{ background: c.surfaceContainerLowest, borderColor: `${c.outlineVariant}30` }}
               >
                 <div className="flex items-start gap-4 mb-4">
-                  <MIcon icon="calendar_today" className="text-2xl mt-0.5" style={{ color: c.primary }} />
-                  <div>
+                  <MIcon icon="calendar_today" className="text-2xl mt-0.5 shrink-0" style={{ color: c.primary }} />
+                  <div className="min-w-0">
                     <h2 className="font-black text-xl leading-tight" style={{ color: c.onSurface }}>
                       {formatScheduleDate(schedule.day_date)}
                     </h2>
@@ -522,8 +522,8 @@ END:VCALENDAR`;
             <ul className="space-y-3">
               {training.objectives.map((objective, index) => (
                 <li key={index} className="flex items-start gap-3">
-                  <MIcon icon="check_circle" className="text-xl" />
-                  <span className="text-sm font-medium leading-snug" style={{ color: c.onSurfaceVariant }}>
+                  <MIcon icon="check_circle" className="text-xl shrink-0" />
+                  <span className="text-sm font-medium leading-snug break-words min-w-0" style={{ color: c.onSurfaceVariant }}>
                     {objective}
                   </span>
                 </li>
@@ -544,7 +544,7 @@ END:VCALENDAR`;
             </h2>
             <ul className="space-y-1">
               {training.prerequisites.map((prerequisite, index) => (
-                <p key={index} className="text-sm leading-relaxed" style={{ color: c.onSurfaceVariant }}>
+                <p key={index} className="text-sm leading-relaxed break-words" style={{ color: c.onSurfaceVariant }}>
                   {prerequisite}
                 </p>
               ))}
@@ -584,7 +584,7 @@ END:VCALENDAR`;
                   </a>
                 ) : (
                   <>
-                    <p className="text-base font-medium" style={{ color: c.onSurface }}>{training.location}</p>
+                    <p className="text-base font-medium break-words" style={{ color: c.onSurface }}>{training.location}</p>
                     <p className="text-sm" style={{ color: c.onSurfaceVariant }}>
                       Le lien de connexion vous sera communiqué par email avant la formation.
                     </p>
@@ -621,7 +621,7 @@ END:VCALENDAR`;
                 </div>
                 <div className="p-4 flex justify-between items-center">
                   <div className="flex-1 pr-4">
-                    <p className="text-sm font-bold leading-snug" style={{ color: c.onSurface }}>
+                    <p className="text-sm font-bold leading-snug break-words" style={{ color: c.onSurface }}>
                       {training.location}
                     </p>
                   </div>
@@ -703,14 +703,14 @@ END:VCALENDAR`;
             style={{ background: c.surfaceContainerLowest, borderColor: `${c.outlineVariant}30` }}
           >
             <div className="flex items-center gap-4 mb-5">
-              <Avatar className="w-16 h-16 border-2" style={{ borderColor: c.primaryContainer }}>
+              <Avatar className="w-16 h-16 border-2 shrink-0" style={{ borderColor: c.primaryContainer }}>
                 <AvatarImage src={trainer.photo_url || undefined} className="object-cover" />
                 <AvatarFallback className="text-xl">
                   {getInitials(trainer.first_name, trainer.last_name)}
                 </AvatarFallback>
               </Avatar>
-              <div>
-                <h3 className="font-black text-lg leading-none" style={{ color: c.onSurface }}>
+              <div className="min-w-0">
+                <h3 className="font-black text-lg leading-none break-words" style={{ color: c.onSurface }}>
                   {trainer.first_name} {trainer.last_name}
                 </h3>
                 <p className="text-sm" style={{ color: c.onSurfaceVariant }}>Votre formateur</p>
