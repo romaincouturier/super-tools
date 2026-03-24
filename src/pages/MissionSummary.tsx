@@ -332,16 +332,15 @@ const DeliverablesBlock = ({ deliverables, lang }: DeliverablesBlockProps) => {
                     <span className="text-xs text-muted-foreground">
                       {formatFileSize(doc.file_size)}
                     </span>
-                    <a
-                      href={doc.file_url}
-                      download={doc.file_name}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs text-primary hover:underline flex items-center gap-1"
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-primary hover:text-primary/80"
+                      onClick={() => forceDownload(doc.file_url, doc.file_name)}
+                      title={L.download}
                     >
-                      <Download className="h-3 w-3" />
-                      {L.download}
-                    </a>
+                      <Download className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
               </div>
