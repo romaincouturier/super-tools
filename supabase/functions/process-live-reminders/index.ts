@@ -367,13 +367,12 @@ serve(async (req) => {
             supports_url: supportsUrl || undefined,
           };
 
+          const trainerSummaryUrl = `${APP_URL}/formation-info/${trainingId}`;
           const trainerSubject = processTemplate(trainerTemplate.subject, trainerVars, false);
           const trainerBody = processTemplate(trainerTemplate.html_content, trainerVars, false);
-          const trainerHtml = trainerBody
-            .split(/\n\n+/)
-            .filter((p: string) => p.trim() !== "")
-            .map((p: string) => `<p>${p.replace(/\n/g, "<br>")}</p>`)
-            .join("") + "\n" + signatureHtml;
+          const trainerHtml = templateTextToHtml(trainerBody)
+            + "\n" + emailButton("Infos & documents de la formation", trainerSummaryUrl)
+            + "\n" + signatureHtml;
 
           await new Promise(resolve => setTimeout(resolve, 400));
 
