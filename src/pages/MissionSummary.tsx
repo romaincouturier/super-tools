@@ -563,53 +563,52 @@ const MissionSummary = () => {
 
         {/* Financial Summary — authenticated only */}
         {isAuthenticated && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Euro className="h-5 w-5 text-primary" />
-              {L.invoiceSummary}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <div className="p-3 bg-blue-50 rounded-lg border border-blue-100">
-                <div className="text-xs text-blue-600 font-medium">{L.totalBudget}</div>
-                <div className="text-lg font-bold text-blue-700">
-                  {formatCurrency(budget, lang)} €
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Euro className="h-5 w-5 text-primary" />
+                {L.invoiceSummary}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="p-3 bg-blue-50 rounded-lg border border-blue-100">
+                  <div className="text-xs text-blue-600 font-medium">{L.totalBudget}</div>
+                  <div className="text-lg font-bold text-blue-700">
+                    {formatCurrency(budget, lang)} €
+                  </div>
+                </div>
+                <div className="p-3 bg-orange-50 rounded-lg border border-orange-100">
+                  <div className="text-xs text-orange-600 font-medium">{L.consumed}</div>
+                  <div className="text-lg font-bold text-orange-700">
+                    {formatCurrency(totalConsumed, lang)} €
+                  </div>
+                </div>
+                <div className="p-3 bg-green-50 rounded-lg border border-green-100">
+                  <div className="text-xs text-green-600 font-medium">{L.billed}</div>
+                  <div className="text-lg font-bold text-green-700">
+                    {formatCurrency(totalBilled, lang)} €
+                  </div>
+                </div>
+                <div className="p-3 bg-purple-50 rounded-lg border border-purple-100">
+                  <div className="text-xs text-purple-600 font-medium">{L.remainingToBill}</div>
+                  <div className="text-lg font-bold text-purple-700">
+                    {formatCurrency(Math.max(0, remainingToBill), lang)} €
+                  </div>
                 </div>
               </div>
-              <div className="p-3 bg-orange-50 rounded-lg border border-orange-100">
-                <div className="text-xs text-orange-600 font-medium">{L.consumed}</div>
-                <div className="text-lg font-bold text-orange-700">
-                  {formatCurrency(totalConsumed, lang)} €
-                </div>
-              </div>
-              <div className="p-3 bg-green-50 rounded-lg border border-green-100">
-                <div className="text-xs text-green-600 font-medium">{L.billed}</div>
-                <div className="text-lg font-bold text-green-700">
-                  {formatCurrency(totalBilled, lang)} €
-                </div>
-              </div>
-              <div className="p-3 bg-purple-50 rounded-lg border border-purple-100">
-                <div className="text-xs text-purple-600 font-medium">{L.remainingToBill}</div>
-                <div className="text-lg font-bold text-purple-700">
-                  {formatCurrency(Math.max(0, remainingToBill), lang)} €
-                </div>
-              </div>
-            </div>
 
-            {budget > 0 && (
-              <div className="space-y-1">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">{L.progress}</span>
-                  <span className="font-medium">{Math.round(billedPercent)}%</span>
+              {budget > 0 && (
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">{L.progress}</span>
+                    <span className="font-medium">{Math.round(billedPercent)}%</span>
+                  </div>
+                  <Progress value={billedPercent} className="h-2" />
                 </div>
-                <Progress value={billedPercent} className="h-2" />
-              </div>
-            )}
-          </CardContent>
-        </Card>
-        </>
+              )}
+            </CardContent>
+          </Card>
         )}
         {actions.length > 0 && (
           <Card>
