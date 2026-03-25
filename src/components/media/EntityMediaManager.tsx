@@ -75,7 +75,7 @@ const EntityMediaManager = ({
     const validFiles = fileArray.filter((f) => getFileType(f) !== null);
 
     if (validFiles.length === 0) {
-      toast.error("Seules les images et vidéos sont acceptées");
+      toast.error("Seuls les images, vidéos et fichiers audio sont acceptés");
       return;
     }
 
