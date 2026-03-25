@@ -83,12 +83,14 @@ const EntityMediaManager = ({
     let successCount = 0;
 
     try {
+      const uploadedAudioItems: MediaItem[] = [];
+
       for (const file of validFiles) {
         try {
           const fileType = getFileType(file)!;
           const fileUrl = await uploadMediaFile(file, sourceType, sourceId);
 
-          await addMedia.mutateAsync({
+          const result = await addMedia.mutateAsync({
             file_url: fileUrl,
             file_name: file.name,
             file_type: fileType,
@@ -100,6 +102,17 @@ const EntityMediaManager = ({
           });
 
           successCount++;
+
+          // Collect audio items for auto-transcription
+          if (fileType === "audio" && result) {
+            uploadedAudioItems.push({
+              ...result,
+              source_label: "",
+              source_emoji: null,
+              source_color: null,
+              source_tags: [],
+            } as MediaItem);
+          }
         } catch (err: unknown) {
           const errMsg = err instanceof Error ? err.message : JSON.stringify(err);
           console.error("Upload error for file:", file.name, "type:", file.type, "size:", file.size, "resolved:", resolveContentType(file), "error:", errMsg);
@@ -113,6 +126,11 @@ const EntityMediaManager = ({
             ? "Fichier ajouté"
             : `${successCount} fichiers ajoutés`
         );
+      }
+
+      // Auto-transcribe uploaded audio files
+      for (const audioItem of uploadedAudioItems) {
+        handleTranscribe(audioItem);
       }
     } finally {
       setUploading(false);
@@ -366,7 +384,7 @@ const EntityMediaManager = ({
                 key={item.id}
                 className={cn(
                   "group relative rounded-lg overflow-hidden border bg-muted cursor-pointer",
-                  item.file_type === "audio" ? "col-span-2 sm:col-span-3" : "aspect-square"
+                  item.file_type === "audio" ? "col-span-2" : "aspect-square"
                 )}
                 onClick={() => item.file_type !== "audio" && setLightboxItem(item)}
               >
