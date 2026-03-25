@@ -26,7 +26,7 @@ const chainObj = {
   or: mockOr,
 };
 
-const mockFrom = vi.fn(() => chainObj);
+const mockFrom = vi.fn((..._args: unknown[]) => chainObj);
 
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: { from: (...args: unknown[]) => mockFrom(...args) },

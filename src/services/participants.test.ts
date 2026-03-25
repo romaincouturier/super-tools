@@ -9,9 +9,9 @@ const {
   mockInvoke,
 } = vi.hoisted(() => {
   const mockSingle = vi.fn();
-  const mockSelect = vi.fn(() => ({ single: mockSingle }));
-  const mockInsert = vi.fn(() => ({ select: mockSelect }));
-  const mockFrom = vi.fn(() => ({
+  const mockSelect = vi.fn((..._args: unknown[]) => ({ single: mockSingle }));
+  const mockInsert = vi.fn((..._args: unknown[]) => ({ select: mockSelect }));
+  const mockFrom = vi.fn((..._args: unknown[]) => ({
     select: vi.fn().mockReturnThis(),
     insert: mockInsert,
     update: vi.fn(() => ({ eq: vi.fn() })),
@@ -142,24 +142,30 @@ describe("createParticipant", () => {
     mockSelect.mockReturnValue({ single: mockSingle });
   });
 
+  const getInsertPayload = () => {
+    const payload = mockInsert.mock.calls[0]?.[0] as Record<string, unknown> | undefined;
+    expect(payload).toBeDefined();
+    return payload as Record<string, unknown>;
+  };
+
   it("normalizes email to lowercase and trimmed", async () => {
     await createParticipant(baseInput);
 
-    const insertCall = mockInsert.mock.calls[0][0];
+    const insertCall = getInsertPayload();
     expect(insertCall.email).toBe("jean.dupont@example.com");
   });
 
   it("trims the company name", async () => {
     await createParticipant(baseInput);
 
-    const insertCall = mockInsert.mock.calls[0][0];
+    const insertCall = getInsertPayload();
     expect(insertCall.company).toBe("Acme Corp");
   });
 
   it("capitalizes first_name and last_name", async () => {
     await createParticipant(baseInput);
 
-    const insertCall = mockInsert.mock.calls[0][0];
+    const insertCall = getInsertPayload();
     expect(insertCall.first_name).toBe("Jean");
     expect(insertCall.last_name).toBe("Dupont");
   });
@@ -167,7 +173,7 @@ describe("createParticipant", () => {
   it("includes formula fields when formulaId is provided", async () => {
     await createParticipant(baseInput);
 
-    const insertCall = mockInsert.mock.calls[0][0];
+    const insertCall = getInsertPayload();
     expect(insertCall.formula).toBe("Standard");
     expect(insertCall.formula_id).toBe("formula-1");
   });
@@ -175,7 +181,7 @@ describe("createParticipant", () => {
   it("excludes formula fields when formulaId is empty", async () => {
     await createParticipant({ ...baseInput, formulaId: "", formulaName: "" });
 
-    const insertCall = mockInsert.mock.calls[0][0];
+    const insertCall = getInsertPayload();
     expect(insertCall.formula).toBeUndefined();
     expect(insertCall.formula_id).toBeUndefined();
   });
@@ -183,7 +189,7 @@ describe("createParticipant", () => {
   it("excludes sponsor/financeur fields for intra-entreprise", async () => {
     await createParticipant({ ...baseInput, isInterEntreprise: false });
 
-    const insertCall = mockInsert.mock.calls[0][0];
+    const insertCall = getInsertPayload();
     expect(insertCall.sponsor_first_name).toBeUndefined();
     expect(insertCall.sponsor_last_name).toBeUndefined();
     expect(insertCall.sponsor_email).toBeUndefined();
@@ -207,7 +213,7 @@ describe("createParticipant", () => {
 
     await createParticipant(interInput);
 
-    const insertCall = mockInsert.mock.calls[0][0];
+    const insertCall = getInsertPayload();
     expect(insertCall.sponsor_first_name).toBe("Marie");
     expect(insertCall.sponsor_last_name).toBe("Martin");
     expect(insertCall.sponsor_email).toBe("marie@sponsor.com");
@@ -234,7 +240,7 @@ describe("createParticipant", () => {
 
     await createParticipant(interInput);
 
-    const insertCall = mockInsert.mock.calls[0][0];
+    const insertCall = getInsertPayload();
     expect(insertCall.financeur_same_as_sponsor).toBe(true);
     expect(insertCall.financeur_name).toBeNull();
     expect(insertCall.financeur_url).toBeNull();
