@@ -641,8 +641,7 @@ export async function fetchPastEventsNoSummary(supabase: SupabaseClient, today: 
   }));
 }
 
-
-  const todayDate = new Date(today);
+export async function fetchCfpAlerts(supabase: SupabaseClient, today: string): Promise<CfpItem[]> {
   const thirtyDays = new Date(todayDate);
   thirtyDays.setDate(thirtyDays.getDate() + 30);
   const maxDate = thirtyDays.toISOString().split("T")[0];
