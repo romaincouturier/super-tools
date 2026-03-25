@@ -95,10 +95,11 @@ const MediaGrid = ({ items, onOpenLightbox, allTags }: MediaGridProps) => {
           ) : (
             <div className="w-full h-full relative">
               <video
-                src={item.file_url}
+                src={`${item.file_url}#t=0.1`}
                 className="w-full h-full object-cover"
                 preload="metadata"
                 muted
+                playsInline
               />
               <div className="absolute inset-0 flex items-center justify-center bg-black/20">
                 <Play className="h-10 w-10 text-white drop-shadow" />
