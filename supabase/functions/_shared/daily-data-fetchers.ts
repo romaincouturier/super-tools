@@ -126,7 +126,7 @@ export interface EventNoSummaryItem {
   daysAgo: number;
 }
 
-
+export interface CfpItem {
   id: string;
   title: string;
   cfpDeadline: string;
