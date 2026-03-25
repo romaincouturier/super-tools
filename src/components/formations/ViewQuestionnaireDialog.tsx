@@ -110,6 +110,9 @@ const ViewQuestionnaireDialog = ({ participantId, participantName, trainingId }:
         .select("*")
         .eq("participant_id", participantId)
         .eq("training_id", trainingId)
+        .in("etat", ["complete", "valide_formateur"])
+        .order("date_soumission", { ascending: false })
+        .limit(1)
         .maybeSingle();
 
       if (error) throw error;
