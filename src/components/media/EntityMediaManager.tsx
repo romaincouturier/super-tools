@@ -6,16 +6,18 @@ import {
   useDeleteMedia,
   useToggleMediaDeliverable,
   useRenameMedia,
+  useUpdateMediaTranscript,
   uploadMediaFile,
   deleteMediaFile,
   MediaSourceType,
   MediaItem,
 } from "@/hooks/useMedia";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { downloadFile as downloadFileUtil, promptRenameFile, getFileType, resolveContentType } from "@/lib/file-utils";
-import { ImageIcon, Video, Plus, Loader2, Upload, Trash2, Play, Download, Package, DownloadCloud, Pencil } from "lucide-react";
+import { ImageIcon, Video, Plus, Loader2, Upload, Trash2, Play, Download, Package, DownloadCloud, Pencil, Mic, FileAudio, FileText } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import MediaLightbox from "@/components/media/MediaLightbox";
 
@@ -44,17 +46,20 @@ const EntityMediaManager = ({
   const deleteMutation = useDeleteMedia();
   const toggleDeliverable = useToggleMediaDeliverable();
   const renameMedia = useRenameMedia();
+  const updateTranscript = useUpdateMediaTranscript();
 
   const [uploading, setUploading] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [lightboxItem, setLightboxItem] = useState<MediaItem | null>(null);
+  const [transcribingIds, setTranscribingIds] = useState<Set<string>>(new Set());
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Filter out video_link for display/download purposes
   const downloadableMedia = media.filter((m) => m.file_type !== "video_link");
   const imageItems = media.filter((m) => m.file_type === "image");
   const videoItems = media.filter((m) => m.file_type === "video");
+  const audioItems = media.filter((m) => m.file_type === "audio");
 
   const handleToggleDeliverable = (item: MediaItem) => {
     toggleDeliverable.mutate({
@@ -70,7 +75,7 @@ const EntityMediaManager = ({
     const validFiles = fileArray.filter((f) => getFileType(f) !== null);
 
     if (validFiles.length === 0) {
-      toast.error("Seules les images et vidéos sont acceptées");
+      toast.error("Seuls les images, vidéos et fichiers audio sont acceptés");
       return;
     }
 
@@ -112,6 +117,49 @@ const EntityMediaManager = ({
       setUploading(false);
     }
   }, [sourceType, sourceId, addMedia]);
+
+  const handleTranscribe = async (item: MediaItem) => {
+    setTranscribingIds((prev) => new Set(prev).add(item.id));
+    try {
+      // Download the audio file and send to transcribe-audio
+      const response = await fetch(item.file_url);
+      const blob = await response.blob();
+      const formData = new FormData();
+      formData.append("audio", blob, item.file_name);
+
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+
+      const transcribeResponse = await supabase.functions.invoke("transcribe-audio", {
+        body: formData,
+      });
+
+      if (transcribeResponse.error) throw transcribeResponse.error;
+      const transcript = transcribeResponse.data?.transcript;
+      if (!transcript || transcript === "[inaudible]") {
+        toast.error("Transcription impossible — audio inaudible ou vide");
+        return;
+      }
+
+      await updateTranscript.mutateAsync({
+        id: item.id,
+        transcript,
+        sourceType: item.source_type,
+        sourceId: item.source_id,
+      });
+
+      toast.success("Transcription terminée");
+    } catch (err) {
+      console.error("Transcription error:", err);
+      toast.error("Erreur lors de la transcription");
+    } finally {
+      setTranscribingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(item.id);
+        return next;
+      });
+    }
+  };
 
   const handleDelete = async (e: React.MouseEvent, item: MediaItem) => {
     e.stopPropagation();
@@ -199,7 +247,7 @@ const EntityMediaManager = ({
 
       const pastedFiles: File[] = [];
       for (const item of Array.from(items)) {
-        if (item.type.startsWith("image/") || item.type.startsWith("video/")) {
+        if (item.type.startsWith("image/") || item.type.startsWith("video/") || item.type.startsWith("audio/")) {
           const file = item.getAsFile();
           if (file) pastedFiles.push(file);
         }
@@ -236,7 +284,7 @@ const EntityMediaManager = ({
         ref={fileInputRef}
         type="file"
         multiple
-        accept="image/*,video/*,.svg"
+        accept="image/*,video/*,audio/*,.svg"
         className="hidden"
         onChange={(e) => {
           if (e.target.files) uploadFiles(e.target.files);
@@ -302,8 +350,11 @@ const EntityMediaManager = ({
             {[...downloadableMedia].sort((a, b) => (b.is_deliverable ? 1 : 0) - (a.is_deliverable ? 1 : 0)).map((item) => (
               <div
                 key={item.id}
-                className="group relative aspect-square rounded-lg overflow-hidden border bg-muted cursor-pointer"
-                onClick={() => setLightboxItem(item)}
+                className={cn(
+                  "group relative rounded-lg overflow-hidden border bg-muted cursor-pointer",
+                  item.file_type === "audio" ? "col-span-2 sm:col-span-3" : "aspect-square"
+                )}
+                onClick={() => item.file_type !== "audio" && setLightboxItem(item)}
               >
                 {item.file_type === "image" ? (
                   <img
@@ -312,6 +363,54 @@ const EntityMediaManager = ({
                     className="w-full h-full object-cover will-change-transform"
                     loading="lazy"
                   />
+                ) : item.file_type === "audio" ? (
+                  <div className="p-3 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <FileAudio className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                      <span className="text-sm font-medium truncate">{item.file_name}</span>
+                      <div className="ml-auto flex items-center gap-1">
+                        {!item.transcript && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-7 text-xs"
+                                onClick={(e) => { e.stopPropagation(); handleTranscribe(item); }}
+                                disabled={transcribingIds.has(item.id)}
+                              >
+                                {transcribingIds.has(item.id) ? (
+                                  <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                                ) : (
+                                  <FileText className="h-3 w-3 mr-1" />
+                                )}
+                                Transcrire
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Transcrire l'audio avec l'IA</TooltipContent>
+                          </Tooltip>
+                        )}
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => handleDownloadFile(e, item.file_url, item.file_name)}>
+                          <Download className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={(e) => handleDelete(e, item)}>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                    <audio src={item.file_url} controls className="w-full h-8" preload="metadata" />
+                    {item.transcript && (
+                      <div className="mt-2 p-2 bg-background rounded border text-sm text-muted-foreground whitespace-pre-wrap max-h-32 overflow-y-auto">
+                        {item.transcript}
+                      </div>
+                    )}
+                    {transcribingIds.has(item.id) && (
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        Transcription en cours...
+                      </div>
+                    )}
+                  </div>
                 ) : (
                   <div className="w-full h-full relative">
                     <video
@@ -326,7 +425,8 @@ const EntityMediaManager = ({
                   </div>
                 )}
 
-                {/* Hover overlay */}
+                {/* Hover overlay (not for audio — handled inline) */}
+                {item.file_type !== "audio" && (
                 <div className="absolute inset-0 bg-black/60 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity will-change-[opacity] flex items-center justify-center gap-1 z-10">
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -376,9 +476,10 @@ const EntityMediaManager = ({
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>
                 </div>
+                )}
 
                 {/* Deliverable badge */}
-                {item.is_deliverable && (
+                {item.is_deliverable && item.file_type !== "audio" && (
                   <div className="absolute top-1 left-1">
                     <Package className="h-3.5 w-3.5 text-white drop-shadow" />
                   </div>
@@ -418,11 +519,12 @@ const EntityMediaManager = ({
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
             <ImageIcon className="h-5 w-5" />
-            Photos & Vidéos
+            Médias
             {media.length > 0 && (
               <span className="text-sm font-normal text-muted-foreground">
                 ({imageItems.length} image{imageItems.length !== 1 ? "s" : ""}
-                {videoItems.length > 0 && `, ${videoItems.length} vidéo${videoItems.length !== 1 ? "s" : ""}`})
+                {videoItems.length > 0 && `, ${videoItems.length} vidéo${videoItems.length !== 1 ? "s" : ""}`}
+                {audioItems.length > 0 && `, ${audioItems.length} audio`})
               </span>
             )}
           </CardTitle>

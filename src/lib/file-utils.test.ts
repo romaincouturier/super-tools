@@ -134,6 +134,11 @@ describe("getFileType", () => {
     expect(getFileType(file)).toBeNull();
   });
 
+  it("returns 'audio' for audio files", () => {
+    const file = new File([""], "recording.mp3", { type: "audio/mpeg" });
+    expect(getFileType(file)).toBe("audio");
+  });
+
   it("falls back to extension for SVG with empty type", () => {
     const file = new File([""], "icon.svg");
     Object.defineProperty(file, "type", { value: "" });

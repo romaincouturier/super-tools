@@ -8,7 +8,7 @@ export interface MediaItem {
   id: string;
   file_url: string;
   file_name: string;
-  file_type: "image" | "video" | "video_link";
+  file_type: "image" | "video" | "video_link" | "audio";
   mime_type: string | null;
   file_size: number | null;
   position: number;
@@ -17,6 +17,7 @@ export interface MediaItem {
   created_at: string;
   created_by: string | null;
   is_deliverable: boolean;
+  transcript: string | null;
   tags: string[];
   // Joined label for display in gallery
   source_label: string;
@@ -129,6 +130,7 @@ export const useMediaLibrary = () => {
           created_at: row.created_at,
           created_by: row.created_by,
           is_deliverable: row.is_deliverable ?? false,
+          transcript: row.transcript ?? null,
           tags: row.tags || [],
           source_label: info.label,
           source_emoji: info.emoji,
@@ -177,7 +179,7 @@ export const useAddMedia = () => {
     mutationFn: async (input: {
       file_url: string;
       file_name: string;
-      file_type: "image" | "video" | "video_link";
+      file_type: "image" | "video" | "video_link" | "audio";
       mime_type: string | null;
       file_size: number | null;
       position: number;
@@ -270,7 +272,25 @@ export const useRenameMedia = () => {
   });
 };
 
-// ── Storage helpers ──────────────────────────────────────────────────
+// ── Update transcript ────────────────────────────────────────────────
+export const useUpdateMediaTranscript = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, transcript, sourceType, sourceId }: { id: string; transcript: string; sourceType: MediaSourceType; sourceId: string }) => {
+      const { error } = await supabase
+        .from("media")
+        .update({ transcript })
+        .eq("id", id);
+      if (error) throw error;
+      return { sourceType, sourceId };
+    },
+    onSuccess: ({ sourceType, sourceId }) => {
+      invalidateMediaCaches(queryClient, sourceType, sourceId);
+    },
+  });
+};
+
+
 const STORAGE_BUCKET = "media";
 
 export const uploadMediaFile = async (file: File, sourceType: MediaSourceType, sourceId: string) => {
@@ -296,7 +316,7 @@ export const uploadMediaFile = async (file: File, sourceType: MediaSourceType, s
 export const registerMediaEntry = async (entry: {
   file_url: string;
   file_name: string;
-  file_type: "image" | "video" | "video_link";
+  file_type: "image" | "video" | "video_link" | "audio";
   mime_type: string | null;
   file_size: number | null;
   source_type: MediaSourceType;
