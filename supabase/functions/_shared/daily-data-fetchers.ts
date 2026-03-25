@@ -118,6 +118,14 @@ export interface EventItem {
   daysUntil: number;
 }
 
+export interface EventNoSummaryItem {
+  id: string;
+  title: string;
+  eventDate: string;
+  assignedTo: string | null;
+  daysAgo: number;
+}
+
 export interface CfpItem {
   id: string;
   title: string;
@@ -607,8 +615,33 @@ export async function fetchUpcomingEvents(supabase: SupabaseClient, today: strin
   }));
 }
 
-export async function fetchCfpAlerts(supabase: SupabaseClient, today: string): Promise<CfpItem[]> {
+export async function fetchPastEventsNoSummary(supabase: SupabaseClient, today: string): Promise<EventNoSummaryItem[]> {
   const todayDate = new Date(today);
+  // Events in the last 60 days without summary notes
+  const sixtyDaysAgo = new Date(todayDate);
+  sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
+  const minDate = sixtyDaysAgo.toISOString().split("T")[0];
+
+  const { data } = await supabase
+    .from("events")
+    .select("id, title, event_date, assigned_to, summary_notes")
+    .eq("status", "active")
+    .lt("event_date", today)
+    .gte("event_date", minDate)
+    .is("summary_notes", null)
+    .order("event_date", { ascending: false });
+
+  if (!data) return [];
+  return data.map((ev: any) => ({
+    id: ev.id,
+    title: ev.title,
+    eventDate: ev.event_date,
+    assignedTo: ev.assigned_to,
+    daysAgo: Math.ceil((todayDate.getTime() - new Date(ev.event_date).getTime()) / (1000 * 60 * 60 * 24)),
+  }));
+}
+
+export async function fetchCfpAlerts(supabase: SupabaseClient, today: string): Promise<CfpItem[]> {
   const thirtyDays = new Date(todayDate);
   thirtyDays.setDate(thirtyDays.getDate() + 30);
   const maxDate = thirtyDays.toISOString().split("T")[0];
@@ -902,6 +935,7 @@ export interface DailyData {
   cfpAlerts: CfpItem[];
   cfpReminders: CfpReminderItem[];
   pastTrainingsNoInvoice: TrainingInvoiceItem[];
+  pastEventsNoSummary: EventNoSummaryItem[];
   reservations: ReservationItem[];
   okrInitiatives: OkrInitiativeItem[];
 }
@@ -923,6 +957,7 @@ export async function fetchAllDailyData(supabase: SupabaseClient, today: string)
     cfpAlerts,
     cfpReminders,
     pastTrainingsNoInvoice,
+    pastEventsNoSummary,
     reservations,
     okrInitiatives,
   ] = await Promise.all([
@@ -941,6 +976,7 @@ export async function fetchAllDailyData(supabase: SupabaseClient, today: string)
     fetchCfpAlerts(supabase, today),
     fetchCfpReminders(supabase, today),
     fetchPastTrainingsNoInvoice(supabase, today),
+    fetchPastEventsNoSummary(supabase, today),
     fetchReservationAlerts(supabase, today),
     fetchOkrInitiatives(supabase),
   ]);
@@ -949,7 +985,8 @@ export async function fetchAllDailyData(supabase: SupabaseClient, today: string)
     recipients, missionActions, elearningGroups, missionsToInvoice,
     unbilledActivities, missionsNoStartDate, crmCards, trainingConventions,
     reviewArticles, blockedArticles, unresolvedComments, upcomingEvents,
-    cfpAlerts, cfpReminders, pastTrainingsNoInvoice, reservations, okrInitiatives,
+    cfpAlerts, cfpReminders, pastTrainingsNoInvoice, pastEventsNoSummary,
+    reservations, okrInitiatives,
   };
 }
 

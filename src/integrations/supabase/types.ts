@@ -1662,6 +1662,7 @@ export type Database = {
           restaurant_booked: boolean | null
           room_rental_booked: boolean | null
           status: string
+          summary_notes: string | null
           title: string
           train_booked: boolean | null
           updated_at: string
@@ -1688,6 +1689,7 @@ export type Database = {
           restaurant_booked?: boolean | null
           room_rental_booked?: boolean | null
           status?: string
+          summary_notes?: string | null
           title: string
           train_booked?: boolean | null
           updated_at?: string
@@ -1714,6 +1716,7 @@ export type Database = {
           restaurant_booked?: boolean | null
           room_rental_booked?: boolean | null
           status?: string
+          summary_notes?: string | null
           title?: string
           train_booked?: boolean | null
           updated_at?: string
