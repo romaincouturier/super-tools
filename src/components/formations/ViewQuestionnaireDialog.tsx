@@ -397,8 +397,14 @@ const ViewQuestionnaireDialog = ({ participantId, participantName, trainingId }:
         </TooltipContent>
       </Tooltip>
       <DialogContent className="w-full sm:max-w-2xl max-h-[85vh]">
-        <DialogHeader>
+        <DialogHeader className="flex flex-row items-center justify-between gap-2">
           <DialogTitle>Recueil des besoins - {participantName}</DialogTitle>
+          {questionnaire && (
+            <Button variant="outline" size="sm" onClick={exportToPdf} className="shrink-0">
+              <Download className="h-4 w-4 mr-1" />
+              PDF
+            </Button>
+          )}
         </DialogHeader>
         
         {loading ? (
