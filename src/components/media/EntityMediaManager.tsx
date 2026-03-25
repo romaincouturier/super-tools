@@ -519,11 +519,12 @@ const EntityMediaManager = ({
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
             <ImageIcon className="h-5 w-5" />
-            Photos & Vidéos
+            Médias
             {media.length > 0 && (
               <span className="text-sm font-normal text-muted-foreground">
                 ({imageItems.length} image{imageItems.length !== 1 ? "s" : ""}
-                {videoItems.length > 0 && `, ${videoItems.length} vidéo${videoItems.length !== 1 ? "s" : ""}`})
+                {videoItems.length > 0 && `, ${videoItems.length} vidéo${videoItems.length !== 1 ? "s" : ""}`}
+                {audioItems.length > 0 && `, ${audioItems.length} audio`})
               </span>
             )}
           </CardTitle>
