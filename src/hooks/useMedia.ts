@@ -295,10 +295,22 @@ const STORAGE_BUCKET = "media";
 
 export const uploadMediaFile = async (file: File, sourceType: MediaSourceType, sourceId: string) => {
   const path = `${sourceType}/${sourceId}/${Date.now()}_${sanitizeFileName(file.name)}`;
+  const resolvedContentType = resolveContentType(file);
+
+  // Some browsers (notably iOS Safari) attach unsupported non-standard MIME types
+  // to the File object (e.g. audio/x-m4a). Rebuild the file with normalized type
+  // so storage validation checks the supported MIME.
+  const normalizedFile =
+    file.type && file.type !== resolvedContentType
+      ? new File([file], file.name, {
+          type: resolvedContentType,
+          lastModified: file.lastModified,
+        })
+      : file;
 
   const { error: uploadError } = await supabase.storage
     .from(STORAGE_BUCKET)
-    .upload(path, file, { contentType: resolveContentType(file) });
+    .upload(path, normalizedFile, { contentType: resolvedContentType });
 
   if (uploadError) throw uploadError;
 
