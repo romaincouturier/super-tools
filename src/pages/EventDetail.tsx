@@ -75,14 +75,19 @@ const EventDetail = () => {
   const [videoUrl, setVideoUrl] = useState("");
   const [videoName, setVideoName] = useState("");
   const [notes, setNotes] = useState(event?.notes || "");
+  const [summaryNotes, setSummaryNotes] = useState(event?.summary_notes || "");
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [cancellationReason, setCancellationReason] = useState("");
 
   useEffect(() => {
-    if (event) setNotes(event.notes || "");
+    if (event) {
+      setNotes(event.notes || "");
+      setSummaryNotes(event.summary_notes || "");
+    }
   }, [event]);
 
   const notesFormValues = useMemo(() => ({ notes }), [notes]);
+  const summaryFormValues = useMemo(() => ({ summary_notes: summaryNotes }), [summaryNotes]);
 
   const { autoSaving: savingNotes } = useAutoSaveForm({
     open: !!event,
@@ -95,6 +100,22 @@ const EventDetail = () => {
         return true;
       } catch {
         toast({ title: "Erreur", description: "Impossible de sauvegarder les notes.", variant: "destructive" });
+        return false;
+      }
+    },
+  });
+
+  const { autoSaving: savingSummary } = useAutoSaveForm({
+    open: !!event,
+    formValues: summaryFormValues,
+    onSave: async (values) => {
+      if (!id) return false;
+      const trimmed = (values.summary_notes as string).trim() || null;
+      try {
+        await updateEvent.mutateAsync({ id, summary_notes: trimmed });
+        return true;
+      } catch {
+        toast({ title: "Erreur", description: "Impossible de sauvegarder la synthèse.", variant: "destructive" });
         return false;
       }
     },
@@ -481,6 +502,47 @@ const EventDetail = () => {
             sourceLabel={event.title}
           />
         )}
+
+        {/* Summary Notes - shown for past events */}
+        {(() => {
+          const eventDate = new Date(event.event_date);
+          const now = new Date();
+          now.setHours(0, 0, 0, 0);
+          const isPast = eventDate < now;
+          if (!isPast && !event.summary_notes) return null;
+          return (
+            <Card className={!event.summary_notes && isPast ? "border-orange-300" : undefined}>
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    Note de synthèse
+                    {!event.summary_notes && isPast && (
+                      <Badge variant="outline" className="text-orange-600 border-orange-300 text-xs">
+                        À compléter
+                      </Badge>
+                    )}
+                  </CardTitle>
+                  {savingSummary && (
+                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      Enregistrement…
+                    </span>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent>
+                <VoiceTextarea
+                  placeholder="Rédigez votre note de synthèse de l'événement..."
+                  value={summaryNotes}
+                  onValueChange={setSummaryNotes}
+                  onChange={(e) => setSummaryNotes(e.target.value)}
+                  className="min-h-[300px] resize-y"
+                />
+              </CardContent>
+            </Card>
+          );
+        })()}
 
         {/* Notes */}
         <Card>

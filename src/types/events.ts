@@ -19,6 +19,7 @@ export interface Event {
   hotel_booked: boolean;
   room_rental_booked: boolean;
   restaurant_booked: boolean;
+  summary_notes: string | null;
   created_at: string;
   updated_at: string;
 }
