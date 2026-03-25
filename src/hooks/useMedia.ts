@@ -130,6 +130,7 @@ export const useMediaLibrary = () => {
           created_at: row.created_at,
           created_by: row.created_by,
           is_deliverable: row.is_deliverable ?? false,
+          transcript: row.transcript ?? null,
           tags: row.tags || [],
           source_label: info.label,
           source_emoji: info.emoji,
