@@ -50,15 +50,24 @@ export function useVoiceDictation({
           return;
         }
 
-        // Transcribe
+        // Upload blob to storage to get a public URL for AssemblyAI
         setIsTranscribing(true);
         try {
-          const formData = new FormData();
-          formData.append("audio", blob, `recording.${blob.type.includes("webm") ? "webm" : "mp4"}`);
+          const ext = blob.type.includes("webm") ? "webm" : "mp4";
+          const fileName = `dictation/${uuidv4()}.${ext}`;
+          const { error: uploadError } = await supabase.storage
+            .from("media")
+            .upload(fileName, blob, { contentType: blob.type });
+          if (uploadError) throw uploadError;
 
-          const { data, error } = await supabase.functions.invoke("transcribe-audio", {
-            body: formData,
+          const { data: urlData } = supabase.storage.from("media").getPublicUrl(fileName);
+
+          const { data, error } = await supabase.functions.invoke("transcribe-audio-long", {
+            body: { audio_url: urlData.publicUrl },
           });
+
+          // Clean up temp file (best-effort)
+          supabase.storage.from("media").remove([fileName]).catch(() => {});
 
           if (error) throw error;
 
