@@ -297,7 +297,7 @@ const EntityMediaManager = ({
         ref={fileInputRef}
         type="file"
         multiple
-        accept="image/*,video/*,audio/*,.svg"
+        accept="image/*,video/*,audio/*,.m4a,.mp3,.wav,.aac,.ogg,.caf,.svg"
         className="hidden"
         onChange={(e) => {
           if (e.target.files) uploadFiles(e.target.files);
