@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { Eye, Loader2, User, Briefcase, BookOpen, Target, MessageSquare, Accessibility } from "lucide-react";
+import { Eye, Loader2, User, Briefcase, BookOpen, Target, MessageSquare, Accessibility, Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
+import { jsPDF } from "jspdf";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
