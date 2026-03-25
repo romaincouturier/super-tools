@@ -41,6 +41,7 @@ serve(async (req) => {
         language_code: "fr",
         punctuate: true,
         format_text: true,
+        speaker_labels: true,
       }),
     });
 
