@@ -118,7 +118,15 @@ export interface EventItem {
   daysUntil: number;
 }
 
-export interface CfpItem {
+export interface EventNoSummaryItem {
+  id: string;
+  title: string;
+  eventDate: string;
+  assignedTo: string | null;
+  daysAgo: number;
+}
+
+
   id: string;
   title: string;
   cfpDeadline: string;
@@ -607,7 +615,33 @@ export async function fetchUpcomingEvents(supabase: SupabaseClient, today: strin
   }));
 }
 
-export async function fetchCfpAlerts(supabase: SupabaseClient, today: string): Promise<CfpItem[]> {
+export async function fetchPastEventsNoSummary(supabase: SupabaseClient, today: string): Promise<EventNoSummaryItem[]> {
+  const todayDate = new Date(today);
+  // Events in the last 60 days without summary notes
+  const sixtyDaysAgo = new Date(todayDate);
+  sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
+  const minDate = sixtyDaysAgo.toISOString().split("T")[0];
+
+  const { data } = await supabase
+    .from("events")
+    .select("id, title, event_date, assigned_to, summary_notes")
+    .eq("status", "active")
+    .lt("event_date", today)
+    .gte("event_date", minDate)
+    .is("summary_notes", null)
+    .order("event_date", { ascending: false });
+
+  if (!data) return [];
+  return data.map((ev: any) => ({
+    id: ev.id,
+    title: ev.title,
+    eventDate: ev.event_date,
+    assignedTo: ev.assigned_to,
+    daysAgo: Math.ceil((todayDate.getTime() - new Date(ev.event_date).getTime()) / (1000 * 60 * 60 * 24)),
+  }));
+}
+
+
   const todayDate = new Date(today);
   const thirtyDays = new Date(todayDate);
   thirtyDays.setDate(thirtyDays.getDate() + 30);
