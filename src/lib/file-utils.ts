@@ -77,8 +77,17 @@ const EXT_TO_MIME: Record<string, string> = {
   wma: "audio/x-ms-wma",
 };
 
+// Non-standard MIME types that browsers (especially iOS Safari) may report
+const MIME_NORMALIZE: Record<string, string> = {
+  "audio/x-m4a": "audio/mp4",
+  "audio/x-wav": "audio/wav",
+  "audio/x-aac": "audio/aac",
+};
+
 export function resolveContentType(file: File): string {
-  if (file.type) return file.type;
+  if (file.type) {
+    return MIME_NORMALIZE[file.type] || file.type;
+  }
   const ext = file.name.split(".").pop()?.toLowerCase() || "";
   return EXT_TO_MIME[ext] || "application/octet-stream";
 }
