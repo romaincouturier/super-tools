@@ -79,7 +79,14 @@ serve(async (req) => {
       const result = await pollResponse.json();
 
       if (result.status === "completed") {
-        return createJsonResponse({ transcript: result.text });
+        // Build speaker-labeled transcript if utterances are available
+        let transcript = result.text;
+        if (result.utterances && result.utterances.length > 0) {
+          transcript = result.utterances
+            .map((u: { speaker: string; text: string }) => `Speaker ${u.speaker}: ${u.text}`)
+            .join("\n\n");
+        }
+        return createJsonResponse({ transcript });
       }
 
       if (result.status === "error") {
