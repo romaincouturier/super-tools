@@ -958,6 +958,7 @@ export async function fetchAllDailyData(supabase: SupabaseClient, today: string)
     cfpAlerts,
     cfpReminders,
     pastTrainingsNoInvoice,
+    pastEventsNoSummary,
     reservations,
     okrInitiatives,
   ] = await Promise.all([
@@ -976,6 +977,7 @@ export async function fetchAllDailyData(supabase: SupabaseClient, today: string)
     fetchCfpAlerts(supabase, today),
     fetchCfpReminders(supabase, today),
     fetchPastTrainingsNoInvoice(supabase, today),
+    fetchPastEventsNoSummary(supabase, today),
     fetchReservationAlerts(supabase, today),
     fetchOkrInitiatives(supabase),
   ]);
@@ -984,7 +986,8 @@ export async function fetchAllDailyData(supabase: SupabaseClient, today: string)
     recipients, missionActions, elearningGroups, missionsToInvoice,
     unbilledActivities, missionsNoStartDate, crmCards, trainingConventions,
     reviewArticles, blockedArticles, unresolvedComments, upcomingEvents,
-    cfpAlerts, cfpReminders, pastTrainingsNoInvoice, reservations, okrInitiatives,
+    cfpAlerts, cfpReminders, pastTrainingsNoInvoice, pastEventsNoSummary,
+    reservations, okrInitiatives,
   };
 }
 
