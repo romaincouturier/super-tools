@@ -936,6 +936,7 @@ export interface DailyData {
   cfpAlerts: CfpItem[];
   cfpReminders: CfpReminderItem[];
   pastTrainingsNoInvoice: TrainingInvoiceItem[];
+  pastEventsNoSummary: EventNoSummaryItem[];
   reservations: ReservationItem[];
   okrInitiatives: OkrInitiativeItem[];
 }
