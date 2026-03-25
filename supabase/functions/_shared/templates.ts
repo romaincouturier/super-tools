@@ -153,44 +153,48 @@ export function emailInfoBox(content: string): string {
 export function templateTextToHtml(text: string): string {
   if (!text) return "";
 
-  const paragraphs = text.split(/\n\n+/).filter((p) => p.trim() !== "");
   const htmlParts: string[] = [];
+  const paragraphLines: string[] = [];
+  const bulletLines: string[] = [];
 
-  for (const para of paragraphs) {
-    const lines = para.split(/\n/).map((l) => l.trim()).filter(Boolean);
-    if (lines.length === 0) continue;
+  const flushParagraph = () => {
+    if (paragraphLines.length === 0) return;
+    htmlParts.push(`<p>${paragraphLines.join("<br>")}</p>`);
+    paragraphLines.length = 0;
+  };
 
-    let currentText: string[] = [];
-    let currentBullets: string[] = [];
+  const flushBullets = () => {
+    if (bulletLines.length === 0) return;
+    const items = bulletLines.map((b) => `<li>${b}</li>`).join("\n");
+    htmlParts.push(`<ul style="margin: 8px 0; padding-left: 20px;">\n${items}\n</ul>`);
+    bulletLines.length = 0;
+  };
 
-    const flushText = () => {
-      if (currentText.length > 0) {
-        htmlParts.push(`<p>${currentText.join("<br>")}</p>`);
-        currentText = [];
+  const lines = text.replace(/\r\n/g, "\n").split("\n");
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+
+    if (!line) {
+      if (bulletLines.length > 0) {
+        // Ignore blank lines inside a bullet list to avoid visual gaps
+        continue;
       }
-    };
-
-    const flushBullets = () => {
-      if (currentBullets.length > 0) {
-        const items = currentBullets.map((b) => `<li>${b}</li>`).join("\n");
-        htmlParts.push(`<ul style="margin: 8px 0; padding-left: 20px;">\n${items}\n</ul>`);
-        currentBullets = [];
-      }
-    };
-
-    for (const line of lines) {
-      if (/^[•\-]\s/.test(line)) {
-        flushText();
-        currentBullets.push(line.replace(/^[•\-]\s*/, ""));
-      } else {
-        flushBullets();
-        currentText.push(line);
-      }
+      flushParagraph();
+      continue;
     }
 
-    flushText();
+    if (/^[•\-]\s*/.test(line)) {
+      flushParagraph();
+      bulletLines.push(line.replace(/^[•\-]\s*/, ""));
+      continue;
+    }
+
     flushBullets();
+    paragraphLines.push(line);
   }
+
+  flushParagraph();
+  flushBullets();
 
   return htmlParts.join("\n");
 }
