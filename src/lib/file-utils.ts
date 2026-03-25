@@ -75,13 +75,14 @@ export function resolveContentType(file: File): string {
 }
 
 /**
- * Determine if a file is an image or video based on its resolved MIME type.
- * Returns null if the file is neither.
+ * Determine if a file is an image, video, or audio based on its resolved MIME type.
+ * Returns null if the file is none of these.
  */
-export function getFileType(file: File): "image" | "video" | null {
+export function getFileType(file: File): "image" | "video" | "audio" | null {
   const mime = resolveContentType(file);
   if (mime.startsWith("image/")) return "image";
   if (mime.startsWith("video/")) return "video";
+  if (mime.startsWith("audio/")) return "audio";
   return null;
 }
 

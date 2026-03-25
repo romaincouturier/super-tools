@@ -8,7 +8,7 @@ export interface MediaItem {
   id: string;
   file_url: string;
   file_name: string;
-  file_type: "image" | "video" | "video_link";
+  file_type: "image" | "video" | "video_link" | "audio";
   mime_type: string | null;
   file_size: number | null;
   position: number;
@@ -17,6 +17,7 @@ export interface MediaItem {
   created_at: string;
   created_by: string | null;
   is_deliverable: boolean;
+  transcript: string | null;
   tags: string[];
   // Joined label for display in gallery
   source_label: string;
@@ -177,7 +178,7 @@ export const useAddMedia = () => {
     mutationFn: async (input: {
       file_url: string;
       file_name: string;
-      file_type: "image" | "video" | "video_link";
+      file_type: "image" | "video" | "video_link" | "audio";
       mime_type: string | null;
       file_size: number | null;
       position: number;
@@ -296,7 +297,7 @@ export const uploadMediaFile = async (file: File, sourceType: MediaSourceType, s
 export const registerMediaEntry = async (entry: {
   file_url: string;
   file_name: string;
-  file_type: "image" | "video" | "video_link";
+  file_type: "image" | "video" | "video_link" | "audio";
   mime_type: string | null;
   file_size: number | null;
   source_type: MediaSourceType;
