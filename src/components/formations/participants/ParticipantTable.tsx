@@ -1,4 +1,4 @@
-import { Mail, CheckCircle, StickyNote, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Mail, CheckCircle, StickyNote, ArrowUpDown, ArrowUp, ArrowDown, Send, Clock } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -63,6 +63,7 @@ const ParticipantTable = ({
               </button>
             </TableHead>
           )}
+          <TableHead>Convocation</TableHead>
           <TableHead>Recueil</TableHead>
           {hasCoachingParticipants && <TableHead>Coaching</TableHead>}
           <TableHead className="text-right">Actions</TableHead>
@@ -135,6 +136,24 @@ const ParticipantTable = ({
                     : "\u2014"}
                 </TableCell>
               )}
+              <TableCell>
+                {(() => {
+                  const isConvoked = !["non_envoye", "manuel"].includes(participant.needs_survey_status);
+                  return (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className={`inline-flex items-center gap-1 text-xs font-medium ${isConvoked ? "text-primary" : "text-muted-foreground"}`}>
+                          {isConvoked ? <Send className="h-3.5 w-3.5" /> : <Clock className="h-3.5 w-3.5" />}
+                          {isConvoked ? "Envoyée" : "Non envoyée"}
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>{isConvoked ? "La convocation a été envoyée au participant" : "La convocation n'a pas encore été envoyée"}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  );
+                })()}
+              </TableCell>
               <TableCell>
                 <Tooltip>
                   <TooltipTrigger asChild>
