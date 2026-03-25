@@ -21,6 +21,13 @@ const handler = async (req: Request): Promise<Response> => {
     const { getAppUrls } = await import("../_shared/app-urls.ts");
     const urls = await getAppUrls();
     const appUrl = urls.app_url;
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+
+    if (!supabaseUrl || !supabaseServiceKey) {
+      throw new Error("Missing backend environment variables");
+    }
+
     const supabase = getSupabaseClient();
 
     const { scheduledEmailId }: ForceSendRequest = await req.json();
