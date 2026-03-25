@@ -100,9 +100,10 @@ const EntityMediaManager = ({
           });
 
           successCount++;
-        } catch (err) {
-          console.error("Upload error:", err);
-          toast.error(`Erreur lors de l'upload de ${file.name}`);
+        } catch (err: unknown) {
+          const errMsg = err instanceof Error ? err.message : JSON.stringify(err);
+          console.error("Upload error for file:", file.name, "type:", file.type, "size:", file.size, "resolved:", resolveContentType(file), "error:", errMsg);
+          toast.error(`Erreur lors de l'upload de ${file.name}: ${errMsg}`);
         }
       }
 
