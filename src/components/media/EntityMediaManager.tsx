@@ -118,6 +118,49 @@ const EntityMediaManager = ({
     }
   }, [sourceType, sourceId, addMedia]);
 
+  const handleTranscribe = async (item: MediaItem) => {
+    setTranscribingIds((prev) => new Set(prev).add(item.id));
+    try {
+      // Download the audio file and send to transcribe-audio
+      const response = await fetch(item.file_url);
+      const blob = await response.blob();
+      const formData = new FormData();
+      formData.append("audio", blob, item.file_name);
+
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+
+      const transcribeResponse = await supabase.functions.invoke("transcribe-audio", {
+        body: formData,
+      });
+
+      if (transcribeResponse.error) throw transcribeResponse.error;
+      const transcript = transcribeResponse.data?.transcript;
+      if (!transcript || transcript === "[inaudible]") {
+        toast.error("Transcription impossible — audio inaudible ou vide");
+        return;
+      }
+
+      await updateTranscript.mutateAsync({
+        id: item.id,
+        transcript,
+        sourceType: item.source_type,
+        sourceId: item.source_id,
+      });
+
+      toast.success("Transcription terminée");
+    } catch (err) {
+      console.error("Transcription error:", err);
+      toast.error("Erreur lors de la transcription");
+    } finally {
+      setTranscribingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(item.id);
+        return next;
+      });
+    }
+  };
+
   const handleDelete = async (e: React.MouseEvent, item: MediaItem) => {
     e.stopPropagation();
     if (!confirm(`Supprimer ${item.file_name} ?`)) return;
@@ -204,7 +247,7 @@ const EntityMediaManager = ({
 
       const pastedFiles: File[] = [];
       for (const item of Array.from(items)) {
-        if (item.type.startsWith("image/") || item.type.startsWith("video/")) {
+        if (item.type.startsWith("image/") || item.type.startsWith("video/") || item.type.startsWith("audio/")) {
           const file = item.getAsFile();
           if (file) pastedFiles.push(file);
         }
@@ -241,7 +284,7 @@ const EntityMediaManager = ({
         ref={fileInputRef}
         type="file"
         multiple
-        accept="image/*,video/*,.svg"
+        accept="image/*,video/*,audio/*,.svg"
         className="hidden"
         onChange={(e) => {
           if (e.target.files) uploadFiles(e.target.files);
