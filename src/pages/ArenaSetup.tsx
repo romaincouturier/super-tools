@@ -1,4 +1,4 @@
-import type { DiscussionMode } from "@/lib/arena/types";
+import type { DiscussionMode, UserMode } from "@/lib/arena/types";
 import { TEMPLATES } from "@/lib/arena/templates";
 import type { CustomTemplate } from "@/lib/arena/customTemplates";
 import { EXPERT_POOL } from "@/lib/arena/experts";
@@ -199,10 +199,7 @@ export default function ArenaSetup() {
               </div>
               <button
                 onClick={() => {
-                  saveArenaApiKeys(apiKeys);
-                  setIsFirstVisit(false);
-                  setShowApiKeys(false);
-                  setStep(1);
+                  saveFirstVisitKeys();
                 }}
                 className="w-full rounded-xl bg-primary py-3 text-center font-semibold text-white transition-colors hover:bg-primary/90"
               >
@@ -508,7 +505,7 @@ export default function ArenaSetup() {
                         <input
                           type="password"
                           value={apiKeys.openai || ""}
-                          onChange={(e) => { const k = { ...apiKeys, openai: e.target.value }; setApiKeys(k); saveArenaApiKeys(k); }}
+                          onChange={(e) => updateApiKeyAndSave("openai", e.target.value)}
                           className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
                           placeholder="sk-..."
                         />
@@ -521,7 +518,7 @@ export default function ArenaSetup() {
                         <input
                           type="password"
                           value={apiKeys.gemini || ""}
-                          onChange={(e) => { const k = { ...apiKeys, gemini: e.target.value }; setApiKeys(k); saveArenaApiKeys(k); }}
+                          onChange={(e) => updateApiKeyAndSave("gemini", e.target.value)}
                           className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
                           placeholder="AIza..."
                         />
