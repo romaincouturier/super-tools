@@ -272,7 +272,25 @@ export const useRenameMedia = () => {
   });
 };
 
-// ── Storage helpers ──────────────────────────────────────────────────
+// ── Update transcript ────────────────────────────────────────────────
+export const useUpdateMediaTranscript = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, transcript, sourceType, sourceId }: { id: string; transcript: string; sourceType: MediaSourceType; sourceId: string }) => {
+      const { error } = await supabase
+        .from("media")
+        .update({ transcript })
+        .eq("id", id);
+      if (error) throw error;
+      return { sourceType, sourceId };
+    },
+    onSuccess: ({ sourceType, sourceId }) => {
+      invalidateMediaCaches(queryClient, sourceType, sourceId);
+    },
+  });
+};
+
+
 const STORAGE_BUCKET = "media";
 
 export const uploadMediaFile = async (file: File, sourceType: MediaSourceType, sourceId: string) => {

@@ -72,7 +72,7 @@ Si l'audio est inaudible ou vide, retourne exactement: [inaudible]`,
             ],
           },
         ],
-        max_tokens: 1024,
+        max_tokens: 4096,
         temperature: 0.1,
       }),
     });
