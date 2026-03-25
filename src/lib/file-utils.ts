@@ -66,6 +66,15 @@ const EXT_TO_MIME: Record<string, string> = {
   mp4: "video/mp4",
   webm: "video/webm",
   mov: "video/quicktime",
+  // Audio formats (critical for iOS Safari which may leave file.type empty)
+  m4a: "audio/mp4",
+  mp3: "audio/mpeg",
+  wav: "audio/wav",
+  aac: "audio/aac",
+  ogg: "audio/ogg",
+  caf: "audio/x-caf",
+  flac: "audio/flac",
+  wma: "audio/x-ms-wma",
 };
 
 export function resolveContentType(file: File): string {
