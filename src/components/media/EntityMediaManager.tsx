@@ -121,21 +121,34 @@ const EntityMediaManager = ({
   const handleTranscribe = async (item: MediaItem) => {
     setTranscribingIds((prev) => new Set(prev).add(item.id));
     try {
-      // Download the audio file and send to transcribe-audio
-      const response = await fetch(item.file_url);
-      const blob = await response.blob();
-      const formData = new FormData();
-      formData.append("audio", blob, item.file_name);
+      // Check file size to decide: Gemini (< 10 MB) vs AssemblyAI (>= 10 MB)
+      const FILE_SIZE_THRESHOLD = 10 * 1024 * 1024; // 10 MB ~ roughly 5 min audio
+      const isLongAudio = (item.file_size ?? 0) >= FILE_SIZE_THRESHOLD;
 
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData.session?.access_token;
+      let transcript: string;
 
-      const transcribeResponse = await supabase.functions.invoke("transcribe-audio", {
-        body: formData,
-      });
+      if (isLongAudio) {
+        // Use AssemblyAI for long files — pass public URL directly
+        toast.info("Transcription en cours via AssemblyAI (fichier long)...");
+        const transcribeResponse = await supabase.functions.invoke("transcribe-audio-long", {
+          body: { audio_url: item.file_url },
+        });
+        if (transcribeResponse.error) throw transcribeResponse.error;
+        transcript = transcribeResponse.data?.transcript;
+      } else {
+        // Use Gemini for short files
+        const response = await fetch(item.file_url);
+        const blob = await response.blob();
+        const formData = new FormData();
+        formData.append("audio", blob, item.file_name);
 
-      if (transcribeResponse.error) throw transcribeResponse.error;
-      const transcript = transcribeResponse.data?.transcript;
+        const transcribeResponse = await supabase.functions.invoke("transcribe-audio", {
+          body: formData,
+        });
+        if (transcribeResponse.error) throw transcribeResponse.error;
+        transcript = transcribeResponse.data?.transcript;
+      }
+
       if (!transcript || transcript === "[inaudible]") {
         toast.error("Transcription impossible — audio inaudible ou vide");
         return;
