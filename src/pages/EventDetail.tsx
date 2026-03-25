@@ -60,6 +60,7 @@ import {
 } from "@/hooks/useEvents";
 import { useEntityMedia, useAddMedia, useDeleteMedia } from "@/hooks/useMedia";
 import EntityMediaManager from "@/components/media/EntityMediaManager";
+import SendToContentBoardButton from "@/components/events/SendToContentBoardButton";
 
 const EventDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -260,6 +261,7 @@ const EventDetail = () => {
               {event.status === "cancelled" && (
                 <Badge variant="destructive">Annulé</Badge>
               )}
+              <SendToContentBoardButton event={event} />
               <ShareEventDialog event={event} />
               <Button variant="outline" size="sm" onClick={handleDuplicate}>
                 <Copy className="h-4 w-4 mr-1" />
