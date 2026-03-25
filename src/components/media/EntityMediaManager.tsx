@@ -46,11 +46,13 @@ const EntityMediaManager = ({
   const deleteMutation = useDeleteMedia();
   const toggleDeliverable = useToggleMediaDeliverable();
   const renameMedia = useRenameMedia();
+  const updateTranscript = useUpdateMediaTranscript();
 
   const [uploading, setUploading] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [lightboxItem, setLightboxItem] = useState<MediaItem | null>(null);
+  const [transcribingIds, setTranscribingIds] = useState<Set<string>>(new Set());
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Filter out video_link for display/download purposes
