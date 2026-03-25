@@ -138,39 +138,39 @@ const Events = () => {
                 {displayedEvents.map((event) => (
                   <div
                     key={event.id}
-                    className="flex items-center gap-4 p-4 rounded-lg border hover:bg-muted/50 cursor-pointer transition-colors overflow-hidden"
+                    className="flex items-start gap-3 sm:gap-4 p-3 sm:p-4 rounded-lg border hover:bg-muted/50 cursor-pointer transition-colors overflow-hidden"
                     onClick={() => navigate(`/events/${event.id}`)}
                   >
                     {/* Date block */}
-                    <div className="flex-shrink-0 w-14 h-14 rounded-lg bg-primary/10 flex flex-col items-center justify-center">
-                      <span className="text-xs font-medium text-primary uppercase">
+                    <div className="flex-shrink-0 w-11 h-11 sm:w-14 sm:h-14 rounded-lg bg-primary/10 flex flex-col items-center justify-center">
+                      <span className="text-[10px] sm:text-xs font-medium text-primary uppercase">
                         {format(parseISO(event.event_date), "MMM", { locale: fr })}
                       </span>
-                      <span className="text-lg font-bold text-primary leading-tight">
+                      <span className="text-sm sm:text-lg font-bold text-primary leading-tight">
                         {format(parseISO(event.event_date), "d")}
                       </span>
                     </div>
 
                     {/* Info */}
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <p className={`font-medium truncate ${event.status === "cancelled" ? "line-through text-muted-foreground" : ""}`}>
+                      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 min-w-0">
+                        <p className={`font-medium text-sm sm:text-base truncate max-w-full ${event.status === "cancelled" ? "line-through text-muted-foreground" : ""}`}>
                           {event.title}
                         </p>
                         {event.event_type === "external" && (
-                          <Badge variant="outline" className="flex-shrink-0 gap-1 text-xs text-blue-600 border-blue-300">
+                          <Badge variant="outline" className="flex-shrink-0 gap-1 text-[10px] sm:text-xs text-blue-600 border-blue-300">
                             <Globe className="h-3 w-3" />
-                            Externe
+                            <span className="hidden sm:inline">Externe</span>
                           </Badge>
                         )}
                         {event.status === "cancelled" && (
-                          <Badge variant="destructive" className="flex-shrink-0 gap-1 text-xs">
+                          <Badge variant="destructive" className="flex-shrink-0 gap-1 text-[10px] sm:text-xs">
                             <Ban className="h-3 w-3" />
                             Annulé
                           </Badge>
                         )}
                       </div>
-                      <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-1 text-xs sm:text-sm text-muted-foreground">
                         <span>
                           {formatDateWithDayOfWeek(event.event_date)}
                           {event.event_time && ` à ${event.event_time.slice(0, 5)}`}
@@ -179,17 +179,30 @@ const Events = () => {
                           const daysLeft = getCfpDaysLeft(event.cfp_deadline);
                           if (daysLeft < 0) return null;
                           return (
-                            <span className={`text-xs ${daysLeft <= 7 ? "text-orange-600 font-medium" : ""}`}>
+                            <span className={`text-[10px] sm:text-xs ${daysLeft <= 7 ? "text-orange-600 font-medium" : ""}`}>
                               CFP : {daysLeft === 0 ? "aujourd'hui" : daysLeft === 1 ? "demain" : `J-${daysLeft}`}
                             </span>
                           );
                         })()}
                       </div>
+                      {/* Location — inline on desktop, below on mobile */}
+                      {event.location && (
+                        <div className="mt-1.5 sm:hidden">
+                          <Badge variant="outline" className="gap-1 text-[10px]">
+                            {event.location_type === "visio" ? (
+                              <Video className="h-3 w-3" />
+                            ) : (
+                              <MapPin className="h-3 w-3" />
+                            )}
+                            <span className="truncate max-w-[180px]">{event.location}</span>
+                          </Badge>
+                        </div>
+                      )}
                     </div>
 
-                    {/* Location badge */}
+                    {/* Location badge — desktop only */}
                     {event.location && (
-                      <Badge variant="outline" className="flex-shrink-0 gap-1">
+                      <Badge variant="outline" className="hidden sm:flex flex-shrink-0 gap-1">
                         {event.location_type === "visio" ? (
                           <Video className="h-3 w-3" />
                         ) : (
