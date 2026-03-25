@@ -3,7 +3,7 @@ import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-
 import { crypto } from "https://deno.land/std@0.190.0/crypto/mod.ts";
 import { encode as hexEncode } from "https://deno.land/std@0.190.0/encoding/hex.ts";
 
-import { extendCorsHeaders } from "../_shared/cors.ts";
+import { extendCorsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 
 const corsHeaders = extendCorsHeaders({
   "Access-Control-Allow-Headers": "authorization, x-api-key, content-type",
