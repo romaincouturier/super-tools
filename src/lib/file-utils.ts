@@ -86,7 +86,8 @@ const MIME_NORMALIZE: Record<string, string> = {
 
 export function resolveContentType(file: File): string {
   if (file.type) {
-    return MIME_NORMALIZE[file.type] || file.type;
+    const normalizedMime = file.type.toLowerCase().split(";")[0].trim();
+    return MIME_NORMALIZE[normalizedMime] || normalizedMime;
   }
   const ext = file.name.split(".").pop()?.toLowerCase() || "";
   return EXT_TO_MIME[ext] || "application/octet-stream";

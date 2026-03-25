@@ -114,6 +114,15 @@ describe("resolveContentType", () => {
     Object.defineProperty(file, "type", { value: "" });
     expect(resolveContentType(file)).toBe("video/mp4");
   });
+  it("normalizes non-standard iOS MIME type audio/x-m4a", () => {
+    const file = new File([""], "memo.m4a", { type: "audio/x-m4a" });
+    expect(resolveContentType(file)).toBe("audio/mp4");
+  });
+
+  it("normalizes MIME type with optional parameters", () => {
+    const file = new File([""], "memo.m4a", { type: "audio/x-m4a; charset=binary" });
+    expect(resolveContentType(file)).toBe("audio/mp4");
+  });
 });
 
 // ── getFileType ──────────────────────────────────────────────────────
