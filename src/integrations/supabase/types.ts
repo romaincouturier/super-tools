@@ -3093,6 +3093,7 @@ export type Database = {
           source_id: string
           source_type: string
           tags: string[] | null
+          transcript: string | null
         }
         Insert: {
           created_at?: string | null
@@ -3109,6 +3110,7 @@ export type Database = {
           source_id: string
           source_type: string
           tags?: string[] | null
+          transcript?: string | null
         }
         Update: {
           created_at?: string | null
@@ -3125,6 +3127,7 @@ export type Database = {
           source_id?: string
           source_type?: string
           tags?: string[] | null
+          transcript?: string | null
         }
         Relationships: [
           {
