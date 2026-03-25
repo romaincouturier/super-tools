@@ -150,6 +150,174 @@ const ViewQuestionnaireDialog = ({ participantId, participantName, trainingId }:
     }
   };
 
+  const exportToPdf = () => {
+    if (!questionnaire) return;
+
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const margin = 20;
+    const maxWidth = pageWidth - margin * 2;
+    let y = 20;
+
+    const checkPageBreak = (needed: number) => {
+      if (y + needed > doc.internal.pageSize.getHeight() - 20) {
+        doc.addPage();
+        y = 20;
+      }
+    };
+
+    const addTitle = (text: string) => {
+      checkPageBreak(16);
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(33, 33, 33);
+      doc.text(text, margin, y);
+      y += 8;
+    };
+
+    const addField = (label: string, value: string | null | undefined) => {
+      if (!value) return;
+      checkPageBreak(12);
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(100, 100, 100);
+      doc.text(`${label} :`, margin + 2, y);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(33, 33, 33);
+      const labelWidth = doc.getTextWidth(`${label} : `);
+      const lines = doc.splitTextToSize(value, maxWidth - labelWidth - 4);
+      if (lines.length === 1) {
+        doc.text(value, margin + 2 + labelWidth, y);
+        y += 6;
+      } else {
+        y += 5;
+        const wrappedLines = doc.splitTextToSize(value, maxWidth - 4);
+        doc.text(wrappedLines, margin + 4, y);
+        y += wrappedLines.length * 4.5 + 2;
+      }
+    };
+
+    const addLevel = (label: string, value: number | null) => {
+      if (value === null) return;
+      checkPageBreak(10);
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(100, 100, 100);
+      doc.text(`${label} :`, margin + 2, y);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(33, 33, 33);
+      const dots = "●".repeat(value) + "○".repeat(5 - value);
+      doc.text(`${dots} ${value}/5`, margin + 2 + doc.getTextWidth(`${label} : `), y);
+      y += 6;
+    };
+
+    const addSeparator = () => {
+      checkPageBreak(8);
+      doc.setDrawColor(220, 220, 220);
+      doc.line(margin, y, pageWidth - margin, y);
+      y += 6;
+    };
+
+    // Header
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(33, 33, 33);
+    doc.text("Recueil des besoins", margin, y);
+    y += 8;
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(80, 80, 80);
+    doc.text(participantName, margin, y);
+    y += 6;
+
+    if (questionnaire.date_soumission) {
+      doc.setFontSize(9);
+      doc.text(
+        `Soumis le ${format(parseISO(questionnaire.date_soumission), "d MMMM yyyy 'à' HH:mm", { locale: fr })}`,
+        margin, y
+      );
+      y += 4;
+    }
+    y += 6;
+
+    // Section 1: Identification
+    addTitle("Identification");
+    addField("Nom", questionnaire.nom);
+    addField("Prénom", questionnaire.prenom);
+    addField("Email", questionnaire.email);
+    addField("Société", questionnaire.societe);
+    addField("Fonction", questionnaire.fonction);
+    addSeparator();
+
+    // Section 2: Experience
+    addTitle("Expérience et prérequis");
+    addField("Expérience sur le sujet", getExperienceLabel(questionnaire.experience_sujet));
+    addField("Détails de l'expérience", questionnaire.experience_details);
+    addField("Lecture du programme", getLectureProgrammeLabel(questionnaire.lecture_programme));
+
+    if (questionnaire.prerequis_validation) {
+      try {
+        const parsed = JSON.parse(questionnaire.prerequis_validation);
+        if (typeof parsed === 'object' && !Array.isArray(parsed)) {
+          Object.entries(parsed as Record<string, string>).forEach(([prereq, status]) => {
+            const statusLabel = status === "oui" ? "✓ Validé" : status === "partiellement" ? "⚠ Partiellement" : "✗ Non validé";
+            addField(prereq, statusLabel);
+          });
+        }
+      } catch {
+        addField("Validation des prérequis", getPrerequisLabel(questionnaire.prerequis_validation));
+      }
+    }
+    if (questionnaire.prerequis_details) {
+      addField("Précisions sur les prérequis", questionnaire.prerequis_details);
+    }
+    addSeparator();
+
+    // Section 3: Objectives
+    addTitle("Objectifs et motivation");
+    addLevel("Niveau actuel estimé", questionnaire.niveau_actuel);
+    addLevel("Niveau de motivation", questionnaire.niveau_motivation);
+    addField("Compétences actuelles", questionnaire.competences_actuelles);
+    addField("Compétences visées", questionnaire.competences_visees);
+    addField("Lien avec la mission professionnelle", questionnaire.lien_mission);
+    addSeparator();
+
+    // Section 4: Constraints
+    if (questionnaire.contraintes_orga) {
+      addTitle("Contraintes organisationnelles");
+      addField("Contraintes", questionnaire.contraintes_orga);
+      addSeparator();
+    }
+
+    // Section 5: Accessibility
+    if (questionnaire.necessite_amenagement || questionnaire.besoins_accessibilite) {
+      addTitle("Besoins d'accessibilité");
+      if (questionnaire.necessite_amenagement) {
+        addField("Aménagement", "Nécessaire");
+      }
+      addField("Besoins spécifiques", questionnaire.besoins_accessibilite);
+      addSeparator();
+    }
+
+    // Section 6: Comments
+    if (questionnaire.commentaires_libres) {
+      addTitle("Commentaires libres");
+      addField("Commentaires", questionnaire.commentaires_libres);
+    }
+
+    // Footer on each page
+    const pageCount = doc.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.setTextColor(150, 150, 150);
+      doc.text(`Page ${i}/${pageCount}`, pageWidth - margin, doc.internal.pageSize.getHeight() - 10, { align: "right" });
+    }
+
+    const safeName = participantName.replace(/[^a-zA-Z0-9À-ÿ\s-]/g, "").replace(/\s+/g, "_");
+    doc.save(`Recueil_besoins_${safeName}.pdf`);
+  };
+
   const getExperienceLabel = (value: string | null) => {
     switch (value) {
       case "aucune": return "Aucune expérience";
