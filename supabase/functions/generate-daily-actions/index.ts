@@ -310,7 +310,19 @@ serve(async (req) => {
       });
     }
 
-    // ── Delete + insert per user ──
+    // 13. Événements passés sans note de synthèse
+    for (const ev of data.pastEventsNoSummary) {
+      const eventDate = new Date(ev.eventDate).toLocaleDateString("fr-FR", { day: "numeric", month: "long" });
+      actions.push({
+        category: "evenements_synthese",
+        title: ev.title,
+        description: `Événement du ${eventDate} — note de synthèse à rédiger`,
+        link: `${appUrl}/events/${ev.id}`,
+        entityType: "event", entityId: ev.id,
+        assignedTo: ev.assignedTo, scope: "perUser",
+      });
+    }
+
     const STRICT_ASSIGNED_CATEGORIES = ["articles_relire", "commentaires_contenu"];
 
     for (const recipient of recipients) {
