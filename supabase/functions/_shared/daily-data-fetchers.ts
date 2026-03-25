@@ -436,7 +436,7 @@ export async function fetchTrainingConventions(supabase: SupabaseClient, today: 
   const results: TrainingConventionItem[] = [];
 
   for (const t of trainings) {
-    const isIntra = t.format_formation === "intra";
+    const isIntra = t.format_formation === "intra" || t.format_formation === "classe_virtuelle";
     const isInterOrElearning = t.format_formation === "inter-entreprises" || t.format_formation === "e_learning";
 
     // Convention non générée
