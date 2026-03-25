@@ -22,7 +22,7 @@ vi.mock("./resend.ts", () => ({
 }));
 
 // Now import AFTER the mock is set up
-const { processTemplate, replaceVariables, textToHtml, wrapEmailHtml } = await import("./templates");
+const { processTemplate, replaceVariables, textToHtml, templateTextToHtml, wrapEmailHtml } = await import("./templates");
 
 // ═══════════════════════════════════════════════════════════════════════
 // processTemplate (with HTML escaping by default)
@@ -184,6 +184,31 @@ describe("textToHtml", () => {
   it("trims whitespace from lines", () => {
     expect(textToHtml("  hello  \n  world  "))
       .toBe("<p>hello<br>world</p>");
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════
+// templateTextToHtml
+// ═══════════════════════════════════════════════════════════════════════
+
+describe("templateTextToHtml", () => {
+  it("groups bullet lines into a single list even with blank lines", () => {
+    const input = "Bonjour\n\n• Point 1\n\n• Point 2\n\nMerci";
+    const result = templateTextToHtml(input);
+
+    expect(result).toContain("<ul");
+    expect(result).toContain("<li>Point 1</li>");
+    expect(result).toContain("<li>Point 2</li>");
+    expect((result.match(/<ul/g) || []).length).toBe(1);
+  });
+
+  it("does not create empty paragraphs around bullet sections", () => {
+    const input = "Intro\n\n• A\n\n• B\n\nOutro";
+    const result = templateTextToHtml(input);
+
+    expect(result).not.toContain("<p></p>");
+    expect(result).toContain("<p>Intro</p>");
+    expect(result).toContain("<p>Outro</p>");
   });
 });
 
