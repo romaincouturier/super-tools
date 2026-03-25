@@ -1,3 +1,4 @@
+import { Send, Clock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { getStatusConfig } from "./statusConfig";
 import ParticipantActions from "./ParticipantActions";
@@ -39,13 +40,24 @@ const ParticipantMobileCard = ({
                   </Badge>
                 )}
               </div>
-              <Badge
-                variant={statusConfig.variant}
-                className="gap-1 text-xs shrink-0"
-              >
-                <StatusIcon className="h-3 w-3" />
-                {statusConfig.label}
-              </Badge>
+              <div className="flex flex-col items-end gap-1 shrink-0">
+                {(() => {
+                  const isConvoked = !["non_envoye", "manuel"].includes(participant.needs_survey_status);
+                  return (
+                    <span className={`inline-flex items-center gap-1 text-[10px] font-medium ${isConvoked ? "text-primary" : "text-muted-foreground"}`}>
+                      {isConvoked ? <Send className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
+                      {isConvoked ? "Convoqué" : "Non convoqué"}
+                    </span>
+                  );
+                })()}
+                <Badge
+                  variant={statusConfig.variant}
+                  className="gap-1 text-xs"
+                >
+                  <StatusIcon className="h-3 w-3" />
+                  {statusConfig.label}
+                </Badge>
+              </div>
             </div>
             {actionsProps.isInterEntreprise && participant.sold_price_ht != null && (
               <p className="text-xs text-muted-foreground">
