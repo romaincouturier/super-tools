@@ -201,9 +201,7 @@ const ParticipantTable = ({
                         );
                       })}
                     </div>
-                  ) : (
-                    <span className="text-xs text-muted-foreground">\u2014</span>
-                  )}
+                  ) : null}
                 </TableCell>
               )}
               <TableCell>
