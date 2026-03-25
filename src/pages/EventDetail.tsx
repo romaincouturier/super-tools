@@ -60,6 +60,7 @@ import {
 } from "@/hooks/useEvents";
 import { useEntityMedia, useAddMedia, useDeleteMedia } from "@/hooks/useMedia";
 import EntityMediaManager from "@/components/media/EntityMediaManager";
+import SendToContentBoardButton from "@/components/events/SendToContentBoardButton";
 
 const EventDetail = () => {
   const { id } = useParams<{ id: string }>();
