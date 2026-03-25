@@ -350,8 +350,11 @@ const EntityMediaManager = ({
             {[...downloadableMedia].sort((a, b) => (b.is_deliverable ? 1 : 0) - (a.is_deliverable ? 1 : 0)).map((item) => (
               <div
                 key={item.id}
-                className="group relative aspect-square rounded-lg overflow-hidden border bg-muted cursor-pointer"
-                onClick={() => setLightboxItem(item)}
+                className={cn(
+                  "group relative rounded-lg overflow-hidden border bg-muted cursor-pointer",
+                  item.file_type === "audio" ? "col-span-2 sm:col-span-3" : "aspect-square"
+                )}
+                onClick={() => item.file_type !== "audio" && setLightboxItem(item)}
               >
                 {item.file_type === "image" ? (
                   <img
@@ -360,6 +363,54 @@ const EntityMediaManager = ({
                     className="w-full h-full object-cover will-change-transform"
                     loading="lazy"
                   />
+                ) : item.file_type === "audio" ? (
+                  <div className="p-3 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <FileAudio className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                      <span className="text-sm font-medium truncate">{item.file_name}</span>
+                      <div className="ml-auto flex items-center gap-1">
+                        {!item.transcript && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-7 text-xs"
+                                onClick={(e) => { e.stopPropagation(); handleTranscribe(item); }}
+                                disabled={transcribingIds.has(item.id)}
+                              >
+                                {transcribingIds.has(item.id) ? (
+                                  <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                                ) : (
+                                  <FileText className="h-3 w-3 mr-1" />
+                                )}
+                                Transcrire
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Transcrire l'audio avec l'IA</TooltipContent>
+                          </Tooltip>
+                        )}
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => handleDownloadFile(e, item.file_url, item.file_name)}>
+                          <Download className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={(e) => handleDelete(e, item)}>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                    <audio src={item.file_url} controls className="w-full h-8" preload="metadata" />
+                    {item.transcript && (
+                      <div className="mt-2 p-2 bg-background rounded border text-sm text-muted-foreground whitespace-pre-wrap max-h-32 overflow-y-auto">
+                        {item.transcript}
+                      </div>
+                    )}
+                    {transcribingIds.has(item.id) && (
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        Transcription en cours...
+                      </div>
+                    )}
+                  </div>
                 ) : (
                   <div className="w-full h-full relative">
                     <video
