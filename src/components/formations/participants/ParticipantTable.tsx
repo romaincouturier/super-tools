@@ -86,7 +86,7 @@ const ParticipantTable = ({
                       <span className="font-medium">
                         {participant.first_name || participant.last_name
                           ? `${participant.last_name || ""} ${participant.first_name || ""}`.trim()
-                          : "\u2014"}
+                          : participant.email}
                       </span>
                       {participant.company && (
                         <span className="text-xs text-muted-foreground">{participant.company}</span>
