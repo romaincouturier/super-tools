@@ -60,7 +60,6 @@ const EntityMediaManager = ({
   const imageItems = media.filter((m) => m.file_type === "image");
   const videoItems = media.filter((m) => m.file_type === "video");
   const audioItems = media.filter((m) => m.file_type === "audio");
-  const videoItems = media.filter((m) => m.file_type === "video");
 
   const handleToggleDeliverable = (item: MediaItem) => {
     toggleDeliverable.mutate({
