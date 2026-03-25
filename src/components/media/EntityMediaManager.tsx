@@ -425,7 +425,8 @@ const EntityMediaManager = ({
                   </div>
                 )}
 
-                {/* Hover overlay */}
+                {/* Hover overlay (not for audio — handled inline) */}
+                {item.file_type !== "audio" && (
                 <div className="absolute inset-0 bg-black/60 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity will-change-[opacity] flex items-center justify-center gap-1 z-10">
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -475,9 +476,10 @@ const EntityMediaManager = ({
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>
                 </div>
+                )}
 
                 {/* Deliverable badge */}
-                {item.is_deliverable && (
+                {item.is_deliverable && item.file_type !== "audio" && (
                   <div className="absolute top-1 left-1">
                     <Package className="h-3.5 w-3.5 text-white drop-shadow" />
                   </div>
