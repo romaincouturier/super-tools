@@ -194,7 +194,7 @@ export function useEvaluationForm(token: string | undefined) {
     try {
       const nowIso = new Date().toISOString();
 
-      assertTransition(evaluationMachine, form.evaluation.etat as EvaluationStatus, "soumis");
+      assertTransition(evaluationMachine, evaluation!.etat as EvaluationStatus, "soumis");
 
       const { error: upErr } = await rpc.updateEvaluationByToken(token!, {
         appreciation_generale: appreciationGenerale,
