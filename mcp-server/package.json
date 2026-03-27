@@ -1,0 +1,19 @@
+{
+  "name": "super-tools-mcp-server",
+  "version": "1.0.0",
+  "description": "Serveur MCP pour Super Tools — expose les actions métier et connecte les outils externes",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.1"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  }
+}
