@@ -6,7 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { formatDateWithDayOfWeek } from "@/lib/dateFormatters";
 import { assertTransition, questionnaireMachine, type QuestionnaireStatus } from "@/lib/stateMachine";
 
-export type SaveStatus = "idle" | "saving" | "saved" | "error";
+type SaveStatus = "idle" | "saving" | "saved" | "error";
 
 export type QuestionnaireRecord = {
   id: string;
@@ -51,7 +51,7 @@ export type TrainingRecord = {
   location: string | null;
 };
 
-export type ScheduleRecord = {
+type ScheduleRecord = {
   day_date: string;
   start_time: string;
   end_time: string;

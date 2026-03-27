@@ -2,16 +2,8 @@
  * Training service — centralizes Supabase DB calls for trainings domain.
  * Eliminates scattered `supabase.from("trainings")` calls across components.
  */
-import { supabase } from "@/integrations/supabase/client";
+import { db, throwIfError } from "@/lib/supabase-helpers";
 import type { ReadRepository } from "./repository";
-
-// The generated Database type doesn't cover all tables; bypass table-name checking.
-const db = () => supabase as unknown as { from: (table: string) => ReturnType<typeof supabase.from> };
-
-function throwIfError<T>(result: { data: T; error: { message: string } | null }): T {
-  if (result.error) throw result.error;
-  return result.data;
-}
 
 /** Fetch a single training by ID */
 export async function getTraining(id: string) {
@@ -89,8 +81,6 @@ export async function fetchLinkableTrainings(fromDate: string) {
 }
 
 // ── Compile-time contract check ─────────────────────────────────────
-// Trainings service is read-heavy (no create from frontend). ReadRepository
-// ensures at least fetch + fetchById are always present.
 ({
   fetch: fetchAllTrainings,
   fetchById: getTraining,

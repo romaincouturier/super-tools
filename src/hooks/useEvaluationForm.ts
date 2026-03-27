@@ -7,7 +7,7 @@ import { assertTransition, evaluationMachine, type EvaluationStatus } from "@/li
 
 // ─── Types ──────────────────────────────────────────────────────────
 
-export type EvaluationRecord = {
+type EvaluationRecord = {
   id: string;
   training_id: string;
   participant_id: string;
@@ -37,14 +37,14 @@ export type EvaluationRecord = {
   date_soumission: string | null;
 };
 
-export type TrainingRecord = {
+type TrainingRecord = {
   training_name: string;
   start_date: string;
   end_date: string | null;
   objectives: string[] | null;
 };
 
-export type ObjectiveEvaluation = { objectif: string; niveau: number };
+type ObjectiveEvaluation = { objectif: string; niveau: number };
 
 // ─── Hook ───────────────────────────────────────────────────────────
 
