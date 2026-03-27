@@ -27,7 +27,10 @@ async function callEdgeFunction(
   options?: { useApiKey?: boolean },
 ): Promise<unknown> {
   const url = requireEnv("SUPABASE_URL", SUPABASE_URL);
-  const serviceKey = requireEnv("SUPABASE_SERVICE_ROLE_KEY", SUPABASE_SERVICE_ROLE_KEY);
+  const serviceKey = requireEnv(
+    "SUPABASE_SERVICE_ROLE_KEY",
+    SUPABASE_SERVICE_ROLE_KEY,
+  );
 
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -48,8 +51,9 @@ async function callEdgeFunction(
   const data = await res.json();
 
   if (!res.ok) {
-    const message = (data as { error?: string }).error || `HTTP ${res.status}`;
-    throw new Error(`Edge function ${functionName} a échoué : ${message}`);
+    const message =
+      (data as { error?: string }).error || `HTTP ${res.status}`;
+    throw new Error(`${functionName} a échoué : ${message}`);
   }
 
   return data;
@@ -60,7 +64,10 @@ async function supabaseInsert(
   data: Record<string, unknown>,
 ): Promise<unknown> {
   const url = requireEnv("SUPABASE_URL", SUPABASE_URL);
-  const serviceKey = requireEnv("SUPABASE_SERVICE_ROLE_KEY", SUPABASE_SERVICE_ROLE_KEY);
+  const serviceKey = requireEnv(
+    "SUPABASE_SERVICE_ROLE_KEY",
+    SUPABASE_SERVICE_ROLE_KEY,
+  );
 
   const res = await fetch(`${url}/rest/v1/${table}`, {
     method: "POST",
@@ -76,7 +83,8 @@ async function supabaseInsert(
   const result = await res.json();
 
   if (!res.ok) {
-    const message = (result as { message?: string }).message || `HTTP ${res.status}`;
+    const message =
+      (result as { message?: string }).message || `HTTP ${res.status}`;
     throw new Error(`Insert dans ${table} a échoué : ${message}`);
   }
 
@@ -88,7 +96,10 @@ async function supabaseQuery(
   params: Record<string, string>,
 ): Promise<unknown[]> {
   const url = requireEnv("SUPABASE_URL", SUPABASE_URL);
-  const serviceKey = requireEnv("SUPABASE_SERVICE_ROLE_KEY", SUPABASE_SERVICE_ROLE_KEY);
+  const serviceKey = requireEnv(
+    "SUPABASE_SERVICE_ROLE_KEY",
+    SUPABASE_SERVICE_ROLE_KEY,
+  );
 
   const queryParams = new URLSearchParams(params);
   const res = await fetch(`${url}/rest/v1/${table}?${queryParams}`, {
@@ -105,6 +116,45 @@ async function supabaseQuery(
   return (await res.json()) as unknown[];
 }
 
+/** Récupère la première colonne du pipeline CRM (position la plus basse). */
+async function getDefaultColumnId(): Promise<string> {
+  const columns = (await supabaseQuery("crm_columns", {
+    select: "id",
+    order: "position.asc",
+    limit: "1",
+  })) as { id: string }[];
+
+  if (!columns[0]) {
+    throw new Error("Aucune colonne CRM trouvée dans le pipeline");
+  }
+
+  return columns[0].id;
+}
+
+/** Notifie Slack qu'une opportunité a été créée (fire-and-forget). */
+async function notifySlackOpportunityCreated(
+  card: Record<string, unknown>,
+): Promise<void> {
+  try {
+    await callEdgeFunction("crm-slack-notify", {
+      type: "opportunity_created",
+      card: {
+        title: card.title,
+        company: card.company,
+        first_name: card.first_name,
+        last_name: card.last_name,
+        service_type: card.service_type,
+        estimated_value: card.estimated_value,
+        email: card.email,
+      },
+      actor_email: "mcp-server",
+    });
+  } catch (e) {
+    // Slack est best-effort, on ne fait pas échouer la création
+    console.warn("Notification Slack échouée :", e);
+  }
+}
+
 // ---------------------------------------------------------------------------
 // MCP Server
 // ---------------------------------------------------------------------------
@@ -114,11 +164,11 @@ const server = new McpServer({
   version: "1.0.0",
 });
 
-// ── Tool 1 : create_training ────────────────────────────────────────────────
+// ── create_training ─────────────────────────────────────────────────────────
 
 server.tool(
   "create_training",
-  "Crée une nouvelle formation dans Super Tools. Champs requis : training_name, client_name, start_date, end_date, location.",
+  "Crée une nouvelle formation. Exemples : « Crée une formation React pour Acme du 15 au 17 avril à Paris ».",
   {
     training_name: z.string().describe("Nom de la formation"),
     client_name: z.string().describe("Nom du client"),
@@ -130,8 +180,14 @@ server.tool(
       .optional()
       .describe("Format de la formation"),
     sponsor_email: z.string().optional().describe("Email du commanditaire"),
-    sponsor_first_name: z.string().optional().describe("Prénom du commanditaire"),
-    sponsor_last_name: z.string().optional().describe("Nom du commanditaire"),
+    sponsor_first_name: z
+      .string()
+      .optional()
+      .describe("Prénom du commanditaire"),
+    sponsor_last_name: z
+      .string()
+      .optional()
+      .describe("Nom du commanditaire"),
     notes: z.string().optional().describe("Notes libres"),
     participants: z
       .array(
@@ -167,13 +223,12 @@ server.tool(
   },
 );
 
-// ── Tool 2 : create_opportunity ─────────────────────────────────────────────
+// ── create_opportunity ──────────────────────────────────────────────────────
 
 server.tool(
   "create_opportunity",
-  "Crée une opportunité CRM (carte dans le pipeline). Champs requis : column_id, title.",
+  "Crée une nouvelle opportunité commerciale. Exemples : « Nouvelle opportunité formation pour Marie Dupont chez Sanofi, venue de LinkedIn, estimée à 5000€ ».",
   {
-    column_id: z.string().describe("ID de la colonne CRM cible"),
     title: z.string().describe("Titre de l'opportunité"),
     first_name: z.string().optional().describe("Prénom du contact"),
     last_name: z.string().optional().describe("Nom du contact"),
@@ -202,15 +257,21 @@ server.tool(
         "autre",
       ])
       .optional()
-      .describe("Source d'acquisition"),
-    estimated_value: z.number().optional().describe("Valeur estimée en euros"),
-    description_html: z.string().optional().describe("Description HTML"),
+      .describe("Comment le contact est arrivé"),
+    estimated_value: z
+      .number()
+      .optional()
+      .describe("Valeur estimée en euros"),
+    description_html: z.string().optional().describe("Description libre"),
   },
   async (args) => {
-    // Calculer la position max
+    // Résoudre automatiquement la première colonne du pipeline
+    const columnId = await getDefaultColumnId();
+
+    // Calculer la position max dans cette colonne
     const existingCards = (await supabaseQuery("crm_cards", {
       select: "position",
-      column_id: `eq.${args.column_id}`,
+      column_id: `eq.${columnId}`,
       order: "position.desc",
       limit: "1",
     })) as { position: number }[];
@@ -221,7 +282,7 @@ server.tool(
       s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : null;
 
     const insertData = {
-      column_id: args.column_id,
+      column_id: columnId,
       title: args.title,
       description_html: args.description_html || null,
       status_operational: "TODAY",
@@ -238,94 +299,25 @@ server.tool(
       acquisition_source: args.acquisition_source || null,
     };
 
-    const card = await supabaseInsert("crm_cards", insertData);
+    const card = (await supabaseInsert(
+      "crm_cards",
+      insertData,
+    )) as Record<string, unknown>;
 
     // Log activité CRM
-    const cardId = (card as { id: string }).id;
     await supabaseInsert("crm_activity_logs", {
-      card_id: cardId,
+      card_id: card.id,
       action: "card_created",
       actor_email: "mcp-server",
       new_value: args.title,
     });
 
+    // Notification Slack automatique (best-effort)
+    await notifySlackOpportunityCreated(card);
+
     return {
       content: [
         { type: "text" as const, text: JSON.stringify(card, null, 2) },
-      ],
-    };
-  },
-);
-
-// ── Tool 3 : slack_notify ───────────────────────────────────────────────────
-
-server.tool(
-  "slack_notify",
-  "Envoie une notification Slack CRM (nouvelle opportunité ou opportunité gagnée).",
-  {
-    type: z
-      .enum(["opportunity_created", "opportunity_won"])
-      .describe("Type de notification"),
-    title: z.string().describe("Titre de l'opportunité"),
-    company: z.string().optional().describe("Entreprise"),
-    first_name: z.string().optional().describe("Prénom du contact"),
-    last_name: z.string().optional().describe("Nom du contact"),
-    service_type: z.string().optional().describe("Type de prestation"),
-    estimated_value: z.number().optional().describe("Valeur estimée"),
-    email: z.string().optional().describe("Email du contact"),
-    actor_email: z.string().optional().describe("Email de l'auteur de l'action"),
-  },
-  async (args) => {
-    const { type, actor_email, ...cardFields } = args;
-    const result = await callEdgeFunction("crm-slack-notify", {
-      type,
-      card: cardFields,
-      actor_email,
-    });
-    return {
-      content: [
-        { type: "text" as const, text: JSON.stringify(result, null, 2) },
-      ],
-    };
-  },
-);
-
-// ── Tool 4 : woocommerce_generate_coupon ────────────────────────────────────
-
-server.tool(
-  "woocommerce_generate_coupon",
-  "Génère un coupon WooCommerce 100% pour donner l'accès e-learning à un participant.",
-  {
-    participant_id: z.string().describe("UUID du participant"),
-    training_id: z.string().describe("UUID de la formation"),
-  },
-  async (args) => {
-    const result = await callEdgeFunction("generate-woocommerce-coupon", {
-      participantId: args.participant_id,
-      trainingId: args.training_id,
-    });
-    return {
-      content: [
-        { type: "text" as const, text: JSON.stringify(result, null, 2) },
-      ],
-    };
-  },
-);
-
-// ── Tool 5 : list_crm_columns ───────────────────────────────────────────────
-
-server.tool(
-  "list_crm_columns",
-  "Liste les colonnes du pipeline CRM (utile pour obtenir le column_id avant de créer une opportunité).",
-  {},
-  async () => {
-    const columns = await supabaseQuery("crm_columns", {
-      select: "id,title,position",
-      order: "position.asc",
-    });
-    return {
-      content: [
-        { type: "text" as const, text: JSON.stringify(columns, null, 2) },
       ],
     };
   },
