@@ -1,14 +1,22 @@
 import { supabase } from "@/integrations/supabase/client";
 import { sanitizeFileName, resolveContentType } from "@/lib/file-utils";
+import { db, throwIfError } from "@/lib/supabase-helpers";
 import type { SupportTicket, TicketStatus, TicketAiAnalysis } from "@/types/support";
+import type { KanbanRepository } from "./repository";
 
 export async function fetchSupportTickets(): Promise<SupportTicket[]> {
-  const { data, error } = await (supabase as unknown as { from: (table: string) => ReturnType<typeof supabase.from> })
-    .from("support_tickets")
-    .select("*")
-    .order("created_at", { ascending: false });
-  if (error) throw error;
-  return data || [];
+  const result = await db().from("support_tickets").select("*").order("created_at", { ascending: false });
+  return (throwIfError(result) || []) as SupportTicket[];
+}
+
+export async function fetchSupportTicketById(id: string): Promise<SupportTicket> {
+  const result = await db().from("support_tickets").select("*").eq("id", id).single();
+  return throwIfError(result) as SupportTicket;
+}
+
+export async function deleteSupportTicket(id: string): Promise<void> {
+  const result = await db().from("support_tickets").delete().eq("id", id);
+  throwIfError(result);
 }
 
 export async function analyzeTicket(description: string): Promise<TicketAiAnalysis> {
@@ -27,7 +35,7 @@ export async function createSupportTicket(
 ): Promise<SupportTicket> {
   const { data: { user } } = await supabase.auth.getUser();
   const { files, ai_analysis, ...ticketInput } = input;
-  const { data, error } = await (supabase as unknown as { from: (table: string) => ReturnType<typeof supabase.from> })
+  const result = await db()
     .from("support_tickets")
     .insert({
       ...ticketInput,
@@ -38,14 +46,13 @@ export async function createSupportTicket(
     })
     .select()
     .single();
-  if (error) throw error;
+  const data = throwIfError(result) as SupportTicket;
 
-  // Upload attachments if any
   if (files && files.length > 0) {
     for (const file of files) {
       const filePath = `${data.id}/${Date.now()}_${sanitizeFileName(file.name)}`;
       await supabase.storage.from("support-attachments").upload(filePath, file);
-      await (supabase as unknown as { from: (table: string) => ReturnType<typeof supabase.from> }).from("support_ticket_attachments").insert({
+      await db().from("support_ticket_attachments").insert({
         ticket_id: data.id,
         file_name: file.name,
         file_path: filePath,
@@ -58,8 +65,10 @@ export async function createSupportTicket(
   return data;
 }
 
+const RESOLVED_STATUSES: TicketStatus[] = ["resolu", "ferme"];
+
 function withResolvedAt(payload: Record<string, unknown>, status?: string): Record<string, unknown> {
-  if (status === "resolu" || status === "ferme") {
+  if (status && RESOLVED_STATUSES.includes(status as TicketStatus)) {
     return { ...payload, resolved_at: new Date().toISOString() };
   }
   return payload;
@@ -88,15 +97,10 @@ export async function updateSupportTicket(
   updates: Partial<Pick<SupportTicket, "title" | "type" | "status" | "priority" | "assigned_to" | "resolution_notes" | "position" | "page_url" | "ai_analysis">>
 ): Promise<SupportTicket> {
   const payload = withResolvedAt({ ...updates }, updates.status);
-  const { data, error } = await (supabase as unknown as { from: (table: string) => ReturnType<typeof supabase.from> })
-    .from("support_tickets")
-    .update(payload)
-    .eq("id", id)
-    .select()
-    .single();
-  if (error) throw error;
+  const result = await db().from("support_tickets").update(payload).eq("id", id).select().single();
+  const data = throwIfError(result) as SupportTicket;
 
-  if (updates.status === "resolu" || updates.status === "ferme") {
+  if (updates.status && RESOLVED_STATUSES.includes(updates.status as TicketStatus)) {
     notifyTicketResolved(data);
   }
 
@@ -109,15 +113,26 @@ export async function moveSupportTicket(
   newPosition: number
 ): Promise<void> {
   const payload = withResolvedAt({ status: newStatus, position: newPosition }, newStatus);
-  const { data, error } = await (supabase as unknown as { from: (table: string) => ReturnType<typeof supabase.from> })
-    .from("support_tickets")
-    .update(payload)
-    .eq("id", id)
-    .select()
-    .single();
-  if (error) throw error;
+  const result = await db().from("support_tickets").update(payload).eq("id", id).select().single();
+  const data = throwIfError(result) as SupportTicket;
 
-  if (newStatus === "resolu" || newStatus === "ferme") {
+  if (RESOLVED_STATUSES.includes(newStatus)) {
     notifyTicketResolved(data);
   }
 }
+
+// ── Compile-time contract check ─────────────────────────────────────
+type CreateTicketInput = Pick<SupportTicket, "type" | "title" | "description" | "priority" | "page_url"> & {
+  files?: File[];
+  ai_analysis?: TicketAiAnalysis | null;
+};
+type UpdateTicketInput = Partial<Pick<SupportTicket, "title" | "type" | "status" | "priority" | "assigned_to" | "resolution_notes" | "position" | "page_url" | "ai_analysis">>;
+
+({
+  fetch: fetchSupportTickets,
+  fetchById: fetchSupportTicketById,
+  create: createSupportTicket,
+  update: updateSupportTicket,
+  remove: deleteSupportTicket,
+  move: moveSupportTicket,
+}) satisfies KanbanRepository<SupportTicket, CreateTicketInput, UpdateTicketInput, TicketStatus>;

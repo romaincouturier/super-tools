@@ -3,10 +3,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { rpc } from "@/lib/supabase-rpc";
 import { useToast } from "@/hooks/use-toast";
 import { formatTrainingDates } from "@/lib/dateFormatters";
+import { assertTransition, evaluationMachine, type EvaluationStatus } from "@/lib/stateMachine";
 
 // ─── Types ──────────────────────────────────────────────────────────
 
-export type EvaluationRecord = {
+type EvaluationRecord = {
   id: string;
   training_id: string;
   participant_id: string;
@@ -36,14 +37,14 @@ export type EvaluationRecord = {
   date_soumission: string | null;
 };
 
-export type TrainingRecord = {
+type TrainingRecord = {
   training_name: string;
   start_date: string;
   end_date: string | null;
   objectives: string[] | null;
 };
 
-export type ObjectiveEvaluation = { objectif: string; niveau: number };
+type ObjectiveEvaluation = { objectif: string; niveau: number };
 
 // ─── Hook ───────────────────────────────────────────────────────────
 
@@ -192,6 +193,8 @@ export function useEvaluationForm(token: string | undefined) {
     setSubmitting(true);
     try {
       const nowIso = new Date().toISOString();
+
+      assertTransition(evaluationMachine, evaluation!.etat as EvaluationStatus, "soumis");
 
       const { error: upErr } = await rpc.updateEvaluationByToken(token!, {
         appreciation_generale: appreciationGenerale,

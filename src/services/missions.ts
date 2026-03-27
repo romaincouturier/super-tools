@@ -2,19 +2,10 @@
  * Mission service — centralizes all Supabase DB calls for missions domain.
  * Hooks in useMissions.ts become thin React Query wrappers around these functions.
  */
-import { supabase } from "@/integrations/supabase/client";
+import { db, throwIfError, getMaxPosition } from "@/lib/supabase-helpers";
 import type { Mission, CreateMissionInput, UpdateMissionInput, MissionStatus, MissionContact } from "@/types/missions";
 import type { MissionActivity, MissionPage, MissionPageTemplate } from "@/hooks/useMissions";
-
-// ── Helpers ──────────────────────────────────────────────────────────
-
-// The generated Database type doesn't cover all tables; bypass table-name checking.
-const db = () => supabase as unknown as { from: (table: string) => ReturnType<typeof supabase.from> };
-
-function throwIfError<T>(result: { data: T; error: { message: string } | null }): T {
-  if (result.error) throw result.error;
-  return result.data;
-}
+import type { KanbanRepository } from "./repository";
 
 // ── Missions CRUD ────────────────────────────────────────────────────
 
@@ -23,27 +14,30 @@ export async function fetchMissions(): Promise<Mission[]> {
   return (throwIfError(result) || []) as Mission[];
 }
 
+export async function fetchMissionById(id: string): Promise<Mission> {
+  const result = await db().from("missions").select("*").eq("id", id).single();
+  return throwIfError(result) as Mission;
+}
+
+/** Escape special PostgREST filter characters to prevent injection in .or() */
+function escapeFilterValue(value: string): string {
+  return value.replace(/[%_\\,()."]/g, (ch) => `\\${ch}`);
+}
+
 export async function searchMissions(term: string): Promise<Pick<Mission, "id" | "title" | "client_name" | "client_contact" | "status" | "start_date" | "end_date">[]> {
   if (!term.trim()) return [];
+  const safe = escapeFilterValue(term.trim());
   const result = await db()
     .from("missions")
     .select("id, title, client_name, client_contact, status, start_date, end_date")
-    .or(`title.ilike.%${term}%,client_name.ilike.%${term}%,client_contact.ilike.%${term}%`)
+    .or(`title.ilike.%${safe}%,client_name.ilike.%${safe}%,client_contact.ilike.%${safe}%`)
     .order("created_at", { ascending: false })
     .limit(10);
   return (throwIfError(result) || []) as Pick<Mission, "id" | "title" | "client_name" | "client_contact" | "status" | "start_date" | "end_date">[];
 }
 
 export async function createMission(input: CreateMissionInput): Promise<Mission> {
-  // Get max position
-  const { data: existing } = await db()
-    .from("missions")
-    .select("position")
-    .eq("status", input.status || "not_started")
-    .order("position", { ascending: false })
-    .limit(1);
-
-  const maxPosition = existing?.[0]?.position ?? -1;
+  const maxPosition = await getMaxPosition("missions", { status: input.status || "not_started" });
 
   const { contact_first_name, contact_last_name, contact_email, contact_phone, ...missionData } = input;
 
@@ -131,15 +125,10 @@ export async function fetchPages(missionId: string): Promise<MissionPage[]> {
 }
 
 export async function createPage(input: { mission_id: string; parent_page_id?: string | null; title?: string; content?: string; activity_id?: string | null; icon?: string }): Promise<MissionPage> {
-  const { data: existing } = await db()
-    .from("mission_pages")
-    .select("position")
-    .eq("mission_id", input.mission_id)
-    .eq("parent_page_id", input.parent_page_id || null)
-    .order("position", { ascending: false })
-    .limit(1);
-
-  const maxPos = existing?.[0]?.position ?? -1;
+  const maxPos = await getMaxPosition("mission_pages", {
+    mission_id: input.mission_id,
+    parent_page_id: input.parent_page_id || null,
+  });
 
   const result = await db()
     .from("mission_pages")
@@ -176,8 +165,7 @@ export async function fetchPageTemplates(): Promise<MissionPageTemplate[]> {
 }
 
 export async function createPageTemplate(input: { name: string; description?: string; content: string; icon?: string }): Promise<MissionPageTemplate> {
-  const { data: existing } = await db().from("mission_page_templates").select("position").order("position", { ascending: false }).limit(1);
-  const maxPos = existing?.[0]?.position ?? -1;
+  const maxPos = await getMaxPosition("mission_page_templates");
   const result = await db().from("mission_page_templates").insert({ ...input, position: maxPos + 1 }).select().single();
   return throwIfError(result) as MissionPageTemplate;
 }
@@ -205,8 +193,7 @@ export async function fetchContacts(missionId: string): Promise<MissionContact[]
 }
 
 export async function createContact(input: { mission_id: string; first_name?: string; last_name?: string; email?: string; phone?: string; role?: string; language?: string; is_primary?: boolean }): Promise<MissionContact> {
-  const { data: existing } = await db().from("mission_contacts").select("position").eq("mission_id", input.mission_id).order("position", { ascending: false }).limit(1);
-  const maxPos = existing?.[0]?.position ?? -1;
+  const maxPos = await getMaxPosition("mission_contacts", { mission_id: input.mission_id });
 
   if (input.is_primary) {
     await db().from("mission_contacts").update({ is_primary: false }).eq("mission_id", input.mission_id);
@@ -228,3 +215,13 @@ export async function deleteContact(id: string): Promise<void> {
   const result = await db().from("mission_contacts").delete().eq("id", id);
   throwIfError(result);
 }
+
+// ── Compile-time contract check ─────────────────────────────────────
+({
+  fetch: fetchMissions,
+  fetchById: fetchMissionById,
+  create: createMission,
+  update: updateMission,
+  remove: deleteMission,
+  move: moveMission,
+}) satisfies KanbanRepository<Mission, CreateMissionInput, UpdateMissionInput, MissionStatus>;
