@@ -30,6 +30,8 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Progress } from "@/components/ui/progress";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { useUserPreference } from "@/hooks/useUserPreferences";
 import { useMissions } from "@/hooks/useMissions";
 import { useToast } from "@/hooks/use-toast";
@@ -56,6 +58,7 @@ const defaultSettings: ProfitabilitySettings = {
 const MissionProfitabilityDashboard = () => {
   const { toast } = useToast();
   const [showSettings, setShowSettings] = useState(false);
+  const [isOpen, setIsOpen] = useState(() => window.innerWidth >= 768);
 
   // Load settings from user preferences
   const {
@@ -196,7 +199,15 @@ const MissionProfitabilityDashboard = () => {
 
   return (
     <TooltipProvider>
-      <div className="space-y-4 mb-6">
+      <Collapsible open={isOpen} onOpenChange={setIsOpen} className="mb-6">
+        <CollapsibleTrigger asChild>
+          <Button variant="ghost" size="sm" className="w-full justify-between mb-2">
+            <span className="font-medium">Tableau de bord rentabilité</span>
+            {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          </Button>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+      <div className="space-y-4">
         {/* Main Indicators */}
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
           {/* TJM Recommandé */}
@@ -467,6 +478,8 @@ const MissionProfitabilityDashboard = () => {
           </DialogContent>
         </Dialog>
       </div>
+        </CollapsibleContent>
+      </Collapsible>
     </TooltipProvider>
   );
 };
