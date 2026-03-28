@@ -6,11 +6,14 @@ import {
   LayoutList,
   Columns3,
   Lightbulb,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import ModuleLayout from "@/components/ModuleLayout";
 import PageHeader from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   Select,
   SelectContent,
@@ -41,6 +44,9 @@ const Ameliorations = () => {
   // Detail drawer
   const [detailDrawerOpen, setDetailDrawerOpen] = useState(false);
   const [selectedImprovement, setSelectedImprovement] = useState<Improvement | null>(null);
+
+  // Stats collapsible (collapsed on mobile)
+  const [statsOpen, setStatsOpen] = useState(() => window.innerWidth >= 768);
 
   const {
     trainings,

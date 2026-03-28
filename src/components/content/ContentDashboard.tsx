@@ -28,7 +28,7 @@ const ContentDashboard = () => {
     archivedCount: 0,
     pendingReviews: 0,
   });
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(() => window.innerWidth >= 768);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
