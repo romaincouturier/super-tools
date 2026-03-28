@@ -127,70 +127,81 @@ const Ameliorations = () => {
           }
         />
 
-        {/* Filters */}
-        <div className="flex flex-wrap gap-4 mb-6">
-          <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-muted-foreground" />
-            <Select value={filterTraining} onValueChange={setFilterTraining}>
-              <SelectTrigger className="w-[250px]">
-                <SelectValue placeholder="Filtrer par formation" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Toutes les formations</SelectItem>
-                {trainings.map((t) => (
-                  <SelectItem key={t.id} value={t.id}>{t.training_name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <Select value={filterStatus} onValueChange={setFilterStatus}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Filtrer par statut" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tous les statuts</SelectItem>
-              <SelectItem value="draft">Brouillons</SelectItem>
-              <SelectItem value="pending">En attente</SelectItem>
-              <SelectItem value="in_progress">En cours</SelectItem>
-              <SelectItem value="completed">Terminées</SelectItem>
-              <SelectItem value="cancelled">Annulées</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        {/* Collapsible Filters + Stats */}
+        <Collapsible open={statsOpen} onOpenChange={setStatsOpen} className="mb-6">
+          <CollapsibleTrigger asChild>
+            <Button variant="ghost" size="sm" className="w-full justify-between mb-2">
+              <span className="font-medium">Filtres & Statistiques</span>
+              {statsOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            {/* Filters */}
+            <div className="flex flex-wrap gap-4 mb-4">
+              <div className="flex items-center gap-2">
+                <Filter className="h-4 w-4 text-muted-foreground" />
+                <Select value={filterTraining} onValueChange={setFilterTraining}>
+                  <SelectTrigger className="w-[250px]">
+                    <SelectValue placeholder="Filtrer par formation" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Toutes les formations</SelectItem>
+                    {trainings.map((t) => (
+                      <SelectItem key={t.id} value={t.id}>{t.training_name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Select value={filterStatus} onValueChange={setFilterStatus}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Filtrer par statut" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tous les statuts</SelectItem>
+                  <SelectItem value="draft">Brouillons</SelectItem>
+                  <SelectItem value="pending">En attente</SelectItem>
+                  <SelectItem value="in_progress">En cours</SelectItem>
+                  <SelectItem value="completed">Terminées</SelectItem>
+                  <SelectItem value="cancelled">Annulées</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Brouillons</CardTitle>
-              <div className="text-2xl font-bold">{stats.draft}</div>
-            </CardHeader>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">En attente</CardTitle>
-              <div className="text-2xl font-bold">{stats.pending}</div>
-            </CardHeader>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">En cours</CardTitle>
-              <div className="text-2xl font-bold">{stats.in_progress}</div>
-            </CardHeader>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Terminées</CardTitle>
-              <div className="text-2xl font-bold">{stats.completed}</div>
-            </CardHeader>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Total</CardTitle>
-              <div className="text-2xl font-bold">{stats.total}</div>
-            </CardHeader>
-          </Card>
-        </div>
+            {/* Stats */}
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Brouillons</CardTitle>
+                  <div className="text-2xl font-bold">{stats.draft}</div>
+                </CardHeader>
+              </Card>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">En attente</CardTitle>
+                  <div className="text-2xl font-bold">{stats.pending}</div>
+                </CardHeader>
+              </Card>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">En cours</CardTitle>
+                  <div className="text-2xl font-bold">{stats.in_progress}</div>
+                </CardHeader>
+              </Card>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Terminées</CardTitle>
+                  <div className="text-2xl font-bold">{stats.completed}</div>
+                </CardHeader>
+              </Card>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Total</CardTitle>
+                  <div className="text-2xl font-bold">{stats.total}</div>
+                </CardHeader>
+              </Card>
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
 
         {/* Content */}
         {viewMode === "kanban" ? (
