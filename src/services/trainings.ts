@@ -82,6 +82,6 @@ export async function fetchLinkableTrainings(fromDate: string) {
 
 // ── Compile-time contract check ─────────────────────────────────────
 ({
-  fetch: fetchAllTrainings,
-  fetchById: getTraining,
+  fetch: fetchAllTrainings as () => Promise<Record<string, unknown>[]>,
+  fetchById: getTraining as (id: string) => Promise<Record<string, unknown>>,
 }) satisfies ReadRepository<Record<string, unknown>>;
