@@ -1,4 +1,4 @@
-import { Users, Copy, Check, Clock, Heart, Send, CheckCircle2, AlertTriangle, Loader2 } from "lucide-react";
+import { Users, Copy, Check, Clock, Heart, Send, CheckCircle2, AlertTriangle, Loader2, Megaphone } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import ParticipantList from "@/components/formations/ParticipantList";
 import AddParticipantDialog from "@/components/formations/AddParticipantDialog";
 import BulkAddParticipantsDialog from "@/components/formations/BulkAddParticipantsDialog";
 import NeedsSurveySummaryDialog from "@/components/formations/NeedsSurveySummaryDialog";
+import BroadcastEmailDialog from "@/components/formations/BroadcastEmailDialog";
 import type { Training, Participant } from "@/hooks/useFormationDetail";
 import type { FormationFormula } from "@/types/training";
 
@@ -153,6 +154,20 @@ const FormationDetailParticipants = ({
           trainingName={training.training_name}
           completedCount={participants.filter(p => p.needs_survey_status === "complete").length}
         />
+
+        {/* Broadcast Email + Thank You Email Section */}
+        <div className="pt-4 border-t space-y-4">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium flex items-center gap-2">
+              <Megaphone className="h-4 w-4" />Communication groupée
+            </span>
+            <BroadcastEmailDialog
+              trainingId={training.id}
+              trainingName={training.training_name}
+              participantCount={participants.length}
+            />
+          </div>
+        </div>
 
         {/* Thank You Email Section */}
         <div className="pt-4 border-t space-y-2">
