@@ -162,10 +162,21 @@ export default function GenericKanbanBoard<
     }
     if (!overColId) return;
 
-    // Only handle cross-column moves in onDragOver.
-    // Same-column reordering is handled visually by SortableContext
-    // and committed in onDragEnd.
-    if (activeColId === overColId) return;
+    if (activeColId === overColId) {
+      // Same-column reorder: keep itemsMap in sync so handleDragEnd
+      // reads the correct position (critical after a cross-column move
+      // followed by within-column adjustment).
+      if (!overCard || activeId === overId) return;
+      setItemsMap((prev) => {
+        if (!prev) return prev;
+        const items = [...(prev[activeColId] || [])];
+        const oldIndex = items.indexOf(activeId);
+        const newIndex = items.indexOf(overId);
+        if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) return prev;
+        return { ...prev, [activeColId]: arrayMove(items, oldIndex, newIndex) };
+      });
+      return;
+    }
 
     setItemsMap((prev) => {
       if (!prev) return prev;
@@ -232,26 +243,22 @@ export default function GenericKanbanBoard<
     const card = cards.find((c) => c.id === active.id);
     if (!card || !finalMap) return;
 
-    // Find final column from the optimistic map
+    // Find final column and position from the optimistic map
+    // (itemsMap is kept in sync for both cross-column and same-column moves)
     const targetColumnId = findColumnForCard(finalMap, card.id);
     if (!targetColumnId) return;
 
-    let newPosition: number;
+    const targetItems = finalMap[targetColumnId] || [];
+    const newPosition = targetItems.indexOf(card.id);
+    if (newPosition === -1) return;
 
+    // Skip if card didn't actually move
     if (card.columnId === targetColumnId) {
-      // Same-column reorder: compute position from active/over
-      const columnCardIds = finalMap[targetColumnId] || [];
-      const oldIndex = columnCardIds.indexOf(card.id);
-      const overIsCard = cardById.has(overIdStr);
-      if (!overIsCard || overIdStr === card.id) return; // No real move
-      const newIndex = columnCardIds.indexOf(overIdStr);
-      if (oldIndex === -1 || newIndex === -1) return;
-      const reordered = arrayMove(columnCardIds, oldIndex, newIndex);
-      newPosition = reordered.indexOf(card.id);
-    } else {
-      // Cross-column move: position was already set in onDragOver
-      newPosition = (finalMap[targetColumnId] || []).indexOf(card.id);
-      if (newPosition === -1) return;
+      const originalCards = cards
+        .filter((c) => c.columnId === targetColumnId)
+        .sort((a, b) => a.position - b.position);
+      const originalIndex = originalCards.findIndex((c) => c.id === card.id);
+      if (originalIndex === newPosition) return;
     }
 
     const dropResult: KanbanDropResult<TCard> = {
