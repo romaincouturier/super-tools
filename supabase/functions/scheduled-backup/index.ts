@@ -989,41 +989,49 @@ serve(async (req) => {
     const dbErrors = errors.filter((e) => e.startsWith("[DB]")).length;
     const success = dbErrors === 0 && googleDriveResult !== null && (integrityResult?.passed !== false);
 
-    // ── Log activity ──
-    await supabase.from("activity_logs").insert({
-      action_type: "scheduled_backup",
-      recipient_email: "system",
-      details: {
-        success,
-        fileName,
-        tablesCount: TABLES_TO_BACKUP.length,
-        totalRows,
-        backupSizeMB,
-        googleDriveFileId: googleDriveResult?.id || null,
-        storage: {
-          bucketsCount: storageResults.length,
-          totalFiles: storageTotalFiles,
-          uploadedFiles: storageUploadedFiles,
-          totalSizeMB: storageTotalSizeMB,
-        },
-        deletedOldBackups,
-        gfsRetention: `${GFS_DAILY}d/${GFS_WEEKLY}w/${GFS_MONTHLY}m`,
-        integrity: integrityResult ? {
-          passed: integrityResult.passed,
-          tablesPresent: integrityResult.checks.tablesPresent,
-          tablesMissing: integrityResult.checks.tablesMissing.length,
-          rowCountMatches: integrityResult.checks.rowCountMatches,
-          rowCountMismatches: integrityResult.checks.rowCountMismatches.length,
-        } : null,
-        pgDump: pgDumpResult ? {
-          triggered: pgDumpResult.triggered,
-          uploadedToDrive: pgDumpResult.uploadedToDrive,
-          driveFileId: pgDumpResult.driveFileId,
-        } : null,
-        durationMs,
-        errors: errors.length > 0 ? errors : null,
+    // ── Log activity (update the early log or create new one) ──
+    const finalDetails = {
+      success,
+      fileName,
+      tablesCount: TABLES_TO_BACKUP.length,
+      totalRows,
+      backupSizeMB,
+      googleDriveFileId: googleDriveResult?.id || null,
+      storage: {
+        bucketsCount: storageResults.length,
+        totalFiles: storageTotalFiles,
+        uploadedFiles: storageUploadedFiles,
+        totalSizeMB: storageTotalSizeMB,
       },
-    });
+      deletedOldBackups,
+      gfsRetention: `${GFS_DAILY}d/${GFS_WEEKLY}w/${GFS_MONTHLY}m`,
+      integrity: integrityResult ? {
+        passed: integrityResult.passed,
+        tablesPresent: integrityResult.checks.tablesPresent,
+        tablesMissing: integrityResult.checks.tablesMissing.length,
+        rowCountMatches: integrityResult.checks.rowCountMatches,
+        rowCountMismatches: integrityResult.checks.rowCountMismatches.length,
+      } : null,
+      pgDump: pgDumpResult ? {
+        triggered: pgDumpResult.triggered,
+        uploadedToDrive: pgDumpResult.uploadedToDrive,
+        driveFileId: pgDumpResult.driveFileId,
+      } : null,
+      durationMs,
+      errors: errors.length > 0 ? errors : null,
+    };
+
+    if (earlyLogId) {
+      // Update the early log with final results
+      await supabase.from("activity_logs").update({ details: finalDetails }).eq("id", earlyLogId);
+    } else {
+      // Fallback: create a new log
+      await supabase.from("activity_logs").insert({
+        action_type: "scheduled_backup",
+        recipient_email: "system",
+        details: finalDetails,
+      });
+    }
 
     // ── Send email notification ──
     const adminEmail = await getSenderEmail();
