@@ -845,9 +845,9 @@ serve(async (req) => {
         );
 
         for (const bucket of STORAGE_BUCKETS) {
-          // Check remaining time (leave 30s margin for cleanup + email)
+          // Check remaining time (leave 15s margin for integrity check + email)
           const elapsed = Date.now() - startTime;
-          if (elapsed > 480_000) { // 8 min = leave 2 min for wrap-up (Pro plan 10 min limit)
+          if (elapsed > 35_000) { // 35s = leave ~25s for wrap-up (edge function ~60s limit)
             errors.push(`[Storage] Timeout après ${bucket} — buckets restants non sauvegardés`);
             break;
           }
