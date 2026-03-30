@@ -829,6 +829,45 @@ serve(async (req) => {
       const { data: earlyLog } = await supabase.from("activity_logs").insert(earlyLogPayload).select("id").single();
       earlyLogId = earlyLog?.id;
 
+      // ── Send early confirmation email (before storage phase which may timeout) ──
+      try {
+        const adminEmail = await getSenderEmail();
+        const bccList = await getBccList();
+        const dbDurationSec = ((Date.now() - startTime) / 1000).toFixed(1);
+        await sendEmail({
+          to: adminEmail,
+          bcc: bccList.filter(e => e !== adminEmail),
+          subject: `✅ Sauvegarde SuperTools ${today} — ${TABLES_TO_BACKUP.length} tables, ${totalRows.toLocaleString("fr-FR")} lignes`,
+          html: `
+            <div style="font-family: sans-serif; max-width: 600px;">
+              <h2 style="color: #16a34a;">Sauvegarde automatique réussie</h2>
+              <table style="width: 100%; border-collapse: collapse; margin: 8px 0;">
+                <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Date</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${today}</td></tr>
+                <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Tables</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${TABLES_TO_BACKUP.length}</td></tr>
+                <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Lignes</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${totalRows.toLocaleString("fr-FR")}</td></tr>
+                <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Taille JSON</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${backupSizeMB} Mo</td></tr>
+                <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Google Drive</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">✅ ${googleDriveResult.id}</td></tr>
+                <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Durée (DB)</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${dbDurationSec}s</td></tr>
+              </table>
+              ${errors.length > 0 ? `
+                <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 12px; margin-top: 16px;">
+                  <h3 style="color: #dc2626; margin: 0 0 8px 0;">Avertissements (${errors.length})</h3>
+                  <ul style="margin: 0; padding-left: 20px; color: #991b1b; font-size: 13px;">
+                    ${errors.slice(0, 10).map((e) => "<li>" + e + "</li>").join("")}
+                  </ul>
+                </div>
+              ` : ""}
+              <p style="color: #9ca3af; font-size: 12px; margin-top: 24px;">
+                Sauvegarde automatique SuperTools — Rétention GFS: ${GFS_DAILY}j / ${GFS_WEEKLY}s / ${GFS_MONTHLY}m
+              </p>
+            </div>
+          `,
+          _emailType: "scheduled_backup",
+        });
+        console.log("[scheduled-backup] Confirmation email sent to", adminEmail);
+      } catch (emailErr) {
+        console.warn("[scheduled-backup] Could not send early confirmation email:", emailErr);
+      }
       // ══════════════════════════════════════════════════════════════════════
       // PHASE 2: Storage files backup
       // ══════════════════════════════════════════════════════════════════════
