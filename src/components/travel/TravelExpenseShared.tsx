@@ -437,6 +437,17 @@ export function DestinationRow({
               {dest.transportMode === "taxi" ? "Course A/R (€)" : dest.transportMode === "other" ? "Coût A/R (€)" : "Billet A/R (€)"}
             </Label>
             <Input type="number" min="0" value={dest.ticketPriceRoundTrip || ""} onChange={(e) => onUpdate(dest.id, { ticketPriceRoundTrip: parseFloat(e.target.value) || 0 })} className="h-7 w-24 text-xs text-right" />
+            {dest.transportMode === "train" && dest.city && (
+              <a
+                href={`https://www.trainline.fr/search/${encodeURIComponent(dest.city)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[10px] text-primary hover:underline whitespace-nowrap"
+                title="Rechercher sur Trainline"
+              >
+                🚆 Trainline
+              </a>
+            )}
           </div>
         )}
       </div>
