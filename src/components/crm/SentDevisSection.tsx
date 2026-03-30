@@ -57,24 +57,51 @@ const SentDevisSection = ({ email, cardId, emails }: SentDevisSectionProps) => {
   const { data: sentDevis, isLoading, refetch } = useQuery({
     queryKey: ["crm-sent-devis", email, cardId],
     queryFn: async () => {
-      if (!email || !cardId) return [];
+      if (!cardId) return [];
 
-      const { data, error } = await supabase
-        .from("activity_logs")
-        .select("id, created_at, details")
-        .eq("action_type", "micro_devis_sent")
-        .eq("recipient_email", email)
-        .order("created_at", { ascending: false })
-        .limit(50);
+      // Query by cardId in JSONB details (primary) + fallback by email
+      const queries = [
+        supabase
+          .from("activity_logs")
+          .select("id, created_at, details")
+          .eq("action_type", "micro_devis_sent")
+          .contains("details", { crm_card_id: cardId })
+          .order("created_at", { ascending: false })
+          .limit(50),
+      ];
 
-      if (error) throw error;
+      // Also search by email if available (for older devis without crm_card_id)
+      if (email) {
+        queries.push(
+          supabase
+            .from("activity_logs")
+            .select("id, created_at, details")
+            .eq("action_type", "micro_devis_sent")
+            .eq("recipient_email", email)
+            .order("created_at", { ascending: false })
+            .limit(50)
+        );
+      }
 
-      const allDevis = (data || []) as SentDevis[];
-      return allDevis.filter(
-        (d) => d.details?.crm_card_id === cardId
-      );
+      const results = await Promise.all(queries);
+      const byCardId = (results[0].data || []) as SentDevis[];
+      const byEmail = results.length > 1
+        ? ((results[1].data || []) as SentDevis[]).filter(d => d.details?.crm_card_id === cardId)
+        : [];
+
+      // Merge & deduplicate
+      const seen = new Set<string>();
+      const merged: SentDevis[] = [];
+      for (const d of [...byCardId, ...byEmail]) {
+        if (!seen.has(d.id)) {
+          seen.add(d.id);
+          merged.push(d);
+        }
+      }
+      merged.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      return merged;
     },
-    enabled: !!email && !!cardId,
+    enabled: !!cardId,
   });
 
   // Build a unified timeline: emails + devis, sorted by date desc
