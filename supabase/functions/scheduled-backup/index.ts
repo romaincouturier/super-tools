@@ -829,6 +829,45 @@ serve(async (req) => {
       const { data: earlyLog } = await supabase.from("activity_logs").insert(earlyLogPayload).select("id").single();
       earlyLogId = earlyLog?.id;
 
+      // ── Send early confirmation email (before storage phase which may timeout) ──
+      try {
+        const adminEmail = await getSenderEmail();
+        const bccList = await getBccList();
+        const dbDurationSec = ((Date.now() - startTime) / 1000).toFixed(1);
+        await sendEmail({
+          to: adminEmail,
+          bcc: bccList.filter(e => e !== adminEmail),
+          subject: `✅ Sauvegarde SuperTools ${today} — ${TABLES_TO_BACKUP.length} tables, ${totalRows.toLocaleString("fr-FR")} lignes`,
+          html: `
+            <div style="font-family: sans-serif; max-width: 600px;">
+              <h2 style="color: #16a34a;">Sauvegarde automatique réussie</h2>
+              <table style="width: 100%; border-collapse: collapse; margin: 8px 0;">
+                <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Date</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${today}</td></tr>
+                <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Tables</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${TABLES_TO_BACKUP.length}</td></tr>
+                <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Lignes</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${totalRows.toLocaleString("fr-FR")}</td></tr>
+                <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Taille JSON</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${backupSizeMB} Mo</td></tr>
+                <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Google Drive</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">✅ ${googleDriveResult.id}</td></tr>
+                <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Durée (DB)</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${dbDurationSec}s</td></tr>
+              </table>
+              ${errors.length > 0 ? `
+                <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 12px; margin-top: 16px;">
+                  <h3 style="color: #dc2626; margin: 0 0 8px 0;">Avertissements (${errors.length})</h3>
+                  <ul style="margin: 0; padding-left: 20px; color: #991b1b; font-size: 13px;">
+                    ${errors.slice(0, 10).map((e) => "<li>" + e + "</li>").join("")}
+                  </ul>
+                </div>
+              ` : ""}
+              <p style="color: #9ca3af; font-size: 12px; margin-top: 24px;">
+                Sauvegarde automatique SuperTools — Rétention GFS: ${GFS_DAILY}j / ${GFS_WEEKLY}s / ${GFS_MONTHLY}m
+              </p>
+            </div>
+          `,
+          _emailType: "scheduled_backup",
+        });
+        console.log("[scheduled-backup] Confirmation email sent to", adminEmail);
+      } catch (emailErr) {
+        console.warn("[scheduled-backup] Could not send early confirmation email:", emailErr);
+      }
       // ══════════════════════════════════════════════════════════════════════
       // PHASE 2: Storage files backup
       // ══════════════════════════════════════════════════════════════════════
@@ -1034,100 +1073,7 @@ serve(async (req) => {
       });
     }
 
-    // ── Send email notification ──
-    const adminEmail = await getSenderEmail();
-    const bccList = await getBccList();
-    const statusEmoji = success ? "✅" : "⚠️";
-    const statusText = success ? "réussie" : "avec des erreurs";
-
-    const storageRowsHtml = storageResults
-      .map(
-        (r) =>
-          `<tr><td style="padding: 4px 8px; color: #6b7280;">${r.bucket}</td><td style="padding: 4px 8px;">${r.uploadedFiles}/${r.filesCount}</td><td style="padding: 4px 8px;">${r.errors.length > 0 ? "⚠️" : "✅"}</td></tr>`,
-      )
-      .join("");
-
-    await sendEmail({
-      to: adminEmail,
-      bcc: bccList.filter(e => e !== adminEmail),
-      subject: `${statusEmoji} Sauvegarde SuperTools ${today} ${statusText}`,
-      html: `
-        <div style="font-family: sans-serif; max-width: 600px;">
-          <h2 style="color: ${success ? "#16a34a" : "#dc2626"};">
-            Sauvegarde automatique ${statusText}
-          </h2>
-
-          <h3 style="margin-top: 20px; color: #374151;">Base de données</h3>
-          <table style="width: 100%; border-collapse: collapse; margin: 8px 0;">
-            <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Tables</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${TABLES_TO_BACKUP.length}</td></tr>
-            <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Lignes</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${totalRows.toLocaleString("fr-FR")}</td></tr>
-            <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Taille JSON</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${backupSizeMB} Mo</td></tr>
-            <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Google Drive</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${googleDriveResult ? "✅" : "❌"}</td></tr>
-          </table>
-
-          <h3 style="margin-top: 20px; color: #374151;">Fichiers Storage</h3>
-          <table style="width: 100%; border-collapse: collapse; margin: 8px 0;">
-            <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Buckets traités</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${storageResults.length}/${STORAGE_BUCKETS.length}</td></tr>
-            <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Fichiers copiés</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${storageUploadedFiles}/${storageTotalFiles}</td></tr>
-            <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Taille totale</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${storageTotalSizeMB} Mo</td></tr>
-          </table>
-
-          ${storageResults.length > 0 ? `
-            <details style="margin-top: 8px;">
-              <summary style="cursor: pointer; color: #6b7280; font-size: 13px;">Détail par bucket</summary>
-              <table style="width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 13px;">
-                <tr style="background: #f3f4f6;"><th style="padding: 4px 8px; text-align: left;">Bucket</th><th style="padding: 4px 8px;">Fichiers</th><th style="padding: 4px 8px;">Statut</th></tr>
-                ${storageRowsHtml}
-              </table>
-            </details>
-          ` : ""}
-
-          <h3 style="margin-top: 20px; color: #374151;">Vérification d'intégrité</h3>
-          <table style="width: 100%; border-collapse: collapse; margin: 8px 0;">
-            <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Résultat</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${integrityResult ? (integrityResult.passed ? "✅ Validé" : "⚠️ Anomalies détectées") : "⏭️ Non exécuté"}</td></tr>
-            ${integrityResult ? `
-              <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">JSON parseable</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${integrityResult.checks.jsonParseable ? "✅" : "❌"}</td></tr>
-              <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Tables présentes</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${integrityResult.checks.tablesPresent}/${TABLES_TO_BACKUP.length}</td></tr>
-              <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Row counts identiques</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${integrityResult.checks.rowCountMatches}/${TABLES_TO_BACKUP.length} ${integrityResult.checks.rowCountMismatches.length > 0 ? `(${integrityResult.checks.rowCountMismatches.length} écarts)` : ""}</td></tr>
-            ` : ""}
-          </table>
-
-          ${pgDumpResult || managementApiKey ? `
-            <h3 style="margin-top: 20px; color: #374151;">Backup PostgreSQL natif</h3>
-            <table style="width: 100%; border-collapse: collapse; margin: 8px 0;">
-              ${pgDumpResult ? `
-                <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Déclenché</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${pgDumpResult.triggered ? "✅" : "❌"}</td></tr>
-                <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Google Drive</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${pgDumpResult.uploadedToDrive ? "✅" : "❌"} ${pgDumpResult.error ? `(${pgDumpResult.error})` : ""}</td></tr>
-              ` : `
-                <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Statut</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">⏭️ SUPABASE_MANAGEMENT_API_KEY non configurée</td></tr>
-              `}
-            </table>
-          ` : ""}
-
-          <h3 style="margin-top: 20px; color: #374151;">Rétention & Nettoyage</h3>
-          <table style="width: 100%; border-collapse: collapse; margin: 8px 0;">
-            <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Politique GFS</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${GFS_DAILY} quotidiens, ${GFS_WEEKLY} hebdo, ${GFS_MONTHLY} mensuels</td></tr>
-            <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Anciens backups supprimés</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${deletedOldBackups}</td></tr>
-            <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Durée totale</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${(durationMs / 1000).toFixed(1)}s</td></tr>
-          </table>
-
-          ${errors.length > 0 ? `
-            <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 12px; margin-top: 16px;">
-              <h3 style="color: #dc2626; margin: 0 0 8px 0;">Erreurs (${errors.length})</h3>
-              <ul style="margin: 0; padding-left: 20px; color: #991b1b; font-size: 13px;">
-                ${errors.slice(0, 15).map((e) => `<li style="margin-bottom: 4px;">${e}</li>`).join("")}
-                ${errors.length > 15 ? `<li>... et ${errors.length - 15} autres</li>` : ""}
-              </ul>
-            </div>
-          ` : ""}
-
-          <p style="color: #9ca3af; font-size: 12px; margin-top: 24px;">
-            Sauvegarde automatique SuperTools — GFS: ${GFS_DAILY}j / ${GFS_WEEKLY}s / ${GFS_MONTHLY}m
-          </p>
-        </div>
-      `,
-      _emailType: "scheduled_backup",
-    });
+    // Email already sent early (before storage phase) to avoid timeout issues
 
     return createJsonResponse({
       success,
