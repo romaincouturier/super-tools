@@ -166,8 +166,11 @@ const MicroDevis = () => {
       formatFormation, formationDemandee, formationLibre, dateFormation,
       dateFormationLibre, lieu, lieuAutre, nomClient, emailCommanditaire, typeDevis,
       selectedFormulaId: formulasHook.selectedFormulaId,
+      adresseClient, codePostalClient, villeClient, pays, paysAutre,
+      civiliteCommanditaire, prenomCommanditaire, nomCommanditaire,
+      isAdministration, noteDevis, participants, includeCadeau, fraisDossier, typeSubrogation,
     }));
-  }, [formatFormation, formationDemandee, formationLibre, dateFormation, dateFormationLibre, lieu, lieuAutre, nomClient, emailCommanditaire, typeDevis, formulasHook.selectedFormulaId]);
+  }, [formatFormation, formationDemandee, formationLibre, dateFormation, dateFormationLibre, lieu, lieuAutre, nomClient, emailCommanditaire, typeDevis, formulasHook.selectedFormulaId, adresseClient, codePostalClient, villeClient, pays, paysAutre, civiliteCommanditaire, prenomCommanditaire, nomCommanditaire, isAdministration, noteDevis, participants, includeCadeau, fraisDossier, typeSubrogation]);
 
   // Auto-set lieu
   useEffect(() => {
