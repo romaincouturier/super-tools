@@ -768,6 +768,7 @@ serve(async (req) => {
     let storageTotalFiles = 0;
     let storageUploadedFiles = 0;
     let storageTotalSizeMB = "0";
+    let earlyLogId: string | undefined;
 
     // Find first user with Google Drive tokens
     const { data: tokenRow } = await supabase
@@ -804,6 +805,30 @@ serve(async (req) => {
       googleDriveResult = await uploadJsonToGoogleDrive(accessToken, fileName, backupJson, rootFolderId);
       console.log("[scheduled-backup] DB backup uploaded to Google Drive:", googleDriveResult.id);
 
+      // ── Write an early activity log so the UI shows the latest backup even if storage phase times out ──
+      const earlyLogPayload = {
+        action_type: "scheduled_backup",
+        recipient_email: "system",
+        details: {
+          success: true,
+          fileName,
+          tablesCount: TABLES_TO_BACKUP.length,
+          totalRows,
+          backupSizeMB,
+          googleDriveFileId: googleDriveResult.id,
+          storage: null,
+          deletedOldBackups: 0,
+          gfsRetention: `${GFS_DAILY}d/${GFS_WEEKLY}w/${GFS_MONTHLY}m`,
+          integrity: null,
+          pgDump: null,
+          durationMs: Date.now() - startTime,
+          errors: errors.length > 0 ? errors : null,
+          _partial: true,
+        },
+      };
+      const { data: earlyLog } = await supabase.from("activity_logs").insert(earlyLogPayload).select("id").single();
+      earlyLogId = earlyLog?.id;
+
       // ══════════════════════════════════════════════════════════════════════
       // PHASE 2: Storage files backup
       // ══════════════════════════════════════════════════════════════════════
@@ -820,9 +845,9 @@ serve(async (req) => {
         );
 
         for (const bucket of STORAGE_BUCKETS) {
-          // Check remaining time (leave 30s margin for cleanup + email)
+          // Check remaining time (leave 15s margin for integrity check + email)
           const elapsed = Date.now() - startTime;
-          if (elapsed > 480_000) { // 8 min = leave 2 min for wrap-up (Pro plan 10 min limit)
+          if (elapsed > 35_000) { // 35s = leave ~25s for wrap-up (edge function ~60s limit)
             errors.push(`[Storage] Timeout après ${bucket} — buckets restants non sauvegardés`);
             break;
           }
@@ -965,41 +990,49 @@ serve(async (req) => {
     const dbErrors = errors.filter((e) => e.startsWith("[DB]")).length;
     const success = dbErrors === 0 && googleDriveResult !== null && (integrityResult?.passed !== false);
 
-    // ── Log activity ──
-    await supabase.from("activity_logs").insert({
-      action_type: "scheduled_backup",
-      recipient_email: "system",
-      details: {
-        success,
-        fileName,
-        tablesCount: TABLES_TO_BACKUP.length,
-        totalRows,
-        backupSizeMB,
-        googleDriveFileId: googleDriveResult?.id || null,
-        storage: {
-          bucketsCount: storageResults.length,
-          totalFiles: storageTotalFiles,
-          uploadedFiles: storageUploadedFiles,
-          totalSizeMB: storageTotalSizeMB,
-        },
-        deletedOldBackups,
-        gfsRetention: `${GFS_DAILY}d/${GFS_WEEKLY}w/${GFS_MONTHLY}m`,
-        integrity: integrityResult ? {
-          passed: integrityResult.passed,
-          tablesPresent: integrityResult.checks.tablesPresent,
-          tablesMissing: integrityResult.checks.tablesMissing.length,
-          rowCountMatches: integrityResult.checks.rowCountMatches,
-          rowCountMismatches: integrityResult.checks.rowCountMismatches.length,
-        } : null,
-        pgDump: pgDumpResult ? {
-          triggered: pgDumpResult.triggered,
-          uploadedToDrive: pgDumpResult.uploadedToDrive,
-          driveFileId: pgDumpResult.driveFileId,
-        } : null,
-        durationMs,
-        errors: errors.length > 0 ? errors : null,
+    // ── Log activity (update the early log or create new one) ──
+    const finalDetails = {
+      success,
+      fileName,
+      tablesCount: TABLES_TO_BACKUP.length,
+      totalRows,
+      backupSizeMB,
+      googleDriveFileId: googleDriveResult?.id || null,
+      storage: {
+        bucketsCount: storageResults.length,
+        totalFiles: storageTotalFiles,
+        uploadedFiles: storageUploadedFiles,
+        totalSizeMB: storageTotalSizeMB,
       },
-    });
+      deletedOldBackups,
+      gfsRetention: `${GFS_DAILY}d/${GFS_WEEKLY}w/${GFS_MONTHLY}m`,
+      integrity: integrityResult ? {
+        passed: integrityResult.passed,
+        tablesPresent: integrityResult.checks.tablesPresent,
+        tablesMissing: integrityResult.checks.tablesMissing.length,
+        rowCountMatches: integrityResult.checks.rowCountMatches,
+        rowCountMismatches: integrityResult.checks.rowCountMismatches.length,
+      } : null,
+      pgDump: pgDumpResult ? {
+        triggered: pgDumpResult.triggered,
+        uploadedToDrive: pgDumpResult.uploadedToDrive,
+        driveFileId: pgDumpResult.driveFileId,
+      } : null,
+      durationMs,
+      errors: errors.length > 0 ? errors : null,
+    };
+
+    if (earlyLogId) {
+      // Update the early log with final results
+      await supabase.from("activity_logs").update({ details: finalDetails }).eq("id", earlyLogId);
+    } else {
+      // Fallback: create a new log
+      await supabase.from("activity_logs").insert({
+        action_type: "scheduled_backup",
+        recipient_email: "system",
+        details: finalDetails,
+      });
+    }
 
     // ── Send email notification ──
     const adminEmail = await getSenderEmail();
