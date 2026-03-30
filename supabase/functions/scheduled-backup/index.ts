@@ -768,6 +768,7 @@ serve(async (req) => {
     let storageTotalFiles = 0;
     let storageUploadedFiles = 0;
     let storageTotalSizeMB = "0";
+    let earlyLogId: string | undefined;
 
     // Find first user with Google Drive tokens
     const { data: tokenRow } = await supabase
