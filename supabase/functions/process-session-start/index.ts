@@ -372,9 +372,7 @@ serve(async (req) => {
     // For schedules that started in the morning but have PM periods,
     // trigger PM sending when current time is around 14:00 (13:45–14:15)
     // =============================================
-    const parisNow = new Date(now.toLocaleString("en-US", { timeZone: "Europe/Paris" }));
-    const parisHour = parisNow.getHours();
-    const parisMin = parisNow.getMinutes();
+    // Use parisHour/parisMin computed at the top
     const isAfternoonWindow = (parisHour === 13 && parisMin >= 45) || (parisHour === 14 && parisMin <= 15);
 
     if (isAfternoonWindow) {
