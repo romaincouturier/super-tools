@@ -33,15 +33,23 @@ serve(async (req) => {
     const baseUrl = urls.app_url;
 
     const now = new Date();
-    // Window: from 15 minutes ago to now (so we catch any slot that started in the last 15 min)
+    
+    // Convert everything to Paris time since schedules are stored in French local time
+    const parisFormatter = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Paris", year: "numeric", month: "2-digit", day: "2-digit" });
+    const parisTimeFormatter = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Paris", hour: "2-digit", minute: "2-digit", hour12: false });
+    
+    const today = parisFormatter.format(now); // "YYYY-MM-DD" in Paris time
+    
     const windowStart = new Date(now.getTime() - 15 * 60 * 1000);
-    const windowEnd = now;
+    const windowStartTime = parisTimeFormatter.format(windowStart); // "HH:MM" in Paris time
+    const windowEndTime = parisTimeFormatter.format(now);
+    
+    // Paris hour/minute for afternoon window check
+    const parisHourMin = parisTimeFormatter.format(now).split(":");
+    const parisHour = parseInt(parisHourMin[0]);
+    const parisMin = parseInt(parisHourMin[1]);
 
-    const windowStartTime = windowStart.toTimeString().slice(0, 5); // "HH:MM"
-    const windowEndTime = windowEnd.toTimeString().slice(0, 5);
-    const today = now.toISOString().slice(0, 10); // "YYYY-MM-DD"
-
-    console.log(`[process-session-start] Checking slots on ${today} between ${windowStartTime} and ${windowEndTime}`);
+    console.log(`[process-session-start] Checking slots on ${today} (Paris) between ${windowStartTime} and ${windowEndTime}`);
 
     // Find training schedules that started in the last 15 minutes
     // for intra or inter-entreprises formations
@@ -364,9 +372,7 @@ serve(async (req) => {
     // For schedules that started in the morning but have PM periods,
     // trigger PM sending when current time is around 14:00 (13:45–14:15)
     // =============================================
-    const parisNow = new Date(now.toLocaleString("en-US", { timeZone: "Europe/Paris" }));
-    const parisHour = parisNow.getHours();
-    const parisMin = parisNow.getMinutes();
+    // Use parisHour/parisMin computed at the top
     const isAfternoonWindow = (parisHour === 13 && parisMin >= 45) || (parisHour === 14 && parisMin <= 15);
 
     if (isAfternoonWindow) {
