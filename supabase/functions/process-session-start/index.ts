@@ -102,17 +102,16 @@ serve(async (req) => {
       const scheduleId = schedule.id;
       const scheduleDate = schedule.day_date;
 
-      // Determine which periods this slot covers
+      // Determine which period to send NOW based on start_time
+      // Only send the period that matches the current window — don't send PM at morning start
       const startHour = parseInt(schedule.start_time.slice(0, 2));
-      const endHour = parseInt(schedule.end_time.slice(0, 2));
-      const endMin = parseInt(schedule.end_time.slice(3, 5));
-
-      const hasAM = startHour < 13;
-      const hasPM = endHour > 13 || (endHour === 13 && endMin > 0);
 
       const periodsToProcess: string[] = [];
-      if (hasAM) periodsToProcess.push("AM");
-      if (hasPM) periodsToProcess.push("PM");
+      if (startHour < 13) {
+        periodsToProcess.push("AM");
+      } else {
+        periodsToProcess.push("PM");
+      }
 
       // Format date for display — add T12:00 to avoid UTC date shift
       const dateObj = new Date(scheduleDate + "T12:00:00");
@@ -361,6 +360,192 @@ serve(async (req) => {
     }
 
     // =============================================
+    // PART 1b: Send PM for full-day sessions at ~14:00
+    // For schedules that started in the morning but have PM periods,
+    // trigger PM sending when current time is around 14:00 (13:45–14:15)
+    // =============================================
+    const parisNow = new Date(now.toLocaleString("en-US", { timeZone: "Europe/Paris" }));
+    const parisHour = parisNow.getHours();
+    const parisMin = parisNow.getMinutes();
+    const isAfternoonWindow = (parisHour === 13 && parisMin >= 45) || (parisHour === 14 && parisMin <= 15);
+
+    if (isAfternoonWindow) {
+      console.log(`[process-session-start] Checking for full-day PM slots at ${parisHour}:${parisMin}`);
+
+      // Find today's schedules that span both AM and PM (start before 13, end after 13)
+      const { data: fullDaySchedules } = await supabase
+        .from("training_schedules")
+        .select(`
+          id,
+          training_id,
+          day_date,
+          start_time,
+          end_time,
+          trainings!inner (
+            id,
+            training_name,
+            location,
+            format_formation,
+            trainer_id,
+            trainer_name,
+            trainers (
+              id,
+              email,
+              first_name,
+              last_name
+            )
+          )
+        `)
+        .eq("day_date", today)
+        .lt("start_time", "13:00:00")
+        .gt("end_time", "13:00:00")
+        .not("trainings.format_formation", "eq", "elearning");
+
+      if (fullDaySchedules && fullDaySchedules.length > 0) {
+        console.log(`[process-session-start] Found ${fullDaySchedules.length} full-day schedule(s) needing PM`);
+
+        for (const schedule of fullDaySchedules) {
+          const training = schedule.trainings as any;
+          const trainingId = schedule.training_id;
+          const scheduleId = schedule.id;
+          const scheduleDate = schedule.day_date;
+          const period = "PM";
+
+          // Check if PM already processed
+          const { data: existing } = await supabase
+            .from("session_start_notifications")
+            .select("id, signature_sent_at")
+            .eq("training_schedule_id", scheduleId)
+            .eq("period", period)
+            .maybeSingle();
+
+          if (existing?.signature_sent_at) {
+            console.log(`[process-session-start] PM already processed for ${scheduleId}, skipping`);
+            continue;
+          }
+
+          // Format date for display
+          const dateObj = new Date(scheduleDate + "T12:00:00");
+          const formattedDate = dateObj.toLocaleDateString("fr-FR", {
+            timeZone: "Europe/Paris",
+            weekday: "long",
+            day: "numeric",
+            month: "long",
+            year: "numeric",
+          });
+
+          const startTimeDisplay = schedule.start_time.slice(0, 5).replace(":", "h");
+          const endTimeDisplay = schedule.end_time.slice(0, 5).replace(":", "h");
+
+          // Fetch participants
+          const { data: participants } = await supabase
+            .from("training_participants")
+            .select("id, first_name, last_name, email")
+            .eq("training_id", trainingId);
+
+          if (!participants || participants.length === 0) continue;
+
+          // Reserve the slot
+          const { error: upsertError } = await supabase
+            .from("session_start_notifications")
+            .upsert({
+              training_schedule_id: scheduleId,
+              period,
+              participants_count: participants.length,
+            }, { onConflict: "training_schedule_id,period" });
+
+          if (upsertError) {
+            console.error(`[process-session-start] Error upserting PM notification:`, upsertError);
+            continue;
+          }
+
+          const periodLabel = "Après-midi";
+          const timeRange = `14h00 - ${endTimeDisplay}`;
+
+          let signaturesSent = 0;
+
+          for (const participant of participants) {
+            try {
+              const { data: existingSignature } = await supabase
+                .from("attendance_signatures")
+                .select("id, signed_at, email_sent_at, token")
+                .eq("training_id", trainingId)
+                .eq("participant_id", participant.id)
+                .eq("schedule_date", scheduleDate)
+                .eq("period", period)
+                .maybeSingle();
+
+              if (existingSignature?.signed_at || existingSignature?.email_sent_at) continue;
+
+              let token: string;
+              if (existingSignature) {
+                token = existingSignature.token;
+              } else {
+                token = crypto.randomUUID();
+                const { error: insertError } = await supabase
+                  .from("attendance_signatures")
+                  .insert({
+                    training_id: trainingId,
+                    participant_id: participant.id,
+                    schedule_date: scheduleDate,
+                    period,
+                    token,
+                  });
+                if (insertError) continue;
+              }
+
+              const signatureUrl = `${baseUrl}/emargement/${token}`;
+              const greeting = participant.first_name ? `Bonjour ${participant.first_name}` : "Bonjour";
+              const emailHtml = `
+                <p>${greeting},</p>
+                <p>Merci de bien vouloir signer votre feuille d'émargement pour la session <strong>${periodLabel}</strong> (${timeRange}) de la formation "<strong>${training.training_name}</strong>" du ${formattedDate}.</p>
+                ${emailButton(signatureUrl, "✍️ Signer ma feuille d'émargement")}
+                <p style="margin-top:16px;font-size:13px;color:#888;">Cette signature atteste de votre présence à la formation.</p>
+                ${signature}
+              `;
+
+              const result = await sendEmail({
+                from: senderFrom,
+                to: [participant.email],
+                bcc: bccList,
+                subject: `Émargement ${periodLabel} - ${training.training_name}`,
+                html: emailHtml,
+                _emailType: "attendance_signature_request",
+                _trainingId: trainingId,
+                _participantId: participant.id,
+              });
+
+              if (result.success) {
+                await supabase
+                  .from("attendance_signatures")
+                  .update({ email_sent_at: new Date().toISOString() })
+                  .eq("training_id", trainingId)
+                  .eq("participant_id", participant.id)
+                  .eq("schedule_date", scheduleDate)
+                  .eq("period", period);
+                signaturesSent++;
+                totalSignaturesSent++;
+              }
+            } catch (err) {
+              console.error(`[process-session-start] PM error for ${participant.email}:`, err);
+            }
+          }
+
+          // Mark PM as sent
+          await supabase
+            .from("session_start_notifications")
+            .update({
+              signature_sent_at: new Date().toISOString(),
+            })
+            .eq("training_schedule_id", scheduleId)
+            .eq("period", period);
+
+          console.log(`[process-session-start] PM signatures sent: ${signaturesSent} for ${training.training_name}`);
+        }
+      }
+    }
+
+    //
     // PART 2: Process live meetings starting now
     // =============================================
     let livesProcessed = 0;
