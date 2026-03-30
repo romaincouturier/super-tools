@@ -827,7 +827,7 @@ serve(async (req) => {
         },
       };
       const { data: earlyLog } = await supabase.from("activity_logs").insert(earlyLogPayload).select("id").single();
-      const earlyLogId = earlyLog?.id;
+      earlyLogId = earlyLog?.id;
 
       // ══════════════════════════════════════════════════════════════════════
       // PHASE 2: Storage files backup
