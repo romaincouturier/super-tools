@@ -103,6 +103,6 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error("Error in send-broadcast-email:", error);
-    return createErrorResponse(error.message || "Internal server error", 500);
+    return createErrorResponse(error instanceof Error ? error.message : "Internal server error", 500);
   }
 });
