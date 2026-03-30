@@ -102,17 +102,16 @@ serve(async (req) => {
       const scheduleId = schedule.id;
       const scheduleDate = schedule.day_date;
 
-      // Determine which periods this slot covers
+      // Determine which period to send NOW based on start_time
+      // Only send the period that matches the current window — don't send PM at morning start
       const startHour = parseInt(schedule.start_time.slice(0, 2));
-      const endHour = parseInt(schedule.end_time.slice(0, 2));
-      const endMin = parseInt(schedule.end_time.slice(3, 5));
-
-      const hasAM = startHour < 13;
-      const hasPM = endHour > 13 || (endHour === 13 && endMin > 0);
 
       const periodsToProcess: string[] = [];
-      if (hasAM) periodsToProcess.push("AM");
-      if (hasPM) periodsToProcess.push("PM");
+      if (startHour < 13) {
+        periodsToProcess.push("AM");
+      } else {
+        periodsToProcess.push("PM");
+      }
 
       // Format date for display — add T12:00 to avoid UTC date shift
       const dateObj = new Date(scheduleDate + "T12:00:00");
