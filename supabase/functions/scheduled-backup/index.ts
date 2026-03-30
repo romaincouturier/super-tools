@@ -804,6 +804,30 @@ serve(async (req) => {
       googleDriveResult = await uploadJsonToGoogleDrive(accessToken, fileName, backupJson, rootFolderId);
       console.log("[scheduled-backup] DB backup uploaded to Google Drive:", googleDriveResult.id);
 
+      // ── Write an early activity log so the UI shows the latest backup even if storage phase times out ──
+      const earlyLogPayload = {
+        action_type: "scheduled_backup",
+        recipient_email: "system",
+        details: {
+          success: true,
+          fileName,
+          tablesCount: TABLES_TO_BACKUP.length,
+          totalRows,
+          backupSizeMB,
+          googleDriveFileId: googleDriveResult.id,
+          storage: null,
+          deletedOldBackups: 0,
+          gfsRetention: `${GFS_DAILY}d/${GFS_WEEKLY}w/${GFS_MONTHLY}m`,
+          integrity: null,
+          pgDump: null,
+          durationMs: Date.now() - startTime,
+          errors: errors.length > 0 ? errors : null,
+          _partial: true,
+        },
+      };
+      const { data: earlyLog } = await supabase.from("activity_logs").insert(earlyLogPayload).select("id").single();
+      const earlyLogId = earlyLog?.id;
+
       // ══════════════════════════════════════════════════════════════════════
       // PHASE 2: Storage files backup
       // ══════════════════════════════════════════════════════════════════════
