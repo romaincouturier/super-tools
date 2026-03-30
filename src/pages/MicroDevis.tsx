@@ -132,6 +132,20 @@ const MicroDevis = () => {
         if (d.emailCommanditaire) setEmailCommanditaire(d.emailCommanditaire);
         if (d.typeDevis) setTypeDevis(d.typeDevis);
         if (d.selectedFormulaId) pendingFormulaIdRef.current = d.selectedFormulaId;
+        if (d.adresseClient) setAdresseClient(d.adresseClient);
+        if (d.codePostalClient) setCodePostalClient(d.codePostalClient);
+        if (d.villeClient) setVilleClient(d.villeClient);
+        if (d.pays) setPays(d.pays);
+        if (d.paysAutre) setPaysAutre(d.paysAutre);
+        if (d.civiliteCommanditaire) setCiviliteCommanditaire(d.civiliteCommanditaire);
+        if (d.prenomCommanditaire) setPrenomCommanditaire(d.prenomCommanditaire);
+        if (d.nomCommanditaire) setNomCommanditaire(d.nomCommanditaire);
+        if (d.isAdministration) setIsAdministration(d.isAdministration);
+        if (d.noteDevis) setNoteDevis(d.noteDevis);
+        if (d.participants) setParticipants(d.participants);
+        if (d.includeCadeau !== undefined) setIncludeCadeau(d.includeCadeau);
+        if (d.fraisDossier) setFraisDossier(d.fraisDossier);
+        if (d.typeSubrogation) setTypeSubrogation(d.typeSubrogation);
       }
     } catch (e) { console.error("Failed to load saved form data:", e); }
   }, [searchParams]);
