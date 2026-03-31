@@ -696,10 +696,12 @@ END:VCALENDAR`;
         )}
 
         {/* ═══ SECTION: Support de formation ═══ */}
-        <SupportViewer
-          trainingId={training.id}
-          colors={c}
-        />
+        <div id="support" className="scroll-mt-20">
+          <SupportViewer
+            trainingId={training.id}
+            colors={c}
+          />
+        </div>
 
         {/* ═══ SECTION: Formateur ═══ */}
         {trainer && (
