@@ -125,6 +125,14 @@ const SupportViewer = ({ trainingId, allowUnpublished = false, showUnavailableSt
   );
 };
 
+const SupportUnavailableState = ({ title, description }: { title: string; description: string }) => (
+  <section className="rounded-xl p-6 border text-center" style={{ background: "hsl(var(--card))", borderColor: "hsl(var(--border))" }}>
+    <BookOpen className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+    <h3 className="text-base font-semibold text-foreground mb-1">{title}</h3>
+    <p className="text-sm text-muted-foreground">{description}</p>
+  </section>
+);
+
 /** Each section only renders its heavy media once it scrolls into view */
 const LazySection = ({
   section, idx, media, colors: c,
