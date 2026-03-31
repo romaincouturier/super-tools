@@ -44,6 +44,7 @@ const SignatureConvention = lazy(() => import("./pages/SignatureConvention"));
 const ContentBoard = lazy(() => import("./pages/ContentBoard"));
 const BesoinsParticipants = lazy(() => import("./pages/BesoinsParticipants"));
 const TrainingSummary = lazy(() => import("./pages/TrainingSummary"));
+const TrainingSupportPage = lazy(() => import("./pages/TrainingSupportPage"));
 const ChatbotAdmin = lazy(() => import("./pages/ChatbotAdmin"));
 const InboundEmails = lazy(() => import("./pages/InboundEmails"));
 const Statistiques = lazy(() => import("./pages/Statistiques"));
@@ -187,6 +188,7 @@ const App = () => (
               <Route path="/signature-convention/:token" element={<SignatureConvention />} />
               {/* Public training summary for participants */}
               <Route path="/formation-info/:trainingId" element={<TrainingSummary />} />
+              <Route path="/formation-support/:trainingId" element={<TrainingSupportPage />} />
               <Route path="/mission-info/:missionId" element={<MissionSummary />} />
               {/* Privacy policy */}
               <Route path="/politique-confidentialite" element={<PolitiqueConfidentialite />} />
