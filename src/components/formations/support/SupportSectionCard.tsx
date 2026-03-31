@@ -279,8 +279,23 @@ const SupportSectionCard = ({
                 {imp.file_type === "image" ? (
                   <img src={imp.file_url} alt={imp.file_name} className="w-full h-full object-cover" />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-muted">
-                    <Video className="h-6 w-6 text-muted-foreground" />
+                  <div className="w-full h-full relative bg-muted">
+                    <video
+                      src={`${imp.file_url}#t=0.1`}
+                      className="w-full h-full object-cover"
+                      preload="metadata"
+                      muted
+                      playsInline
+                      onError={(e) => {
+                        e.currentTarget.style.display = "none";
+                      }}
+                    />
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/20 gap-0.5">
+                      <Video className="h-4 w-4 text-white drop-shadow" />
+                      {imp.file_name.toLowerCase().endsWith(".mov") && (
+                        <span className="text-[9px] text-white/80">MOV</span>
+                      )}
+                    </div>
                   </div>
                 )}
               </button>

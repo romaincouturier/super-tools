@@ -101,9 +101,21 @@ const SupportBulkImport = ({ supportId, imports }: SupportBulkImportProps) => {
             {imp.file_type === "image" ? (
               <img src={imp.file_url} alt={imp.file_name} className="w-full h-full object-cover" loading="lazy" />
             ) : (
-              <div className="w-full h-full flex flex-col items-center justify-center bg-muted gap-1">
-                <Video className="h-5 w-5 text-muted-foreground" />
-                <span className="text-[9px] text-muted-foreground truncate w-full text-center px-1">{imp.file_name}</span>
+              <div className="w-full h-full relative bg-muted">
+                <video
+                  src={`${imp.file_url}#t=0.1`}
+                  className="w-full h-full object-cover"
+                  preload="metadata"
+                  muted
+                  playsInline
+                  onError={(e) => {
+                    e.currentTarget.style.display = "none";
+                  }}
+                />
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/20 gap-0.5 px-1">
+                  <Video className="h-4 w-4 text-white drop-shadow" />
+                  <span className="text-[9px] text-white/80 truncate w-full text-center">{imp.file_name}</span>
+                </div>
               </div>
             )}
           </div>
